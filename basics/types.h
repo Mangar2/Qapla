@@ -66,7 +66,7 @@ namespace ChessBasics {
 	 * Names of chess board files
 	 */
 	enum class File {
-		A, B, C, D, E, F, G, H, NONE
+		A, B, C, D, E, F, G, H, COUNT, NONE
 	};
 
 	constexpr File operator+(File a, int32_t b) { return File(int32_t(a) + b); }
@@ -79,7 +79,7 @@ namespace ChessBasics {
 	 * Names of chess board ranks
 	 */
 	enum class Rank {
-		R1, R2, R3, R4, R5, R6, R7, R8, NONE
+		R1, R2, R3, R4, R5, R6, R7, R8, COUNT, NONE
 	};
 
 	constexpr Rank operator+(Rank a, int32_t b) { return Rank(int32_t(a) + b); }
@@ -93,6 +93,13 @@ namespace ChessBasics {
 	 */
 	static Rank getRank(Square square) {
 		return Rank(square / NORTH);
+	}
+
+	/**
+	 * Gets the opposit rank of a square
+	 */
+	static Rank getOppositRank(Square square) {
+		return Rank::R8 - Square(getRank(square));
 	}
 
 	/**
@@ -169,10 +176,13 @@ namespace ChessBasics {
 		MIN_PIECE = WHITE_PAWN,
 		PIECE_AMOUNT = BLACK_KING + 1,
 		PIECE_MASK = 0x0F,
+		COLOR_AMOUNT = 0x02,
 		COLOR_MASK = 0x01
 	};
 	
+	constexpr Piece OPPONENT[COLOR_AMOUNT] = { BLACK, WHITE };
 	constexpr Piece operator+(Piece a, int32_t b) { return Piece(int32_t(a) + b); }
+	inline Piece& operator++(Piece& piece) { return piece = Piece(piece + 1); }
 
 	/**
 	 * Checks, if a piece is a pawn
@@ -284,6 +294,13 @@ namespace ChessBasics {
 			return ' ';
 		}
 	}
+
+	const value_t MAX_VALUE = 30000;
+	const value_t MIN_MATE_VALUE = MAX_VALUE - 1000;
+	const value_t WINNING_BONUS = 5000;
+
+	// the draw value is reseved and signales a forced draw (stalemate, repetition)
+	const value_t DRAW_VALUE = 1;
 }
 
 #endif __TYPES_H

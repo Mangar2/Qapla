@@ -28,9 +28,27 @@ Board::Board() {
 void Board::clear() {
 	basicBoard.clear();
 	clearBB();
+	pieceSignature.clear();
+	materialBalance.clear();
 
 	kingSquares[WHITE] = E1;
 	kingSquares[BLACK] = E8;
+}
+
+
+void Board::setToSymetricBoard(const Board& board) {
+	clear();
+	for (Square square = A1; square <= H8; ++square) {
+		if (board[square] != NO_PIECE) {
+			addPiece(Square(square ^ 0x38), Piece(operator[](square) ^ 1));
+		}
+	}
+	setCastlingRight(WHITE, true, isKingSideCastleAllowed<WHITE>());
+	setCastlingRight(WHITE, false, isQueenSideCastleAllowed<WHITE>());
+	setCastlingRight(BLACK, true, isKingSideCastleAllowed<BLACK>());
+	setCastlingRight(BLACK, false, isQueenSideCastleAllowed<BLACK>());
+	basicBoard.setEP(Square(getEP() ^ 0x38));
+	setWhiteToMove(isWhiteToMove());
 }
 
 void Board::removePiece(Square squareOfPiece) {
@@ -38,12 +56,14 @@ void Board::removePiece(Square squareOfPiece) {
 	removePieceBB(squareOfPiece, pieceToRemove);
 	basicBoard.removePiece(squareOfPiece);
 	pieceSignature.removePiece(pieceToRemove, bitBoardsPiece[pieceToRemove]);
+	materialBalance.removePiece(pieceToRemove);
 }
 
 void Board::addPiece(Square squareOfPiece, Piece pieceToAdd) {
 	pieceSignature.addPiece(pieceToAdd, bitBoardsPiece[pieceToAdd]);
 	addPieceBB(squareOfPiece, pieceToAdd);
 	basicBoard.addPiece(squareOfPiece, pieceToAdd);
+	materialBalance.addPiece(pieceToAdd);
 }
 
 void Board::movePiece(Square departure, Square destination) {

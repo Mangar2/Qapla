@@ -48,6 +48,18 @@
     <ClCompile Include="basics\piecesignature.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="eval\evalpawn.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\pawnrace.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\evalendgame.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\kingpawnattack.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">
@@ -164,7 +176,31 @@
     <ClInclude Include="basics\piecesignature.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="basics\piecesignaturemaps.h">
+    <ClInclude Include="search\quiescencesearch.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\whatIf.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\materialbalance.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalpawn.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\pawnrace.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\eval.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalendgame.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\kingpawnattack.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalmobility.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

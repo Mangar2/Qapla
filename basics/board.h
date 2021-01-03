@@ -29,6 +29,7 @@
 #include "basicboard.h"
 #include "boardstate.h"
 #include "piecesignature.h"
+#include "materialbalance.h"
 
 namespace ChessBasics {
 
@@ -47,9 +48,14 @@ namespace ChessBasics {
 		void undoMove(Move move, BoardState boardState);
 		void clear();
 		inline auto getEP() const { return basicBoard.getEP(); }
-		inline auto operator[](Square square) { return basicBoard[square]; }
+		inline auto operator[](Square square) const { return basicBoard[square]; }
 		inline auto isWhiteToMove() const { return basicBoard.whiteToMove; }
 		inline void setWhiteToMove(bool whiteToMove) { basicBoard.whiteToMove = whiteToMove; }
+
+		/**
+		 * Creates a symetric board exchanging black/white side
+		 */
+		void setToSymetricBoard(const Board& board);
 
 		/**
 		 * Sets a nullmove on the board. A nullmove is a non legal chess move where the 
@@ -113,18 +119,82 @@ namespace ChessBasics {
 			return basicBoard.computeBoardHash();
 		}
 
+		/**
+		 * Is the position forced draw due to missing material (in any cases)?
+		 * No side has any pawn, no side has more than either a Knight or a Bishop
+		 */
 		inline auto drawDueToMissingMaterial() const {
 			return pieceSignature.drawDueToMissingMaterial();
 		}
+
+		/**
+		 * Checks if a side has enough material to mate
+		 */
+		template<Piece COLOR> auto hasEnoughMaterialToMate() const {
+			return pieceSignature.hasEnoughMaterialToMate<COLOR>();
+		}
+
+		/**
+		 * Computes if futility pruning should be applied based on the captured piece
+		 */
+		inline auto doFutilityOnCapture(Piece capturedPiece) const {
+			return pieceSignature.doFutilityOnCapture(capturedPiece);
+		}
+
+		/**
+		 * Gets the signature of all pieces
+		 */
+		inline auto getPiecesSignature() const {
+			return pieceSignature.getPiecesSignature();
+		}
+
+		/**
+		 * Gets the absolute value of a piece
+		 */
+		inline auto getAbsolutePieceValue(Piece piece) const {
+			return materialBalance.getAbsolutePieceValue(piece);
+		}
+
+		/**
+		 * Gets the value of a piece
+		 */
+		inline auto getPieceValue(Piece piece) const {
+			return materialBalance.getPieceValue(piece);
+		}
+
+		/**
+		 * Gets the material balance value of the board
+		 */
+		inline auto getMaterialValue() const {
+			return materialBalance.getMaterialValue();
+		}
+
+		/**
+		 * Gets the bitboard of a piece type
+		 */
+		inline auto getPieceBB(Piece piece) const {
+			return bitBoardsPiece[piece];
+		}
+
+		/**
+		 * Gets the joint bitboard for all pieces
+		 */
+		inline auto getAllPiecesBB() const { return bitBoardAllPieces; }
+
+		/**
+		 * Gets the square of the king
+		 */
+		template <Piece COLOR>
+		inline auto getKingSquare() const { return kingSquares[COLOR]; }
 
 		BoardState getBoardState() { return basicBoard.boardState; }
 		BasicBoard basicBoard;
 
 	protected:
-		array<Square, 2> kingSquares;
+		array<Square, COLOR_AMOUNT> kingSquares;
 
 		array<bitBoard_t, PIECE_AMOUNT> bitBoardsPiece;
-		array<bitBoard_t, 2> bitBoardAllPiecesOfOneColor;
+		array<bitBoard_t, COLOR_AMOUNT> bitBoardAllPiecesOfOneColor;
 		bitBoard_t bitBoardAllPieces;
 
 	private:
@@ -190,6 +260,7 @@ namespace ChessBasics {
 		void undoMoveSpecialities(Move move);
 
 		PieceSignature pieceSignature;
+		MaterialBalance materialBalance;
 
 	};
 }

@@ -129,6 +129,13 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Gets the signature of all pieces
+		 */
+		inline pieceSignature_t getPiecesSignature() const {
+			return _signature;
+		}
+
+		/**
 		 * Checks if a side has a range piece
 		 */
 		template <Piece COLOR>
@@ -232,13 +239,13 @@ namespace ChessBasics {
 			return result;
 		}
 
-
+		static const pieceSignature_t SIG_SHIFT_BLACK = 10;
+		static const pieceSignature_t PIECE_SIGNATURE_SIZE = 1 << (SIG_SHIFT_BLACK * 2);
 
 	private:
 		pieceSignature_t _signature;
 
 		inline operator pieceSignature_t() const { return _signature; }
-		static const pieceSignature_t SIG_SHIFT_BLACK = 10;
 
 		struct PieceToSignature {
 			PieceToSignature() {

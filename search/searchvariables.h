@@ -166,22 +166,23 @@ namespace ChessSearch {
 		void getHashEntry(MoveGenerator& board) {
 
 			if (cutoff == CUTOFF_NONE) {
-				hash_t hashEntryInfo = hashPtr->getHashEntryInfo(positionHashSignature);
+				uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 
-				if (hashEntryInfo != Hash::EMPTY_ENTRY) {
-					Move move = HashEntryInfo::getMove(hashEntryInfo);
+				if (ttIndex != TT::INVALID_INDEX) {
+					TTEntry entry = ttPtr->getEntry(ttIndex);
+					Move move = entry.getMove();
 					moveProvider.setHashMove(move);
-					// keeps the best move for a hash entry, if the search does stay <= alpha
+					// keeps the best move for a tt entry, if the search does stay <= alpha
 					if (searchState != SearchType::PV) {
 						bestMove = move;
 					}
-					if (HashEntryInfo::getHashEntryValues(hashEntryInfo, bestValue, alpha, beta, remainingDepth, ply)) {
+					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
 						cutoff = CUTOFF_HASH;
 					}
 					if (bestValue >= beta) {
 						cutoff = CUTOFF_HASH;
 					}
-					// Narrowing the window by the hash is problematic. The search will be made with a wrong window
+					// Narrowing the window by the tt is problematic. The search will be made with a wrong window
 					betaAtPlyStart = beta;
 					alphaAtPlyStart = alpha;
 				}
@@ -358,8 +359,8 @@ namespace ChessSearch {
 		void setHashEntry(hash_t hashKey) {
 			bool drawByRepetetivePositionValue = (bestValue == 0);
 			if (!drawByRepetetivePositionValue) {
-				hashPtr->setHashEntry(hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
-				// WHATIF(WhatIf::whatIf.setHash(hashPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false));
+				ttPtr->setHashEntry(hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+				// WHATIF(WhatIf::whatIf.setHash(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false));
 			}
 		}
 
@@ -374,21 +375,21 @@ namespace ChessSearch {
 
 		bool isInPV() { return searchState == SearchType::PV; }
 
-		Move getMoveFromPVMovesStore(uint32_t ply) const { return pvMovesStore[ply]; }
+		Move getMoveFromPVMovesStore(ply_t ply) const { return pvMovesStore.getMove(ply); }
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
 		Move getHashMove() const { return moveProvider.getHashMove(); }
 		void setPly(ply_t curPly) { ply = curPly; }
 
-		const char* getSearchStateName() const {
-			return searchStateNames[searchState];
+		string getSearchStateName() const {
+			return searchStateNames[int32_t(searchState)];
 		}
 
-		void setHash(Hash* hash) {
-			hashPtr = hash;
+		void setHash(TT* tt) {
+			ttPtr = tt;
 		}
 
 		inline bool isHashValueBelowBeta(const Board& board) {
-			return hashPtr->isHashValueBelowBeta(board.computeBoardHash(), beta);
+			return ttPtr->isHashValueBelowBeta(board.computeBoardHash(), beta);
 		}
 
 		enum class SearchType {
@@ -430,7 +431,7 @@ namespace ChessSearch {
 		PV pvMovesStore;
 
 	private:
-		Hash* hashPtr;
+		TT* ttPtr;
 	};
 
 }

@@ -94,7 +94,7 @@ namespace ChessMoveGenerator {
 			return res;
 		}
 
-		static uint8_t popCountInFirstRow(bitBoard_t bitBoard) {
+		static uint8_t popCountInFirstRank(bitBoard_t bitBoard) {
 			return popCountLookup[bitBoard & 0xFF];
 		}
 

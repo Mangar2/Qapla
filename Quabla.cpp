@@ -172,7 +172,7 @@ int main()
 	
 	// checkThreadPoolSpeed();
 	// checkThreadSpeed();
-	
+	/*
 	StdTimeControl timeControl;
 	for (uint32_t workerAmount = 1; workerAmount <= 1; workerAmount++) {
 		adapter.setWorkerAmount(workerAmount);
@@ -183,7 +183,8 @@ int main()
 		cout << totalNodes << " end positions found, NPS: " << nodesPerSecond 
 			<< " threads: " << workerAmount + 1 << endl;
 	}
-	
+	*/
+
 	adapter.setWorkerAmount(1);
 	runTests(fenTests, 10000000000);
 }

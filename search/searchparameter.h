@@ -31,8 +31,6 @@ namespace ChessSearch {
 	class SearchParameter {
 	public:
 
-	
-
 		/**
 		 * Calculates the reduction by nullmove
 		 */
@@ -69,6 +67,8 @@ namespace ChessSearch {
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 5;
 
 		static const bool USE_HASH_IN_QUIESCENSE = true;
+		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50;
+
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;

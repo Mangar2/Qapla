@@ -209,6 +209,10 @@
     <ClCompile Include="basics\board.cpp" />
     <ClCompile Include="basics\hashconstants.cpp" />
     <ClCompile Include="basics\piecesignature.cpp" />
+    <ClCompile Include="eval\evalendgame.cpp" />
+    <ClCompile Include="eval\evalpawn.cpp" />
+    <ClCompile Include="eval\kingpawnattack.cpp" />
+    <ClCompile Include="eval\pawnrace.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
     <ClCompile Include="interface\winboard.cpp" />
     <ClCompile Include="movegenerator\bitboardmasks.cpp" />
@@ -222,11 +226,17 @@
     <ClInclude Include="basics\board.h" />
     <ClInclude Include="basics\boardstate.h" />
     <ClInclude Include="basics\hashconstants.h" />
+    <ClInclude Include="basics\materialbalance.h" />
     <ClInclude Include="basics\move.h" />
     <ClInclude Include="basics\movelist.h" />
     <ClInclude Include="basics\piecesignature.h" />
-    <ClInclude Include="basics\piecesignaturemaps.h" />
     <ClInclude Include="basics\types.h" />
+    <ClInclude Include="eval\eval.h" />
+    <ClInclude Include="eval\evalendgame.h" />
+    <ClInclude Include="eval\evalmobility.h" />
+    <ClInclude Include="eval\evalpawn.h" />
+    <ClInclude Include="eval\kingpawnattack.h" />
+    <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="interface\clocksetting.h" />
     <ClInclude Include="interface\computinginfo.h" />
     <ClInclude Include="interface\consoleio.h" />
@@ -247,6 +257,7 @@
     <ClInclude Include="search\killermove.h" />
     <ClInclude Include="search\moveprovider.h" />
     <ClInclude Include="search\pv.h" />
+    <ClInclude Include="search\quiescencesearch.h" />
     <ClInclude Include="search\search.h" />
     <ClInclude Include="search\searchdef.h" />
     <ClInclude Include="search\movehistory.h" />
@@ -257,6 +268,7 @@
     <ClInclude Include="search\threadpool.h" />
     <ClInclude Include="search\tt.h" />
     <ClInclude Include="search\ttentry.h" />
+    <ClInclude Include="search\whatIf.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

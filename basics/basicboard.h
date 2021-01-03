@@ -47,24 +47,6 @@ public:
 	}
 
 	/**
-	 * Creates a symetric board exchanging black/white side
-	 */
-	void setToSymetricBoard() {
-		clear();
-		for (Square square = A1; square <= H8; ++square) {
-			if (operator[](square) != NO_PIECE) {
-				addPiece(Square(square ^ 0x38), Piece(operator[](square) ^ 1));
-			}
-		}
-		setCastlingRight(WHITE, true, isKingSideCastleAllowed<WHITE>());
-		setCastlingRight(WHITE, false, isQueenSideCastleAllowed<WHITE>());
-		setCastlingRight(BLACK, true, isKingSideCastleAllowed<BLACK>());
-		setCastlingRight(BLACK, false, isQueenSideCastleAllowed<BLACK>());
-		boardState.setEP(Square(boardState.getEP() ^ 0x38));
-		whiteToMove = !whiteToMove;
-	}
-
-	/**
 	 * Clears the Board
 	 */
 	void clear();

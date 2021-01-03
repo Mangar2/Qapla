@@ -170,6 +170,13 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Gets a element by index
+		 */
+		inline TTEntry getEntry(uint32_t index) const {
+			return _tt[index];
+		}
+
+		/**
 		 * Checks, if the hash indicates a beta-cutoff situation
 		 */
 		bool isHashValueBelowBeta(hash_t hashKey, value_t beta) {
@@ -284,10 +291,9 @@ namespace ChessSearch {
 		uint32_t getHashFillRateInPercent() {
 			return uint32_t(entries * 100ULL / _tt.capacity());
 		}
+		static const uint32_t INVALID_INDEX = UINT32_MAX;
 
 	private:
-
-		static const uint32_t INVALID_INDEX = UINT32_MAX;
 
 		/**
 		 * Sets the values of a single entry

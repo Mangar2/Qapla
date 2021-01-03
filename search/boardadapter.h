@@ -30,6 +30,8 @@
 #include "../basics/movelist.h"
 #include "../movegenerator/movegenerator.h"
 #include "../search/perft.h"
+#include "../eval/eval.h"
+
  /*
 #include "MoveHistory.h"
 #include "IterativeDeepening.h"
@@ -39,6 +41,7 @@
 
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;
+using namespace ChessEval;
 
 class BoardAdapter: public IChessBoard {
 public:
@@ -189,8 +192,8 @@ public:
 	}
 
 	virtual void printEvalInfo() {
-		// Eval eval;
-		// eval.printEval(genBoard);
+		Eval eval;
+		eval.printEval(genBoard);
 	}
 
 	/**
