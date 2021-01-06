@@ -39,8 +39,9 @@ void Board::clear() {
 void Board::setToSymetricBoard(const Board& board) {
 	clear();
 	for (Square square = A1; square <= H8; ++square) {
-		if (board[square] != NO_PIECE) {
-			addPiece(Square(square ^ 0x38), Piece(operator[](square) ^ 1));
+		const Piece piece = board[square];
+		if (piece != NO_PIECE) {
+			addPiece(Square(square ^ 0x38), Piece(piece ^ 1));
 		}
 	}
 	setCastlingRight(WHITE, true, isKingSideCastleAllowed<WHITE>());
@@ -214,4 +215,75 @@ void Board::undoMove(Move move, BoardState boardState) {
 
 	basicBoard.updateStateOnUndoMove(boardState);
 	assert(basicBoard[departure] != NO_PIECE);
+}
+
+void Board::printFen() const {
+	File file;
+	Rank rank;
+	int amoutOfEmptyFields;
+	for (rank = Rank::R8; rank >= Rank::R1; --rank)
+	{
+		amoutOfEmptyFields = 0;
+		for (file = File::A; file <= File::H; ++file)
+		{
+			Square square = computeSquare(file, rank);
+			Piece piece = operator[](square);
+			if (piece == Piece::NO_PIECE) amoutOfEmptyFields++;
+			else
+			{
+				if (amoutOfEmptyFields > 0) {
+					printf("%ld", amoutOfEmptyFields);
+				}
+				printf("%c", pieceToChar(piece));
+				amoutOfEmptyFields = 0;
+			}
+		}
+		if (amoutOfEmptyFields > 0) {
+			printf("%ld", amoutOfEmptyFields);
+		}
+		if (rank > Rank::R1) {
+			printf("/");
+		}
+	}
+
+	if (isWhiteToMove()) printf(" w ");
+	else printf(" b ");
+	/*
+	if (IsWKCastleAllowed()) printf("K");
+	if (IsWQCastleAllowed()) printf("Q");
+	if (IsBKCastleAllowed()) printf("k");
+	if (IsBQCastleAllowed()) printf("q");
+
+	if (!IsWKCastleAllowed() && !IsWQCastleAllowed() &&
+	!IsBKCastleAllowed() && !IsBQCastleAllowed())
+	printf("-");
+
+	if (mEP == cNoPos)
+	{
+	printf(" -");
+	}
+	else
+	{
+	aRes = aRes + " " + char('a' + char(Col(mEP)));
+	printf(" %c",
+	if (mWtm) aRes = aRes + '6';
+	else aRes = aRes + '3';
+	}
+	aRes = aRes + " " + mNonPermChangeAmount + " " +
+	(mHalfmovesAmount / 2 + 1);
+	*/
+	printf("\n");
+}
+
+void Board::print() const {
+	for (Rank rank = Rank::R8; rank >= Rank::R1; --rank) {
+		for (File file = File::A; file <= File::H; ++file) {
+			Piece piece = operator[](computeSquare(file, rank));
+			printf(" %c ", pieceToChar(piece));
+		}
+		printf("\n");
+	}
+	printf("hash: %llu\n", computeBoardHash());
+	printFen();
+	//printf("White King: %ld, Black King: %ld\n", kingPos[WHITE], kingPos[BLACK]);
 }

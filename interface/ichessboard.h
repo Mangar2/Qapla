@@ -24,7 +24,7 @@
 #define __ICHESSBOARD_H
 
 #include "clocksetting.h"
-#include "computinginfo.h"
+#include "computinginfoexchange.h"
 #include "iwhatif.h"
 
 namespace ChessInterface {
@@ -125,7 +125,7 @@ namespace ChessInterface {
 		/**
 		 * Returns and information about the current computing result
 		 */
-		virtual ComputingInfo getComputingInfo() = 0;
+		virtual ComputingInfoExchange getComputingInfo() = 0;
 
 		/**
 		 * Returns a whatif evaluation structure (see IWhatIf for further information)

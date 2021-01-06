@@ -32,23 +32,18 @@ namespace ChessMoveGenerator {
 	class Magics
 	{
 	public:
-		Magics(void);
-		~Magics(void);
-
-		/**
-		 * Initializes static tables for the move generator
-		 */
-		static void InitStatics();
+		Magics(void) {};
+		~Magics(void) {};
 
 		/** 
 		 * Generates the attack mask for rooks
 		 */ 
 		inline static bitBoard_t genRookAttackMask(Square pos, bitBoard_t allPieces)
 		{
-			bitBoard_t index = allPieces & rookTable[pos].mask;
-			index *= rookTable[pos].magic;
-			index >>= rookTable[pos].shift;
-			return rookTable[pos].attackMap[index];
+			bitBoard_t index = allPieces & _rookTable[pos].mask;
+			index *= _rookTable[pos].magic;
+			index >>= _rookTable[pos].shift;
+			return _rookTable[pos]._attackMap[index];
 		}
 
 		/**
@@ -56,10 +51,10 @@ namespace ChessMoveGenerator {
 		 */
 		inline static bitBoard_t genBishopAttackMask(Square pos, bitBoard_t allPieces)
 		{
-			bitBoard_t index = allPieces & bishopTable[pos].mask;
-			index *= bishopTable[pos].magic;
-			index >>= bishopTable[pos].shift;
-			return bishopTable[pos].attackMap[index];
+			bitBoard_t index = allPieces & _bishopTable[pos].mask;
+			index *= _bishopTable[pos].magic;
+			index >>= _bishopTable[pos].shift;
+			return _bishopTable[pos]._attackMap[index];
 		}
 
 		/**
@@ -77,32 +72,32 @@ namespace ChessMoveGenerator {
 		 * rook from moving behind the piece. Thus the row and the column of the
 		 * position without the position itself and the outer positions
 		 */
-		static bitBoard_t rookMask(Square pos);
+		static bitBoard_t _rookMask(Square pos);
 
 		/**
 		 * Generates a mask with relevant bits for bishop attack mask
 		 */
-		static bitBoard_t bishopMask(Square pos);
+		static bitBoard_t _bishopMask(Square pos);
 
 		/**
 		 * Size of magic number index for rooks
 		 */
-		static const int32_t rookSize[BOARD_SIZE];
+		static const int32_t _rookSize[BOARD_SIZE];
 
 		/**
 		 * Size of magic number index for bishops
 		 */
-		static const int32_t bishopSize[BOARD_SIZE];
+		static const int32_t _bishopSize[BOARD_SIZE];
 
 		/**
 		 * Magic numbers for rooks
 		 */
-		static const bitBoard_t rookMagic[BOARD_SIZE];
+		static const bitBoard_t _rookMagic[BOARD_SIZE];
 
 		/**
 		 * Magic numbers for bishops
 		 */
-		static const bitBoard_t bishopMagic[BOARD_SIZE];
+		static const bitBoard_t _bishopMagic[BOARD_SIZE];
 
 		/**
 		 * Magic number entry structure
@@ -110,7 +105,7 @@ namespace ChessMoveGenerator {
 		struct tMagicEntry
 		{
 			// Pointer to the attac table holding attac vectors
-			bitBoard_t* attackMap;
+			bitBoard_t* _attackMap;
 			// Mask to relevant squares (no outer squares)
 			bitBoard_t  mask;
 			// Magic number (64-bit factor)
@@ -147,10 +142,29 @@ namespace ChessMoveGenerator {
 			4 * (1 << 6) +
 			44 * (1 << 5);
 
-		static bitBoard_t attackMap[ATTACK_MAP_SIZE];
-		static tMagicEntry rookTable[BOARD_SIZE];
-		static tMagicEntry bishopTable[BOARD_SIZE];
+		/**
+		 * Maps magic indexes to correspondin attack masks
+		 */
+		static bitBoard_t _attackMap[ATTACK_MAP_SIZE];
 
+		/**
+		 * Magic number settings for rooks
+		 */
+		static tMagicEntry _rookTable[BOARD_SIZE];
+
+		/**
+		 * Magic number settings for bishops
+		 */
+		static tMagicEntry _bishopTable[BOARD_SIZE];
+
+
+		/**
+		 * Initializes static tables for the move generator
+		 */
+		static struct InitStatics {
+			InitStatics();
+		} _staticConstructor;
+		
 	};
 
 }

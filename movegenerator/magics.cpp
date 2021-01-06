@@ -24,12 +24,13 @@
 using namespace ChessMoveGenerator;
 using namespace ChessBasics;
 
-bitBoard_t Magics::attackMap[ATTACK_MAP_SIZE];
-Magics::tMagicEntry Magics::rookTable[BOARD_SIZE];
-Magics::tMagicEntry Magics::bishopTable[BOARD_SIZE];
+bitBoard_t Magics::_attackMap[ATTACK_MAP_SIZE];
+Magics::tMagicEntry Magics::_rookTable[BOARD_SIZE];
+Magics::tMagicEntry Magics::_bishopTable[BOARD_SIZE];
 
+Magics::InitStatics Magics::_staticConstructor;
 
-const int32_t Magics::bishopSize[BOARD_SIZE] =
+const int32_t Magics::_bishopSize[BOARD_SIZE] =
 {
 	6,  5,  5,  5,  5,  5,  5,  6,
 	5,  5,  5,  5,  5,  5,  5,  5,
@@ -41,7 +42,7 @@ const int32_t Magics::bishopSize[BOARD_SIZE] =
 	6,  5,  5,  5,  5,  5,  5,  6,
 };
 
-const bitBoard_t Magics::bishopMagic[BOARD_SIZE] = 
+const bitBoard_t Magics::_bishopMagic[BOARD_SIZE] = 
 {
 	0x400a4a2208020188ULL,
 	0x6004100214c10640ULL,
@@ -109,7 +110,7 @@ const bitBoard_t Magics::bishopMagic[BOARD_SIZE] =
 	0x2010312240840100ULL,
 };
 
-const int32_t Magics::rookSize[BOARD_SIZE] = 
+const int32_t Magics::_rookSize[BOARD_SIZE] = 
 {
 	12, 11, 11, 11, 11, 11, 11, 12,
 	11, 10, 10, 10, 10, 10, 10, 11,
@@ -121,7 +122,7 @@ const int32_t Magics::rookSize[BOARD_SIZE] =
 	12, 11, 11, 11, 11, 11, 11, 12,
 };
 
-const bitBoard_t Magics::rookMagic[64] = 
+const bitBoard_t Magics::_rookMagic[64] = 
 {
 	0x208000c001906480ULL,
 	0x640001004c42001ULL,
@@ -190,22 +191,8 @@ const bitBoard_t Magics::rookMagic[64] =
 };
 
 
-// -------------------------- CTor --------------------------------------------
-Magics::Magics(void)
-{
-}
-
-
-// -------------------------- DTor --------------------------------------------
-Magics::~Magics(void)
-{
-}
-
-
-
-
 // -------------------------- rookMask ----------------------------------------
-bitBoard_t Magics::rookMask(Square square) 
+bitBoard_t Magics::_rookMask(Square square) 
 {
   assert(NORTH == 8);
   assert(BOARD_SIZE == 64);
@@ -227,7 +214,7 @@ bitBoard_t Magics::rookMask(Square square)
 }
 
 // -------------------------- rookMask ----------------------------------------
-bitBoard_t Magics::bishopMask(Square square) 
+bitBoard_t Magics::_bishopMask(Square square) 
 {
   assert(NORTH == 8);
   assert(BOARD_SIZE == 64);
@@ -327,37 +314,37 @@ void Magics::fillAttackMap(Square square, const tMagicEntry& entry, bool isRook)
 		board *= entry.magic;
 		// Shift it 
 		board >>= entry.shift;
-		entry.attackMap[board] = aAttackMask;
+		entry._attackMap[board] = aAttackMask;
 	}
 }
  
 // -------------------------- Init --------------------------------------------
-void Magics::InitStatics()
+Magics::InitStatics::InitStatics()
 {
 	Square square;
-	bitBoard_t* magicPtr = attackMap;
+	bitBoard_t* magicPtr = _attackMap;
 	// Only 8x8 board sizes supported by bitboards. No border.
 	assert(BOARD_SIZE == 64);
 	for (square = A1; square <= H8; ++square)
 	{
-		rookTable[square].magic = rookMagic[square];
-		rookTable[square].mask  = rookMask(square);
-		rookTable[square].shift = BOARD_SIZE - rookSize[square];
-		rookTable[square].attackMap = magicPtr;
-		fillAttackMap(square, rookTable[square], true);
-		assert(magicPtr - rookTable[0].attackMap < ATTACK_MAP_SIZE);
-		magicPtr += 1LL << rookSize[square]; 
+		_rookTable[square].magic = _rookMagic[square];
+		_rookTable[square].mask  = _rookMask(square);
+		_rookTable[square].shift = BOARD_SIZE - _rookSize[square];
+		_rookTable[square]._attackMap = magicPtr;
+		fillAttackMap(square, _rookTable[square], true);
+		assert(magicPtr - _rookTable[0]._attackMap < ATTACK_MAP_SIZE);
+		magicPtr += 1LL << _rookSize[square]; 
 	}
 
 	for (square = A1; square <= H8; ++square)
 	{
-		bishopTable[square].magic = bishopMagic[square];
-		bishopTable[square].mask  = bishopMask(square);
-		bishopTable[square].shift = BOARD_SIZE - bishopSize[square];
-		bishopTable[square].attackMap = magicPtr;
-		fillAttackMap(square, bishopTable[square], false);
-		assert(magicPtr - rookTable[0].attackMap < ATTACK_MAP_SIZE);
-		magicPtr += 1LL << bishopSize[square]; 
+		_bishopTable[square].magic = _bishopMagic[square];
+		_bishopTable[square].mask  = _bishopMask(square);
+		_bishopTable[square].shift = BOARD_SIZE - _bishopSize[square];
+		_bishopTable[square]._attackMap = magicPtr;
+		fillAttackMap(square, _bishopTable[square], false);
+		assert(magicPtr - _rookTable[0]._attackMap < ATTACK_MAP_SIZE);
+		magicPtr += 1LL << _bishopSize[square]; 
 	}
-	assert(magicPtr - rookTable[0].attackMap == ATTACK_MAP_SIZE);
+	assert(magicPtr - _rookTable[0]._attackMap == ATTACK_MAP_SIZE);
 }

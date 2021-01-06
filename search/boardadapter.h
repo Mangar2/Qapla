@@ -30,6 +30,7 @@
 #include "../basics/movelist.h"
 #include "../movegenerator/movegenerator.h"
 #include "../search/perft.h"
+#include "../search/search.h"
 #include "../eval/eval.h"
 
  /*
@@ -42,17 +43,18 @@
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;
 using namespace ChessEval;
+using namespace ChessSearch;
 
 class BoardAdapter: public IChessBoard {
 public:
 	BoardAdapter(/* ISendSearchInfo* sendInfo */) 
 		: boardModified(true) //, thinkingInfo(sendInfo) 
 	{
-		// GenBoard::initStatics();
+		// board::initStatics();
 	}
 
 	virtual IWhatIf* getWhatIf() { 
-		// WhatIf::whatIf.setBoard(genBoard);
+		// WhatIf::whatIf.setBoard(board);
 		// return &WhatIf::whatIf;
 		return 0;
 	}
@@ -66,41 +68,41 @@ public:
 		
 		if (!move.isEmpty()) {
 			if (boardModified) {
-				// moveHistory.setStartPosition(genBoard);
+				// moveHistory.setStartPosition(board);
 				boardModified = false;
 			}
-			genBoard.doMove(move);
+			board.doMove(move);
 			// moveHistory.doMove(move);
 			playedMovesInGame++;
 		}
 
-		//genBoard.printBoard();
+		//board.printBoard();
 
 		return !move.isEmpty();
 	};
 
 	virtual void undoMove() {
 		/*
-		genBoard = moveHistory.undoMove();
+		board = moveHistory.undoMove();
 		if (playedMovesInGame > 0) {
 			playedMovesInGame--;
 		}
 		*/
 	}
 	
-	// Clears the genBoard, setting everything to empty.
+	// Clears the board, setting everything to empty.
 	virtual void clearBoard() {
-		genBoard.clear();
+		board.clear();
 		boardModified = true;
 		playedMovesInGame = 0;
 	}
 
 	virtual void setWhiteToMove(bool whiteToMove) {
-		genBoard.setWhiteToMove(whiteToMove);
+		board.setWhiteToMove(whiteToMove);
 	}
 
 	virtual bool isWhiteToMove() {
-		return genBoard.isWhiteToMove();
+		return board.isWhiteToMove();
 	}
 
 	/**
@@ -111,28 +113,28 @@ public:
 		const Rank castRank = static_cast<Rank>(rank);
 		if (isFileInBoard(castFile) && isRankInBoard(castRank)) {
 			const Square square = computeSquare(castFile, castRank);
-			genBoard.setPiece(square, charToPiece(piece));
+			board.setPiece(square, charToPiece(piece));
 		}
 	}
 
 	virtual void setWhiteQueenSideCastlingRight(bool allow) {
-		genBoard.setCastlingRight(WHITE, false, allow);
+		board.setCastlingRight(WHITE, false, allow);
 	}
 
 	virtual void setWhiteKingSideCastlingRight(bool allow) {
-		genBoard.setCastlingRight(WHITE, true, allow);
+		board.setCastlingRight(WHITE, true, allow);
 	}
 	
 	virtual void setBlackQueenSideCastlingRight(bool allow) {
-		genBoard.setCastlingRight(BLACK, false, allow);
+		board.setCastlingRight(BLACK, false, allow);
 	}
 	
 	virtual void setBlackKingSideCastlingRight(bool allow) {
-		genBoard.setCastlingRight(BLACK, true, allow);
+		board.setCastlingRight(BLACK, true, allow);
 	}
 
 	virtual void setHalfmovesWithouthPawnMoveOrCapture(uint16_t moves) { 
-		//genBoard.setHalfmovesWithoutPawnMoveOrCapture(moves);
+		//board.setHalfmovesWithoutPawnMoveOrCapture(moves);
 	}
 
 	virtual void setPlayedMovesInGame(uint16_t moves) {
@@ -140,18 +142,18 @@ public:
 	}
 
 	virtual uint64_t perft(uint16_t depth, uint32_t verbose = 1) { 
-		// uint64_t res = ChessSearch::doPerftIter(genBoard, depth, verbose);
-		uint64_t res = ChessSearch::doPerftRec(genBoard, depth, _workerCount, true);
+		// uint64_t res = ChessSearch::doPerftIter(board, depth, verbose);
+		uint64_t res = ChessSearch::doPerftRec(board, depth, _workerCount, true);
 		return res;
 	}
 
 	virtual GameResult getGameResult() {
 		/*
-		int8_t result = isMate(genBoard);
+		int8_t result = isMate(board);
 		if (result == GameResult::GAME_NOT_ENDED) {
-			if (moveHistory.isDrawByRepetition(genBoard)) {
+			if (moveHistory.isDrawByRepetition(board)) {
 				result = DRAW_BY_REPETITION;
-			} else if (genBoard.boardInfo.getHalfMovesWithoutPawnMovedOrPieceCaptured() > 100) {
+			} else if (board.boardInfo.getHalfMovesWithoutPawnMovedOrPieceCaptured() > 100) {
 				result = DRAW_BY_50_MOVES_RULE;
 			}
 		}
@@ -170,12 +172,12 @@ public:
 		curClock = clockSetting;
 		curClock.setPlayedMovesInGame(playedMovesInGame);
 		thinkingInfo.setVerbose(verbose);
-		iterativeDeepening.searchByIterativeDeepening(genBoard, curClock, thinkingInfo, moveHistory);
+		iterativeDeepening.searchByIterativeDeepening(board, curClock, thinkingInfo, moveHistory);
 		*/
 	}
 
-	virtual ComputingInfo getComputingInfo() {
-		ComputingInfo computingInfo;
+	virtual ComputingInfoExchange getComputingInfo() {
+		ComputingInfoExchange computingInfo;
 		/*
 		computingInfo.currentConsideredMove = move.getLAN(thinkingInfo.pvMovesStore[0]);
 		computingInfo.nodesSearched = thinkingInfo.nodesSearched;
@@ -193,7 +195,16 @@ public:
 
 	virtual void printEvalInfo() {
 		Eval eval;
-		eval.printEval(genBoard);
+		eval.printEval(board);
+	}
+
+	void callSearch() {
+		Search search;
+		ComputingInfoExchange exchange;
+		ComputingInfo computingInfo(0);
+		ClockManager clockManager;
+
+		// search.searchRec(board, computingInfo, clockManager);
 	}
 
 	/**
@@ -203,11 +214,9 @@ public:
 		_workerCount = workerCount;
 	}
 
-	/*
-	GenBoard& getBoard() {
-		return genBoard;
+	MoveGenerator& getBoard() {
+		return board;
 	}
-	*/
 
 private:
 	Move findMove(char movingPieceChar, 
@@ -218,8 +227,8 @@ private:
 		Move foundMove;
 
 		uint16_t moveNoFound = 0;
-		genBoard.genMovesOfMovingColor(moveList);
-		const bool whiteToMove = genBoard.isWhiteToMove();
+		board.genMovesOfMovingColor(moveList);
+		const bool whiteToMove = board.isWhiteToMove();
 		Piece promotePiece = charToPiece(whiteToMove ? toupper(promotePieceChar) : tolower(promotePieceChar));
 		Piece movingPiece = charToPiece(whiteToMove ? toupper(movingPieceChar) : tolower(movingPieceChar));
 
@@ -245,20 +254,20 @@ private:
 	}
 
 	/*
-	GameResult isMate(GenBoard& genBoard) {
+	GameResult isMate(board& board) {
 		GameResult result = GameResult::NOT_ENDED;
 		MoveList moveList;
-		genBoard.genMovesOfMovingColor(moveList);
+		board.genMovesOfMovingColor(moveList);
 		
 		if (moveList.getMoveAmount() == 0) {
-			if (genBoard.whiteToMove) {
-				if (genBoard.isInCheck()) {
+			if (board.whiteToMove) {
+				if (board.isInCheck()) {
 					result = GameResult::BLACK_WINS_BY_MATE;
 				} else {
 					result = GameResult::DRAW_BY_STALEMATE;
 				}
 			} else {
-				if (genBoard.isInCheck()) {
+				if (board.isInCheck()) {
 					result = GameResult::WHITE_WINS_BY_MATE;
 				} else {
 					result = GameResult::DRAW_BY_STALEMATE;
@@ -270,7 +279,7 @@ private:
 	}
 	*/
 	bool boardModified;
-	MoveGenerator genBoard;
+	MoveGenerator board;
 	// MoveHistory moveHistory;
 	uint32_t playedMovesInGame;
 	// ThinkingInformation thinkingInfo;

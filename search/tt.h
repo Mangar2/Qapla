@@ -62,7 +62,7 @@ namespace ChessSearch {
 		/**
 		 * Gets the size of the transposition table in bytes
 		 */
-		int32_t getSizeInBytes() { 
+		size_t getSizeInBytes() { 
 			return _tt.capacity() * sizeof(TTEntry); 
 		}
 
@@ -70,7 +70,7 @@ namespace ChessSearch {
 		 * Computes the hash index of a hash key 
 		 */
 		int32_t	computeEntryIndex(hash_t hashKey) {
-			return (hashKey % _tt.capacity()) / 2;
+			return int32_t(hashKey % _tt.capacity()) / 2;
 		}
 
 		/**
@@ -179,11 +179,11 @@ namespace ChessSearch {
 		/**
 		 * Checks, if the hash indicates a beta-cutoff situation
 		 */
-		bool isHashValueBelowBeta(hash_t hashKey, value_t beta) {
+		bool isTTValueBelowBeta(hash_t hashKey, value_t beta) {
 			hash_t index = getTTEntryIndex(hashKey);
 			bool result = false;
 			if (index != INVALID_INDEX) {
-				result = _tt[index].isHashValueBelowBeta(beta);
+				result = _tt[index].isTTValueBelowBeta(beta);
 			}
 			return result;
 		}
@@ -307,13 +307,13 @@ namespace ChessSearch {
 			entry.setInfo(computedDepth, ageIndicator, nullmoveThreat);
 			entry.setValue(positionValue, alpha, beta, ply);
 			entry.setMove(move);
-			entry.setHash(hashKey);
+			entry.setTT(hashKey);
 		}
 
 		/**
 		 * Sets the transposition table capacity
 		 */
-		void setCapacity(uint32_t newCapacity) {
+		void setCapacity(uint64_t newCapacity) {
 			_tt.reserve(newCapacity);
 			clear();
 		}

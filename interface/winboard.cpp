@@ -37,7 +37,7 @@ static void threadComputeMove(
 
 	chessBoard->computeMove(*clock);
 	if (!clock->getAnalyseMode()) {
-		ComputingInfo computingInfo = chessBoard->getComputingInfo();
+		ComputingInfoExchange computingInfo = chessBoard->getComputingInfo();
 		ioHandler->print("move ");
 		ioHandler->println(computingInfo.currentConsideredMove);
 		HandleMove::handleMove(chessBoard, ioHandler, computingInfo.currentConsideredMove);

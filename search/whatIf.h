@@ -25,25 +25,30 @@
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
 #include "searchdef.h"
-#include "../interface/computinginfo.h"
+#include "computinginfo.h"
 #include "../interface/iwhatIf.h"
 
 class SearchStack;
-class Eval;
 class MoveConverter;
 class Hash;
 
-#if defined(_DEBUG) || defined(DOWHATIF)
-#define WHATIF(x) x
-#else
-#define WHATIF(x)
-#endif
+
 
 using namespace ChessBasics;
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;
 
 namespace ChessSearch {
+
+	#define WHATIF(x)
+
+	/*
+	#if defined(_DEBUG) || defined(DOWHATIF)
+	#define WHATIF(x) x
+	#else
+	#define WHATIF(x)
+	#endif
+	*/
 
 	class WhatIf : public IWhatIf {
 	public:
@@ -63,7 +68,7 @@ namespace ChessSearch {
 
 		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, char* cutoffType);
 
-		void setHash(Hash* hashPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead);
+		void setTT(Hash* hashPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead);
 
 		virtual void clear();
 

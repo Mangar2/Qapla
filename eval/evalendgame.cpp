@@ -94,7 +94,7 @@ void EvalEndgame::registerFunction(string pieces, evalFunction_t function, bool 
 }
 
 value_t EvalEndgame::materialAndPawnStructure(MoveGenerator& board) {
-	EvalPawn evalPawn(board);
+	EvalPawn evalPawn;
 	value_t result = board.getMaterialValue();
 	result += evalPawn.eval(board);
 	return result;
@@ -112,7 +112,7 @@ value_t EvalEndgame::KQPsKRPs(MoveGenerator& board, value_t currentValue) {
 
 value_t EvalEndgame::KPsKPs(MoveGenerator& board, value_t currentValue) {
 	value_t result = 0;
-	EvalPawn evalPawn(board);
+	EvalPawn evalPawn;
 	result += evalPawn.computePawnValueNoPiece(board);
 	
 	if (evalPawn.passedPawnFld[WHITE] == 0 && evalPawn.passedPawnFld[BLACK] == 0) {

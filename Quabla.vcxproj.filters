@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Tests">
+      <UniqueIdentifier>{5b3cdbb1-58f9-4f7d-b8bb-61859ca52609}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Quabla.cpp">
@@ -81,9 +84,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="interface\clocksetting.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\computinginfo.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="interface\fenscanner.h">
@@ -161,9 +161,6 @@
     <ClInclude Include="search\moveprovider.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="search\sse.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="search\threadpool.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -201,6 +198,24 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="eval\evalmobility.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchstack.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\see.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\computinginfo.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\computinginfoexchange.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="tests\evalpawntest.h">
+      <Filter>Tests</Filter>
+    </ClInclude>
+    <ClInclude Include="search\iterativedeepening.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

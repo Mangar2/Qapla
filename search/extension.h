@@ -83,24 +83,24 @@ namespace ChessSearch {
 		static bool isChallengingPassedPawnMove(MoveGenerator& board, Move move) {
 			bool isPassedPawn = false;
 			Piece movingPiece = move.getMovingPiece();
-			Square targetPos = move.getDestination();
+			Square destinationSquare = move.getDestination();
 
 			if (movingPiece == WHITE_PAWN) {
-				if (targetPos >= SearchParameter::PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK * NORTH &&
-					defendedByWhiteOrNotAttackedByBlack(board, targetPos) &&
+				if (destinationSquare >= Square(SearchParameter::PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK) * NORTH &&
+					defendedByWhiteOrNotAttackedByBlack(board, destinationSquare) &&
 					move.isPromote())
 				{
-					bitBoard_t passedPawnCheckMask = computeWhitePassedPawnCheckMask(targetPos);
-					isPassedPawn = (passedPawnCheckMask & board.getPieceBitBoard(BLACK_PAWN)) == 0;
+					bitBoard_t passedPawnCheckMask = computeWhitePassedPawnCheckMask(destinationSquare);
+					isPassedPawn = (passedPawnCheckMask & board.getPieceBB(BLACK_PAWN)) == 0;
 				}
 			}
 			else if (movingPiece == BLACK_PAWN) {
-				if (targetPos <= SearchParameter::PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK * NORTH + (BOARD_COL_AMOUNT - 1) &&
-					defendedByBlackOrNotAttackedByWhite(board, targetPos) &&
+				if (destinationSquare <= Square(SearchParameter::PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK) * NORTH + NW &&
+					defendedByBlackOrNotAttackedByWhite(board, destinationSquare) &&
 					!move.isPromote())
 				{
-					bitBoard_t passedPawnCheckMask = computeBlackPassedPawnCheckMask(targetPos);
-					isPassedPawn = (passedPawnCheckMask & board.getPieceBitBoard(WHITE_PAWN)) == 0;
+					bitBoard_t passedPawnCheckMask = computeBlackPassedPawnCheckMask(destinationSquare);
+					isPassedPawn = (passedPawnCheckMask & board.getPieceBB(WHITE_PAWN)) == 0;
 				}
 			}
 

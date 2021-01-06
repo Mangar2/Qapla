@@ -25,8 +25,8 @@
  * - The currently concidered move
  */
 
-#ifndef __COMPUTINGINFO_H
-#define __COMPUTINGINFO_H
+#ifndef __COMPUTINGINFOEXCHANGE_H
+#define __COMPUTINGINFOEXCHANGE_H
 
 #include <string>
 
@@ -34,33 +34,26 @@ using namespace std;
 
 namespace ChessInterface {
 
-	class ComputingInfo {
+	class ComputingInfoExchange {
 	public:
-		ComputingInfo() {
+		ComputingInfoExchange() {
 			elapsedTimeInMilliseconds = 0;
 			nodesSearched = 0;
 			searchDepth = 1;
 			movesLeftToConcider = 0;
 			totalAmountOfMovesToConcider = 0;
 			currentConsideredMove = "";
+			currentMoveNoSearched = 0;
+			positionValueInCentiPawn = 0;
 		};
-		ComputingInfo(const ComputingInfo& computingInfo) { operator=(computingInfo); }
-
-		ComputingInfo& operator=(const ComputingInfo& computingInfoToCopy) {
-			elapsedTimeInMilliseconds = computingInfoToCopy.elapsedTimeInMilliseconds;
-			nodesSearched = computingInfoToCopy.nodesSearched;
-			searchDepth = computingInfoToCopy.searchDepth;
-			movesLeftToConcider = computingInfoToCopy.movesLeftToConcider;
-			totalAmountOfMovesToConcider = computingInfoToCopy.totalAmountOfMovesToConcider;
-			currentConsideredMove = computingInfoToCopy.currentConsideredMove;
-			return *this;
-		}
 
 		uint64_t elapsedTimeInMilliseconds;
 		uint64_t nodesSearched;
 		uint32_t searchDepth;
 		uint32_t movesLeftToConcider;
 		uint32_t totalAmountOfMovesToConcider;
+		uint32_t currentMoveNoSearched;
+		int32_t positionValueInCentiPawn;
 		string currentConsideredMove;
 	};
 }

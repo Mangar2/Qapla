@@ -25,7 +25,9 @@ value_t EvalPawn::isolatedPawnAmountLookup[EvalPawn::LOOKUP_TABLE_SIZE];
 bitBoard_t EvalPawn::kingInfluenceTable[COLOR_AMOUNT][COLOR_AMOUNT][BOARD_SIZE];
 bitBoard_t EvalPawn::kingSupportPawnTable[COLOR_AMOUNT][BOARD_SIZE];
 
-void EvalPawn::initStatics() {
+EvalPawn::InitStatics EvalPawn::_staticConstructor;
+
+EvalPawn::InitStatics::InitStatics() {
 	computeKingInfluenceTable();
 	computeIsolatedPawnLookupTable();
 	computeKingSupportTable();
@@ -107,6 +109,8 @@ void EvalPawn::computeIsolatedPawnLookupTable() {
 }
 
 value_t EvalPawn::print(MoveGenerator& board) {
+	init<WHITE>(board);
+	init<BLACK>(board);
 	printf("Pawns\n");
 	printf("White advanced pawn : %ld\n", computeAdvancedPawnValue<WHITE>());
 	printf("Black advanced pawn : %ld\n", computeAdvancedPawnValue<BLACK>());

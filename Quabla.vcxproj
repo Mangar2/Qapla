@@ -238,7 +238,7 @@
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="interface\clocksetting.h" />
-    <ClInclude Include="interface\computinginfo.h" />
+    <ClInclude Include="interface\computinginfoexchange.h" />
     <ClInclude Include="interface\consoleio.h" />
     <ClInclude Include="interface\fenscanner.h" />
     <ClInclude Include="interface\ichessboard.h" />
@@ -253,7 +253,9 @@
     <ClInclude Include="movegenerator\movegenerator.h" />
     <ClInclude Include="search\boardadapter.h" />
     <ClInclude Include="search\clockmanager.h" />
+    <ClInclude Include="search\computinginfo.h" />
     <ClInclude Include="search\extension.h" />
+    <ClInclude Include="search\iterativedeepening.h" />
     <ClInclude Include="search\killermove.h" />
     <ClInclude Include="search\moveprovider.h" />
     <ClInclude Include="search\pv.h" />
@@ -263,12 +265,14 @@
     <ClInclude Include="search\movehistory.h" />
     <ClInclude Include="search\perft.h" />
     <ClInclude Include="search\searchparameter.h" />
+    <ClInclude Include="search\searchstack.h" />
     <ClInclude Include="search\searchvariables.h" />
-    <ClInclude Include="search\sse.h" />
+    <ClInclude Include="search\see.h" />
     <ClInclude Include="search\threadpool.h" />
     <ClInclude Include="search\tt.h" />
     <ClInclude Include="search\ttentry.h" />
     <ClInclude Include="search\whatIf.h" />
+    <ClInclude Include="tests\evalpawntest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

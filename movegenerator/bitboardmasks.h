@@ -52,8 +52,6 @@ namespace ChessMoveGenerator {
 		{
 		}
 
-		// Initializes mapping tables
-		static void InitStatics();
 
 #if defined(__GNUC__)
 
@@ -254,6 +252,10 @@ namespace ChessMoveGenerator {
 		static void initPopCount();
 		static void initAttackRay();
 
+		// Initializes masks
+		static struct InitStatics {
+			InitStatics();
+		} _staticConstructor;
 
 	};
 }

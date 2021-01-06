@@ -25,6 +25,11 @@
 #include "interface/movescanner.h"
 #include "interface/stdtimecontrol.h"
 
+#include "search/search.h"
+#include "tests/evalpawntest.h"
+
+using namespace ChessSearch;
+
 BoardAdapter adapter;
 
 bool setMove(const char* move) {
@@ -80,7 +85,7 @@ FenTests fenTests = {
 	}
 };
 
-void runTests(const FenTests& tests, uint64_t maxNodes = 1000000000) {
+void runPerftTests(const FenTests& tests, uint64_t maxNodes = 1000000000) {
 	FenScanner scanner;
 	StdTimeControl timeControl;
 	bool testResult = true;
@@ -162,8 +167,6 @@ int main()
 	// startFen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
 	// startFen = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
 	FenScanner scanner;
-	ChessMoveGenerator::Magics::InitStatics();
-	ChessMoveGenerator::BitBoardMasks::InitStatics();
 	scanner.setBoard(startFen, &adapter);
 	
 	//setMove("e6"); 
@@ -184,8 +187,22 @@ int main()
 			<< " threads: " << workerAmount + 1 << endl;
 	}
 	*/
+	// ChessEval::Eval::initStatics();
+	// adapter.printEvalInfo();
+	adapter.callSearch();
+	Eval eval;
+	ISendSearchInfo* sendSearch = 0;
+	ComputingInfo computingInfo(sendSearch);
+	Move lastMove;
+	MoveList moveList;
+	Move foundMove;
 
-	adapter.setWorkerAmount(1);
-	runTests(fenTests, 10000000000);
+	uint16_t moveNoFound = 0;
+	adapter.getBoard().genMovesOfMovingColor(moveList);
+	lastMove = moveList.getMove(0);
+	QuiescenceSearch::search(adapter.getBoard(), eval, computingInfo, lastMove, -MAX_VALUE, MAX_VALUE, 0);
+
+	// adapter.setWorkerAmount(1);
+	// runPerftTests(fenTests, 10000000000);
 }
 

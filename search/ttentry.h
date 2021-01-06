@@ -48,7 +48,7 @@ namespace ChessSearch {
 	public:
 		TTEntry() { clear();  };
 
-		inline void setHash(hash_t hash) { _hash = hash; }
+		inline void setTT(hash_t hash) { _hash = hash; }
 		inline hash_t getHash() { return _hash; }
 
 		bool isEmpty() { return _hash == 0; }
@@ -120,7 +120,7 @@ namespace ChessSearch {
 		/**
 		 * Checks, if the stored hash value is below a beta value
 		 */
-		bool isHashValueBelowBeta(value_t probeBeta) {
+		bool isTTValueBelowBeta(value_t probeBeta) {
 			value_t positionValue = MAX_VALUE;
 			value_t alpha = -MAX_VALUE;
 			value_t beta = MAX_VALUE;
@@ -143,7 +143,7 @@ namespace ChessSearch {
 		}
 
 		uint32_t getComputedDepth() const {
-			return (_info & DEPTH_MASK) >> DEPTH_SHIFT;
+			return ((_info & DEPTH_MASK) >> DEPTH_SHIFT);
 		}
 		inline bool isNullmoveThreadPosition() const { 
 			return (_info & NULLMOVE_THREAT_MASK) != 0; 

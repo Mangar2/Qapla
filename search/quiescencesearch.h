@@ -21,18 +21,18 @@
  * a quiet position is reached.
  */
 
-
 #ifndef __QUIESCENCESEARCH_H
 #define __QUIESCENCESEARCH_H
 
-#include "eval.h"
+#include "../eval/eval.h"
 #include "searchparameter.h"
 #include "moveprovider.h"
 #include "../movegenerator/movegenerator.h"
-#include "../interface/computinginfo.h"
+#include "computinginfo.h"
 #include "whatif.h"
 
 using namespace ChessInterface;
+using namespace ChessEval;
 
 namespace ChessSearch {
 
@@ -178,7 +178,7 @@ namespace ChessSearch {
 			}
 
 			WHATIF(WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);)
-				return bestValue;
+			return bestValue;
 		}
 
 	};

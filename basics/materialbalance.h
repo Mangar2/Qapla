@@ -47,7 +47,7 @@ namespace ChessBasics {
 			pieceValues[WHITE_KING] = MAX_VALUE;
 			pieceValues[BLACK_KING] = -MAX_VALUE;
 			for (Piece piece = NO_PIECE; piece <= BLACK_KING; ++piece) {
-				pieceValues[piece] = abs(pieceValues[piece]);
+				absolutePieceValues[piece] = abs(pieceValues[piece]);
 			}
 		}
 
@@ -75,14 +75,21 @@ namespace ChessBasics {
 		/**
 		 * Gets the value of a piece
 		 */
-		value_t getPieceValue(Piece piece) const {
+		inline value_t getPieceValue(Piece piece) const {
 			return pieceValues[piece];
 		}
 
 		/**
 		 * Gets the value of a piece
 		 */
-		value_t getAbsolutePieceValue(Piece piece) const {
+		inline value_t getPieceValueForMoveSorting(Piece piece) const {
+			return pieceValuesForMoveSorting[piece];
+		}
+
+		/**
+		 * Gets the value of a piece
+		 */
+		inline value_t getAbsolutePieceValue(Piece piece) const {
 			return absolutePieceValues[piece];
 		}
 
@@ -90,7 +97,7 @@ namespace ChessBasics {
 		 * Gets the material value of the board - positive values indicates
 		 * white positions is better
 		 */
-		value_t getMaterialValue() const {
+		inline value_t getMaterialValue() const {
 			return materialValue;
 		}
 
@@ -98,17 +105,17 @@ namespace ChessBasics {
 		 * Gets the material value of the current board from the player to move view
 		 * @param whiteToMove true, if it is the turn of white to play a move
 		 */
-		value_t getMaterialValue(bool whiteToMove) const {
+		inline value_t getMaterialValue(bool whiteToMove) const {
 			return whiteToMove ? materialValue : -materialValue;
 		}
-
-	private:
 
 		const static value_t PAWN_VALUE = 100;
 		const static value_t KNIGHT_VALUE = 325;
 		const static value_t BISHOP_VALUE = 325;
 		const static value_t ROOK_VALUE = 500;
 		const static value_t QUEEN_VALUE = 975;
+	
+	private:
 
 		value_t materialValue;
 		array<value_t, PIECE_AMOUNT> pieceValues;

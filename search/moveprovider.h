@@ -25,10 +25,10 @@
 #include "../basics/move.h"
 #include "../basics/movelist.h"
 #include "searchdef.h"
-//#include "Eval.h"
+#include "../eval/eval.h"
 //#include "EvalBoard.h"
 #include "killermove.h"
-#include "sse.h"
+#include "see.h"
 #include "SearchParameter.h"
 #include "../movegenerator/movegenerator.h"
 
@@ -208,7 +208,7 @@ namespace ChessSearch {
 		uint32_t getNonSilentMoveAmount() const { return moveList.getNonSilentMoveAmount(); }
 		uint32_t getNumberOfMoveProvidedLast() const { return curMoveNo; }
 		uint32_t getSelectTypeOfLastProvidedMove() const { return currentStage; }
-		Move getHashMove() const {
+		Move getTTMove() const {
 			return hashMove;
 		}
 
@@ -223,7 +223,7 @@ namespace ChessSearch {
 	private:
 
 		value_t computeCaptureWeight(const MoveGenerator& board, Move move, bool underWeightLoosingCaptures) {
-			value_t weight = board.evalBoard.absolutePieceValue[move.getCapture()];
+			value_t weight = board.getAbsolutePieceValue(move.getCapture());
 			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
 				// order recaptures to the front
 				weight += 10;
@@ -261,7 +261,7 @@ namespace ChessSearch {
 		int16_t selectNextCaptureMoveHandlingLoosingCaptures(const MoveGenerator& board) {
 			int16_t moveNo;
 			moveNo = findNextBestCaptureMove(board);
-			while (moveNo != -1 && moveList.getWeight(moveNo) >= 0 && staticExchangeEvaluation.isLoosingCapture(board, moveList[moveNo])) {
+			while (moveNo != -1 && moveList.getWeight(moveNo) >= 0 && sEE.isLoosingCapture(board, moveList[moveNo])) {
 				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - LOOSING_CAPTURE_MALUS);
 				moveNo = findNextBestCaptureMove(board);
 			}
@@ -269,7 +269,7 @@ namespace ChessSearch {
 				selectStage++;
 			}
 			else {
-				moveList.sortTargetToSource(curMoveNo, moveNo);
+				moveList.dragMoveToTheBack(curMoveNo, moveNo);
 				moveNo = curMoveNo;
 				curMoveNo++;
 			}
@@ -282,7 +282,7 @@ namespace ChessSearch {
 				selectStage++;
 			}
 			else {
-				moveList.sortTargetToSource(curMoveNo, bestMoveNo);
+				moveList.dragMoveToTheBack(curMoveNo, bestMoveNo);
 				bestMoveNo = curMoveNo;
 				curMoveNo++;
 			}
@@ -313,10 +313,12 @@ namespace ChessSearch {
 		}
 
 		void sortNonCaptures() {
+			/*
 			for (uint8_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				moveList.setWeight(moveNo, HistoryTable::getWeight(moveList.getMove(moveNo)));
 			}
 			moveList.sortFirstNonCaptureMoves(SearchParameter::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
+			*/
 		}
 
 		static const uint32_t TRIED_MOVES_STORE_SIZE = 200;
@@ -333,7 +335,7 @@ namespace ChessSearch {
 		MoveList moveList;
 		Move triedMoves[TRIED_MOVES_STORE_SIZE];
 		uint32_t triedMovesAmount;
-		StaticExchangeEvaluation staticExchangeEvaluation;
+		SEE sEE;
 
 	};
 

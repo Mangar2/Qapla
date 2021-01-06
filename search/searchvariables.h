@@ -47,6 +47,7 @@ namespace ChessSearch {
 		SearchVariables() {
 			cutoff = CUTOFF_NONE;
 		};
+
 		SearchVariables(const SearchVariables& searchInfo) {
 			operator=(searchInfo);
 		}
@@ -72,6 +73,9 @@ namespace ChessSearch {
 			moveProvider.setPVMove(pvMove);
 		}
 
+		/**
+		 * Selectes the first search state (IID, PV, NORMAL)
+		 */
 		void selectFirstSearchState() {
 			if (doIID()) {
 				searchState = SearchType::IID;
@@ -85,7 +89,9 @@ namespace ChessSearch {
 			}
 		}
 
-
+		/**
+		 * Sets all variables from previous ply
+		 */
 		void setFromPreviousPly(MoveGenerator& board, const SearchVariables& previousPlySearchInfo, Move previousPlyMove) {
 			beta = -previousPlySearchInfo.alpha;
 			alpha = -previousPlySearchInfo.beta;
@@ -107,6 +113,9 @@ namespace ChessSearch {
 			lateMoveReduction = 0;
 		}
 
+		/**
+		 * Initializes all variables to start search
+		 */
 		void init(MoveGenerator& board, value_t initialAlpha, value_t initialBeta, int32_t searchDepth) {
 			remainingDepth = searchDepth;
 			alpha = initialAlpha;
@@ -125,6 +134,9 @@ namespace ChessSearch {
 			lateMoveReduction = 0;
 		}
 
+		/**
+		 * Applies a move
+		 */
 		void doMove(MoveGenerator& board, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			boardState = board.getBoardState();
@@ -137,6 +149,9 @@ namespace ChessSearch {
 			positionHashSignature = board.computeBoardHash();
 		}
 
+		/**
+		 * Take back the previously applied move
+		 */
 		void undoMove(MoveGenerator& board) {
 			if (previousMove == Move::NULL_MOVE) {
 				board.undoNullmove(boardState);
@@ -146,13 +161,16 @@ namespace ChessSearch {
 			}
 		}
 
+		/**
+		 * Check basic cutoff rules
+		 */
 		cutoff_t checkBasicCutoffs(MoveGenerator& board) {
 			cutoff_t result = CUTOFF_NONE;
-			if (alpha > MAX_VALUE - ply) {
+			if (alpha > MAX_VALUE - value_t(ply)) {
 				result = CUTOFF_FASTER_MATE_FOUND;
 				bestValue = alpha;
 			}
-			else if (beta < -MAX_VALUE + ply) {
+			else if (beta < -MAX_VALUE + value_t(ply)) {
 				result = CUTOFF_FASTER_MATE_FOUND;
 				bestValue = beta;
 			}
@@ -163,7 +181,10 @@ namespace ChessSearch {
 			return result;
 		}
 
-		void getHashEntry(MoveGenerator& board) {
+		/**
+		 * Gets an entry from the transposition table
+		 */
+		void getTTEntry(MoveGenerator& board) {
 
 			if (cutoff == CUTOFF_NONE) {
 				uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
@@ -223,7 +244,7 @@ namespace ChessSearch {
 		bool doIID() {
 			return false;
 			bool result = false;
-			if (remainingDepth > 4 * ONE_PLY && moveProvider.getHashMove() == 0 && searchState == SearchType::PV) {
+			if (remainingDepth > 4 * ONE_PLY && moveProvider.getTTMove() == 0 && searchState == SearchType::PV) {
 				result = true;
 			}
 		}
@@ -304,6 +325,9 @@ namespace ChessSearch {
 			return move;
 		}
 
+		/**
+		 * Selects the next move to try
+		 */
 		Move selectNextMove(MoveGenerator& board) {
 			assert(cutoff == CUTOFF_NONE);
 			Move move = setSearchState(board);
@@ -315,6 +339,9 @@ namespace ChessSearch {
 
 		}
 
+		/**
+		 * Multi thread variant to select the next move
+		 */
 		Move selectNextMoveThreadSafe(MoveGenerator& board) {
 			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
 			Move move = Move::EMPTY_MOVE;
@@ -324,6 +351,9 @@ namespace ChessSearch {
 			return move;
 		}
 
+		/**
+		 * applies the search result to the status
+		 */
 		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
 			currentValue = searchResult;
 			if (searchResult > bestValue) {
@@ -351,11 +381,17 @@ namespace ChessSearch {
 			}
 		}
 
+		/**
+		 * Multi-Threading version to set the search result
+		 */
 		void setSearchResultThreadSafe(value_t searchResult, const SearchVariables& searchInfo, Move currentMove) {
 			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
 			setSearchResult(searchResult, searchInfo, currentMove);
 		}
 
+		/**
+		 * Sets the hash entry
+		 */
 		void setHashEntry(hash_t hashKey) {
 			bool drawByRepetetivePositionValue = (bestValue == 0);
 			if (!drawByRepetetivePositionValue) {
@@ -364,6 +400,9 @@ namespace ChessSearch {
 			}
 		}
 
+		/**
+		 * terminates the search-ply
+		 */
 		void terminatePly(MoveGenerator& board) {
 
 			if (cutoff == CUTOFF_NONE && bestMove != Move::NULL_MOVE) {
@@ -377,19 +416,25 @@ namespace ChessSearch {
 
 		Move getMoveFromPVMovesStore(ply_t ply) const { return pvMovesStore.getMove(ply); }
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
-		Move getHashMove() const { return moveProvider.getHashMove(); }
+		/**
+		 * Gets the move proposed by the tt
+		 */
+		Move getTTMove() const { return moveProvider.getTTMove(); }
 		void setPly(ply_t curPly) { ply = curPly; }
 
 		string getSearchStateName() const {
 			return searchStateNames[int32_t(searchState)];
 		}
 
-		void setHash(TT* tt) {
+		/**
+		 * Sets the transposition tables
+		 */
+		void setTT(TT* tt) {
 			ttPtr = tt;
 		}
 
-		inline bool isHashValueBelowBeta(const Board& board) {
-			return ttPtr->isHashValueBelowBeta(board.computeBoardHash(), beta);
+		inline bool isTTValueBelowBeta(const Board& board) {
+			return ttPtr->isTTValueBelowBeta(board.computeBoardHash(), beta);
 		}
 
 		enum class SearchType {

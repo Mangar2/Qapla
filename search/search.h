@@ -24,27 +24,28 @@
 
 #include <thread>
 #include "../movegenerator/movegenerator.h"
-#include "../interface/computinginfo.h"
+#include "computinginfo.h"
 #include "clockmanager.h"
 #include "SearchStack.h"
-#include "Eval.h"
+#include "../eval/eval.h"
 #include "QuiescenceSearch.h"
 #include "ClockManager.h"
 #include "tt.h"
 #include "Whatif.h"
-#include "Razoring.h"
+// #include "razoring.h"
 
 using namespace std;
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;
 
 namespace ChessSearch {
+
 	class Search {
 	public:
 		Search() {}
 
-		value_t searchRec(MoveGenerator& board, ComputingInfo& computingInfo, ClockManager& clockManager) {
-			negaMax(board, computingInfo, clockManager, Move::EMPTY_MOVE, 0);
+		value_t searchRec(MoveGenerator& board, SearchStack& stack, ChessSearch::ComputingInfo& computingInfo, ClockManager& clockManager) {
+			negaMax(board, stack, computingInfo, clockManager, Move::EMPTY_MOVE, 0);
 		}
 
 	private:
@@ -53,12 +54,12 @@ namespace ChessSearch {
 		void updateThinkingInfo(SearchStack& stack) {
 			if (ply <= 0) {
 				computingInfoPtr->currentMoveNoSearched++;
-				computingInfoPtr->positionValue = stack[0].bestValue;
+				computingInfoPtr->positionValueInCentiPawn = stack[0].bestValue;
 				computingInfoPtr->updatePV(stack[0].pvMovesStore);
 			}
 		}
 
-		void searchLastPlys(GenBoard& board, SearchVariables& currentPly, SearchStack& stack, Move currentMove) {
+		void searchLastPlys(MoveGenerator& board, SearchVariables& currentPly, SearchStack& stack, Move currentMove) {
 			value_t searchResult;
 			if (currentPly.remainingDepth <= 0) {
 				stack[ply + 1].previousMove = currentMove;
@@ -68,22 +69,27 @@ namespace ChessSearch {
 				searchResult = -negaMaxLastPlys(board, stack, currentMove, ply + 1);
 			}
 			currentPly.setSearchResult(searchResult, stack[ply + 1], currentMove);
-			WHATIF(WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, currentMove, ply);)
+			
+			// WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, currentMove, ply);
 		}
 
-		void handleCutoffs(GenBoard& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
+		void handleCutoffs(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
 			SearchVariables::cutoff_t cutoff = stack.isDrawByRepetitionInSearchTree(board, ply) ? SearchVariables::CUTOFF_DRAW_BY_REPETITION : SearchVariables::CUTOFF_NONE;
 			curPly.cutoffSearch(cutoff, 0);
-			WHATIF(if (cutoff == SearchVariables::CUTOFF_DRAW_BY_REPETITION) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, "RPET"); })
-				curPly.getHashEntry(board);
-			WHATIF(if (curPly.cutoff == SearchVariables::CUTOFF_HASH) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, "HASH"); })
-				if (!curPly.cutoff) {
-					//cutoff = Razoring::razoring(board, eval, *computingInfoPtr, curPly) ? SearchVariables::CUTOFF_RAZORING : SearchVariables::CUTOFF_NONE;
-					//curPly.cutoffSearch(cutoff);
-				}
+			
+			// WHATIF(if (cutoff == SearchVariables::CUTOFF_DRAW_BY_REPETITION) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, "RPET"); })
+			curPly.getTTEntry(board);
+			// WHATIF(if (curPly.cutoff == SearchVariables::CUTOFF_HASH) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, "HASH"); })
+			if (!curPly.cutoff) {
+				//cutoff = Razoring::razoring(board, eval, *computingInfoPtr, curPly) ? SearchVariables::CUTOFF_RAZORING : SearchVariables::CUTOFF_NONE;
+				//curPly.cutoffSearch(cutoff);
+			}
 		}
 
-		value_t negaMaxLastPlys(GenBoard& board, SearchStack& stack, Move previousPlyMove, uint32_t ply)
+		/**
+		 * Negamax algorithm for the last plies of the search
+		 */
+		value_t negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply)
 		{
 			SearchVariables& currentPly = stack[ply];
 			value_t searchResult;
@@ -91,27 +97,29 @@ namespace ChessSearch {
 
 			computingInfoPtr->nodesSearched++;
 			currentPly.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
-			WHATIF(WhatIf::whatIf.moveSelected(board, *computingInfoPtr, stack, previousPlyMove, ply);)
+			// WHATIF(WhatIf::whatIf.moveSelected(board, *computingInfoPtr, stack, previousPlyMove, ply);)
 
-				handleCutoffs(board, stack, currentPly, ply);
+			handleCutoffs(board, stack, currentPly, ply);
 
 			if (currentPly.cutoff == SearchVariables::CUTOFF_NONE) {
 
 				currentPly.generateMoves(board);
 				currentPly.extendSearch(board);
 
-				while (currentMove = currentPly.selectNextMove(board)) {
+				while (!(currentMove = currentPly.selectNextMove(board)).isEmpty()) {
 					//printf("%ld %lld %s %s\n", ply, computingInfo.nodesSearched, Move::getLAN(move).getCharBuffer(), searchInfo.inPV ? "in PV": "");
+					
 					if (currentPly.remainingDepth > 0) {
 						searchResult = -negaMaxLastPlys(board, stack, currentMove, ply + 1);
 					}
 					else {
 						stack[ply + 1].previousMove = currentMove;
-						searchResult = -QuiescenceSearch::search(board, eval, *computingInfoPtr, currentMove, -currentPly.beta, -currentPly.alpha, ply + 1);
+						searchResult = -QuiescenceSearch::search(board, eval, *computingInfoPtr, 
+							currentMove, -currentPly.beta, -currentPly.alpha, ply + 1);
 					}
 
 					currentPly.setSearchResult(searchResult, stack[ply + 1], currentMove);
-					WHATIF(WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, currentMove, ply);)
+					// WHATIF(WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, currentMove, ply);)
 
 				}
 			}
@@ -121,6 +129,9 @@ namespace ChessSearch {
 
 		}
 
+		/**
+		 * Check, if it is reasonable to do a nullmove search
+		 */
 		bool isNullmoveReasonable(MoveGenerator& board, bool isLastMoveNullmove, SearchVariables& currentPly) {
 			bool result = true;
 
@@ -130,22 +141,22 @@ namespace ChessSearch {
 			else if (currentPly.noNullmove) {
 				result = false;
 			}
-			else if (!board.pieceSignature.sideToMoveHasQueenRookBishop(board.isWhiteToMove())) {
+			else if (!board.sideToMoveHasQueenRookBishop(board.isWhiteToMove())) {
 				result = false;
 			}
 			else if (board.isInCheck()) {
 				result = false;
 			}
-			else if (currentPly.beta >= MAX_VALUE - ply) {
+			else if (currentPly.beta >= MAX_VALUE - value_t(ply)) {
 				result = false;
 			}
-			else if (currentPly.beta <= -MAX_VALUE + ply) {
+			else if (currentPly.beta <= -MAX_VALUE + value_t(ply)) {
 				result = false;
 			}
-			else if (board.evalBoard.getMaterialValue(board.isWhiteToMove()) + EvalBoard::PAWN_VALUE < currentPly.beta) {
+			else if (board.getMaterialValue(board.isWhiteToMove()) + MaterialBalance::PAWN_VALUE < currentPly.beta) {
 				result = false;
 			}
-			else if (currentPly.isHashValueBelowBeta(board)) {
+			else if (currentPly.isTTValueBelowBeta(board)) {
 				result = false;
 			}
 			else if (ply + currentPly.remainingDepth < 3) {
@@ -161,12 +172,15 @@ namespace ChessSearch {
 			return result;
 		}
 
-		value_t negaMax(MoveGenerator& board, ComputingInfo& computingInfo, ClockManager& clockManager, Move previousPlyMove, uint32_t ply) {
+		/**
+		 * Do a full search using the negaMax algorithm
+		 */
+		value_t negaMax(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, 
+			ClockManager& clockManager, Move previousPlyMove, uint32_t ply) {
 
 			SearchVariables& searchInfo = stack[ply];
 			value_t searchResult;
 			Move currentMove;
-
 
 			if (ply > 0) {
 				searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
@@ -176,20 +190,20 @@ namespace ChessSearch {
 
 			if (ply == 0) {
 				computingInfo.totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
-				computingInfo.currentConsideredMove = 0;
+				computingInfo.currentConcideredMove.setEmpty();
 			}
 
-			while (currentMove = searchInfo.selectNextMove(board)) {
+			while (!(currentMove = searchInfo.selectNextMove(board)).isEmpty()) {
 
 				if (ply == 0) {
-					computingInfo.currentConsideredMove = currentMove.getLAN();
+					computingInfo.currentConcideredMove = currentMove;
 				}
 
 				if (searchInfo.remainingDepth > 2) {
-					searchResult = -negaMax(board, computingInfo, clockManager, currentMove, ply + 1);
+					searchResult = -negaMax(board, stack, computingInfo, clockManager, currentMove, ply + 1);
 				}
 				else if (searchInfo.remainingDepth > 0) {
-					searchResult = -negaMaxLastPlys(board, currentMove, ply + 1);
+					searchResult = -negaMaxLastPlys(board, stack, currentMove, ply + 1);
 				}
 				else {
 					searchResult = -QuiescenceSearch::search(board, eval, computingInfo, currentMove, -searchInfo.beta, -searchInfo.alpha, ply + 1);
@@ -202,8 +216,8 @@ namespace ChessSearch {
 				searchInfo.setSearchResult(searchResult, stack[ply + 1], currentMove);
 
 				if (ply == 0) {
-					computingInfo.currentConsideredMove++;
-					computingInfo.positionValue = stack[0].bestValue;
+					computingInfo.currentMoveNoSearched++;
+					computingInfo.positionValueInCentiPawn = stack[0].bestValue;
 					computingInfo.updatePV(stack[0].pvMovesStore);
 				}
 
@@ -218,10 +232,9 @@ namespace ChessSearch {
 
 		}
 
+		ply_t ply;
 		Eval eval;
-		thread computeThread;
 		ComputingInfo* computingInfoPtr;
-
 	};
 }
 

@@ -32,55 +32,46 @@ using namespace ChessBasics;
 using namespace ChessMoveGenerator;
 
 namespace ChessEval {
-	class EvalPawn {
 
-
-	public:
-		EvalPawn() {}
-
-		EvalPawn(MoveGenerator& board) {
-			init(board);
-		}
-
+	struct EvalValues {
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
 		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
 		/**
-		 * Initializes the eval structures
+		 * For rank 2 to 6, ignored for rank 7
+		 * Double isolated pawn are counted as one isolated pawn and a double pawn
 		 */
-		void init(MoveGenerator& board) {
-			pawns[WHITE] = board.getPieceBB(WHITE_PAWN);
-			pawns[BLACK] = board.getPieceBB(BLACK_PAWN);
-			pawnMoveRay[WHITE] = computePawnMoveRay<WHITE>();
-			pawnMoveRay[BLACK] = computePawnMoveRay<BLACK>();
-		}
+		const static value_t ISOLATED_PAWN_PENALTY = -15;
 
-		/**
-		 * Initializes static fields
-		 */
-		static void initStatics();
+		const static value_t MOBILITY_VALUE = 2;
+
+		const static value_t DOUBLE_PAWN_PENALTY = -20;
+
+		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   5,  10,  15,   0, 0 };
+		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  10,  25,  45,  70, 100, 0 };
+		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  25,  45, 70, 100, 200, 0 };
+		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 25,  50,  80, 130, 200, 300, 0 };
+		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
+	};
+
+	class EvalPawn {
+	public:
+		EvalPawn() {}
+
+		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
+		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
 		/**
 		 * Prints pawn evaluation details
 		 */
 		value_t print(MoveGenerator& board);
 
-		template <Piece COLOR>
-		inline value_t eval(MoveGenerator& board) {
-			value_t result = 0;
-			if (pawns[COLOR] != 0) {
-				result += computeAdvancedPawnValue<COLOR>();
-				result += computeIsolatedPawnValue<COLOR>();
-				result += computeDoublePawnValue<COLOR>();
-				result += computePassedPawnValue<COLOR>(board);
-			}
-			return result;
-		}
-
 		/**
 		 * Calculates the evaluation for the pawn values on the board
 		 */
 		value_t eval(MoveGenerator& board) {
+			init<WHITE>(board);
+			init<BLACK>(board);
 			return eval<WHITE>(board) + eval<BLACK>(board);
 		}
 
@@ -98,6 +89,8 @@ namespace ChessEval {
 		 * piece on the board
 		 */
 		value_t computePawnValueNoPiece(MoveGenerator& board) {
+			init<WHITE>(board);
+			init<BLACK>(board);
 			value_t result = board.getMaterialValue();
 			result += computePawnValueNoPieceButPawn<WHITE>(board);
 			result -= computePawnValueNoPieceButPawn<BLACK>(board);
@@ -118,6 +111,30 @@ namespace ChessEval {
 	private:
 
 		/**
+		 * Evaluates pawns per color
+		 */
+		template <Piece COLOR>
+		inline value_t eval(MoveGenerator& board) {
+			value_t result = 0;
+			if (pawns[COLOR] != 0) {
+				result += computeAdvancedPawnValue<COLOR>();
+				result += computeIsolatedPawnValue<COLOR>();
+				result += computeDoublePawnValue<COLOR>();
+				result += computePassedPawnValue<COLOR>(board);
+			}
+			return result;
+		}
+
+		/**
+		 * Initializes the eval structures
+		 */
+		template<Piece COLOR>
+		void init(MoveGenerator& board) {
+			pawns[COLOR] = board.getPieceBB(PAWN + COLOR);
+			pawnMoveRay[COLOR] = computePawnMoveRay<COLOR>();
+		}
+
+		/**
 		 * Computes the pawn value for a board with no piece but pawns
 		 */
 		template<Piece COLOR>
@@ -126,7 +143,8 @@ namespace ChessEval {
 			bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 			bitBoard_t passedPawns = computePassedPawns<COLOR>();
 
-			value_t pawnValue = computePawnValueForSparcelyPolulatedBitboards<COLOR>(pawns & ~passedPawns, PAWN_VALUE);
+			value_t pawnValue = computePawnValueForSparcelyPolulatedBitboards<COLOR>(pawns & ~passedPawns, 
+				EvalValues::ADVANCED_PAWN_VALUE);
 			pawnValue += computePassedPawnValue<COLOR>(board, passedPawns, NO_PIECES_BUT_PAWNS_ON_BOARD);
 			return pawnValue;
 		}
@@ -191,18 +209,18 @@ namespace ChessEval {
 				Square pawnPos = BitBoardMasks::lsb(pawns);
 				uint32_t rank = uint32_t(getRank(Square(pawnPos ^ changeSide)));
 				if (isConnectedPassedPawn(pawnPos, passedPawns)) {
-					result += CONNECTED_PASSED_PAWN_VALUE[rank];
+					result += EvalValues::CONNECTED_PASSED_PAWN_VALUE[rank];
 				}
 				else if (noPieces && isDistantPassedPawn(pawnPos, board.getPieceBB(PAWN + COLOR), 
 						board.getPieceBB(PAWN + OPPONENT[COLOR])))
 				{
-					result += DISTANT_PASSED_PAWN_VALUE[rank];
+					result += EvalValues::DISTANT_PASSED_PAWN_VALUE[rank];
 				}
 				else if (isProtectedPassedPawn(pawnPos, board.pawnAttackMask[COLOR])) {
-					result += PROTECTED_PASSED_PAWN_VALUE[rank];
+					result += EvalValues::PROTECTED_PASSED_PAWN_VALUE[rank];
 				}
 				else {
-					result += PASSED_PAWN_VALUE[rank];
+					result += EvalValues::PASSED_PAWN_VALUE[rank];
 				}
 			}
 			return result;
@@ -215,7 +233,7 @@ namespace ChessEval {
 		value_t computePassedPawnValue(MoveGenerator& board) {
 			bitBoard_t passedPawns = computePassedPawns<COLOR>();
 			value_t result = computePassedPawnValue<COLOR>(board, passedPawns);
-			return result;
+			return COLOR == WHITE ? result : -result;
 		}
 
 
@@ -254,11 +272,11 @@ namespace ChessEval {
 		value_t computeIsolatedPawnValue() {
 			if (COLOR == WHITE) {
 				return isolatedPawnAmountLookup[(pawnMoveRay[COLOR] >> 6 * NORTH) & LOOKUP_TABLE_MASK]
-					* ISOLATED_PAWN_PENALTY;
+					* EvalValues::ISOLATED_PAWN_PENALTY;
 			}
 			else {
 				return -isolatedPawnAmountLookup[(pawnMoveRay[COLOR] >> 1 * NORTH) & LOOKUP_TABLE_MASK]
-					* ISOLATED_PAWN_PENALTY;
+					* EvalValues::ISOLATED_PAWN_PENALTY;
 			}
 		}
 
@@ -267,8 +285,8 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		inline value_t computeDoublePawnValue() {
-			value_t result = computeAmountOfDoublePawns(pawns[COLOR], pawnMoveRay[COLOR]) * DOUBLE_PAWN_PENALTY;
-			return COLOR == WHITE ? COLOR : -COLOR;
+			value_t result = computeAmountOfDoublePawns(pawns[COLOR], pawnMoveRay[COLOR]) * EvalValues::DOUBLE_PAWN_PENALTY;
+			return COLOR == WHITE ? result : -result;
 		}
 
 		/**
@@ -277,9 +295,18 @@ namespace ChessEval {
 		template <Piece COLOR>
 		value_t computeAdvancedPawnValue() {
 			value_t pawnValue = 0;
-			for (uint32_t rank = uint32_t(Rank::R4); rank <= uint32_t(Rank::R7); --rank) {
-				uint32_t colorRank = uint32_t(Rank::R8) - rank;
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawns[COLOR] >> colorRank * NORTH) * PAWN_VALUE[rank];
+			bitBoard_t pawnsBB = pawns[COLOR];
+			if (COLOR == WHITE) {
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalValues::ADVANCED_PAWN_VALUE[3];
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalValues::ADVANCED_PAWN_VALUE[4];
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 5) * EvalValues::ADVANCED_PAWN_VALUE[5];
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 6) * EvalValues::ADVANCED_PAWN_VALUE[6];
+			}
+			else {
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalValues::ADVANCED_PAWN_VALUE[3];
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalValues::ADVANCED_PAWN_VALUE[4];
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 2) * EvalValues::ADVANCED_PAWN_VALUE[5];
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 1) * EvalValues::ADVANCED_PAWN_VALUE[6];
 			}
 			return pawnValue;
 		}
@@ -323,10 +350,13 @@ namespace ChessEval {
 			return pawnMoveRay[COLOR];
 		}
 
+		static struct InitStatics {
+			InitStatics();
+		} _staticConstructor;
+
 		typedef bool testFunction_t(Square kingPos, Square pawnPos, bool atMove);
 		static bool kingSupportsPassedPawn(Square kingPos, Square pawnPos, bool atMove);
 		static bool kingReachesPawn(Square kingPos, Square pawnPos, bool atMove);
-
 
 		static bitBoard_t computeKingInfluence(Square kingPos, bool atMove, testFunction_t testFunction);
 
@@ -334,16 +364,6 @@ namespace ChessEval {
 		static void computeKingSupportTable();
 		static void computeIsolatedPawnLookupTable();
 
-		const static value_t ISOLATED_PAWN_PENALTY = -15;
-		const static value_t MOBILITY_VALUE = 2;
-
-		const static value_t DOUBLE_PAWN_PENALTY = -20;
-
-		static constexpr RankArray_t PAWN_VALUE = { 0,  0,   0,   5,  10,  15,   0, 0 };
-		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  10,  25,  45,  70, 100, 0 };
-		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 20,  40,  70, 110, 170, 250, 0 };
-		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 25,  50,  80, 130, 200, 300, 0 };
-		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
 		static const value_t RUNNER_BONUS = 300;
 
 

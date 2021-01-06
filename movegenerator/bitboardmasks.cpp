@@ -43,6 +43,8 @@ bitBoard_t BitBoardMasks::mFullRay[BOARD_SIZE * BOARD_SIZE];
 
 uint8_t BitBoardMasks::popCountLookup[LOOKUP_SIZE];
 
+BitBoardMasks::InitStatics BitBoardMasks::_staticConstructor;
+
 
 // -------------------------- GenKingTargetBoard ------------------------------
 bitBoard_t BitBoardMasks::genKingTargetBoard(Square square)
@@ -127,7 +129,7 @@ void BitBoardMasks::initAttackRay() {
 	}
 }
 
-void BitBoardMasks::InitStatics()
+BitBoardMasks::InitStatics::InitStatics()
 {
 
 	Square square;

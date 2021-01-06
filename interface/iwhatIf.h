@@ -22,6 +22,9 @@
  * what I play "e4 d6" ?
  */
 
+#ifndef __IWHATIF_H
+#define __IWHATIF_H
+
 typedef uint32_t ply_t; 
 
 class IWhatIf {
@@ -34,3 +37,5 @@ public:
 	virtual void setNullmove(ply_t ply) = 0;
 	virtual void clear() = 0;
 };
+
+#endif // __IWHATIF_H

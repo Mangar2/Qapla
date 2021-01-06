@@ -157,7 +157,7 @@ namespace ChessBasics {
 		template <Piece COLOR>
 		bool hasEnoughMaterialToMate() const {
 			pieceSignature_t signature = getSignature<COLOR>();
-			return (signature & SignatureMask::PAWN) || (signature > Signature::BISHOP);
+			return (signature & SignatureMask::PAWN) || (signature > pieceSignature_t(Signature::BISHOP));
 		}
 
 		/**

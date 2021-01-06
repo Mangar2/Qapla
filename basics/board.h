@@ -120,6 +120,14 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Gets the amount of half moves without pawn move or capture to implement
+		 * the 50-moves-draw rule
+		 */
+		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
+			return basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture;
+		}
+
+		/**
 		 * Is the position forced draw due to missing material (in any cases)?
 		 * No side has any pawn, no side has more than either a Knight or a Bishop
 		 */
@@ -163,10 +171,32 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Gets the value of a piece used for move ordering
+		 */
+		inline auto getPieceValueForMoveSorting(Piece piece) const {
+			return materialBalance.getPieceValueForMoveSorting(piece);
+		}
+
+		/**
 		 * Gets the material balance value of the board
 		 */
 		inline auto getMaterialValue() const {
 			return materialBalance.getMaterialValue();
+		}
+
+		/**
+		 * Gets the material balance value of the board
+		 * Positive, if the player to move has a better position
+		 */
+		inline auto getMaterialValue(bool whiteToMove) const {
+			return materialBalance.getMaterialValue(whiteToMove);
+		}
+
+		/**
+		 * Returns true, if the side to move has any range piece
+		 */
+		inline auto sideToMoveHasQueenRookBishop(bool whiteToMove) const {
+			return pieceSignature.sideToMoveHasQueenRookBishop(whiteToMove);
 		}
 
 		/**
@@ -189,6 +219,16 @@ namespace ChessBasics {
 
 		BoardState getBoardState() { return basicBoard.boardState; }
 		BasicBoard basicBoard;
+
+		/**
+		 * Prints the board as fen to std-out
+		 */
+		void printFen() const;
+
+		/**
+		 * Prints the board to std-out
+		 */
+		void print() const;
 
 	protected:
 		array<Square, COLOR_AMOUNT> kingSquares;

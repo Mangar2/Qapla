@@ -76,6 +76,13 @@ namespace ChessMoveGenerator {
 			computeAttackMasksForBothColors();
 		}
 
+		/**
+	     * Creates a symetric board exchanging black/white side
+	     */
+		void setToSymetricBoard(const MoveGenerator& board) {
+			Board::setToSymetricBoard(board);
+			computeAttackMasksForBothColors();
+		}
 
 		// ------------------------------------------------------------------------
 		// ---------------------- Move generation ---------------------------------

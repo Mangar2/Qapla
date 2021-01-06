@@ -34,15 +34,12 @@
 #include "evalmobility.h"
 
 namespace ChessEval {
+
 	class Eval {
 
 	public:
 
-		Eval() {
-		}
-
 		static void initStatics() {
-			EvalPawn::initStatics();
 			EvalEndgame::initStatics();
 		}
 
@@ -68,7 +65,7 @@ namespace ChessEval {
 
 			value_t evalResult;
 			value_t endGameResult;
-			EvalPawn evalPawn(board);
+			EvalPawn evalPawn;
 
 			evalResult = board.getMaterialValue();
 			evalResult += evalPawn.eval(board);
@@ -100,9 +97,9 @@ namespace ChessEval {
 			value_t endGameResult;
 
 			value_t valueSum = 0;
-			EvalPawn evalPawn(board);
+			EvalPawn evalPawn;
 			EvalMobility evalMobility(board);
-			board.printBoard();
+			board.print();
 
 			valueSum += evalPawn.print(board);
 

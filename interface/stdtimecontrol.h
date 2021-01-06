@@ -23,6 +23,9 @@
 #define __STDTIMECONTROL
 
 #include <stdint.h>
+#include <iostream>
+
+using namespace std;
 
 namespace ChessInterface {
 
@@ -66,6 +69,21 @@ namespace ChessInterface {
 		 * Gets the difference of current cpu time and start cpu time
 		 */
 		int64_t getCPUTimeSpentInMilliseconds() const;
+
+		/**
+		 * prints the time spent
+		 */
+		void printTimeSpent(uint64_t positions = 0) const {
+			double timeSpentInSeconds = double(getTimeSpentInMilliseconds()) / 1000.0;
+			if (positions > 0 && timeSpentInSeconds > 0) {
+				double pps = double(positions) / timeSpentInSeconds / 1000000;
+				cout << "time spent: " << timeSpentInSeconds << " positions: " << positions 
+					<< " Mio. positions per second: " << pps << endl;
+			}
+			else {
+				cout << "time spent: " << timeSpentInSeconds << " sec." << endl;
+			}
+		}
 
 	private:
 		int64_t mStartTime;
