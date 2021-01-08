@@ -89,11 +89,11 @@ namespace ChessInterface {
 		 * @param tokenSeparator list of characters reparating the token
 		 * @returns the next token or NULL, if no token is found
 		 */
-		virtual string getNextTokenNonBlocking(const string tokenSeparator)
+		virtual string getNextTokenNonBlocking(const string& tokenSeparator)
 		{
 			string spaceString = " \n\r\t";
 			bufferSize_t tokenSize = 0;
-			string res = NULL;
+			string res;
 
 			tokenSize = readTokenFromBuffer(spaceString, tokenSeparator);
 			removeTokenFromBuffer(tokenSize, spaceString);
@@ -131,14 +131,14 @@ namespace ChessInterface {
 		/**
 		 * Checks, if the current token is equal to a string
 		 */
-		virtual bool isTokenEqualTo(const string stringToCompare) {
+		virtual bool isTokenEqualTo(const string& stringToCompare) {
 			return getCurrentToken() == stringToCompare;
 		}
 
 		/**
 		 * Prints a line to std-out
 		 */
-		virtual void println(const string strintToPrint)
+		virtual void println(const string& strintToPrint)
 		{
 			fprintf(stdout, "%s\n", strintToPrint.c_str());
 			fflush(stdout);
@@ -147,7 +147,7 @@ namespace ChessInterface {
 		/**
 		 * Prints a string to stdout
 		 */
-		virtual void print(const string strintToPrint)
+		virtual void print(const string& strintToPrint)
 		{
 			fprintf(stdout, "%s", strintToPrint.c_str());
 			fflush(stdout);

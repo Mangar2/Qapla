@@ -220,6 +220,7 @@
     <ClCompile Include="movegenerator\movegenerator.cpp" />
     <ClCompile Include="Quabla.cpp" />
     <ClCompile Include="search\perft.cpp" />
+    <ClCompile Include="search\whatif.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h" />
@@ -248,9 +249,11 @@
     <ClInclude Include="interface\movescanner.h" />
     <ClInclude Include="interface\stdtimecontrol.h" />
     <ClInclude Include="interface\winboard.h" />
+    <ClInclude Include="interface\winboardprintsearchinfo.h" />
     <ClInclude Include="movegenerator\bitboardmasks.h" />
     <ClInclude Include="movegenerator\magics.h" />
     <ClInclude Include="movegenerator\movegenerator.h" />
+    <ClInclude Include="search\aspirationwindow.h" />
     <ClInclude Include="search\boardadapter.h" />
     <ClInclude Include="search\clockmanager.h" />
     <ClInclude Include="search\computinginfo.h" />

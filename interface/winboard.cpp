@@ -79,7 +79,7 @@ bool HandleMove::scanMove(IChessBoard* chessBoard, const string move) {
 		res = chessBoard->doMove(
 			scanner.piece,
 			scanner.departureFile, scanner.departureRank,
-			scanner.destinationFile, scanner.departureRank,
+			scanner.destinationFile, scanner.destinationRank,
 			scanner.promote);
 	}
 	return res;
@@ -135,6 +135,9 @@ void Winboard::analyzeMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	}
 }
 
+/**
+ * Starts computing a move - sets analyze mode to false
+ */
 void Winboard::computeMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	forceMode = false;
 	computerIsWhite = chessBoard->isWhiteToMove();
@@ -173,6 +176,9 @@ void Winboard::WMTest(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	*/
 }
 
+/**
+ * Answers with a pong to a ping
+ */
 void Winboard::handlePing(IInputOutput* ioHandler) {
 	if (ioHandler->getNextTokenNonBlocking() != "") {
 		string number = ioHandler->getNextTokenNonBlocking();
@@ -181,6 +187,9 @@ void Winboard::handlePing(IInputOutput* ioHandler) {
 	}
 }
 
+/**
+ * Processes a board change (setboard) request
+ */
 bool Winboard::handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	bool result = true;
 	if (ioHandler->isTokenEqualTo("new")) {
@@ -198,23 +207,24 @@ bool Winboard::handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandl
 }
 
 bool Winboard::handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-	bool result = true;
-	/*
+	bool result = false;
 	if (ioHandler->isTokenEqualTo("whatif")) {
 		IWhatIf* whatIf = chessBoard->getWhatIf();
 		whatIf->clear();
 		ioHandler->getNextTokenNonBlocking();
-		ply_t searchDepth = (int32_t)ioHandler->getCurrentTokenAsUnsignedInt();
+		int32_t searchDepth = (int32_t)ioHandler->getCurrentTokenAsUnsignedInt();
 		if (searchDepth == 0) { searchDepth = 1; }
 		whatIf->setSearchDepht(searchDepth);
-		for (ply_t ply = 0; ioHandler->getNextTokenNonBlocking(); ply++) {
+		for (int32_t ply = 0; ioHandler->getNextTokenNonBlocking() != ""; ply++) {
 			if (ioHandler->isTokenEqualTo("null")) {
 				whatIf->setNullmove(ply);
 			}
 			else {
 				MoveScanner moveScanner(ioHandler->getCurrentToken());
 				if (moveScanner.isLegal()) {
-					whatIf->setMove(ply, moveScanner.piece, moveScanner.fromCol, moveScanner.fromRow, moveScanner.toCol, moveScanner.toRow, moveScanner.promote);
+					whatIf->setMove(ply, moveScanner.piece, 
+						moveScanner.departureFile, moveScanner.departureRank, 
+						moveScanner.destinationFile, moveScanner.destinationRank, moveScanner.promote);
 				}
 			}
 		}
@@ -227,7 +237,6 @@ bool Winboard::handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	else {
 		result = false;
 	}
-	*/
 	return result;
 }
 
@@ -288,12 +297,19 @@ bool Winboard::checkClockCommands(IChessBoard* chessBoard, IInputOutput* ioHandl
 	return commandProcessed;
 }
 
+/**
+ * Wait for the computing thread to end and joins the thread.
+ */
 void Winboard::waitForComputingThreadToEnd() {
 	if (computeThread.joinable()) {
 		computeThread.join();
 	}
 }
 
+/**
+ * Checks the input for a move request, either "usermove" oder just a chess move in
+ * chess move notation
+ */
 bool Winboard::checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	bool moveCommandFound = false;
 	if (ioHandler->isTokenEqualTo("usermove")) {
@@ -314,6 +330,9 @@ bool Winboard::checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler
 	return moveCommandFound;
 }
 
+/**
+ * Processes any input from stdio
+ */
 void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	while (!quit) {
 		ioHandler->getNextTokenBlocking();
@@ -334,6 +353,9 @@ void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	waitForComputingThreadToEnd();
 }
 
+/**
+ * Processes input while computing a move
+ */
 void Winboard::handleInputWhileComputingMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	if (ioHandler->isTokenEqualTo("quit")) {
 		chessBoard->moveNow();

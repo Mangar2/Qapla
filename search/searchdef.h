@@ -26,7 +26,7 @@
 #include "../basics/types.h"
 
 namespace ChessSearch {
-	typedef uint32_t ply_t;
+	typedef int32_t ply_t;
 
 	const ply_t ONE_PLY = 1;
 }

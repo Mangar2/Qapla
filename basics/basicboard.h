@@ -67,6 +67,13 @@ public:
 	}
 
 	/**
+	 * Checks, if two positions are identical
+	 */
+	bool isIdenticalPosition(const BasicBoard& boardToCompare) {
+		return _board == boardToCompare._board;
+	}
+
+	/**
 	 * Adds a piece to the board
 	 */
 	inline void addPiece(Square square, Piece piece) {

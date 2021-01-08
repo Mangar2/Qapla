@@ -119,7 +119,7 @@ value_t EvalPawn::print(MoveGenerator& board) {
 	printf("White double   pawn : %ld\n", computeDoublePawnValue<WHITE>());
 	printf("Black double   pawn : %ld\n", computeDoublePawnValue<BLACK>());
 	printf("White passed   pawn : %ld\n", computePassedPawnValue<WHITE>(board));
-	printf("Black passed   pawn : %ld\n", -computePassedPawnValue<BLACK>(board));
+	printf("Black passed   pawn : %ld\n", computePassedPawnValue<BLACK>(board));
 	printf("Pawn total          : %ld\n", eval(board));
 	return eval(board);
 }

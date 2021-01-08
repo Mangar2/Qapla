@@ -29,7 +29,7 @@
 #include "clockmanager.h"
 #include "../interface/isendsearchinfo.h"
 #include "tt.h"
-#include "AspirationWindow.h"
+#include "aspirationwindow.h"
 
 namespace ChessSearch {
 
@@ -42,6 +42,9 @@ namespace ChessSearch {
 
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
 
+		/**
+		 * true, if the search found a mate
+		 */
 		bool hasMateFound(ComputingInfo& computingInfo) {
 			const value_t SECURITY_BUFFER = 2;
 			bool result = false;
@@ -51,27 +54,30 @@ namespace ChessSearch {
 			return result;
 		}
 
+		/**
+		 * Searches the best move by iteratively deepening the search depth
+		 */
 		void searchByIterativeDeepening(
-			const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory)
+			const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo /*, MoveHistory& moveHistory */)
 		{
 
 			MoveGenerator searchBoard = board;
 			computingInfo.timeControl.storeStartTime();
-			timeManager.startCalculatingMove(60, clockSetting);
+			clockManager.startCalculatingMove(60, clockSetting);
 			computingInfo.initSearch();
 			aspirationWindow.initSearch();
 
 			uint32_t curDepth;
 			uint32_t maxDepth = MAX_SEARCH_DEPTH;
 			Move result = Move::EMPTY_MOVE;
-			HistoryTable::clear();
-			if (timeManager.isAnalyzeMode()) {
+			// HistoryTable::clear();
+			if (clockManager.isAnalyzeMode()) {
 				tt.clear();
 			}
 			else {
-				tt.setToNextMove();
+				tt.setNextSearch();
 			}
-			moveHistory.setDrawPositionsToHash(board, tt);
+			// moveHistory.setDrawPositionsToHash(board, tt);
 
 			if (clockSetting.getSearchDepthLimit() > 0) {
 				maxDepth = clockSetting.getSearchDepthLimit();
@@ -79,23 +85,26 @@ namespace ChessSearch {
 			Eval eval;
 			for (curDepth = 0; curDepth < maxDepth; curDepth++) {
 				searchOneIteration(searchBoard, computingInfo, curDepth);
-				if (!timeManager.mayCalculateNextDepth()) {
+				if (!clockManager.mayCalculateNextDepth()) {
 					break;
 				}
-				if (hasMateFound(computingInfo) && timeManager.stopSearchIfMateFound()) {
+				if (hasMateFound(computingInfo) && clockManager.stopSearchOnMateFound()) {
 					break;
 				}
 			}
-			computingInfo.statisticForMoveOrdering.print();
+			// computingInfo.statisticForMoveOrdering.print();
 		}
 
 		void stopSearch() {
-			timeManager.stopSearch();
+			clockManager.stopSearch();
 		}
 
 	private:
 
-		uint64_t calcSearchTime(const ClockSetting& clockSetting) {
+		/**
+		 * Computes the available time to search the next move
+		 */
+		uint64_t computeSearchTime(const ClockSetting& clockSetting) {
 			uint32_t movesToSearchInTime = clockSetting.getMoveAmountForClock();
 			if (movesToSearchInTime == 0) {
 				movesToSearchInTime = 80;
@@ -108,7 +117,9 @@ namespace ChessSearch {
 			return timeToSearchForNextMove;
 		}
 
-
+		/**
+		 * Searches one iteration - at constant search depth using an aspiration window
+		 */
 		void searchOneIteration(MoveGenerator& board, ComputingInfo& computingInfo, uint32_t searchDepth)
 		{
 			SearchStack stack(&tt);
@@ -121,24 +132,27 @@ namespace ChessSearch {
 				computingInfo.pvMovesStore.setMove(1, Move::EMPTY_MOVE);
 
 				computingInfo.searchDepth = searchDepth;
-				search.searchRec(board, stack, computingInfo, timeManager);
-			} while (aspirationWindow.retryWithNewWindow(computingInfo));
+				search.searchRec<DOWHATIF>(board, stack, computingInfo, clockManager);
+			} while (!clockManager.mustAbortCalculation(0) && aspirationWindow.retryWithNewWindow(computingInfo));
 			computingInfo.printSearchResult();
 		}
 
 
 	private:
-		ThinkingTimeManager timeManager;
+		ClockManager clockManager;
 		TT tt;
 		Search search;
 		AspirationWindow aspirationWindow;
 
 	};
 
+	/**
+	 * Call this function to search
+	 */
 	static void searchByInterativeDeepening(
-		const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory) {
+		const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo /*, MoveHistory& moveHistory */) {
 		IterativeDeepening iterativeDeepening;
-		iterativeDeepening.searchByIterativeDeepening(board, clockSetting, computingInfo, moveHistory);
+		iterativeDeepening.searchByIterativeDeepening(board, clockSetting, computingInfo /*, moveHistory */);
 	}
 
 }

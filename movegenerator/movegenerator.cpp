@@ -158,20 +158,20 @@ void MoveGenerator::computeCastlingMasksForMoveGeneration()
 	// every field between current king position to target king position hast to be
 	// empty (except for castling rook in Chess960) and not attacked by enemy.
 	// The masks are created here
-	for (square = basicBoard.kingStartSquare[COLOR]; square <= kingSideCastlingTarget; ++square) {
+	for (square = getKingSquare<COLOR>(); square <= kingSideCastlingTarget; ++square) {
 		castleAttackMaskKingSide[COLOR] |= 1ULL << square;
 	}
-	for (square = basicBoard.kingStartSquare[COLOR]; square >= queenSideCastlingTarget; --square) {
+	for (square = getKingSquare<COLOR>(); square >= queenSideCastlingTarget; --square) {
 		castleAttackMaskQueenSide[COLOR] |= 1ULL << square;
 	}
 
-	for (square = basicBoard.kingStartSquare[COLOR] + 1; square <= kingSideCastlingTarget; ++square) {
-		if (square != basicBoard.kingRookStartSquare[COLOR]) castlePieceMaskKingSide[COLOR] |= 1ULL << square;
+	for (square = getKingSquare<COLOR>() + 1; square <= kingSideCastlingTarget; ++square) {
+		if (square != getKingRookStartSquare<COLOR>()) castlePieceMaskKingSide[COLOR] |= 1ULL << square;
 	}
-	for (square = basicBoard.kingStartSquare[COLOR] - 1; 
-		 square >= min(queenSideCastlingTarget, basicBoard.queenRookStartSquare[COLOR]); 
+	for (square = getKingSquare<COLOR>() - 1; 
+		 square >= min(queenSideCastlingTarget, getQueenRookStartSquare<COLOR>());
 		--square) {
-		if (square != basicBoard.queenRookStartSquare[COLOR]) castlePieceMaskQueenSide[COLOR] |= 1ULL << square;
+		if (square != getQueenRookStartSquare<COLOR>()) castlePieceMaskQueenSide[COLOR] |= 1ULL << square;
 	}
 }
 

@@ -142,8 +142,8 @@ namespace ChessSearch {
 			return ((_info & ENTRY_AGE_INDICATOR_MASK) >> ENTRY_AGE_INDICATOR_SHIFT);
 		}
 
-		uint32_t getComputedDepth() const {
-			return ((_info & DEPTH_MASK) >> DEPTH_SHIFT);
+		ply_t getComputedDepth() const {
+			return ply_t((_info & DEPTH_MASK) >> DEPTH_SHIFT);
 		}
 		inline bool isNullmoveThreadPosition() const { 
 			return (_info & NULLMOVE_THREAT_MASK) != 0; 
@@ -161,7 +161,7 @@ namespace ChessSearch {
 		 * (It is not "always overwrite" only "mostly overwrite")
 		 */
 		inline bool doOverwriteAlwaysReplaceEntry(
-			value_t positionValue, value_t alpha, value_t beta, uint32_t computedDepth) const
+			value_t positionValue, value_t alpha, value_t beta, ply_t computedDepth) const
 		{
 			bool result = true;
 			if (hasExactValue()) {
@@ -180,7 +180,7 @@ namespace ChessSearch {
 		 */
 		int16_t getPositionValue(int32_t ply)
 		{
-			uint16_t positionValue = _value;
+			int16_t positionValue = _value;
 			if (positionValue > MIN_MATE_VALUE) {
 				positionValue -= ply;
 			}

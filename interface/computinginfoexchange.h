@@ -43,8 +43,6 @@ namespace ChessInterface {
 			movesLeftToConcider = 0;
 			totalAmountOfMovesToConcider = 0;
 			currentConsideredMove = "";
-			currentMoveNoSearched = 0;
-			positionValueInCentiPawn = 0;
 		};
 
 		uint64_t elapsedTimeInMilliseconds;
@@ -52,8 +50,6 @@ namespace ChessInterface {
 		uint32_t searchDepth;
 		uint32_t movesLeftToConcider;
 		uint32_t totalAmountOfMovesToConcider;
-		uint32_t currentMoveNoSearched;
-		int32_t positionValueInCentiPawn;
 		string currentConsideredMove;
 	};
 }

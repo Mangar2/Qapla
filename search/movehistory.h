@@ -23,9 +23,9 @@
 #define __MOVEHISTORY_H
 
 #include <vector>
-#include "Move.h"
-#include "GenBoard.h"
-#include "Hash/Hash.h"
+#include "../basics/move.h"
+#include "../movegenerator/movegenerator.h"
+#include "tt.h"
 
 using namespace std;
 using namespace ChessBasics;
@@ -39,7 +39,8 @@ namespace ChessSearch {
 
 		void setStartPosition(const MoveGenerator& aBoard) {
 			startPosition = aBoard;
-			moveAmount = 0;
+			_history.resize(0);
+
 		}
 
 		/**
@@ -54,48 +55,54 @@ namespace ChessSearch {
 		 */
 		MoveGenerator undoMove() {
 			MoveGenerator board = startPosition;
-			for (uint16_t moveNo = 0; moveNo < moveAmount - 1; moveNo++) {
-				board.doMove(moveList[moveNo]);
+			_history.pop_back();
+			for (auto move : _history) {
+				board.doMove(move);
 			}
-			moveAmount--;
+			
 			return board;
 		}
 
-
+		/**
+		 * Checks for draw by three-fold repetition
+		 */
 		bool isDrawByRepetition(const MoveGenerator& board) {
 
 			Board checkBoard = startPosition;
 			uint16_t moveNo = 0;
 			uint8_t samePositionCount = 1;
-			while (moveNo + board.boardInfo.getHalfMovesWithoutPawnMovedOrPieceCaptured() < moveAmount) {
-				checkBoard.doMove(moveList[moveNo]);
+			while (moveNo + board.getHalfmovesWithoutPawnMoveOrCapture() < _history.size()) {
+				checkBoard.doMove(_history[moveNo]);
 				moveNo++;
 			}
-			for (; moveNo < moveAmount; moveNo++) {
-				if (checkBoard == board) {
+			for (; moveNo < _history.size(); moveNo++) {
+				if (checkBoard.isIdenticalPosition(board)) {
 					samePositionCount++;
 				}
-				checkBoard.doMove(moveList[moveNo]);
+				checkBoard.doMove(_history[moveNo]);
 			}
 			return samePositionCount >= 3;
 
 		}
 
-		void setDrawPositionsToHash(const MoveGenerator& board, Hash& hash) {
+		/**
+		 * Sets all positions already played to hash to identify draw in the search
+		 */
+		void setDrawPositionsToHash(const MoveGenerator& board, TT& tt) {
 			Board checkBoard = startPosition;
 			uint16_t moveNo = 0;
-			value_t drawPositionValue = board.whiteToMove ? -30 : 30;
-			while (moveNo + board.boardInfo.getHalfMovesWithoutPawnMovedOrPieceCaptured() < moveAmount) {
-				checkBoard.doMove(moveList[moveNo]);
+			value_t drawPositionValue = board.isWhiteToMove() ? -30 : 30;
+			while (moveNo + board.getHalfmovesWithoutPawnMoveOrCapture() < _history.size()) {
+				checkBoard.doMove(_history[moveNo]);
 				moveNo++;
 			}
 			for (; ; moveNo++) {
-				value_t positionValue = checkBoard.whiteToMove ? drawPositionValue : -drawPositionValue;
-				hash.setHashEntry(checkBoard.getHashKey(), 999, 0, Move::EMPTY_MOVE, positionValue, -MAX_VALUE, MAX_VALUE, 0);
-				if (moveNo == moveAmount) {
+				value_t positionValue = checkBoard.isWhiteToMove() ? drawPositionValue : -drawPositionValue;
+				tt.setEntry(checkBoard.computeBoardHash(), 999, 0, Move::EMPTY_MOVE, positionValue, -MAX_VALUE, MAX_VALUE, 0);
+				if (moveNo == _history.size()) {
 					break;
 				}
-				checkBoard.doMove(moveList[moveNo]);
+				checkBoard.doMove(_history[moveNo]);
 				//checkBoard.printBoard();
 			}
 		}

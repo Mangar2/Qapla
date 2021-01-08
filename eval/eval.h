@@ -39,10 +39,6 @@ namespace ChessEval {
 
 	public:
 
-		static void initStatics() {
-			EvalEndgame::initStatics();
-		}
-
 		void assertSymetry(MoveGenerator& board, value_t evalResult) {
 			MoveGenerator symBoard;
 			board.setToSymetricBoard(symBoard);

@@ -38,14 +38,18 @@
 using namespace std;
 using namespace ChessMoveGenerator;
 
+enum class Cutoff {
+	NONE, DRAW_BY_REPETITION, HASH, FASTER_MATE_FOUND, RAZORING, NOT_ENOUGH_MATERIAL, NULL_MOVE,
+	COUNT
+};
+
 namespace ChessSearch {
 	struct SearchVariables {
 
 		typedef uint32_t pvIndex_t;
-		typedef uint32_t cutoff_t;
 
 		SearchVariables() {
-			cutoff = CUTOFF_NONE;
+			cutoff = Cutoff::NONE;
 		};
 
 		SearchVariables(const SearchVariables& searchInfo) {
@@ -77,11 +81,7 @@ namespace ChessSearch {
 		 * Selectes the first search state (IID, PV, NORMAL)
 		 */
 		void selectFirstSearchState() {
-			if (doIID()) {
-				searchState = SearchType::IID;
-				remainingDepth = 1;
-			}
-			else if (beta > alpha + 1) {
+			if (beta > alpha + 1) {
 				searchState = SearchType::PV;
 			}
 			else {
@@ -101,7 +101,7 @@ namespace ChessSearch {
 			remainingDepthAtPlyStart = remainingDepth;
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
-			bestMove = Move::EMPTY_MOVE;
+			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			selectFirstSearchState();
 			noNullmove = previousPlySearchInfo.previousMove.isNullMove() || previousPlyMove.isNullMove();
@@ -122,12 +122,12 @@ namespace ChessSearch {
 			beta = initialBeta;
 			alphaAtPlyStart = alpha;
 			betaAtPlyStart = beta;
-			bestMove = Move::EMPTY_MOVE;
+			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			searchState = SearchType::PV;
 			noNullmove = true;
 			moveNo = 0;
-			cutoff = CUTOFF_NONE;
+			cutoff = Cutoff::NONE;
 			positionHashSignature = board.computeBoardHash();
 			moveProvider.init();
 			keepBestMoveUnchanged = false;
@@ -153,6 +153,9 @@ namespace ChessSearch {
 		 * Take back the previously applied move
 		 */
 		void undoMove(MoveGenerator& board) {
+			if (previousMove.isEmpty()) {
+				return;
+			}
 			if (previousMove == Move::NULL_MOVE) {
 				board.undoNullmove(boardState);
 			}
@@ -164,18 +167,18 @@ namespace ChessSearch {
 		/**
 		 * Check basic cutoff rules
 		 */
-		cutoff_t checkBasicCutoffs(MoveGenerator& board) {
-			cutoff_t result = CUTOFF_NONE;
+		Cutoff checkBasicCutoffs(MoveGenerator& board) {
+			Cutoff result = Cutoff::NONE;
 			if (alpha > MAX_VALUE - value_t(ply)) {
-				result = CUTOFF_FASTER_MATE_FOUND;
+				result = Cutoff::FASTER_MATE_FOUND;
 				bestValue = alpha;
 			}
 			else if (beta < -MAX_VALUE + value_t(ply)) {
-				result = CUTOFF_FASTER_MATE_FOUND;
+				result = Cutoff::FASTER_MATE_FOUND;
 				bestValue = beta;
 			}
 			else if (ply >= 3 && board.drawDueToMissingMaterial()) {
-				cutoff = CUTOFF_NOT_ENOUGH_MATERIAL;
+				cutoff = Cutoff::NOT_ENOUGH_MATERIAL;
 				bestValue = 0;
 			}
 			return result;
@@ -186,7 +189,7 @@ namespace ChessSearch {
 		 */
 		void getTTEntry(MoveGenerator& board) {
 
-			if (cutoff == CUTOFF_NONE) {
+			if (cutoff == Cutoff::NONE) {
 				uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 
 				if (ttIndex != TT::INVALID_INDEX) {
@@ -196,12 +199,12 @@ namespace ChessSearch {
 					// keeps the best move for a tt entry, if the search does stay <= alpha
 					if (searchState != SearchType::PV) {
 						bestMove = move;
-					}
-					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
-						cutoff = CUTOFF_HASH;
-					}
-					if (bestValue >= beta) {
-						cutoff = CUTOFF_HASH;
+						if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
+							cutoff = Cutoff::HASH;
+						}
+						if (bestValue >= beta) {
+							cutoff = Cutoff::HASH;
+						}
 					}
 					// Narrowing the window by the tt is problematic. The search will be made with a wrong window
 					betaAtPlyStart = beta;
@@ -210,32 +213,35 @@ namespace ChessSearch {
 			}
 		}
 
-		inline void cutoffSearch(uint32_t cutoffType, value_t cutoffResult) {
+		inline void cutoffSearch(Cutoff cutoffType, value_t cutoffResult) {
 			// Do not "overwrite" older cutoff informations
-			if (cutoff == CUTOFF_NONE && cutoffType != CUTOFF_NONE) {
+			if (cutoff == Cutoff::NONE && cutoffType != Cutoff::NONE) {
 				cutoff = cutoffType;
 				bestValue = cutoffResult;
 			}
 		}
 
-		inline void cutoffSearch(uint32_t cutoffType) {
-			if (cutoff == CUTOFF_NONE && cutoffType != CUTOFF_NONE) {
+		/**
+		 * Cutoff the current search
+		 */
+		inline void cutoffSearch(Cutoff cutoffType) {
+			if (cutoff == Cutoff::NONE && cutoffType != Cutoff::NONE) {
 				cutoff = cutoffType;
 			}
 		}
 
-		void addNullmove() {
-			searchState = SearchType::SELECT_NULLMOVE;
-		}
 
 		void extendSearch(MoveGenerator& board) {
-			assert(cutoff == CUTOFF_NONE);
+			assert(cutoff == Cutoff::NONE);
 			searchDepthExtension = Extension::calculateExtension(board, previousMove, remainingDepth);
 			remainingDepth += searchDepthExtension;
 		}
 
+		/**
+		 * Generates all moves in the current position
+		 */
 		void generateMoves(MoveGenerator& board) {
-			assert(cutoff == CUTOFF_NONE);
+			assert(cutoff == Cutoff::NONE);
 			moveProvider.computeMoves(board, previousMove, remainingDepth);
 			bestValue = moveProvider.checkForGameEnd(board, ply);
 			sideToMoveIsInCheck = board.isInCheck();
@@ -249,30 +255,32 @@ namespace ChessSearch {
 			}
 		}
 
-		void setStateToNullmove() {
+		/**
+		 * Set the search variables to a nullmove search
+		 */
+		void setNullmove() {
 			searchState = SearchType::NULLMOVE;
 			remainingDepth -= SearchParameter::getNullmoveReduction(ply, remainingDepth);
 			alpha = beta - 1;
-			if (remainingDepth < 1) {
-				remainingDepth = 1;
-			}
-			keepBestMoveUnchanged = true;
 		}
 
+		/**
+		 * Set the search variables to a nullmove search
+		 */
+		void unsetNullmove() {
+			searchState = SearchType::NORMAL;
+			remainingDepth = remainingDepthAtPlyStart;
+			alpha = alphaAtPlyStart;
+		}
 
+		/**
+		 * Sets a state used in the search-move-loop
+		 */
 		Move setSearchState(MoveGenerator& board) {
-			Move move = Move::EMPTY_MOVE;
+			Move move;
 			switch (searchState) {
-			case SearchType::START: selectFirstSearchState(); break;
-			case SearchType::IID:
-				remainingDepth += 4;
-				if (remainingDepth >= remainingDepthAtPlyStart - 3) {
-					remainingDepth = remainingDepthAtPlyStart;
-					searchState = SearchType::NORMAL;
-				}
-				break;
 			case SearchType::PV:
-				if (bestMove != Move::EMPTY_MOVE && remainingDepth >= 2) {
+				if (!bestMove.isEmpty() && remainingDepth >= 2) {
 					beta = alpha + 1;
 					searchState = SearchType::NULL_WINDOW;
 					keepBestMoveUnchanged = true;
@@ -288,21 +296,7 @@ namespace ChessSearch {
 					keepBestMoveUnchanged = false;
 				}
 				break;
-			case SearchType::SELECT_NULLMOVE:
-				setStateToNullmove();
-				move = Move::NULL_MOVE;
-				break;
-			case SearchType::NULLMOVE:
-				if (bestValue < beta) {
-					bestValue = -MAX_VALUE;
-					alpha = alphaAtPlyStart;
-					remainingDepth = remainingDepthAtPlyStart;
-					keepBestMoveUnchanged = false;
-					searchState = SearchType::NORMAL;
-				}
-				break;
 			case SearchType::NORMAL:
-
 				lateMoveReduction = SearchParameter::getLateMoveReduction(false, ply, moveProvider.getTriedMovesAmount());
 				if (lateMoveReduction > 0) {
 					searchState = SearchType::LMR;
@@ -329,9 +323,9 @@ namespace ChessSearch {
 		 * Selects the next move to try
 		 */
 		Move selectNextMove(MoveGenerator& board) {
-			assert(cutoff == CUTOFF_NONE);
+			assert(cutoff == Cutoff::NONE);
 			Move move = setSearchState(board);
-			if (bestValue < betaAtPlyStart && move == Move::EMPTY_MOVE) {
+			if (bestValue < betaAtPlyStart && move.isEmpty()) {
 				moveNo++;
 				move = moveProvider.selectNextMove(board);
 			}
@@ -344,8 +338,8 @@ namespace ChessSearch {
 		 */
 		Move selectNextMoveThreadSafe(MoveGenerator& board) {
 			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
-			Move move = Move::EMPTY_MOVE;
-			if (cutoff == CUTOFF_NONE) {
+			Move move;
+			if (cutoff == Cutoff::NONE) {
 				move = selectNextMove(board);
 			}
 			return move;
@@ -376,9 +370,6 @@ namespace ChessSearch {
 					}
 				}
 			}
-			if (searchResult >= beta && currentMove == Move::NULL_MOVE) {
-				//remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, remainingDepth);
-			}
 		}
 
 		/**
@@ -392,10 +383,10 @@ namespace ChessSearch {
 		/**
 		 * Sets the hash entry
 		 */
-		void setHashEntry(hash_t hashKey) {
+		void setTTEntry(hash_t hashKey) {
 			bool drawByRepetetivePositionValue = (bestValue == 0);
 			if (!drawByRepetetivePositionValue) {
-				ttPtr->setHashEntry(hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+				ttPtr->setEntry(hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 				// WHATIF(WhatIf::whatIf.setHash(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false));
 			}
 		}
@@ -405,9 +396,9 @@ namespace ChessSearch {
 		 */
 		void terminatePly(MoveGenerator& board) {
 
-			if (cutoff == CUTOFF_NONE && bestMove != Move::NULL_MOVE) {
+			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isEmpty() && !bestMove.isNullMove()) {
 				moveProvider.setKillerMove(bestMove);
-				setHashEntry(board.computeBoardHash());
+				setTTEntry(board.computeBoardHash());
 			}
 			undoMove(board);
 		}
@@ -443,12 +434,6 @@ namespace ChessSearch {
 
 		const string searchStateNames[8] = { "Start", "PV", "NULL", "Normal", "SelNull", "Null", "Verify", "IID" };
 
-		enum cutoffTypes {
-			CUTOFF_NONE, CUTOFF_DRAW_BY_REPETITION, CUTOFF_HASH, CUTOFF_FASTER_MATE_FOUND, CUTOFF_RAZORING, CUTOFF_NOT_ENOUGH_MATERIAL
-		};
-
-		static const cutoff_t CUTOFF_TYPE_AMOUNT = 5;
-
 		value_t alpha;
 		value_t alphaAtPlyStart;
 		value_t beta;
@@ -470,7 +455,7 @@ namespace ChessSearch {
 		bool sideToMoveIsInCheck;
 		bool keepBestMoveUnchanged;
 
-		cutoff_t cutoff;
+		Cutoff cutoff;
 		mutex mtxSearchResult;
 		MoveProvider moveProvider;
 		PV pvMovesStore;

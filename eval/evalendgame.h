@@ -38,6 +38,9 @@ namespace ChessEval {
 
 	public:
 
+		/**
+		 * Provides end game evaluation
+		 */
 		static value_t eval(MoveGenerator& board, value_t currentValue) {
 
 			uint8_t functionNo = mapPieceSignatureToFunctionNo[board.getPiecesSignature()];
@@ -48,6 +51,9 @@ namespace ChessEval {
 			return currentValue;
 		}
 
+		/**
+		 * Prints end game evaluation terms to stdout
+		 */
 		static value_t print(MoveGenerator& board, value_t currentValue) {
 			value_t newValue = eval(board, currentValue);
 			if (currentValue != newValue) {
@@ -56,20 +62,32 @@ namespace ChessEval {
 			return newValue;
 		}
 
-		static void initStatics();
 
 	private:
 		typedef value_t evalFunction_t(MoveGenerator& board, value_t currentValue);
 
+		/**
+		 * Register an endgame evaluation funciton for a dedicated piece selection
+		 */
 		static void registerFunction(string pieces, evalFunction_t function, bool changeSide = false);
 
+		/**
+		 * Forces a draw value
+		 */
 		template <Piece COLOR>
 		static value_t drawValue(MoveGenerator& board, value_t currentValue);
 
+		/**
+		 * Forces a winning value
+		 */
 		template <Piece COLOR>
 		static value_t winningValue(MoveGenerator& board, value_t currentValue);
 
+		/**
+		 * Evaluate material balance and pawn structure
+		 */
 		static value_t materialAndPawnStructure(MoveGenerator& board);
+
 
 		template <Piece COLOR>
 		static value_t KQKR(MoveGenerator& board, value_t currentValue);
@@ -94,33 +112,67 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static value_t KNPsK(MoveGenerator& board, value_t currentValue);
 
-
+		/**
+		 * Tries to trap the king in any corner
+		 */
 		template <Piece COLOR>
 		static value_t forceToAnyCorner(MoveGenerator& board, value_t currentValue);
 
+		/**
+		 * Tries to trap the opponent king in a white or black corner
+		 */
 		template <Piece COLOR>
 		static value_t forceToCorrectCorner(MoveGenerator& board, value_t currentValue, bool whiteCorner);
+
 
 		template <Piece COLOR>
 		static value_t ForceToCornerWithBonus(MoveGenerator& board, value_t currentValue);
 
+		/**
+		 * Check, if a bishop is able to attack the promotion field of a pawn
+		 */
 		template <Piece COLOR>
 		static bool bishopIsAbleToAttacksPromotionField(Square column, bitBoard_t bishops);
 
+		/**
+		 * Checks, if a square is set in a bit board
+		 */
 		template <Piece COLOR>
-		inline static bool isPositionInBitMask(Square position, bitBoard_t mask);
+		inline static bool isSquareInBB(Square position, bitBoard_t mask);
 
 		// template <Piece COLOR>
 		// static value_t getValueFromBitBase(uint64_t index, const BitBase& bitBase, value_t currentValue);
 
+		/**
+		 * Static loopup tables initializer
+		 */
+		static struct InitStatics {
+			InitStatics();
+		} _staticConstructor;
+
+		/**
+		 * Computes the distance between two squares
+		 */
 		static value_t computeDistance(Square pos1, Square pos2);
 
+		/**
+		 * Computes the distance between two kings
+		 */
 		static value_t computeKingDistance(MoveGenerator& board);
 
+		/**
+		 * Computes the distance to any border
+		 */
 		static value_t computeDistanceToBorder(Square kingPos);
 
+		/**
+		 * Computes the distance to any corner
+		 */
 		static value_t computeDistanceToAnyCorner(Square kingPos);
 
+		/**
+		 * Computes the distance to a white or black corner
+		 */
 		static value_t computeDistanceToCorrectCorner(Square kingPos, bool whiteCorner);
 
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AAULL;

@@ -24,26 +24,59 @@
 #include "interface/fenscanner.h"
 #include "interface/movescanner.h"
 #include "interface/stdtimecontrol.h"
+#include "interface/winboard.h"
+#include "interface/winboardprintsearchinfo.h"
+#include "interface/consoleio.h"
 
 #include "search/search.h"
 #include "tests/evalpawntest.h"
 
 using namespace ChessSearch;
+using namespace ChessInterface;
 
-BoardAdapter adapter;
+BoardAdapter adapter(0);
 
-bool setMove(const char* move) {
-	MoveScanner scanner(move);
-	bool res = false;
-	if (scanner.isLegal()) {
-		res = adapter.doMove(scanner.piece,
-			scanner.departureFile, scanner.departureRank, 
-			scanner.destinationFile, scanner.destinationRank, scanner.promote);
+class ChessEnvironment {
+public:
+	ChessEnvironment()
+		: printSearchInfo(&ioHandler),
+		adapter(&printSearchInfo)
+	{
+		// BitBaseReader::loadBitBase();
+		setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	}
-	assert(res == true);
-	return res;
-}
 
+	void setFen(const char* fen) {
+		FenScanner scanner;
+		scanner.setBoard(fen, &adapter);
+	}
+
+	bool setMove(const char* move) {
+		MoveScanner scanner(move);
+		bool res = false;
+		if (scanner.isLegal()) {
+			res = adapter.doMove(scanner.piece, scanner.departureFile,
+				scanner.departureRank, scanner.destinationFile, scanner.destinationRank, scanner.promote);
+		}
+		assert(res == true);
+		return res;
+	}
+
+
+	MoveGenerator& getBoard() { return adapter.getBoard(); }
+
+	void run() {
+		winboard.processInput(&adapter, &ioHandler);
+	}
+
+private:
+	Winboard winboard;
+	ConsoleIO ioHandler;
+	WinboardPrintSearchInfo printSearchInfo;
+	BoardAdapter adapter;
+};
+
+/*
 struct FenTest {
 	string fen;
 	vector<uint64_t> nodes;
@@ -159,19 +192,10 @@ void checkThreadSpeed() {
 	uint64_t timeSpent = timeControl.getTimeSpentInMilliseconds();
 	cout << i << ": " << timeSpent << endl;
 }
+*/
 
 int main()
 {
-	string startFen;
-	startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-	// startFen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
-	// startFen = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
-	FenScanner scanner;
-	scanner.setBoard(startFen, &adapter);
-	
-	//setMove("e6"); 
-	//setMove("g2");
-	//setMove("h1q");
 	
 	// checkThreadPoolSpeed();
 	// checkThreadSpeed();
@@ -189,20 +213,11 @@ int main()
 	*/
 	// ChessEval::Eval::initStatics();
 	// adapter.printEvalInfo();
-	adapter.callSearch();
-	Eval eval;
-	ISendSearchInfo* sendSearch = 0;
-	ComputingInfo computingInfo(sendSearch);
-	Move lastMove;
-	MoveList moveList;
-	Move foundMove;
-
-	uint16_t moveNoFound = 0;
-	adapter.getBoard().genMovesOfMovingColor(moveList);
-	lastMove = moveList.getMove(0);
-	QuiescenceSearch::search(adapter.getBoard(), eval, computingInfo, lastMove, -MAX_VALUE, MAX_VALUE, 0);
 
 	// adapter.setWorkerAmount(1);
 	// runPerftTests(fenTests, 10000000000);
+	// std::this_thread::sleep_for(std::chrono::seconds(20));
+	ChessEnvironment environment;
+	environment.run();
 }
 

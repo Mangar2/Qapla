@@ -214,12 +214,16 @@ public:
 			result += squareToString(getDeparture());
 			if (getCapture() != NO_PIECE) {
 				result += 'x';
+				/*
 				if (!isPawn(getCapture())) {
 					result += pieceToChar(getCapture());
 				}
+				*/
 			}
 			result += squareToString(getDestination());
-			result += pieceToPromoteChar(getPromotion());
+			if (isPromote()) {
+				result += pieceToPromoteChar(getPromotion());
+			}
 		}
 		return result;
 	}

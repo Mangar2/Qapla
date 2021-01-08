@@ -221,10 +221,10 @@ namespace ChessBasics {
 		bool doFutilityOnCapture(Piece capturedPiece) const {
 			bool result = true;
 			if (getPieceColor(capturedPiece) == WHITE) {
-				result = futilityOnCaptureMap()[_signature & SignatureMask::ALL];
+				result = futilityOnCaptureMap[_signature & SignatureMask::ALL];
 			}
 			else {
-				result = futilityOnCaptureMap()[_signature >> SIG_SHIFT_BLACK];
+				result = futilityOnCaptureMap[_signature >> SIG_SHIFT_BLACK];
 			}
 			return result;
 		}
@@ -234,8 +234,8 @@ namespace ChessBasics {
 		 */
 		bool doFutilityOnPromote() const {
 			bool result = true;
-			result = futilityOnCaptureMap()[_signature & SignatureMask::ALL] && 
-				futilityOnCaptureMap()[_signature >> SIG_SHIFT_BLACK];
+			result = futilityOnCaptureMap[_signature & SignatureMask::ALL] && 
+				futilityOnCaptureMap[_signature >> SIG_SHIFT_BLACK];
 			return result;
 		}
 
@@ -247,32 +247,13 @@ namespace ChessBasics {
 
 		inline operator pieceSignature_t() const { return _signature; }
 
-		struct PieceToSignature {
-			PieceToSignature() {
-				map.fill(pieceSignature_t(Signature::EMPTY));
-				map[WHITE_PAWN] = pieceSignature_t(Signature::PAWN);
-				map[WHITE_KNIGHT] = pieceSignature_t(Signature::KNIGHT);
-				map[WHITE_BISHOP] = pieceSignature_t(Signature::BISHOP);
-				map[WHITE_ROOK] = pieceSignature_t(Signature::ROOK);
-				map[WHITE_QUEEN] = pieceSignature_t(Signature::QUEEN);
-				map[BLACK_PAWN] = pieceSignature_t(Signature::PAWN) << SIG_SHIFT_BLACK;
-				map[BLACK_KNIGHT] = pieceSignature_t(Signature::KNIGHT) << SIG_SHIFT_BLACK;
-				map[BLACK_BISHOP] = pieceSignature_t(Signature::BISHOP) << SIG_SHIFT_BLACK;
-				map[BLACK_ROOK] = pieceSignature_t(Signature::ROOK) << SIG_SHIFT_BLACK;
-				map[BLACK_QUEEN] = pieceSignature_t(Signature::QUEEN) << SIG_SHIFT_BLACK;
-			}
-			pieceSignature_t operator[](Piece piece) const {
-				return pieceSignature_t(map[pieceSignature_t(piece)]);
-			}
-			array<pieceSignature_t, PIECE_AMOUNT> map;
-		};
 
-		static PieceToSignature mapPieceToSignature;
+		static array<pieceSignature_t, PIECE_AMOUNT> mapPieceToSignature;
 
 		/**
 		 * Returns the amount of pieces found in a signature
 		 */
-		constexpr uint32_t getPieceAmount(pieceSignature_t signature) const {
+		constexpr static uint32_t getPieceAmount(pieceSignature_t signature)  {
 			uint32_t result = 0;
 			for (; signature != 0; signature >>= 2) {
 				result += signature & 3;
@@ -280,20 +261,17 @@ namespace ChessBasics {
 			return result;
 		}
 
-
 		/**
 		 * Maps a piece to a signature bit
 		 */
-		constexpr array<pieceSignature_t, PIECE_AMOUNT> futilityOnCaptureMap() const {
-			array<pieceSignature_t, PIECE_AMOUNT> map{};
-			for (uint32_t index = 0; index <= uint32_t(SignatureMask::ALL); index++) {
-				map[index] = true;
-				if (getPieceAmount(index) <= 2) {
-					map[index] = false;
-				}
-			}
-			return map;
-		}
+		static array<pieceSignature_t, size_t(SignatureMask::ALL)> futilityOnCaptureMap;
+		
+		/**
+		 * Initializes the static arrays
+		 */
+		static struct InitStatics {
+			InitStatics();
+		} _staticConstructur;
 
 		/**
 		 * Maps a piece char to a piece signature bit

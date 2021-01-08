@@ -25,17 +25,18 @@
 #ifndef __IWHATIF_H
 #define __IWHATIF_H
 
-typedef uint32_t ply_t; 
+namespace ChessInterface {
 
-class IWhatIf {
-public:
-	virtual void setSearchDepht(int32_t depth) = 0;
-	virtual void setMove(ply_t ply, char movingPiece,
-		uint32_t departureRank, uint32_t depatureFile,
-		uint32_t destinationRank, uint32_t destinationFile,
-		char promotePiece) = 0;
-	virtual void setNullmove(ply_t ply) = 0;
-	virtual void clear() = 0;
-};
+	class IWhatIf {
+	public:
+		virtual void setSearchDepht(int32_t depth) = 0;
+		virtual void setMove(int32_t ply, char movingPiece,
+			uint32_t departureRank, uint32_t depatureFile,
+			uint32_t destinationRank, uint32_t destinationFile,
+			char promotePiece) = 0;
+		virtual void setNullmove(int32_t ply) = 0;
+		virtual void clear() = 0;
+	};
+}
 
 #endif // __IWHATIF_H

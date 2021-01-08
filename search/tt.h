@@ -53,7 +53,7 @@ namespace ChessSearch {
 		 * checks if the new entry is more valuable to store than the current entry
 		 * Tested, but not good: overwrite less, if no hash move is provided
 		 */
-		bool isNewEntryMoreValuable(uint32_t index, uint32_t computedDepth, Move move) {
+		bool isNewEntryMoreValuable(uint32_t index, ply_t computedDepth, Move move) {
 			bool result = isEntryFromFormerSearch(_tt[index]) ||
 				computedDepth >= _tt[index].getComputedDepth();
 			return result;
@@ -86,7 +86,7 @@ namespace ChessSearch {
 		 * Sets a hash entry either to the primary entry (if better) or to 
 		 * the secondary always replace entry
 		 */
-		uint32_t setHashEntry(
+		uint32_t setEntry(
 			hash_t hashKey, int32_t computedDepth, ply_t ply, Move move, 
 			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
 		{
@@ -166,7 +166,7 @@ namespace ChessSearch {
 			else if (_tt[index + 1].getHash() == hashKey) {
 				result = index + 1;
 			}
-			return index;
+			return result;
 		}
 
 		/**
@@ -314,7 +314,8 @@ namespace ChessSearch {
 		 * Sets the transposition table capacity
 		 */
 		void setCapacity(uint64_t newCapacity) {
-			_tt.reserve(newCapacity);
+			// _tt.reserve(newCapacity);
+			_tt.resize(newCapacity);
 			clear();
 		}
 

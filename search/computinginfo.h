@@ -65,7 +65,7 @@ namespace ChessSearch {
 		void requestPrintSearchInfo() { printRequest = true; }
 
 		void printSearchInfoIfRequested() {
-			if (printRequest && verbose) {
+			if (printRequest && verbose && sendSearchInfo != 0) {
 				sendSearchInfo->informAboutAdvancementsInSearch(
 					searchDepth,
 					positionValueInCentiPawn,
@@ -89,7 +89,7 @@ namespace ChessSearch {
 				}
 				primaryVariant.push_back(move.getLAN());
 			}
-			if (verbose) {
+			if (verbose && sendSearchInfo != 0) {
 				sendSearchInfo->informAboutFinishedSearchAtCurrentDepth(
 					searchDepth,
 					positionValueInCentiPawn,
@@ -100,7 +100,7 @@ namespace ChessSearch {
 		}
 
 		void updatePV(PV& pv) {
-			if (pv != pvMovesStore && pv.getMove(0) != Move::EMPTY_MOVE) {
+			if (pv != pvMovesStore && !pv.getMove(0).isEmpty()) {
 				pvMovesStore = pv;
 				printSearchResult();
 			}

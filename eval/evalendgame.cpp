@@ -25,11 +25,12 @@ using namespace ChessEval;
 EvalEndgame::evalFunction_t* EvalEndgame::functionMap[EvalEndgame::MAX_EVAL_FUNCTIONS];
 uint8_t EvalEndgame::functionAmount;
 uint8_t EvalEndgame::mapPieceSignatureToFunctionNo[PieceSignature::PIECE_SIGNATURE_SIZE];
+EvalEndgame::InitStatics EvalEndgame::_staticConstructor;
 
 #define REGISTER(index, function) registerFunction(index, function<WHITE>, false); registerFunction(index, function<BLACK>, true);
 
 
-void EvalEndgame::initStatics() {
+EvalEndgame::InitStatics::InitStatics() {
 	for (uint32_t index = 0; index < PieceSignature::PIECE_SIGNATURE_SIZE; index++) {
 		mapPieceSignatureToFunctionNo[index] = 255;
 	}
@@ -202,13 +203,13 @@ value_t EvalEndgame::KBsPsK(MoveGenerator& board, value_t currentValue) {
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 
 	if ((pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 &&
-		isPositionInBitMask<COLOR>(A8, kingInfluence) &&
+		isSquareInBB<COLOR>(A8, kingInfluence) &&
 		bishopIsAbleToAttacksPromotionField<COLOR>(A1, bishops))
 	{
 		result = DRAW_VALUE;
 	}
 	else if ((pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0 &&
-		isPositionInBitMask<COLOR>(H8, kingInfluence) &&
+		isSquareInBB<COLOR>(H8, kingInfluence) &&
 		bishopIsAbleToAttacksPromotionField<COLOR>(H1, bishops))
 	{
 		result = DRAW_VALUE;
@@ -300,7 +301,7 @@ bool EvalEndgame::bishopIsAbleToAttacksPromotionField(Square file, bitBoard_t bi
 }
 
 template <Piece COLOR>
-inline bool EvalEndgame::isPositionInBitMask(Square square, bitBoard_t mask) {
+inline bool EvalEndgame::isSquareInBB(Square square, bitBoard_t mask) {
 	uint32_t shift = square;
 	if (COLOR == BLACK) {
 		// mapping the colum of a square keeping the rank (example B6 will become B2)

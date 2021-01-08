@@ -84,9 +84,11 @@ namespace ChessInterface {
 			piece = 0;
 			promote = 0;
 			bool legalMove = true;
-			int32_t curIndex = static_cast<int32_t>(move.size());
+			int32_t curIndex = static_cast<int32_t>(move.size()) - 1;
 			// It is more simple to read the move from the end instead from the beginning. 
-			--curIndex;
+			while (curIndex >= 0 && move[curIndex] == ' ') {
+				--curIndex;
+			}
 
 			if (!handleCastleNotation(move)) {
 

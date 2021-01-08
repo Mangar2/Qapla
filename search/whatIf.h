@@ -28,27 +28,19 @@
 #include "computinginfo.h"
 #include "../interface/iwhatIf.h"
 
-class SearchStack;
-class MoveConverter;
-class Hash;
-
-
-
 using namespace ChessBasics;
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;
 
 namespace ChessSearch {
 
-	#define WHATIF(x)
-
-	/*
-	#if defined(_DEBUG) || defined(DOWHATIF)
-	#define WHATIF(x) x
-	#else
-	#define WHATIF(x)
-	#endif
-	*/
+#if defined(_DEBUG) || defined(DOWHATIF)
+#define WHATIF(x) x
+#define DOWHATIF true
+#else
+#define WHATIF(x)
+#define DOWHATIF false
+#endif
 
 	class WhatIf : public IWhatIf {
 	public:
@@ -66,9 +58,9 @@ namespace ChessSearch {
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply);
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, ply_t ply);
 
-		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, char* cutoffType);
+		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, const char* cutoffType);
 
-		void setTT(Hash* hashPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead);
+		void setTT(TT* hashPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead);
 
 		virtual void clear();
 

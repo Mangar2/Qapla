@@ -47,10 +47,18 @@ namespace ChessBasics {
 		 */
 		void undoMove(Move move, BoardState boardState);
 		void clear();
-		inline auto getEP() const { return basicBoard.getEP(); }
-		inline auto operator[](Square square) const { return basicBoard[square]; }
-		inline auto isWhiteToMove() const { return basicBoard.whiteToMove; }
-		inline void setWhiteToMove(bool whiteToMove) { basicBoard.whiteToMove = whiteToMove; }
+		inline auto getEP() const { return _basicBoard.getEP(); }
+		inline auto operator[](Square square) const { return _basicBoard[square]; }
+		inline auto isWhiteToMove() const { return _basicBoard.whiteToMove; }
+		inline void setWhiteToMove(bool whiteToMove) { _basicBoard.whiteToMove = whiteToMove; }
+
+
+		/**
+		 * Checks, if two positions are identical
+		 */
+		bool isIdenticalPosition(const Board& boardToCompare) {
+			return _basicBoard.isIdenticalPosition(boardToCompare._basicBoard);
+		}
 
 		/**
 		 * Creates a symetric board exchanging black/white side
@@ -62,7 +70,7 @@ namespace ChessBasics {
 		 * person to move does nothing and hand over the moving right to the opponent.
 		 */
 		inline void doNullmove() {
-			basicBoard.clearEP();
+			_basicBoard.clearEP();
 			setWhiteToMove(!isWhiteToMove());
 		}
 
@@ -72,7 +80,7 @@ namespace ChessBasics {
 		 */
 		inline void undoNullmove(BoardState boardState) {
 			setWhiteToMove(!isWhiteToMove());
-			basicBoard.boardState = boardState;
+			_basicBoard.boardState = boardState;
 		}
 
 		/**
@@ -80,7 +88,7 @@ namespace ChessBasics {
 		 */
 		template <Piece COLOR>
 		inline bool isKingSideCastleAllowed() {
-			return basicBoard.isKingSideCastleAllowed<COLOR>();
+			return _basicBoard.isKingSideCastleAllowed<COLOR>();
 		}
 
 		/**
@@ -88,14 +96,14 @@ namespace ChessBasics {
 		 */
 		template <Piece COLOR>
 		inline bool isQueenSideCastleAllowed() {
-			return basicBoard.isQueenSideCastleAllowed<COLOR>();
+			return _basicBoard.isQueenSideCastleAllowed<COLOR>();
 		}
 
 		/**
 		 * Enable/Disable castling right
 		 */
 		void setCastlingRight(Piece color, bool kingSide, bool allow) {
-			basicBoard.setCastlingRight(color, kingSide, allow);
+			_basicBoard.setCastlingRight(color, kingSide, allow);
 		}
 
 		/**
@@ -116,7 +124,7 @@ namespace ChessBasics {
 		 * @returns board hash for the current position
 		 */
 		inline auto computeBoardHash() const {
-			return basicBoard.computeBoardHash();
+			return _basicBoard.computeBoardHash();
 		}
 
 		/**
@@ -124,7 +132,14 @@ namespace ChessBasics {
 		 * the 50-moves-draw rule
 		 */
 		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
-			return basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture;
+			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture;
+		}
+
+		/**
+		 * Sets the number of half moves without pawn move or capture
+		 */
+		void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
+			_basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
@@ -217,8 +232,19 @@ namespace ChessBasics {
 		template <Piece COLOR>
 		inline auto getKingSquare() const { return kingSquares[COLOR]; }
 
-		BoardState getBoardState() { return basicBoard.boardState; }
-		BasicBoard basicBoard;
+		/**
+		 * Gets the start square of the king rook
+		 */
+		template <Piece COLOR>
+		inline auto getKingRookStartSquare() const { return _basicBoard.kingRookStartSquare[COLOR]; }
+
+		/**
+		 * Gets the start square of the king rook
+		 */
+		template <Piece COLOR>
+		inline auto getQueenRookStartSquare() const { return _basicBoard.queenRookStartSquare[COLOR]; }
+
+		BoardState getBoardState() { return _basicBoard.boardState; }
 
 		/**
 		 * Prints the board as fen to std-out
@@ -238,6 +264,8 @@ namespace ChessBasics {
 		bitBoard_t bitBoardAllPieces;
 
 	private:
+		BasicBoard _basicBoard;
+
 		/**
 		 * Clears the bitboards
 		 */

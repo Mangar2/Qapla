@@ -16,6 +16,12 @@
     <Filter Include="Tests">
       <UniqueIdentifier>{5b3cdbb1-58f9-4f7d-b8bb-61859ca52609}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{b0dc1192-51ca-4f22-af41-e7e1f7a1f4ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="eval">
+      <UniqueIdentifier>{c0f548a7-d318-4df0-9b89-6f2eaf60356e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Quabla.cpp">
@@ -51,16 +57,19 @@
     <ClCompile Include="basics\piecesignature.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="eval\evalpawn.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="eval\pawnrace.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="eval\evalendgame.cpp">
+    <ClCompile Include="eval\kingpawnattack.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="eval\kingpawnattack.cpp">
+    <ClCompile Include="eval\evalpawn.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\evalendgame.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="search\whatif.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,24 +92,6 @@
     <ClInclude Include="basics\types.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="interface\clocksetting.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\fenscanner.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\ichessboard.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\iinputoutput.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\isendsearchinfo.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\iwhatIf.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="movegenerator\bitboardmasks.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -120,15 +111,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="interface\movescanner.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\consoleio.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\winboard.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\stdtimecontrol.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="basics\hashconstants.h">
@@ -182,22 +164,10 @@
     <ClInclude Include="basics\materialbalance.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="eval\evalpawn.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="eval\pawnrace.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="eval\eval.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="eval\evalendgame.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="eval\kingpawnattack.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="eval\evalmobility.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\searchstack.h">
@@ -209,14 +179,59 @@
     <ClInclude Include="search\computinginfo.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="interface\computinginfoexchange.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="tests\evalpawntest.h">
       <Filter>Tests</Filter>
     </ClInclude>
-    <ClInclude Include="search\iterativedeepening.h">
+    <ClInclude Include="search\aspirationwindow.h">
       <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\winboard.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\stdtimecontrol.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\iwhatIf.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="search\iterativedeepening.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\isendsearchinfo.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\iinputoutput.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\ichessboard.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\fenscanner.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\consoleio.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\computinginfoexchange.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\clocksetting.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\eval.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalendgame.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalmobility.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalpawn.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\winboardprintsearchinfo.h">
+      <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

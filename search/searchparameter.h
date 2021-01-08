@@ -49,6 +49,7 @@ namespace ChessSearch {
 		 * Calculates the late move reduction
 		 */
 		static ply_t getLateMoveReduction(bool pv, ply_t ply, uint32_t moveNo) {
+			return 0;
 			ply_t res = 0;
 			if (ply >= 3) {
 				if (moveNo > 8) {
@@ -66,9 +67,10 @@ namespace ChessSearch {
 
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 5;
 
+		static const bool DO_NULLMOVE = false;
+
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50;
-
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
@@ -76,7 +78,7 @@ namespace ChessSearch {
 		static const bool DO_CHECK_EXTENSIONS = true;
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
-		static const bool DO_RAZORING = true;
+		static const bool DO_RAZORING = false;
 		static const ply_t RAZORING_DEPTH = 3;
 		static constexpr value_t RAZORING_MARGIN[RAZORING_DEPTH + 1] = { 200, 250, 300, 400 };
 

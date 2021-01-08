@@ -21,4 +21,28 @@
 
 using namespace ChessBasics;
 
-PieceSignature::PieceToSignature PieceSignature::mapPieceToSignature;
+array<pieceSignature_t, PIECE_AMOUNT> PieceSignature::mapPieceToSignature;
+array<pieceSignature_t, size_t(SignatureMask::ALL)> PieceSignature::futilityOnCaptureMap;
+PieceSignature::InitStatics PieceSignature::_staticConstructur;
+
+PieceSignature::InitStatics::InitStatics() {
+	for (uint32_t index = 0; index < uint32_t(SignatureMask::ALL); index++) {
+		futilityOnCaptureMap[index] = true;
+		if (getPieceAmount(index) <= 2) {
+			futilityOnCaptureMap[index] = false;
+		}
+	}
+
+	mapPieceToSignature.fill(pieceSignature_t(Signature::EMPTY));
+	mapPieceToSignature[WHITE_PAWN] = pieceSignature_t(Signature::PAWN);
+	mapPieceToSignature[WHITE_KNIGHT] = pieceSignature_t(Signature::KNIGHT);
+	mapPieceToSignature[WHITE_BISHOP] = pieceSignature_t(Signature::BISHOP);
+	mapPieceToSignature[WHITE_ROOK] = pieceSignature_t(Signature::ROOK);
+	mapPieceToSignature[WHITE_QUEEN] = pieceSignature_t(Signature::QUEEN);
+	mapPieceToSignature[BLACK_PAWN] = pieceSignature_t(Signature::PAWN) << SIG_SHIFT_BLACK;
+	mapPieceToSignature[BLACK_KNIGHT] = pieceSignature_t(Signature::KNIGHT) << SIG_SHIFT_BLACK;
+	mapPieceToSignature[BLACK_BISHOP] = pieceSignature_t(Signature::BISHOP) << SIG_SHIFT_BLACK;
+	mapPieceToSignature[BLACK_ROOK] = pieceSignature_t(Signature::ROOK) << SIG_SHIFT_BLACK;
+	mapPieceToSignature[BLACK_QUEEN] = pieceSignature_t(Signature::QUEEN) << SIG_SHIFT_BLACK;
+}
+

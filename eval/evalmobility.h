@@ -51,6 +51,9 @@ namespace ChessEval {
 
 		}
 
+		/**
+		 * Evaluates the mobility of all pieces (not pawns) on the board
+		 */
 		value_t eval(MoveGenerator& board) {
 			value_t evalResult = 0;
 			evalResult += calcWhiteKnightMobility(board);
@@ -63,10 +66,6 @@ namespace ChessEval {
 			evalResult += calcBlackQueenMobility(board);
 			return evalResult;
 		}
-
-
-
-
 
 
 	private:

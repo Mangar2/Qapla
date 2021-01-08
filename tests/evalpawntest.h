@@ -27,7 +27,7 @@
 using namespace ChessEval;
 
 struct EvalPawnTest {
-	EvalPawnTest() : ok(0), fail(0) {}
+	EvalPawnTest() : ok(0), fail(0), adapter(0) {}
 	~EvalPawnTest() { printResult(); }
 
 	value_t getEval(string fen) {
