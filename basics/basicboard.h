@@ -34,17 +34,6 @@ class BasicBoard
 {
 public:
 	BasicBoard() { clear(); initClearCastleMask();  }
-	BasicBoard(const BasicBoard& board) {
-		_board = board._board;
-		_clearCastleFlagMask = board._clearCastleFlagMask;
-		boardState = board.boardState;
-		_startHalfmoves = board._startHalfmoves;
-  		whiteToMove = board.whiteToMove;
-		kingStartSquare = board.kingStartSquare;
-		queenRookStartSquare = board.queenRookStartSquare;
-		kingRookStartSquare = board.kingRookStartSquare;
-		setEP(NO_SQUARE);
-	}
 
 	/**
 	 * Clears the Board
@@ -70,7 +59,7 @@ public:
 	 * Checks, if two positions are identical
 	 */
 	bool isIdenticalPosition(const BasicBoard& boardToCompare) {
-		return _board == boardToCompare._board;
+		return whiteToMove == boardToCompare.whiteToMove &&_board == boardToCompare._board;
 	}
 
 	/**

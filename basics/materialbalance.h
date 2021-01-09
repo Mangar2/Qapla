@@ -34,6 +34,7 @@ namespace ChessBasics {
 
 	public:
 		MaterialBalance() {
+			pieceValues.fill(0);
 			pieceValues[WHITE_PAWN] = PAWN_VALUE;
 			pieceValues[BLACK_PAWN] = -PAWN_VALUE;
 			pieceValues[WHITE_KNIGHT] = KNIGHT_VALUE;

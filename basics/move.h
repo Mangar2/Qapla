@@ -213,7 +213,7 @@ public:
 			}
 			result += squareToString(getDeparture());
 			if (getCapture() != NO_PIECE) {
-				result += 'x';
+				// result += 'x';
 				/*
 				if (!isPawn(getCapture())) {
 					result += pieceToChar(getCapture());

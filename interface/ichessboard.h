@@ -68,6 +68,11 @@ namespace ChessInterface {
 		virtual void setBlackKingSideCastlingRight(bool allow) = 0;
 
 		/**
+		 * Sets the destination position for an en-passant move
+		 */
+		virtual void setEPSquare(uint32_t epFile, uint32_t epRank) = 0;
+
+		/**
 		 * Set wether it is whites turn to move
 		 */
 		virtual void setWhiteToMove(bool whiteToMove) = 0;

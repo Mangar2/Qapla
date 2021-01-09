@@ -152,6 +152,15 @@ public:
 	}
 
 	/**
+	 * Sets the EP destination square
+	 */
+	virtual void setEPSquare(uint32_t epFile, uint32_t epRank) {
+		// Adjust ep, beause it is stored as postion of the pawn to capture
+		epRank = epRank == 3 ? 4 : 5;
+		board.setEP(computeSquare(File(epFile), Rank(epRank)));
+	}
+
+	/**
 	 * Sets the number of half moves without pawn move or capture
 	 */
 	virtual void setHalfmovesWithouthPawnMoveOrCapture(uint16_t number) { 
@@ -281,8 +290,8 @@ public:
 			if ((movingPiece == NO_PIECE || move.getMovingPiece() == movingPiece) &&
 				(departureFile == -1 || getFile(move.getDeparture()) == File(departureFile)) &&
 				(departureRank == -1 || getRank(move.getDeparture()) == Rank(departureRank)) &&
-				(destinationFile == -1 || getFile(move.getDestination()) == File(destinationFile)) &&
-				(destinationRank == -1 || getRank(move.getDestination()) == Rank(destinationRank)) &&
+				(getFile(move.getDestination()) == File(destinationFile)) &&
+				(getRank(move.getDestination()) == Rank(destinationRank)) &&
 				(move.getPromotion() == promotePiece))
 			{
 				if (!foundMove.isEmpty()) {

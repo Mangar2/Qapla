@@ -49,7 +49,7 @@ namespace ChessSearch {
 		 */
 		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move) {
 			value_t result = MAX_VALUE;
-			if (move.isPromote()) {
+			if (!move.isPromote()) {
 				Piece capturedPiece = move.getCapture();
 				if (board.doFutilityOnCapture(capturedPiece)) {
 					value_t maxGain = board.getAbsolutePieceValue(capturedPiece);

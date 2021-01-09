@@ -47,6 +47,8 @@ namespace ChessInterface {
 			skipBlank(fen, fenIterator);
 			scanCastlingRights(fen, fenIterator, chessBoard);
 			skipBlank(fen, fenIterator);
+			scanEPField(fen, fenIterator, chessBoard);
+			skipBlank(fen, fenIterator);
 			scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, chessBoard);
 			skipBlank(fen, fenIterator);
 			scanPlayedMovesInGame(fen, fenIterator, chessBoard);
@@ -165,6 +167,25 @@ namespace ChessInterface {
 				else if (!castlingRightsFound) {
 					error = true;
 				}
+			}
+		}
+
+		/**
+		 * Scans an EN-Passant-Field
+		 */
+		void scanEPField(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {
+			uint32_t epFile = -1;
+			uint32_t epRank = -1;
+			if (*fenIterator >= 'a' && *fenIterator <= 'h') {
+				epFile = *fenIterator - 'a';
+				++fenIterator;
+			}
+			if (*fenIterator >= '1' && *fenIterator <= '8') {
+				epRank = *fenIterator - '1';
+				++fenIterator;
+			}
+			if (epFile != -1 && epRank != -1) {
+				chessBoard->setEPSquare(epFile, epRank);
 			}
 		}
 

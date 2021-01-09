@@ -70,9 +70,7 @@ namespace ChessBasics {
 	public:
 
 		PieceSignature() : _signature(0) {}
-		PieceSignature(const PieceSignature& _signature) {
-			operator=(_signature);
-		}
+
 		PieceSignature(const char* pieces) {
 			set(pieces);
 		}
@@ -80,10 +78,6 @@ namespace ChessBasics {
 			return pieceSignature_t(_signature) < pieceSignature_t(aSignature);
 		}
 		void clear() { _signature = 0; }
-
-		PieceSignature& operator=(const PieceSignature& pieceSignature) { 
-			_signature = pieceSignature._signature; return *this; 
-		}
 
 		/**
 		 * Checks, if a piece is available more than twice

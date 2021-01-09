@@ -49,6 +49,9 @@ static void threadComputeMove(
 
 bool HandleMove::handleMove(IChessBoard* chessBoard, IInputOutput* ioHandler, const string move) {
 	bool legalMove;
+	if (move == "") {
+		return false;
+	}
 	if (!scanMove(chessBoard, move)) {
 		ioHandler->print("Illegal move: ");
 		ioHandler->println(ioHandler->getCurrentToken());

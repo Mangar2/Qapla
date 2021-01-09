@@ -107,6 +107,13 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Sets the destination of the pawn to capture
+		 */
+		void setEP(Square destination) {
+			_basicBoard.setEP(destination);
+		}
+
+		/**
 		 * Sets a piece to the board adjusting all state variables
 		 */
 		void setPiece(Square square, Piece piece) {

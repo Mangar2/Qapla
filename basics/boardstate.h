@@ -23,7 +23,7 @@
  * - en passant square
  * - castling rights 
  * En passant and castling rights are coded in a 32 bit value:
- * kqKQEEEE
+ * kqKQEEEEEEEE
  * E = En passant square
  * Q = White Queen side castleing allowed
  * K = White King side castleing allowed
@@ -44,27 +44,21 @@ namespace ChessBasics {
 
 		BoardState() { initialize(); };
 
-		BoardState(const BoardState& boardInfo) {
-			operator=(boardInfo);
-		}
-
-		BoardState& operator=(const BoardState& boardInfo) {
-			_info = boardInfo._info;
-			halfmovesWithoutPawnMoveOrCapture = boardInfo.halfmovesWithoutPawnMoveOrCapture;
-			boardHash = boardInfo.boardHash;
-			pawnHash = boardInfo.pawnHash;
-			return *this;
-		}
-
 		bool operator==(const BoardState& boardInfo) const {
 			return _info == boardInfo._info;
 		}
 
+		/**
+		 * Checks, if castling king side is allowed
+		 */
 		template <Piece COLOR>
 		bool isKingSideCastleAllowed() {
 			return (_info & (COLOR == WHITE ? WHITE_KING_SIDE_CASTLE_BIT : BLACK_KING_SIDE_CASTLE_BIT)) != 0;
 		}
 
+		/**
+		 * Checks, if castling queen side is allowed
+		 */
 		template <Piece COLOR>
 		bool isQueenSideCastleAllowed() {
 			return (_info & (COLOR == WHITE ? WHITE_QUEEN_SIDE_CASTLE_BIT : BLACK_QUEEN_SIDE_CASTLE_BIT)) != 0;
@@ -145,6 +139,9 @@ namespace ChessBasics {
 			return (_info & CASTLE_MASK) >> CASTLE_SHIFT;
 		}
 
+		/**
+		 * Retrieves the EP square = the square the opponent pawn moved to
+		 */
 		Square getEP() const { return Square(_info & EP_MASK); }
 		void setEP(Square epSquare) { clearEP(); _info |= uint32_t(epSquare); }
 

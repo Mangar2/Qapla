@@ -429,10 +429,12 @@ namespace ChessSearch {
 		}
 
 		enum class SearchType {
-			START, PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, SELECT_NULLMOVE, NULLMOVE, VERIFY, IID
+			START, PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID,
+			AMOUNT
 		};
 
-		const string searchStateNames[8] = { "Start", "PV", "NULL", "Normal", "SelNull", "Null", "Verify", "IID" };
+		const array<string, int(SearchType::AMOUNT)> searchStateNames
+			{ "Start", "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID" };
 
 		value_t alpha;
 		value_t alphaAtPlyStart;

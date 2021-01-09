@@ -45,9 +45,6 @@
     <ClCompile Include="interface\stdtimecontrol.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="interface\winboard.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="basics\hashconstants.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
@@ -71,6 +68,9 @@
     </ClCompile>
     <ClCompile Include="search\whatif.cpp">
       <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\winboard.cpp">
+      <Filter>Interface</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
