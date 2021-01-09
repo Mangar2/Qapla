@@ -22,6 +22,7 @@ Quabla has a classic recursive negamax search including the basic search feature
 - Move ordering (PV, good captures, killer1, killer2, non-captures, bad-captures)
 - Null-window search on PV nodes after one best move has been found
 - Iterative deepening with aspiration window
+- Check extensions (very useful due to missing King security eval terms)
 - Tansposition table (fixed size: 32MB) - due to not yet implemented parameter to change it. Note changing the size of the TT has little effect on the playing strength
 - Quiescense search with a check-evades for the first ply and a simple foreward pruning
 
