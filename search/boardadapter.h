@@ -76,7 +76,7 @@ public:
 			playedMovesInGame++;
 		}
 
-		board.print();
+		// board.print();
 
 		return !move.isEmpty();
 	};

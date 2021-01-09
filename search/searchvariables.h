@@ -195,7 +195,7 @@ namespace ChessSearch {
 				if (ttIndex != TT::INVALID_INDEX) {
 					TTEntry entry = ttPtr->getEntry(ttIndex);
 					Move move = entry.getMove();
-					moveProvider.setHashMove(move);
+					moveProvider.setTTMove(move);
 					// keeps the best move for a tt entry, if the search does stay <= alpha
 					if (searchState != SearchType::PV) {
 						bestMove = move;
@@ -203,6 +203,12 @@ namespace ChessSearch {
 							cutoff = Cutoff::HASH;
 						}
 						if (bestValue >= beta) {
+							cutoff = Cutoff::HASH;
+						}
+					}
+					else {
+						if (entry.hasExactValue() && entry.getPositionValue(ply) == DRAW_VALUE) {
+							bestValue = DRAW_VALUE;
 							cutoff = Cutoff::HASH;
 						}
 					}

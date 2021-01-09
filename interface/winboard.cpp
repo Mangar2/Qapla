@@ -106,7 +106,7 @@ void Winboard::handleProtover(IInputOutput* ioHandler) {
 		if (protoVer > 1) {
 			ioHandler->println("feature done=0");
 			ioHandler->println("feature colors=0 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
-			ioHandler->println("feature myname=qapla");
+			ioHandler->println("feature myname=\"Qapla 0.0.1\"");
 			ioHandler->println("feature done=1");
 		}
 	}

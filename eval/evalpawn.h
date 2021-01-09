@@ -48,9 +48,9 @@ namespace ChessEval {
 		const static value_t DOUBLE_PAWN_PENALTY = -20;
 
 		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   5,  10,  15,   0, 0 };
-		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  10,  25,  45,  70, 100, 0 };
-		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  25,  45, 70, 100, 200, 0 };
-		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 25,  50,  80, 130, 200, 300, 0 };
+		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  10,  15,  25,  45, 60, 0 };
+		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  35, 50, 70, 120, 0 };
+		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 25,  40,  60, 90, 130, 200, 0 };
 		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
 	};
 
