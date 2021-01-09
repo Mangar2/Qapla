@@ -25,131 +25,135 @@
 #include "../basics/types.h"
 #include <sys/timeb.h>
 
-class ClockSetting {
+namespace ChessInterface {
 
-public:
-	
-	ClockSetting() : searchDepth(0), nodeRate(0), userClock(0) {
-		moveAmountForClock = 40;
-		timeToThinkForAllMovesInMilliseconds = 10 * 60 * 1000;
-		timeIncrementPerMoveInMilliseconds = 1 * 1000;
-		exactTimePerMoveInMilliseconds = 0;
-		playedMovesInGame = 0;
-		calculationStartTime = 0;
-	}
-	ClockSetting(const ClockSetting& clockControlSetting) { operator=(clockControlSetting); }
+	class ClockSetting {
 
-	ClockSetting& operator=(const ClockSetting& clockSetting) {
-		searchDepth = clockSetting.searchDepth;
-		nodeRate = clockSetting.nodeRate;
-		userClock = clockSetting.userClock;
-		timeToThinkForAllMovesInMilliseconds = clockSetting.timeToThinkForAllMovesInMilliseconds;
-		timeIncrementPerMoveInMilliseconds = clockSetting.timeIncrementPerMoveInMilliseconds;
-		exactTimePerMoveInMilliseconds = clockSetting.exactTimePerMoveInMilliseconds;
-		analyseMode = clockSetting.analyseMode;
-		playedMovesInGame = clockSetting.playedMovesInGame;
-		return *this;
-	}
+	public:
 
-	void limitSearchDepth(uint32_t depth) { searchDepth = depth; }; 
-	void setSearchDepthToUnlimited() { searchDepth = 0; }
-	bool isSearchDepthLimited() const { return searchDepth != 0; }
-	uint32_t getSearchDepthLimit() const { return searchDepth; }
+		ClockSetting() : searchDepth(0), nodeRate(0), userClock(0) {
+			moveAmountForClock = 40;
+			timeToThinkForAllMovesInMilliseconds = 10 * 60 * 1000;
+			timeIncrementPerMoveInMilliseconds = 1 * 1000;
+			exactTimePerMoveInMilliseconds = 0;
+			playedMovesInGame = 0;
+			calculationStartTime = 0;
+		}
+		ClockSetting(const ClockSetting& clockControlSetting) { operator=(clockControlSetting); }
 
-	/**
-	 * Sets the time to think for all moves for the computer
-	 */
-	void setComputerClockInMilliseconds(uint64_t clockInMilliseconds) {
-		timeToThinkForAllMovesInMilliseconds = clockInMilliseconds;
-	}
+		ClockSetting& operator=(const ClockSetting& clockSetting) {
+			searchDepth = clockSetting.searchDepth;
+			nodeRate = clockSetting.nodeRate;
+			userClock = clockSetting.userClock;
+			timeToThinkForAllMovesInMilliseconds = clockSetting.timeToThinkForAllMovesInMilliseconds;
+			timeIncrementPerMoveInMilliseconds = clockSetting.timeIncrementPerMoveInMilliseconds;
+			exactTimePerMoveInMilliseconds = clockSetting.exactTimePerMoveInMilliseconds;
+			analyseMode = clockSetting.analyseMode;
+			playedMovesInGame = clockSetting.playedMovesInGame;
+			return *this;
+		}
 
-	/**
-	 * Sets the time to think for all moves for the user
-	 */
-	void setUserClockInMilliseconds(uint64_t clockInMilliseconds) {
-		userClock = clockInMilliseconds;
-	}
+		void limitSearchDepth(uint32_t depth) { searchDepth = depth; };
+		void setSearchDepthToUnlimited() { searchDepth = 0; }
+		bool isSearchDepthLimited() const { return searchDepth != 0; }
+		uint32_t getSearchDepthLimit() const { return searchDepth; }
 
-	/**
-	 * Sets the move amount to be played in the clock time
-	 */
-	void setMoveAmountForClock(uint32_t moveAmount) {
-		moveAmountForClock = moveAmount;
-	}
+		/**
+		 * Sets the time to think for all moves for the computer
+		 */
+		void setComputerClockInMilliseconds(uint64_t clockInMilliseconds) {
+			timeToThinkForAllMovesInMilliseconds = clockInMilliseconds;
+		}
 
-	/**
-	 * Sets the time to think for all moves
-	 */
-	void setTimeToThinkForAllMovesInMilliseconds(uint64_t milliseconds) {
-		timeToThinkForAllMovesInMilliseconds = milliseconds;
-		exactTimePerMoveInMilliseconds = 0;
-	}
+		/**
+		 * Sets the time to think for all moves for the user
+		 */
+		void setUserClockInMilliseconds(uint64_t clockInMilliseconds) {
+			userClock = clockInMilliseconds;
+		}
 
-	/**
-	 * Sets the time increment per move
-	 */
-	void setTimeIncrementPerMoveInMilliseconds(uint64_t milliseconds) {
-		timeIncrementPerMoveInMilliseconds = milliseconds;
-		exactTimePerMoveInMilliseconds = 0;
-	}
+		/**
+		 * Sets the move amount to be played in the clock time
+		 */
+		void setMoveAmountForClock(uint32_t moveAmount) {
+			moveAmountForClock = moveAmount;
+		}
 
-	/**
-	 * Sets the exact time in milliseconds per move
-	 */
-	void setExactTimePerMoveInMilliseconds(uint64_t milliseconds) {
-		exactTimePerMoveInMilliseconds = milliseconds;
-		timeToThinkForAllMovesInMilliseconds = 0;
-		timeIncrementPerMoveInMilliseconds = 0;
-		moveAmountForClock = 0;
-	}
+		/**
+		 * Sets the time to think for all moves
+		 */
+		void setTimeToThinkForAllMovesInMilliseconds(uint64_t milliseconds) {
+			timeToThinkForAllMovesInMilliseconds = milliseconds;
+			exactTimePerMoveInMilliseconds = 0;
+		}
 
-	/**
-	 * Starts recording the calculation time
-	 */
-	void storeCalculationStartTime() {
-		calculationStartTime = getSystemTimeInMilliseconds();
-	}
+		/**
+		 * Sets the time increment per move
+		 */
+		void setTimeIncrementPerMoveInMilliseconds(uint64_t milliseconds) {
+			timeIncrementPerMoveInMilliseconds = milliseconds;
+			exactTimePerMoveInMilliseconds = 0;
+		}
 
-	/**
-	 * Stores the time spent for the current calculation
-	 */
-	void storeTimeSpent() {
-		int64_t timeSpent = getSystemTimeInMilliseconds() - calculationStartTime;
-		timeToThinkForAllMovesInMilliseconds -= timeSpent;
-	}
+		/**
+		 * Sets the exact time in milliseconds per move
+		 */
+		void setExactTimePerMoveInMilliseconds(uint64_t milliseconds) {
+			exactTimePerMoveInMilliseconds = milliseconds;
+			timeToThinkForAllMovesInMilliseconds = 0;
+			timeIncrementPerMoveInMilliseconds = 0;
+			moveAmountForClock = 0;
+		}
 
-	uint64_t getTimeToThinkForAllMovesInMilliseconds() const { return timeToThinkForAllMovesInMilliseconds; }
-	uint64_t getTimeIncrementPerMoveInMilliseconds() const { return timeIncrementPerMoveInMilliseconds; }
-	uint64_t getExactTimePerMoveInMilliseconds() const { return exactTimePerMoveInMilliseconds; }
-	uint32_t getMoveAmountForClock() const { return moveAmountForClock; }
-	void setAnalyseMode(bool analyse) { analyseMode = analyse; }
-	bool getAnalyseMode() const { return analyseMode; }
+		/**
+		 * Starts recording the calculation time
+		 */
+		void storeCalculationStartTime() {
+			calculationStartTime = getSystemTimeInMilliseconds();
+		}
 
-	void setPlayedMovesInGame(uint32_t playedMoves) { playedMovesInGame = playedMoves; }
-	uint32_t getPlayedMovesInGame() const { return playedMovesInGame; }
+		/**
+		 * Stores the time spent for the current calculation
+		 */
+		void storeTimeSpent() {
+			int64_t timeSpent = getSystemTimeInMilliseconds() - calculationStartTime;
+			timeToThinkForAllMovesInMilliseconds -= timeSpent;
+		}
 
-private:
+		uint64_t getTimeToThinkForAllMovesInMilliseconds() const { return timeToThinkForAllMovesInMilliseconds; }
+		uint64_t getTimeIncrementPerMoveInMilliseconds() const { return timeIncrementPerMoveInMilliseconds; }
+		uint64_t getExactTimePerMoveInMilliseconds() const { return exactTimePerMoveInMilliseconds; }
+		uint32_t getMoveAmountForClock() const { return moveAmountForClock; }
+		void setAnalyseMode(bool analyse) { analyseMode = analyse; }
+		bool getAnalyseMode() const { return analyseMode; }
 
-	uint64_t getSystemTimeInMilliseconds() const
-	{
-		timeb aCurrentTime;
-		ftime(&aCurrentTime);
-		return ((uint64_t)(aCurrentTime.time) * 1000 +
-			(uint64_t)(aCurrentTime.millitm));
-	}
+		void setPlayedMovesInGame(uint32_t playedMoves) { playedMovesInGame = playedMoves; }
+		uint32_t getPlayedMovesInGame() const { return playedMovesInGame; }
+
+	private:
+
+		uint64_t getSystemTimeInMilliseconds() const
+		{
+			timeb aCurrentTime;
+			ftime(&aCurrentTime);
+			return ((uint64_t)(aCurrentTime.time) * 1000 +
+				(uint64_t)(aCurrentTime.millitm));
+		}
 
 
-	uint32_t searchDepth;
-	uint64_t nodeRate;
-	uint64_t userClock;
-	uint32_t moveAmountForClock;
-	uint32_t playedMovesInGame; 
-	int64_t timeToThinkForAllMovesInMilliseconds;
-	uint64_t timeIncrementPerMoveInMilliseconds;
-	uint64_t exactTimePerMoveInMilliseconds;
-	uint64_t calculationStartTime;
-	bool analyseMode;
+		uint32_t searchDepth;
+		uint64_t nodeRate;
+		uint64_t userClock;
+		uint32_t moveAmountForClock;
+		uint32_t playedMovesInGame;
+		int64_t timeToThinkForAllMovesInMilliseconds;
+		uint64_t timeIncrementPerMoveInMilliseconds;
+		uint64_t exactTimePerMoveInMilliseconds;
+		uint64_t calculationStartTime;
+		bool analyseMode;
 
-};
+	};
+
+}
 
 #endif // __CLOCKSETTING_H

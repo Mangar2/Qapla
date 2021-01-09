@@ -31,50 +31,51 @@
 #include "search/search.h"
 #include "tests/evalpawntest.h"
 
-using namespace ChessSearch;
 using namespace ChessInterface;
 
-BoardAdapter adapter(0);
+ChessSearch::BoardAdapter adapter(0);
 
-class ChessEnvironment {
-public:
-	ChessEnvironment()
-		: printSearchInfo(&ioHandler),
-		adapter(&printSearchInfo)
-	{
-		// BitBaseReader::loadBitBase();
-		setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-	}
-
-	void setFen(const char* fen) {
-		FenScanner scanner;
-		scanner.setBoard(fen, &adapter);
-	}
-
-	bool setMove(const char* move) {
-		MoveScanner scanner(move);
-		bool res = false;
-		if (scanner.isLegal()) {
-			res = adapter.doMove(scanner.piece, scanner.departureFile,
-				scanner.departureRank, scanner.destinationFile, scanner.destinationRank, scanner.promote);
+namespace ChessSearch {
+	class ChessEnvironment {
+	public:
+		ChessEnvironment()
+			: printSearchInfo(&ioHandler),
+			adapter(&printSearchInfo)
+		{
+			// BitBaseReader::loadBitBase();
+			setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		}
-		assert(res == true);
-		return res;
-	}
+
+		void setFen(const char* fen) {
+			FenScanner scanner;
+			scanner.setBoard(fen, &adapter);
+		}
+
+		bool setMove(const char* move) {
+			MoveScanner scanner(move);
+			bool res = false;
+			if (scanner.isLegal()) {
+				res = adapter.doMove(scanner.piece, scanner.departureFile,
+					scanner.departureRank, scanner.destinationFile, scanner.destinationRank, scanner.promote);
+			}
+			assert(res == true);
+			return res;
+		}
 
 
-	MoveGenerator& getBoard() { return adapter.getBoard(); }
+		MoveGenerator& getBoard() { return adapter.getBoard(); }
 
-	void run() {
-		winboard.processInput(&adapter, &ioHandler);
-	}
+		void run() {
+			winboard.processInput(&adapter, &ioHandler);
+		}
 
-private:
-	Winboard winboard;
-	ConsoleIO ioHandler;
-	WinboardPrintSearchInfo printSearchInfo;
-	BoardAdapter adapter;
-};
+	private:
+		Winboard winboard;
+		ConsoleIO ioHandler;
+		WinboardPrintSearchInfo printSearchInfo;
+		BoardAdapter adapter;
+	};
+}
 
 /*
 struct FenTest {
@@ -217,7 +218,7 @@ int main()
 	// adapter.setWorkerAmount(1);
 	// runPerftTests(fenTests, 10000000000);
 	// std::this_thread::sleep_for(std::chrono::seconds(20));
-	ChessEnvironment environment;
+	ChessSearch::ChessEnvironment environment;
 	environment.run();
 }
 
