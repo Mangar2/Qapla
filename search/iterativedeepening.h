@@ -69,7 +69,7 @@ namespace ChessSearch {
 
 			uint32_t curDepth;
 			uint32_t maxDepth = MAX_SEARCH_DEPTH;
-			Move result = Move::EMPTY_MOVE;
+			Move result;
 			// HistoryTable::clear();
 			if (clockManager.isAnalyzeMode()) {
 				tt.clear();

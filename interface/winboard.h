@@ -69,6 +69,11 @@ namespace ChessInterface {
 		 * Prints the protocol abilities
 		 */
 		void handleProtover(IInputOutput* ioHandler);
+
+		/*
+		 * Removes the last two moves, if a human person is at move
+		 */
+		void handleRemove(IChessBoard* chessBoard);
 		
 		/**
 		 * Runs the perft command

@@ -91,7 +91,7 @@ namespace ChessSearch {
 		 */
 		void clear()
 		{
-			movesStore[0] = Move::EMPTY_MOVE;
+			movesStore[0].setEmpty();
 		}
 
 		/**

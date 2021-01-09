@@ -125,8 +125,8 @@ void WhatIf::setTT(TT* ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move mov
 
 void WhatIf::clear() {
 	searchDepth = -1;
-	for (ply_t ply = 0; ply < MAX_PLY; ply++) {
-		movesToSearch[ply] = Move::EMPTY_MOVE;
+	for (auto& move : movesToSearch) {
+		move.setEmpty();
 	}
 	amountOfMovesToSearch = 0;
 }

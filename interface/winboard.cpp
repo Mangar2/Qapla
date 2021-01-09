@@ -110,7 +110,13 @@ void Winboard::handleProtover(IInputOutput* ioHandler) {
 			ioHandler->println("feature done=1");
 		}
 	}
+}
 
+void Winboard::handleRemove(IChessBoard* chessBoard) {
+	if (computerIsWhite != chessBoard->isWhiteToMove()) {
+		chessBoard->undoMove();
+		chessBoard->undoMove();
+	}
 }
 
 void Winboard::runPerft(IChessBoard* chessBoard, IInputOutput* ioHandler, bool showMoves) {
@@ -477,6 +483,9 @@ void Winboard::handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	else if (ioHandler->isTokenEqualTo("undo")) {
 		chessBoard->undoMove();
 		forceMode = true;
+	}
+	else if (ioHandler->isTokenEqualTo("remove")) {
+		handleRemove(chessBoard);
 	}
 	else if (ioHandler->isTokenEqualTo("wmtest")) {
 		WMTest(chessBoard, ioHandler);

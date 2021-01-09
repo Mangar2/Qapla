@@ -80,7 +80,7 @@ namespace ChessSearch {
 		void setWhatIfMoves(MoveGenerator& board, ply_t ply);
 
 		static const uint32_t MAX_PLY = 255;
-		Move movesToSearch[MAX_PLY];
+		array<Move, MAX_PLY> movesToSearch;
 		int32_t amountOfMovesToSearch;
 		ply_t maxPly;
 		ply_t hashFoundPly;

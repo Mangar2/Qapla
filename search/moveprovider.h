@@ -39,13 +39,12 @@ namespace ChessSearch {
 
 	enum class MoveType {
 		CAPTURE_KILLER, 
-		PV, INIT_CAPTURES, GOOD_CAPTURES, KILLER1, KILLER2, INIT_NON_CAPTURES, ALL,
-		ALL_TRIED_MOVES,
-		CAPTURES,
+		PV, WEIGHT_CAPTURES, GOOD_CAPTURES, KILLER1, KILLER2, SORT_MOVES, ALL,
+		CAPTURES_ONLY,
 	};
 
 	constexpr MoveType operator+(MoveType a, int b) { return MoveType(int(a) + b); }
-	inline MoveType operator++(MoveType a) { return a = MoveType(a + 1); }
+	inline MoveType operator++(MoveType& a) { return a = MoveType(a + 1); }
 
 	class MoveProvider {
 	public:
@@ -53,16 +52,16 @@ namespace ChessSearch {
 
 		MoveProvider() : curMoveNo(0) {
 			selectStage = MoveType::PV + 1;
-			pvMove = Move::EMPTY_MOVE;
-			hashMove = Move::EMPTY_MOVE;
-			previousMove = Move::EMPTY_MOVE;
+			pvMove;
+			hashMove;
+			previousMove;
 		};
 
 		/**
 		 * Initializes the move provider
 		 */
 		void init() {
-			hashMove = Move::EMPTY_MOVE;
+			hashMove.setEmpty();
 		}
 
 		/**
@@ -158,14 +157,14 @@ namespace ChessSearch {
 		 */
 		Move selectNextMove(const MoveGenerator& board) {
 			int32_t selectedMoveNo = -1;
-			Move move = Move::EMPTY_MOVE;
+			Move move;
 
-			while (selectedMoveNo == -1 && move == Move::EMPTY_MOVE) {
+			while (selectedMoveNo == -1 && move.isEmpty()) {
 				currentStage = selectStage;
 				switch (selectStage) {
 				case MoveType::PV:
-					selectedMoveNo = selectProposedMove(pvMove == Move::EMPTY_MOVE ? hashMove : pvMove, moveList);
-					pvMove = Move::EMPTY_MOVE;
+					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? hashMove : pvMove, moveList);
+					pvMove.setEmpty();
 					++selectStage;
 					break;
 				case MoveType::KILLER1:
@@ -176,17 +175,17 @@ namespace ChessSearch {
 					selectedMoveNo = selectProposedMove(killerMove[1], moveList);
 					++selectStage;
 					break;
-				case MoveType::INIT_CAPTURES:
+				case MoveType::WEIGHT_CAPTURES:
 					computeAllCaptureWeight(board, false);
 					++selectStage;
 					break;
 				case MoveType::GOOD_CAPTURES:
 					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures(board);
 					break;
-				case MoveType::CAPTURES:
+				case MoveType::CAPTURES_ONLY:
 					selectedMoveNo = selectNextCaptureMove(board);
 					break;
-				case MoveType::INIT_NON_CAPTURES:
+				case MoveType::SORT_MOVES:
 					sortNonCaptures();
 					++selectStage;
 					break;
@@ -198,7 +197,7 @@ namespace ChessSearch {
 			}
 			if (selectedMoveNo != -1 && selectedMoveNo < (int32_t)moveList.getTotalMoveAmount()) {
 				move = moveList[(uint32_t)selectedMoveNo];
-				moveList[(uint32_t)selectedMoveNo] = Move::EMPTY_MOVE;
+				moveList[(uint32_t)selectedMoveNo].setEmpty();
 
 				assert(triedMovesAmount < TRIED_MOVES_STORE_SIZE);
 				triedMoves[triedMovesAmount] = move;
@@ -212,7 +211,7 @@ namespace ChessSearch {
 		 * Retrieves the current move
 		 */
 		Move getCurrentMove() {
-			Move move = Move::EMPTY_MOVE;
+			Move move;
 			if (triedMovesAmount > 0) {
 				move = triedMoves[triedMovesAmount - 1];
 			}
@@ -224,12 +223,12 @@ namespace ChessSearch {
 		 */
 		Move selectNextCapture(const MoveGenerator& board) {
 			int16_t selectedMoveNo = -1;
-			Move move = Move::EMPTY_MOVE;
+			Move move;
 			selectedMoveNo = selectNextCaptureMove(board);
 
 			if (selectedMoveNo != -1) {
 				move = moveList[selectedMoveNo];
-				moveList[selectedMoveNo] = Move::EMPTY_MOVE;
+				moveList[selectedMoveNo].setEmpty();
 			}
 
 			return move;
@@ -340,9 +339,8 @@ namespace ChessSearch {
 		 */
 		int16_t selectProposedMove(Move move, MoveList& moveList) {
 			int16_t foundMoveNo = -1;
-			if (move != Move::EMPTY_MOVE) {
+			if (!move.isEmpty()) {
 				for (uint8_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
-
 					if (moveList[moveNo] == move) {
 						foundMoveNo = moveNo;
 					}
