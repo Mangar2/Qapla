@@ -233,6 +233,9 @@
     <ClInclude Include="interface\winboardprintsearchinfo.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="tests\evalmobilitytest.h">
+      <Filter>Tests</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

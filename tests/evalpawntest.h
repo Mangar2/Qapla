@@ -91,72 +91,72 @@ namespace ChessTest {
 	static void runPawnEvalTests() {
 		EvalPawnTest test;
 
-		test.test("4k3/pppppppp/8/8/8/3P4/PPP1PPPP/4K3", "pawn rank 3", EvalValues::ADVANCED_PAWN_VALUE[2]);
-		test.test("4k3/pppppppp/8/8/3P4/8/PPP1PPPP/4K3", "pawn rank 4", EvalValues::ADVANCED_PAWN_VALUE[3]);
-		test.test("4k3/pppppppp/8/3P4/8/8/PPP1PPPP/4K3", "pawn rank 5", EvalValues::ADVANCED_PAWN_VALUE[4]);
-		test.test("4k3/pppppppp/3P4/8/8/8/PPP1PPPP/4K3", "pawn rank 6", EvalValues::ADVANCED_PAWN_VALUE[5]);
+		test.test("4k3/pppppppp/8/8/8/3P4/PPP1PPPP/4K3", "pawn rank 3", EvalPawnValues::ADVANCED_PAWN_VALUE[2]);
+		test.test("4k3/pppppppp/8/8/3P4/8/PPP1PPPP/4K3", "pawn rank 4", EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
+		test.test("4k3/pppppppp/8/3P4/8/8/PPP1PPPP/4K3", "pawn rank 5", EvalPawnValues::ADVANCED_PAWN_VALUE[4]);
+		test.test("4k3/pppppppp/3P4/8/8/8/PPP1PPPP/4K3", "pawn rank 6", EvalPawnValues::ADVANCED_PAWN_VALUE[5]);
 		test.test("4k3/pppppppp/3P4/2P5/1P6/P7/4PPPP/4K3", "ranks 3-6",
-			EvalValues::ADVANCED_PAWN_VALUE[3] + EvalValues::ADVANCED_PAWN_VALUE[4] + EvalValues::ADVANCED_PAWN_VALUE[5]);
-		test.test("4k3/pppppppp/8/8/8/P7/PPPPPPPP/4K3", "double pawn", EvalValues::DOUBLE_PAWN_PENALTY);
-		test.test("4k3/pppppppp/8/8/8/8/PP1P1PPP/4K3", "isolated pawn", EvalValues::ISOLATED_PAWN_PENALTY);
-		test.test("4k3/pppppppp/8/8/8/2P5/P1P1PPPP/4K3 -", "isolated double", EvalValues::DOUBLE_PAWN_PENALTY + 2 * EvalValues::ISOLATED_PAWN_PENALTY);
-		test.test("4k3/pppppppp/8/8/P7/8/PPPPPPPP/4K3", "double rank 4", EvalValues::DOUBLE_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[3]);
-		test.test("4k3/pppppppp/8/P7/8/8/PPPPPPPP/4K3", "double rank 5", EvalValues::DOUBLE_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[4]);
-		test.test("4k3/pppppppp/P7/8/8/8/PPPPPPPP/4K3", "double rank 6", EvalValues::DOUBLE_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[5]);
-		test.test("4k3/pppppppp/8/8/8/P3P2P/PPPPPPPP/4K3", "three double pawn", 3 * EvalValues::DOUBLE_PAWN_PENALTY);
-		test.test("4k3/pppppppp/8/1P6/8/1P6/PPPPPPPP/4K3", "triple pawn", 2 * EvalValues::DOUBLE_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[4]);
+			EvalPawnValues::ADVANCED_PAWN_VALUE[3] + EvalPawnValues::ADVANCED_PAWN_VALUE[4] + EvalPawnValues::ADVANCED_PAWN_VALUE[5]);
+		test.test("4k3/pppppppp/8/8/8/P7/PPPPPPPP/4K3", "double pawn", EvalPawnValues::DOUBLE_PAWN_PENALTY);
+		test.test("4k3/pppppppp/8/8/8/8/PP1P1PPP/4K3", "isolated pawn", EvalPawnValues::ISOLATED_PAWN_PENALTY);
+		test.test("4k3/pppppppp/8/8/8/2P5/P1P1PPPP/4K3 -", "isolated double", EvalPawnValues::DOUBLE_PAWN_PENALTY + 2 * EvalPawnValues::ISOLATED_PAWN_PENALTY);
+		test.test("4k3/pppppppp/8/8/P7/8/PPPPPPPP/4K3", "double rank 4", EvalPawnValues::DOUBLE_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
+		test.test("4k3/pppppppp/8/P7/8/8/PPPPPPPP/4K3", "double rank 5", EvalPawnValues::DOUBLE_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[4]);
+		test.test("4k3/pppppppp/P7/8/8/8/PPPPPPPP/4K3", "double rank 6", EvalPawnValues::DOUBLE_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[5]);
+		test.test("4k3/pppppppp/8/8/8/P3P2P/PPPPPPPP/4K3", "three double pawn", 3 * EvalPawnValues::DOUBLE_PAWN_PENALTY);
+		test.test("4k3/pppppppp/8/1P6/8/1P6/PPPPPPPP/4K3", "triple pawn", 2 * EvalPawnValues::DOUBLE_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[4]);
 		test.test("4k3/1ppppppp/P7/p7/8/8/PPPPPPPP/4K3", "double rank 6, black pawn inbetween",
-			EvalValues::DOUBLE_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[5] - EvalValues::ADVANCED_PAWN_VALUE[3]);
+			EvalPawnValues::DOUBLE_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[5] - EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
 
 		test.test("4k3/2pppppp/8/8/8/8/P1PPPPPP/4K3", "PP rank 2",
-			EvalValues::PASSED_PAWN_VALUE[1] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[1]);
+			EvalPawnValues::PASSED_PAWN_VALUE[1] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[1]);
 		test.test("4k3/2pppppp/8/8/8/P7/2PPPPPP/4K3", "PP rank 3",
-			EvalValues::PASSED_PAWN_VALUE[2] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[2]);
+			EvalPawnValues::PASSED_PAWN_VALUE[2] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[2]);
 		test.test("4k3/2pppppp/8/8/P7/8/2PPPPPP/4K3", "PP rank 4",
-			EvalValues::PASSED_PAWN_VALUE[3] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[3]);
+			EvalPawnValues::PASSED_PAWN_VALUE[3] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
 		test.test("4k3/2pppppp/8/P7/8/8/2PPPPPP/4K3", "PP rank 5",
-			EvalValues::PASSED_PAWN_VALUE[4] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[4]);
+			EvalPawnValues::PASSED_PAWN_VALUE[4] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[4]);
 		test.test("4k3/2pppppp/1p6/P7/8/8/2PPPPPP/4K3", "not passed rank 5",
-			EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[4]);
+			EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[4]);
 		test.test("4k3/2pppppp/8/Pp6/8/8/2PPPPPP/4K3", "PP rank 5, adjacent pawn",
-			EvalValues::PASSED_PAWN_VALUE[4] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[4] -
-			EvalValues::ADVANCED_PAWN_VALUE[3]);
+			EvalPawnValues::PASSED_PAWN_VALUE[4] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[4] -
+			EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
 		test.test("4k3/2pppppp/8/P7/1p6/8/2PPPPPP/4K3", "PP rank 5, advanced pawn on adjacent file",
-			EvalValues::PASSED_PAWN_VALUE[4] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[4] -
-			EvalValues::ADVANCED_PAWN_VALUE[4]);
+			EvalPawnValues::PASSED_PAWN_VALUE[4] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[4] -
+			EvalPawnValues::ADVANCED_PAWN_VALUE[4]);
 		test.test("4k3/2pppppp/8/P7/p7/8/P1PPPPPP/4K3 -", "PP rank 5, opponent on same file but behind",
-			EvalValues::PASSED_PAWN_VALUE[4] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[4] +
-			EvalValues::DOUBLE_PAWN_PENALTY - EvalValues::ADVANCED_PAWN_VALUE[4] - EvalValues::ISOLATED_PAWN_PENALTY);
+			EvalPawnValues::PASSED_PAWN_VALUE[4] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[4] +
+			EvalPawnValues::DOUBLE_PAWN_PENALTY - EvalPawnValues::ADVANCED_PAWN_VALUE[4] - EvalPawnValues::ISOLATED_PAWN_PENALTY);
 		test.test("4k3/2pppppp/P7/8/8/8/2PPPPPP/4K3", "PP rank 6",
-			EvalValues::PASSED_PAWN_VALUE[5] + EvalValues::ISOLATED_PAWN_PENALTY + EvalValues::ADVANCED_PAWN_VALUE[5]);
+			EvalPawnValues::PASSED_PAWN_VALUE[5] + EvalPawnValues::ISOLATED_PAWN_PENALTY + EvalPawnValues::ADVANCED_PAWN_VALUE[5]);
 		test.test("4k3/P1pppppp/8/8/8/8/2PPPPPP/4K3", "PP rank 7",
-			EvalValues::PASSED_PAWN_VALUE[6] + EvalValues::ADVANCED_PAWN_VALUE[6]);
+			EvalPawnValues::PASSED_PAWN_VALUE[6] + EvalPawnValues::ADVANCED_PAWN_VALUE[6]);
 
 		test.test("4k3/2pppppp/8/8/8/8/PPPPPPPP/4K3", "Protected PP rank 2",
-			EvalValues::PASSED_PAWN_VALUE[1] + EvalValues::ADVANCED_PAWN_VALUE[1]);
+			EvalPawnValues::PASSED_PAWN_VALUE[1] + EvalPawnValues::ADVANCED_PAWN_VALUE[1]);
 		test.test("4k3/2pppppp/8/8/8/P7/1PPPPPPP/4K3", "Protected PP rank 3",
-			EvalValues::PROTECTED_PASSED_PAWN_VALUE[2] + EvalValues::ADVANCED_PAWN_VALUE[2]);
+			EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[2] + EvalPawnValues::ADVANCED_PAWN_VALUE[2]);
 		test.test("4k3/2pppppp/8/8/P7/1P6/11PPPPPP/4K3", "Protected PP rank 4",
-			EvalValues::PROTECTED_PASSED_PAWN_VALUE[3] + EvalValues::ADVANCED_PAWN_VALUE[3]);
+			EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[3] + EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
 		test.test("4k3/2pppppp/8/P7/1P6/8/11PPPPPP/4K3", "Protected PP rank 5",
-			EvalValues::PROTECTED_PASSED_PAWN_VALUE[4] + EvalValues::ADVANCED_PAWN_VALUE[4] + EvalValues::ADVANCED_PAWN_VALUE[3]);
+			EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[4] + EvalPawnValues::ADVANCED_PAWN_VALUE[4] + EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
 		test.test("4k3/2pppppp/P7/1P6/8/8/11PPPPPP/4K3", "Protected PP rank 6",
-			EvalValues::PROTECTED_PASSED_PAWN_VALUE[5] + EvalValues::ADVANCED_PAWN_VALUE[5] + EvalValues::ADVANCED_PAWN_VALUE[4]);
+			EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[5] + EvalPawnValues::ADVANCED_PAWN_VALUE[5] + EvalPawnValues::ADVANCED_PAWN_VALUE[4]);
 		test.test("4k3/P1pppppp/1P6/8/8/8/11PPPPPP/4K3", "Protected PP rank 7",
-			EvalValues::PROTECTED_PASSED_PAWN_VALUE[6] + EvalValues::ADVANCED_PAWN_VALUE[6] + EvalValues::ADVANCED_PAWN_VALUE[5]);
+			EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[6] + EvalPawnValues::ADVANCED_PAWN_VALUE[6] + EvalPawnValues::ADVANCED_PAWN_VALUE[5]);
 
 		test.test("4k3/3ppppp/8/8/8/8/PPPPPPPP/4K3", "Connected PP rank 2",
-			2 * EvalValues::CONNECTED_PASSED_PAWN_VALUE[1] + EvalValues::ADVANCED_PAWN_VALUE[1]);
+			2 * EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[1] + EvalPawnValues::ADVANCED_PAWN_VALUE[1]);
 		test.test("4k3/3ppppp/8/8/8/P7/1PPPPPPP/4K3", "Connected PP rank 3",
-			EvalValues::CONNECTED_PASSED_PAWN_VALUE[1] + EvalValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalValues::ADVANCED_PAWN_VALUE[2]);
+			EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[1] + EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalPawnValues::ADVANCED_PAWN_VALUE[2]);
 		test.test("4k3/3ppppp/8/8/P7/1P6/11PPPPPP/4K3", "Connected PP rank 4",
-			EvalValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalValues::CONNECTED_PASSED_PAWN_VALUE[3] + EvalValues::ADVANCED_PAWN_VALUE[3]);
+			EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[3] + EvalPawnValues::ADVANCED_PAWN_VALUE[3]);
 		test.test("4k3/3ppppp/8/P7/8/1P6/11PPPPPP/4K3", "Connected PP rank 5",
-			EvalValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalValues::CONNECTED_PASSED_PAWN_VALUE[4] + EvalValues::ADVANCED_PAWN_VALUE[4] + EvalValues::ADVANCED_PAWN_VALUE[2]);
+			EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[4] + EvalPawnValues::ADVANCED_PAWN_VALUE[4] + EvalPawnValues::ADVANCED_PAWN_VALUE[2]);
 		test.test("4k3/3ppppp/P7/8/8/1P6/11PPPPPP/4K3", "Connected PP rank 6",
-			EvalValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalValues::CONNECTED_PASSED_PAWN_VALUE[5] + EvalValues::ADVANCED_PAWN_VALUE[5] + EvalValues::ADVANCED_PAWN_VALUE[2]);
+			EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[2] + EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[5] + EvalPawnValues::ADVANCED_PAWN_VALUE[5] + EvalPawnValues::ADVANCED_PAWN_VALUE[2]);
 		test.test("4k3/PPpppppp/8/8/8/8/11PPPPPP/4K3", "Connected PP rank 7",
-			2 * EvalValues::CONNECTED_PASSED_PAWN_VALUE[6] + 2 * EvalValues::ADVANCED_PAWN_VALUE[6]);
+			2 * EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[6] + 2 * EvalPawnValues::ADVANCED_PAWN_VALUE[6]);
 		test.measureRuntime();
 	}
 

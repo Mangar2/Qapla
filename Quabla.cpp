@@ -30,6 +30,7 @@
 
 #include "search/search.h"
 #include "tests/evalpawntest.h"
+#include "tests/evalmobilitytest.h"
 
 using namespace ChessInterface;
 
@@ -195,6 +196,10 @@ void checkThreadSpeed() {
 }
 */
 
+void runTests() {
+	ChessTest::runEvalMobilityTests();
+}
+
 int main()
 {
 	
@@ -220,5 +225,6 @@ int main()
 	// std::this_thread::sleep_for(std::chrono::seconds(20));
 	ChessSearch::ChessEnvironment environment;
 	environment.run();
+	// runTests();
 }
 

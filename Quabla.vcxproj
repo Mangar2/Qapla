@@ -277,6 +277,7 @@
     <ClInclude Include="search\tt.h" />
     <ClInclude Include="search\ttentry.h" />
     <ClInclude Include="search\whatIf.h" />
+    <ClInclude Include="tests\evalmobilitytest.h" />
     <ClInclude Include="tests\evalpawntest.h" />
   </ItemGroup>
   <ItemGroup>

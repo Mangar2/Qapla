@@ -176,11 +176,11 @@ namespace ChessInterface {
 		void scanEPField(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {
 			uint32_t epFile = -1;
 			uint32_t epRank = -1;
-			if (*fenIterator >= 'a' && *fenIterator <= 'h') {
+			if (fenIterator != fen.end() && *fenIterator >= 'a' && *fenIterator <= 'h') {
 				epFile = *fenIterator - 'a';
 				++fenIterator;
 			}
-			if (*fenIterator >= '1' && *fenIterator <= '8') {
+			if (fenIterator != fen.end() && *fenIterator >= '1' && *fenIterator <= '8') {
 				epRank = *fenIterator - '1';
 				++fenIterator;
 			}

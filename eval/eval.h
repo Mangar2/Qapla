@@ -73,7 +73,6 @@ namespace ChessEval {
 				evalResult = endGameResult;
 			}
 			else {
-				EvalMobility evalMobility(board);
 				evalResult += evalMobility.eval(board);
 			}
 
@@ -94,7 +93,6 @@ namespace ChessEval {
 
 			value_t valueSum = 0;
 			EvalPawn evalPawn;
-			EvalMobility evalMobility(board);
 			board.print();
 
 			valueSum += evalPawn.print(board);
@@ -148,6 +146,7 @@ namespace ChessEval {
 		};
 
 		ValueStatistic mobilityStatistic;
+		EvalMobility evalMobility;
 		// BitBase kpk;
 
 	};

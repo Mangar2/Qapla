@@ -33,7 +33,7 @@ using namespace ChessMoveGenerator;
 
 namespace ChessEval {
 
-	struct EvalValues {
+	struct EvalPawnValues {
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
 		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
@@ -144,7 +144,7 @@ namespace ChessEval {
 			bitBoard_t passedPawns = computePassedPawns<COLOR>();
 
 			value_t pawnValue = computePawnValueForSparcelyPolulatedBitboards<COLOR>(pawns & ~passedPawns, 
-				EvalValues::ADVANCED_PAWN_VALUE);
+				EvalPawnValues::ADVANCED_PAWN_VALUE);
 			pawnValue += computePassedPawnValue<COLOR>(board, passedPawns, NO_PIECES_BUT_PAWNS_ON_BOARD);
 			return pawnValue;
 		}
@@ -209,18 +209,18 @@ namespace ChessEval {
 				Square pawnPos = BitBoardMasks::lsb(pawns);
 				uint32_t rank = uint32_t(getRank(Square(pawnPos ^ changeSide)));
 				if (isConnectedPassedPawn(pawnPos, passedPawns)) {
-					result += EvalValues::CONNECTED_PASSED_PAWN_VALUE[rank];
+					result += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
 				}
 				else if (noPieces && isDistantPassedPawn(pawnPos, board.getPieceBB(PAWN + COLOR), 
 						board.getPieceBB(PAWN + OPPONENT[COLOR])))
 				{
-					result += EvalValues::DISTANT_PASSED_PAWN_VALUE[rank];
+					result += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
 				}
 				else if (isProtectedPassedPawn(pawnPos, board.pawnAttackMask[COLOR])) {
-					result += EvalValues::PROTECTED_PASSED_PAWN_VALUE[rank];
+					result += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
 				}
 				else {
-					result += EvalValues::PASSED_PAWN_VALUE[rank];
+					result += EvalPawnValues::PASSED_PAWN_VALUE[rank];
 				}
 			}
 			return result;
@@ -272,11 +272,11 @@ namespace ChessEval {
 		value_t computeIsolatedPawnValue() {
 			if (COLOR == WHITE) {
 				return isolatedPawnAmountLookup[(pawnMoveRay[COLOR] >> 6 * NORTH) & LOOKUP_TABLE_MASK]
-					* EvalValues::ISOLATED_PAWN_PENALTY;
+					* EvalPawnValues::ISOLATED_PAWN_PENALTY;
 			}
 			else {
 				return -isolatedPawnAmountLookup[(pawnMoveRay[COLOR] >> 1 * NORTH) & LOOKUP_TABLE_MASK]
-					* EvalValues::ISOLATED_PAWN_PENALTY;
+					* EvalPawnValues::ISOLATED_PAWN_PENALTY;
 			}
 		}
 
@@ -285,7 +285,7 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		inline value_t computeDoublePawnValue() {
-			value_t result = computeAmountOfDoublePawns(pawns[COLOR], pawnMoveRay[COLOR]) * EvalValues::DOUBLE_PAWN_PENALTY;
+			value_t result = computeAmountOfDoublePawns(pawns[COLOR], pawnMoveRay[COLOR]) * EvalPawnValues::DOUBLE_PAWN_PENALTY;
 			return COLOR == WHITE ? result : -result;
 		}
 
@@ -297,16 +297,16 @@ namespace ChessEval {
 			value_t pawnValue = 0;
 			bitBoard_t pawnsBB = pawns[COLOR];
 			if (COLOR == WHITE) {
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalValues::ADVANCED_PAWN_VALUE[3];
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalValues::ADVANCED_PAWN_VALUE[4];
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 5) * EvalValues::ADVANCED_PAWN_VALUE[5];
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 6) * EvalValues::ADVANCED_PAWN_VALUE[6];
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalPawnValues::ADVANCED_PAWN_VALUE[3];
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalPawnValues::ADVANCED_PAWN_VALUE[4];
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 5) * EvalPawnValues::ADVANCED_PAWN_VALUE[5];
+				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 6) * EvalPawnValues::ADVANCED_PAWN_VALUE[6];
 			}
 			else {
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalValues::ADVANCED_PAWN_VALUE[3];
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalValues::ADVANCED_PAWN_VALUE[4];
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 2) * EvalValues::ADVANCED_PAWN_VALUE[5];
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 1) * EvalValues::ADVANCED_PAWN_VALUE[6];
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalPawnValues::ADVANCED_PAWN_VALUE[3];
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalPawnValues::ADVANCED_PAWN_VALUE[4];
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 2) * EvalPawnValues::ADVANCED_PAWN_VALUE[5];
+				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 1) * EvalPawnValues::ADVANCED_PAWN_VALUE[6];
 			}
 			return pawnValue;
 		}
