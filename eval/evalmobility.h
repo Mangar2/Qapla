@@ -38,17 +38,16 @@ namespace ChessEval {
 
 	class EvalMobility {
 	public:
-		EvalMobility() {}
 
-		value_t print(MoveGenerator& board) {
-			queensBB = board.getPieceBB(WHITE_QUEEN) + board.getPieceBB(BLACK_QUEEN);
+		static value_t print(MoveGenerator& board) {
+			bitBoard_t queensBB = board.getPieceBB(WHITE_QUEEN) + board.getPieceBB(BLACK_QUEEN);
 			printf("Mobility:\n");
 			printf("White Knight        : %ld\n", calcKnightMobility<WHITE>(board));
 			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board));
-			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board));
-			printf("Black Bishop        : %ld\n", -calcBishopMobility<BLACK>(board));
-			printf("White Rook          : %ld\n", calcRookMobility<WHITE>(board));
-			printf("Black Rook          : %ld\n", -calcRookMobility<BLACK>(board));
+			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board, queensBB));
+			printf("Black Bishop        : %ld\n", -calcBishopMobility<BLACK>(board, queensBB));
+			printf("White Rook          : %ld\n", calcRookMobility<WHITE>(board, queensBB));
+			printf("Black Rook          : %ld\n", -calcRookMobility<BLACK>(board, queensBB));
 			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board));
 			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board));
 			printf("Mobility total      : %ld\n", eval(board));
@@ -59,10 +58,10 @@ namespace ChessEval {
 		/**
 		 * Evaluates the mobility of all pieces (not pawns) on the board
 		 */
-		value_t eval(MoveGenerator& board) {
-			queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
+		static value_t eval(MoveGenerator& board) {
+			bitBoard_t queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
 
-			value_t evalResult = eval<WHITE>(board) - eval<BLACK>(board);
+			value_t evalResult = eval<WHITE>(board, queensBB) - eval<BLACK>(board, queensBB);
 
 			return evalResult;
 		}
@@ -74,11 +73,11 @@ namespace ChessEval {
 		 * Evaluate mobility for all pieces of one color
 		 */
 		template <Piece COLOR>
-		value_t eval(MoveGenerator& board) const {
+		static value_t eval(MoveGenerator& board, bitBoard_t queensBB) {
 			value_t evalResult = 0;
 			evalResult += calcKnightMobility<COLOR>(board);
-			evalResult += calcBishopMobility<COLOR>(board);
-			evalResult += calcRookMobility<COLOR>(board);
+			evalResult += calcBishopMobility<COLOR>(board, queensBB);
+			evalResult += calcRookMobility<COLOR>(board, queensBB);
 			evalResult += calcQueenMobility<COLOR>(board);
 			return evalResult;
 		}
@@ -87,7 +86,7 @@ namespace ChessEval {
 		 * Calculates the mobility values of bishops
 		 */
 		template <Piece COLOR>
-		value_t calcBishopMobility(MoveGenerator& board) const
+		static value_t calcBishopMobility(MoveGenerator& board, bitBoard_t queensBB)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
@@ -118,7 +117,7 @@ namespace ChessEval {
 		 * Calculates the mobility values of rooks
 		 */
 		template <Piece COLOR>
-		value_t calcRookMobility(MoveGenerator& board) const
+		static value_t calcRookMobility(MoveGenerator& board, bitBoard_t queensBB)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t rooks = board.getPieceBB(ROOK + COLOR);
@@ -149,7 +148,7 @@ namespace ChessEval {
 		 * Calculates the mobility value for Queens
 		 */
 		template <Piece COLOR>
-		value_t calcQueenMobility(MoveGenerator& board) const
+		static value_t calcQueenMobility(MoveGenerator& board)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t queens = board.getPieceBB(QUEEN + COLOR);
@@ -180,12 +179,12 @@ namespace ChessEval {
 		 * Calculates the mobility value for Knights
 		 */
 		template <Piece COLOR>
-		value_t calcKnightMobility(MoveGenerator& board) const
+		static value_t calcKnightMobility(MoveGenerator& board)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t knights = board.getPieceBB(KNIGHT + COLOR);
 			bitBoard_t no_destination = ~board.getAllPiecesBB() & ~board.pawnAttackMask[OPPONENT];
-			
+
 			Square departureSquare;
 			value_t result = 0;
 			while (knights)
@@ -199,14 +198,7 @@ namespace ChessEval {
 			}
 			return result;
 		}
-
-
-		bitBoard_t queensBB;
-
 	};
-
-
-
 }
 
 #endif // __EVALMOBILITY_H

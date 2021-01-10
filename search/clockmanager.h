@@ -33,7 +33,7 @@ namespace ChessSearch {
 	public:
 		ClockManager() {}
 
-		uint64_t getTimeSpentInMilliseconds() {
+		uint64_t getTimeSpentInMilliseconds() const {
 			return getSystemTimeInMilliseconds() - startTime;
 		}
 
@@ -63,7 +63,7 @@ namespace ChessSearch {
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool mustAbortCalculation(uint32_t ply) {
+		bool mustAbortCalculation(uint32_t ply) const {
 			uint64_t timeSpent = getTimeSpentInMilliseconds();
 			bool abort = false;
 			if (searchStopped) {
@@ -85,7 +85,7 @@ namespace ChessSearch {
 		 * Checks if there is suitable to start the calculation of the next depth
 		 * @returns true, if calculation of next depth is ok
 		 */
-		bool mayCalculateNextDepth() {
+		bool mayCalculateNextDepth() const {
 			bool result;
 			if (searchStopped) {
 				result = false;
