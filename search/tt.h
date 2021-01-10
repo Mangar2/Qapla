@@ -36,7 +36,7 @@ namespace ChessSearch {
 	{
 	public:
 
-		TT() :entryAmount(0) { clear(); }
+		TT() { clear(); }
 
 		/**
 		 * Clears the transposition table
@@ -70,7 +70,7 @@ namespace ChessSearch {
 		 * Computes the hash index of a hash key 
 		 */
 		int32_t	computeEntryIndex(hash_t hashKey) {
-			return int32_t(hashKey % _tt.capacity()) / 2;
+			return int32_t(hashKey % _tt.capacity()) & ~1;
 		}
 
 		/**
@@ -289,7 +289,7 @@ namespace ChessSearch {
 		 * Gets the fill rate in percent only counting entries of current search
 		 */
 		uint32_t getHashFillRateInPercent() {
-			return uint32_t(entries * 100ULL / _tt.capacity());
+			return uint32_t(uint64_t(entries) * 100ULL / _tt.capacity());
 		}
 		static const uint32_t INVALID_INDEX = UINT32_MAX;
 
@@ -331,7 +331,6 @@ namespace ChessSearch {
 
 		int32_t ageIndicator;
 		int32_t entries;
-		int32_t entryAmount;
 
 	};
 

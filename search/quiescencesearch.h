@@ -117,7 +117,7 @@ namespace ChessSearch {
 			value_t valueOfNextPlySearch;
 			Move move;
 			MoveProvider moveProvider;
-			// computingInfo.nodesSearched++;
+			computingInfo.nodesSearched++;
 			WHATIF(WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);)
 
 			moveProvider.computeEvades(board, lastMove);

@@ -52,7 +52,11 @@ namespace ChessSearch {
 		inline hash_t getHash() { return _hash; }
 
 		bool isEmpty() { return _hash == 0; }
-		void clear() { _hash = 0;  }
+		void clear() { 
+			_hash = 0;  
+			_info = 0;
+			setEntryAgeIndicator(ENTRY_AGE_INDICATOR_MASK - 1);
+		}
 
 		/**
 		 * Sets the computed Depth, the entry age and the nullmove thread flag

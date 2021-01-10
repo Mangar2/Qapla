@@ -6,6 +6,9 @@ Quabla chess engine
 - Winboard: 
 	- Added "remove" command
 - Bugfixes:
+	- transposition table (TT) usage fixed, we have more hits now.
+	- Nps value corrected (slightly)
+- Refactoring
 
 ## 0.0.1 2021-01-09
 
