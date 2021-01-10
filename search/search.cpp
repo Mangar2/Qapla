@@ -48,7 +48,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 			}
 			else {
 				stack[ply + 1].previousMove = curMove;
-				searchResult = -QuiescenceSearch::search(board, eval, *_computingInfo,
+				searchResult = -QuiescenceSearch::search(board, *_computingInfo,
 					curMove, -searchInfo.beta, -searchInfo.alpha, ply + 1);
 			}
 
@@ -69,7 +69,7 @@ template <bool WHATIF>
 value_t Search::searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo, SearchStack& stack, Move curMove, ply_t ply) {
 	value_t searchResult;
 	if (searchInfo.remainingDepth <= 0) {
-		searchResult = -QuiescenceSearch::search(board, eval, *_computingInfo, curMove,
+		searchResult = -QuiescenceSearch::search(board, *_computingInfo, curMove,
 			-searchInfo.beta, -searchInfo.alpha, ply + 1);
 	}
 	else {

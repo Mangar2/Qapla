@@ -63,7 +63,7 @@ namespace ChessSearch {
 		 * Performs the quiescense search or evade search, if in check
 		 */
 		static value_t search(
-			MoveGenerator& board, Eval& eval, ComputingInfo& computingInfo, Move lastMove, 
+			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove, 
 			value_t alpha, value_t beta, ply_t ply) 
 		{
 			value_t result;
@@ -74,10 +74,10 @@ namespace ChessSearch {
 
 			if (board.isInCheck())
 			{
-				result = searchEvades(board, eval, computingInfo, lastMove, alpha, beta, ply);
+				result = searchEvades(board, computingInfo, lastMove, alpha, beta, ply);
 			}
 			else {
-				result = quiescenseSearch(board, eval, computingInfo, lastMove, alpha, beta, ply);
+				result = quiescenseSearch(board, computingInfo, lastMove, alpha, beta, ply);
 			}
 
 			board.undoMove(lastMove, boardState);
@@ -89,7 +89,7 @@ namespace ChessSearch {
 		 * Performs a full one-ply search for a check position (only evades are possible)
 		 */
 		static value_t searchEvades(
-			MoveGenerator& board, Eval& eval, ComputingInfo& computingInfo, Move lastMove, 
+			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove, 
 			value_t alpha, value_t beta, ply_t ply) 
 		{
 			value_t valueOfNextPlySearch;
@@ -103,7 +103,7 @@ namespace ChessSearch {
 
 				BoardState boardState = board.getBoardState();
 				board.doMove(move);
-				valueOfNextPlySearch = -quiescenseSearch(board, eval, computingInfo, move, -beta, -alpha, ply + 1);
+				valueOfNextPlySearch = -quiescenseSearch(board, computingInfo, move, -beta, -alpha, ply + 1);
 				board.undoMove(move, boardState);
 
 				if (valueOfNextPlySearch > bestValue) {
@@ -124,7 +124,7 @@ namespace ChessSearch {
 		 * Performs the quiescense search
 		 */
 		static value_t quiescenseSearch(
-			MoveGenerator& board, Eval& eval, ComputingInfo& computingInfo, Move lastMove, 
+			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove, 
 			value_t alpha, value_t beta, ply_t ply)
 		{
 
@@ -133,9 +133,9 @@ namespace ChessSearch {
 			computingInfo.nodesSearched++;
 			WHATIF(WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);)
 
-			value_t standPatValue = eval.evaluateBoardPosition(board, alpha);
+			value_t standPatValue = Eval::evaluateBoardPosition(board, alpha);
 #ifdef _TEST_SYMETRY
-			eval.assertSymetry(board, standPatValue);
+			Eval::assertSymetry(board, standPatValue);
 #endif
 			value_t bestValue;
 			value_t valueOfNextPlySearch;
@@ -161,7 +161,7 @@ namespace ChessSearch {
 
 					BoardState boardState = board.getBoardState();
 					board.doMove(move);
-					valueOfNextPlySearch = -quiescenseSearch(board, eval, computingInfo, move, -beta, -alpha, ply + 1);
+					valueOfNextPlySearch = -quiescenseSearch(board, computingInfo, move, -beta, -alpha, ply + 1);
 					board.undoMove(move, boardState);
 
 					if (valueOfNextPlySearch > bestValue) {
