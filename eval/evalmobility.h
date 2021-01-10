@@ -60,7 +60,7 @@ namespace ChessEval {
 		 * Evaluates the mobility of all pieces (not pawns) on the board
 		 */
 		value_t eval(MoveGenerator& board) {
-			queensBB = board.getPieceBB(WHITE_QUEEN) + board.getPieceBB(BLACK_QUEEN);
+			queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
 
 			value_t evalResult = eval<WHITE>(board) - eval<BLACK>(board);
 
@@ -95,7 +95,7 @@ namespace ChessEval {
 				return 0;
 			}
 
-			bitBoard_t passThrough = queensBB + board.getPieceBB(ROOK + OPPONENT);
+			bitBoard_t passThrough = queensBB | board.getPieceBB(ROOK + OPPONENT);
 			bitBoard_t occupied = board.getAllPiecesBB();
 			bitBoard_t removeMask = (~occupied | passThrough) & ~board.pawnAttackMask[OPPONENT];
 			occupied &= ~passThrough;
@@ -126,7 +126,7 @@ namespace ChessEval {
 				return 0;
 			}
 
-			bitBoard_t passThrough = queensBB + rooks;
+			bitBoard_t passThrough = queensBB | rooks;
 			bitBoard_t occupied = board.getAllPiecesBB();
 			bitBoard_t removeMask = (~occupied | passThrough) & ~board.pawnAttackMask[OPPONENT];
 			occupied &= ~passThrough;
@@ -157,7 +157,7 @@ namespace ChessEval {
 				return 0;
 			}
 
-			bitBoard_t passThrough = board.getPieceBB(ROOK + COLOR) + board.getPieceBB(BISHOP + COLOR);
+			bitBoard_t passThrough = board.getPieceBB(ROOK + COLOR) | board.getPieceBB(BISHOP + COLOR);
 			bitBoard_t occupied = board.getAllPiecesBB();
 			bitBoard_t removeMask = (~occupied | passThrough) & ~board.pawnAttackMask[OPPONENT];
 			occupied &= ~passThrough;
