@@ -1,6 +1,6 @@
 #include "computinginfo.h"
 #include "../eval/eval.h"
-#include "SearchStack.h"
+#include "searchstack.h"
 #include "tt.h"
 #include "whatif.h"
 #include "boardadapter.h"

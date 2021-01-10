@@ -59,24 +59,6 @@ namespace ChessSearch {
 			cutoff = Cutoff::NONE;
 		};
 
-		SearchVariables(const SearchVariables& searchInfo) {
-			operator=(searchInfo);
-		}
-
-		SearchVariables& operator=(const SearchVariables& searchInfo) {
-			alpha = searchInfo.alpha;
-			beta = searchInfo.beta;
-			remainingDepth = searchInfo.remainingDepth;
-			bestMove = searchInfo.bestMove;
-			bestValue = searchInfo.bestValue;
-			moveNo = searchInfo.moveNo;
-			ply = searchInfo.ply;
-			moveProvider = searchInfo.moveProvider;
-			searchState = searchInfo.searchState;
-			noNullmove = searchInfo.noNullmove;
-			return *this;
-		}
-
 		/**
 		 * Adds a move to the primary variant
 		 */
@@ -182,8 +164,8 @@ namespace ChessSearch {
 				TTEntry entry = ttPtr->getEntry(ttIndex);
 				Move move = entry.getMove();
 				moveProvider.setTTMove(move);
-				// keeps the best move for a tt entry, if the search does stay <= alpha
 				if (searchState != SearchType::PV) {
+					// keeps the best move for a tt entry, if the search does stay <= alpha
 					bestMove = move;
 					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
 						cutoff = true;
@@ -199,26 +181,26 @@ namespace ChessSearch {
 			return cutoff;
 		}
 
+		/**
+		 * Cutoff the current search
+		 */
 		inline void setCutoff(Cutoff cutoffType, value_t cutoffResult) {
-			// Do not "overwrite" older cutoff informations
-			if (cutoff == Cutoff::NONE && cutoffType != Cutoff::NONE) {
-				cutoff = cutoffType;
-				bestValue = cutoffResult;
-			}
+			cutoff = cutoffType;
+			bestValue = cutoffResult;
 		}
 
 		/**
 		 * Cutoff the current search
 		 */
 		inline void setCutoff(Cutoff cutoffType) {
-			if (cutoff == Cutoff::NONE && cutoffType != Cutoff::NONE) {
-				cutoff = cutoffType;
-			}
+			cutoff = cutoffType;
 		}
 
 
+		/**
+		 * Extend the current search
+		 */
 		void extendSearch(MoveGenerator& board) {
-			assert(cutoff == Cutoff::NONE);
 			searchDepthExtension = Extension::calculateExtension(board, previousMove, remainingDepth);
 			remainingDepth += searchDepthExtension;
 		}
@@ -227,12 +209,14 @@ namespace ChessSearch {
 		 * Generates all moves in the current position
 		 */
 		void generateMoves(MoveGenerator& board) {
-			assert(cutoff == Cutoff::NONE);
 			moveProvider.computeMoves(board, previousMove, remainingDepth);
 			bestValue = moveProvider.checkForGameEnd(board, ply);
 			sideToMoveIsInCheck = board.isInCheck();
 		}
 
+		/**
+		 * Internal interative deepening
+		 */
 		bool doIID() {
 			return false;
 			bool result = false;
@@ -260,46 +244,44 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Sets a state used in the search-move-loop
+		 * Sets the search to a null window search
 		 */
+		void setNullWindowSearch() {
+			beta = alpha + 1;
+			searchState = SearchType::NULL_WINDOW;
+			keepBestMoveUnchanged = true;
+		}
+
+		/**
+		 * Sets the search to PV (open window) search
+		 */
+		void setResearchNullWindow() {
+			// Needed to ensure that the research will be > bestValue and set the PV
+			bestValue = alpha;
+			beta = betaAtPlyStart;
+			searchState = SearchType::PV;
+			keepBestMoveUnchanged = false;
+		}
+
+		/**
+			 * Sets a state used in the search-move-loop
+			 */
 		Move setSearchState(MoveGenerator& board) {
 			Move move;
 			switch (searchState) {
 			case SearchType::PV:
 				if (!bestMove.isEmpty() && remainingDepth >= 2) {
-					beta = alpha + 1;
-					searchState = SearchType::NULL_WINDOW;
-					keepBestMoveUnchanged = true;
+					setNullWindowSearch();
 				}
 				break;
 			case SearchType::NULL_WINDOW:
 				if (currentValue >= beta) {
 					// Needed to ensure that the research will be > bestValue and set the PV
-					bestValue = alpha;
-					beta = betaAtPlyStart;
-					searchState = SearchType::PV;
+					setResearchNullWindow();
 					move = moveProvider.getCurrentMove();
-					keepBestMoveUnchanged = false;
 				}
 				break;
 			case SearchType::NORMAL:
-				lateMoveReduction = SearchParameter::getLateMoveReduction(false, ply, moveProvider.getTriedMovesAmount());
-				if (lateMoveReduction > 0) {
-					searchState = SearchType::LMR;
-					keepBestMoveUnchanged = true;
-					remainingDepth -= lateMoveReduction;
-				}
-
-				break;
-			case SearchType::LMR:
-				if (currentValue >= beta) {
-					// Research
-					searchState = SearchType::NORMAL;
-					remainingDepth = remainingDepthAtPlyStart;
-					move = moveProvider.getCurrentMove();
-					keepBestMoveUnchanged = false;
-					lateMoveReduction = 0;
-				}
 				break;
 			}
 			return move;
@@ -309,8 +291,14 @@ namespace ChessSearch {
 		 * Selects the next move to try
 		 */
 		Move selectNextMove(MoveGenerator& board) {
-			assert(cutoff == Cutoff::NONE);
-			Move move = setSearchState(board);
+			Move move;
+			if (searchState == SearchType::PV && !bestMove.isEmpty() && remainingDepth >= 2) {
+				setNullWindowSearch();
+			}
+			else if (searchState == SearchType::NULL_WINDOW && currentValue >= beta) {
+				setResearchNullWindow();
+				move = moveProvider.getCurrentMove();
+			}
 			if (bestValue < betaAtPlyStart && move.isEmpty()) {
 				moveNo++;
 				move = moveProvider.selectNextMove(board);
@@ -324,11 +312,7 @@ namespace ChessSearch {
 		 */
 		Move selectNextMoveThreadSafe(MoveGenerator& board) {
 			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
-			Move move;
-			if (cutoff == Cutoff::NONE) {
-				move = selectNextMove(board);
-			}
-			return move;
+			return selectNextMove(board);
 		}
 
 		/**

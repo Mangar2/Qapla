@@ -27,6 +27,7 @@
 // #include "HistoryTable.h"
 
 namespace ChessSearch {
+
 	class SearchStack {
 	public:
 
@@ -62,6 +63,9 @@ namespace ChessSearch {
 
 		const PV& getPV() const { return stack[0].pvMovesStore; }
 
+		/**
+		 * Sets the PV moves store
+		 */
 		void setPV(PV& pv) {
 			for (uint32_t ply = 0; ply < MAX_SEARCH_DEPTH; ply++) {
 				stack[ply].setPVMove(pv.getMove(ply));
@@ -71,6 +75,9 @@ namespace ChessSearch {
 			}
 		}
 
+		/**
+		 * Copy killer moves from one ply to another
+		 */
 		void copyKillers(SearchStack& foreignStack, ply_t fromPly) {
 			for (ply_t ply = fromPly; ply < MAX_SEARCH_DEPTH; ply++) {
 				stack[ply].moveProvider.setKillerMove(foreignStack[ply].moveProvider);
@@ -87,6 +94,9 @@ namespace ChessSearch {
 			copyKillers(foreignStack, ply + 1);
 		}
 
+		/**
+		 * Check, if there is a two fold repetition in the search tree.
+		 */
 		bool isDrawByRepetitionInSearchTree(const Board& board, ply_t ply) {
 			bool drawByRepetition = false;
 			ply_t checkPly = ply - 4;
@@ -104,7 +114,7 @@ namespace ChessSearch {
 	private:
 		TT* ttPtr;
 		static const uint8_t MAX_SEARCH_DEPTH = 128;
-		array< SearchVariables*, MAX_SEARCH_DEPTH> searchVariablePtr;
+		array<SearchVariables*, MAX_SEARCH_DEPTH> searchVariablePtr;
 		array<SearchVariables, MAX_SEARCH_DEPTH> stack;
 		uint32_t referenceCount;
 	};

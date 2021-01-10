@@ -25,6 +25,7 @@
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
 #include "searchdef.h"
+#include "searchstack.h"
 #include "computinginfo.h"
 #include "../interface/iwhatIf.h"
 
