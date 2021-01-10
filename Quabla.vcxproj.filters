@@ -75,6 +75,9 @@
     <ClCompile Include="search\search.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="search\quiescencesearch.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">

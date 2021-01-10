@@ -82,7 +82,6 @@ namespace ChessSearch {
 			if (clockSetting.getSearchDepthLimit() > 0) {
 				maxDepth = clockSetting.getSearchDepthLimit();
 			}
-			Eval eval;
 			for (curDepth = 0; curDepth < maxDepth; curDepth++) {
 				searchOneIteration(searchBoard, computingInfo, curDepth);
 				if (!clockManager.mayCalculateNextDepth()) {

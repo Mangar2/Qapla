@@ -181,6 +181,8 @@ namespace ChessSearch {
 			return bestValue;
 		}
 
+		static TT* _tt;
+
 	};
 
 }

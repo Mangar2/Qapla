@@ -17,15 +17,15 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
  * Implements chess board evaluation. Returns +100, if white is one pawn up
- * Used to evaluate in quiescense search 
+ * Used to evaluate in quiescense search
  */
 
 #ifndef __EVAL_H
 #define __EVAL_H
 
-// Idee 1: Evaluierung in der Ruhesuche ohne positionelle Details
-// Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
-// Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
+ // Idee 1: Evaluierung in der Ruhesuche ohne positionelle Details
+ // Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
+ // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
@@ -39,7 +39,7 @@ namespace ChessEval {
 
 	public:
 
-		void assertSymetry(MoveGenerator& board, value_t evalResult) {
+		static void assertSymetry(MoveGenerator& board, value_t evalResult) {
 			MoveGenerator symBoard;
 			board.setToSymetricBoard(symBoard);
 			value_t symEvalResult = evaluateBoardPosition(symBoard, -MAX_VALUE);
@@ -57,7 +57,7 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		 */
-		value_t evaluateBoardPosition(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
+		static value_t evaluateBoardPosition(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
 
 			value_t evalResult;
 			value_t endGameResult;
@@ -73,7 +73,7 @@ namespace ChessEval {
 				evalResult = endGameResult;
 			}
 			else {
-				evalResult += evalMobility.eval(board);
+				evalResult += EvalMobility::eval(board);
 			}
 
 			// Zero is dedicated to repetetive draw values.
@@ -87,7 +87,7 @@ namespace ChessEval {
 		/**
 		 * Prints the evaluation results
 		 */
-		void printEval(MoveGenerator& board) {
+		static void printEval(MoveGenerator& board) {
 			value_t evalValue = evaluateBoardPosition(board);
 			value_t endGameResult;
 
@@ -107,7 +107,7 @@ namespace ChessEval {
 				valueSum = endGameResult;
 			}
 			else {
-				valueSum += evalMobility.print(board);
+				valueSum += EvalMobility::print(board);
 			}
 			if (evalValue != valueSum) {
 				printf("Error, false value sum     : %ld\n", valueSum);
@@ -131,22 +131,6 @@ namespace ChessEval {
 			return currentValue;
 		}
 
-
-		/**
-		 * ??
-		 */
-		struct ValueStatistic {
-			ValueStatistic() : minValue(0), maxValue(0) {}
-			void newValue(value_t value) {
-				if (value < minValue) { minValue = value; }
-				if (value > maxValue) { maxValue = value; }
-			}
-			value_t minValue;
-			value_t maxValue;
-		};
-
-		ValueStatistic mobilityStatistic;
-		EvalMobility evalMobility;
 		// BitBase kpk;
 
 	};
