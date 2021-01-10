@@ -44,22 +44,6 @@ namespace ChessSearch {
 	public:
 
 		/**
-		 * Computes the maximal value a capture move can gain + safety margin
-		 * If this value is not enough to make it a valuable move, the move is skipped
-		 */
-		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move) {
-			value_t result = MAX_VALUE;
-			if (!move.isPromote()) {
-				Piece capturedPiece = move.getCapture();
-				if (board.doFutilityOnCapture(capturedPiece)) {
-					value_t maxGain = board.getAbsolutePieceValue(capturedPiece);
-					result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
-				}
-			}
-			return result;
-		}
-
-		/**
 		 * Performs the quiescense search or evade search, if in check
 		 */
 		static value_t search(
@@ -84,7 +68,45 @@ namespace ChessSearch {
 			return result;
 		}
 
+		static void setTT(TT* tt) { _tt = tt; }
+
 	private:
+
+		/**
+		 * Computes the maximal value a capture move can gain + safety margin
+		 * If this value is not enough to make it a valuable move, the move is skipped
+		 */
+		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move) {
+			value_t result = MAX_VALUE;
+			if (!move.isPromote()) {
+				Piece capturedPiece = move.getCapture();
+				if (board.doFutilityOnCapture(capturedPiece)) {
+					value_t maxGain = board.getAbsolutePieceValue(capturedPiece);
+					result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
+				}
+			}
+			return result;
+		}
+
+		/**
+		 * Gets an entry from the transposition table
+		 * @returns hash value or -MAX_VALUE, if no value found
+		 */
+		static value_t probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply) {
+			bool cutoff = false;
+			value_t bestValue = -MAX_VALUE;
+			uint32_t ttIndex = _tt->getTTEntryIndex(board.computeBoardHash());
+
+			if (ttIndex != TT::INVALID_INDEX) {
+				TTEntry entry = _tt->getEntry(ttIndex);
+				// static uint32_t amount = 0;
+				// amount++;
+				// if (amount % 10000 == 0) { cout << amount << _tt->getHashFillRateInPercent() << endl; }
+				entry.getValue(bestValue, alpha, beta, 0, ply);
+			}
+			return bestValue;
+		}
+
 		/**
 		 * Performs a full one-ply search for a check position (only evades are possible)
 		 */
@@ -95,6 +117,9 @@ namespace ChessSearch {
 			value_t valueOfNextPlySearch;
 			Move move;
 			MoveProvider moveProvider;
+			// computingInfo.nodesSearched++;
+			WHATIF(WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);)
+
 			moveProvider.computeEvades(board, lastMove);
 
 			value_t bestValue = moveProvider.checkForGameEnd(board, ply);
@@ -117,6 +142,7 @@ namespace ChessSearch {
 					}
 				}
 			}
+			WHATIF(WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);)
 			return bestValue;
 		}
 
@@ -132,11 +158,11 @@ namespace ChessSearch {
 			Move move;
 			computingInfo.nodesSearched++;
 			WHATIF(WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);)
+			// value_t hashValue = probeTT(board, alpha, beta, ply);
+			// if (hashValue > -MAX_VALUE) return hashValue;
 
 			value_t standPatValue = Eval::evaluateBoardPosition(board, alpha);
-#ifdef _TEST_SYMETRY
-			Eval::assertSymetry(board, standPatValue);
-#endif
+			// Eval::assertSymetry(board, standPatValue);
 			value_t bestValue;
 			value_t valueOfNextPlySearch;
 
