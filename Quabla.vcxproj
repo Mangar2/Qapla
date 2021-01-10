@@ -222,6 +222,7 @@
     <ClCompile Include="movegenerator\movegenerator.cpp" />
     <ClCompile Include="Quabla.cpp" />
     <ClCompile Include="search\perft.cpp" />
+    <ClCompile Include="search\search.cpp" />
     <ClCompile Include="search\whatif.cpp" />
   </ItemGroup>
   <ItemGroup>

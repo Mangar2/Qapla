@@ -72,6 +72,9 @@
     <ClCompile Include="interface\winboard.cpp">
       <Filter>Interface</Filter>
     </ClCompile>
+    <ClCompile Include="search\search.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">

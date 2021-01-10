@@ -32,7 +32,7 @@
 #include "ClockManager.h"
 #include "tt.h"
 #include "whatif.h"
-// #include "razoring.h"
+ // #include "razoring.h"
 
 using namespace std;
 using namespace ChessMoveGenerator;
@@ -44,40 +44,21 @@ namespace ChessSearch {
 	public:
 		Search() {}
 
-		template <bool WHATIF>
-		value_t searchRec(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager) {
-			computingInfoPtr = &computingInfo;
-			board.computeAttackMasksForBothColors();
-			return negaMax<WHATIF>(board, stack, clockManager, Move::EMPTY_MOVE, 0);
-		}
+		value_t searchRec(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager);
 
 	private:
 
-
-		void updateThinkingInfoPly0(SearchStack& stack) {
-			computingInfoPtr->currentMoveNoSearched++;
-			computingInfoPtr->positionValueInCentiPawn = stack[0].bestValue;
-			computingInfoPtr->updatePV(stack[0].pvMovesStore);
-		}
-
 		/**
-		 * Search the last plies - either negamax or quiescense
+		 * Update status information on ply 0
 		 */
-		template <bool WHATIF>
-		value_t searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo, SearchStack& stack, Move curMove, ply_t ply) {
-			value_t searchResult;
-			if (searchInfo.remainingDepth <= 0) {
-				searchResult = -QuiescenceSearch::search(board, eval, *computingInfoPtr, curMove, 
-					-searchInfo.beta, -searchInfo.alpha, ply + 1);
-			}
-			else {
-				searchResult = -negaMaxLastPlys<WHATIF>(board, stack, curMove, ply + 1);
-			}
-			return searchResult;
+		void updateThinkingInfoPly0(SearchStack& stack) {
+			_computingInfo->currentMoveNoSearched++;
+			_computingInfo->positionValueInCentiPawn = stack[0].bestValue;
+			_computingInfo->updatePV(stack[0].pvMovesStore);
 		}
 
 		/**
-		 * Check for cutoffs 
+		 * Check for cutoffs
 		 */
 		template <bool WHATIF>
 		bool hasCutoff(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
@@ -96,51 +77,10 @@ namespace ChessSearch {
 			else if (curPly.probeTT(board)) {
 				curPly.setCutoff(Cutoff::HASH);
 			}
-			if (WHATIF && curPly.cutoff != Cutoff::NONE) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, getCutoffString(curPly.cutoff)); }
+			if (WHATIF && curPly.cutoff != Cutoff::NONE) { WhatIf::whatIf.cutoff(board, *_computingInfo, stack, ply, getCutoffString(curPly.cutoff)); }
 			return curPly.cutoff != Cutoff::NONE;
 		}
 
-		/**
-		 * Negamax algorithm for the last plies of the search
-		 */
-		template <bool WHATIF>
-		value_t negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply)
-		{
-			SearchVariables& searchInfo = stack[ply];
-			value_t searchResult;
-			Move curMove;
-
-			computingInfoPtr->nodesSearched++;
-			searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
-			if (WHATIF) { WhatIf::whatIf.moveSelected(board, *computingInfoPtr, stack, previousPlyMove, ply); }
-
-			if (!hasCutoff<WHATIF>(board, stack, searchInfo, ply)) {
-
-				searchInfo.generateMoves(board);
-				searchInfo.extendSearch(board);
-
-				while (!(curMove = searchInfo.selectNextMove(board)).isEmpty()) {
-					//printf("%ld %lld %s %s\n", ply, computingInfo.nodesSearched, Move::getLAN(move).getCharBuffer(), searchInfo.inPV ? "in PV": "");
-					
-					if (searchInfo.remainingDepth > 0) {
-						searchResult = -negaMaxLastPlys<WHATIF>(board, stack, curMove, ply + 1);
-					}
-					else {
-						stack[ply + 1].previousMove = curMove;
-						searchResult = -QuiescenceSearch::search(board, eval, *computingInfoPtr, 
-							curMove, -searchInfo.beta, -searchInfo.alpha, ply + 1);
-					}
-
-					searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
-					if (WHATIF) { WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, curMove, ply); }
-
-				}
-			}
-
-			searchInfo.terminatePly(board);
-			return searchInfo.bestValue;
-
-		}
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
@@ -149,7 +89,7 @@ namespace ChessSearch {
 			bool result = true;
 			if (!SearchParameter::DO_NULLMOVE) {
 				result = false;
-			} 
+			}
 			else if (searchInfo.remainingDepth <= 1) {
 				result = false;
 			}
@@ -184,11 +124,11 @@ namespace ChessSearch {
 			return result;
 		}
 
-		/** 
+		/**
 		 * Do a nullmove search
 		 */
 		template <bool WHATIF>
-		void nullmove(MoveGenerator& board, SearchStack& stack, ClockManager& clockManager, uint32_t ply) 
+		void nullmove(MoveGenerator& board, SearchStack& stack, uint32_t ply)
 		{
 			SearchVariables& searchInfo = stack[ply];
 			searchInfo.setNullmove();
@@ -196,12 +136,12 @@ namespace ChessSearch {
 			value_t searchResult;
 
 			if (searchInfo.remainingDepth > 2) {
-				searchResult = -negaMax<WHATIF>(board, stack, clockManager, curMove, ply + 1);
+				searchResult = -negaMax<WHATIF>(board, stack, curMove, ply + 1);
 			}
 			else {
 				searchResult = searchLastPlys<WHATIF>(board, searchInfo, stack, curMove, ply);
 			}
-			if (WHATIF) { WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, curMove, ply); }
+			if (WHATIF) { WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply); }
 
 			if (searchResult >= searchInfo.beta) {
 				searchInfo.setCutoff(Cutoff::NULL_MOVE);
@@ -211,70 +151,28 @@ namespace ChessSearch {
 			}
 		}
 
+
+		/**
+		 * Search the last plies - either negamax or quiescense
+		 */
+		template <bool WHATIF>
+		value_t searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo, SearchStack& stack, Move curMove, ply_t ply);
+
+		/**
+		 * Negamax algorithm for the last plies of the search
+		 */
+		template <bool WHATIF>
+		value_t negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
+
 		/**
 		 * Do a full search using the negaMax algorithm
 		 */
 		template <bool WHATIF>
-		value_t negaMax(MoveGenerator& board, SearchStack& stack, 
-			ClockManager& clockManager, Move previousPlyMove, uint32_t ply) {
-
-			SearchVariables& searchInfo = stack[ply];
-			value_t searchResult;
-			bool cutoff = false;
-			Move curMove;
-
-			if (ply > 0) {
-				searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
-				computingInfoPtr->nodesSearched++;
-				cutoff = hasCutoff<WHATIF>(board, stack, searchInfo, ply);
-			}
-			if (WHATIF) { WhatIf::whatIf.moveSelected(board, *computingInfoPtr, stack, previousPlyMove, ply); }
-
-			// Nullmove
-			if (isNullmoveReasonable(board, searchInfo, ply)) {
-				nullmove<WHATIF>(board, stack, clockManager, ply);
-			}
-
-			if (!cutoff) {
-				searchInfo.generateMoves(board);
-				searchInfo.extendSearch(board);
-
-				if (ply == 0) {
-					computingInfoPtr->totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
-					computingInfoPtr->currentConcideredMove.setEmpty();
-				}
-
-				while (!(curMove = searchInfo.selectNextMove(board)).isEmpty()) {
-
-					if (ply == 0) { computingInfoPtr->currentConcideredMove = curMove; }
-
-					if (searchInfo.remainingDepth > 2) {
-						searchResult = -negaMax<WHATIF>(board, stack, clockManager, curMove, ply + 1);
-					}
-					else {
-						searchResult = searchLastPlys<WHATIF>(board, searchInfo, stack, curMove, ply);
-					}
-
-					if (stack[0].remainingDepth > 1 && clockManager.mustAbortCalculation(ply)) {
-						break;
-					}
-
-					searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
-					
-					if (WHATIF) { WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, curMove, ply); }
-					if (ply == 0) { updateThinkingInfoPly0(stack); }
-
-				}
-			}
-
-			searchInfo.terminatePly(board);
-			computingInfoPtr->printSearchInfoIfRequested();
-			return searchInfo.bestValue;
-
-		}
+		value_t negaMax(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
 
 		Eval eval;
-		ComputingInfo* computingInfoPtr;
+		ComputingInfo* _computingInfo;
+		ClockManager* _clockManager;
 	};
 }
 
