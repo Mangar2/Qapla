@@ -43,6 +43,13 @@ enum class Cutoff {
 	COUNT
 };
 
+/**
+ * Gets a short string representation of cutoff values for whatif
+ */
+static string getCutoffString(Cutoff cutoff) {
+	return array<string, int(Cutoff::COUNT)> { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL" } [int(cutoff)] ;
+}
+
 namespace ChessSearch {
 	struct SearchVariables {
 
@@ -108,7 +115,7 @@ namespace ChessSearch {
 			moveProvider.init();
 			moveNo = 0;
 			doMove(board, previousPlyMove);
-			cutoff = checkBasicCutoffs(board);
+			cutoff = Cutoff::NONE;
 			keepBestMoveUnchanged = false;
 			lateMoveReduction = 0;
 		}
@@ -165,61 +172,34 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Check basic cutoff rules
-		 */
-		Cutoff checkBasicCutoffs(MoveGenerator& board) {
-			Cutoff result = Cutoff::NONE;
-			if (alpha > MAX_VALUE - value_t(ply)) {
-				result = Cutoff::FASTER_MATE_FOUND;
-				bestValue = alpha;
-			}
-			else if (beta < -MAX_VALUE + value_t(ply)) {
-				result = Cutoff::FASTER_MATE_FOUND;
-				bestValue = beta;
-			}
-			else if (ply >= 3 && board.drawDueToMissingMaterial()) {
-				cutoff = Cutoff::NOT_ENOUGH_MATERIAL;
-				bestValue = 0;
-			}
-			return result;
-		}
-
-		/**
 		 * Gets an entry from the transposition table
 		 */
-		void getTTEntry(MoveGenerator& board) {
+		bool probeTT(MoveGenerator& board) {
+			bool cutoff = false;
+			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 
-			if (cutoff == Cutoff::NONE) {
-				uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
-
-				if (ttIndex != TT::INVALID_INDEX) {
-					TTEntry entry = ttPtr->getEntry(ttIndex);
-					Move move = entry.getMove();
-					moveProvider.setTTMove(move);
-					// keeps the best move for a tt entry, if the search does stay <= alpha
-					if (searchState != SearchType::PV) {
-						bestMove = move;
-						if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
-							cutoff = Cutoff::HASH;
-						}
-						if (bestValue >= beta) {
-							cutoff = Cutoff::HASH;
-						}
+			if (ttIndex != TT::INVALID_INDEX) {
+				TTEntry entry = ttPtr->getEntry(ttIndex);
+				Move move = entry.getMove();
+				moveProvider.setTTMove(move);
+				// keeps the best move for a tt entry, if the search does stay <= alpha
+				if (searchState != SearchType::PV) {
+					bestMove = move;
+					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
+						cutoff = true;
 					}
-					else {
-						if (entry.hasExactValue() && entry.getPositionValue(ply) == DRAW_VALUE) {
-							bestValue = DRAW_VALUE;
-							cutoff = Cutoff::HASH;
-						}
+				}
+				else {
+					if (entry.hasExactValue() && entry.getPositionValue(ply) == DRAW_VALUE) {
+						bestValue = DRAW_VALUE;
+						cutoff = true;
 					}
-					// Narrowing the window by the tt is problematic. The search will be made with a wrong window
-					betaAtPlyStart = beta;
-					alphaAtPlyStart = alpha;
 				}
 			}
+			return cutoff;
 		}
 
-		inline void cutoffSearch(Cutoff cutoffType, value_t cutoffResult) {
+		inline void setCutoff(Cutoff cutoffType, value_t cutoffResult) {
 			// Do not "overwrite" older cutoff informations
 			if (cutoff == Cutoff::NONE && cutoffType != Cutoff::NONE) {
 				cutoff = cutoffType;
@@ -230,7 +210,7 @@ namespace ChessSearch {
 		/**
 		 * Cutoff the current search
 		 */
-		inline void cutoffSearch(Cutoff cutoffType) {
+		inline void setCutoff(Cutoff cutoffType) {
 			if (cutoff == Cutoff::NONE && cutoffType != Cutoff::NONE) {
 				cutoff = cutoffType;
 			}

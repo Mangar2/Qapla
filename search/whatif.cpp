@@ -96,7 +96,7 @@ void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo
 	}
 }
 
-void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, const char* cutoffType) {
+void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, string cutoffType) {
 	if (searchDepth == -1 || ply < 0) {
 		return;
 	}
@@ -106,7 +106,7 @@ void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, cons
 		printf("[d:%ld]", stack[ply].remainingDepth);
 		printf("[v:%6ld]", stack[ply].bestValue);
 		printf("[hm:%5s]", stack[ply].getTTMove().getLAN().c_str());
-		printf("[c:%s]", cutoffType);
+		printf("[c:%s]", cutoffType.c_str());
 		printf("[n:%lld]", computingInfo.nodesSearched);
 		printf("\n");
 		count++;

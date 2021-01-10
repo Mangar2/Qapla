@@ -76,17 +76,28 @@ namespace ChessSearch {
 			return searchResult;
 		}
 
+		/**
+		 * Check for cutoffs 
+		 */
 		template <bool WHATIF>
-		void handleCutoffs(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
-			Cutoff cutoff = stack.isDrawByRepetitionInSearchTree(board, ply) ? Cutoff::DRAW_BY_REPETITION : Cutoff::NONE;
-			curPly.cutoffSearch(cutoff, 0);
-			if (WHATIF) { if (cutoff == Cutoff::DRAW_BY_REPETITION) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, "RPET"); } }
-			curPly.getTTEntry(board);
-			if (WHATIF) { if (curPly.cutoff == Cutoff::HASH) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, "HASH"); } }
-			if (curPly.cutoff != Cutoff::NONE) {
-				//cutoff = Razoring::razoring(board, eval, *computingInfoPtr, curPly) ? SearchVariables::CUTOFF_RAZORING : SearchVariables::CUTOFF_NONE;
-				//curPly.cutoffSearch(cutoff);
+		bool hasCutoff(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
+			if (curPly.alpha > MAX_VALUE - value_t(ply)) {
+				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, curPly.alpha);
 			}
+			else if (curPly.beta < -MAX_VALUE + value_t(ply)) {
+				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, curPly.beta);
+			}
+			else if (ply >= 3 && board.drawDueToMissingMaterial()) {
+				curPly.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
+			}
+			else if (stack.isDrawByRepetitionInSearchTree(board, ply)) {
+				curPly.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
+			}
+			else if (curPly.probeTT(board)) {
+				curPly.setCutoff(Cutoff::HASH);
+			}
+			if (WHATIF && curPly.cutoff != Cutoff::NONE) { WhatIf::whatIf.cutoff(board, *computingInfoPtr, stack, ply, getCutoffString(curPly.cutoff)); }
+			return curPly.cutoff != Cutoff::NONE;
 		}
 
 		/**
@@ -103,9 +114,7 @@ namespace ChessSearch {
 			searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
 			if (WHATIF) { WhatIf::whatIf.moveSelected(board, *computingInfoPtr, stack, previousPlyMove, ply); }
 
-			handleCutoffs<WHATIF>(board, stack, searchInfo, ply);
-
-			if (searchInfo.cutoff == Cutoff::NONE) {
+			if (!hasCutoff<WHATIF>(board, stack, searchInfo, ply)) {
 
 				searchInfo.generateMoves(board);
 				searchInfo.extendSearch(board);
@@ -195,7 +204,7 @@ namespace ChessSearch {
 			if (WHATIF) { WhatIf::whatIf.moveSearched(board, *computingInfoPtr, stack, curMove, ply); }
 
 			if (searchResult >= searchInfo.beta) {
-				searchInfo.cutoffSearch(Cutoff::NULL_MOVE);
+				searchInfo.setCutoff(Cutoff::NULL_MOVE);
 			}
 			else {
 				searchInfo.unsetNullmove();
@@ -211,12 +220,13 @@ namespace ChessSearch {
 
 			SearchVariables& searchInfo = stack[ply];
 			value_t searchResult;
+			bool cutoff = false;
 			Move curMove;
 
 			if (ply > 0) {
 				searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
 				computingInfoPtr->nodesSearched++;
-				handleCutoffs<WHATIF>(board, stack, searchInfo, ply);
+				cutoff = hasCutoff<WHATIF>(board, stack, searchInfo, ply);
 			}
 			if (WHATIF) { WhatIf::whatIf.moveSelected(board, *computingInfoPtr, stack, previousPlyMove, ply); }
 
@@ -225,7 +235,7 @@ namespace ChessSearch {
 				nullmove<WHATIF>(board, stack, clockManager, ply);
 			}
 
-			if (searchInfo.cutoff == Cutoff::NONE) {
+			if (!cutoff) {
 				searchInfo.generateMoves(board);
 				searchInfo.extendSearch(board);
 

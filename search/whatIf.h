@@ -58,7 +58,7 @@ namespace ChessSearch {
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply);
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, ply_t ply);
 
-		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, const char* cutoffType);
+		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, string cutoffType);
 
 		void setTT(TT* hashPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead);
 
