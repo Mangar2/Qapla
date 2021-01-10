@@ -90,7 +90,7 @@ namespace ChessSearch {
 		 * @param beta returned beta bound
 		 * @param remainingDepth remaining calculation depth
 		 * @param ply current calculation ply
-		 * @returns true, if the value of the hash entry is valid for the current position
+		 * @returns true, if the value of the hash causes a Hash cutoff
 		 */
 		bool getValue(
 			value_t& positionValue, value_t& alpha, value_t& beta, ply_t remainingDepth, ply_t ply)

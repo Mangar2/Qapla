@@ -25,7 +25,7 @@
 #include <mutex>
 #include <string>
 #include "../basics/types.h"
-// #include "whatif.h"
+ // #include "whatif.h"
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
 #include "killermove.h"
@@ -255,36 +255,12 @@ namespace ChessSearch {
 		/**
 		 * Sets the search to PV (open window) search
 		 */
-		void setResearchNullWindow() {
+		void setResearchWithPVWindow() {
 			// Needed to ensure that the research will be > bestValue and set the PV
 			bestValue = alpha;
 			beta = betaAtPlyStart;
 			searchState = SearchType::PV;
 			keepBestMoveUnchanged = false;
-		}
-
-		/**
-			 * Sets a state used in the search-move-loop
-			 */
-		Move setSearchState(MoveGenerator& board) {
-			Move move;
-			switch (searchState) {
-			case SearchType::PV:
-				if (!bestMove.isEmpty() && remainingDepth >= 2) {
-					setNullWindowSearch();
-				}
-				break;
-			case SearchType::NULL_WINDOW:
-				if (currentValue >= beta) {
-					// Needed to ensure that the research will be > bestValue and set the PV
-					setResearchNullWindow();
-					move = moveProvider.getCurrentMove();
-				}
-				break;
-			case SearchType::NORMAL:
-				break;
-			}
-			return move;
 		}
 
 		/**
@@ -296,8 +272,9 @@ namespace ChessSearch {
 				setNullWindowSearch();
 			}
 			else if (searchState == SearchType::NULL_WINDOW && currentValue >= beta) {
-				setResearchNullWindow();
+				setResearchWithPVWindow();
 				move = moveProvider.getCurrentMove();
+				assert(!move.isEmpty());
 			}
 			if (bestValue < betaAtPlyStart && move.isEmpty()) {
 				moveNo++;
@@ -404,7 +381,7 @@ namespace ChessSearch {
 		};
 
 		const array<string, int(SearchType::AMOUNT)> searchStateNames
-			{ "Start", "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID" };
+		{ "Start", "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID" };
 
 		value_t alpha;
 		value_t alphaAtPlyStart;
