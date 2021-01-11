@@ -43,6 +43,29 @@ namespace ChessSearch {
 #define DOWHATIF false
 #endif
 
+#if (DOWHATIF == false) 
+	class WhatIf : public IWhatIf {
+	public:
+		WhatIf() {};
+		void init(const Board& board, const ComputingInfo& computingInfo, value_t alpha, value_t beta) {};
+		void printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {};
+		void startSearch(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply) {};
+		void moveSelected(const Board& board, const ComputingInfo& computingInfo, Move currentMove, ply_t ply, bool inQsearch) {};
+		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {};
+		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {};
+		void moveSearched(const Board& board, const ComputingInfo& computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, ply_t ply) {};
+		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, Cutoff cutoff) {};
+		void setTT(TT* hashPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead) {};
+		virtual void clear() {};
+		virtual void setSearchDepht(int32_t depth) {}
+		virtual void setMove(ply_t ply, char movingPiece, uint32_t departureFile, uint32_t departureRank,
+			uint32_t destinationFile, uint32_t destinationRank, char promotePiece) {};
+		virtual void setNullmove(ply_t ply) {};
+		void setBoard(MoveGenerator& newBoard) {};
+		static WhatIf whatIf;
+	};
+
+#else 
 	class WhatIf : public IWhatIf {
 	public:
 		WhatIf();
@@ -59,7 +82,7 @@ namespace ChessSearch {
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply);
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, ply_t ply);
 
-		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, string cutoffType);
+		void cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, Cutoff cutoff);
 
 		void setTT(TT* hashPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead);
 
@@ -92,6 +115,8 @@ namespace ChessSearch {
 		bool qsearch;
 
 	};
+
+#endif
 
 }
 

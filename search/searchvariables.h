@@ -43,13 +43,6 @@ enum class Cutoff {
 	COUNT
 };
 
-/**
- * Gets a short string representation of cutoff values for whatif
- */
-static string getCutoffString(Cutoff cutoff) {
-	return array<string, int(Cutoff::COUNT)> { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL" } [int(cutoff)] ;
-}
-
 namespace ChessSearch {
 	struct SearchVariables {
 
@@ -129,12 +122,8 @@ namespace ChessSearch {
 		void doMove(MoveGenerator& board, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			boardState = board.getBoardState();
-			if (previousPlyMove == Move::NULL_MOVE) {
-				board.doNullmove();
-			}
-			else {
-				board.doMove(previousMove);
-			}
+			board.doMove(previousMove);
+			sideToMoveIsInCheck = board.isInCheck();
 			positionHashSignature = board.computeBoardHash();
 		}
 
@@ -145,12 +134,7 @@ namespace ChessSearch {
 			if (previousMove.isEmpty()) {
 				return;
 			}
-			if (previousMove == Move::NULL_MOVE) {
-				board.undoNullmove(boardState);
-			}
-			else {
-				board.undoMove(previousMove, boardState);
-			}
+			board.undoMove(previousMove, boardState);
 		}
 
 		/**
@@ -208,10 +192,9 @@ namespace ChessSearch {
 		/**
 		 * Generates all moves in the current position
 		 */
-		void generateMoves(MoveGenerator& board) {
+		void computeMoves(MoveGenerator& board) {
 			moveProvider.computeMoves(board, previousMove, remainingDepth);
 			bestValue = moveProvider.checkForGameEnd(board, ply);
-			sideToMoveIsInCheck = board.isInCheck();
 		}
 
 		/**
@@ -241,6 +224,8 @@ namespace ChessSearch {
 			searchState = SearchType::NORMAL;
 			remainingDepth = remainingDepthAtPlyStart;
 			alpha = alphaAtPlyStart;
+			// Nullmoves are never done in check
+			sideToMoveIsInCheck = false;
 		}
 
 		/**
@@ -372,7 +357,7 @@ namespace ChessSearch {
 		}
 
 		inline bool isTTValueBelowBeta(const Board& board) {
-			return ttPtr->isTTValueBelowBeta(board.computeBoardHash(), beta);
+			return ttPtr->isTTValueBelowBeta(positionHashSignature, beta);
 		}
 
 		enum class SearchType {

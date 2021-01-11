@@ -25,7 +25,6 @@ using namespace ChessSearch;
 /**
  * Negamax algorithm for the last plies of the search
  */
-template <bool WHATIF>
 value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply)
 {
 	SearchVariables& searchInfo = stack[ply];
@@ -34,17 +33,17 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 
 	_computingInfo->nodesSearched++;
 	searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
-	if (WHATIF) { WhatIf::whatIf.moveSelected(board, *_computingInfo, stack, previousPlyMove, ply); }
+	WhatIf::whatIf.moveSelected(board, *_computingInfo, stack, previousPlyMove, ply);
 
-	if (!hasCutoff<WHATIF>(board, stack, searchInfo, ply)) {
+	if (!hasCutoff(board, stack, searchInfo, ply)) {
 
-		searchInfo.generateMoves(board);
+		searchInfo.computeMoves(board);
 		searchInfo.extendSearch(board);
 
 		while (!(curMove = searchInfo.selectNextMove(board)).isEmpty()) {
 
 			if (searchInfo.remainingDepth > 0) {
-				searchResult = -negaMaxLastPlys<WHATIF>(board, stack, curMove, ply + 1);
+				searchResult = -negaMaxLastPlys(board, stack, curMove, ply + 1);
 			}
 			else {
 				stack[ply + 1].previousMove = curMove;
@@ -53,7 +52,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 			}
 
 			searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
-			if (WHATIF) { WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply); }
+			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
 
 		}
 	}
@@ -65,7 +64,6 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 /**
  * Search the last plies - either negamax or quiescense
  */
-template <bool WHATIF>
 value_t Search::searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo, SearchStack& stack, Move curMove, ply_t ply) {
 	value_t searchResult;
 	if (searchInfo.remainingDepth <= 0) {
@@ -73,13 +71,12 @@ value_t Search::searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo
 			-searchInfo.beta, -searchInfo.alpha, ply + 1);
 	}
 	else {
-		searchResult = -negaMaxLastPlys<WHATIF>(board, stack, curMove, ply + 1);
+		searchResult = -negaMaxLastPlys(board, stack, curMove, ply + 1);
 	}
 	return searchResult;
 }
 
 
-template <bool WHATIF>
 value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply) {
 
 	SearchVariables& searchInfo = stack[ply];
@@ -90,17 +87,12 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 	if (ply > 0) {
 		searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
 		_computingInfo->nodesSearched++;
-		cutoff = hasCutoff<WHATIF>(board, stack, searchInfo, ply);
+		cutoff = hasCutoff(board, stack, searchInfo, ply);
 	}
-	if (WHATIF) { WhatIf::whatIf.moveSelected(board, *_computingInfo, stack, previousPlyMove, ply); }
-
-	// Nullmove
-	if (isNullmoveReasonable(board, searchInfo, ply)) {
-		nullmove<WHATIF>(board, stack, ply);
-	}
+	WhatIf::whatIf.moveSelected(board, *_computingInfo, stack, previousPlyMove, ply); 
 
 	if (!cutoff) {
-		searchInfo.generateMoves(board);
+		searchInfo.computeMoves(board);
 		searchInfo.extendSearch(board);
 
 		if (ply == 0) {
@@ -113,10 +105,10 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 			if (ply == 0) { _computingInfo->currentConcideredMove = curMove; }
 
 			if (searchInfo.remainingDepth > 2) {
-				searchResult = -negaMax<WHATIF>(board, stack, curMove, ply + 1);
+				searchResult = -negaMax(board, stack, curMove, ply + 1);
 			}
 			else {
-				searchResult = searchLastPlys<WHATIF>(board, searchInfo, stack, curMove, ply);
+				searchResult = searchLastPlys(board, searchInfo, stack, curMove, ply);
 			}
 
 			if (stack[0].remainingDepth > 1 && _clockManager->mustAbortCalculation(ply)) {
@@ -125,7 +117,7 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 
 			searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
 
-			if (WHATIF) { WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply); }
+			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
 			if (ply == 0) { updateThinkingInfoPly0(stack); }
 
 		}
@@ -141,7 +133,7 @@ value_t Search::searchRec(MoveGenerator& board, SearchStack& stack, ComputingInf
 	_computingInfo = &computingInfo;
 	_clockManager = &clockManager;
 	board.computeAttackMasksForBothColors();
-	return negaMax<DOWHATIF>(board, stack, Move::EMPTY_MOVE, 0);
+	return negaMax(board, stack, Move::EMPTY_MOVE, 0);
 }
 
 

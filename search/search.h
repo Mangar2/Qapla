@@ -60,7 +60,6 @@ namespace ChessSearch {
 		/**
 		 * Check for cutoffs
 		 */
-		template <bool WHATIF>
 		bool hasCutoff(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
 			if (curPly.alpha > MAX_VALUE - value_t(ply)) {
 				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, curPly.alpha);
@@ -77,7 +76,10 @@ namespace ChessSearch {
 			else if (curPly.probeTT(board)) {
 				curPly.setCutoff(Cutoff::HASH);
 			}
-			if (WHATIF && curPly.cutoff != Cutoff::NONE) { WhatIf::whatIf.cutoff(board, *_computingInfo, stack, ply, getCutoffString(curPly.cutoff)); }
+			else if (isNullmoveCutoff(board, stack, ply)) {
+				curPly.setCutoff(Cutoff::NULL_MOVE);
+			}
+			WhatIf::whatIf.cutoff(board, *_computingInfo, stack, ply, curPly.cutoff);
 			return curPly.cutoff != Cutoff::NONE;
 		}
 
@@ -90,7 +92,7 @@ namespace ChessSearch {
 			if (!SearchParameter::DO_NULLMOVE) {
 				result = false;
 			}
-			else if (searchInfo.remainingDepth <= 1) {
+			else if (searchInfo.remainingDepth <= 2) {
 				result = false;
 			}
 			else if (searchInfo.noNullmove) {
@@ -125,49 +127,48 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Do a nullmove search
+		 * Check for a nullmove cutoff
 		 */
-		template <bool WHATIF>
-		void nullmove(MoveGenerator& board, SearchStack& stack, uint32_t ply)
+		bool isNullmoveCutoff(MoveGenerator& board, SearchStack& stack, uint32_t ply)
 		{
 			SearchVariables& searchInfo = stack[ply];
+			if (!isNullmoveReasonable(board, searchInfo, ply)) {
+				return false;
+			}
+			assert(!board.isInCheck());
 			searchInfo.setNullmove();
 			Move curMove(Move::NULL_MOVE);
-			value_t searchResult;
 
 			if (searchInfo.remainingDepth > 2) {
-				searchResult = -negaMax<WHATIF>(board, stack, curMove, ply + 1);
+				searchInfo.bestValue = -negaMax(board, stack, curMove, ply + 1);
 			}
 			else {
-				searchResult = searchLastPlys<WHATIF>(board, searchInfo, stack, curMove, ply);
+				searchInfo.bestValue = searchLastPlys(board, searchInfo, stack, curMove, ply + 1);
 			}
-			if (WHATIF) { WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply); }
-
-			if (searchResult >= searchInfo.beta) {
-				searchInfo.setCutoff(Cutoff::NULL_MOVE);
+			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
+			searchInfo.unsetNullmove();
+			const bool isCutoff = searchInfo.bestValue >= searchInfo.beta;
+			if (!isCutoff) {
+				board.computeAttackMasksForBothColors();
 			}
-			else {
-				searchInfo.unsetNullmove();
-			}
+			// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
+			return isCutoff;
 		}
 
 
 		/**
 		 * Search the last plies - either negamax or quiescense
 		 */
-		template <bool WHATIF>
 		value_t searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo, SearchStack& stack, Move curMove, ply_t ply);
 
 		/**
 		 * Negamax algorithm for the last plies of the search
 		 */
-		template <bool WHATIF>
 		value_t negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
 
 		/**
 		 * Do a full search using the negaMax algorithm
 		 */
-		template <bool WHATIF>
 		value_t negaMax(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
 
 		Eval eval;

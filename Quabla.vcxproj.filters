@@ -200,9 +200,6 @@
     <ClInclude Include="interface\iwhatIf.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="search\iterativedeepening.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="interface\isendsearchinfo.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -241,6 +238,9 @@
     </ClInclude>
     <ClInclude Include="tests\evalmobilitytest.h">
       <Filter>Tests</Filter>
+    </ClInclude>
+    <ClInclude Include="search\iterativedeepening.h">
+      <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

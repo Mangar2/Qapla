@@ -8,6 +8,7 @@ Quabla chess engine
 - Bugfixes:
 	- transposition table (TT) usage fixed, we have more hits now.
 	- Nps value corrected (slightly)
+	- Setboard with illegal fen no longer leads to a crash
 - Refactoring
 
 ## 0.0.1 2021-01-09

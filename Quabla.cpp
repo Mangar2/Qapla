@@ -47,9 +47,9 @@ namespace ChessSearch {
 			setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		}
 
-		void setFen(const char* fen) {
+		bool setFen(const char* fen) {
 			FenScanner scanner;
-			scanner.setBoard(fen, &adapter);
+			return scanner.setBoard(fen, &adapter);
 		}
 
 		bool setMove(const char* move) {

@@ -9,6 +9,8 @@ using namespace ChessSearch;
 
 WhatIf WhatIf::whatIf;
 
+#if (DOWHATIF == true) 
+
 WhatIf::WhatIf() : maxPly(0), searchDepth(0), count(0) {
 	clear();
 }
@@ -96,7 +98,15 @@ void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo
 	}
 }
 
-void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, string cutoffType) {
+/**
+ * Gets a short string representation of cutoff values for whatif
+ */
+string getCutoffString(Cutoff cutoff) {
+	return array<string, int(Cutoff::COUNT)> { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL" } [int(cutoff)] ;
+}
+
+void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, Cutoff cutoff) {
+	if (cutoff == Cutoff::NONE) { return; }
 	if (searchDepth == -1 || ply < 0) {
 		return;
 	}
@@ -106,7 +116,7 @@ void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, cons
 		printf("[d:%ld]", stack[ply].remainingDepth);
 		printf("[v:%6ld]", stack[ply].bestValue);
 		printf("[hm:%5s]", stack[ply].getTTMove().getLAN().c_str());
-		printf("[c:%s]", cutoffType.c_str());
+		printf("[c:%s]", getCutoffString(cutoff).c_str());
 		printf("[n:%lld]", computingInfo.nodesSearched);
 		printf("\n");
 		count++;
@@ -197,3 +207,4 @@ void WhatIf::printMoves(const SearchStack& stack, Move currentMove, ply_t ply) {
 	}
 }
 
+#endif

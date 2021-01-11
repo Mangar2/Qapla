@@ -72,8 +72,26 @@ namespace ChessMoveGenerator {
 		 * Sets a move
 		 */
 		void doMove(Move move) {
-			Board::doMove(move);
-			computeAttackMasksForBothColors();
+			if (move.isNullMove()) {
+				Board::doNullmove();
+				// Attacks are identical after a nullmove
+			}
+			else {
+				Board::doMove(move);
+				computeAttackMasksForBothColors();
+			}
+		}
+
+		/**
+		 * Unset a move
+		 */
+		void undoMove(Move move, BoardState boardState) {
+			if (move.isNullMove()) {
+				Board::undoNullmove(boardState);
+			}
+			else {
+				Board::undoMove(move, boardState);
+			}
 		}
 
 		/**

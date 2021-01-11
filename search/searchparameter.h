@@ -35,14 +35,14 @@ namespace ChessSearch {
 		 * Calculates the reduction by nullmove
 		 */
 		static uint32_t getNullmoveReduction(ply_t ply, int32_t remainingSearchDepth) {
-			return 2;
+			return remainingSearchDepth > 3 ? 3 : 2;
 		}
 
 		/**
 		 * Calculates the depth for nullmove verification searches
 		 */
 		static uint32_t getNullmoveVerificationDepthReduction(ply_t ply, int32_t remainingSearchDepth) {
-			return 2;
+			return 5;
 		}
 
 		/**
@@ -67,7 +67,7 @@ namespace ChessSearch {
 
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 5;
 
-		static const bool DO_NULLMOVE = false;
+		static const bool DO_NULLMOVE = true;
 
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50;

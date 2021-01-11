@@ -52,7 +52,6 @@ namespace ChessSearch {
 		{
 			value_t result;
 			BoardState boardState = board.getBoardState();
-			assert(lastMove != Move::NULL_MOVE);
 
 			board.doMove(lastMove);
 
@@ -99,10 +98,15 @@ namespace ChessSearch {
 
 			if (ttIndex != TT::INVALID_INDEX) {
 				TTEntry entry = _tt->getEntry(ttIndex);
-				// static uint32_t amount = 0;
-				// amount++;
-				// if (amount % 10000 == 0) { cout << amount << _tt->getHashFillRateInPercent() << endl; }
+				static uint32_t amount = 0;
+				amount++;
+				if (amount % 100000 == 0) { cout << "Hits: " << amount << " fill: " << _tt->getHashFillRateInPercent() << endl; }
 				entry.getValue(bestValue, alpha, beta, 0, ply);
+			}
+			else {
+				static uint32_t amount = 0;
+				amount++;
+				if (amount % 1000000 == 0) { cout << "Non-Hit: " << amount << endl; }
 			}
 			return bestValue;
 		}
@@ -118,7 +122,7 @@ namespace ChessSearch {
 			Move move;
 			MoveProvider moveProvider;
 			computingInfo.nodesSearched++;
-			WHATIF(WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);)
+			WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);
 
 			moveProvider.computeEvades(board, lastMove);
 
@@ -142,7 +146,7 @@ namespace ChessSearch {
 					}
 				}
 			}
-			WHATIF(WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);)
+			WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);
 			return bestValue;
 		}
 
@@ -157,9 +161,7 @@ namespace ChessSearch {
 			MoveProvider moveProvider;
 			Move move;
 			computingInfo.nodesSearched++;
-			WHATIF(WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);)
-			// value_t hashValue = probeTT(board, alpha, beta, ply);
-			// if (hashValue > -MAX_VALUE) return hashValue;
+			WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);
 
 			value_t standPatValue = Eval::evaluateBoardPosition(board, alpha);
 			// Eval::assertSymetry(board, standPatValue);
@@ -203,7 +205,7 @@ namespace ChessSearch {
 				}
 			}
 
-			WHATIF(WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);)
+			WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);
 			return bestValue;
 		}
 
