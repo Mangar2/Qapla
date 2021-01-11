@@ -83,7 +83,7 @@ void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo
 	if (searchDepth == -1 || ply < 0) {
 		return;
 	}
-	if (hashFoundPly != -1 && ply >= hashFoundPly && ply <= hashFoundPly) {
+	if (ply == hashFoundPly) {
 		printInfo(board, computingInfo, stack, currentMove, ply);
 		count++;
 	}

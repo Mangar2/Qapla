@@ -61,6 +61,7 @@ namespace ChessSearch {
 		 * Check for cutoffs
 		 */
 		bool hasCutoff(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
+			if (ply < 1) return false;
 			if (curPly.alpha > MAX_VALUE - value_t(ply)) {
 				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, curPly.alpha);
 			}
@@ -143,7 +144,7 @@ namespace ChessSearch {
 				searchInfo.bestValue = -negaMax(board, stack, curMove, ply + 1);
 			}
 			else {
-				searchInfo.bestValue = searchLastPlys(board, searchInfo, stack, curMove, ply + 1);
+				searchInfo.bestValue = searchLastPlys(board, searchInfo, stack, curMove, ply);
 			}
 			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
 			searchInfo.unsetNullmove();
