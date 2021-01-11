@@ -36,7 +36,10 @@ namespace ChessSearch {
 	class IterativeDeepening {
 
 	public:
-		IterativeDeepening() { tt.setSizeInKilobytes(32736); }
+		IterativeDeepening() { 
+			tt.setSizeInKilobytes(32736); 
+			QuiescenceSearch::setTT(&tt);
+		}
 
 		static const uint64_t ESTIMATED_TIME_FACTOR_FOR_NEXT_DEPTH = 4;
 

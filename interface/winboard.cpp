@@ -105,7 +105,7 @@ void Winboard::handleProtover(IInputOutput* ioHandler) {
 		protoVer = uint8_t(ioHandler->getCurrentTokenAsUnsignedInt());
 		if (protoVer > 1) {
 			ioHandler->println("feature done=0");
-			ioHandler->println("feature colors=0 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
+			ioHandler->println("feature colors=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
 			ioHandler->println("feature myname=\"Qapla 0.0.1\"");
 			ioHandler->println("feature done=1");
 		}
@@ -201,13 +201,19 @@ void Winboard::handlePing(IInputOutput* ioHandler) {
  */
 bool Winboard::handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	bool result = true;
+	string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	if (ioHandler->isTokenEqualTo("new")) {
 		FenScanner scanner;
-		scanner.setBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", chessBoard);
+		scanner.setBoard(startPosition, chessBoard);
 	}
 	else if (ioHandler->isTokenEqualTo("setboard")) {
 		FenScanner scanner;
-		scanner.setBoard(ioHandler->getToEOLBlocking(), chessBoard);
+		string fen = ioHandler->getToEOLBlocking();
+		bool success = scanner.setBoard(fen, chessBoard);
+		if (!success) {
+			printf("Error (illegal fen): %s \n", fen.c_str());
+			scanner.setBoard(startPosition, chessBoard);
+		}
 	}
 	else {
 		result = false;

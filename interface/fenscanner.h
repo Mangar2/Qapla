@@ -37,21 +37,22 @@ namespace ChessInterface {
 			error = true;
 		}
 
-		void setBoard(string fen, IChessBoard* chessBoard) {
+		bool setBoard(string fen, IChessBoard* chessBoard) {
 			chessBoard->clearBoard();
 			string::iterator fenIterator = fen.begin();
 			error = false;
 			scanPieceSector(fen, fenIterator, chessBoard);
 			skipBlank(fen, fenIterator);
 			scanSideToMove(fen, fenIterator, chessBoard);
-			skipBlank(fen, fenIterator);
+			if (!skipBlank(fen, fenIterator)) return !error;
 			scanCastlingRights(fen, fenIterator, chessBoard);
-			skipBlank(fen, fenIterator);
+			if (!skipBlank(fen, fenIterator)) return !error;
 			scanEPField(fen, fenIterator, chessBoard);
-			skipBlank(fen, fenIterator);
+			if (!skipBlank(fen, fenIterator)) return !error;
 			scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, chessBoard);
-			skipBlank(fen, fenIterator);
+			if (!skipBlank(fen, fenIterator)) return !error;
 			scanPlayedMovesInGame(fen, fenIterator, chessBoard);
+			return !error;
 		}
 
 	private:
@@ -99,15 +100,15 @@ namespace ChessInterface {
 		/**
 		 * Skips a mandatory blank
 		 */
-		void skipBlank(const string& fen, string::iterator& fenIterator) {
+		bool skipBlank(const string& fen, string::iterator& fenIterator) {
+			bool hasBlank = false;
 			if (fenIterator != fen.end()) {
-				if (*fenIterator != ' ') {
-					error = true;
-				}
-				if (!error) {
+				if (*fenIterator == ' ') {
 					++fenIterator;
+					hasBlank = true;
 				}
 			}
+			return hasBlank;
 		}
 
 		/**
