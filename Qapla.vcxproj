@@ -252,6 +252,7 @@
     <ClInclude Include="interface\isendsearchinfo.h" />
     <ClInclude Include="interface\iwhatIf.h" />
     <ClInclude Include="interface\movescanner.h" />
+    <ClInclude Include="interface\selectinterface.h" />
     <ClInclude Include="interface\stdtimecontrol.h" />
     <ClInclude Include="interface\winboard.h" />
     <ClInclude Include="interface\winboardprintsearchinfo.h" />

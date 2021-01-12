@@ -209,7 +209,7 @@ public:
 		else {
 			result = "";
 			if (!isPawn(getMovingPiece())) {
-				result += pieceToChar(getMovingPiece());
+				// result += pieceToChar(getMovingPiece());
 			}
 			result += squareToString(getDeparture());
 			if (getCapture() != NO_PIECE) {

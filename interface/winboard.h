@@ -19,6 +19,9 @@
  * Implements a Winboard - Interface
  */
 
+#ifndef __WINBOARD_H
+#define __WINBOARD_H
+
 #include <string>
 #include "ichessboard.h"
 #include "iinputoutput.h"
@@ -174,3 +177,5 @@ namespace ChessInterface {
 	};
 
 }
+
+#endif // __WINBOARD_H

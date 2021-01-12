@@ -23,6 +23,7 @@
 #define __ITERATIVEDEEPENING_H
 
 #include "../movegenerator/movegenerator.h"
+#include "movehistory.h"
 #include "search.h"
 #include "../interface/clocksetting.h"
 #include "computinginfo.h"
@@ -61,7 +62,7 @@ namespace ChessSearch {
 		 * Searches the best move by iteratively deepening the search depth
 		 */
 		void searchByIterativeDeepening(
-			const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo /*, MoveHistory& moveHistory */)
+			const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory)
 		{
 
 			MoveGenerator searchBoard = board;
@@ -80,7 +81,7 @@ namespace ChessSearch {
 			else {
 				tt.setNextSearch();
 			}
-			// moveHistory.setDrawPositionsToHash(board, tt);
+			moveHistory.setDrawPositionsToHash(board, tt);
 
 			if (clockSetting.getSearchDepthLimit() > 0) {
 				maxDepth = clockSetting.getSearchDepthLimit();
@@ -152,9 +153,9 @@ namespace ChessSearch {
 	 * Call this function to search
 	 */
 	static void searchByInterativeDeepening(
-		const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo /*, MoveHistory& moveHistory */) {
+		const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory) {
 		IterativeDeepening iterativeDeepening;
-		iterativeDeepening.searchByIterativeDeepening(board, clockSetting, computingInfo /*, moveHistory */);
+		iterativeDeepening.searchByIterativeDeepening(board, clockSetting, computingInfo, moveHistory);
 	}
 
 }

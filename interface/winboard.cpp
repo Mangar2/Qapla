@@ -190,7 +190,7 @@ void Winboard::WMTest(IChessBoard* chessBoard, IInputOutput* ioHandler) {
  */
 void Winboard::handlePing(IInputOutput* ioHandler) {
 	if (ioHandler->getNextTokenNonBlocking() != "") {
-		string number = ioHandler->getNextTokenNonBlocking();
+		string number = ioHandler->getCurrentToken();
 		ioHandler->print("pong ");
 		ioHandler->println(number);
 	}
@@ -350,7 +350,6 @@ bool Winboard::checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler
  */
 void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	while (!quit) {
-		ioHandler->getNextTokenBlocking();
 		if (analyzeMode) {
 			handleInputWhileInAnalyzeMode(chessBoard, ioHandler);
 		}
@@ -364,6 +363,7 @@ void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 			waitForComputingThreadToEnd();
 			handleInput(chessBoard, ioHandler);
 		}
+		ioHandler->getNextTokenBlocking();
 	}
 	waitForComputingThreadToEnd();
 }

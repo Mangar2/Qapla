@@ -19,6 +19,9 @@
  * Implements a console io for chess
  */
 
+#ifndef __CONSOLEIO_H
+#define __CONSOLEIO_H
+
 #include <string>
 #include "iinputoutput.h"
 
@@ -240,3 +243,5 @@ namespace ChessInterface {
 
 	};
 }
+
+#endif // __CONSOLEIO_H

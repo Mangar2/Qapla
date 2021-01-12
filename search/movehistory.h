@@ -91,14 +91,15 @@ namespace ChessSearch {
 		void setDrawPositionsToHash(const MoveGenerator& board, TT& tt) {
 			Board checkBoard = startPosition;
 			uint16_t moveNo = 0;
-			value_t drawPositionValue = board.isWhiteToMove() ? -30 : 30;
+			value_t drawPositionValue = board.isWhiteToMove() ? -1 : 1;
 			while (moveNo + board.getHalfmovesWithoutPawnMoveOrCapture() < _history.size()) {
 				checkBoard.doMove(_history[moveNo]);
 				moveNo++;
 			}
 			for (; ; moveNo++) {
 				value_t positionValue = checkBoard.isWhiteToMove() ? drawPositionValue : -drawPositionValue;
-				tt.setEntry(checkBoard.computeBoardHash(), 999, 0, Move::EMPTY_MOVE, positionValue, -MAX_VALUE, MAX_VALUE, 0);
+				tt.setEntry(checkBoard.computeBoardHash(), TTEntry::MAX_DEPTH, 0, 
+					Move::EMPTY_MOVE, positionValue, -MAX_VALUE, MAX_VALUE, 0);
 				if (moveNo == _history.size()) {
 					break;
 				}

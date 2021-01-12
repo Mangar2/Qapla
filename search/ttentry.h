@@ -63,7 +63,7 @@ namespace ChessSearch {
 		 */
 		void setInfo(uint32_t computedDepth, uint32_t entryAge, uint32_t nullmoveThreat) {
 			_info &= PRECISION_MASK;
-			if (computedDepth > DEPTH_MASK) computedDepth = DEPTH_MASK;
+			if (computedDepth > MAX_DEPTH) computedDepth = MAX_DEPTH;
 			_info += computedDepth;
 			_info += nullmoveThreat << NULLMOVE_THREAT_SHIFT;
 			setEntryAgeIndicator(entryAge);
@@ -161,6 +161,13 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Check, if the value stored MUST be used always
+		 */
+		inline bool alwaysUseValue() const {
+			return getComputedDepth() == MAX_DEPTH;
+		}
+
+		/**
 		 * Decides, if a value is good enough to overwrite a "always replace" entry
 		 * (It is not "always overwrite" only "mostly overwrite")
 		 */
@@ -250,11 +257,12 @@ namespace ChessSearch {
 			_value = int16_t(positionValue);
 		}
 
-
+	public:
+		static const uint16_t MAX_DEPTH = 0x01FF;
 
 	private:
 		static const uint16_t DEPTH_SHIFT = 0ULL;
-		static const uint16_t DEPTH_MASK = 0x000001FFULL << DEPTH_SHIFT;
+		static const uint16_t DEPTH_MASK = MAX_DEPTH << DEPTH_SHIFT;
 		static const uint16_t NULLMOVE_THREAT_MASK = 0x00000001ULL;
 		static const uint16_t NULLMOVE_THREAT_SHIFT = 9ULL;
 		static const uint16_t PRECISION_SHIFT = 10ULL;

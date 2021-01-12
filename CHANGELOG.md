@@ -3,14 +3,18 @@ Quabla chess engine
 
 ## 0.0.3
 
-- Implemented Nullmove, R=3 (2 near tree-leaf), not in endgame withouth range pieces, not going directly to quiescence search.
+- Implemented Nullmove, R=3 (2 near tree-leaf), not in endgame withouth range pieces, not going directly to quiescence search. (+ 70-80 ELO)
+- Winboard
+	- Pong now sends a pong number too
+- Bugfixes
+	- Positions already visited in the game are now rated (near) draw in the search
 
 ## 0.0.2
 
 - Winboard: 
 	- Added "remove" command
 - Bugfixes:
-	- transposition table (TT) usage fixed, we have more hits now.
+	- transposition table (TT) usage fixed, we have more hits now. ( + 5 ELO)
 	- Nps value corrected (slightly)
 	- Setboard with illegal fen no longer leads to a crash
 - Refactoring

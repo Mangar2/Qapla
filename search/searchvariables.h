@@ -156,8 +156,8 @@ namespace ChessSearch {
 					}
 				}
 				else {
-					if (entry.hasExactValue() && entry.getPositionValue(ply) == DRAW_VALUE) {
-						bestValue = DRAW_VALUE;
+					if (entry.alwaysUseValue()) {
+						bestValue = entry.getPositionValue(ply);
 						cutoff = true;
 					}
 				}

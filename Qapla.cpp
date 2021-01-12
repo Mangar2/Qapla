@@ -26,7 +26,7 @@
 #include "interface/stdtimecontrol.h"
 #include "interface/winboard.h"
 #include "interface/winboardprintsearchinfo.h"
-#include "interface/consoleio.h"
+#include "interface/selectinterface.h"
 
 #include "search/search.h"
 #include "tests/evalpawntest.h"
@@ -67,11 +67,10 @@ namespace ChessSearch {
 		MoveGenerator& getBoard() { return adapter.getBoard(); }
 
 		void run() {
-			winboard.processInput(&adapter, &ioHandler);
+			selectAndStartInterface(&adapter, &ioHandler);
 		}
 
 	private:
-		Winboard winboard;
 		ConsoleIO ioHandler;
 		WinboardPrintSearchInfo printSearchInfo;
 		BoardAdapter adapter;

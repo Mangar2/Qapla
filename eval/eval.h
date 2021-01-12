@@ -76,11 +76,6 @@ namespace ChessEval {
 				evalResult += EvalMobility::eval(board);
 			}
 
-			// Zero is dedicated to repetetive draw values.
-			if (evalResult == 0) {
-				evalResult = DRAW_VALUE;
-			}
-
 			return evalResult;
 		}
 

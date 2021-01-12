@@ -214,7 +214,7 @@ namespace ChessSearch {
 			curClock = clockSetting;
 			curClock.setPlayedMovesInGame(playedMovesInGame);
 			computingInfo.setVerbose(verbose);
-			iterativeDeepening.searchByIterativeDeepening(board, curClock, computingInfo /*, moveHistory */);
+			iterativeDeepening.searchByIterativeDeepening(board, curClock, computingInfo, moveHistory);
 		}
 
 		/**
