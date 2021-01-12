@@ -1,6 +1,10 @@
 # Quabla Change log
 Quabla chess engine
 
+## 0.0.3
+
+- Implemented Nullmove, R=3 (2 near tree-leaf), not in endgame withouth range pieces, not going directly to quiescence search.
+
 ## 0.0.2
 
 - Winboard: 

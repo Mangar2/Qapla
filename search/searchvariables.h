@@ -284,7 +284,7 @@ namespace ChessSearch {
 			currentValue = searchResult;
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
-				if (searchResult > alpha && currentMove != Move::NULL_MOVE) {
+				if (searchResult > alpha) {
 					if (!keepBestMoveUnchanged) {
 						bestMove = currentMove;
 						if (remainingDepth > 0 && searchState == SearchType::PV) {
