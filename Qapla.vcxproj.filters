@@ -1,0 +1,250 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Quelldateien">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Headerdateien">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Ressourcendateien">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Tests">
+      <UniqueIdentifier>{5b3cdbb1-58f9-4f7d-b8bb-61859ca52609}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{b0dc1192-51ca-4f22-af41-e7e1f7a1f4ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="eval">
+      <UniqueIdentifier>{c0f548a7-d318-4df0-9b89-6f2eaf60356e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="basics\basicboard.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\board.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="movegenerator\bitboardmasks.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="movegenerator\magics.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="movegenerator\movegenerator.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\stdtimecontrol.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\hashconstants.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="search\perft.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\piecesignature.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\pawnrace.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\kingpawnattack.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\evalpawn.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\evalendgame.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="search\whatif.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\winboard.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="search\search.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="search\quiescencesearch.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="Qapla.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="basics\basicboard.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\board.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\boardstate.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\move.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\movelist.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\types.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="movegenerator\bitboardmasks.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="movegenerator\magics.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="movegenerator\movegenerator.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\boardadapter.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\movehistory.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\perft.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\movescanner.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\hashconstants.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\tt.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\ttentry.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchdef.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\search.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\clockmanager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchvariables.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\killermove.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\pv.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\moveprovider.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\threadpool.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\extension.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchparameter.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\piecesignature.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\quiescencesearch.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\whatIf.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\materialbalance.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\pawnrace.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\kingpawnattack.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchstack.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\see.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\computinginfo.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="tests\evalpawntest.h">
+      <Filter>Tests</Filter>
+    </ClInclude>
+    <ClInclude Include="search\aspirationwindow.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\winboard.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\stdtimecontrol.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\iwhatIf.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\isendsearchinfo.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\iinputoutput.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\ichessboard.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\fenscanner.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\consoleio.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\computinginfoexchange.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\clocksetting.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\eval.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalendgame.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalmobility.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalpawn.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\winboardprintsearchinfo.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="tests\evalmobilitytest.h">
+      <Filter>Tests</Filter>
+    </ClInclude>
+    <ClInclude Include="search\iterativedeepening.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+    <None Include="CHANGELOG.md" />
+  </ItemGroup>
+</Project>
