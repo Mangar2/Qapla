@@ -496,6 +496,9 @@ void Winboard::handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	else if (ioHandler->isTokenEqualTo("wmtest")) {
 		WMTest(chessBoard, ioHandler);
 	}
+	else if (ioHandler->isTokenEqualTo("result")) {
+		ioHandler->getToEOLBlocking();
+	}
 	else if (checkClockCommands(chessBoard, ioHandler)) {
 	}
 	else if (checkMoveCommand(chessBoard, ioHandler)) {

@@ -6,6 +6,8 @@ Quabla chess engine
 - Implemented Nullmove, R=3 (2 near tree-leaf), not in endgame withouth range pieces, not going directly to quiescence search. (+ 70-80 ELO)
 - Winboard
 	- Pong now sends a pong number too
+- Arena
+	- Move format now fits for arena
 - Bugfixes
 	- Positions already visited in the game are now rated (near) draw in the search
 
