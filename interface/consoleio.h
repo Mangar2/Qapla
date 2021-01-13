@@ -132,13 +132,6 @@ namespace ChessInterface {
 		}
 
 		/**
-		 * Checks, if the current token is equal to a string
-		 */
-		virtual bool isTokenEqualTo(const string& stringToCompare) {
-			return getCurrentToken() == stringToCompare;
-		}
-
-		/**
 		 * Prints a line to std-out
 		 */
 		virtual void println(const string& strintToPrint)

@@ -245,6 +245,9 @@
     <ClInclude Include="interface\selectinterface.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="interface\UCI.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

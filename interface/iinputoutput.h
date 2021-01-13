@@ -58,11 +58,6 @@ namespace ChessInterface {
 		virtual uint64_t getCurrentTokenAsUnsignedInt() = 0;
 
 		/**
-		 * Checks, it the current token is equal to a string
-		 */
-		virtual bool isTokenEqualTo(const string& token) = 0;
-
-		/**
 		 * Prints a string and moves to the next line
 		 */
 		virtual void println(const string& string) = 0;

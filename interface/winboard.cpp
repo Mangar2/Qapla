@@ -201,12 +201,13 @@ void Winboard::handlePing(IInputOutput* ioHandler) {
  */
 bool Winboard::handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	bool result = true;
+	const string token = ioHandler->getCurrentToken();
 	string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-	if (ioHandler->isTokenEqualTo("new")) {
+	if (token == "new") {
 		FenScanner scanner;
 		scanner.setBoard(startPosition, chessBoard);
 	}
-	else if (ioHandler->isTokenEqualTo("setboard")) {
+	else if (token == "setboard") {
 		FenScanner scanner;
 		string fen = ioHandler->getToEOLBlocking();
 		bool success = scanner.setBoard(fen, chessBoard);
@@ -222,8 +223,9 @@ bool Winboard::handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandl
 }
 
 bool Winboard::handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+	const string token = ioHandler->getCurrentToken();
 	bool result = false;
-	if (ioHandler->isTokenEqualTo("whatif")) {
+	if (token == "whatif") {
 		IWhatIf* whatIf = chessBoard->getWhatIf();
 		whatIf->clear();
 		ioHandler->getNextTokenNonBlocking();
@@ -231,7 +233,7 @@ bool Winboard::handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		if (searchDepth == 0) { searchDepth = 1; }
 		whatIf->setSearchDepht(searchDepth);
 		for (int32_t ply = 0; ioHandler->getNextTokenNonBlocking() != ""; ply++) {
-			if (ioHandler->isTokenEqualTo("null")) {
+			if (token == "null") {
 				whatIf->setNullmove(ply);
 			}
 			else {
@@ -419,13 +421,14 @@ void Winboard::handleInputWhileInAnalyzeMode(IChessBoard* chessBoard, IInputOutp
 }
 
 void Winboard::handleInputWhiteInEditMode(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-	if (ioHandler->isTokenEqualTo("#")) {
+	const string token = ioHandler->getCurrentToken();
+	if (token == "#") {
 		chessBoard->clearBoard();
 	}
-	else if (ioHandler->isTokenEqualTo("c")) {
+	else if (token == "c") {
 		editModeIsWhiteColor = !editModeIsWhiteColor;
 	}
-	else if (ioHandler->isTokenEqualTo(".")) {
+	else if (token == ".") {
 		editMode = false;
 	}
 	else {
@@ -440,73 +443,73 @@ void Winboard::handleInputWhiteInEditMode(IChessBoard* chessBoard, IInputOutput*
 }
 
 void Winboard::handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-
-	if (ioHandler->isTokenEqualTo("quit")) {
+	const string token = ioHandler->getCurrentToken();
+	if (token == "quit") {
 		quit = true;
 	}
-	else if (ioHandler->isTokenEqualTo("analyze")) {
+	else if (token == "analyze") {
 		analyzeMove(chessBoard, ioHandler);
 	}
-	else if (ioHandler->isTokenEqualTo("force")) {
+	else if (token == "force") {
 		forceMode = true;
 	}
-	else if (ioHandler->isTokenEqualTo("go")) {
+	else if (token == "go") {
 		computeMove(chessBoard, ioHandler);
 	}
 	else if (handleBoardChanges(chessBoard, ioHandler)) {
 	}
 	else if (handleWhatIf(chessBoard, ioHandler)) {
 	}
-	else if (ioHandler->isTokenEqualTo("easy")) {
+	else if (token == "easy") {
 	}
-	else if (ioHandler->isTokenEqualTo("eval")) {
+	else if (token == "eval") {
 		chessBoard->printEvalInfo();
 	}
-	else if (ioHandler->isTokenEqualTo("hard")) {
+	else if (token == "hard") {
 	}
-	else if (ioHandler->isTokenEqualTo("post")) {
+	else if (token == "post") {
 	}
-	else if (ioHandler->isTokenEqualTo("random")) {
+	else if (token == "random") {
 	}
-	else if (ioHandler->isTokenEqualTo("accepted")) {
+	else if (token == "accepted") {
 		ioHandler->getNextTokenNonBlocking();
 	}
-	else if (ioHandler->isTokenEqualTo("perft")) {
+	else if (token == "perft") {
 		runPerft(chessBoard, ioHandler, false);
 	}
-	else if (ioHandler->isTokenEqualTo("divide")) {
+	else if (token == "divide") {
 		runPerft(chessBoard, ioHandler, true);
 	}
-	else if (ioHandler->isTokenEqualTo("xboard")) {
+	else if (token == "xboard") {
 		handleXBoard(ioHandler);
 	}
-	else if (ioHandler->isTokenEqualTo("protover")) {
+	else if (token == "protover") {
 		handleProtover(ioHandler);
 	}
-	else if (ioHandler->isTokenEqualTo("white")) {
+	else if (token == "white") {
 		chessBoard->setWhiteToMove(true);
 	}
-	else if (ioHandler->isTokenEqualTo("black")) {
+	else if (token == "black") {
 		chessBoard->setWhiteToMove(false);
 	}
-	else if (ioHandler->isTokenEqualTo("ping")) {
+	else if (token == "ping") {
 		handlePing(ioHandler);
 	}
-	else if (ioHandler->isTokenEqualTo("edit")) {
+	else if (token == "edit") {
 		editMode = true;
 		editModeIsWhiteColor = true;
 	}
-	else if (ioHandler->isTokenEqualTo("undo")) {
+	else if (token == "undo") {
 		chessBoard->undoMove();
 		forceMode = true;
 	}
-	else if (ioHandler->isTokenEqualTo("remove")) {
+	else if (token == "remove") {
 		handleRemove(chessBoard);
 	}
-	else if (ioHandler->isTokenEqualTo("wmtest")) {
+	else if (token == "wmtest") {
 		WMTest(chessBoard, ioHandler);
 	}
-	else if (ioHandler->isTokenEqualTo("result")) {
+	else if (token == "result") {
 		ioHandler->getToEOLBlocking();
 	}
 	else if (checkClockCommands(chessBoard, ioHandler)) {
