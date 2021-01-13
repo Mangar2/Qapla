@@ -103,7 +103,9 @@ namespace ChessSearch {
 		/**
 		 * Call to stop the search immediately
 		 */
-		void stopSearch() { searchStopped = true; }
+		void stopSearch() { 
+			searchStopped = true; 
+		}
 
 		/**
 		 * Check, if search must be stopped on mate found

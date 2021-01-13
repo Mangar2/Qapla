@@ -282,26 +282,27 @@ void Winboard::readLevelCommand(IInputOutput* ioHandler) {
 
 bool Winboard::checkClockCommands(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	bool commandProcessed = true;
-	if (ioHandler->isTokenEqualTo("sd")) {
+	string token = ioHandler->getCurrentToken();
+	if (token == "sd") {
 		if (ioHandler->getNextTokenNonBlocking() != "") {
 			clock.limitSearchDepth((uint32_t)ioHandler->getCurrentTokenAsUnsignedInt());
 		}
 	}
-	else if (ioHandler->isTokenEqualTo("time")) {
+	else if (token == "time") {
 		if (ioHandler->getNextTokenNonBlocking() != "") {
 			clock.setComputerClockInMilliseconds(ioHandler->getCurrentTokenAsUnsignedInt() * 10);
 		}
 	}
-	else if (ioHandler->isTokenEqualTo("otim")) {
+	else if (token == "otim") {
 		if (ioHandler->getNextTokenNonBlocking() != "") {
 			clock.setUserClockInMilliseconds(ioHandler->getCurrentTokenAsUnsignedInt() * 10);
 		}
 	}
-	else if (ioHandler->isTokenEqualTo("level"))
+	else if (token == "level")
 	{
 		readLevelCommand(ioHandler);
 	}
-	else if (ioHandler->isTokenEqualTo("st")) {
+	else if (token == "st") {
 		if (ioHandler->getNextTokenNonBlocking() != "") {
 			clock.setExactTimePerMoveInMilliseconds(ioHandler->getCurrentTokenAsUnsignedInt() * 1000ULL);
 		}
@@ -327,7 +328,7 @@ void Winboard::waitForComputingThreadToEnd() {
  */
 bool Winboard::checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	bool moveCommandFound = false;
-	if (ioHandler->isTokenEqualTo("usermove")) {
+	if (ioHandler->getCurrentToken() == "usermove") {
 		ioHandler->getNextTokenNonBlocking();
 		moveCommandFound = true;
 	}
@@ -372,39 +373,48 @@ void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
  * Processes input while computing a move
  */
 void Winboard::handleInputWhileComputingMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-	if (ioHandler->isTokenEqualTo("quit")) {
+	const string token = ioHandler->getCurrentToken();
+	if (token == "quit") {
 		chessBoard->moveNow();
 		quit = true;
 	}
-	else if (ioHandler->isTokenEqualTo("?")) {
+	else if (token == "?") {
 		chessBoard->moveNow();
 	}
-	else if (ioHandler->isTokenEqualTo(".")) {
+	else if (token == ".") {
 		chessBoard->requestPrintSearchInfo();
 	}
 }
 
 void Winboard::handleInputWhileInAnalyzeMode(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-	if (ioHandler->isTokenEqualTo("quit")) {
+	const string token = ioHandler->getCurrentToken();
+	if (token == "quit") {
 		chessBoard->moveNow();
 		analyzeMode = false;
 		quit = true;
 	}
-	else if (ioHandler->isTokenEqualTo(".")) {
+	else if (token == ".") {
 		chessBoard->requestPrintSearchInfo();
 	}
-	else if (ioHandler->isTokenEqualTo("exit")) {
+	else if (token == "ping") {
+		handlePing(ioHandler);
+	}
+	else if (token == "exit" || token == "force") {
 		chessBoard->moveNow();
 		waitForComputingThreadToEnd();
 		analyzeMode = false;
+		forceMode = true;
 	}
-	else if (ioHandler->isTokenEqualTo("new")) {
+	else if (token == "new" || token == "setboard") {
 		chessBoard->moveNow();
 		waitForComputingThreadToEnd();
-		analyzeMove(chessBoard, ioHandler);
+		handleBoardChanges(chessBoard, ioHandler);
 	}
-	else if (ioHandler->isTokenEqualTo("usermove")) {
+	else if (token == "usermove") {
 		checkMoveCommand(chessBoard, ioHandler);
+	}
+	else {
+		ioHandler->println("Error (command not supported in analyze mode): " + token);
 	}
 }
 
