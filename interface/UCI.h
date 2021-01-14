@@ -133,6 +133,7 @@ namespace ChessInterface {
 			while (getCurrentToken() != "quit") {
 				processCommand();
 			}
+			stopCompute();
 		}
 
 	protected:
@@ -222,6 +223,7 @@ namespace ChessInterface {
 		 * handles a uci go command
 		 */
 		void go() {
+			stopCompute();
 			_clock.reset();
 			string token = "";
 			bool ponder = false;
@@ -261,7 +263,7 @@ namespace ChessInterface {
 			const string token = getCurrentToken();
 			if (token == "uci") uciCommand();
 			else if (token == "go") go();
-			else if (token == "ready") printf("readyok");
+			else if (token == "isready") println("readyok");
 			else if (token == "ucinewgame") _board->newGame();
 			else if (token == "position") setPosition();
 			else if (token == "stop") stopCompute();
