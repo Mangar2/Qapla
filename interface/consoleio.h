@@ -39,14 +39,15 @@ namespace ChessInterface {
 		/**
 		 * Waits until a token is avaiable and returns it
 		 */
-		virtual string getNextTokenBlocking()
+		virtual string getNextTokenBlocking(bool getEOL = false)
 		{
-			string spaceString = " \n\r\t";
+			string spaceString = getEOL ? " \t" : " \t\n\r";
+			string separator = getEOL ? "\n\t" : "";
 			bufferSize_t tokenSize = 0;
 
 			while (tokenSize == 0 && !fatalReadError) {
 
-				tokenSize = readTokenFromBuffer(spaceString, "");
+				tokenSize = readTokenFromBuffer(spaceString, separator);
 				removeTokenFromBuffer(tokenSize, spaceString);
 				if (tokenSize == 0) {
 					readFromStdIn();
@@ -89,7 +90,7 @@ namespace ChessInterface {
 
 		/**
 		 * Gets the next token from the buffer
-		 * @param tokenSeparator list of characters reparating the token
+		 * @param tokenSeparator list of characters separating the token
 		 * @returns the next token or NULL, if no token is found
 		 */
 		virtual string getNextTokenNonBlocking(const string& tokenSeparator)
@@ -200,6 +201,7 @@ namespace ChessInterface {
 				}
 				if (isCharInString(buffer[aIndex], separationString)) {
 					if (aIndex == 0) {
+						// Get the separating char as token
 						token += buffer[aIndex];
 						aIndex = 1;
 						res = 1;

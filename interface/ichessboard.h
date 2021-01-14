@@ -41,6 +41,12 @@ namespace ChessInterface {
 
 	class IChessBoard {
 	public:
+
+		/**
+		 * Retrieves the name of the engine
+		 */
+		virtual string getEngineName() = 0;
+
 		/**
 		 * Sets a move, the information may be incomplete as long as the information is unambiguous
 		 */
@@ -131,6 +137,16 @@ namespace ChessInterface {
 		 * Returns and information about the current computing result
 		 */
 		virtual ComputingInfoExchange getComputingInfo() = 0;
+
+		/**
+		 * Signals a new game, the engine may ignore this
+		 */
+		virtual void newGame() {};
+
+		/**
+		 * Sets an option
+		 */
+		virtual void setOption(string name, string value) {};
 
 		/**
 		 * Returns a whatif evaluation structure (see IWhatIf for further information)

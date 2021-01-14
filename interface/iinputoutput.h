@@ -33,8 +33,9 @@ namespace ChessInterface {
 	public:
 		/**
 		 * Wait until the input provides the next token
+		 * @param getEOL true, to get the end of line separator as token
 		 */
-		virtual string getNextTokenBlocking() = 0;
+		virtual string getNextTokenBlocking(bool getEOL = false) = 0;
 
 		/**
 		 * Wait until the input provides a full line (with End-Of-Line tag)

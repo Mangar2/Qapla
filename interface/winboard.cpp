@@ -106,7 +106,7 @@ void Winboard::handleProtover(IInputOutput* ioHandler) {
 		if (protoVer > 1) {
 			ioHandler->println("feature done=0");
 			ioHandler->println("feature colors=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
-			ioHandler->println("feature myname=\"Qapla 0.0.1\"");
+			ioHandler->println("feature myname=\"" + _board->getEngineName() + "\"");
 			ioHandler->println("feature done=1");
 		}
 	}
@@ -247,7 +247,7 @@ bool Winboard::handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		}
 		ClockSetting whatIfClock;
 		whatIfClock.setAnalyseMode(true);
-		whatIfClock.limitSearchDepth(searchDepth);
+		whatIfClock.setSearchDepthLimit(searchDepth);
 		chessBoard->computeMove(whatIfClock);
 		whatIf->clear();
 	}
@@ -287,7 +287,7 @@ bool Winboard::checkClockCommands(IChessBoard* chessBoard, IInputOutput* ioHandl
 	string token = ioHandler->getCurrentToken();
 	if (token == "sd") {
 		if (ioHandler->getNextTokenNonBlocking() != "") {
-			clock.limitSearchDepth((uint32_t)ioHandler->getCurrentTokenAsUnsignedInt());
+			clock.setSearchDepthLimit((uint32_t)ioHandler->getCurrentTokenAsUnsignedInt());
 		}
 	}
 	else if (token == "time") {
@@ -352,6 +352,8 @@ bool Winboard::checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler
  * Processes any input from stdio
  */
 void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+	_board = chessBoard;
+	_ioHandler = ioHandler;
 	while (!quit) {
 		if (analyzeMode) {
 			handleInputWhileInAnalyzeMode(chessBoard, ioHandler);

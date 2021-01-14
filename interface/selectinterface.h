@@ -22,6 +22,7 @@
 #include <string>
 #include "consoleio.h"
 #include "winboard.h"
+#include "./uci.h"
 
 using namespace std;
 
@@ -33,7 +34,8 @@ namespace ChessInterface {
 	static void selectAndStartInterface(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		const string firstToken = ioHandler->getNextTokenBlocking();
 		if (firstToken == "uci") {
-
+			UCI uci;
+			uci.run(chessBoard, ioHandler);
 		} else {
 			Winboard winboard;
 			winboard.processInput(chessBoard, ioHandler);

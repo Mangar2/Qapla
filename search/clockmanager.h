@@ -34,12 +34,12 @@ namespace ChessSearch {
 		ClockManager() {}
 
 		uint64_t getTimeSpentInMilliseconds() const {
-			return getSystemTimeInMilliseconds() - startTime;
+			return getSystemTimeInMilliseconds() - _startTime;
 		}
 
 		void startCalculatingMove(int32_t movesLeftForClockControl, const ClockSetting& clockSetting)
 		{
-			startTime = getSystemTimeInMilliseconds();
+			_startTime = getSystemTimeInMilliseconds();
 			movesLeftForClockControl = 0;
 			if (movesLeftForClockControl <= 0) {
 				movesLeftForClockControl = 60 - clockSetting.getPlayedMovesInGame();
@@ -47,17 +47,17 @@ namespace ChessSearch {
 					movesLeftForClockControl = 20;
 				}
 			}
-			averageTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / movesLeftForClockControl;
-			averageTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
+			_averageTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / movesLeftForClockControl;
+			_averageTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
 
-			maxTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / 10;
-			maxTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
+			_maxTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / 10;
+			_maxTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
 
-			if (averageTimePerMove > maxTimePerMove) {
-				maxTimePerMove = averageTimePerMove;
+			if (_averageTimePerMove > _maxTimePerMove) {
+				_maxTimePerMove = _averageTimePerMove;
 			}
-			analyzeMode = clockSetting.getAnalyseMode();
-			searchStopped = false;
+			_analyzeMode = clockSetting.getAnalyseMode();
+			_searchStopped = false;
 		}
 
 		/**
@@ -66,17 +66,17 @@ namespace ChessSearch {
 		bool mustAbortCalculation(uint32_t ply) const {
 			uint64_t timeSpent = getTimeSpentInMilliseconds();
 			bool abort = false;
-			if (searchStopped) {
+			if (_searchStopped) {
 				abort = true;
 			}
-			else if (analyzeMode) {
+			else if (_analyzeMode) {
 				abort = false;
 			}
 			else if (ply == 0) {
-				abort = timeSpent > maxTimePerMove || timeSpent > averageTimePerMove * 4;
+				abort = timeSpent > _maxTimePerMove || timeSpent > _averageTimePerMove * 4;
 			}
 			else {
-				abort = timeSpent > maxTimePerMove;
+				abort = timeSpent > _maxTimePerMove;
 			}
 			return abort;
 		}
@@ -87,15 +87,15 @@ namespace ChessSearch {
 		 */
 		bool mayCalculateNextDepth() const {
 			bool result;
-			if (searchStopped) {
+			if (_searchStopped) {
 				result = false;
 			}
-			else if (analyzeMode) {
+			else if (_analyzeMode) {
 				result = true;
 			}
 			else {
-				uint64_t timeSpent = getSystemTimeInMilliseconds() - startTime;
-				result = timeSpent < averageTimePerMove / 3;
+				uint64_t timeSpent = getSystemTimeInMilliseconds() - _startTime;
+				result = timeSpent < _averageTimePerMove / 3;
 			}
 			return result;
 		}
@@ -104,21 +104,21 @@ namespace ChessSearch {
 		 * Call to stop the search immediately
 		 */
 		void stopSearch() { 
-			searchStopped = true; 
+			_searchStopped = true; 
 		}
 
 		/**
 		 * Check, if search must be stopped on mate found
 		 */
 		bool stopSearchOnMateFound() const {
-			return !analyzeMode;
+			return !_analyzeMode;
 		}
 
 		/**
 		 * @returns true, if search is in analyze (never stopping) mode
 		 */
 		bool isAnalyzeMode() const { 
-			return analyzeMode; 
+			return _analyzeMode; 
 		}
 
 	private:
@@ -133,12 +133,12 @@ namespace ChessSearch {
 			return ((uint64_t)(aCurrentTime.time) * 1000 +
 				(uint64_t)(aCurrentTime.millitm));
 		}
-		uint64_t startTime;
-		uint64_t averageTimePerMove;
-		uint64_t maxTimePerMove;
+		uint64_t _startTime;
+		uint64_t _averageTimePerMove;
+		uint64_t _maxTimePerMove;
 
-		bool analyzeMode;
-		bool searchStopped;
+		bool _analyzeMode;
+		bool _searchStopped;
 	};
 }
 

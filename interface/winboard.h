@@ -174,6 +174,8 @@ namespace ChessInterface {
 		bool computerIsWhite;
 		bool forceMode;
 		std::thread computeThread;
+		IChessBoard* _board;
+		IInputOutput* _ioHandler;
 	};
 
 }

@@ -54,11 +54,29 @@ namespace ChessSearch {
 		{
 		}
 
+		/**
+		 * Retrieves the engine name
+		 */
+		virtual string getEngineName() { return "Qapla_0.0.3";  }
+
+		/**
+		 * Retrieves the what if object
+		 */
 		virtual IWhatIf* getWhatIf() {
 			WhatIf::whatIf.setBoard(board);
 			return &WhatIf::whatIf;
 		}
 
+		/**
+		 * Playes a move. Only the destination square must be provided, other information must be provided
+		 * only to solve anbiguity. 
+		 * @param movingPiece piece to move, may be EMPTY_PIECE (= 0) if the piece is unknown
+		 * @param departureFile file of the departure square (0-7) or -1 for unknown
+		 * @param departureRank rank of the departure square (0-7) or -1 for unknown
+		 * @param destinationFile file of the destination square (0-7) 
+		 * @param destinationRank rank of the destination square (0-7)
+		 * @param char promotePiece (mandatory only for a promotion move else EMPTY_PIECE)
+		 */
 		virtual bool doMove(char movingPiece,
 			uint32_t departureFile, uint32_t departureRank,
 			uint32_t destinationFile, uint32_t destinationRank,
@@ -82,6 +100,9 @@ namespace ChessSearch {
 			return !move.isEmpty();
 		};
 
+		/**
+		 * Undoes the last move
+		 */
 		virtual void undoMove() {
 			board = moveHistory.undoMove();
 			if (playedMovesInGame > 0) {

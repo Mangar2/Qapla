@@ -245,7 +245,7 @@
     <ClInclude Include="interface\selectinterface.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="interface\UCI.h">
+    <ClInclude Include="interface\uci.h">
       <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>

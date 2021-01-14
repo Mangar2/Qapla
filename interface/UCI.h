@@ -16,11 +16,11 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
- * Implements a Winboard - Interface
+ * Implements a UCI - Interface
  */
 
-#ifndef __WINBOARD_H
-#define __WINBOARD_H
+#ifndef __UCI_H
+#define __UCI_H
 
 #include <string>
 #include "ichessboard.h"
@@ -35,50 +35,132 @@ using namespace std;
 
 namespace ChessInterface {
 
-	class HandleMove {
-	public:
+	class ChessInterface {
+
+	protected:
 
 		/**
-		 * Manages a move
+		 * Sets the board to a position
 		 */
-		static bool handleMove(IChessBoard* chessBoard, IInputOutput* ioHandler, const string move);
+		void setPositionByFen(string position = "") {
+			if (position == "") {
+				position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+			}
+			FenScanner scanner;
+			scanner.setBoard(position, _board);
+		}
 
 		/**
-		 * Prints a game result information
+		 * Gets a move to the board
 		 */
-		static void printGameResult(GameResult result, IInputOutput* ioHandler);
+		bool setMove(string move) {
+			MoveScanner scanner(move);
+			bool res = false;
+			if (scanner.isLegal()) {
+				res = _board->doMove(
+					scanner.piece,
+					scanner.departureFile, scanner.departureRank,
+					scanner.destinationFile, scanner.destinationRank,
+					scanner.promote);
+			}
+			return res;
+		}
 
-	private:
-		/** 
-		 * Scans a move
+		/**
+ 		 * Sets the playing time
 		 */
-		static bool scanMove(IChessBoard* chessBoard, const string move);
+		void setTime(uint64_t timeInMilliseconds, bool white) {
+			if (_board->isWhiteToMove() == white) {
+				_clock.setComputerClockInMilliseconds(timeInMilliseconds);
+			}
+			else {
+				_clock.setUserClockInMilliseconds(timeInMilliseconds);
+			}
+		}
 
+		/**
+		 * Sets the playing time
+		 */
+		void setTimeInc(uint64_t timeInMilliseconds, bool white) {
+			if (_board->isWhiteToMove() == white) {
+				_clock.setTimeIncrementPerMoveInMilliseconds(timeInMilliseconds);
+			}
+		}
+
+		/**
+		 * Wait for the computing thread to end and joins the thread.
+		 */
+		void waitForComputingThreadToEnd() {
+			if (_computeThread.joinable()) {
+				_computeThread.join();
+			}
+		}
+
+		/**
+		 * Stop current computing
+		 */
+		void stopCompute() {
+			_board->moveNow();
+			waitForComputingThreadToEnd();
+		}
+
+	protected:
+		void println(const string& output) { _ioHandler->println(output); }
+		void print(const string& output) { _ioHandler->print(output); }
+		string getCurrentToken() { return _ioHandler->getCurrentToken(); }
+		string getNextTokenBlocking(bool getEOL = false) { return _ioHandler->getNextTokenBlocking(getEOL); }
+		uint64_t getTokenAsUnsignedInt() { return _ioHandler->getCurrentTokenAsUnsignedInt(); }
+		IChessBoard* _board;
+		IInputOutput* _ioHandler;
+		ClockSetting _clock;
+		thread _computeThread;
 	};
 
-	class UCI {
+	class UCI : public ChessInterface {
 	public:
-		UCI(string engineName) :_engineName(engineName) {}
+		UCI() {}
 
 		/**
 		 * Runs the UCI protocol interface steering the chess engine
 		 */
 		void run(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 			_ioHandler = ioHandler;
-			_chessBoard = chessBoard;
+			_board = chessBoard;
 			if (getCurrentToken() != "uci") {
 				println("error (uci command expected): " + getCurrentToken());
 				return;
+			}
+			while (getCurrentToken() != "quit") {
+				processCommand();
 			}
 		}
 
 	protected:
 
 		/**
+		 * Starts computing a move - sets analyze mode to false
+		 */
+		void computeMove() {
+			_clock.storeCalculationStartTime();
+			_computeThread = thread([this]() {
+				_board->computeMove(_clock);
+				ComputingInfoExchange computingInfo = _board->getComputingInfo();
+				println("bestmove " + computingInfo.currentConsideredMove);
+			});
+		}
+
+		/**
+		 * Starts search a move in ponder mode
+		 */
+		void ponder() {
+			_clock.setPonderMode();
+		}
+
+		/**
 		 * Processes a set option command; 
 		 */
 		void setoption(string name, string value) {
-			_chessBoard->setOption(name, value);
+			_board->setOption(name, value);
 		}
 
 		/**
@@ -98,23 +180,97 @@ namespace ChessInterface {
 		 * Reply on an "UCI" command
 		 */
 		void uciCommand() {
-			println("id name " + _engineName);
+			println("id name " + _board->getEngineName());
 			println("option name Hash type spin default 32 min 1 max 1024");
 			println("option name Ponder type check");
 			println("uciok");
 		}
 
-	private:
-		void println(const string& output) { _ioHandler->println(output); }
-		void print(const string& output) { _ioHandler->print(output); }
-		string getCurrentToken() { return _ioHandler->getCurrentToken(); }
-		string getNextTokenBlocking() { return _ioHandler->getNextTokenBlocking(); }
-		uint64_t getTokenAsUnsignedInt() { return _ioHandler->getCurrentTokenAsUnsignedInt(); }
-		IChessBoard* _chessBoard;
-		IInputOutput* _ioHandler;
-		string _engineName;
+		/**
+		 * Reads a fen -input
+		 */
+		string readFen() {
+			string token = getNextTokenBlocking(true);
+			string fen = "";
+			while (token != "moves" && token != "\n" && token != "\r") {
+				fen += token;
+				token = getNextTokenBlocking(true);
+			}
+			return fen;
+		}
+
+		/**
+		 * Reads a UCI set position command and sets up the board
+		 */
+		void setPosition() {
+			const string boardToken = getNextTokenBlocking();
+			if (boardToken == "fen") setPositionByFen(readFen());
+			else if (boardToken == "startpos") {
+				setPositionByFen();
+				getNextTokenBlocking(true);
+			}
+			if (getNextTokenBlocking() == "moves") {
+				string token = getNextTokenBlocking(true);
+				while (token != "\n" && token != "\r") {
+					token = getNextTokenBlocking(true);
+					setMove(token);
+				}
+			}
+		}
+
+		/**
+		 * handles a uci go command
+		 */
+		void go() {
+			_clock.reset();
+			string token = "";
+			bool ponder = false;
+			while (token != "\n" && token != "\r") {
+				token = getNextTokenBlocking(true);
+				if (token == "\n" || token == "\r") break;
+				if (token == "infinite") _clock.setAnalyseMode(true);
+				else if (token == "ponder") {
+					ponder = true;
+					break;
+				}
+				else {
+					getNextTokenBlocking(true);
+					uint64_t param = getTokenAsUnsignedInt();
+					if (token == "wtime") setTime(param, true);
+					else if (token == "btime") setTime(param, false);
+					else if (token == "winc") setTimeInc(param, true);
+					else if (token == "binc") setTimeInc(param, true);
+					else if (token == "movestogo") _clock.setMoveAmountForClock(uint32_t(param));
+					else if (token == "depth") _clock.setSearchDepthLimit(uint32_t(param));
+					else if (token == "nodes") _clock.setNodeCount(param);
+					else if (token == "mate") _clock.setMate(param);
+					else if (token == "movetime") _clock.setExactTimePerMoveInMilliseconds(param);
+				}
+			};
+			if (ponder) {
+			}
+			else {
+				computeMove();
+			}
+		}
+
+		/**
+		 * processes any uci command
+		 */
+		void processCommand() {
+			const string token = getCurrentToken();
+			if (token == "uci") uciCommand();
+			else if (token == "go") go();
+			else if (token == "ready") printf("readyok");
+			else if (token == "ucinewgame") _board->newGame();
+			else if (token == "position") setPosition();
+			else if (token == "stop") stopCompute();
+			getNextTokenBlocking();
+		}
+
+
 	};
 
 }
 
-#endif // __WINBOARD_H
+#endif // __UCI_H
