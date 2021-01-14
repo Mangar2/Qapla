@@ -19,6 +19,7 @@
 
 
 #include "winboard.h"
+#include "winboardprintsearchinfo.h"
 #include <thread>
 
 using namespace std;
@@ -29,36 +30,36 @@ using namespace ChessInterface;
  * Starts computing a move
  */
 static void threadComputeMove(
-	IChessBoard* chessBoard,
+	IChessBoard* board,
 	IInputOutput* ioHandler,
 	ClockSetting* clock,
 	volatile bool* computingMove)
 {
 
-	chessBoard->computeMove(*clock);
+	board->computeMove(*clock);
 	if (!clock->getAnalyseMode()) {
-		ComputingInfoExchange computingInfo = chessBoard->getComputingInfo();
+		ComputingInfoExchange computingInfo = board->getComputingInfo();
 		ioHandler->print("move ");
 		ioHandler->println(computingInfo.currentConsideredMove);
-		HandleMove::handleMove(chessBoard, ioHandler, computingInfo.currentConsideredMove);
+		HandleMove::handleMove(board, ioHandler, computingInfo.currentConsideredMove);
 		clock->storeTimeSpent();
 	}
 
 	*computingMove = false;
 }
 
-bool HandleMove::handleMove(IChessBoard* chessBoard, IInputOutput* ioHandler, const string move) {
+bool HandleMove::handleMove(IChessBoard* board, IInputOutput* ioHandler, const string move) {
 	bool legalMove;
 	if (move == "") {
 		return false;
 	}
-	if (!scanMove(chessBoard, move)) {
+	if (!scanMove(board, move)) {
 		ioHandler->print("Illegal move: ");
 		ioHandler->println(ioHandler->getCurrentToken());
 		legalMove = false;
 	}
 	else {
-		printGameResult(chessBoard->getGameResult(), ioHandler);
+		printGameResult(board->getGameResult(), ioHandler);
 		legalMove = true;
 	}
 	return legalMove;
@@ -75,11 +76,11 @@ void HandleMove::printGameResult(GameResult result, IInputOutput* ioHandler) {
 	}
 }
 
-bool HandleMove::scanMove(IChessBoard* chessBoard, const string move) {
+bool HandleMove::scanMove(IChessBoard* board, const string move) {
 	MoveScanner scanner(move);
 	bool res = false;
 	if (scanner.isLegal()) {
-		res = chessBoard->doMove(
+		res = board->doMove(
 			scanner.piece,
 			scanner.departureFile, scanner.departureRank,
 			scanner.destinationFile, scanner.destinationRank,
@@ -112,46 +113,46 @@ void Winboard::handleProtover(IInputOutput* ioHandler) {
 	}
 }
 
-void Winboard::handleRemove(IChessBoard* chessBoard) {
-	if (computerIsWhite != chessBoard->isWhiteToMove()) {
-		chessBoard->undoMove();
-		chessBoard->undoMove();
+void Winboard::handleRemove(IChessBoard* board) {
+	if (computerIsWhite != board->isWhiteToMove()) {
+		board->undoMove();
+		board->undoMove();
 	}
 }
 
-void Winboard::runPerft(IChessBoard* chessBoard, IInputOutput* ioHandler, bool showMoves) {
+void Winboard::runPerft(IChessBoard* board, IInputOutput* ioHandler, bool showMoves) {
 	StdTimeControl timeControl;
 	if (ioHandler->getNextTokenNonBlocking() != "") {
 		timeControl.storeStartTime();
-		uint64_t res = chessBoard->perft((uint16_t)ioHandler->getCurrentTokenAsUnsignedInt());
+		uint64_t res = board->perft((uint16_t)ioHandler->getCurrentTokenAsUnsignedInt());
 		float durationInMs = (float)timeControl.getTimeSpentInMilliseconds();
 		printf("nodes: %lld, time: %5.4fs, nps: %10.0f \n", res, durationInMs / 1000, res * 1000.0 / durationInMs);
 	}
 }
 
-void Winboard::analyzeMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+void Winboard::analyzeMove(IChessBoard* board, IInputOutput* ioHandler) {
 	char move[10];
 	move[9] = 0;
 	analyzeMode = true;
-	GameResult result = chessBoard->getGameResult();
+	GameResult result = board->getGameResult();
 	if (result != GameResult::NOT_ENDED) {
 		HandleMove::printGameResult(result, ioHandler);
 	}
 	else {
 		clock.setAnalyseMode(true);
 		computingMove = true;
-		computeThread = std::thread(&threadComputeMove, chessBoard, ioHandler, &clock, &computingMove);
+		computeThread = std::thread(&threadComputeMove, board, ioHandler, &clock, &computingMove);
 	}
 }
 
 /**
  * Starts computing a move - sets analyze mode to false
  */
-void Winboard::computeMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+void Winboard::computeMove(IChessBoard* board, IInputOutput* ioHandler) {
 	forceMode = false;
-	computerIsWhite = chessBoard->isWhiteToMove();
+	computerIsWhite = board->isWhiteToMove();
 
-	GameResult result = chessBoard->getGameResult();
+	GameResult result = board->getGameResult();
 	if (result != GameResult::NOT_ENDED) {
 		HandleMove::printGameResult(result, ioHandler);
 	}
@@ -159,11 +160,11 @@ void Winboard::computeMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		clock.storeCalculationStartTime();
 		clock.setAnalyseMode(false);
 		computingMove = true;
-		computeThread = std::thread(&threadComputeMove, chessBoard, ioHandler, &clock, &computingMove);
+		computeThread = std::thread(&threadComputeMove, board, ioHandler, &clock, &computingMove);
 	}
 }
 
-void Winboard::WMTest(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+void Winboard::WMTest(IChessBoard* board, IInputOutput* ioHandler) {
 	/*
 	EPDTest test;
 	test.initGames();
@@ -173,12 +174,12 @@ void Winboard::WMTest(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 	if (ioHandler->getNextTokenNonBlocking()) {
 		uint32_t depth = (uint32_t)ioHandler->getCurrentTokenAsUnsignedInt();
 		for (uint32_t index = 0; index < 100; index++) {
-			scanner.setBoard(test.Game1[index], chessBoard);
+			scanner.setBoard(test.Game1[index], board);
 			clock.setAnalyseMode(true);
 			clock.limitSearchDepth(depth);
-			chessBoard->computeMove(clock, false);
-			totalNodesSearched += chessBoard->getComputingInfo().nodesSearched;
-			totalTimeUsedInMilliseconds += chessBoard->getComputingInfo().elapsedTimeInMilliseconds;
+			board->computeMove(clock, false);
+			totalNodesSearched += board->getComputingInfo().nodesSearched;
+			totalTimeUsedInMilliseconds += board->getComputingInfo().elapsedTimeInMilliseconds;
 			test.printResult(index, totalTimeUsedInMilliseconds, totalNodesSearched);
 		}
 	}
@@ -199,21 +200,21 @@ void Winboard::handlePing(IInputOutput* ioHandler) {
 /**
  * Processes a board change (setboard) request
  */
-bool Winboard::handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+bool Winboard::handleBoardChanges(IChessBoard* board, IInputOutput* ioHandler) {
 	bool result = true;
 	const string token = ioHandler->getCurrentToken();
 	string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	if (token == "new") {
 		FenScanner scanner;
-		scanner.setBoard(startPosition, chessBoard);
+		scanner.setBoard(startPosition, board);
 	}
 	else if (token == "setboard") {
 		FenScanner scanner;
 		string fen = ioHandler->getToEOLBlocking();
-		bool success = scanner.setBoard(fen, chessBoard);
+		bool success = scanner.setBoard(fen, board);
 		if (!success) {
 			printf("Error (illegal fen): %s \n", fen.c_str());
-			scanner.setBoard(startPosition, chessBoard);
+			scanner.setBoard(startPosition, board);
 		}
 	}
 	else {
@@ -222,11 +223,11 @@ bool Winboard::handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandl
 	return result;
 }
 
-bool Winboard::handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+bool Winboard::handleWhatIf(IChessBoard* board, IInputOutput* ioHandler) {
 	const string token = ioHandler->getCurrentToken();
 	bool result = false;
 	if (token == "whatif") {
-		IWhatIf* whatIf = chessBoard->getWhatIf();
+		IWhatIf* whatIf = board->getWhatIf();
 		whatIf->clear();
 		ioHandler->getNextTokenNonBlocking();
 		int32_t searchDepth = (int32_t)ioHandler->getCurrentTokenAsUnsignedInt();
@@ -248,7 +249,7 @@ bool Winboard::handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		ClockSetting whatIfClock;
 		whatIfClock.setAnalyseMode(true);
 		whatIfClock.setSearchDepthLimit(searchDepth);
-		chessBoard->computeMove(whatIfClock);
+		board->computeMove(whatIfClock);
 		whatIf->clear();
 	}
 	else {
@@ -282,7 +283,7 @@ void Winboard::readLevelCommand(IInputOutput* ioHandler) {
 
 }
 
-bool Winboard::checkClockCommands(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+bool Winboard::checkClockCommands(IChessBoard* board, IInputOutput* ioHandler) {
 	bool commandProcessed = true;
 	string token = ioHandler->getCurrentToken();
 	if (token == "sd") {
@@ -328,21 +329,21 @@ void Winboard::waitForComputingThreadToEnd() {
  * Checks the input for a move request, either "usermove" oder just a chess move in
  * chess move notation
  */
-bool Winboard::checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+bool Winboard::checkMoveCommand(IChessBoard* board, IInputOutput* ioHandler) {
 	bool moveCommandFound = false;
 	if (ioHandler->getCurrentToken() == "usermove") {
 		ioHandler->getNextTokenNonBlocking();
 		moveCommandFound = true;
 	}
-	if (HandleMove::handleMove(chessBoard, ioHandler, ioHandler->getCurrentToken())) {
+	if (HandleMove::handleMove(board, ioHandler, ioHandler->getCurrentToken())) {
 		moveCommandFound = true;
 		if (analyzeMode) {
-			chessBoard->moveNow();
+			board->moveNow();
 			waitForComputingThreadToEnd();
-			analyzeMove(chessBoard, ioHandler);
+			analyzeMove(board, ioHandler);
 		}
 		else if (!forceMode) {
-			computeMove(chessBoard, ioHandler);
+			computeMove(board, ioHandler);
 		}
 	}
 	return moveCommandFound;
@@ -351,22 +352,22 @@ bool Winboard::checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler
 /**
  * Processes any input from stdio
  */
-void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-	_board = chessBoard;
+void Winboard::processInput(IChessBoard* board, IInputOutput* ioHandler) {
+	_board = board;
 	_ioHandler = ioHandler;
 	while (!quit) {
 		if (analyzeMode) {
-			handleInputWhileInAnalyzeMode(chessBoard, ioHandler);
+			handleInputWhileInAnalyzeMode(board, ioHandler);
 		}
 		else if (computingMove) {
-			handleInputWhileComputingMove(chessBoard, ioHandler);
+			handleInputWhileComputingMove(board, ioHandler);
 		}
 		else if (editMode) {
-			handleInputWhiteInEditMode(chessBoard, ioHandler);
+			handleInputWhiteInEditMode(board, ioHandler);
 		}
 		else {
 			waitForComputingThreadToEnd();
-			handleInput(chessBoard, ioHandler);
+			handleInput(board, ioHandler);
 		}
 		ioHandler->getNextTokenBlocking();
 	}
@@ -376,56 +377,56 @@ void Winboard::processInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 /**
  * Processes input while computing a move
  */
-void Winboard::handleInputWhileComputingMove(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+void Winboard::handleInputWhileComputingMove(IChessBoard* board, IInputOutput* ioHandler) {
 	const string token = ioHandler->getCurrentToken();
 	if (token == "quit") {
-		chessBoard->moveNow();
+		board->moveNow();
 		quit = true;
 	}
 	else if (token == "?") {
-		chessBoard->moveNow();
+		board->moveNow();
 	}
 	else if (token == ".") {
-		chessBoard->requestPrintSearchInfo();
+		board->requestPrintSearchInfo();
 	}
 }
 
-void Winboard::handleInputWhileInAnalyzeMode(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+void Winboard::handleInputWhileInAnalyzeMode(IChessBoard* board, IInputOutput* ioHandler) {
 	const string token = ioHandler->getCurrentToken();
 	if (token == "quit") {
-		chessBoard->moveNow();
+		board->moveNow();
 		analyzeMode = false;
 		quit = true;
 	}
 	else if (token == ".") {
-		chessBoard->requestPrintSearchInfo();
+		board->requestPrintSearchInfo();
 	}
 	else if (token == "ping") {
 		handlePing(ioHandler);
 	}
 	else if (token == "exit" || token == "force") {
-		chessBoard->moveNow();
+		board->moveNow();
 		waitForComputingThreadToEnd();
 		analyzeMode = false;
 		forceMode = true;
 	}
 	else if (token == "new" || token == "setboard") {
-		chessBoard->moveNow();
+		board->moveNow();
 		waitForComputingThreadToEnd();
-		handleBoardChanges(chessBoard, ioHandler);
+		handleBoardChanges(board, ioHandler);
 	}
 	else if (token == "usermove") {
-		checkMoveCommand(chessBoard, ioHandler);
+		checkMoveCommand(board, ioHandler);
 	}
 	else {
 		ioHandler->println("Error (command not supported in analyze mode): " + token);
 	}
 }
 
-void Winboard::handleInputWhiteInEditMode(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+void Winboard::handleInputWhiteInEditMode(IChessBoard* board, IInputOutput* ioHandler) {
 	const string token = ioHandler->getCurrentToken();
 	if (token == "#") {
-		chessBoard->clearBoard();
+		board->clearBoard();
 	}
 	else if (token == "c") {
 		editModeIsWhiteColor = !editModeIsWhiteColor;
@@ -440,32 +441,32 @@ void Winboard::handleInputWhiteInEditMode(IChessBoard* chessBoard, IInputOutput*
 		if (!editModeIsWhiteColor) {
 			piece += 'a' - 'A';
 		}
-		chessBoard->setPiece(col, row, piece);
+		board->setPiece(col, row, piece);
 	}
 }
 
-void Winboard::handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
+void Winboard::handleInput(IChessBoard* board, IInputOutput* ioHandler) {
 	const string token = ioHandler->getCurrentToken();
 	if (token == "quit") {
 		quit = true;
 	}
 	else if (token == "analyze") {
-		analyzeMove(chessBoard, ioHandler);
+		analyzeMove(board, ioHandler);
 	}
 	else if (token == "force") {
 		forceMode = true;
 	}
 	else if (token == "go") {
-		computeMove(chessBoard, ioHandler);
+		computeMove(board, ioHandler);
 	}
-	else if (handleBoardChanges(chessBoard, ioHandler)) {
+	else if (handleBoardChanges(board, ioHandler)) {
 	}
-	else if (handleWhatIf(chessBoard, ioHandler)) {
+	else if (handleWhatIf(board, ioHandler)) {
 	}
 	else if (token == "easy") {
 	}
 	else if (token == "eval") {
-		chessBoard->printEvalInfo();
+		board->printEvalInfo();
 	}
 	else if (token == "hard") {
 	}
@@ -477,10 +478,10 @@ void Winboard::handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		ioHandler->getNextTokenNonBlocking();
 	}
 	else if (token == "perft") {
-		runPerft(chessBoard, ioHandler, false);
+		runPerft(board, ioHandler, false);
 	}
 	else if (token == "divide") {
-		runPerft(chessBoard, ioHandler, true);
+		runPerft(board, ioHandler, true);
 	}
 	else if (token == "xboard") {
 		handleXBoard(ioHandler);
@@ -489,10 +490,10 @@ void Winboard::handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		handleProtover(ioHandler);
 	}
 	else if (token == "white") {
-		chessBoard->setWhiteToMove(true);
+		board->setWhiteToMove(true);
 	}
 	else if (token == "black") {
-		chessBoard->setWhiteToMove(false);
+		board->setWhiteToMove(false);
 	}
 	else if (token == "ping") {
 		handlePing(ioHandler);
@@ -502,20 +503,20 @@ void Winboard::handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 		editModeIsWhiteColor = true;
 	}
 	else if (token == "undo") {
-		chessBoard->undoMove();
+		board->undoMove();
 		forceMode = true;
 	}
 	else if (token == "remove") {
-		handleRemove(chessBoard);
+		handleRemove(board);
 	}
 	else if (token == "wmtest") {
-		WMTest(chessBoard, ioHandler);
+		WMTest(board, ioHandler);
 	}
 	else if (token == "result") {
 		ioHandler->getToEOLBlocking();
 	}
-	else if (checkClockCommands(chessBoard, ioHandler)) {
+	else if (checkClockCommands(board, ioHandler)) {
 	}
-	else if (checkMoveCommand(chessBoard, ioHandler)) {
+	else if (checkMoveCommand(board, ioHandler)) {
 	}
 }

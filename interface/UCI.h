@@ -203,17 +203,17 @@ namespace ChessInterface {
 		 * Reads a UCI set position command and sets up the board
 		 */
 		void setPosition() {
-			const string boardToken = getNextTokenBlocking();
+			const string boardToken = getNextTokenBlocking(true);
 			if (boardToken == "fen") setPositionByFen(readFen());
 			else if (boardToken == "startpos") {
 				setPositionByFen();
 				getNextTokenBlocking(true);
 			}
-			if (getNextTokenBlocking() == "moves") {
+			if (getCurrentToken() == "moves") {
 				string token = getNextTokenBlocking(true);
 				while (token != "\n" && token != "\r") {
-					token = getNextTokenBlocking(true);
 					setMove(token);
+					token = getNextTokenBlocking(true);
 				}
 			}
 		}
@@ -265,7 +265,7 @@ namespace ChessInterface {
 			else if (token == "ucinewgame") _board->newGame();
 			else if (token == "position") setPosition();
 			else if (token == "stop") stopCompute();
-			getNextTokenBlocking();
+			getNextTokenBlocking(true);
 		}
 
 

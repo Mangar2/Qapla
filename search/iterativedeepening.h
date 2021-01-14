@@ -52,7 +52,7 @@ namespace ChessSearch {
 		bool hasMateFound(ComputingInfo& computingInfo) {
 			const value_t SECURITY_BUFFER = 2;
 			bool result = false;
-			if (abs(computingInfo.positionValueInCentiPawn) > MAX_VALUE - (value_t)computingInfo.searchDepth + SECURITY_BUFFER) {
+			if (abs(computingInfo._positionValueInCentiPawn) > MAX_VALUE - (value_t)computingInfo._searchDepth + SECURITY_BUFFER) {
 				result = true;
 			}
 			return result;
@@ -66,7 +66,7 @@ namespace ChessSearch {
 		{
 
 			MoveGenerator searchBoard = board;
-			computingInfo.timeControl.storeStartTime();
+			computingInfo._timeControl.storeStartTime();
 			clockManager.startCalculatingMove(60, clockSetting);
 			computingInfo.initSearch();
 			aspirationWindow.initSearch();
@@ -129,12 +129,12 @@ namespace ChessSearch {
 			do {
 				stack.initSearch(board, aspirationWindow.alpha, aspirationWindow.beta, searchDepth);
 				if (searchDepth != 0) {
-					stack.setPV(computingInfo.pvMovesStore);
+					stack.setPV(computingInfo._pvMovesStore);
 				}
 				// Keep the first move and use it if the following search is aborded without result
-				computingInfo.pvMovesStore.setMove(1, Move::EMPTY_MOVE);
+				computingInfo._pvMovesStore.setMove(1, Move::EMPTY_MOVE);
 
-				computingInfo.searchDepth = searchDepth;
+				computingInfo._searchDepth = searchDepth;
 				search.searchRec(board, stack, computingInfo, clockManager);
 			} while (!clockManager.mustAbortCalculation(0) && aspirationWindow.retryWithNewWindow(computingInfo));
 			computingInfo.printSearchResult();

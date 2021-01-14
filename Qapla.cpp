@@ -34,16 +34,12 @@
 
 using namespace ChessInterface;
 
-ChessSearch::BoardAdapter adapter(0);
+ChessSearch::BoardAdapter adapter;
 
 namespace ChessSearch {
 	class ChessEnvironment {
 	public:
-		ChessEnvironment()
-			: printSearchInfo(&ioHandler),
-			adapter(&printSearchInfo)
-		{
-			// BitBaseReader::loadBitBase();
+		ChessEnvironment() {
 			setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		}
 
@@ -72,7 +68,6 @@ namespace ChessSearch {
 
 	private:
 		ConsoleIO ioHandler;
-		WinboardPrintSearchInfo printSearchInfo;
 		BoardAdapter adapter;
 	};
 }

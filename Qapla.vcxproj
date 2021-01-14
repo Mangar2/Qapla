@@ -255,6 +255,7 @@
     <ClInclude Include="interface\selectinterface.h" />
     <ClInclude Include="interface\stdtimecontrol.h" />
     <ClInclude Include="interface\uci.h" />
+    <ClInclude Include="interface\uciprintsearchinfo.h" />
     <ClInclude Include="interface\winboard.h" />
     <ClInclude Include="interface\winboardprintsearchinfo.h" />
     <ClInclude Include="movegenerator\bitboardmasks.h" />

@@ -121,7 +121,7 @@ namespace ChessSearch {
 			value_t valueOfNextPlySearch;
 			Move move;
 			MoveProvider moveProvider;
-			computingInfo.nodesSearched++;
+			computingInfo._nodesSearched++;
 			WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);
 
 			moveProvider.computeEvades(board, lastMove);
@@ -160,7 +160,7 @@ namespace ChessSearch {
 
 			MoveProvider moveProvider;
 			Move move;
-			computingInfo.nodesSearched++;
+			computingInfo._nodesSearched++;
 			WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);
 
 			value_t standPatValue = Eval::evaluateBoardPosition(board, alpha);

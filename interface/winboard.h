@@ -25,6 +25,7 @@
 #include <string>
 #include "ichessboard.h"
 #include "iinputoutput.h"
+#include "isendsearchinfo.h"
 #include "clocksetting.h"
 #include "stdtimecontrol.h"
 #include "movescanner.h"
@@ -176,6 +177,7 @@ namespace ChessInterface {
 		std::thread computeThread;
 		IChessBoard* _board;
 		IInputOutput* _ioHandler;
+		ISendSearchInfo* _sendSearchInfo;
 	};
 
 }

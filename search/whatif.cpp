@@ -16,7 +16,7 @@ WhatIf::WhatIf() : maxPly(0), searchDepth(0), count(0) {
 }
 
 void WhatIf::init(const Board& board, const ComputingInfo& computingInfo, value_t alpha, value_t beta) {
-	if (computingInfo.searchDepth == searchDepth) {
+	if (computingInfo._searchDepth == searchDepth) {
 		printf("New search [w:%6ld,%6ld]\n", beta, alpha);
 	}
 	hashFoundPly = -1;
@@ -42,7 +42,7 @@ void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, c
 	}
 	printf("[bm:%5s]", stack[ply].bestMove.getLAN().c_str());
 	printf("[st:%8s]", stack[ply].getSearchStateName().c_str());
-	printf("[n:%10lld]", computingInfo.nodesSearched);
+	printf("[n:%10lld]", computingInfo._nodesSearched);
 	if (stack[ply].searchState == SearchVariables::SearchType::PV) {
 		printf(" [PV:");
 		stack[ply].pvMovesStore.print(ply);
@@ -55,7 +55,7 @@ void WhatIf::moveSelected(const Board& board, const ComputingInfo& computingInfo
 	if (ply <= hashFoundPly) {
 		hashFoundPly = -1;
 	}
-	if (computingInfo.searchDepth == searchDepth && board.computeBoardHash() == hash && ply <= amountOfMovesToSearch + 1) {
+	if (computingInfo._searchDepth == searchDepth && board.computeBoardHash() == hash && ply <= amountOfMovesToSearch + 1) {
 		hashFoundPly = ply;
 		qsearch = inQsearch;
 	}
@@ -117,7 +117,7 @@ void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, cons
 		printf("[v:%6ld]", stack[ply].bestValue);
 		printf("[hm:%5s]", stack[ply].getTTMove().getLAN().c_str());
 		printf("[c:%s]", getCutoffString(cutoff).c_str());
-		printf("[n:%lld]", computingInfo.nodesSearched);
+		printf("[n:%lld]", computingInfo._nodesSearched);
 		printf("\n");
 		count++;
 	}

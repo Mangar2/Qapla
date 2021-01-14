@@ -40,90 +40,115 @@ using namespace ChessInterface;
 namespace ChessSearch {
 	class ComputingInfo {
 	public:
-		ComputingInfo(ISendSearchInfo* sendSearchInfoPointer) : sendSearchInfo(sendSearchInfoPointer) {
+		ComputingInfo() : _sendSearchInfo(0) {
 			clear();
 		}
 
-		void clear() {
-			searchDepth = 0;
-			nodesSearched = 0;
-			debug = false;
-			totalAmountOfMovesToConcider = 0;
-			currentMoveNoSearched = 0;
-			positionValueInCentiPawn = 0;
-			printRequest = false;
-			timeControl.storeStartTime();
+		/**
+		 * Sets the interface object to get the search - information
+		 */
+		void setSendSearchInfo(ISendSearchInfo* sendSearchInfo) {
+			_sendSearchInfo = sendSearchInfo;
 		}
 
+		/**
+		 * Initializes the members
+		 */
+		void clear() {
+			_searchDepth = 0;
+			_nodesSearched = 0;
+			_debug = false;
+			_totalAmountOfMovesToConcider = 0;
+			_currentMoveNoSearched = 0;
+			_positionValueInCentiPawn = 0;
+			_printRequest = false;
+			_timeControl.storeStartTime();
+		}
+
+		/**
+		 * initializes data before starting to search
+		 */
 		void initSearch() {
-			nodesSearched = 0;
+			_nodesSearched = 0;
 			if (SearchParameter::CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE) {
 				// statisticForMoveOrdering.clear();
 			}
 		}
 
-		void requestPrintSearchInfo() { printRequest = true; }
+		void requestPrintSearchInfo() { _printRequest = true; }
 
+		/**
+		 * Prints the current serch information based on a setting
+		 */
 		void printSearchInfoIfRequested() {
-			if (printRequest && verbose && sendSearchInfo != 0) {
-				sendSearchInfo->informAboutAdvancementsInSearch(
-					searchDepth,
-					positionValueInCentiPawn,
-					timeControl.getTimeSpentInMilliseconds(),
-					nodesSearched,
-					totalAmountOfMovesToConcider - currentMoveNoSearched,
-					totalAmountOfMovesToConcider,
-					currentConcideredMove.getLAN()
+			if (_printRequest && _verbose && _sendSearchInfo != 0) {
+				_sendSearchInfo->informAboutAdvancementsInSearch(
+					_searchDepth,
+					_positionValueInCentiPawn,
+					_timeControl.getTimeSpentInMilliseconds(),
+					_nodesSearched,
+					_totalAmountOfMovesToConcider - _currentMoveNoSearched,
+					_totalAmountOfMovesToConcider,
+					_currentConcideredMove.getLAN()
 				);
-				printRequest = false;
+				_printRequest = false;
 			}
 		}
 
+		/**
+		 * Prints the information about the result of a search
+		 */
 		void printSearchResult()
 		{
 			MoveStringList primaryVariant;
-			for (uint8_t ply = 0; ply <= searchDepth; ply++) {
-				Move move = pvMovesStore.getMove(ply);
+			for (uint8_t ply = 0; ply <= _searchDepth; ply++) {
+				Move move = _pvMovesStore.getMove(ply);
 				if (move == Move::EMPTY_MOVE) {
 					break;
 				}
 				primaryVariant.push_back(move.getLAN());
 			}
-			if (verbose && sendSearchInfo != 0) {
-				sendSearchInfo->informAboutFinishedSearchAtCurrentDepth(
-					searchDepth,
-					positionValueInCentiPawn,
-					timeControl.getTimeSpentInMilliseconds(),
-					nodesSearched,
+			if (_verbose && _sendSearchInfo != 0) {
+				_sendSearchInfo->informAboutFinishedSearchAtCurrentDepth(
+					_searchDepth,
+					_positionValueInCentiPawn,
+					_timeControl.getTimeSpentInMilliseconds(),
+					_nodesSearched,
 					primaryVariant);
 			}
 		}
 
+		/** 
+		 * Updates the primary variant
+		 */
 		void updatePV(PV& pv) {
-			if (pv != pvMovesStore && !pv.getMove(0).isEmpty()) {
-				pvMovesStore = pv;
+			if (pv != _pvMovesStore && !pv.getMove(0).isEmpty()) {
+				_pvMovesStore = pv;
 				printSearchResult();
 			}
 		}
 
+		/**
+		 * Set verbose mode (prints more info)
+		 */
 		void setVerbose(bool isVerbose) {
-			verbose = isVerbose;
+			_verbose = isVerbose;
 		}
 
-		ISendSearchInfo* sendSearchInfo;
-		StdTimeControl timeControl;
-		value_t positionValueInCentiPawn;
-		uint32_t searchDepth;
-		uint32_t totalAmountOfMovesToConcider;
-		Move currentConcideredMove;
-		uint32_t currentMoveNoSearched;
-		uint64_t nodesSearched;
+		ISendSearchInfo* _sendSearchInfo;
+		StdTimeControl _timeControl;
+		value_t _positionValueInCentiPawn;
+		uint32_t _searchDepth;
+		uint32_t _totalAmountOfMovesToConcider;
+		Move _currentConcideredMove;
+		uint32_t _currentMoveNoSearched;
+		uint64_t _nodesSearched;
 		// StatisticForMoveOrdering statisticForMoveOrdering;
 
-		volatile bool printRequest;
-		PV pvMovesStore;
-		bool debug;
-		bool verbose;
+		volatile bool _printRequest;
+		PV _pvMovesStore;
+		bool _debug;
+		bool _verbose;
 	};
 
 }

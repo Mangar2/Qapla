@@ -52,8 +52,8 @@ namespace ChessSearch {
 		 * Update status information on ply 0
 		 */
 		void updateThinkingInfoPly0(SearchStack& stack) {
-			_computingInfo->currentMoveNoSearched++;
-			_computingInfo->positionValueInCentiPawn = stack[0].bestValue;
+			_computingInfo->_currentMoveNoSearched++;
+			_computingInfo->_positionValueInCentiPawn = stack[0].bestValue;
 			_computingInfo->updatePV(stack[0].pvMovesStore);
 		}
 

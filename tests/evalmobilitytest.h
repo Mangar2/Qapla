@@ -30,7 +30,7 @@ using namespace ChessSearch;
 namespace ChessTest {
 
 	struct EvalMobilityTest {
-		EvalMobilityTest() : ok(0), fail(0), adapter(0) {}
+		EvalMobilityTest() : ok(0), fail(0) {}
 		~EvalMobilityTest() { printResult(); }
 
 		value_t getEval(string fen) {

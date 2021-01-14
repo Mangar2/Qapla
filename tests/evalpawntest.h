@@ -30,7 +30,7 @@ using namespace ChessSearch;
 namespace ChessTest {
 
 	struct EvalPawnTest {
-		EvalPawnTest() : ok(0), fail(0), adapter(0) {}
+		EvalPawnTest() : ok(0), fail(0), adapter() {}
 		~EvalPawnTest() { printResult(); }
 
 		value_t getEval(string fen) {

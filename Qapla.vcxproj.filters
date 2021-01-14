@@ -248,6 +248,9 @@
     <ClInclude Include="interface\uci.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="interface\uciprintsearchinfo.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

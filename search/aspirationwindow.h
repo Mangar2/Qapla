@@ -116,16 +116,16 @@ namespace ChessSearch {
 		 * Retries the search with an updated window
 		 */
 		bool retryWithNewWindow(ComputingInfo& computingInfo) {
-			bool retry = (computingInfo.positionValueInCentiPawn <= alpha || computingInfo.positionValueInCentiPawn >= beta);
+			bool retry = (computingInfo._positionValueInCentiPawn <= alpha || computingInfo._positionValueInCentiPawn >= beta);
 
 			if (retry) {
 				stage++;
-				calculateNewRetryWindow(computingInfo.positionValueInCentiPawn);
+				calculateNewRetryWindow(computingInfo._positionValueInCentiPawn);
 				//printf("[retry window a:%ld, b:%ld]\n", alpha, beta);
 			}
 			else {
 				stage = stage <= 0 ? 0 : stage - 1;
-				calculateNewInitialWindow(computingInfo.positionValueInCentiPawn);
+				calculateNewInitialWindow(computingInfo._positionValueInCentiPawn);
 			}
 			return retry;
 		}

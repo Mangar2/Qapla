@@ -31,7 +31,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 	value_t searchResult;
 	Move curMove;
 
-	_computingInfo->nodesSearched++;
+	_computingInfo->_nodesSearched++;
 	searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
 	WhatIf::whatIf.moveSelected(board, *_computingInfo, stack, previousPlyMove, ply);
 
@@ -86,7 +86,7 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 
 	if (ply > 0) {
 		searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
-		_computingInfo->nodesSearched++;
+		_computingInfo->_nodesSearched++;
 	}
 
 	WhatIf::whatIf.moveSelected(board, *_computingInfo, stack, previousPlyMove, ply);
@@ -97,13 +97,13 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 		searchInfo.extendSearch(board);
 
 		if (ply == 0) {
-			_computingInfo->totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
-			_computingInfo->currentConcideredMove.setEmpty();
+			_computingInfo->_totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
+			_computingInfo->_currentConcideredMove.setEmpty();
 		}
 
 		while (!(curMove = searchInfo.selectNextMove(board)).isEmpty()) {
 
-			if (ply == 0) { _computingInfo->currentConcideredMove = curMove; }
+			if (ply == 0) { _computingInfo->_currentConcideredMove = curMove; }
 
 			if (searchInfo.remainingDepth > 2) {
 				searchResult = -negaMax(board, stack, curMove, ply + 1);

@@ -49,10 +49,14 @@ namespace ChessSearch {
 
 	class BoardAdapter : public IChessBoard {
 	public:
-		BoardAdapter(ISendSearchInfo* sendInfo)
-			: boardModified(true), computingInfo(sendInfo)
-		{
-		}
+		BoardAdapter() : boardModified(true) {}
+
+		/**
+		 * Sets the class printing search information in the right format
+		 */
+		virtual void setSendSerchInfo(ISendSearchInfo* sendSearchInfo) {
+			computingInfo.setSendSearchInfo(sendSearchInfo);
+		};
 
 		/**
 		 * Retrieves the engine name
@@ -66,6 +70,10 @@ namespace ChessSearch {
 			WhatIf::whatIf.setBoard(board);
 			return &WhatIf::whatIf;
 		}
+
+		/**
+		 * Sets the 
+		 */
 
 		/**
 		 * Playes a move. Only the destination square must be provided, other information must be provided
@@ -243,13 +251,13 @@ namespace ChessSearch {
 		 */
 		virtual ComputingInfoExchange getComputingInfo() {
 			ComputingInfoExchange exchange;
-			exchange.currentConsideredMove = computingInfo.pvMovesStore.getMove(0).getLAN();
-			exchange.nodesSearched = computingInfo.nodesSearched;
-			exchange.searchDepth = computingInfo.searchDepth;
-			exchange.elapsedTimeInMilliseconds = computingInfo.timeControl.getTimeSpentInMilliseconds();
-			exchange.totalAmountOfMovesToConcider = computingInfo.totalAmountOfMovesToConcider;
+			exchange.currentConsideredMove = computingInfo._pvMovesStore.getMove(0).getLAN();
+			exchange.nodesSearched = computingInfo._nodesSearched;
+			exchange.searchDepth = computingInfo._searchDepth;
+			exchange.elapsedTimeInMilliseconds = computingInfo._timeControl.getTimeSpentInMilliseconds();
+			exchange.totalAmountOfMovesToConcider = computingInfo._totalAmountOfMovesToConcider;
 			exchange.movesLeftToConcider =
-				computingInfo.totalAmountOfMovesToConcider - computingInfo.currentMoveNoSearched;
+				computingInfo._totalAmountOfMovesToConcider - computingInfo._currentMoveNoSearched;
 			return exchange;
 		}
 
@@ -266,15 +274,6 @@ namespace ChessSearch {
 		virtual void printEvalInfo() {
 			Eval eval;
 			eval.printEval(board);
-		}
-
-		void callSearch() {
-			Search search;
-			ComputingInfoExchange exchange;
-			ComputingInfo computingInfo(0);
-			ClockManager clockManager;
-
-			//search.searchRec(board, computingInfo, clockManager);
 		}
 
 		/**

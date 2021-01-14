@@ -26,6 +26,7 @@
 #include "clocksetting.h"
 #include "computinginfoexchange.h"
 #include "iwhatif.h"
+#include "isendsearchinfo.h"
 
 namespace ChessInterface {
 
@@ -41,6 +42,11 @@ namespace ChessInterface {
 
 	class IChessBoard {
 	public:
+
+		/**
+		 * Sets the class printing search information in the right format
+		 */
+		virtual void setSendSerchInfo(ISendSearchInfo* sendSearchInfo) = 0;
 
 		/**
 		 * Retrieves the name of the engine
@@ -152,6 +158,7 @@ namespace ChessInterface {
 		 * Returns a whatif evaluation structure (see IWhatIf for further information)
 		 */
 		virtual IWhatIf* getWhatIf() = 0;
+
 
 	};
 }
