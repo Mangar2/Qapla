@@ -49,8 +49,12 @@ namespace ChessSearch {
 			}
 			_averageTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / movesLeftForClockControl;
 			_averageTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
-
 			_maxTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / 10;
+			if (clockSetting.getTimeToThinkForAllMovesInMilliseconds() < 10 * 1000) {
+				// Very short time left -> urgent move
+				_maxTimePerMove /= 4;
+			} 
+		
 			_maxTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
 
 			if (_averageTimePerMove > _maxTimePerMove) {

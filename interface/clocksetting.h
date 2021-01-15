@@ -43,10 +43,10 @@ namespace ChessInterface {
 			_nodeCount = 0;
 			_userClock = 0;
 			_mate = 0;
-			_mode = Mode::compute;
+			_mode = Mode::COMPUTE;
 			_moveAmountForClock = 40;
-			_timeToThinkForAllMovesInMilliseconds = 10 * 60 * 1000;
-			_timeIncrementPerMoveInMilliseconds = 1 * 1000;
+			_timeToThinkForAllMovesInMilliseconds = 60 * 1000;
+			_timeIncrementPerMoveInMilliseconds = 0;
 			_exactTimePerMoveInMilliseconds = 0;
 			_playedMovesInGame = 0;
 			_calculationStartTime = 0;
@@ -171,22 +171,24 @@ namespace ChessInterface {
 		/**
 		 * Sets analyze mode (infinite search)
 		 */
-		void setAnalyseMode(bool analyse) { _mode == analyze ?  Mode::analyze : Mode::compute; }
+		void setAnalyseMode(bool analyse) { 
+			_mode = analyse ? Mode::ANALYSE : Mode::COMPUTE; 
+		}
 		
 		/**
 		 * @returns true, if the engine is analyzing (endless search) 
 		 */
-		bool getAnalyseMode() const { return _mode == Mode::analyze; }
+		bool getAnalyseMode() const { return _mode == Mode::ANALYSE; }
 		
 		/**
 		 * Sets the ponder mode to true -> the position will be pondered (endless search)
 		 */
-		void setPonderMode() { _mode = Mode::ponder; }
+		void setPonderMode() { _mode = Mode::ANALYSE; }
 
 		/**
 		 * @returns true, if the engine is currently pondering (calculating while not at move)
 		 */
-		bool isPonderMode() const { return _mode == Mode::ponder; }
+		bool isPonderMode() const { return _mode == Mode::PONDER; }
 
 		/**
 		 * Sets the amount of moves already played in the game
@@ -220,7 +222,7 @@ namespace ChessInterface {
 		uint64_t _exactTimePerMoveInMilliseconds;
 		uint64_t _calculationStartTime;
 		enum Mode {
-			compute, analyze, ponder
+			COMPUTE, ANALYSE, PONDER
 		};
 		Mode _mode;
 

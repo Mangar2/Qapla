@@ -45,10 +45,10 @@ namespace ChessInterface {
 			info += " nodes " + to_string(nodesSearched);
 			info += " depth " + to_string(searchDepth + 1);
 			if (positionValue >= MIN_MATE_VALUE) {
-				info += " score mate " + to_string((MAX_VALUE - positionValue) / 2);
+				info += " score mate " + to_string((MAX_VALUE - positionValue + 1) / 2);
 			}
 			else if (positionValue <= -MIN_MATE_VALUE) {
-				info += " core mate " + to_string((positionValue - MAX_VALUE) / 2);
+				info += " score mate " + to_string(-(MAX_VALUE + positionValue + 1) / 2);
 			}
 			else {
 				info += " score cp " + to_string(positionValue);

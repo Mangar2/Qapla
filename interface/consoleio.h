@@ -190,27 +190,21 @@ namespace ChessInterface {
 		 * Gets a token from buffer
 		 */
 		bufferSize_t readTokenFromBuffer(const string spaceString, const string separationString) {
-			bufferSize_t res = 0;
-			bufferSize_t aIndex = 0;
+			bufferSize_t aIndex;
 			token = "";
-#pragma warning(suppress: 6287)
-			for (; aIndex < BUFFER_SIZE && buffer[aIndex] != 0; aIndex++) {
-				res = aIndex;
-				if (isCharInString(buffer[aIndex], spaceString)) {
-					break;
-				}
-				if (isCharInString(buffer[aIndex], separationString)) {
-					if (aIndex == 0) {
-						// Get the separating char as token
-						token += buffer[aIndex];
-						aIndex = 1;
-						res = 1;
-					}
+			if (isCharInString(buffer[0], separationString)) {
+				token += buffer[0];
+				return 1;
+			}
+			for (aIndex = 0; aIndex < BUFFER_SIZE && buffer[aIndex] != 0; aIndex++) {
+				if (isCharInString(buffer[aIndex], spaceString + separationString)) {
 					break;
 				}
 				token += buffer[aIndex];
 			}
-			return res;
+			// If the token does not end with a space, it could be incompletely loaded -> return 0 to indicate
+			// that no token has been found.
+			return buffer[aIndex] == 0 ? 0 : aIndex;
 		}
 
 		/**
