@@ -251,6 +251,9 @@
     <ClInclude Include="interface\uciprintsearchinfo.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="interface\chessinterface.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

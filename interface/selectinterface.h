@@ -43,7 +43,7 @@ namespace ChessInterface {
 			Winboard winboard;
 			WinboardPrintSearchInfo sendSearchInfo(ioHandler);
 			board->setSendSerchInfo(&sendSearchInfo);
-			winboard.processInput(board, ioHandler);
+			winboard.run(board, ioHandler);
 		}
 	}
 

@@ -22,110 +22,21 @@
 #ifndef __UCI_H
 #define __UCI_H
 
-#include <string>
-#include "ichessboard.h"
-#include "iinputoutput.h"
-#include "clocksetting.h"
-#include "stdtimecontrol.h"
-#include "movescanner.h"
-#include "fenscanner.h"
-#include <thread>
+#include "chessinterface.h"
 
 using namespace std;
 
 namespace ChessInterface {
 
-	class ChessInterface {
-
-	protected:
-
-		/**
-		 * Sets the board to a position
-		 */
-		void setPositionByFen(string position = "") {
-			if (position == "") {
-				position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-			}
-			FenScanner scanner;
-			scanner.setBoard(position, _board);
-		}
-
-		/**
-		 * Gets a move to the board
-		 */
-		bool setMove(string move) {
-			MoveScanner scanner(move);
-			bool res = false;
-			if (scanner.isLegal()) {
-				res = _board->doMove(
-					scanner.piece,
-					scanner.departureFile, scanner.departureRank,
-					scanner.destinationFile, scanner.destinationRank,
-					scanner.promote);
-			}
-			return res;
-		}
-
-		/**
- 		 * Sets the playing time
-		 */
-		void setTime(uint64_t timeInMilliseconds, bool white) {
-			if (_board->isWhiteToMove() == white) {
-				_clock.setComputerClockInMilliseconds(timeInMilliseconds);
-			}
-			else {
-				_clock.setUserClockInMilliseconds(timeInMilliseconds);
-			}
-		}
-
-		/**
-		 * Sets the playing time
-		 */
-		void setTimeInc(uint64_t timeInMilliseconds, bool white) {
-			if (_board->isWhiteToMove() == white) {
-				_clock.setTimeIncrementPerMoveInMilliseconds(timeInMilliseconds);
-			}
-		}
-
-		/**
-		 * Wait for the computing thread to end and joins the thread.
-		 */
-		void waitForComputingThreadToEnd() {
-			if (_computeThread.joinable()) {
-				_computeThread.join();
-			}
-		}
-
-		/**
-		 * Stop current computing
-		 */
-		void stopCompute() {
-			_board->moveNow();
-			waitForComputingThreadToEnd();
-		}
-
-	protected:
-		void println(const string& output) { _ioHandler->println(output); }
-		void print(const string& output) { _ioHandler->print(output); }
-		string getCurrentToken() { return _ioHandler->getCurrentToken(); }
-		string getNextTokenBlocking(bool getEOL = false) { return _ioHandler->getNextTokenBlocking(getEOL); }
-		uint64_t getTokenAsUnsignedInt() { return _ioHandler->getCurrentTokenAsUnsignedInt(); }
-		IChessBoard* _board;
-		IInputOutput* _ioHandler;
-		ClockSetting _clock;
-		thread _computeThread;
-	};
-
 	class UCI : public ChessInterface {
 	public:
 		UCI() {}
 
+	private:
 		/**
 		 * Runs the UCI protocol interface steering the chess engine
 		 */
-		void run(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-			_ioHandler = ioHandler;
-			_board = chessBoard;
+		virtual void runLoop() {
 			if (getCurrentToken() != "uci") {
 				println("error (uci command expected): " + getCurrentToken());
 				return;
@@ -135,8 +46,6 @@ namespace ChessInterface {
 			}
 			stopCompute();
 		}
-
-	protected:
 
 		/**
 		 * Starts computing a move - sets analyze mode to false
@@ -237,7 +146,7 @@ namespace ChessInterface {
 				}
 				else {
 					getNextTokenBlocking(true);
-					uint64_t param = getTokenAsUnsignedInt();
+					uint64_t param = getCurrentTokenAsUnsignedInt();
 					if (token == "wtime") setTime(param, true);
 					else if (token == "btime") setTime(param, false);
 					else if (token == "winc") setTimeInc(param, true);

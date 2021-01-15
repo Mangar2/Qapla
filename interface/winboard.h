@@ -22,92 +22,81 @@
 #ifndef __WINBOARD_H
 #define __WINBOARD_H
 
-#include <string>
-#include "ichessboard.h"
-#include "iinputoutput.h"
-#include "isendsearchinfo.h"
-#include "clocksetting.h"
-#include "stdtimecontrol.h"
-#include "movescanner.h"
-#include "fenscanner.h"
 //#include "EPDTest.h"
-#include <thread>
+#include "chessinterface.h"
 
 using namespace std;
 
 namespace ChessInterface {
 
-	class HandleMove {
+	class Winboard : public ChessInterface {
 	public:
+		Winboard();
+
+	private:
 
 		/**
 		 * Manages a move
 		 */
-		static bool handleMove(IChessBoard* chessBoard, IInputOutput* ioHandler, const string move);
+		bool handleMove(string move = "");
 
 		/**
 		 * Prints a game result information
 		 */
-		static void printGameResult(GameResult result, IInputOutput* ioHandler);
+		void printGameResult(GameResult result);
 
-	private:
-		/** 
-		 * Scans a move
+		/**
+		 * Processes any input coming from the console
 		 */
-		static bool scanMove(IChessBoard* chessBoard, const string move);
+		virtual void runLoop();
 
-	};
-
-	class Winboard {
-	public:
-		Winboard();
 
 		/**
 		 * Sets xBoard mode 
 		 */
-		void handleXBoard(IInputOutput* ioHandler) {
+		void handleXBoard() {
 			xBoardMode = true;
 		}
 
 		/**
 		 * Prints the protocol abilities
 		 */
-		void handleProtover(IInputOutput* ioHandler);
+		void handleProtover();
 
 		/*
 		 * Removes the last two moves, if a human person is at move
 		 */
-		void handleRemove(IChessBoard* chessBoard);
+		void handleRemove();
 		
 		/**
 		 * Runs the perft command
 		 */
-		void runPerft(IChessBoard* chessBoard, IInputOutput* ioHandler, bool showMoves);
+		void runPerft(bool showMoves);
 
 		/**
 		 * Sets the computer to analyze mode
 		 */
-		void analyzeMove(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		void analyzeMove();
 
 		/**
 		 * Starts computing a move
 		 */
-		void computeMove(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		void computeMove();
 
 		/**
 		 * Starts a test of a list of EPD strings
 		 */
-		void WMTest(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		void WMTest();
 
 		/**
 		 * Answers to a ping (with a pong)
 		 */
-		void handlePing(IInputOutput* ioHandler);
+		void handlePing();
 
 		/**
 		 * Handles a fen string to or a setBoard command
 		 */
-		bool handleBoardChanges(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		bool handleBoardChanges();
 
 		/**
 		 * Handles a whatif command.
@@ -115,68 +104,49 @@ namespace ChessInterface {
 		 * The function will print the main variant for a list of moves 
 		 * "whatif e4 e5" (what did you calculate as main variant after moves e4, e5)
 		 */
-		bool handleWhatIf(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		bool handleWhatIf();
 
 		/**
 		 * Handles a play level command
 		 */
-		void readLevelCommand(IInputOutput* ioHandler);
+		void readLevelCommand();
 
 		/**
 		 * check command to modify the clock
 		 */
-		bool checkClockCommands(IChessBoard* chessBoard, IInputOutput* ioHandler);
-
-		/**
-		 * wait for a computing thread to end and disables the thread
-		 */
-		void waitForComputingThreadToEnd();
+		bool checkClockCommands();
 
 		/**
 		 * Check for a usermove command or a move to play 
 		 */
-		bool checkMoveCommand(IChessBoard* chessBoard, IInputOutput* ioHandler);
-
-		/**
-		 * Processes any input coming from the console
-		 */
-		void processInput(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		bool checkMoveCommand();
 
 		/**
 		 * Processes any input while computing a move
 		 */
-		void handleInputWhileComputingMove(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		void handleInputWhileComputingMove();
 
 		/**
 		 * Processes any input while in analyze mode
 		 */
-		void handleInputWhileInAnalyzeMode(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		void handleInputWhileInAnalyzeMode();
 
 		/**
 		 * Processes any input whil in edit mode
 		 */
-		void handleInputWhiteInEditMode(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		void handleInputWhiteInEditMode();
 
 		/**
 		 * Handles input while in "wait for user action" mode
 		 */
-		void handleInput(IChessBoard* chessBoard, IInputOutput* ioHandler);
+		void handleInput();
 
-		volatile bool computingMove;
-		volatile bool analyzeMode;
-		bool editMode;
 		bool editModeIsWhiteColor;
-		ClockSetting clock;
-
-	private:
-		bool quit;
+		volatile Mode _mode;
 		uint8_t protoVer;
 		bool xBoardMode;
 		bool computerIsWhite;
 		bool forceMode;
-		std::thread computeThread;
-		IChessBoard* _board;
-		IInputOutput* _ioHandler;
 		ISendSearchInfo* _sendSearchInfo;
 	};
 

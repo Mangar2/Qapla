@@ -171,7 +171,7 @@ namespace ChessInterface {
 		/**
 		 * Sets analyze mode (infinite search)
 		 */
-		void setAnalyseMode(bool analyse) { _mode = analyze ?  Mode::analyze : Mode::compute; }
+		void setAnalyseMode(bool analyse) { _mode == analyze ?  Mode::analyze : Mode::compute; }
 		
 		/**
 		 * @returns true, if the engine is analyzing (endless search) 

@@ -243,6 +243,7 @@
     <ClInclude Include="eval\evalpawn.h" />
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\pawnrace.h" />
+    <ClInclude Include="interface\chessinterface.h" />
     <ClInclude Include="interface\clocksetting.h" />
     <ClInclude Include="interface\computinginfoexchange.h" />
     <ClInclude Include="interface\consoleio.h" />
