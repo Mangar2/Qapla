@@ -23,6 +23,7 @@
 
 #include "../eval/evalpawn.h"
 #include "../search/boardadapter.h"
+#include "../eval/evalresults.h"
 
 using namespace ChessEval;
 using namespace ChessSearch;
@@ -34,15 +35,17 @@ namespace ChessTest {
 		~EvalPawnTest() { printResult(); }
 
 		value_t getEval(string fen) {
+			EvalResults mobility;
 			scanner.setBoard(fen, &adapter);
-			return eval.eval(adapter.getBoard());
+			return eval.eval(adapter.getBoard(), mobility);
 		}
 
 		void test(MoveGenerator& board, string message, value_t expected) {
-			value_t found = eval.eval(board);
+			EvalResults mobility;
+			value_t found = eval.eval(board, mobility);
 			if (found != expected) {
 				cout << message << " found: " << found << " expected: " << expected << endl;
-				found = eval.eval(board);
+				found = eval.eval(board, mobility);
 				fail++;
 			}
 			else {
@@ -65,6 +68,7 @@ namespace ChessTest {
 		}
 
 		void measureRuntime() {
+			EvalResults mobility;
 #ifdef _DEBUG
 			const uint64_t LOOPS = 10000000;
 #else
@@ -75,7 +79,7 @@ namespace ChessTest {
 			timeControl.storeStartTime();
 
 			for (uint64_t i = 0; i < LOOPS; i++) {
-				eval.eval(adapter.getBoard());
+				eval.eval(adapter.getBoard(), mobility);
 			}
 			timeControl.printTimeSpent(LOOPS);
 		}

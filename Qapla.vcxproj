@@ -241,6 +241,7 @@
     <ClInclude Include="eval\evalendgame.h" />
     <ClInclude Include="eval\evalmobility.h" />
     <ClInclude Include="eval\evalpawn.h" />
+    <ClInclude Include="eval\evalresults.h" />
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="interface\chessinterface.h" />

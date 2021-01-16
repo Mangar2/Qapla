@@ -17,6 +17,7 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  */
 
+#include "evalresults.h"
 #include "evalendgame.h"
 #include "kingpawnattack.h"
 
@@ -96,8 +97,9 @@ void EvalEndgame::registerFunction(string pieces, evalFunction_t function, bool 
 
 value_t EvalEndgame::materialAndPawnStructure(MoveGenerator& board) {
 	EvalPawn evalPawn;
+	EvalResults mobility;
 	value_t result = board.getMaterialValue();
-	result += evalPawn.eval(board);
+	result += evalPawn.eval(board, mobility);
 	return result;
 }
 
@@ -114,7 +116,8 @@ value_t EvalEndgame::KQPsKRPs(MoveGenerator& board, value_t currentValue) {
 value_t EvalEndgame::KPsKPs(MoveGenerator& board, value_t currentValue) {
 	value_t result = 0;
 	EvalPawn evalPawn;
-	result += evalPawn.computePawnValueNoPiece(board);
+	EvalResults mobility;
+	result += evalPawn.computePawnValueNoPiece(board, mobility);
 	
 	if (evalPawn.passedPawnFld[WHITE] == 0 && evalPawn.passedPawnFld[BLACK] == 0) {
 		KingPawnAttack kingPawnAttack;

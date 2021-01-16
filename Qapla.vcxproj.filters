@@ -22,21 +22,15 @@
     <Filter Include="eval">
       <UniqueIdentifier>{c0f548a7-d318-4df0-9b89-6f2eaf60356e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="movegenerator">
+      <UniqueIdentifier>{f173c172-4273-4eca-ac9b-b3456297ba7c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basics\basicboard.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="basics\board.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="movegenerator\bitboardmasks.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="movegenerator\magics.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="movegenerator\movegenerator.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="interface\stdtimecontrol.cpp">
@@ -78,6 +72,15 @@
     <ClCompile Include="Qapla.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="movegenerator\movegenerator.cpp">
+      <Filter>movegenerator</Filter>
+    </ClCompile>
+    <ClCompile Include="movegenerator\bitboardmasks.cpp">
+      <Filter>movegenerator</Filter>
+    </ClCompile>
+    <ClCompile Include="movegenerator\magics.cpp">
+      <Filter>movegenerator</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">
@@ -96,15 +99,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="basics\types.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="movegenerator\bitboardmasks.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="movegenerator\magics.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="movegenerator\movegenerator.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\boardadapter.h">
@@ -253,6 +247,18 @@
     </ClInclude>
     <ClInclude Include="interface\chessinterface.h">
       <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="movegenerator\bitboardmasks.h">
+      <Filter>movegenerator</Filter>
+    </ClInclude>
+    <ClInclude Include="movegenerator\magics.h">
+      <Filter>movegenerator</Filter>
+    </ClInclude>
+    <ClInclude Include="movegenerator\movegenerator.h">
+      <Filter>movegenerator</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalresults.h">
+      <Filter>eval</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

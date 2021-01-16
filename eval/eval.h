@@ -29,6 +29,7 @@
 
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
+#include "evalresults.h"
 #include "evalendgame.h"
 #include "evalpawn.h"
 #include "evalmobility.h"
@@ -62,9 +63,10 @@ namespace ChessEval {
 			value_t evalResult;
 			value_t endGameResult;
 			EvalPawn evalPawn;
+			EvalResults mobility;
 
 			evalResult = board.getMaterialValue();
-			evalResult += evalPawn.eval(board);
+			evalResult += evalPawn.eval(board, mobility);
 
 			endGameResult = EvalEndgame::eval(board, evalResult);
 			endGameResult = cutValueOnDrawPositions(board, endGameResult);
@@ -73,7 +75,7 @@ namespace ChessEval {
 				evalResult = endGameResult;
 			}
 			else {
-				evalResult += EvalMobility::eval(board);
+				evalResult += EvalMobility::eval(board, mobility);
 			}
 
 			return evalResult;

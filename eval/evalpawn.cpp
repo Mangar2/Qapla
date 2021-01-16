@@ -109,8 +109,9 @@ void EvalPawn::computeIsolatedPawnLookupTable() {
 }
 
 value_t EvalPawn::print(MoveGenerator& board) {
-	init<WHITE>(board);
-	init<BLACK>(board);
+	EvalResults mobility;
+	init<WHITE>(board, mobility);
+	init<BLACK>(board, mobility);
 	printf("Pawns\n");
 	printf("White advanced pawn : %ld\n", computeAdvancedPawnValue<WHITE>());
 	printf("Black advanced pawn : %ld\n", computeAdvancedPawnValue<BLACK>());
@@ -120,6 +121,6 @@ value_t EvalPawn::print(MoveGenerator& board) {
 	printf("Black double   pawn : %ld\n", computeDoublePawnValue<BLACK>());
 	printf("White passed   pawn : %ld\n", computePassedPawnValue<WHITE>(board));
 	printf("Black passed   pawn : %ld\n", computePassedPawnValue<BLACK>(board));
-	printf("Pawn total          : %ld\n", eval(board));
-	return eval(board);
+	printf("Pawn total          : %ld\n", eval(board, mobility));
+	return eval(board, mobility);
 }

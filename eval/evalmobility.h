@@ -23,6 +23,7 @@
 #define __EVALMOBILITY_H
 
 #include "../movegenerator/movegenerator.h"
+#include "evalresults.h"
 
 using namespace ChessMoveGenerator;
 
@@ -40,45 +41,49 @@ namespace ChessEval {
 	public:
 
 		static value_t print(MoveGenerator& board) {
-			bitBoard_t queensBB = board.getPieceBB(WHITE_QUEEN) + board.getPieceBB(BLACK_QUEEN);
+			EvalResults mobility;
+
 			printf("Mobility:\n");
+			printf("Mobility total      : %ld\n", eval(board, mobility));
 			printf("White Knight        : %ld\n", calcKnightMobility<WHITE>(board));
 			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board));
-			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board, queensBB));
-			printf("Black Bishop        : %ld\n", -calcBishopMobility<BLACK>(board, queensBB));
-			printf("White Rook          : %ld\n", calcRookMobility<WHITE>(board, queensBB));
-			printf("Black Rook          : %ld\n", -calcRookMobility<BLACK>(board, queensBB));
-			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board));
-			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board));
-			printf("Mobility total      : %ld\n", eval(board));
-			return eval(board);
+			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board, mobility));
+			printf("Black Bishop        : %ld\n", -calcBishopMobility<BLACK>(board, mobility));
+			printf("White Rook          : %ld\n", calcRookMobility<WHITE>(board, mobility));
+			printf("Black Rook          : %ld\n", -calcRookMobility<BLACK>(board, mobility));
+			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board, mobility));
+			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board, mobility));
+			return eval(board, mobility);
 
 		}
 
 		/**
 		 * Evaluates the mobility of all pieces (not pawns) on the board
 		 */
-		static value_t eval(MoveGenerator& board) {
-			bitBoard_t queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
+		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
+			init(board, mobility);
 
-			value_t evalResult = eval<WHITE>(board, queensBB) - eval<BLACK>(board, queensBB);
-
+			value_t evalResult = eval<WHITE>(board, mobility) - eval<BLACK>(board, mobility);
 			return evalResult;
 		}
 
 
 	private:
 
+		static inline void init(MoveGenerator& board, EvalResults& mobility) {
+			mobility.queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
+		}
+
 		/**
 		 * Evaluate mobility for all pieces of one color
 		 */
 		template <Piece COLOR>
-		static value_t eval(MoveGenerator& board, bitBoard_t queensBB) {
+		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
 			value_t evalResult = 0;
 			evalResult += calcKnightMobility<COLOR>(board);
-			evalResult += calcBishopMobility<COLOR>(board, queensBB);
-			evalResult += calcRookMobility<COLOR>(board, queensBB);
-			evalResult += calcQueenMobility<COLOR>(board);
+			evalResult += calcBishopMobility<COLOR>(board, mobility);
+			evalResult += calcRookMobility<COLOR>(board, mobility);
+			evalResult += calcQueenMobility<COLOR>(board, mobility);
 			return evalResult;
 		}
 
@@ -86,7 +91,7 @@ namespace ChessEval {
 		 * Calculates the mobility values of bishops
 		 */
 		template <Piece COLOR>
-		static value_t calcBishopMobility(MoveGenerator& board, bitBoard_t queensBB)
+		static value_t calcBishopMobility(MoveGenerator& board, EvalResults& mobility)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
@@ -94,9 +99,9 @@ namespace ChessEval {
 				return 0;
 			}
 
-			bitBoard_t passThrough = queensBB | board.getPieceBB(ROOK + OPPONENT);
+			bitBoard_t passThrough = mobility.queensBB | board.getPieceBB(ROOK + OPPONENT);
 			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = (~occupied | passThrough) & ~board.pawnAttackMask[OPPONENT];
+			bitBoard_t removeMask = (~occupied | passThrough) & ~mobility.pawnAttack[OPPONENT];
 			occupied &= ~passThrough;
 
 			Square departureSquare;
@@ -107,6 +112,7 @@ namespace ChessEval {
 				bishops &= bishops - 1;
 				bitBoard_t attack = Magics::genBishopAttackMask(departureSquare, occupied);
 				attack &= removeMask;
+				mobility.bishopAttack[COLOR] = attack;
 				result += EvalMobilityValues::BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
 
 			}
@@ -117,7 +123,7 @@ namespace ChessEval {
 		 * Calculates the mobility values of rooks
 		 */
 		template <Piece COLOR>
-		static value_t calcRookMobility(MoveGenerator& board, bitBoard_t queensBB)
+		static value_t calcRookMobility(MoveGenerator& board, EvalResults& mobility)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t rooks = board.getPieceBB(ROOK + COLOR);
@@ -125,9 +131,9 @@ namespace ChessEval {
 				return 0;
 			}
 
-			bitBoard_t passThrough = queensBB | rooks;
+			bitBoard_t passThrough = mobility.queensBB | rooks;
 			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = (~occupied | passThrough) & ~board.pawnAttackMask[OPPONENT];
+			bitBoard_t removeMask = (~occupied | passThrough) & ~mobility.pawnAttack[OPPONENT];
 			occupied &= ~passThrough;
 
 			Square departureSquare;
@@ -138,6 +144,7 @@ namespace ChessEval {
 				rooks &= rooks - 1;
 				bitBoard_t attack = Magics::genRookAttackMask(departureSquare, occupied);
 				attack &= removeMask;
+				mobility.rookAttack[COLOR] = attack;
 				result += EvalMobilityValues::ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
 
 			}
@@ -148,7 +155,7 @@ namespace ChessEval {
 		 * Calculates the mobility value for Queens
 		 */
 		template <Piece COLOR>
-		static value_t calcQueenMobility(MoveGenerator& board)
+		static value_t calcQueenMobility(MoveGenerator& board, EvalResults& mobility)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t queens = board.getPieceBB(QUEEN + COLOR);
@@ -158,7 +165,7 @@ namespace ChessEval {
 
 			bitBoard_t passThrough = board.getPieceBB(ROOK + COLOR) | board.getPieceBB(BISHOP + COLOR);
 			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = (~occupied | passThrough) & ~board.pawnAttackMask[OPPONENT];
+			bitBoard_t removeMask = (~occupied | passThrough) & ~mobility.pawnAttack[OPPONENT];
 			occupied &= ~passThrough;
 
 			Square departureSquare;
@@ -169,6 +176,7 @@ namespace ChessEval {
 				queens &= queens - 1;
 				bitBoard_t attack = Magics::genQueenAttackMask(departureSquare, occupied);
 				attack &= removeMask;
+				mobility.queenAttack[COLOR] = attack;
 				result += EvalMobilityValues::QUEEN_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
 
 			}

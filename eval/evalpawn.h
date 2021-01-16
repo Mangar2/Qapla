@@ -26,6 +26,7 @@
 #include "../basics/move.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "evalresults.h"
 #include "pawnrace.h"
 
 using namespace ChessBasics;
@@ -69,9 +70,9 @@ namespace ChessEval {
 		/**
 		 * Calculates the evaluation for the pawn values on the board
 		 */
-		value_t eval(MoveGenerator& board) {
-			init<WHITE>(board);
-			init<BLACK>(board);
+		value_t eval(MoveGenerator& board, EvalResults& mobility) {
+			init<WHITE>(board, mobility);
+			init<BLACK>(board, mobility);
 			return eval<WHITE>(board) + eval<BLACK>(board);
 		}
 
@@ -88,9 +89,9 @@ namespace ChessEval {
 		 * Computes the value of the pawn structure in the case there is no
 		 * piece on the board
 		 */
-		value_t computePawnValueNoPiece(MoveGenerator& board) {
-			init<WHITE>(board);
-			init<BLACK>(board);
+		value_t computePawnValueNoPiece(MoveGenerator& board, EvalResults& mobility) {
+			init<WHITE>(board, mobility);
+			init<BLACK>(board, mobility);
 			value_t result = board.getMaterialValue();
 			result += computePawnValueNoPieceButPawn<WHITE>(board);
 			result -= computePawnValueNoPieceButPawn<BLACK>(board);
@@ -129,7 +130,9 @@ namespace ChessEval {
 		 * Initializes the eval structures
 		 */
 		template<Piece COLOR>
-		void init(MoveGenerator& board) {
+		void init(MoveGenerator& board, EvalResults& mobility) {
+			mobility.pawnAttack[WHITE] = BitBoardMasks::computePawnAttackMask<WHITE>(board.getPieceBB(WHITE_PAWN));
+			mobility.pawnAttack[BLACK] = BitBoardMasks::computePawnAttackMask<BLACK>(board.getPieceBB(BLACK_PAWN));
 			pawns[COLOR] = board.getPieceBB(PAWN + COLOR);
 			pawnMoveRay[COLOR] = computePawnMoveRay<COLOR>();
 		}
