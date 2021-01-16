@@ -25,6 +25,9 @@
     <Filter Include="movegenerator">
       <UniqueIdentifier>{f173c172-4273-4eca-ac9b-b3456297ba7c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Bitbase">
+      <UniqueIdentifier>{14ce5dfa-7457-4602-8ef8-95a7d6a033e9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basics\basicboard.cpp">
@@ -80,6 +83,12 @@
     </ClCompile>
     <ClCompile Include="movegenerator\magics.cpp">
       <Filter>movegenerator</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\bitbasereader.cpp">
+      <Filter>Bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\bitbaseindex.cpp">
+      <Filter>Bitbase</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -259,6 +268,15 @@
     </ClInclude>
     <ClInclude Include="eval\evalresults.h">
       <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\bitbase.h">
+      <Filter>Bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\bitbasereader.h">
+      <Filter>Bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\bitbaseindex.h">
+      <Filter>Bitbase</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -71,6 +71,7 @@ namespace ChessBasics {
 
 	constexpr File operator+(File a, int32_t b) { return File(int32_t(a) + b); }
 	constexpr File operator-(File a, int32_t b) { return File(int32_t(a) - b); }
+	constexpr File operator-(File a, File b) { return File(int32_t(a) - int32_t(b)); }
 	inline File& operator++(File& file) { return file = File(file + 1);  }
 	inline File& operator--(File& file) { return file = File(file - 1); }
 	inline File& operator+=(File& a, int32_t b) { return a = File(a + b); }
@@ -84,6 +85,7 @@ namespace ChessBasics {
 
 	constexpr Rank operator+(Rank a, int32_t b) { return Rank(int32_t(a) + b); }
 	constexpr Rank operator-(Rank a, int32_t b) { return Rank(int32_t(a) - b); }
+	constexpr Rank operator-(Rank a, Rank b) { return Rank(int32_t(a) - int32_t(b)); }
 	inline Rank& operator++(Rank& rank) { return rank = Rank(rank + 1); }
 	inline Rank& operator--(Rank& rank) { return rank = Rank(rank - 1); }
 	inline Rank& operator+=(Rank& a, int32_t b) { return a = Rank(a + b); }

@@ -1,85 +1,114 @@
-#pragma once
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
-#include "BitBase.h"
-#include "GenBoard.h"
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
 
-typedef pos_t(*getPieceMethod)(GenBoard& board);
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2021 Volker Böhm
+ * @Overview
+ * Calculates an index from a board position to a bitbase. The index is calculated by multiplying 
+ * 1. An index for the positions of the two kings supressing illegal positions where kings are adjacent.
+ * 
+ */
+
+#include "bitbase.h"
+#include "../basics/types.h"
+#include "../movegenerator/movegenerator.h"
+
+using namespace ChessBasics;
+using namespace ChessMoveGenerator;
+
+typedef Square(*getPieceMethod)(MoveGenerator& board);
 
 class BoardAccess {
 public:
-	static pos_t getBlackKingPos(GenBoard& board) { return board.kingPos[BLACK]; }
-	static pos_t getWhiteKingPos(GenBoard& board) { return board.kingPos[WHITE]; }
-	static pos_t getWhitePawnPos(GenBoard& board) { return BitBoardMasks::lsb(board.getPieceBitBoard(WHITE_PAWN)); }
-	static pos_t getBlackPawnPos(GenBoard& board) { return BitBoardMasks::lsb(board.getPieceBitBoard(BLACK_PAWN)); }
-	static bool getWhiteToMove(GenBoard& board) { return board.whiteToMove; }
-	
+	template <Piece COLOR>
+	static Square getKingPos(MoveGenerator& board) { return board.getKingSquare<COLOR>(); }
+	template <Piece COLOR>
+	static Square getPawnPos(MoveGenerator& board) { return BitBoardMasks::lsb(board.getPieceBB(COLOR + PAWN)); }
+	static bool getWhiteToMove(MoveGenerator& board) { return board.isWhiteToMove(); }
 };
 
 class BitBaseIndex
 {
 public:
 
+	/**
+	 * Computes the size of a KPK bitbase
+	 */
 	static uint64_t computeKPKSize() {
-		uint64_t maxIndex = computeKingIndex(POS_D8, POS_H8, 0);
+		uint64_t maxIndex = computeKingIndex(D8, H8, 0);
 		return (maxIndex + 1) * AMOUT_OF_PAWN_POSITIONS * COLORS;
 	}
 
+	/**
+	 * Computes the size of a KRKP bitbase
+	 */
 	static uint64_t computeKRKPSize() {
-		uint64_t maxIndex = computeKingIndex(POS_D8, POS_H8, 0);
+		uint64_t maxIndex = computeKingIndex(D8, H8, 0);
 		return (maxIndex + 1) * AMOUT_OF_PAWN_POSITIONS * COLORS * BOARD_SIZE;
 	}
 
+	static inline Square getWhiteKingPos(MoveGenerator& board) { return BoardAccess::getKingPos<WHITE>(board); }
+	static inline Square getBlackKingPos(MoveGenerator& board) { return BoardAccess::getKingPos<BLACK>(board); }
+	static inline Square getWhitePawnPos(MoveGenerator& board) { return BoardAccess::getPawnPos<WHITE>(board); }
+	static inline Square getBlackPawnPos(MoveGenerator& board) { return BoardAccess::getPawnPos<BLACK>(board); }
 
-	static inline pos_t getWhiteKingPos(GenBoard& board) { return BoardAccess::getWhiteKingPos(board); }
-	static inline pos_t getBlackKingPos(GenBoard& board) { return BoardAccess::getBlackKingPos(board); }
-	static inline pos_t getWhitePawnPos(GenBoard& board) { return BoardAccess::getWhitePawnPos(board); }
-	static inline pos_t getBlackPawnPos(GenBoard& board) { return BoardAccess::getBlackPawnPos(board); }
+	static inline Square getMappedWhiteKingPos(MoveGenerator& board) { return mapPosToOtherColor(BoardAccess::getKingPos<WHITE>(board)); }
+	static inline Square getMappedBlackKingPos(MoveGenerator& board) { return mapPosToOtherColor(BoardAccess::getKingPos<BLACK>(board)); }
+	static inline Square getMappedWhitePawnPos(MoveGenerator& board) { return mapPosToOtherColor(BoardAccess::getPawnPos<WHITE>(board)); }
+	static inline Square getMappedBlackPawnPos(MoveGenerator& board) { return mapPosToOtherColor(BoardAccess::getPawnPos<BLACK>(board)); }
 
-	static inline pos_t getMappedWhiteKingPos(GenBoard& board) { return mapPosToOtherColor(BoardAccess::getWhiteKingPos(board)); }
-	static inline pos_t getMappedBlackKingPos(GenBoard& board) { return mapPosToOtherColor(BoardAccess::getBlackKingPos(board)); }
-	static inline pos_t getMappedWhitePawnPos(GenBoard& board) { return mapPosToOtherColor(BoardAccess::getWhitePawnPos(board)); }
-	static inline pos_t getMappedBlackPawnPos(GenBoard& board) { return mapPosToOtherColor(BoardAccess::getBlackPawnPos(board)); }
-
-	static uint64_t kpkIndex(GenBoard& board) {
+	static uint64_t kpkIndex(MoveGenerator& board) {
 		return computeIndexThreePiecesWithPawn<getWhiteKingPos, getBlackKingPos, getWhitePawnPos, false>(board);
 	}
 
-	static uint64_t kkpIndex(GenBoard& board) {
+	static uint64_t kkpIndex(MoveGenerator& board) {
 		return computeIndexThreePiecesWithPawn<getMappedBlackKingPos, getMappedWhiteKingPos, getMappedBlackPawnPos, true>(board);
 	}
 	
-	static pos_t computeNextKingPosForPositionsWithPawn(pos_t currentPos) {
-		pos_t nextPos = getCol(currentPos) < 3 ?  currentPos + 1 : currentPos + 5;
+	/**
+	 * Computes the next possible king position for positions with pawns
+	 */
+	static Square computeNextKingPosForPositionsWithPawn(Square currentPos) {
+		Square nextPos = getFile(currentPos) < File::D ?  currentPos + 1 : currentPos + 5;
 		return nextPos;
 	}
 
-	static bool isAdjacent(pos_t pos1, pos_t pos2) {
+	/**
+	 * Checks, if two squares are adjacent
+	 */
+	static bool isAdjacent(Square pos1, Square pos2) {
 		bitBoard_t map = 1ULL << pos1;
 		bool result;
 
-		map |= (map & ~BitBoardMasks::COL_A_BITMASK) >> 1;
-		map |= (map & ~BitBoardMasks::COL_H_BITMASK) << 1;
-		map |= (map & ~BitBoardMasks::ROW_1_BITMASK) >> 8;
-		map |= (map & ~BitBoardMasks::ROW_8_BITMASK) << 8;
+		map |= BitBoardMasks::shift<WEST>(map);
+		map |= BitBoardMasks::shift<EAST>(map);
+		map |= BitBoardMasks::shift<SOUTH>(map);
+		map |= BitBoardMasks::shift<NORTH>(map);
 
 		result = ((1ULL << pos2) & map) != 0;
-
 		return result;
 	}
-
-	static void initStatics() {
-		initKingIndexMap();
-	}
-
 
 private:
 	BitBaseIndex(void);
 
 	template <getPieceMethod WhiteKing, getPieceMethod BlackKing, getPieceMethod Pawn, bool invertSideToMove>
-	static uint64_t computeIndexThreePiecesWithPawn(GenBoard& board) {
-		pos_t whiteKingPos = WhiteKing(board);
-		pos_t blackKingPos = BlackKing(board);
-		pos_t whitePawnPos = Pawn(board);
+	static uint64_t computeIndexThreePiecesWithPawn(MoveGenerator& board) {
+		Square whiteKingPos = WhiteKing(board);
+		Square blackKingPos = BlackKing(board);
+		Square whitePawnPos = Pawn(board);
 		bool whiteToMove = BoardAccess::getWhiteToMove(board);
 		if (invertSideToMove) { whiteToMove = !whiteToMove; }
 
@@ -93,10 +122,15 @@ private:
 	}
 
 
+	/**
+	 * One factor of the index is the position of the two kings. A map is used to calculate the
+	 * right index for the king positions to remove all illegal positions - with two adjacent kings - 
+	 * from the index. 
+	 */
 	static void initKingIndexMap() {
 		uint32_t index = 0;
-		for (pos_t whiteKingPos = 0; whiteKingPos < BOARD_SIZE; whiteKingPos = computeNextKingPosForPositionsWithPawn(whiteKingPos)) {
-			for (pos_t blackKingPos = 0; blackKingPos < BOARD_SIZE; blackKingPos++) {
+		for (Square whiteKingPos = A1; whiteKingPos <= H8; whiteKingPos = computeNextKingPosForPositionsWithPawn(whiteKingPos)) {
+			for (Square blackKingPos = A1; blackKingPos <= H8; blackKingPos++) {
 				uint32_t lookupIndex = whiteKingPos + blackKingPos * BOARD_SIZE;
 				assert(lookupIndex < BOARD_SIZE * BOARD_SIZE);
 				kingIndexMap[lookupIndex] = index;
@@ -105,12 +139,14 @@ private:
 				} 
 			}
 		}
-		//printf("%ld\n", index);
 	}
 
-	static uint32_t computePosMapType(pos_t pos, bool hasPawn) {
+	/**
+	 * Computes the type of the mapping
+	 */
+	static uint32_t computePosMapType(Square pos, bool hasPawn) {
 		uint32_t mapType = 0;
-		if (getCol(pos) > POS_COL_4) {
+		if (getFile(pos) > File::D) {
 			mapType |= 1;
 		}
 		if (!hasPawn) {
@@ -118,42 +154,67 @@ private:
 		return mapType;
 	}
 
-	static pos_t mapPos(pos_t originalPos, uint32_t mapType) {
-		pos_t col = getCol(originalPos);
-		pos_t row = getRow(originalPos);
-		if ((mapType & 1) == 1) {
-			col = BOARD_COL_AMOUNT - 1 - col;
+	/**
+	 * Maps a Square to the right symetric square. The Map type has two bits
+	 * Bit 1 for file-mapping and Bit 2 for rank mapping
+	 * 
+	 */
+	static Square mapPos(Square originalPos, uint32_t mapType) {
+		File file = getFile(originalPos);
+		Rank rank = getRank(originalPos);
+		if ((mapType & MAP_FILE) != 0) {
+			file = File::H - file;
 		}
-		if ((mapType & 2) == 2) {
-			row = BOARD_ROW_AMOUNT - 1 - row;
+		if ((mapType & MAP_RANK) != 0) {
+			rank = Rank::R8 - rank;
 		}
-		return calculatePosInBoard(col, row);
+		return computeSquare(file, rank);
 	}
 
-	static pos_t mapPosToOtherColor(pos_t pos) {
-		return BOARD_SIZE - 1 - pos;
+	/**
+	 * Switch the board-side
+	 */
+	static Square mapPosToOtherColor(Square pos) {
+		return H8 - pos;
 	}
 
-	static uint64_t computeKingIndex(pos_t whiteKingPos, pos_t blackKingPos, uint32_t mapType) {
+	/**
+	 * Computes the right king index by first mapping the positions and then calculate the 
+	 * kings index.
+	 */
+	static uint64_t computeKingIndex(Square whiteKingPos, Square blackKingPos, uint32_t mapType) {
 		whiteKingPos = mapPos(whiteKingPos, mapType);
 		blackKingPos = mapPos(blackKingPos, mapType);
 		return kingIndexMap[whiteKingPos + blackKingPos * BOARD_SIZE];
 	}
 
-	static uint64_t computePawnIndex(pos_t whitePawnPos, pos_t mapType) {
-		return mapPos(whitePawnPos, mapType) - POS_A2;
+	/**
+	 * Computes the pawn index by mapping to the right symetry and reducing it 
+	 * by the minimal white pawn square (A2)
+	 */
+	static uint64_t computePawnIndex(Square whitePawnPos, Square mapType) {
+		return mapPos(whitePawnPos, mapType) - A2;
 	}
+
+	/**
+	 * Initializes static lookup maps
+	 */
+	static struct InitStatic {
+		InitStatic() {
+			initKingIndexMap();
+		}
+	} _staticConstructor;
 
 
 public:
-	static const uint32_t mapToLeftHalf = 1;
-	static const uint32_t mapToLowerHalf = 2;
-	static const uint32_t mapToTriangle = 4;
+	static const uint32_t MAP_FILE = 1;
+	static const uint32_t MAP_RANK = 2;
+	static const uint32_t MAP_DIAGONAL = 4;
 	static const uint64_t AMOUNT_OF_TWO_KING_POSITIONS = 3612;
-	static const uint64_t AMOUT_OF_PAWN_POSITIONS = BOARD_SIZE - 2 * BOARD_COL_AMOUNT;
+	static const uint64_t AMOUT_OF_PAWN_POSITIONS = H8 - 2 * A2;
 	static const uint64_t COLORS = 2;
 
-	static uint32_t kingIndexMap[BOARD_SIZE * BOARD_SIZE];
+	static array<uint32_t, BOARD_SIZE* BOARD_SIZE> kingIndexMap;
 
 };
 
