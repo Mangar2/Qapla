@@ -120,11 +120,11 @@ void Winboard::computeMove() {
 		_clock.setAnalyseMode(false);
 		_computeThread = std::thread([this]() {
 			_board->computeMove(_clock);
+			_mode = Mode::WAIT;
 			ComputingInfoExchange computingInfo = _board->getComputingInfo();
 			println("move " + computingInfo.currentConsideredMove);
 			handleMove(computingInfo.currentConsideredMove);
 			_clock.storeTimeSpent();
-			_mode = Mode::WAIT;
 		});
 	}
 }
@@ -328,6 +328,7 @@ void Winboard::handleInputWhileComputingMove() {
 	const string token = getCurrentToken();
 	if (token == "?") _board->moveNow();
 	else if (token == ".") _board->requestPrintSearchInfo();
+	else println("Error (command not supported in computing mode): " + token);
 }
 
 void Winboard::handleInputWhileInAnalyzeMode() {
