@@ -45,8 +45,8 @@ namespace ChessEval {
 
 			printf("Mobility:\n");
 			printf("Mobility total      : %ld\n", eval(board, mobility));
-			printf("White Knight        : %ld\n", calcKnightMobility<WHITE>(board));
-			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board));
+			printf("White Knight        : %ld\n", calcKnightMobility<WHITE>(board, mobility));
+			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board, mobility));
 			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board, mobility));
 			printf("Black Bishop        : %ld\n", -calcBishopMobility<BLACK>(board, mobility));
 			printf("White Rook          : %ld\n", calcRookMobility<WHITE>(board, mobility));
@@ -80,7 +80,7 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
 			value_t evalResult = 0;
-			evalResult += calcKnightMobility<COLOR>(board);
+			evalResult += calcKnightMobility<COLOR>(board, mobility);
 			evalResult += calcBishopMobility<COLOR>(board, mobility);
 			evalResult += calcRookMobility<COLOR>(board, mobility);
 			evalResult += calcQueenMobility<COLOR>(board, mobility);
@@ -106,13 +106,14 @@ namespace ChessEval {
 
 			Square departureSquare;
 			value_t result = 0;
+			mobility.bishopAttack[COLOR] = 0;
 			while (bishops)
 			{
 				departureSquare = BitBoardMasks::lsb(bishops);
 				bishops &= bishops - 1;
 				bitBoard_t attack = Magics::genBishopAttackMask(departureSquare, occupied);
 				attack &= removeMask;
-				mobility.bishopAttack[COLOR] = attack;
+				mobility.bishopAttack[COLOR] |= attack;
 				result += EvalMobilityValues::BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
 
 			}
@@ -138,13 +139,16 @@ namespace ChessEval {
 
 			Square departureSquare;
 			value_t result = 0;
+			mobility.rookAttack[COLOR] = 0;
+			mobility.doubleRookAttack[COLOR] = 0;
 			while (rooks)
 			{
 				departureSquare = BitBoardMasks::lsb(rooks);
 				rooks &= rooks - 1;
 				bitBoard_t attack = Magics::genRookAttackMask(departureSquare, occupied);
 				attack &= removeMask;
-				mobility.rookAttack[COLOR] = attack;
+				mobility.doubleRookAttack[COLOR] |= mobility.rookAttack[COLOR] & attack;
+				mobility.rookAttack[COLOR] |= attack;
 				result += EvalMobilityValues::ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
 
 			}
@@ -170,13 +174,14 @@ namespace ChessEval {
 
 			Square departureSquare;
 			value_t result = 0;
+			mobility.queenAttack[COLOR] = 0;
 			while (queens)
 			{
 				departureSquare = BitBoardMasks::lsb(queens);
 				queens &= queens - 1;
 				bitBoard_t attack = Magics::genQueenAttackMask(departureSquare, occupied);
 				attack &= removeMask;
-				mobility.queenAttack[COLOR] = attack;
+				mobility.queenAttack[COLOR] |= attack;
 				result += EvalMobilityValues::QUEEN_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
 
 			}
@@ -187,13 +192,15 @@ namespace ChessEval {
 		 * Calculates the mobility value for Knights
 		 */
 		template <Piece COLOR>
-		static value_t calcKnightMobility(MoveGenerator& board)
+		static value_t calcKnightMobility(MoveGenerator& board, EvalResults& mobility)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t knights = board.getPieceBB(KNIGHT + COLOR);
-			bitBoard_t no_destination = ~board.getAllPiecesBB() & ~board.pawnAttackMask[OPPONENT];
+			bitBoard_t no_destination = ~board.getAllPiecesBB() & ~mobility.pawnAttack[OPPONENT];
 
 			Square departureSquare;
+			mobility.knightAttack[COLOR] = 0;
+			mobility.doubleKnightAttack[COLOR] = 0;
 			value_t result = 0;
 			while (knights)
 			{
@@ -201,6 +208,8 @@ namespace ChessEval {
 				knights &= knights - 1;
 				bitBoard_t attack = BitBoardMasks::knightMoves[departureSquare];
 				attack &= no_destination;
+				mobility.doubleKnightAttack[COLOR] |= mobility.knightAttack[COLOR] & attack;
+				mobility.knightAttack[COLOR] |= attack;
 				result += EvalMobilityValues::KNIGHT_MOBILITY_MAP[BitBoardMasks::popCountForSparcelyPopulatedBitBoards(attack)];
 
 			}

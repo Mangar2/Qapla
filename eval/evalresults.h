@@ -33,11 +33,24 @@ using namespace ChessBasics;
 namespace ChessEval {
 
 	struct EvalResults {
-		bitBoard_t queensBB;
+		// White and black queens
+		bitBoard_t queensBB; 
+		// Squares attacked by queens also behind a Rook & Bishop of same color
 		bitBoard_t queenAttack[2];
+		// Squares attacked by rooks also behind another Rook or Queen of same color or Queen of opposit color
 		bitBoard_t rookAttack[2];
+		// Squares attacked by two rooks also behind another Rook or Queen of same color or Queen of opposit color
+		bitBoard_t doubleRookAttack[2];
+		// Squares attacked by bishops also behind another Bishop or Queen of same color or Queen, Rook of opposit color
 		bitBoard_t bishopAttack[2];
+		// Squares attacked by knighs
+		bitBoard_t knightAttack[2];
+		// Squares attacked by two knights
+		bitBoard_t doubleKnightAttack[2];
+		// Squares attacked by pawns
 		bitBoard_t pawnAttack[2];
+		// Ranks in front of pawns
+		bitBoard_t pawnMoveRay[2];
 	};
 
 }
