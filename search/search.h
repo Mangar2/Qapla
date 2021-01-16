@@ -114,7 +114,7 @@ namespace ChessSearch {
 			else if (board.getMaterialValue(board.isWhiteToMove()) + MaterialBalance::PAWN_VALUE < searchInfo.beta) {
 				result = false;
 			}
-			else if (searchInfo.isTTValueBelowBeta(board)) {
+			else if (searchInfo.isTTValueBelowBeta(board, ply)) {
 				result = false;
 			}
 			else if (ply + searchInfo.remainingDepth < 3) {

@@ -356,8 +356,8 @@ namespace ChessSearch {
 			ttPtr = tt;
 		}
 
-		inline bool isTTValueBelowBeta(const Board& board) {
-			return ttPtr->isTTValueBelowBeta(positionHashSignature, beta);
+		inline bool isTTValueBelowBeta(const Board& board, ply_t ply) {
+			return ttPtr->isTTValueBelowBeta(positionHashSignature, beta, ply);
 		}
 
 		enum class SearchType {

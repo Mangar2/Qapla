@@ -179,11 +179,11 @@ namespace ChessSearch {
 		/**
 		 * Checks, if the hash indicates a beta-cutoff situation
 		 */
-		bool isTTValueBelowBeta(hash_t hashKey, value_t beta) {
+		bool isTTValueBelowBeta(hash_t hashKey, value_t beta, ply_t ply) {
 			hash_t index = getTTEntryIndex(hashKey);
 			bool result = false;
 			if (index != INVALID_INDEX) {
-				result = _tt[index].isTTValueBelowBeta(beta);
+				result = _tt[index].isTTValueBelowBeta(beta, ply);
 			}
 			return result;
 		}

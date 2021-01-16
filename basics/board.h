@@ -227,6 +227,12 @@ namespace ChessBasics {
 		inline auto getPieceBB(Piece piece) const {
 			return bitBoardsPiece[piece];
 		}
+		
+		/**
+		 * Gets the bitboard of a color
+		 */
+		template <Piece COLOR>
+		inline auto getPiecesOfOneColorBB() { return bitBoardAllPiecesOfOneColor[COLOR]; }
 
 		/**
 		 * Gets the joint bitboard for all pieces

@@ -124,11 +124,11 @@ namespace ChessSearch {
 		/**
 		 * Checks, if the stored hash value is below a beta value
 		 */
-		bool isTTValueBelowBeta(value_t probeBeta) {
+		bool isTTValueBelowBeta(value_t probeBeta, ply_t ply) {
 			value_t positionValue = MAX_VALUE;
 			value_t alpha = -MAX_VALUE;
 			value_t beta = MAX_VALUE;
-			getValue(positionValue, alpha, beta, 0, 0);
+			getValue(positionValue, alpha, beta, 0, ply);
 			bool result = beta < probeBeta || positionValue < probeBeta;
 			return result;
 		}

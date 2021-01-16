@@ -102,8 +102,10 @@ namespace ChessInterface {
 		string readFen() {
 			string token = getNextTokenBlocking(true);
 			string fen = "";
+			string space = "";
 			while (token != "moves" && token != "\n" && token != "\r") {
-				fen += token;
+				fen += space + token;
+				space = " ";
 				token = getNextTokenBlocking(true);
 			}
 			return fen;
