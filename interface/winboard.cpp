@@ -162,62 +162,40 @@ void Winboard::handlePing() {
 	}
 }
 
-/**
- * Processes a _board change (setboard) request
- */
-bool Winboard::handleBoardChanges() {
-	bool result = true;
-	const string token = getCurrentToken();
-	if (token == "new") {
+void Winboard::setBoard() {
+	string fen = getToEOLBlocking();
+	bool success = setPositionByFen(fen);
+	if (!success) {
+		printf("Error (illegal fen): %s \n", fen.c_str());
 		setPositionByFen();
 	}
-	else if (token == "setboard") {
-		string fen = getToEOLBlocking();
-		bool success = setPositionByFen(fen);
-		if (!success) {
-			printf("Error (illegal fen): %s \n", fen.c_str());
-			setPositionByFen();
-		}
-	}
-	else {
-		result = false;
-	}
-	return result;
 }
 
-bool Winboard::handleWhatIf() {
-	const string token = getCurrentToken();
-	bool result = false;
-	if (token == "whatif") {
-		IWhatIf* whatIf = _board->getWhatIf();
-		whatIf->clear();
-		getNextTokenNonBlocking();
-		int32_t searchDepth = (int32_t)getCurrentTokenAsUnsignedInt();
-		if (searchDepth == 0) { searchDepth = 1; }
-		whatIf->setSearchDepht(searchDepth);
-		for (int32_t ply = 0; getNextTokenNonBlocking() != ""; ply++) {
-			if (token == "null") {
-				whatIf->setNullmove(ply);
-			}
-			else {
-				MoveScanner moveScanner(getCurrentToken());
-				if (moveScanner.isLegal()) {
-					whatIf->setMove(ply, moveScanner.piece, 
-						moveScanner.departureFile, moveScanner.departureRank, 
-						moveScanner.destinationFile, moveScanner.destinationRank, moveScanner.promote);
-				}
+void Winboard::handleWhatIf() {
+	IWhatIf* whatIf = _board->getWhatIf();
+	whatIf->clear();
+	getNextTokenNonBlocking();
+	int32_t searchDepth = (int32_t)getCurrentTokenAsUnsignedInt();
+	if (searchDepth == 0) { searchDepth = 1; }
+	whatIf->setSearchDepht(searchDepth);
+	for (int32_t ply = 0; getNextTokenNonBlocking() != ""; ply++) {
+		if (getCurrentToken() == "null") {
+			whatIf->setNullmove(ply);
+		}
+		else {
+			MoveScanner moveScanner(getCurrentToken());
+			if (moveScanner.isLegal()) {
+				whatIf->setMove(ply, moveScanner.piece, 
+					moveScanner.departureFile, moveScanner.departureRank, 
+					moveScanner.destinationFile, moveScanner.destinationRank, moveScanner.promote);
 			}
 		}
-		ClockSetting whatIfClock;
-		whatIfClock.setAnalyseMode(true);
-		whatIfClock.setSearchDepthLimit(searchDepth);
-		_board->computeMove(whatIfClock);
-		whatIf->clear();
 	}
-	else {
-		result = false;
-	}
-	return result;
+	ClockSetting whatIfClock;
+	whatIfClock.setAnalyseMode(true);
+	whatIfClock.setSearchDepthLimit(searchDepth);
+	_board->computeMove(whatIfClock);
+	whatIf->clear();
 }
 
 void Winboard::readLevelCommand() {
@@ -302,6 +280,25 @@ bool Winboard::checkMoveCommand() {
 	return moveCommandFound;
 }
 
+void Winboard::undoMove() {
+	forceMode = true;
+	if (_mode == Mode::ANALYZE) {
+		_board->moveNow();
+		waitForComputingThreadToEnd();
+		analyzeMove();
+	}
+	else if (_mode == Mode::COMPUTE) {
+		_board->moveNow();
+		waitForComputingThreadToEnd();
+		_board->undoMove();
+		_board->undoMove();
+	}
+	else {
+		waitForComputingThreadToEnd();
+		_board->undoMove();
+	}
+}
+
 /**
  * Processes any input from stdio
  */
@@ -336,20 +333,17 @@ void Winboard::handleInputWhileComputingMove() {
 void Winboard::handleInputWhileInAnalyzeMode() {
 	const string token = getCurrentToken();
 
+	if (token == "new" || token == "setboard" || token == "usermove" || token == "undo" || token == "exit") {
+		_board->moveNow();
+		waitForComputingThreadToEnd();
+	}
 	if (token == ".") _board->requestPrintSearchInfo();
 	else if (token == "ping") handlePing();
 	else if (token == "usermove") checkMoveCommand();
-	else if (token == "exit" || token == "force") {
-		_board->moveNow();
-		waitForComputingThreadToEnd();
-		_mode = Mode::WAIT;
-		forceMode = true;
-	}
-	else if (token == "new" || token == "setboard") {
-		_board->moveNow();
-		waitForComputingThreadToEnd();
-		handleBoardChanges();
-	}
+	else if (token == "undo") _board->undoMove();
+	else if (token == "new") setPositionByFen();
+	else if (token == "setboard") setBoard();
+	else if (token == "exit" || token == "force") { _mode = Mode::WAIT; forceMode = true; }
 	else {
 		println("Error (command not supported in analyze mode): " + token);
 	}
@@ -376,8 +370,9 @@ void Winboard::handleInput() {
 	if (token == "analyze") analyzeMove();
 	else if (token == "force") forceMode = true;
 	else if (token == "go") computeMove();
-	else if (handleBoardChanges()) {}
-	else if (handleWhatIf()) {}
+	else if (token == "new") setPositionByFen();
+	else if (token == "setboard") setBoard();
+	else if (token == "whatif") handleWhatIf();
 	else if (token == "easy") {}
 	else if (token == "eval") _board->printEvalInfo();
 	else if (token == "hard") {}
@@ -391,14 +386,8 @@ void Winboard::handleInput() {
 	else if (token == "white") _board->setWhiteToMove(true);
 	else if (token == "black") _board->setWhiteToMove(false);
 	else if (token == "ping") handlePing();
-	else if (token == "edit") {
-		_mode = Mode::EDIT;
-		editModeIsWhiteColor = true;
-	}
-	else if (token == "undo") {
-		_board->undoMove();
-		forceMode = true;
-	}
+	else if (token == "edit") { _mode = Mode::EDIT; editModeIsWhiteColor = true; }
+	else if (token == "undo") undoMove();
 	else if (token == "remove") handleRemove();
 	else if (token == "wmtest") WMTest();
 	else if (token == "result") getToEOLBlocking();

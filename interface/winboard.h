@@ -94,9 +94,9 @@ namespace ChessInterface {
 		void handlePing();
 
 		/**
-		 * Handles a fen string to or a setBoard command
+		 * Sets the board from fen
 		 */
-		bool handleBoardChanges();
+		void setBoard();
 
 		/**
 		 * Handles a whatif command.
@@ -104,7 +104,7 @@ namespace ChessInterface {
 		 * The function will print the main variant for a list of moves 
 		 * "whatif e4 e5" (what did you calculate as main variant after moves e4, e5)
 		 */
-		bool handleWhatIf();
+		void handleWhatIf();
 
 		/**
 		 * Handles a play level command
@@ -120,6 +120,11 @@ namespace ChessInterface {
 		 * Check for a usermove command or a move to play 
 		 */
 		bool checkMoveCommand();
+
+		/**
+		 * Undoes the last move
+		 */
+		void undoMove();
 
 		/**
 		 * Processes any input while computing a move
