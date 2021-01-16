@@ -108,8 +108,7 @@ void EvalPawn::computeIsolatedPawnLookupTable() {
 	}
 }
 
-value_t EvalPawn::print(MoveGenerator& board) {
-	EvalResults mobility;
+value_t EvalPawn::print(MoveGenerator& board, EvalResults& mobility) {
 	init<WHITE>(board, mobility);
 	init<BLACK>(board, mobility);
 	printf("Pawns\n");

@@ -40,8 +40,7 @@ namespace ChessEval {
 	class EvalMobility {
 	public:
 
-		static value_t print(MoveGenerator& board) {
-			EvalResults mobility;
+		static value_t print(MoveGenerator& board, EvalResults& mobility) {
 
 			printf("Mobility:\n");
 			printf("Mobility total      : %ld\n", eval(board, mobility));
@@ -135,7 +134,7 @@ namespace ChessEval {
 
 			bitBoard_t passThrough = mobility.queensBB | rooks;
 			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = (~~board.getPiecesOfOneColorBB<COLOR>() | passThrough) & 
+			bitBoard_t removeMask = (~board.getPiecesOfOneColorBB<COLOR>() | passThrough) & 
 				~mobility.pawnAttack[OPPONENT];
 			occupied &= ~passThrough;
 

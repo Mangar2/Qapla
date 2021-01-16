@@ -130,7 +130,7 @@ private:
 	static void initKingIndexMap() {
 		uint32_t index = 0;
 		for (Square whiteKingPos = A1; whiteKingPos <= H8; whiteKingPos = computeNextKingPosForPositionsWithPawn(whiteKingPos)) {
-			for (Square blackKingPos = A1; blackKingPos <= H8; blackKingPos++) {
+			for (Square blackKingPos = A1; blackKingPos <= H8; ++blackKingPos) {
 				uint32_t lookupIndex = whiteKingPos + blackKingPos * BOARD_SIZE;
 				assert(lookupIndex < BOARD_SIZE * BOARD_SIZE);
 				kingIndexMap[lookupIndex] = index;
@@ -192,7 +192,7 @@ private:
 	 * Computes the pawn index by mapping to the right symetry and reducing it 
 	 * by the minimal white pawn square (A2)
 	 */
-	static uint64_t computePawnIndex(Square whitePawnPos, Square mapType) {
+	static uint64_t computePawnIndex(Square whitePawnPos, uint32_t mapType) {
 		return mapPos(whitePawnPos, mapType) - A2;
 	}
 

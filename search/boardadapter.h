@@ -208,7 +208,7 @@ namespace ChessSearch {
 		 * Starts perft
 		 */
 		virtual uint64_t perft(uint16_t depth, uint32_t verbose = 1) {
-			uint64_t res = ChessSearch::doPerftRec(board, depth, _workerCount, true);
+			uint64_t res = ChessSearch::doPerftRec(board, depth, _workerCount, true, verbose);
 			return res;
 		}
 

@@ -149,7 +149,8 @@ namespace ChessSearch {
 		static array<TTEntry, TT_SIZE> tt;
 	};
 
-	static uint64_t doPerftRec(MoveGenerator& board, uint32_t maxDepth, uint32_t workerCount,  bool scipLastPly = true) {
+	static uint64_t doPerftRec(MoveGenerator& board, uint32_t maxDepth, 
+		uint32_t workerCount,  bool scipLastPly = true, bool verbose = false) {
 		board.computeAttackMasksForBothColors();
 		PerftSearch search(workerCount);
 		return search.perftRec(board, maxDepth, 0, scipLastPly);

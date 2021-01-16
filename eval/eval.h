@@ -85,6 +85,7 @@ namespace ChessEval {
 		 * Prints the evaluation results
 		 */
 		static void printEval(MoveGenerator& board) {
+			EvalResults mobility;
 			value_t evalValue = evaluateBoardPosition(board);
 			value_t endGameResult;
 
@@ -92,7 +93,7 @@ namespace ChessEval {
 			EvalPawn evalPawn;
 			board.print();
 
-			valueSum += evalPawn.print(board);
+			valueSum += evalPawn.print(board, mobility);
 
 			printf("Marerial            : %ld\n", board.getMaterialValue());
 			valueSum += board.getMaterialValue();
@@ -104,7 +105,7 @@ namespace ChessEval {
 				valueSum = endGameResult;
 			}
 			else {
-				valueSum += EvalMobility::print(board);
+				valueSum += EvalMobility::print(board, mobility);
 			}
 			if (evalValue != valueSum) {
 				printf("Error, false value sum     : %ld\n", valueSum);

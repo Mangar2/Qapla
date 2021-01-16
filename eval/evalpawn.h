@@ -65,7 +65,7 @@ namespace ChessEval {
 		/**
 		 * Prints pawn evaluation details
 		 */
-		value_t print(MoveGenerator& board);
+		value_t print(MoveGenerator& board,	EvalResults& mobility);
 
 		/**
 		 * Calculates the evaluation for the pawn values on the board
