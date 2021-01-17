@@ -94,6 +94,7 @@ namespace ChessEval {
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
+			mobility.bishopAttack[COLOR] = 0;
 			if (bishops == 0) {
 				return 0;
 			}
@@ -106,7 +107,6 @@ namespace ChessEval {
 
 			Square departureSquare;
 			value_t result = 0;
-			mobility.bishopAttack[COLOR] = 0;
 			while (bishops)
 			{
 				departureSquare = BitBoardMasks::lsb(bishops);
@@ -128,6 +128,8 @@ namespace ChessEval {
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t rooks = board.getPieceBB(ROOK + COLOR);
+			mobility.rookAttack[COLOR] = 0;
+			mobility.doubleRookAttack[COLOR] = 0;
 			if (rooks == 0) {
 				return 0;
 			}
@@ -140,8 +142,6 @@ namespace ChessEval {
 
 			Square departureSquare;
 			value_t result = 0;
-			mobility.rookAttack[COLOR] = 0;
-			mobility.doubleRookAttack[COLOR] = 0;
 			while (rooks)
 			{
 				departureSquare = BitBoardMasks::lsb(rooks);
@@ -164,6 +164,7 @@ namespace ChessEval {
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t queens = board.getPieceBB(QUEEN + COLOR);
+			mobility.queenAttack[COLOR] = 0;
 			if (queens == 0) {
 				return 0;
 			}
@@ -176,7 +177,6 @@ namespace ChessEval {
 
 			Square departureSquare;
 			value_t result = 0;
-			mobility.queenAttack[COLOR] = 0;
 			while (queens)
 			{
 				departureSquare = BitBoardMasks::lsb(queens);
@@ -197,12 +197,13 @@ namespace ChessEval {
 		static value_t calcKnightMobility(MoveGenerator& board, EvalResults& mobility)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
+			mobility.knightAttack[COLOR] = 0;
+			mobility.doubleKnightAttack[COLOR] = 0;
+
 			bitBoard_t knights = board.getPieceBB(KNIGHT + COLOR);
 			bitBoard_t no_destination = ~board.getPiecesOfOneColorBB<COLOR>() & ~mobility.pawnAttack[OPPONENT];
 
 			Square departureSquare;
-			mobility.knightAttack[COLOR] = 0;
-			mobility.doubleKnightAttack[COLOR] = 0;
 			value_t result = 0;
 			while (knights)
 			{

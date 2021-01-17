@@ -38,13 +38,27 @@
 namespace ChessEval {
 
 	struct KingAttackValues {
-		static constexpr array<value_t, 20> attackWeight = 
+		static const uint32_t MAX_WEIGHT_COUNT = 19;
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
 			{ 0,  -30, -60, -90, -150, -250, -350, -450, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500 };
 	};
 
 	class KingAttack {
 
 	public:
+
+		static void printBB(bitBoard_t bb) {
+			uint32_t lineBreak = 8;
+			for (uint64_t i = 1ULL << 63; i > 0; i /= 2) {
+				cout << ((bb & i) ? "X " : ". ");
+				lineBreak--;
+				if (lineBreak == 0) {
+					cout << endl;
+					lineBreak = 8;
+				}
+			}
+			cout << endl;
+		}
 
 		/**
 		 * Calculates an evaluation for the current board position
@@ -54,8 +68,9 @@ namespace ChessEval {
 			computeAttacks<BLACK>(mobility);
 			computeUndefendedAttacks<WHITE>(mobility);
 			computeUndefendedAttacks<BLACK>(mobility);
-			return computeAttackValue<WHITE>(board.getKingSquare<WHITE>(), mobility) -
+			value_t result = computeAttackValue<WHITE>(board.getKingSquare<WHITE>(), mobility) -
 				computeAttackValue<BLACK>(board.getKingSquare<BLACK>(), mobility);
+			return result;
 		}
 
 		/**
@@ -82,6 +97,9 @@ namespace ChessEval {
 			bitBoard_t kingDoubleAttacks = attackArea & mobility.undefendedDoubleAttack[OPPONENT];
 			mobility.kingPressureCount[COLOR] =
 				BitBoardMasks::popCount(kingAttacks) + BitBoardMasks::popCount(kingDoubleAttacks) * 2;
+			if (mobility.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
+				mobility.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
+			}
 			mobility.kingAttackValue[COLOR] = 
 				(KingAttackValues::attackWeight[mobility.kingPressureCount[COLOR]] * mobility.midgameInPercent) / 100;
 			return mobility.kingAttackValue[COLOR];

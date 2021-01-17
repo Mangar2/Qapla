@@ -60,7 +60,6 @@ namespace ChessEval {
 		 * Calculates an evaluation for the current board position
 		 */
 		static value_t evaluateBoardPosition(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
-
 			EvalResults evalResults;
 			return lazyEval(board, evalResults);
 		}
@@ -123,7 +122,6 @@ namespace ChessEval {
 			evalResults.midgameInPercent = computeMidgameInPercent(board);
 			result = evalResults.materialValue;
 			result += evalPawn.eval(board, evalResults);
-
 			endGameResult = EvalEndgame::eval(board, result);
 			endGameResult = cutValueOnDrawPositions(board, endGameResult);
 
@@ -136,7 +134,6 @@ namespace ChessEval {
 					result += KingAttack::eval(board, evalResults);
 				}
 			}
-
 			return result;
 		}
 
