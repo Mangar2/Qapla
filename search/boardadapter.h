@@ -207,8 +207,9 @@ namespace ChessSearch {
 		/**
 		 * Starts perft
 		 */
-		virtual uint64_t perft(uint16_t depth, uint32_t verbose = 1) {
-			uint64_t res = ChessSearch::doPerftRec(board, depth, _workerCount, true, verbose);
+		virtual uint64_t perft(uint16_t depth, bool verbose = true, uint32_t maxTheadCount = 1) {
+			uint32_t additionalWorkerCount = maxTheadCount == 0 ? 0 : maxTheadCount - 1;
+			uint64_t res = ChessSearch::doPerftRec(board, depth, additionalWorkerCount, true, verbose);
 			return res;
 		}
 

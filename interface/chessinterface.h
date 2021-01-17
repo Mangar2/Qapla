@@ -135,6 +135,10 @@ namespace ChessInterface {
 		IInputOutput* _ioHandler;
 		ClockSetting _clock;
 		thread _computeThread;
+		uint32_t _maxTheadCount; 
+		uint32_t _maxMemory;
+		string _egtPath;
+		string _bitbasePath;
 	};
 
 }

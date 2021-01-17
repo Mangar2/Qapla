@@ -59,7 +59,7 @@ void PerftSearch::perftRecHelper(SplitPoint& splitPoint, WorkPackage &work, bool
 }
 
 uint64_t PerftSearch::perftRec(
-	MoveGenerator& board, uint32_t maxDepth, uint32_t curDepth, bool scipLastPly)
+	MoveGenerator& board, uint32_t maxDepth, uint32_t curDepth, bool scipLastPly, bool verbose)
 {
 	if (curDepth == 0) { threadPool.startExamine(); }
 	MoveList moveList;
@@ -89,7 +89,7 @@ uint64_t PerftSearch::perftRec(
 			uint64_t movesFound = perftRec(board, maxDepth, curDepth + 1, scipLastPly);
 			result += movesFound;
 			board.undoMove(move, boardState);
-			if (curDepth == 0) {
+			if (verbose) {
 				cout << move.getLAN() << " " << movesFound << endl;
 			}
 		}

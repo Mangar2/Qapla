@@ -36,9 +36,6 @@
     <ClCompile Include="basics\board.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="interface\stdtimecontrol.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="basics\hashconstants.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
@@ -46,12 +43,6 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="basics\piecesignature.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="eval\pawnrace.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="eval\kingpawnattack.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="eval\evalpawn.cpp">
@@ -83,6 +74,18 @@
     </ClCompile>
     <ClCompile Include="movegenerator\magics.cpp">
       <Filter>movegenerator</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\kingpawnattack.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\pawnrace.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\stdtimecontrol.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\kingAttack.cpp">
+      <Filter>eval</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -165,12 +168,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="basics\materialbalance.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="eval\pawnrace.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="eval\kingpawnattack.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\searchstack.h">
@@ -277,6 +274,15 @@
     </ClInclude>
     <ClInclude Include="bitbase\piecelist.h">
       <Filter>Bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\pawnrace.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\kingpawnattack.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\kingattack.h">
+      <Filter>eval</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -119,7 +119,8 @@ namespace ChessSearch {
 			// this_thread::sleep_for(chrono::milliseconds(10));
 			// , [this]() { this->perftRecHelper(0); }
 		}
-		uint64_t perftRec(MoveGenerator& board, uint32_t maxDepth, uint32_t curDepth, bool scipLastPly);
+		uint64_t perftRec(MoveGenerator& board, uint32_t maxDepth, uint32_t curDepth, 
+			bool scipLastPly, bool verbose = false);
 		void perftRecHelper(SplitPoint& splitPoint, WorkPackage& work, bool main = false);
 		ThreadPool<64> threadPool;
 	private:
@@ -153,7 +154,7 @@ namespace ChessSearch {
 		uint32_t workerCount,  bool scipLastPly = true, bool verbose = false) {
 		board.computeAttackMasksForBothColors();
 		PerftSearch search(workerCount);
-		return search.perftRec(board, maxDepth, 0, scipLastPly);
+		return search.perftRec(board, maxDepth, 0, scipLastPly, verbose);
 	}
 
 #pragma warning(suppress: 6262)

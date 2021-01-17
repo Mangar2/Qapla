@@ -214,6 +214,7 @@
     <ClCompile Include="basics\piecesignature.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\evalpawn.cpp" />
+    <ClCompile Include="eval\kingAttack.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
@@ -247,6 +248,7 @@
     <ClInclude Include="eval\evalmobility.h" />
     <ClInclude Include="eval\evalpawn.h" />
     <ClInclude Include="eval\evalresults.h" />
+    <ClInclude Include="eval\kingattack.h" />
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="interface\chessinterface.h" />

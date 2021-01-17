@@ -112,7 +112,7 @@ namespace ChessInterface {
 		/**
 		 * Starts perft calculation
 		 */
-		virtual uint64_t perft(uint16_t depth, uint32_t verbose = 1) = 0;
+		virtual uint64_t perft(uint16_t depth, bool verbose = true, uint32_t _maxTheadCount = 1) = 0;
 
 		/**
 		 * Promptly print an information string for the current evaluation status

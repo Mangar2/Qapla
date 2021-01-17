@@ -1,8 +1,23 @@
 # Quabla Change log
 Quabla chess engine
 
-## 0.0.3
+## 0.0.5 2021-01-17 minor change
+- Playing strenght: 2000 Elo
+- UCI support added (not feature complete, but working)
+- Refactoring of several code parts
+- Eval
+	- 2 percent slower, due to export of calculation of attack bitboards from mobility code (currently unused)
+	- Counting attacked opponent pieces not protected by pawns as mobility field in eval-mobility. + 20 Elo
+- Winboard
+	- Perft and divide are now doing the right things
+- Perft/Devide
+	- Now respects the cores N information of winboard and uses up to 32 parallel threads to calculate perft. Note: the chess engine itself does not yet support multi threading
+- Clock
+	- Reduce calculating time to 50%, if clock is below 10 seconds
 
+## 0.0.3 minor change
+
+- Playing strenght: 2000 Elo
 - Implemented Nullmove, R=3 (2 near tree-leaf), not in endgame withouth range pieces, not going directly to quiescence search. (+ 70-80 ELO)
 - Winboard
 	- Pong now sends a pong number too

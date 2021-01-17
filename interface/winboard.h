@@ -34,6 +34,21 @@ namespace ChessInterface {
 		Winboard();
 
 	private:
+		/**
+		 * Reads the amount of cores
+		 */
+		void readCores() {
+			getNextTokenBlocking();
+			_maxTheadCount = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+
+		/**
+		 * Reads the amount of memory
+		 */
+		void readMemory() {
+			getNextTokenBlocking();
+			_maxMemory = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
 
 		/**
 		 * Manages a move

@@ -49,6 +49,18 @@ namespace ChessEval {
 		bitBoard_t doubleKnightAttack[2];
 		// Squares attacked by pawns
 		bitBoard_t pawnAttack[2];
+		// Squares attacked by any piece
+		bitBoard_t piecesAttack[2];
+		// Squares attacked by two pieces (any) ...
+		bitBoard_t piecesDoubleAttack[2];
+		// Squares attacked by one piece and undefended or by two pieces but only defended by one piece
+		bitBoard_t undefendedAttack[2];
+		// Squares attacked by two piece and not defended
+		bitBoard_t undefendedDoubleAttack[2];
+		// Amount of non defended attacks on squares near king
+		value_t kingPressureCount[2];
+		// Evaluation of the king attack
+		value_t kingAttackValue[2];
 		// Ranks in front of pawns
 		bitBoard_t pawnMoveRay[2];
 	};

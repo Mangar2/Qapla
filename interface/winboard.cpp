@@ -82,7 +82,7 @@ void Winboard::runPerft(bool showMoves) {
 	StdTimeControl timeControl;
 	if (getNextTokenNonBlocking() != "") {
 		timeControl.storeStartTime();
-		uint64_t res = _board->perft((uint16_t)getCurrentTokenAsUnsignedInt());
+		uint64_t res = _board->perft((uint16_t)getCurrentTokenAsUnsignedInt(), showMoves, _maxTheadCount);
 		float durationInMs = (float)timeControl.getTimeSpentInMilliseconds();
 		printf("nodes: %lld, time: %5.4fs, nps: %10.0f \n", res, durationInMs / 1000, res * 1000.0 / durationInMs);
 	}
@@ -392,6 +392,8 @@ void Winboard::handleInput() {
 	else if (token == "remove") handleRemove();
 	else if (token == "wmtest") WMTest();
 	else if (token == "result") getToEOLBlocking();
+	else if (token == "cores") readCores();
+	else if (token == "memory") readMemory();
 	else if (checkClockCommands()) {}
 	else if (checkMoveCommand()) {}
 }
