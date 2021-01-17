@@ -45,6 +45,7 @@ namespace ChessBasics {
 
 	constexpr pieceSignature_t operator*(Signature a, pieceSignature_t b) { return pieceSignature_t(a) * b; }
 	constexpr pieceSignature_t operator+(Signature a, pieceSignature_t b) { return pieceSignature_t(a) + b; }
+	constexpr uint32_t operator/(uint32_t a, Signature b) { return a / uint32_t(b); }
 	// constexpr pieceSignature_t operator+(Signature a, Signature b) { return pieceSignature_t(a) + pieceSignature_t(b); }
 
 	/**
@@ -64,6 +65,7 @@ namespace ChessBasics {
 	constexpr pieceSignature_t operator&(SignatureMask a, SignatureMask b) { return pieceSignature_t(a) & pieceSignature_t(b); }
 	constexpr pieceSignature_t operator&(pieceSignature_t a, SignatureMask b) { return a & pieceSignature_t(b); }
 	constexpr pieceSignature_t operator~(SignatureMask a) { return ~pieceSignature_t(a); }
+	
 
 
 	class PieceSignature {
@@ -128,6 +130,13 @@ namespace ChessBasics {
 		inline pieceSignature_t getPiecesSignature() const {
 			return _signature;
 		}
+
+		/**
+		 * Gets a static piece value (Queen = 9, Rook = 5, Bishop & Knight = 3, >= 3 Pawns = 1)
+		 * The pawns are not really counted.
+		 */
+		template <Piece COLOR>
+		value_t getStaticPiecesValue() const { return staticPiecesValue[getSignature<COLOR>()]; }
 
 		/**
 		 * Checks if a side has a range piece
@@ -233,6 +242,7 @@ namespace ChessBasics {
 			return result;
 		}
 
+
 		static const pieceSignature_t SIG_SHIFT_BLACK = 10;
 		static const pieceSignature_t PIECE_SIGNATURE_SIZE = 1 << (SIG_SHIFT_BLACK * 2);
 
@@ -256,9 +266,25 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Returns the amount of pieces of a kind found in a signature
+		 */
+		template <Piece KIND>
+		constexpr static uint32_t getPieceAmount(pieceSignature_t signature) {
+			switch (KIND) {
+			case QUEEN:return (signature & SignatureMask::QUEEN) / Signature::QUEEN;
+			case ROOK:return (signature & SignatureMask::ROOK) / Signature::ROOK;
+			case BISHOP: return (signature & SignatureMask::BISHOP) / Signature::BISHOP;
+			case KNIGHT: return (signature & SignatureMask::KNIGHT) / Signature::KNIGHT;
+			case PAWN: return (signature & SignatureMask::PAWN) / Signature::PAWN;
+			default: return 0;
+			}
+		}
+
+		/**
 		 * Maps a piece to a signature bit
 		 */
 		static array<pieceSignature_t, size_t(SignatureMask::ALL)> futilityOnCaptureMap;
+		static array<value_t, size_t(SignatureMask::ALL)> staticPiecesValue;
 		
 		/**
 		 * Initializes the static arrays

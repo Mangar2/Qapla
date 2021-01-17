@@ -61,43 +61,26 @@ namespace ChessEval {
 		 */
 		static value_t evaluateBoardPosition(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
 
-			value_t evalResult;
-			value_t endGameResult;
-			EvalPawn evalPawn;
-			EvalResults mobility;
-
-			evalResult = board.getMaterialValue();
-			evalResult += evalPawn.eval(board, mobility);
-
-			endGameResult = EvalEndgame::eval(board, evalResult);
-			endGameResult = cutValueOnDrawPositions(board, endGameResult);
-
-			if (endGameResult != evalResult) {
-				evalResult = endGameResult;
-			}
-			else {
-				evalResult += EvalMobility::eval(board, mobility);
-				evalResult += KingAttack::eval(board, mobility);
-			}
-
-			return evalResult;
+			EvalResults evalResults;
+			return lazyEval(board, evalResults);
 		}
 
 		/**
 		 * Prints the evaluation results
 		 */
 		static void printEval(MoveGenerator& board) {
-			EvalResults mobility;
-			value_t evalValue = evaluateBoardPosition(board);
+			EvalResults evalResults;
+			value_t evalValue = lazyEval(board, evalResults);
 			value_t endGameResult;
 
 			value_t valueSum = 0;
 			EvalPawn evalPawn;
 			board.print();
 
-			valueSum += evalPawn.print(board, mobility);
+			valueSum += evalPawn.print(board, evalResults);
 
-			printf("Marerial            : %ld\n", board.getMaterialValue());
+			printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercent);
+			printf("Marerial            : %ld\n", evalResults.materialValue);
 			valueSum += board.getMaterialValue();
 
 			endGameResult = EvalEndgame::print(board, valueSum);
@@ -107,17 +90,57 @@ namespace ChessEval {
 				valueSum = endGameResult;
 			}
 			else {
-				valueSum += EvalMobility::print(board, mobility);
-				valueSum += KingAttack::print(board, mobility);
-			}
-			if (evalValue != valueSum) {
-				printf("Error, false value sum     : %ld\n", valueSum);
+				valueSum += EvalMobility::print(board, evalResults);
+				KingAttack::print(evalResults);
 			}
 			printf("Total               : %ld\n", evalValue);
 		}
 
 
 	private:
+
+		/**
+		 * Calculates the midgame factor in percent
+		 */
+		static value_t computeMidgameInPercent(MoveGenerator& board) {
+			value_t pieces = board.getStaticPiecesValue<WHITE>() + board.getStaticPiecesValue<BLACK>();
+			if (pieces > 64) {
+				pieces = 64;
+			}
+			return midgameInPercent[pieces];
+		}
+
+		/**
+		 * Calculates an evaluation for the current board position
+		*/
+		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults) {
+
+			value_t result;
+			value_t endGameResult;
+			EvalPawn evalPawn;
+
+			evalResults.materialValue = board.getMaterialValue();
+			evalResults.midgameInPercent = computeMidgameInPercent(board);
+			result = evalResults.materialValue;
+			result += evalPawn.eval(board, evalResults);
+
+			endGameResult = EvalEndgame::eval(board, result);
+			endGameResult = cutValueOnDrawPositions(board, endGameResult);
+
+			if (endGameResult != result) {
+				result = endGameResult;
+			}
+			else {
+				result += EvalMobility::eval(board, evalResults);
+				if (evalResults.midgameInPercent > 0) {
+					result += KingAttack::eval(board, evalResults);
+				}
+			}
+
+			return result;
+		}
+
+
 
 		/**
 		 * Ensure that a side never gets more than 0 points if it has not enough material to win
@@ -131,6 +154,21 @@ namespace ChessEval {
 			}
 			return currentValue;
 		}
+
+		/** 
+		 * Determines the game phase based on a static piece value 
+		 * queens = 9, rooks = 5, bishop/knights = 3, pawns +1 if >= 3.
+		 */
+		static constexpr array<value_t, 65> midgameInPercent = {
+			0, 0,  0,  0,  0,  0,  0,  0,  0,
+			0,  0,  0,  3,  6,  9,  12,  12,
+			12, 16, 20, 24, 28, 32, 36, 40,
+			44, 47, 50, 53, 56, 60, 64, 66,
+			68, 70, 72, 74, 76, 78, 80, 82,
+			84, 86, 88, 90, 92, 94, 96, 98,
+			100, 100, 100, 100, 100, 100, 100, 100,
+			100, 100, 100, 100, 100, 100, 100, 100 };
+
 
 		// BitBase kpk;
 

@@ -54,20 +54,17 @@ namespace ChessEval {
 			computeAttacks<BLACK>(mobility);
 			computeUndefendedAttacks<WHITE>(mobility);
 			computeUndefendedAttacks<BLACK>(mobility);
-			return computeAttackCount<WHITE>(board.getKingSquare<WHITE>(), mobility) - 
-				computeAttackCount<BLACK>(board.getKingSquare<BLACK>(), mobility);
+			return computeAttackValue<WHITE>(board.getKingSquare<WHITE>(), mobility) -
+				computeAttackValue<BLACK>(board.getKingSquare<BLACK>(), mobility);
 		}
 
 		/**
 		 * Prints the evaluation results
 		 */
-		static value_t print(MoveGenerator& board, EvalResults& mobility) {
-			value_t result = eval(board, mobility);
+		static void print(EvalResults& mobility) {
 			printf("King attack\n");
 			printf("White (pressure %1ld)  : %ld\n", mobility.kingPressureCount[WHITE], mobility.kingAttackValue[WHITE]);
 			printf("Black (pressure %1ld)  : %ld\n", mobility.kingPressureCount[BLACK], -mobility.kingAttackValue[BLACK]);
-			printf("King total          : %ld\n", result);
-			return result;
 		}
 
 
@@ -78,14 +75,15 @@ namespace ChessEval {
 		 * King itself is not counted as defending piece
 		 */
 		template <Piece COLOR>
-		inline static value_t computeAttackCount(Square kingSquare, EvalResults& mobility) {
+		inline static value_t computeAttackValue(Square kingSquare, EvalResults& mobility) {
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t attackArea = _kingAttackBB[COLOR][kingSquare];
 			bitBoard_t kingAttacks = attackArea & mobility.undefendedAttack[OPPONENT];
 			bitBoard_t kingDoubleAttacks = attackArea & mobility.undefendedDoubleAttack[OPPONENT];
 			mobility.kingPressureCount[COLOR] =
 				BitBoardMasks::popCount(kingAttacks) + BitBoardMasks::popCount(kingDoubleAttacks) * 2;
-			mobility.kingAttackValue[COLOR] = KingAttackValues::attackWeight[mobility.kingPressureCount[COLOR]];
+			mobility.kingAttackValue[COLOR] = 
+				(KingAttackValues::attackWeight[mobility.kingPressureCount[COLOR]] * mobility.midgameInPercent) / 100;
 			return mobility.kingAttackValue[COLOR];
 		}
 

@@ -23,6 +23,7 @@ using namespace ChessBasics;
 
 array<pieceSignature_t, PIECE_AMOUNT> PieceSignature::mapPieceToSignature;
 array<pieceSignature_t, size_t(SignatureMask::ALL)> PieceSignature::futilityOnCaptureMap;
+array<value_t, size_t(SignatureMask::ALL)> PieceSignature::staticPiecesValue;
 PieceSignature::InitStatics PieceSignature::_staticConstructur;
 
 PieceSignature::InitStatics::InitStatics() {
@@ -31,6 +32,14 @@ PieceSignature::InitStatics::InitStatics() {
 		if (getPieceAmount(index) <= 2) {
 			futilityOnCaptureMap[index] = false;
 		}
+	}
+	for (uint32_t index = 0; index < uint32_t(SignatureMask::ALL); index++) {
+		staticPiecesValue[index] =
+			getPieceAmount<QUEEN>(index) * 9 +
+			getPieceAmount<ROOK>(index)  * 5 +
+			getPieceAmount<BISHOP>(index) * 3 +
+			getPieceAmount<KNIGHT>(index) * 3 + 
+			getPieceAmount<PAWN>(index) / 3;
 	}
 
 	mapPieceToSignature.fill(pieceSignature_t(Signature::EMPTY));

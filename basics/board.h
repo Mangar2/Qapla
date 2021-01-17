@@ -179,6 +179,13 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Gets a static piece value (Queen = 9, Rook = 5, Bishop & Knight = 3, >= 3 Pawns = 1)
+		 * The pawns are not really counted.
+		 */
+		template <Piece COLOR>
+		inline auto getStaticPiecesValue() const { return pieceSignature.getStaticPiecesValue<COLOR>(); }
+
+		/**
 		 * Gets the absolute value of a piece
 		 */
 		inline auto getAbsolutePieceValue(Piece piece) const {

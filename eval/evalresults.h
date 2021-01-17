@@ -57,6 +57,10 @@ namespace ChessEval {
 		bitBoard_t undefendedAttack[2];
 		// Squares attacked by two piece and not defended
 		bitBoard_t undefendedDoubleAttack[2];
+		// The value of the material on the board
+		value_t materialValue;
+		// The midgame factor in percent
+		value_t midgameInPercent;
 		// Amount of non defended attacks on squares near king
 		value_t kingPressureCount[2];
 		// Evaluation of the king attack
