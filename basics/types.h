@@ -58,6 +58,8 @@ namespace ChessBasics {
 	constexpr Square operator+(Square a, int32_t b) { return Square(int32_t(a) + b); }
 	constexpr Square operator-(Square a, int32_t b) { return Square(int32_t(a) - b); }
 	constexpr Square operator-(Square square) { return Square(-int32_t(square)); }
+	constexpr bool operator<(Square a, Square b) { return int32_t(a) < int32_t(b); }
+	inline Square operator^=(Square& square, int32_t a) { return square = Square(square ^ a); }
 	inline Square& operator++(Square& square) { return square = Square(square + 1); }
 	inline Square& operator--(Square& square) { return square = Square(square - 1); }
 	inline Square& operator+=(Square& a, int32_t b) { return a = Square(a + b); }

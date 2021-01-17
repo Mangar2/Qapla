@@ -3,186 +3,19 @@
 
 #include "BitBase.h"
 #include "BitBaseIndex.h"
-
-class PositionGenerator {
-public:	
-	PositionGenerator() {
-		pawnAmount = 0;
-		pieceAmount = 0;
-	}
-
-	void setToFirstPosition() {
-		for (currentPieceNo = 0;currentPieceNo < getTotalPieceAmount(); currentPieceNo++) {
-			setCurrentPieceToStartPos();
-		}
-		currentPieceNo = getTotalPieceAmount() - 1;
-		bitBaseIndex = 0;
-	}
-
-	static const uint32_t MAX_PAWN_AMOUNT = 4;
-	static const uint32_t MAX_PIECE_AMOUNT = 4;
-	static const uint32_t KING_AMOUNT = 2;
-	static const uint32_t FIELD_SIZE = KING_AMOUNT + MAX_PAWN_AMOUNT + MAX_PIECE_AMOUNT;
-
-	uint32_t getTotalPieceAmount() {
-		return KING_AMOUNT + pawnAmount + pieceAmount;
-	}
-
-	bool nextPosition() {
-		bool result = true;
-		piecePos[currentPieceNo] = nextPosOfCurrentPiece();
-		while (piecePos[currentPieceNo] == BOARD_SIZE) {
-			if (currentPieceNo > 0) {
-				currentPieceNo--;
-				piecePos[currentPieceNo] = nextPosOfCurrentPiece();
-			} else {
-				result = false;
-				break;
-			}
-		}
-		while (currentPieceNo < getTotalPieceAmount() - 1) {
-			currentPieceNo++;
-			setCurrentPieceToStartPos();
-		}
-		return result;
-	}
-
-	void setPiecesToBoard(GenBoard& board) {
-		board.setPieceToPosition(getWhiteKingPos(), WHITE_KING);
-		board.setPieceToPosition(getBlackKingPos(), BLACK_KING);
-		for (uint32_t index = 2; index < getTotalPieceAmount(); index++) {
-			board.setPieceToPosition(getPiecePos(index), pieceTable[index - 2]);
-		}
-	}
-
-	void removePiecesFromBoard(GenBoard& board) {
-		board.removePieceFromPosition(getWhiteKingPos());
-		board.removePieceFromPosition(getBlackKingPos());
-		for (uint32_t index = 2; index < getTotalPieceAmount(); index++) {
-			board.removePieceFromPosition(getPiecePos(index));
-		}
-	}
-
-	void addPiece(piece_t piece) {
-		pieceTable[getTotalPieceAmount() - 2] = piece;
-		if (piece == WHITE_PAWN || piece == BLACK_PAWN) {
-			pawnAmount++;
-		} else {
-			pieceAmount++;
-		}
-	}
-
-	pos_t getWhiteKingPos() { return piecePos[0]; }
-	pos_t getBlackKingPos() { return piecePos[1]; }
-	pos_t getPiecePos(uint32_t index) { return piecePos[index]; }
-	uint64_t getIndex() { return bitBaseIndex; }
-	piece_t pieceTable[MAX_PAWN_AMOUNT + MAX_PIECE_AMOUNT];
-
-private:
-	bool isPositionUsed(pos_t position) {
-		bool result = false;
-		for (uint32_t index = 0; index < currentPieceNo; index++) {
-			if (piecePos[index] == position) {
-				result = true;
-				break;
-			}
-		}
-		return result;
-	}
-
-	pos_t nextPawnPos(pos_t currentPos) {
-		do {
-			if (currentPos == BOARD_SIZE) {
-				currentPos = POS_A2;
-			} else if (currentPos == POS_H7) {
-				currentPos = BOARD_SIZE;
-				if (currentPieceNo == getTotalPieceAmount() - 1) bitBaseIndex += BitBaseIndex::COLORS;
-			} else {
-				currentPos ++;
-				if (currentPieceNo == getTotalPieceAmount() - 1) bitBaseIndex += BitBaseIndex::COLORS;
-			}
-		} while (currentPos < BOARD_SIZE && isPositionUsed(currentPos));
-		return currentPos;
-	}
-
-	pos_t nextPiecePos(pos_t currentPos) {
-		do {
-			if (currentPos >= BOARD_SIZE) {
-				currentPos = POS_A1;
-			} else {
-				currentPos++;
-				if (currentPieceNo == getTotalPieceAmount() - 1) bitBaseIndex += BitBaseIndex::COLORS;
-			}
-		} while(currentPos < BOARD_SIZE && isPositionUsed(currentPos));
-		return currentPos;
-	}
-
-	pos_t nextFirstKingPos(pos_t currentPos) {
-		if (currentPos >= BOARD_SIZE) {
-			currentPos = POS_A1;
-		} else {
-			currentPos = BitBaseIndex::computeNextKingPosForPositionsWithPawn(currentPos); 
-		}
-		return currentPos;
-	}
-
-	pos_t nextSecondKingPos(pos_t currentPos) {
-		if (currentPos >= BOARD_SIZE) {
-			currentPos = POS_A1;
-		} else {
-			currentPos++;
-		}
-		while (currentPos <= POS_H8 && BitBaseIndex::isAdjacent(getWhiteKingPos(), currentPos)) {
-			currentPos++;
-		}
-		return currentPos;
-	}
-
-	pos_t nextPosOfCurrentPiece() {
-		pos_t currentPos = piecePos[currentPieceNo];
-		pos_t result = BOARD_SIZE;
-		if (currentPieceNo == 0) {
-			result = nextFirstKingPos(currentPos); 
-		} else if (currentPieceNo == 1) {
-			result = nextSecondKingPos(piecePos[currentPieceNo]);
-		} else if (currentPieceNo < pawnAmount + KING_AMOUNT) {
-			result = nextPawnPos(currentPos);
-		} else {
-			result = nextPiecePos(currentPos); 
-		}
-		return result;
-	}
-
-	pos_t setCurrentPieceToStartPos() {
-		pos_t currentPos = piecePos[currentPieceNo];
-		pos_t result = BOARD_SIZE;
-		if (currentPieceNo == 0) {
-			piecePos[currentPieceNo] = POS_A1;
-		} else if (currentPieceNo == 1) {
-			piecePos[currentPieceNo] = nextSecondKingPos(BOARD_SIZE);
-		} else if (currentPieceNo < pawnAmount + KING_AMOUNT) {
-			piecePos[currentPieceNo] = nextPawnPos(BOARD_SIZE);
-		} else {
-			piecePos[currentPieceNo] = nextPiecePos(BOARD_SIZE);
-		}
-		return result;
-	}
-
-	pos_t piecePos[FIELD_SIZE];
-
-	uint32_t currentPieceNo;
-	uint32_t pawnAmount;
-	uint32_t pieceAmount;
-	uint64_t bitBaseIndex;
-
-};
+#include "QuiescenceSearch.h"
+#include "ThinkingTimeManager.h"
+#include <iostream>
+using namespace std;
 
 class BitBaseGenerator {
 public:
+	//static const uint64_t debugIndex =  2194203;
+	static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF; 
 	BitBaseGenerator() {
 	}
 
-	static value_t search(GenBoard& board, Eval& eval, move_t lastMove, int32_t depth, value_t alpha, value_t beta) 
+	static value_t search(GenBoard& board, Eval& eval, move_t lastMove, value_t alpha, value_t beta, int32_t depth) 
 	{
 		MoveProvider moveProvider;
 		move_t move;
@@ -235,125 +68,454 @@ public:
 
 	}
 
+	value_t initialSearch(GenBoard& board)
+	{
+		MoveProvider moveProvider;
+		move_t move;
 
-	bool computeValue(GenBoard& board, BitBase& bitBase) {
+		value_t positionValue = 0;
+		value_t result = 0;
+		BoardInfo boardInfo = board.boardInfo;
+		
+		board.computeAttackMask();
+		moveProvider.computeCaptures(board, Move::EMPTY_MOVE);
+
+		while (move = moveProvider.selectNextMove(board)) {
+			if (!Move::isCaptureOrPromoteMove(move)) {
+				continue;
+			}
+			board.doMove(move);
+			positionValue = BitBaseReader::getValueFromBitBase(board, board.pieceSignature, 0);
+			board.undoMove(move);
+			board.boardInfo = boardInfo;
+				
+			if (board.whiteToMove && positionValue >= WINNING_BONUS) {
+				result = 1;
+				break;
+			}
+			if (!board.whiteToMove && positionValue < WINNING_BONUS) {
+				result = -1;
+				break;
+			}
+		}
+		return result;
+	}
+
+
+	value_t quiescense(GenBoard& board) {
+		value_t result = 0;
+		ThinkingInformation thinkingInfo(NULL);
+		board.computeAttackMask();
+		value_t positionValue = QuiescenceSearch::search(board, eval,  thinkingInfo, Move::EMPTY_MOVE, -MAX_VALUE, MAX_VALUE, 0);
+		if (!board.whiteToMove) {
+			positionValue = -positionValue;
+		}
+		if (positionValue > WINNING_BONUS) { 
+			result = 1;
+		} 
+	
+		else if (positionValue <= 1) {
+			result = -1;
+		} else {
+			result = 0;
+		}
+		
+		return result;
+	}
+
+
+	bool computeValue(GenBoard& board, BitBase& bitBase, bool verbose) {
 		MoveList moveList;
 		move_t move;
+		bool whiteToMove = board.whiteToMove;
 		bool result = board.whiteToMove ? false : true;
-		BoardInfo info;
-		bool value;
+		uint64_t index = 0;
+		PieceList pieceList(board);
+
+		if (verbose) {
+			board.printBoard();
+			printf("%s\n", board.whiteToMove ? "white" : "black");
+		}
 
 		board.genMovesOfMovingColor(moveList);
-		if (moveList.getMoveAmount() == 0 && !board.isInCheck()) {
-			result = false;
-		}
+
 		for (uint32_t moveNo = 0; moveNo < moveList.getMoveAmount(); moveNo++) {
 			move = moveList[moveNo];
-			if (Move::getCapturedPiece(move) != WHITE_KING && Move::getCapturedPiece(move) != BLACK_KING) {
-				info = board.boardInfo;
-				board.doMove(move);
-				value = false;
-				if (board.getPieceBitBoard(WHITE_PAWN) != 0) {
-					uint64_t index = BitBaseIndex::kpkIndex(board);
-					value = bitBase.getBit(index);
+			if (!Move::isCaptureOrPromoteMove(move)) {
+				index = BoardAccess::getIndex(!whiteToMove, pieceList, move);
+				result = bitBase.getBit(index);
+				if (verbose) {
+					printf("%s, index: %lld, value: %s\n", Move::getLAN(move).getCharBuffer(), index, result ? "win" : "draw or unknown");
 				}
-				board.undoMove(move);
-				board.boardInfo = info;
-				if (board.whiteToMove && value) {
-					result = true;
-					break;
-				}
-				if (!board.whiteToMove && !value) {
-					result = false;
-					break;
-				}
+			} 
+			if (whiteToMove && result) {
+				break;
 			}
+			if (!whiteToMove && !result) {
+				break;
+			}
+
 		}
 		return result;
 	}
 
-	bool isPawnPromoting(pos_t whiteKingPos, pos_t blackKingPos, pos_t whitePawnPos) {
-		bool result = false;
-		if (whitePawnPos >= POS_A7) {
-			result = !BitBaseIndex::isAdjacent(whitePawnPos + BOARD_COL_AMOUNT, blackKingPos) || 
-				BitBaseIndex::isAdjacent(whitePawnPos + BOARD_COL_AMOUNT, whiteKingPos);
-		}
-		return result;
-	}
-
-
-	uint32_t computePosition(GenBoard& board, BitBase& bitBase, uint64_t index) {
+	uint32_t computePosition(uint64_t index, GenBoard& board, BitBase& bitBase, BitBase& computedPositions) {
 		uint32_t result = 0;
-		board.setWhiteToMove(true);
-		if (!bitBase.getBit(index) && computeValue(board, bitBase)) { 
+		if (computeValue(board, bitBase, false)) { 
+			if (index == debugIndex) {
+				computeValue(board, bitBase, true);
+			}
 			bitBase.setBit(index);
+			computedPositions.setBit(index);
 			result++;
 		}
-		board.setWhiteToMove(false);
-		if (!bitBase.getBit(index + 1) && computeValue(board, bitBase)) {
-			bitBase.setBit(index + 1);
-			result++;
+
+		return result;
+	}
+
+	static bool isKing(piece_t piece) {
+		return (piece & ~COLOR_MASK) == KING;
+	}
+
+	bool kingCaptureFound(MoveList& moveList) {
+		bool result = false;
+		for (uint32_t index = 0; index < moveList.getMoveAmount(); index++) {
+			if (isKing(Move::getCapturedPiece(moveList[index]))) {
+				return true;
+				break;
+			}
+		}
+		return result;
+	}
+
+	uint32_t initialComputePosition(uint64_t index, GenBoard& board, Eval& eval, BitBase& bitBase, BitBase& computedPositions) {
+		uint32_t result = 0;
+		MoveList moveList;
+		bool kingInCheck = false;
+		if (index == debugIndex) {
+			kingInCheck = false;
+		}
+
+		if (board.isIllegalPosition2()) {
+			amountOfIllegalPositions++;
+			computedPositions.setBit(index);
+			return 0;
+		}
+
+		board.genMovesOfMovingColor(moveList);
+		if (moveList.getMoveAmount() > 0) {
+			value_t positionValue;
+			
+			positionValue = initialSearch(board);
+			if (positionValue == 1) {
+				bitBase.setBit(index);
+				computedPositions.setBit(index);
+				result++;
+			} else if (positionValue == -1) {
+				computedPositions.setBit(index);
+				amountOfDirectDrawOrLoss++;
+			}
+		} else {
+			computedPositions.setBit(index);
+			if (!board.whiteToMove && board.isInCheck()) {
+				if (index == debugIndex) {
+					board.printBoard();
+					printf("index: %lld, mate detected\n", index);
+				}
+				bitBase.setBit(index);
+				result++;
+			} else {
+				amountOfDirectDrawOrLoss++;
+			}
 		}
 		return result;
 	}
 
 
+	void printInfo(uint64_t index, uint64_t size, uint32_t bitsChanged, uint32_t step = 1) {
+		uint64_t onePercent = size / 100;
+		if (index % onePercent >= onePercent - step) {
+			printf(".");
+		}
+	}
 
-	uint32_t initalSetBitbase(GenBoard& board, Eval& eval, BitBase& bitBase, uint64_t index, PositionGenerator& positionGenerator) {
-		uint32_t bitsChanged = 0;
-		if (!bitBase.getBit(index))
-		{
-			//bool won = isPawnPromoting(positionGenerator.getWhiteKingPos(), positionGenerator.getBlackKingPos(), positionGenerator.getPiecePos(2));
-			bool won = search(board, eval, 0, 1, 0, WINNING_BONUS) >= WINNING_BONUS;
-			if (won) {
-				bitBase.setBit(index);
-				bitsChanged++;
+	void addPiecesToBoard(GenBoard& board, const BitBaseIndex& bitBaseIndex, const PieceList& pieceList) {
+		board.setPieceToPosition(bitBaseIndex.getPiecePos(0), WHITE_KING);
+		board.setPieceToPosition(bitBaseIndex.getPiecePos(1), BLACK_KING);
+		for (uint32_t pieceNo = 0; pieceNo < pieceList.getPieceAmount(); pieceNo ++) {
+			board.setPieceToPosition(bitBaseIndex.getPiecePos(2 + pieceNo), pieceList.getPiece(pieceNo));
+		}
+		board.whiteToMove = bitBaseIndex.getWhiteToMove();
+	}
+
+	void removePiecesFromBoard(GenBoard& board, const BitBaseIndex& bitBaseIndex) {
+		for (uint32_t pieceNo = 0; pieceNo < bitBaseIndex.getPieceAmount(); pieceNo++) {
+			board.removePieceFromPosition(bitBaseIndex.getPiecePos(pieceNo));
+		}
+	}
+
+	void compareBitbases(const char* pieceString, BitBase& bitbase1, BitBase& bitbase2) {
+		GenBoard board;
+		PieceList pieceList(pieceString);
+		uint64_t sizeInBit = bitbase1.getSizeInBit();
+		for (uint64_t index = 0; index < sizeInBit; index++) {
+			bool newResult = bitbase1.getBit(index);
+			bool oldResult = bitbase2.getBit(index);
+			if (bitbase1.getBit(index) != bitbase2.getBit(index)) {
+				BitBaseIndex bitBaseIndex;
+				bitBaseIndex.setPiecePositionsByIndex(index, pieceList);
+				addPiecesToBoard(board, bitBaseIndex, pieceList);
+				printf("new: %s, old: %s\n", newResult ? "won" : "not won", oldResult ? "won" : "not won");
+				printf("index: %lld\n", index);
+				board.printBoard();
+				board.clear();
 			}
 		}
-		return bitsChanged;
 	}
 
-	void printInfo(uint32_t loop, uint64_t index, uint64_t size, uint32_t bitsChanged) {
-		if (index % 100000 == 0) {
-			printf("loop %ld, index %lld/%lld, bits changed %ld\n", loop, index, size, bitsChanged);
+	void compareFiles(string pieceString) {
+		BitBase bitBase1;
+		BitBase bitBase2;
+		bitBase1.readFromFile(pieceString);
+		bitBase2.readFromFile("generated\\" + pieceString);
+		compareBitbases(pieceString.c_str(), bitBase1, bitBase2);
+	}
+
+	void printTimeSpent(ThinkingTimeManager& timeManager) {
+		uint64_t timeInMilliseconds = timeManager.getTimeSpentInMilliseconds();
+		printf("Time spend: %lld:%lld:%lld.%lld\n", 
+			timeInMilliseconds / (60 * 60 * 1000), 
+			(timeInMilliseconds / (60 * 1000)) % 60, 
+			(timeInMilliseconds / 1000) % 60, 
+			timeInMilliseconds % 1000);
+	}
+
+
+	void computeBitbase(const char* pieceString) {
+		PieceList pieceList(pieceString);
+		computeBitbaseRec(pieceList);
+	}
+
+	void computeBitbaseRec(PieceList& pieceList) {
+		string pieceString = pieceList.getPieceString();
+		if (!BitBaseReader::isBitBaseAvailable(pieceString)) {		
+			BitBaseReader::loadBitBase(pieceString);
+		}
+		if (!BitBaseReader::isBitBaseAvailable(pieceString)) {		
+			if (pieceList.getPieceAmount() >= 1) {
+				for(uint32_t pieceNo = 0; pieceNo < pieceList.getPieceAmount(); pieceNo++) {
+					PieceList newPieceList(pieceList);
+					if (isPawn(newPieceList.getPiece(pieceNo))) {
+						for (piece_t piece = QUEEN; piece >= KNIGHT; piece -= 2) {
+							newPieceList.promotePawn(pieceNo, piece);
+							computeBitbaseRec(newPieceList);
+							newPieceList = pieceList;
+						}
+					}
+					newPieceList.removePiece(pieceNo);
+					computeBitbaseRec(newPieceList);
+				}
+			}
+			computeBitbase(pieceList);
 		}
 	}
 
-	void computeKKPBitbase() {
+	void computeBitbase(PieceList& pieceList) {
 		GenBoard board;
-		Eval eval;
-		uint64_t index;
-		uint32_t bitsChanged;
-		uint64_t bitBaseSize = BitBaseIndex::computeKRKPSize();
-		BitBase bitBase(bitBaseSize);
-		PositionGenerator positionGenerator;
-		positionGenerator.addPiece(BLACK_PAWN);
-		positionGenerator.addPiece(WHITE_ROOK);
-		board.clear();
-		for (uint32_t loopCount = 0; loopCount < 50; loopCount++) {
-			positionGenerator.setToFirstPosition();
-			bitsChanged = 0;
-			do {
-				positionGenerator.setPiecesToBoard(board);
-				index = positionGenerator.getIndex();
-				printInfo(loopCount, index, bitBaseSize, bitsChanged);
-				if (loopCount == 0) {
-					bitsChanged += initalSetBitbase(board, eval, bitBase, index, positionGenerator);
-				} else {
-					bitsChanged += computePosition(board, bitBase, index);
-				}
-				positionGenerator.removePiecesFromBoard(board);
-			} while (positionGenerator.nextPosition());
+		string pieceString = pieceList.getPieceString();
+		printf("Computing bitbase for %s\n", pieceString.c_str());
+		if (BitBaseReader::isBitBaseAvailable(pieceString)) {
+			printf("Bitbase already loaded\n");
+			return;
+		}
+		BitBaseIndex bitBaseIndex;
+		uint32_t bitsChanged = 0;
+		bitBaseIndex.setPiecePositionsByIndex(0, pieceList);
+		uint64_t sizeInBit = bitBaseIndex.getSizeInBit();
+		BitBase bitBase(bitBaseIndex);
+		BitBase computedPositions(bitBaseIndex);
+		ThinkingTimeManager timeManager;
 
-			printf("Loop: %ld, positions set: %ld\n", loopCount, bitsChanged);
+		timeManager.startTimer();
+		board.clear();
+		amountOfIllegalPositions = 0;
+		amountOfDirectDrawOrLoss = 0;
+		for (uint64_t index = 0; index < sizeInBit; index ++) {
+			printInfo(index, sizeInBit, bitsChanged);
+			if (bitBaseIndex.setPiecePositionsByIndex(index, pieceList)) {
+				addPiecesToBoard(board, bitBaseIndex, pieceList);
+				bitsChanged += initialComputePosition(index, board, eval, bitBase, computedPositions);
+				removePiecesFromBoard(board, bitBaseIndex);
+			}
+		} 
+		printf("\nInitial, positions set: %ld\n", bitsChanged);
+		printTimeSpent(timeManager);
+
+		for (uint32_t loopCount = 0; loopCount < 100; loopCount++) {
+			bitsChanged = 0;
+			for (uint64_t index = 0; index < sizeInBit; index ++) {
+				printInfo(index, sizeInBit, bitsChanged);
+
+				if (!computedPositions.getBit(index) && bitBaseIndex.setPiecePositionsByIndex(index, pieceList)) {
+					addPiecesToBoard(board, bitBaseIndex, pieceList);
+					assert(index == BoardAccess::getIndex(board));
+					bitsChanged += computePosition(index, board, bitBase, computedPositions);
+					//if (bitsChanged == 0) { board.printBoard(); }
+					removePiecesFromBoard(board, bitBaseIndex);
+				}
+			} 
+
+			printf("\nLoop: %ld, positions set: %ld\n", loopCount, bitsChanged);
+			printTimeSpent(timeManager);
 			if (bitsChanged == 0) {
 				break;
 			}
 		}
-		bitBase.storeToFile("KRKP.btb");
+		//compareToFile(pieceString, bitBase);
+		bitBase.printStatistic();
+		printf("Illegal positions: %lld, draw or loss found in quiescense: %lld, sum: %lld \n", 
+			amountOfIllegalPositions, amountOfDirectDrawOrLoss, amountOfDirectDrawOrLoss + amountOfIllegalPositions);
+		printTimeSpent(timeManager);
+		string fileName = pieceString + string(".btb");
+		bitBase.storeToFile(fileName.c_str());
+		BitBaseReader::setBitBase(pieceString, bitBase);
+		//testAllKPK(bitBase);
+	}
+
+	void testBoard(GenBoard& board, pos_t wk, pos_t bk, bool wtm, bool expected, BitBase& bitBase) {
+		board.setPieceToPosition(wk, WHITE_KING);
+		board.setPieceToPosition(bk, BLACK_KING);
+		board.whiteToMove = wtm;
+		uint64_t checkIndex = BoardAccess::getIndex(board);
+		if (bitBase.getBit(checkIndex) == expected) {
+			printf("Test OK\n"); 
+		}
+		else {
+			printf("%s, index:%lld\n", board.whiteToMove ? "white" : "black", checkIndex);
+			printf("Test failed\n");
+			board.printBoard();
+			computeValue(board, bitBase, true);
+			showDebugIndex("KRKP");
+		}
+	}
+
+	struct piecePos {
+		piece_t piece;
+		pos_t pos;
+	};
+
+	void testKQKR(pos_t wk, pos_t bk, pos_t q, pos_t r, bool wtm, bool expected, BitBase& bitBase) {
+		GenBoard board;
+		board.setPieceToPosition(q, WHITE_QUEEN);
+		board.setPieceToPosition(r, BLACK_ROOK);
+		testBoard(board, wk, bk, wtm, expected, bitBase);
+	}
+
+	void testKRKQ(pos_t wk, pos_t bk, pos_t r, pos_t q, bool wtm, bool expected, BitBase& bitBase) {
+		GenBoard board;
+		board.setPieceToPosition(q, BLACK_QUEEN);
+		board.setPieceToPosition(r, WHITE_ROOK);
+		testBoard(board, wk, bk, wtm, expected, bitBase);
 	}
 
 
+	void testAllKQKR() {
+		BitBase bitBase;
+		bitBase.readFromFile("KQKR.btb_generated");
+		testKQKR(POS_B7, POS_B1, POS_C8, POS_A2, false, false, bitBase);
+		testKQKR(POS_B7, POS_B1, POS_D8, POS_A2, false, true, bitBase);
+		testKQKR(POS_B7, POS_B1, POS_C8, POS_A3, false, true, bitBase);
+		testKQKR(POS_B7, POS_B1, POS_C8, POS_A2, true, true, bitBase);
+	}
+
+
+	void testKPK(pos_t wk, pos_t bk, pos_t p, bool wtm, bool expected, BitBase& bitBase) {
+		GenBoard board;
+		board.setPieceToPosition(p, WHITE_PAWN);
+		testBoard(board, wk, bk, wtm, expected, bitBase);
+	}
+
+	void testAllKPK(BitBase& bitBase) {
+		testKPK(POS_E5, POS_E8, POS_E7, false, false, bitBase);
+		testKPK(POS_D6, POS_E8, POS_E7, true, false, bitBase);
+		testKPK(POS_A2, POS_A5, POS_E2, true, true, bitBase);
+		testKPK(POS_A2, POS_A5, POS_E2, false, false, bitBase);
+		testKPK(POS_A3, POS_A5, POS_E2, true, false, bitBase);
+		testKPK(POS_A3, POS_A5, POS_E2, false, true, bitBase);
+	}
+
+	void testAllKPK() {
+		BitBase bitBase;
+		bitBase.readFromFile("KPK");
+		testAllKPK(bitBase);
+	}
+
+	void testKRKP(pos_t wk, pos_t bk, pos_t p, pos_t r, bool wtm, bool expected, BitBase& bitBase) {
+		GenBoard board;
+		board.setPieceToPosition(wk, WHITE_KING);
+		board.setPieceToPosition(bk, BLACK_KING);
+		board.setPieceToPosition(p, BLACK_PAWN);
+		board.setPieceToPosition(r, WHITE_ROOK);
+		board.whiteToMove = wtm;
+		uint64_t checkIndex = BoardAccess::getIndex(board);
+		if (bitBase.getBit(checkIndex) == expected) {
+			printf("Test OK\n"); 
+		}
+		else {
+			board.printBoard();
+			printf("%s, index:%lld\n", board.whiteToMove ? "white" : "black", checkIndex);
+			printf("Test failed\n");
+			computeValue(board, bitBase, true);
+			showDebugIndex("KRKP");
+			
+		}
+	}
+
+	void showDebugIndex(string pieceString) {
+		GenBoard board;
+		BitBase bitBase;
+		bitBase.readFromFile(pieceString);
+		PieceList pieceList(pieceString.c_str());
+		BitBaseIndex bitBaseIndex;
+		uint32_t index;
+		while (true) {
+			cin >> index;
+			printf("%ld\n", index);		
+			if (bitBaseIndex.setPiecePositionsByIndex(index, pieceList)) {
+				board.clear();
+				addPiecesToBoard(board, bitBaseIndex, pieceList);
+				printf("index:%lld, result for white %s\n", index, bitBase.getBit(index) ? "win" : "draw");
+				
+				computeValue(board, bitBase, true);
+			} else {
+				break;
+			}
+		} 
+	}
+
+
+	void testAllKRKP() {
+		BitBase bitBase;
+		bitBase.readFromFile("KRKP");
+		testKRKP(POS_F2, POS_D4, POS_F6, POS_F3, true, true, bitBase);
+		testKRKP(POS_F2, POS_D4, POS_F6, POS_F3, false, true, bitBase);
+		testKRKP(POS_A7, POS_G4, POS_F2, POS_B5, false, false, bitBase);
+		testKRKP(POS_A7, POS_G4, POS_F2, POS_B5, true, false, bitBase);
+		testKRKP(POS_A7, POS_G4, POS_F5, POS_B5, true, true, bitBase);
+		testKRKP(POS_A7, POS_G4, POS_F5, POS_B5, false, false, bitBase);
+		testKRKP(POS_C3, POS_C1, POS_D2, POS_A2, false, false, bitBase);
+	}
+
+	void testAllKRKQ() {
+		BitBase bitBase;
+		bitBase.readFromFile("KRKQ");
+		testKRKQ(POS_C3, POS_C1, POS_A2, POS_D1, false, false, bitBase);
+	}
+
+
+	Eval eval;
+	uint64_t amountOfIllegalPositions;
+	uint64_t amountOfDirectDrawOrLoss;
 };
 
 

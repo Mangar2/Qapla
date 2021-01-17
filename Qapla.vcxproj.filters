@@ -84,12 +84,6 @@
     <ClCompile Include="movegenerator\magics.cpp">
       <Filter>movegenerator</Filter>
     </ClCompile>
-    <ClCompile Include="bitbase\bitbasereader.cpp">
-      <Filter>Bitbase</Filter>
-    </ClCompile>
-    <ClCompile Include="bitbase\bitbaseindex.cpp">
-      <Filter>Bitbase</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">
@@ -276,6 +270,12 @@
       <Filter>Bitbase</Filter>
     </ClInclude>
     <ClInclude Include="bitbase\bitbaseindex.h">
+      <Filter>Bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\boardaccess.h">
+      <Filter>Bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\piecelist.h">
       <Filter>Bitbase</Filter>
     </ClInclude>
   </ItemGroup>

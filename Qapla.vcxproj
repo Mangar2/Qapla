@@ -212,8 +212,6 @@
     <ClCompile Include="basics\board.cpp" />
     <ClCompile Include="basics\hashconstants.cpp" />
     <ClCompile Include="basics\piecesignature.cpp" />
-    <ClCompile Include="bitbase\bitbaseindex.cpp" />
-    <ClCompile Include="bitbase\bitbasereader.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\evalpawn.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
@@ -242,6 +240,8 @@
     <ClInclude Include="bitbase\bitbase.h" />
     <ClInclude Include="bitbase\bitbaseindex.h" />
     <ClInclude Include="bitbase\bitbasereader.h" />
+    <ClInclude Include="bitbase\boardaccess.h" />
+    <ClInclude Include="bitbase\piecelist.h" />
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />
     <ClInclude Include="eval\evalmobility.h" />

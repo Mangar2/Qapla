@@ -19,4 +19,112 @@
 
 #include "bitbaseindex.h"
 
-array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitBaseIndex::kingIndexMap;
+using namespace ChessBitbase;
+
+array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitBaseIndex::mapTwoKingsToIndexWithPawn;
+array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitBaseIndex::mapTwoKingsToIndexWithoutPawn;
+array<uint32_t, BitBaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN> BitBaseIndex::mapIndexToKingSquaresWithPawn;
+array<uint32_t, BitBaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> BitBaseIndex::mapIndexToKingSquaresWithoutPawn;
+
+/**
+ * Checks, if two squares are adjacent
+ */
+bool BitBaseIndex::isAdjacent(Square pos1, Square pos2) {
+	bitBoard_t map = 1ULL << pos1;
+	bool result;
+
+	map |= BitBoardMasks::shift<WEST>(map);
+	map |= BitBoardMasks::shift<EAST>(map);
+	map |= BitBoardMasks::shift<SOUTH>(map);
+	map |= BitBoardMasks::shift<NORTH>(map);
+
+	result = ((1ULL << pos2) & map) != 0;
+	return result;
+}
+
+BitBaseIndex::InitStatic::InitStatic() {
+	uint32_t index = 0;
+	for (Square whiteKingSquare = A1; whiteKingSquare <= H8; whiteKingSquare = computeNextKingSquareForPositionsWithPawn(whiteKingSquare)) {
+		for (Square blackKingSquare = A1; blackKingSquare <= H8; ++blackKingSquare) {
+			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
+			assert(lookupIndex < BOARD_SIZE* BOARD_SIZE);
+			mapTwoKingsToIndexWithPawn[lookupIndex] = index;
+			mapIndexToKingSquaresWithPawn[index] = lookupIndex;
+			if (!isAdjacent(whiteKingSquare, blackKingSquare)) {
+				index++;
+			}
+		}
+	}
+	const Square whiteKingSquareWithoutPawn[] = { A1, B1, C1, D1, B2, C2, D2, C3, D3, D4 };
+	index = 0;
+	for (uint32_t posNo = 0; posNo < 10; posNo++) {
+		Square whiteKingSquare = whiteKingSquareWithoutPawn[posNo];
+		for (Square blackKingSquare = A1; blackKingSquare <= H8; blackKingSquare++) {
+			if (getFile(whiteKingSquare) == File(getRank(whiteKingSquare)) 
+				&& getFile(blackKingSquare) < File(getRank(blackKingSquare))) {
+				continue;
+			}
+			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
+			assert(lookupIndex < BOARD_SIZE* BOARD_SIZE);
+			assert(index < AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN);
+			mapTwoKingsToIndexWithoutPawn[lookupIndex] = index;
+			mapIndexToKingSquaresWithoutPawn[index] = lookupIndex;
+			if (!isAdjacent(whiteKingSquare, blackKingSquare)) {
+				index++;
+			}
+		}
+	}
+}
+
+uint64_t BitBaseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
+	uint32_t posIndex;
+	uint64_t amountOfKingPositions;
+	if (hasPawn) {
+		amountOfKingPositions = AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN;
+		posIndex = mapIndexToKingSquaresWithPawn[index % amountOfKingPositions];
+	}
+	else
+	{
+		amountOfKingPositions = AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
+		posIndex = mapIndexToKingSquaresWithoutPawn[index % amountOfKingPositions];
+	}
+	addPieceSquare(Square(posIndex % BOARD_SIZE));
+	addPieceSquare(Square(posIndex / BOARD_SIZE));
+	index /= amountOfKingPositions;
+	_sizeInBit = amountOfKingPositions * _sizeInBit;
+	return index;
+}
+
+bool BitBaseIndex::setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, uint32_t nonPawnPieceAmount) {
+	clear();
+	uint32_t posIndex;
+	bool legalPosition = true;
+	_index = index;
+	_wtm = (_index % COLORS) == 0;
+	_index /= COLORS;
+	_sizeInBit = COLORS;
+	_index = setKingSquaresByIndex(_index, pawnAmount > 0);
+
+	for (uint32_t pawn = 0; pawn < pawnAmount; pawn++) {
+		const uint32_t numberOfPieces = pieceSquareFld.size();
+		posIndex = _index % (AMOUT_OF_PAWN_POSITIONS - numberOfPieces);
+		_index /= AMOUT_OF_PAWN_POSITIONS - numberOfPieces;
+		_sizeInBit *= AMOUT_OF_PAWN_POSITIONS - numberOfPieces;
+		addPieceSquare(computesRealSquare(_piecesBB >> 8, Square(posIndex)) + A2);
+		if (pieceSquareFld[numberOfPieces - 1] > H8) {
+			legalPosition = false;
+		}
+	}
+
+	for (uint32_t piece = 0; piece < nonPawnPieceAmount; piece++) {
+		const uint32_t numberOfPieces = pieceSquareFld.size();
+		posIndex = _index % (AMOUT_OF_PIECE_POSITIONS - numberOfPieces);
+		_index /= AMOUT_OF_PIECE_POSITIONS - numberOfPieces;
+		_sizeInBit *= AMOUT_OF_PIECE_POSITIONS - numberOfPieces;
+		addPieceSquare(computesRealSquare(_piecesBB, Square(posIndex)));
+		if (pieceSquareFld[numberOfPieces - 1] >= BOARD_SIZE) {
+			legalPosition = false;
+		}
+	}
+	return legalPosition;
+}

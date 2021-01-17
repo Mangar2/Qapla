@@ -68,6 +68,26 @@ namespace ChessBitbase {
 		}
 
 		/**
+		 * Prints a statistic of a bitbase
+		 */
+		void printStatistic() const {
+			uint64_t win = 0;
+			uint64_t draw = 0;
+			uint64_t loss = 0;
+			uint64_t illegal = 0;
+
+			for (uint64_t index = 0; index < sizeInBit; index++) {
+				if (getBit(index)) {
+					win++;
+				}
+				else {
+					draw++;
+				}
+			}
+			printf("Statistics; Positions stored: %lld, Win: %lld, no win (draw, loss, illegal): %lld\n", sizeInBit, win, draw);
+		}
+
+		/**
 		 * Stores a bitbase to a file
 		 */
 		void storeToFile(string fileName) {
