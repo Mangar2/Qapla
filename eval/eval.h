@@ -33,6 +33,7 @@
 #include "evalendgame.h"
 #include "evalpawn.h"
 #include "evalmobility.h"
+#include "kingattack.h"
 
 namespace ChessEval {
 
@@ -76,6 +77,7 @@ namespace ChessEval {
 			}
 			else {
 				evalResult += EvalMobility::eval(board, mobility);
+				evalResult += KingAttack::eval(board, mobility);
 			}
 
 			return evalResult;
@@ -106,6 +108,7 @@ namespace ChessEval {
 			}
 			else {
 				valueSum += EvalMobility::print(board, mobility);
+				valueSum += KingAttack::print(board, mobility);
 			}
 			if (evalValue != valueSum) {
 				printf("Error, false value sum     : %ld\n", valueSum);

@@ -1,6 +1,8 @@
 # Quabla Change log
 Quabla chess engine
 
+## 0.0.6 
+
 ## 0.0.5 2021-01-17 minor change
 - Playing strenght: 2000 Elo
 - UCI support added (not feature complete, but working)

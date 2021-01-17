@@ -39,7 +39,7 @@ namespace ChessEval {
 
 	struct KingAttackValues {
 		static constexpr array<value_t, 20> attackWeight = 
-			{ 0,  -20, -40, -80, -150, -250, -350, -450, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500 };
+			{ 0,  -30, -60, -90, -150, -250, -350, -450, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500 };
 	};
 
 	class KingAttack {
@@ -52,6 +52,8 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
 			computeAttacks<WHITE>(mobility);
 			computeAttacks<BLACK>(mobility);
+			computeUndefendedAttacks<WHITE>(mobility);
+			computeUndefendedAttacks<BLACK>(mobility);
 			return computeAttackCount<WHITE>(board.getKingSquare<WHITE>(), mobility) - 
 				computeAttackCount<BLACK>(board.getKingSquare<BLACK>(), mobility);
 		}
@@ -59,12 +61,12 @@ namespace ChessEval {
 		/**
 		 * Prints the evaluation results
 		 */
-		static value_t printEval(MoveGenerator& board, EvalResults& mobility) {
+		static value_t print(MoveGenerator& board, EvalResults& mobility) {
 			value_t result = eval(board, mobility);
 			printf("King attack\n");
-			printf("White (pressure %ld) : %ld\n", mobility.kingPressureCount[WHITE], mobility.kingAttackValue[WHITE]);
-			printf("Black (pressure %ld) : %ld\n", mobility.kingPressureCount[BLACK], -mobility.kingAttackValue[BLACK]);
-			printf("King total           : %ld\n", result);
+			printf("White (pressure %1ld)  : %ld\n", mobility.kingPressureCount[WHITE], mobility.kingAttackValue[WHITE]);
+			printf("Black (pressure %1ld)  : %ld\n", mobility.kingPressureCount[BLACK], -mobility.kingAttackValue[BLACK]);
+			printf("King total          : %ld\n", result);
 			return result;
 		}
 
@@ -82,7 +84,7 @@ namespace ChessEval {
 			bitBoard_t kingAttacks = attackArea & mobility.undefendedAttack[OPPONENT];
 			bitBoard_t kingDoubleAttacks = attackArea & mobility.undefendedDoubleAttack[OPPONENT];
 			mobility.kingPressureCount[COLOR] =
-				BitBoardMasks::popCount(kingAttacks) + BitBoardMasks::popCount(kingDoubleAttacks) * 3;
+				BitBoardMasks::popCount(kingAttacks) + BitBoardMasks::popCount(kingDoubleAttacks) * 2;
 			mobility.kingAttackValue[COLOR] = KingAttackValues::attackWeight[mobility.kingPressureCount[COLOR]];
 			return mobility.kingAttackValue[COLOR];
 		}
@@ -105,6 +107,11 @@ namespace ChessEval {
 			attack |= mobility.pawnAttack[COLOR];
 			mobility.piecesAttack[COLOR] = attack;
 			mobility.piecesDoubleAttack[COLOR] = doubleAttack;
+		}
+
+		template <Piece COLOR>
+		inline static void computeUndefendedAttacks(EvalResults& mobility) {
+			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			mobility.undefendedAttack[COLOR] = (mobility.piecesAttack[COLOR] & ~mobility.piecesAttack[OPPONENT]) |
 				(mobility.piecesDoubleAttack[COLOR] & ~mobility.piecesDoubleAttack[OPPONENT]);
 			mobility.undefendedDoubleAttack[COLOR] = mobility.piecesDoubleAttack[COLOR] & ~mobility.piecesAttack[OPPONENT];
