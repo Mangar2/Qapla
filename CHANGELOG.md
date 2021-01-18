@@ -2,9 +2,13 @@
 Quabla chess engine
 
 ## 0.0.6 
+- Playing strengh: 2200 Elo 
+- Eval
+	- Added King security. Counts non defended attacks / double attacks around the king (3x4 fields, two to the north). +65 Elo
+	- Added an "Endgame" factor - reducing the king attack value based on the amount of pieces on the field
 
 ## 0.0.5 2021-01-17 minor change
-- Playing strenght: 2000 Elo
+- Playing strenght: 2100 Elo
 - UCI support added (not feature complete, but working)
 - Refactoring of several code parts
 - Eval
