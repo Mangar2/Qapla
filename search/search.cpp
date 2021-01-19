@@ -125,7 +125,7 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 	}
 
 	searchInfo.terminatePly(board);
-	_computingInfo->printSearchInfoIfRequested();
+	_computingInfo->printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	return searchInfo.bestValue;
 
 }

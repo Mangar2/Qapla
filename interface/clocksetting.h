@@ -32,6 +32,7 @@ namespace ChessInterface {
 	public:
 
 		ClockSetting() {
+			_timeBetweenInfoInMilliseconds = 0;
 			reset();
 		}
 
@@ -134,6 +135,20 @@ namespace ChessInterface {
 		}
 
 		/**
+		 * Sets the time between two calculation informations in milliseconds
+		 */
+		void setTimeBetweenInfoInMilliseconds(uint64_t timeBetweenInfo) {
+			_timeBetweenInfoInMilliseconds = timeBetweenInfo;
+		}
+
+		/**
+		 * Sets the time between two calculation informations in milliseconds
+		 */
+		uint64_t getTimeBetweenInfoInMilliseconds() const {
+			return _timeBetweenInfoInMilliseconds;
+		}
+
+		/**
 		 * Starts recording the calculation time
 		 */
 		void storeCalculationStartTime() {
@@ -221,6 +236,7 @@ namespace ChessInterface {
 		uint64_t _timeIncrementPerMoveInMilliseconds;
 		uint64_t _exactTimePerMoveInMilliseconds;
 		uint64_t _calculationStartTime;
+		uint64_t _timeBetweenInfoInMilliseconds;
 		enum Mode {
 			COMPUTE, ANALYSE, PONDER
 		};

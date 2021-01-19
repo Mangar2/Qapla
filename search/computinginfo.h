@@ -78,10 +78,13 @@ namespace ChessSearch {
 		void requestPrintSearchInfo() { _printRequest = true; }
 
 		/**
-		 * Prints the current serch information based on a setting
+		 * Prints the current serch information based on a setting, either, if
+		 * the print was requested or if the parameter print is true
+		 * @print true, if search info sould be printed 
 		 */
-		void printSearchInfoIfRequested() {
-			if (_printRequest && _verbose && _sendSearchInfo != 0) {
+		void printSearchInfo(bool print) {
+			bool doPrint = _printRequest || print;
+			if (doPrint && _verbose && _sendSearchInfo != 0) {
 				_sendSearchInfo->informAboutAdvancementsInSearch(
 					_searchDepth,
 					_positionValueInCentiPawn,

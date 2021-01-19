@@ -37,6 +37,11 @@ namespace ChessSearch {
 			return getSystemTimeInMilliseconds() - _startTime;
 		}
 
+		/**
+		 * Starts calculation of next move
+		 * @param movesLeftForClockControl amount of moves to play in the time provided by clockSetting
+		 * @param clockSetting the time available to play the chess game
+		 */
 		void startCalculatingMove(int32_t movesLeftForClockControl, const ClockSetting& clockSetting)
 		{
 			_startTime = getSystemTimeInMilliseconds();
@@ -50,6 +55,8 @@ namespace ChessSearch {
 			_averageTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / movesLeftForClockControl;
 			_averageTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
 			_maxTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / 10;
+			_timeBetweenInfoInMilliseconds = clockSetting.getTimeBetweenInfoInMilliseconds();
+			_nextInfoTime = 0;
 			if (clockSetting.getTimeToThinkForAllMovesInMilliseconds() < 10 * 1000) {
 				// Very short time left -> urgent move
 				_maxTimePerMove /= 4;
@@ -105,6 +112,19 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Checks, if it is time to send the next information to the gui
+		 */
+		bool isTimeToSendNextInfo() {
+			bool sendInfo = _timeBetweenInfoInMilliseconds > 0 && 
+				getSystemTimeInMilliseconds() > _nextInfoTime;
+
+			if (sendInfo) {
+				_nextInfoTime = getSystemTimeInMilliseconds() + _timeBetweenInfoInMilliseconds;
+			}
+			return sendInfo;
+		}
+
+		/**
 		 * Call to stop the search immediately
 		 */
 		void stopSearch() { 
@@ -140,6 +160,8 @@ namespace ChessSearch {
 		uint64_t _startTime;
 		uint64_t _averageTimePerMove;
 		uint64_t _maxTimePerMove;
+		uint64_t _nextInfoTime;
+		uint64_t _timeBetweenInfoInMilliseconds;
 
 		bool _analyzeMode;
 		bool _searchStopped;

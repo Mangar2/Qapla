@@ -90,6 +90,7 @@ namespace ChessInterface {
 		 * Reply on an "UCI" command
 		 */
 		void uciCommand() {
+			_clock.setTimeBetweenInfoInMilliseconds(1000);
 			println("id name " + _board->getEngineName());
 			println("option name Hash type spin default 32 min 1 max 1024");
 			println("option name Ponder type check");
