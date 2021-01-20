@@ -32,20 +32,20 @@ namespace ChessInterface {
 		return string("NnBbRrQqKk").find(pieceChar) != string::npos;
 	}
 
-	static bool isCastleNotationChar(char aChar) {
-		return (aChar == '0' || aChar == 'O');
+	static bool isCastleNotationChar(char ch) {
+		return (ch == '0' || ch == 'O');
 	}
 
-	static bool isCheckSign(char aChar) {
-		return aChar == '+';
+	static bool isCheckSign(char ch) {
+		return ch == '+';
 	}
 
-	static bool isMateSign(char aChar) {
-		return aChar == '#';
+	static bool isMateSign(char ch) {
+		return ch == '#';
 	}
 
-	static bool isPromoteChar(char aChar) {
-		return aChar == '=';
+	static bool isPromoteChar(char ch) {
+		return ch == '=';
 	}
 
 	static bool isRankChar(char rank) {
@@ -89,7 +89,6 @@ namespace ChessInterface {
 			while (curIndex >= 0 && move[curIndex] == ' ') {
 				--curIndex;
 			}
-
 			if (!handleCastleNotation(move)) {
 
 				skipCheckAndMateSigns(move, curIndex);
@@ -132,7 +131,7 @@ namespace ChessInterface {
 				if (move[1] == '-' && isCastleNotationChar(move[2])) {
 
 					// Castle Queen side
-					if (move[3] == '-' && !isCastleNotationChar(move[4])) {
+					if (move[3] == '-' && isCastleNotationChar(move[4])) {
 						destinationFile = 2;
 					}
 					else {
