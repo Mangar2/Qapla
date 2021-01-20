@@ -214,19 +214,20 @@ void createStatistic() {
 		FenScanner scanner;
 		scanner.setBoard(fen, &environment.adapter);
 		for (auto& move : game.getMoves()) {
+			const MoveGenerator& board = environment.adapter.getBoard();
 			environment.setMove(move);
 			auto white = environment.adapter.getEvalFactors<WHITE>();
 			auto black = environment.adapter.getEvalFactors<BLACK>();
 			const string tag = "King pressure";
 			if (white.find(tag) != white.end()) {
-				// if (white[tag] >= 4 && game.getTag("Result") == "0-1") { environment.adapter.getBoard().print(); }
+				if (white[tag] >= 15 && game.getTag("Result") == "0-1") { environment.adapter.getBoard().print(); }
 				if (game.getTag("Result") == "1-0") {
-					win[white[tag]] ++;
+					win[white[tag]] ++; 
 					loss[black[tag]] ++;
 				}
 				else if (game.getTag("Result") == "0-1") {
-					win[black[tag]] ++;
 					loss[white[tag]] ++;
+					win[black[tag]] ++;
 				}
 				else if (game.getTag("Result") == "1/2-1/2") {
 					draw[white[tag]] ++;
