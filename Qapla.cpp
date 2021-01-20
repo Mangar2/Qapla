@@ -198,33 +198,8 @@ void runTests() {
 	ChessTest::runEvalMobilityTests();
 }
 
-int main()
-{
-	
-	// checkThreadPoolSpeed();
-	// checkThreadSpeed();
-	/*
-	StdTimeControl timeControl;
-	for (uint32_t workerAmount = 1; workerAmount <= 1; workerAmount++) {
-		adapter.setWorkerAmount(workerAmount);
-		timeControl.storeStartTime();
-		uint64_t totalNodes = adapter.perft(7);
-		uint64_t timeSpent = timeControl.getTimeSpentInMilliseconds();
-		double nodesPerSecond = double(totalNodes) / 1000 / timeSpent;
-		cout << totalNodes << " end positions found, NPS: " << nodesPerSecond 
-			<< " threads: " << workerAmount + 1 << endl;
-	}
-	*/
-	// ChessEval::Eval::initStatics();
-	// adapter.printEvalInfo();
-
-	// adapter.setWorkerAmount(1);
-	// runPerftTests(fenTests, 10000000000);
-	// std::this_thread::sleep_for(std::chrono::seconds(20));
+void createStatistic() {
 	ChessSearch::ChessEnvironment environment;
-	// environment.run();
-	// runTests();
-
 	ChessPGN::PGNFileTokenizer fileTokenizer("quabla_all.pgn");
 	ChessPGN::PGNGame game;
 	array<value_t, 30> win;
@@ -242,7 +217,7 @@ int main()
 			environment.setMove(move);
 			auto white = environment.adapter.getEvalFactors<WHITE>();
 			auto black = environment.adapter.getEvalFactors<BLACK>();
-			const string tag = "King single no pawn defence + king protected double + 2 * king unprotected double";
+			const string tag = "King pressure";
 			if (white.find(tag) != white.end()) {
 				// if (white[tag] >= 4 && game.getTag("Result") == "0-1") { environment.adapter.getBoard().print(); }
 				if (game.getTag("Result") == "1-0") {
@@ -272,5 +247,34 @@ int main()
 				<< endl;
 		}
 	}
+}
+
+int main()
+{
+	
+	// checkThreadPoolSpeed();
+	// checkThreadSpeed();
+	/*
+	StdTimeControl timeControl;
+	for (uint32_t workerAmount = 1; workerAmount <= 1; workerAmount++) {
+		adapter.setWorkerAmount(workerAmount);
+		timeControl.storeStartTime();
+		uint64_t totalNodes = adapter.perft(7);
+		uint64_t timeSpent = timeControl.getTimeSpentInMilliseconds();
+		double nodesPerSecond = double(totalNodes) / 1000 / timeSpent;
+		cout << totalNodes << " end positions found, NPS: " << nodesPerSecond 
+			<< " threads: " << workerAmount + 1 << endl;
+	}
+	*/
+	// ChessEval::Eval::initStatics();
+	// adapter.printEvalInfo();
+
+	// adapter.setWorkerAmount(1);
+	// runPerftTests(fenTests, 10000000000);
+	// std::this_thread::sleep_for(std::chrono::seconds(20));
+	ChessSearch::ChessEnvironment environment;
+	environment.run();
+	// createStatistic();
+	// runTests();
 }
 

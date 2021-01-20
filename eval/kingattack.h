@@ -41,9 +41,10 @@ using namespace std;
 namespace ChessEval {
 
 	struct KingAttackValues {
-		static const uint32_t MAX_WEIGHT_COUNT = 19;
+		static const uint32_t MAX_WEIGHT_COUNT = 20;
+		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-			{ 0,  -20, -40, -60, -90, -130, -180, -240, -310, -490, -500, -500, -500, -500, -500, -500, -500, -500, -500, -500 };
+			{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600 };
 	};
 
 	class KingAttack {
@@ -69,8 +70,6 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& board, EvalResults& evalResults) {
 			computeAttacks<WHITE>(evalResults);
 			computeAttacks<BLACK>(evalResults);
-			computeUndefendedAttacks<WHITE>(evalResults);
-			computeUndefendedAttacks<BLACK>(evalResults);
 			value_t result = computeAttackValue<WHITE>(board.getKingSquare<WHITE>(), evalResults) -
 				computeAttackValue<BLACK>(board.getKingSquare<BLACK>(), evalResults);
 			return result;
@@ -95,8 +94,7 @@ namespace ChessEval {
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			Square kingSquare = board.getKingSquare<OPPONENT>();
 			bitBoard_t attackArea = _kingAttackBB[OPPONENT][kingSquare];
-			bitBoard_t kingAttacks = attackArea & evalResults.undefendedAttack[COLOR];
-			bitBoard_t kingDoubleAttacks = attackArea & evalResults.undefendedDoubleAttack[COLOR];
+
 			if (evalResults.midgameInPercent > 50) {
 				result["King pawn defended attack"] =
 					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
@@ -107,8 +105,6 @@ namespace ChessEval {
 				result["King non pawn defended attack"] =
 					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
 						evalResults.piecesAttack[OPPONENT] & ~evalResults.pawnAttack[OPPONENT] & attackArea);
-				result["King single undefended attack"] = 
-					BitBoardMasks::popCount(kingAttacks & ~kingDoubleAttacks);
 				result["King single attack without pawn defended fields"] =
 					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
 						~evalResults.pawnAttack[OPPONENT] & attackArea);
@@ -121,8 +117,6 @@ namespace ChessEval {
 				result["King double attack defended by pawns"] =
 					BitBoardMasks::popCount(evalResults.piecesDoubleAttack[COLOR] &
 						evalResults.pawnAttack[OPPONENT] & attackArea);
-				result["King double undefended attack"] =
-					BitBoardMasks::popCount(kingDoubleAttacks);
 				result["King single no pawn defence + king protected double + 2 * king unprotected double"] =
 					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
 						~evalResults.pawnAttack[OPPONENT] & attackArea) +
@@ -147,10 +141,19 @@ namespace ChessEval {
 		inline static value_t computeAttackValue(Square kingSquare, EvalResults& evalResults) {
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t attackArea = _kingAttackBB[COLOR][kingSquare];
-			bitBoard_t kingAttacks = attackArea & evalResults.undefendedAttack[OPPONENT];
-			bitBoard_t kingDoubleAttacks = attackArea & evalResults.undefendedDoubleAttack[OPPONENT];
+
+			bitBoard_t kingAttacks = attackArea & evalResults.piecesAttack[OPPONENT];
+			bitBoard_t kingAttacksNotDefendedByPawns = kingAttacks & ~evalResults.pawnAttack[COLOR];
+
+			bitBoard_t kingDoubleAttacks = attackArea & evalResults.piecesDoubleAttack[OPPONENT];
+			bitBoard_t kingDoubleAttacksDefended = kingDoubleAttacks & evalResults.piecesAttack[COLOR];
+			bitBoard_t kingDoubleAttacksUndefended = kingDoubleAttacks & ~evalResults.piecesAttack[COLOR];
+
 			evalResults.kingPressureCount[COLOR] =
-				BitBoardMasks::popCount(kingAttacks) + BitBoardMasks::popCount(kingDoubleAttacks) * 2;
+				BitBoardMasks::popCount(kingAttacksNotDefendedByPawns) +
+				BitBoardMasks::popCount(kingDoubleAttacksDefended) +
+				BitBoardMasks::popCount(kingDoubleAttacksUndefended) * 2;
+
 			if (evalResults.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
 				evalResults.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
 			}
@@ -179,13 +182,6 @@ namespace ChessEval {
 			evalResults.piecesDoubleAttack[COLOR] = doubleAttack;
 		}
 
-		template <Piece COLOR>
-		inline static void computeUndefendedAttacks(EvalResults& evalResults) {
-			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			evalResults.undefendedAttack[COLOR] = (evalResults.piecesAttack[COLOR] & ~evalResults.piecesAttack[OPPONENT]) |
-				(evalResults.piecesDoubleAttack[COLOR] & ~evalResults.piecesDoubleAttack[OPPONENT]);
-			evalResults.undefendedDoubleAttack[COLOR] = evalResults.piecesDoubleAttack[COLOR] & ~evalResults.piecesAttack[OPPONENT];
-		}
 
 		static struct InitStatics {
 			InitStatics();

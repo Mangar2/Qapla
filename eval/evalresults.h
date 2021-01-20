@@ -53,10 +53,6 @@ namespace ChessEval {
 		bitBoard_t piecesAttack[2];
 		// Squares attacked by two pieces (any) ...
 		bitBoard_t piecesDoubleAttack[2];
-		// Squares attacked by one piece and undefended or by two pieces but only defended by one piece
-		bitBoard_t undefendedAttack[2];
-		// Squares attacked by two piece and not defended
-		bitBoard_t undefendedDoubleAttack[2];
 		// The value of the material on the board
 		value_t materialValue;
 		// The midgame factor in percent
