@@ -41,9 +41,8 @@ namespace ChessEval {
 	public:
 
 		static value_t print(MoveGenerator& board, EvalResults& mobility) {
-
+			value_t evalValue = eval(board, mobility);
 			printf("Mobility:\n");
-			printf("Mobility total      : %ld\n", eval(board, mobility));
 			printf("White Knight        : %ld\n", calcKnightMobility<WHITE>(board, mobility));
 			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board, mobility));
 			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board, mobility));
@@ -52,7 +51,8 @@ namespace ChessEval {
 			printf("Black Rook          : %ld\n", -calcRookMobility<BLACK>(board, mobility));
 			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board, mobility));
 			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board, mobility));
-			return eval(board, mobility);
+			printf("Mobility total      : %ld\n", evalValue);
+			return evalValue;
 
 		}
 

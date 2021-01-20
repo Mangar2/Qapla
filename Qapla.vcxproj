@@ -222,6 +222,8 @@
     <ClCompile Include="movegenerator\bitboardmasks.cpp" />
     <ClCompile Include="movegenerator\magics.cpp" />
     <ClCompile Include="movegenerator\movegenerator.cpp" />
+    <ClCompile Include="pgn\pgngame.cpp" />
+    <ClCompile Include="pgn\pgntokenizer.cpp" />
     <ClCompile Include="Qapla.cpp" />
     <ClCompile Include="search\perft.cpp" />
     <ClCompile Include="search\quiescencesearch.cpp" />
@@ -270,6 +272,9 @@
     <ClInclude Include="movegenerator\bitboardmasks.h" />
     <ClInclude Include="movegenerator\magics.h" />
     <ClInclude Include="movegenerator\movegenerator.h" />
+    <ClInclude Include="pgn\pgnfiletokenizer.h" />
+    <ClInclude Include="pgn\pgngame.h" />
+    <ClInclude Include="pgn\pgntokenizer.h" />
     <ClInclude Include="search\aspirationwindow.h" />
     <ClInclude Include="search\boardadapter.h" />
     <ClInclude Include="search\clockmanager.h" />

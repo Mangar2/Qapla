@@ -1,7 +1,11 @@
 # Quabla Change log
 Quabla chess engine
 
-## 0.0.6 
+## 0.0.8
+- UCI
+	- Now sending thinking updates every second
+
+## 0.0.6 2021-01-18 minor change
 - Playing strengh: 2200 Elo 
 - Eval
 	- Added King security. Counts non defended attacks / double attacks around the king (3x4 fields, two to the north). +65 Elo

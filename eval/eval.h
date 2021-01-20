@@ -27,6 +27,7 @@
  // Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
  // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
+#include <vector>
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
@@ -72,27 +73,41 @@ namespace ChessEval {
 			value_t evalValue = lazyEval(board, evalResults);
 			value_t endGameResult;
 
-			value_t valueSum = 0;
 			EvalPawn evalPawn;
 			board.print();
 
-			valueSum += evalPawn.print(board, evalResults);
+			evalPawn.print(board, evalResults);
 
 			printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercent);
 			printf("Marerial            : %ld\n", evalResults.materialValue);
-			valueSum += board.getMaterialValue();
+			board.getMaterialValue();
 
-			endGameResult = EvalEndgame::print(board, valueSum);
+			endGameResult = EvalEndgame::print(board, evalValue);
 			endGameResult = cutValueOnDrawPositions(board, endGameResult);
 
-			if (endGameResult != valueSum) {
-				valueSum = endGameResult;
+			if (endGameResult != evalValue) {
+				evalValue = endGameResult;
 			}
 			else {
-				valueSum += EvalMobility::print(board, evalResults);
-				KingAttack::print(evalResults);
+				if (evalResults.midgameInPercent > 0) {
+					EvalMobility::print(board, evalResults);
+					KingAttack::print(evalResults);
+				}
 			}
 			printf("Total               : %ld\n", evalValue);
+		}
+
+		/**
+		 * Gets a map of relevant factors to examine eval
+		 */
+		template <Piece COLOR>
+		map<string, value_t> getEvalFactors(MoveGenerator& board) {
+			EvalResults evalResults;
+			lazyEval(board, evalResults);
+			map<string, value_t> result;
+			auto factors = KingAttack::factors<COLOR>(board, evalResults);
+			result.insert(factors.begin(), factors.end());
+			return result;
 		}
 
 
@@ -129,6 +144,7 @@ namespace ChessEval {
 				result = endGameResult;
 			}
 			else {
+				// Do not change ordering of the following calls. King attack needs result from Mobility
 				result += EvalMobility::eval(board, evalResults);
 				if (evalResults.midgameInPercent > 0) {
 					result += KingAttack::eval(board, evalResults);

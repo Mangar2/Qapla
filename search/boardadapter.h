@@ -278,6 +278,15 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Gets internal information from eval
+		 */
+		template <Piece COLOR>
+		auto getEvalFactors() {
+			Eval eval;
+			return eval.getEvalFactors<COLOR>(board);
+		}
+
+		/**
 		 * Sets the amount of worker threads working in parallel to the main thread
 		 */
 		void setWorkerAmount(uint32_t workerCount) {
@@ -314,7 +323,7 @@ namespace ChessSearch {
 					(departureFile == -1 || getFile(move.getDeparture()) == File(departureFile)) &&
 					(departureRank == -1 || getRank(move.getDeparture()) == Rank(departureRank)) &&
 					(getFile(move.getDestination()) == File(destinationFile)) &&
-					(getRank(move.getDestination()) == Rank(destinationRank)) &&
+					(destinationRank == -1 || getRank(move.getDestination()) == Rank(destinationRank)) &&
 					(move.getPromotion() == promotePiece))
 				{
 					if (!foundMove.isEmpty()) {
