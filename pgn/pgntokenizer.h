@@ -28,6 +28,7 @@
 using namespace std;
 
 namespace ChessPGN {
+
 	class PGNTokenizer
 	{
 	public:
@@ -41,7 +42,7 @@ namespace ChessPGN {
 		// ---------------------- Getter ------------------------------------------
 
 		// Gets the positiion
-		virtual int getPos()
+		virtual size_t getPos()
 		{
 			return _lastPos;
 		}
@@ -79,6 +80,9 @@ namespace ChessPGN {
 		{
 			_pos++;
 		}
+		virtual void skipToEOL() {
+			findChar('\n', false);
+		}
 
 	private:
 
@@ -101,22 +105,18 @@ namespace ChessPGN {
 		void skipSymbolContinuation();
 
 	protected:
-		/**
-		 * Replaces \n\r or \n with ' '
-		 */
-		string& removeEOLChars(string& stringWithEOL);
 		// Current PGN string to tokenize
 		string _pgnString;
 		// Current token
 		string _token;
 		// Current position in the PGN string
-		int    _pos;
-		int    _lastPos;
+		size_t    _pos;
+		size_t    _lastPos;
 
 		enum class CharType {
 			NOTHING, SYMBOL_CONTINUATION, SPACE
 		};
-		static array<CharType, 256> _charType;
+		array<CharType, 256> _charType;
 	};
 }
 

@@ -21,8 +21,6 @@
 
 using namespace ChessPGN;
 
-int PGNTokenizer::_charType[256];
-
 // -------------------------- CTor --------------------------------------------
 PGNTokenizer::PGNTokenizer(void)
 {
@@ -48,6 +46,9 @@ void PGNTokenizer::skipSpaces()
 {
 	for(; ; nextChar())
 	{
+		if (_pos >= _pgnString.length()) {
+			break;
+		}
 		char ch = _pgnString[_pos];
 		switch (ch)
 		{
@@ -118,25 +119,6 @@ void PGNTokenizer::skipSymbolContinuation()
 	}
 }
 
-string& PGNTokenizer::removeEOLChars(string& stringWithEOL) {
-	uint32_t resIndex = 0;
-
-	for (uint32_t curIndex = 0; curIndex < stringWithEOL.size(); curIndex++)
-	{
-		if (stringWithEOL[curIndex] == '\r') continue;
-		// '\n' is available in windows and unix, it is replaced with a space
-		if (stringWithEOL[curIndex] == '\n') {
-			stringWithEOL[resIndex] = ' ';
-		}
-		else {
-			stringWithEOL[resIndex] = stringWithEOL[curIndex];
-		}
-		resIndex++;
-	}
-	stringWithEOL.resize(resIndex);
-	return stringWithEOL;
-}
-
 // -------------------------- GetNextToken ------------------------------------
 const string& PGNTokenizer::getNextToken()
 {
@@ -181,7 +163,7 @@ const string& PGNTokenizer::getNextToken()
 		break;
 	case ';': 
 		// Comment to end of line
-		findChar('\n', false);
+		skipToEOL();
 		break;
 	case '{': 
 		findChar('}', true);
@@ -202,8 +184,6 @@ const string& PGNTokenizer::getNextToken()
 		else nextChar(); // Unknown char
 	}
 	
-	_token = _pgnString.substr(_lastPos, _pos); 
-	// for comments, remove End of line chars
-	if (ch == '{') _token = removeEOLChars(_token);
+	_token = _pgnString.substr(_lastPos, _pos - _lastPos); 
 	return _token;
 }

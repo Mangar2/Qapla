@@ -27,20 +27,20 @@
 #include "pgntokenizer.h"
 
 namespace ChessPGN {
+
 	class PGNFileTokenizer :
 		public PGNTokenizer
 	{
 	public:
 
-		PGNFileTokenizer() {}
-
-		// Set the file name and opens the file
-		virtual void openFile(const string& fileName)
-		{
-			_file.close();
-			_file.open(fileName, ios_base::in);
+		PGNFileTokenizer(const string fileName) {
+			_stream.open(fileName);
 			readNextString();
 			getNextToken();
+		}
+
+		~PGNFileTokenizer() {
+			_stream.close();
 		}
 
 		/**
@@ -54,18 +54,28 @@ namespace ChessPGN {
 			}
 		}
 
+		/**
+		 * Sets the position to the end of the line
+		 */
+		virtual void skipToEOL() {
+			_pos = _pgnString.length();
+		}
+
 	protected:
 		/**
 		 * Reads the next string from the file
 		 */
 		virtual void readNextString()
 		{
-			_file >> _pgnString;
-			_pgnString += " ";
+			getline(_stream, _pgnString);
 			_pos = 0;
 			_lastPos = 0;
+			// hack stop parsing at end of line
+			if (!_stream.eof()) {
+				_pgnString += " ";
+			}
 		}
-		fstream	_file;
+		ifstream	_stream;
 	};
 
 }
