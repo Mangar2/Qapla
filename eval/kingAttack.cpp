@@ -26,12 +26,20 @@ array<bitBoard_t, BOARD_SIZE> KingAttack::_kingAttackBB[2];
 KingAttack::InitStatics KingAttack::_staticConstructor;
 
 KingAttack::InitStatics::InitStatics() {
+	// ToDo: Add a third file for kings on the 1 or 8 files
 	for (Square kingSquare = A1; kingSquare <= H8; ++kingSquare) {
 		bitBoard_t attackArea = 1ULL << kingSquare;
 		attackArea |= BitBoardMasks::shift<WEST>(attackArea);
 		attackArea |= BitBoardMasks::shift<EAST>(attackArea);
 		attackArea |= BitBoardMasks::shift<SOUTH>(attackArea);
 		attackArea |= BitBoardMasks::shift<NORTH>(attackArea);
+		// The king shall not have a smaller attack area, if at the edges of the board
+		if (getFile(kingSquare) == File::A) {
+			attackArea |= BitBoardMasks::shift<EAST>(attackArea);
+		}
+		if (getFile(kingSquare) == File::H) {
+			attackArea |= BitBoardMasks::shift<WEST>(attackArea);
+		}
 		_kingAttackBB[WHITE][kingSquare] = attackArea | BitBoardMasks::shift<NORTH>(attackArea);
 		_kingAttackBB[BLACK][kingSquare] = attackArea | BitBoardMasks::shift<SOUTH>(attackArea);
 	}
