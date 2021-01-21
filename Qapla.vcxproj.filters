@@ -57,9 +57,6 @@
     <ClCompile Include="eval\evalendgame.cpp">
       <Filter>eval</Filter>
     </ClCompile>
-    <ClCompile Include="search\whatif.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="interface\winboard.cpp">
       <Filter>interface</Filter>
     </ClCompile>
@@ -98,6 +95,9 @@
     </ClCompile>
     <ClCompile Include="pgn\pgngame.cpp">
       <Filter>pgn</Filter>
+    </ClCompile>
+    <ClCompile Include="search\whatif.cpp">
+      <Filter>search</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -168,9 +168,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="basics\piecesignature.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\whatIf.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="basics\materialbalance.h">
@@ -304,6 +301,9 @@
     </ClInclude>
     <ClInclude Include="pgn\pgngame.h">
       <Filter>pgn</Filter>
+    </ClInclude>
+    <ClInclude Include="search\whatIf.h">
+      <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

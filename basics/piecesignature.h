@@ -43,6 +43,7 @@ namespace ChessBasics {
 		QUEEN = 0x00100
 	};
 
+	constexpr pieceSignature_t operator|(Signature a, Signature b) { return pieceSignature_t(a) | pieceSignature_t(b); }
 	constexpr pieceSignature_t operator*(Signature a, pieceSignature_t b) { return pieceSignature_t(a) * b; }
 	constexpr pieceSignature_t operator+(Signature a, pieceSignature_t b) { return pieceSignature_t(a) + b; }
 	constexpr uint32_t operator/(uint32_t a, Signature b) { return a / uint32_t(b); }
@@ -169,7 +170,8 @@ namespace ChessBasics {
 		 */
 		bool drawDueToMissingMaterial() const {
 			const pieceSignature_t ONLY_KNIGHT_AND_BISHOP =
-				pieceSignature_t(SignatureMask::ALL) & ~(SignatureMask::BISHOP | SignatureMask::KNIGHT);
+				pieceSignature_t(SignatureMask::ALL) & ~(Signature::BISHOP | Signature::KNIGHT);
+
 			// Checks that no other bit is set than "one bishop" and "one knight"
 			bool anyColorNotMoreThanOneNightAndOneBishop = 
 				(_signature & (ONLY_KNIGHT_AND_BISHOP | (ONLY_KNIGHT_AND_BISHOP << SIG_SHIFT_BLACK))) == 0;
