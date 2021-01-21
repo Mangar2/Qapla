@@ -190,11 +190,8 @@ namespace ChessEval {
 				return 0;
 			}
 
-			bitBoard_t passThrough = board.getPieceBB(ROOK + COLOR) | board.getPieceBB(BISHOP + COLOR);
 			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = (~board.getPiecesOfOneColorBB<COLOR>() | passThrough) &
-				~mobility.pawnAttack[OPPONENT];
-			occupied &= ~passThrough;
+			bitBoard_t removeMask = ~mobility.pawnAttack[OPPONENT];
 
 			Square departureSquare;
 			value_t result = 0;
