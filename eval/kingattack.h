@@ -44,7 +44,6 @@ namespace ChessEval {
 		static const uint32_t MAX_WEIGHT_COUNT = 20;
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-			//{ 0,  -5, -40, -70, -100, -130, -160, -200, -240, -280, -320, -360, -400, -500, -600, -700, -800, -900, -1000, -1000 };
 			{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600 };
 	};
 

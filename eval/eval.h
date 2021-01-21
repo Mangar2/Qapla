@@ -107,6 +107,8 @@ namespace ChessEval {
 			map<string, value_t> result;
 			auto factors = KingAttack::factors<COLOR>(board, evalResults);
 			result.insert(factors.begin(), factors.end());
+			auto mobilityFactors = EvalMobility::factors<COLOR>(board, evalResults);
+			result.insert(mobilityFactors.begin(), mobilityFactors.end());
 			return result;
 		}
 
@@ -180,7 +182,7 @@ namespace ChessEval {
 			84, 86, 88, 90, 92, 94, 96, 98,
 			100, 100, 100, 100, 100, 100, 100, 100,
 			100, 100, 100, 100, 100, 100, 100, 100,
-			100, 100, 100, 100, 100, 100, 100, 100 };
+			100, 100, 100, 100, 100, 100, 100, 100, 100 };
 
 
 		// BitBase kpk;

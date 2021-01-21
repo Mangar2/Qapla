@@ -63,6 +63,11 @@ namespace ChessEval {
 		value_t kingAttackValue[2];
 		// Ranks in front of pawns
 		bitBoard_t pawnMoveRay[2];
+		// Usually inactive
+		value_t rookAttackFactor[2];
+		value_t bishopAttackFactor[2];
+		value_t knightAttackFactor[2];
+		value_t queenAttackFactor[2];
 	};
 
 }

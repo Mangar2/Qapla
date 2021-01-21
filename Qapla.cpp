@@ -218,9 +218,9 @@ void createStatistic() {
 			environment.setMove(move);
 			auto white = environment.adapter.getEvalFactors<WHITE>();
 			auto black = environment.adapter.getEvalFactors<BLACK>();
-			const string tag = "King pressure";
+			const string tag = "Knight attack";
 			if (white.find(tag) != white.end()) {
-				if (white[tag] >= 15 && game.getTag("Result") == "0-1") { environment.adapter.getBoard().print(); }
+				// if (white[tag] == 0) { environment.adapter.getBoard().print(); }
 				if (game.getTag("Result") == "1-0") {
 					win[white[tag]] ++; 
 					loss[black[tag]] ++;
@@ -273,9 +273,9 @@ int main()
 	// adapter.setWorkerAmount(1);
 	// runPerftTests(fenTests, 10000000000);
 	// std::this_thread::sleep_for(std::chrono::seconds(20));
-	ChessSearch::ChessEnvironment environment;
-	environment.run();
-	// createStatistic();
+	// ChessSearch::ChessEnvironment environment;
+	// environment.run();
+	createStatistic();
 	// runTests();
 }
 

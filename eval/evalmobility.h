@@ -22,6 +22,7 @@
 #ifndef __EVALMOBILITY_H
 #define __EVALMOBILITY_H
 
+#include <map>
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 
@@ -65,6 +66,25 @@ namespace ChessEval {
 			value_t evalResult = eval<WHITE>(board, mobility) - eval<BLACK>(board, mobility);
 			return evalResult;
 		}
+
+		/**
+		 * Gets a list of detailed evaluation information
+		 */
+		template <Piece COLOR>
+		static map<string, value_t> factors(MoveGenerator& board, EvalResults& evalResults) {
+			map<string, value_t> result;
+			eval(board, evalResults);
+			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
+
+			if (evalResults.midgameInPercent > 50  && abs(evalResults.materialValue) < 100) {
+				result["Queen attack"] = evalResults.queenAttackFactor[COLOR];
+				result["Rook attack"] = evalResults.rookAttackFactor[COLOR];
+				result["Bishop attack"] = evalResults.bishopAttackFactor[COLOR];
+				result["Knight attack"] = evalResults.knightAttackFactor[COLOR];
+			}
+			return result;
+		}
+
 
 
 	private:
@@ -115,6 +135,7 @@ namespace ChessEval {
 				mobility.bishopAttack[COLOR] |= attack;
 				attack &= removeMask;
 				result += EvalMobilityValues::BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
+				// mobility.bishopAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
 
 			}
 			return result;
@@ -151,7 +172,7 @@ namespace ChessEval {
 				mobility.rookAttack[COLOR] |= attack;
 				attack &= removeMask;
 				result += EvalMobilityValues::ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
-
+				// mobility.rookAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
 			}
 			return result;
 		}
@@ -181,11 +202,12 @@ namespace ChessEval {
 			{
 				departureSquare = BitBoardMasks::lsb(queens);
 				queens &= queens - 1;
-				bitBoard_t attack = Magics::genQueenAttackMask(departureSquare, occupied);
+				bitBoard_t attack = Magics::genRookAttackMask(departureSquare, occupied & ~board.getPieceBB(ROOK + COLOR));
+				attack |= Magics::genBishopAttackMask(departureSquare, occupied & ~board.getPieceBB(BISHOP + COLOR));
 				mobility.queenAttack[COLOR] |= attack;
 				attack &= removeMask;
 				result += EvalMobilityValues::QUEEN_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
-
+				// mobility.queenAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
 			}
 			return result;
 		}
@@ -214,7 +236,7 @@ namespace ChessEval {
 				mobility.knightAttack[COLOR] |= attack;
 				attack &= no_destination;
 				result += EvalMobilityValues::KNIGHT_MOBILITY_MAP[BitBoardMasks::popCountForSparcelyPopulatedBitBoards(attack)];
-
+				// mobility.knightAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
 			}
 			return result;
 		}
