@@ -32,10 +32,10 @@ namespace ChessEval {
 
 	struct EvalMobilityValues {
 		const static value_t MOBILITY_VALUE = 2;
-		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 };
-		static constexpr value_t ROOK_MOBILITY_MAP[15] = { 0, 0, 0, 0, 0, 10, 15, 20, 25, 30, 30, 30, 30, 30, 30 };
-		static constexpr value_t BISHOP_MOBILITY_MAP[15] = { 0, 0, 0, 5, 10, 15, 20, 22, 24, 26, 28, 30, 30, 30, 30 };
-		static constexpr value_t KNIGHT_MOBILITY_MAP[9] = { -30, -20, -10, 0, 10, 20, 25, 25, 25 };
+		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { -50, -30, -20, -10, -5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		static constexpr value_t ROOK_MOBILITY_MAP[15] = { -15, -15, -15, -15, -5, 0, 0, 0, 0, 0, 0, 0, 10, 20, 30 };
+		static constexpr value_t BISHOP_MOBILITY_MAP[15] = { -10, -10, -5, -2, 0, 0, 0, 5, 10, 15, 20, 25, 30, 35, 40 };
+		static constexpr value_t KNIGHT_MOBILITY_MAP[9] = { -30, -30, -10, -5, 0, 0, 0, 5, 10 };
 	};
 
 	class EvalMobility {
