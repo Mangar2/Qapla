@@ -108,18 +108,19 @@ void EvalPawn::computeIsolatedPawnLookupTable() {
 	}
 }
 
-value_t EvalPawn::print(MoveGenerator& board, EvalResults& mobility) {
-	init<WHITE>(board, mobility);
-	init<BLACK>(board, mobility);
+value_t EvalPawn::print(MoveGenerator& board, EvalResults& evalResults) {
+	value_t value = eval(board, evalResults);
 	printf("Pawns\n");
-	printf("White advanced pawn : %ld\n", computeAdvancedPawnValue<WHITE>());
-	printf("Black advanced pawn : %ld\n", computeAdvancedPawnValue<BLACK>());
-	printf("White isolated pawn : %ld\n", computeIsolatedPawnValue<WHITE>());
-	printf("Black isolated pawn : %ld\n", computeIsolatedPawnValue<BLACK>());
-	printf("White double   pawn : %ld\n", computeDoublePawnValue<WHITE>());
-	printf("Black double   pawn : %ld\n", computeDoublePawnValue<BLACK>());
-	printf("White passed   pawn : %ld\n", computePassedPawnValue<WHITE>(board));
-	printf("Black passed   pawn : %ld\n", computePassedPawnValue<BLACK>(board));
-	printf("Pawn total          : %ld\n", eval(board, mobility));
-	return eval(board, mobility);
+	printf("White advanced pawn : %ld\n", computeAdvancedPawnValue<WHITE>(board.getPieceBB(WHITE_PAWN)));
+	printf("Black advanced pawn : %ld\n", computeAdvancedPawnValue<BLACK>(board.getPieceBB(BLACK_PAWN)));
+	printf("White isolated pawn : %ld\n", computeIsolatedPawnValue<WHITE>(evalResults.pawnMoveRay[WHITE]));
+	printf("Black isolated pawn : %ld\n", computeIsolatedPawnValue<BLACK>(evalResults.pawnMoveRay[BLACK]));
+	printf("White double   pawn : %ld\n", 
+		computeDoublePawnValue<WHITE>(board.getPieceBB(WHITE_PAWN), evalResults.pawnMoveRay[WHITE]));
+	printf("Black double   pawn : %ld\n", 
+		computeDoublePawnValue<BLACK>(board.getPieceBB(BLACK_PAWN), evalResults.pawnMoveRay[BLACK]));
+	printf("White passed   pawn : %ld\n", computePassedPawnValue<WHITE>(board, evalResults));
+	printf("Black passed   pawn : %ld\n", computePassedPawnValue<BLACK>(board, evalResults));
+	printf("Pawn total          : %ld\n", value);
+	return value;
 }

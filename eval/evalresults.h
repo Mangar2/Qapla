@@ -61,6 +61,8 @@ namespace ChessEval {
 		value_t kingPressureCount[2];
 		// Evaluation of the king attack
 		value_t kingAttackValue[2];
+		// Fields with passed pawns
+		bitBoard_t passedPawns[2];
 		// Ranks in front of pawns
 		bitBoard_t pawnMoveRay[2];
 		// Usually inactive
