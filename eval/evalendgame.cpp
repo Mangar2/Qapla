@@ -119,7 +119,7 @@ value_t EvalEndgame::KPsKPs(MoveGenerator& board, value_t currentValue) {
 	EvalResults mobility;
 	result += evalPawn.computePawnValueNoPiece(board, mobility);
 	
-	if (evalPawn.passedPawnFld[WHITE] == 0 && evalPawn.passedPawnFld[BLACK] == 0) {
+	if (mobility.passedPawns[WHITE] == 0 && mobility.passedPawns[BLACK] == 0) {
 		KingPawnAttack kingPawnAttack;
 		result += kingPawnAttack.computeKingRace(board) * KING_RACED_PAWN_BONUS;
 	}
