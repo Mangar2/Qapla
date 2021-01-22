@@ -1,8 +1,11 @@
 # Quabla Change log
 Quabla chess engine
 
-## 0.0.8
+## 0.0.12
 - UCI
+	- Playing strength unchanged: 2200 ELO
+	- King security more balanced
+	- Refactoring ...
 	- Now sending thinking updates every second
 
 ## 0.0.6 2021-01-18 minor change
