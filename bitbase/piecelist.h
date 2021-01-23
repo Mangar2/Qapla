@@ -1,139 +1,222 @@
-#pragma once
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
-#include "MoveConverter.h"
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2021 Volker Böhm
+ * @Overview
+ * List of pieces in a bitbase. Pieces can be added/deleted and sorted
+ */
+
 #include "../movegenerator/movegenerator.h"
+#include "../movegenerator/bitboardmasks.h"
+#include <ctype.h>
+#include <vector>
 #include <string>
 
 using namespace std;
+using namespace ChessMoveGenerator;
 
-class PieceList {
-public:
-	PieceList(const PieceList& pieceList) {
-		operator=(pieceList);
-	}
+namespace ChessBitbase {
 
-	PieceList(const char* pieceString) {
-		bool whitePiece = true;
-		piece_t piece;
-		uint32_t stringPos;
-		pieceAmount = 0;
-		pawnAmount = 0;
-		if (pieceString[0] == 'K') {
-			for (stringPos = 1; pieceString[stringPos] != 0; stringPos++) {
-				if (pieceString[stringPos] == 'K') {
-					whitePiece = false;
-				} else {
-					piece = MoveConverter::charToPiece(whitePiece, pieceString[stringPos]); 
-					addPiece(piece);
+	class PieceList {
+	public:
+		PieceList() {
+			clear();
+		}
+
+		/**
+		 * Creates a list of pieces initialized by a piece string
+		 * @param pieceString: String with the list of current pieces.
+		 * @example PieceList("KRPKP") for king with rook and pawn vs. King with pawn
+		 */
+		PieceList(const char* pieceString) {
+			clear();
+			bool whitePiece = true;
+			Piece piece;
+			uint32_t stringPos;
+			_numberOfPieces = 0;
+			_numberOfPawns = 0;
+			if (pieceString[0] == 'K') {
+				for (stringPos = 1; pieceString[stringPos] != 0; stringPos++) {
+					if (pieceString[stringPos] == 'K') {
+						whitePiece = false;
+					}
+					else {
+						piece = getPieceType(charToPiece(pieceString[stringPos]));
+						piece += (whitePiece ? WHITE : BLACK);
+						addPiece(piece);
+					}
 				}
 			}
-		}
-		bubbleSort();
-	}
-
-	PieceList(const Board& board) {
-		pieceAmount = 0;
-		pawnAmount = 0;
-		addPiecesFromBitBoard(board.getPieceBitBoard(WHITE_KING), WHITE_KING);
-		addPiecesFromBitBoard(board.getPieceBitBoard(BLACK_KING), BLACK_KING);
-		for (piece_t piece = WHITE_PAWN; piece <= BLACK_QUEEN; piece ++) {
-			addPiecesFromBitBoard(board.getPieceBitBoard(piece), piece);
-		}
-	}
-
-	PieceList& operator=(const PieceList& pieceList) {
-		pieceAmount = 0;
-		pawnAmount = 0;
-		for(uint32_t pieceNo = 0; pieceNo < pieceList.getPieceAmount(); pieceNo++) {
-			addPiece(pieceList.getPiece(pieceNo));
-		}
-		return *this;
-	}
-
-	template<piece_t COLOR>
-	string getPieceStringOfColor() {
-		string result = "K";
-		for (int32_t pieceNo = getPieceAmount() - 1;  pieceNo >= 0; pieceNo --) {
-			if (getPieceColor(getPiece(pieceNo)) == COLOR) {
-				result += MoveConverter::pieceToChar(getPiece(pieceNo) - COLOR);
-			}
-		}
-		return result;
-	}
-
-	string getPieceString() {
-		string result = getPieceStringOfColor<WHITE>() + getPieceStringOfColor<BLACK>();
-		return result;
-	}
-
-
-	void addPiece(piece_t piece) {
-		pieces[pieceAmount] = piece;
-		pieceAmount++;
-		if (isPawn(piece)) {
-			pawnAmount++;
-		}
-	}
-
-	void removePiece(uint32_t pieceNo) {
-		if (pieceNo < pieceAmount) {
-			pieceAmount--;
-			if (isPawn(pieces[pieceNo])) {
-				pawnAmount--;
-			}
-			for (; pieceNo < pieceAmount; pieceNo ++) {
-				pieces[pieceNo] = pieces[pieceNo + 1];
-			}
-		}
-	}
-
-	void promotePawn(uint32_t pieceNo, piece_t promotePieceType = QUEEN) {
-		if (pieceNo < pieceAmount && isPawn(pieces[pieceNo])) {
-			pieces[pieceNo] += promotePieceType - PAWN;
-			pawnAmount--;
 			bubbleSort();
 		}
-	}
 
-	piece_t getPiece(uint32_t pieceNo) const {
-		return pieces[pieceNo];
-	}
-
-	pos_t getPos(uint32_t pieceNo) const {
-		return piecePos[pieceNo];
-	}
-
-	uint32_t getPawnAmount() const { return pawnAmount; }
-	uint32_t getPieceAmount() const { return pieceAmount; }
-	uint32_t getPieceAmountWithoutPawns() const { return pieceAmount - pawnAmount; }
-
-private:
-	void addPiecesFromBitBoard(bitBoard_t piecesBitBoard, piece_t piece) {
-		for (;piecesBitBoard != 0; piecesBitBoard &= piecesBitBoard - 1) {
-			piecePos[pieceAmount] = BitBoardMasks::lsb(piecesBitBoard);
-			addPiece(piece);
+		/**
+		 * Creates a new piece list initialized by a board position
+		 * @param board current board position
+		 */
+		PieceList(const Board& board) {
+			clear();
+			addPiecesFromBitBoard(board.getPieceBB(WHITE_KING), WHITE_KING);
+			addPiecesFromBitBoard(board.getPieceBB(BLACK_KING), BLACK_KING);
+			for (Piece piece = WHITE_PAWN; piece <= BLACK_QUEEN; ++piece) {
+				addPiecesFromBitBoard(board.getPieceBB(piece), piece);
+			}
 		}
-	}
 
-	void swap(uint32_t index1, uint32_t index2) {
-		piece_t tmp = pieces[index1];
-		pieces[index1] = pieces[index2];
-		pieces[index2] = tmp;
-	}
+		/**
+		 * Clears the piece list
+		 */
+		void clear() {
+			_numberOfPieces = 0;
+			_numberOfPawns = 0;
+		}
 
-	void bubbleSort() {
-		for (uint32_t outerLoop = pieceAmount - 1; outerLoop > 0; outerLoop--) {
-			for (uint32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
-				if (pieces[innerLoop - 1] > pieces[innerLoop]) {
-					swap(innerLoop - 1, innerLoop);
+		/**
+		 * Gets the piece string of one color
+		 */
+		template<Piece COLOR>
+		string getPieceStringOfColor() {
+			string result = "K";
+			for (int32_t pieceNo = getNumberOfPieces() - 1; pieceNo >= 0; pieceNo--) {
+				if (getPieceColor(getPiece(pieceNo)) == COLOR) {
+					result += toupper(pieceToChar(getPieceType(getPiece(pieceNo))));
+				}
+			}
+			return result;
+		}
+
+		/**
+		 * Gets the full piece string
+		 */
+		string getPieceString() {
+			string result = getPieceStringOfColor<WHITE>() + getPieceStringOfColor<BLACK>();
+			return result;
+		}
+
+		/**
+		 * Adds a piece to the list
+		 */
+		void addPiece(Piece piece) {
+			_pieces.push_back(piece);
+			_numberOfPieces++;
+			if (isPawn(piece)) {
+				_numberOfPawns++;
+			}
+		}
+
+		/**
+		 * Removes a piece from the list
+		 */
+		void removePiece(uint32_t pieceNo) {
+			if (pieceNo < _numberOfPieces) {
+				_numberOfPieces--;
+				if (isPawn(_pieces[pieceNo])) {
+					_numberOfPawns--;
+				}
+				for (; pieceNo < _numberOfPieces; pieceNo++) {
+					_pieces[pieceNo] = _pieces[pieceNo + 1];
 				}
 			}
 		}
-	}
 
-	static const uint32_t MAX_PIECES = 16;
-	uint32_t pieceAmount;
-	uint32_t pawnAmount;
-	piece_t pieces[MAX_PIECES];
-	pos_t piecePos[MAX_PIECES];
-};
+		/**
+		 * Promotes a pawn -> removing the pawn from the list and add the
+		 * promoted piece to the list
+		 */
+		void promotePawn(uint32_t pieceNo, Piece promotePieceType = QUEEN) {
+			if (pieceNo < _numberOfPieces && isPawn(_pieces[pieceNo])) {
+				_pieces[pieceNo] += promotePieceType - PAWN;
+				_numberOfPawns--;
+				bubbleSort();
+			}
+		}
+
+		/**
+		 * Gets a piece
+		 */
+		Piece getPiece(uint32_t pieceNo) const {
+			return _pieces[pieceNo];
+		}
+
+		/**
+		 * Gets the Square of a piece
+		 */
+		const vector<Square>& getSquares() const {
+			return _pieceSquares;
+		}
+
+		/**
+		 * Gets the Square of a piece
+		 */
+		vector<Square>& getSquares() {
+			return _pieceSquares;
+		}
+
+		/**
+		 * Gets the amount of pawns
+		 */
+		uint32_t getNumberOfPawns() const { return _numberOfPawns; }
+
+		/**
+		 * Gets the amount of pieces (including pawns)
+		 */
+		uint32_t getNumberOfPieces() const { return _numberOfPieces; }
+
+		/**
+		 * Gets the number of pieces without pawns
+		 */
+		uint32_t getNumberOfPiecesWithoutPawns() const { return _numberOfPieces - _numberOfPawns; }
+
+	private:
+		/**
+		 * Adds all pieces flagged with '1' on a bitboard
+		 */
+		void addPiecesFromBitBoard(bitBoard_t piecesBitBoard, Piece piece) {
+			for (; piecesBitBoard != 0; piecesBitBoard &= piecesBitBoard - 1) {
+				_pieceSquares[_numberOfPieces] = BitBoardMasks::lsb(piecesBitBoard);
+				addPiece(piece);
+			}
+		}
+
+		/**
+		 * Swap two pieces in the piece list
+		 */
+		void swap(uint32_t index1, uint32_t index2) {
+			Piece tmp = _pieces[index1];
+			_pieces[index1] = _pieces[index2];
+			_pieces[index2] = tmp;
+		}
+
+		/**
+		 * Sort the pieces
+		 */
+		void bubbleSort() {
+			for (uint32_t outerLoop = _numberOfPieces - 1; outerLoop > 0; outerLoop--) {
+				for (uint32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
+					if (_pieces[innerLoop - 1] > _pieces[innerLoop]) {
+						swap(innerLoop - 1, innerLoop);
+					}
+				}
+			}
+		}
+
+		uint32_t _numberOfPieces;
+		uint32_t _numberOfPawns;
+		vector<Piece> _pieces;
+		vector<Square> _pieceSquares;
+	};
+
+}

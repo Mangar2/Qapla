@@ -68,7 +68,7 @@ namespace ChessBitbase {
 		}
 
 		static void setBitBaseIndex(bool whiteToMove, BitBaseIndex& bitBaseIndex, const PieceList& pieceList, move_t move) {
-			bool hasPawn = pieceList.getPawnAmount() != 0;
+			bool hasPawn = pieceList.getNumberOfPawns() != 0;
 			pos_t whiteKingPos = getPiecePos(0, pieceList, move);
 			pos_t blackKingPos = getPiecePos(1, pieceList, move);
 			bitBaseIndex.initialize(whiteKingPos, blackKingPos, whiteToMove, hasPawn);
