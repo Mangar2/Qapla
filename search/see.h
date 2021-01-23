@@ -77,22 +77,16 @@ namespace ChessSearch {
 			bool result = false;
 			value_t movingPieceValue = board.getPieceValueForMoveSorting(move.getMovingPiece());
 			value_t capturedPieceValue = board.getPieceValueForMoveSorting(move.getCapture());
-			bool movingPieceMoreValuable = 
-				board.isWhiteToMove() ? movingPieceValue > -capturedPieceValue : -movingPieceValue > capturedPieceValue;
-
-			if (movingPieceMoreValuable) {
-				Piece colorOfMove = getPieceColor(move.getMovingPiece());
-				Piece otherColor = colorOfMove == WHITE ? BLACK : WHITE;
-				bool isDefendedByPawn = (
-					BitBoardMasks::pawnCaptures[colorOfMove][move.getDestination()] & 
-					board.getPieceBB(PAWN + otherColor)) != 0;
-				if (isDefendedByPawn) {
-					result = true;
-				}
+			if (board.isWhiteToMove()) {
+				result = (movingPieceValue > -capturedPieceValue) && 
+					isDefendedByPawn<BLACK>(board, move.getDestination());
+			}
+			else {
+				result = (-movingPieceValue > capturedPieceValue) && 
+					isDefendedByPawn<WHITE>(board, move.getDestination());
 			}
 			return result;
 		}
-
 
 		/**
 		 * Returns true, if a capture looses material
@@ -102,7 +96,7 @@ namespace ChessSearch {
 			if (!move.isCapture()) {
 				return false;
 			}
-			Square pos = move.getDestination();
+			Square square = move.getDestination();
 			Piece movingPiece = move.getMovingPiece();
 			gain = -board.getPieceValueForMoveSorting(move.getCapture());
 			value_t movingPieceValue = board.getPieceValueForMoveSorting(movingPiece);
@@ -117,28 +111,22 @@ namespace ChessSearch {
 				alpha = -1;
 				beta = 1;
 				if (board.isWhiteToMove()) {
-					bool isDefendedByPawn = (
-						BitBoardMasks::pawnCaptures[WHITE][move.getDestination()] & 
-						board.getPieceBB(PAWN + BLACK)) != 0;
-					if (isDefendedByPawn) {
+					if (isDefendedByPawn<BLACK>(board, move.getDestination())) {
 						result = true;
 					}
 					else {
 						nextPiece[BLACK] = BLACK_KNIGHT;
-						resultValue = computeSEEValue(board, pos, board.getPieceValueForMoveSorting(movingPiece));
+						resultValue = computeSEEValue(board, square, board.getPieceValueForMoveSorting(movingPiece));
 						result = resultValue < 0;
 					}
 				}
 				else {
-					bool isDefendedByPawn = (
-						BitBoardMasks::pawnCaptures[BLACK][move.getDestination()] & 
-						board.getPieceBB(PAWN + WHITE)) != 0;
-					if (isDefendedByPawn) {
+					if (isDefendedByPawn<WHITE>(board, move.getDestination())) {
 						result = true;
 					}
 					else {
 						nextPiece[WHITE] = WHITE_KNIGHT;
-						resultValue = computeSEEValue(board, pos, board.getPieceValueForMoveSorting(movingPiece));
+						resultValue = computeSEEValue(board, square, board.getPieceValueForMoveSorting(movingPiece));
 						result = resultValue > 0;
 					}
 				}
@@ -150,26 +138,26 @@ namespace ChessSearch {
 		 * Computes a static exchange value of a move
 		 */
 		value_t computeSEEValueOfMove(const MoveGenerator& board, Move move) {
-			Square pos = move.getDestination();
+			Square square = move.getDestination();
 			allPiecesLeft = board.getAllPiecesBB();
 			allPiecesLeft &= ~(1ULL << move.getDeparture());
-			value_t result = -board.getPieceValueForMoveSorting(board[pos]);
+			value_t result = -board.getPieceValueForMoveSorting(board[square]);
 			whiteToMove = !board.isWhiteToMove();
 			clear();
 			gain = 0;
-			result += computeSEEValue(board, pos, board.getPieceValueForMoveSorting(move.getMovingPiece()));
+			result += computeSEEValue(board, square, board.getPieceValueForMoveSorting(move.getMovingPiece()));
 			return result;
 		}
 
 		/**
 		 * Computes a static exchange value for a board poisition
 		 */
-		value_t computeSEEValueOfPosition(const MoveGenerator& board, Square pos) {
+		value_t computeSEEValueOfPosition(const MoveGenerator& board, Square square) {
 			allPiecesLeft = board.getAllPiecesBB();
 			whiteToMove = board.isWhiteToMove();
 			clear();
 			gain = 0;
-			return computeSEEValue(board, pos, board.getPieceValueForMoveSorting(board[pos]));
+			return computeSEEValue(board, square, board.getPieceValueForMoveSorting(board[square]));
 		}
 
 		/**
@@ -178,10 +166,21 @@ namespace ChessSearch {
 		uint64_t getNodeCountStatistic() { return nodeCountStatistic; }
 
 	private:
+
+		/**
+		 * Returns true, if a piece is defended by a pawn
+		 */
+		template <Piece COLOR>
+		inline bool isDefendedByPawn(const MoveGenerator& board, Square square) {
+			return
+				(BitBoardMasks::pawnCaptures[OPPONENT[COLOR]][square] &
+					board.getPieceBB(PAWN + COLOR)) != 0;
+		}
+
 		/**
 		 * Computes an static exchange value for a piece of the board
 		 */
-		value_t computeSEEValue(const MoveGenerator& board, Square pos, value_t valueOfCurrentPieceOnSquare) {
+		value_t computeSEEValue(const MoveGenerator& board, Square square, value_t valueOfCurrentPieceOnSquare) {
 
 			while (valueOfCurrentPieceOnSquare != 0) {
 				if (whiteToMove) {
@@ -192,7 +191,7 @@ namespace ChessSearch {
 						gain = alpha;
 						break;
 					}
-					valueOfNextPieceOnTargetField = tryPiece<WHITE>(board, pos);
+					valueOfNextPieceOnTargetField = tryPiece<WHITE>(board, square);
 					if (valueOfNextPieceOnTargetField != 0) {
 						gain -= valueOfCurrentPieceOnSquare;
 					}
@@ -208,7 +207,7 @@ namespace ChessSearch {
 						gain = beta;
 						break;
 					}
-					valueOfNextPieceOnTargetField = tryPiece<BLACK>(board, pos);
+					valueOfNextPieceOnTargetField = tryPiece<BLACK>(board, square);
 					if (valueOfNextPieceOnTargetField != 0) {
 						gain -= valueOfCurrentPieceOnSquare;
 					}
@@ -226,40 +225,40 @@ namespace ChessSearch {
 		 * Computes the attacking of different pieces
 		 */
 		template <Piece COLOR>
-		bitBoard_t computePawnsAttacking(Square pos, bitBoard_t pawns) {
-			bitBoard_t attackingPawns = BitBoardMasks::pawnCaptures[COLOR == WHITE ? BLACK : WHITE][pos] & pawns;
+		bitBoard_t computePawnsAttacking(Square square, bitBoard_t pawns) {
+			bitBoard_t attackingPawns = BitBoardMasks::pawnCaptures[COLOR == WHITE ? BLACK : WHITE][square] & pawns;
 			attackingPawns = removeAlreadyUsedPieces(attackingPawns);
 			return attackingPawns;
 		}
 
-		bitBoard_t computeKnightsAttacking(Square pos, bitBoard_t knights) {
-			bitBoard_t attackingKnights = BitBoardMasks::knightMoves[pos] & knights;
+		bitBoard_t computeKnightsAttacking(Square square, bitBoard_t knights) {
+			bitBoard_t attackingKnights = BitBoardMasks::knightMoves[square] & knights;
 			attackingKnights = removeAlreadyUsedPieces(attackingKnights);
 			return attackingKnights;
 		}
 
-		bitBoard_t computeBishopAttacking(Square pos, bitBoard_t bishops) {
+		bitBoard_t computeBishopAttacking(Square square, bitBoard_t bishops) {
 			bitBoard_t allPiecesButOwnBishops = allPiecesLeft & ~bishops;
-			bitBoard_t attackingBishops = Magics::genBishopAttackMask(pos, allPiecesButOwnBishops) & bishops;
+			bitBoard_t attackingBishops = Magics::genBishopAttackMask(square, allPiecesButOwnBishops) & bishops;
 			attackingBishops = removeAlreadyUsedPieces(attackingBishops);
 			return attackingBishops;
 		}
 
-		bitBoard_t computeRookAttacking(Square pos, bitBoard_t rooks) {
+		bitBoard_t computeRookAttacking(Square square, bitBoard_t rooks) {
 			bitBoard_t allPiecesButOwnRooks = allPiecesLeft & ~rooks;
-			bitBoard_t attackingRooks = Magics::genRookAttackMask(pos, allPiecesButOwnRooks) & rooks;
+			bitBoard_t attackingRooks = Magics::genRookAttackMask(square, allPiecesButOwnRooks) & rooks;
 			attackingRooks = removeAlreadyUsedPieces(attackingRooks);
 			return attackingRooks;
 		}
 
-		bitBoard_t computeQueenAttacking(Square pos, bitBoard_t queens) {
-			bitBoard_t attackingQueens = Magics::genQueenAttackMask(pos, allPiecesLeft) & queens;
+		bitBoard_t computeQueenAttacking(Square square, bitBoard_t queens) {
+			bitBoard_t attackingQueens = Magics::genQueenAttackMask(square, allPiecesLeft) & queens;
 			attackingQueens = removeAlreadyUsedPieces(attackingQueens);
 			return attackingQueens;
 		}
 
-		bitBoard_t computeKingAttacking(Square pos, bitBoard_t king) {
-			bitBoard_t attackingKing = BitBoardMasks::kingMoves[pos] & king;
+		bitBoard_t computeKingAttacking(Square square, bitBoard_t king) {
+			bitBoard_t attackingKing = BitBoardMasks::kingMoves[square] & king;
 			return attackingKing;
 		}
 
@@ -269,46 +268,46 @@ namespace ChessSearch {
 		}
 
 		template <Piece COLOR>
-		bitBoard_t getAttackingPieces(const MoveGenerator& board, Square pos) {
+		bitBoard_t getAttackingPieces(const MoveGenerator& board, Square square) {
 			bitBoard_t result;
 			switch (nextPiece[COLOR]) {
 			case PAWN + COLOR:
-				result = computePawnsAttacking<COLOR>(pos, board.getPieceBB(PAWN + COLOR));
+				result = computePawnsAttacking<COLOR>(square, board.getPieceBB(PAWN + COLOR));
 				if (result != 0) {
 					nextPiece[COLOR] = KNIGHT + COLOR;
 					currentValue[COLOR] = board.getPieceValueForMoveSorting(PAWN + COLOR);
 					break;
 				}
 			case KNIGHT + COLOR:
-				result = computeKnightsAttacking(pos, board.getPieceBB(KNIGHT + COLOR));
+				result = computeKnightsAttacking(square, board.getPieceBB(KNIGHT + COLOR));
 				if (result != 0) {
 					nextPiece[COLOR] = BISHOP + COLOR;
 					currentValue[COLOR] = board.getPieceValueForMoveSorting(KNIGHT + COLOR);
 					break;
 				}
 			case BISHOP + COLOR:
-				result = computeBishopAttacking(pos, board.getPieceBB(BISHOP + COLOR));
+				result = computeBishopAttacking(square, board.getPieceBB(BISHOP + COLOR));
 				if (result != 0) {
 					nextPiece[COLOR] = ROOK + COLOR;
 					currentValue[COLOR] = board.getPieceValueForMoveSorting(BISHOP + COLOR);
 					break;
 				}
 			case ROOK + COLOR:
-				result = computeRookAttacking(pos, board.getPieceBB(ROOK + COLOR));
+				result = computeRookAttacking(square, board.getPieceBB(ROOK + COLOR));
 				if (result != 0) {
 					nextPiece[COLOR] = QUEEN + COLOR;
 					currentValue[COLOR] = board.getPieceValueForMoveSorting(ROOK + COLOR);
 					break;
 				}
 			case QUEEN + COLOR:
-				result = computeQueenAttacking(pos, board.getPieceBB(QUEEN + COLOR));
+				result = computeQueenAttacking(square, board.getPieceBB(QUEEN + COLOR));
 				if (result != 0) {
 					nextPiece[COLOR] = BISHOP + COLOR;
 					currentValue[COLOR] = board.getPieceValueForMoveSorting(QUEEN + COLOR);
 					break;
 				}
 			case KING + COLOR:
-				result = computeKingAttacking(pos, board.getPieceBB(KING + COLOR));
+				result = computeKingAttacking(square, board.getPieceBB(KING + COLOR));
 				currentValue[COLOR] = board.getPieceValueForMoveSorting(KING + COLOR);
 				nextPiece[COLOR] = PIECE_AMOUNT;
 				break;
@@ -318,11 +317,11 @@ namespace ChessSearch {
 		}
 
 		template <Piece COLOR>
-		value_t tryPiece(const MoveGenerator& board, Square pos) {
+		value_t tryPiece(const MoveGenerator& board, Square square) {
 			value_t result = 0;
 			nodeCountStatistic++;
 			if (pieceToTryBitBoard[COLOR] == 0) {
-				pieceToTryBitBoard[COLOR] = getAttackingPieces<COLOR>(board, pos);
+				pieceToTryBitBoard[COLOR] = getAttackingPieces<COLOR>(board, square);
 			}
 			if (pieceToTryBitBoard[COLOR] != 0) {
 				result = currentValue[COLOR];
