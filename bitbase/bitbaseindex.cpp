@@ -59,7 +59,7 @@ BitBaseIndex::InitStatic::InitStatic() {
 	index = 0;
 	for (uint32_t posNo = 0; posNo < 10; posNo++) {
 		Square whiteKingSquare = whiteKingSquareWithoutPawn[posNo];
-		for (Square blackKingSquare = A1; blackKingSquare <= H8; blackKingSquare++) {
+		for (Square blackKingSquare = A1; blackKingSquare <= H8; ++blackKingSquare) {
 			if (getFile(whiteKingSquare) == File(getRank(whiteKingSquare)) 
 				&& getFile(blackKingSquare) < File(getRank(blackKingSquare))) {
 				continue;
@@ -106,23 +106,23 @@ bool BitBaseIndex::setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, u
 	_index = setKingSquaresByIndex(_index, pawnAmount > 0);
 
 	for (uint32_t pawn = 0; pawn < pawnAmount; pawn++) {
-		const uint32_t numberOfPieces = pieceSquareFld.size();
+		const uint32_t numberOfPieces = getNumberOfPieces();
 		posIndex = _index % (AMOUT_OF_PAWN_POSITIONS - numberOfPieces);
 		_index /= AMOUT_OF_PAWN_POSITIONS - numberOfPieces;
 		_sizeInBit *= AMOUT_OF_PAWN_POSITIONS - numberOfPieces;
 		addPieceSquare(computesRealSquare(_piecesBB >> 8, Square(posIndex)) + A2);
-		if (pieceSquareFld[numberOfPieces - 1] > H8) {
+		if (_squares[numberOfPieces - 1] > H8) {
 			legalPosition = false;
 		}
 	}
 
 	for (uint32_t piece = 0; piece < nonPawnPieceAmount; piece++) {
-		const uint32_t numberOfPieces = pieceSquareFld.size();
+		const uint32_t numberOfPieces = getNumberOfPieces();
 		posIndex = _index % (AMOUT_OF_PIECE_POSITIONS - numberOfPieces);
 		_index /= AMOUT_OF_PIECE_POSITIONS - numberOfPieces;
 		_sizeInBit *= AMOUT_OF_PIECE_POSITIONS - numberOfPieces;
 		addPieceSquare(computesRealSquare(_piecesBB, Square(posIndex)));
-		if (pieceSquareFld[numberOfPieces - 1] >= BOARD_SIZE) {
+		if (_squares[numberOfPieces - 1] >= BOARD_SIZE) {
 			legalPosition = false;
 		}
 	}

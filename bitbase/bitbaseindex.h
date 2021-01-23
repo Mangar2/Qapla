@@ -20,7 +20,9 @@
  * 1. One bit for white to move / black to move
  * 2. An index for the positions of the two kings supressing illegal positions where kings are adjacent
  * and calculating a symetry
- * 3. The indexes of pawns and pieces
+ * 3. The indexes of pawns and 
+ * The indes has no information about which pieces are on the board. It must only know whether a piece
+ * is a pawn or not a pawn. 
  */
 
 #include "bitbase.h"
@@ -44,7 +46,7 @@ namespace ChessBitbase {
 		void clear() {
 			_index = 0;
 			_mapType = 0;
-			pieceSquareFld.resize(0);
+			_squares.clear();
 		}
 
 		/**
@@ -78,17 +80,19 @@ namespace ChessBitbase {
 		/**
 		 * Sets the positions of pieces by having an index an a list of piece types
 		 */
+		/*
 		bool setPiecePositionsByIndex(uint64_t index, const PieceList& pieceList) {
-			return setPiecePositionsByIndex(index, pieceList.getPawnAmount(), pieceList.getPieceAmountWithoutPawns());
+			return setPiecePositionsByIndex(index, pieceList.getNumberOfPawns(), pieceList.getNumberOfPiecesWithoutPawns());
 		}
+		*/
 
 		/**
 		 * Gets the square of a piece
 		 */
 		Square getPieceSquare(uint32_t pieceNo) const {
 			Square result = NO_SQUARE;
-			if (pieceNo < pieceSquareFld.size()) {
-				result = pieceSquareFld[pieceNo];
+			if (pieceNo < getNumberOfPieces()) {
+				result = _squares[pieceNo];
 			}
 			return result;
 		}
@@ -110,8 +114,8 @@ namespace ChessBitbase {
 		/**
 		 * Gets the number of pieces (all pieces incl. kings and pawns)
 		 */
-		uint32_t getPieceNumber() const {
-			return pieceSquareFld.size();
+		uint32_t getNumberOfPieces() const {
+			return uint32_t(_squares.size());
 		}
 
 		/**
@@ -126,7 +130,7 @@ namespace ChessBitbase {
 		 */
 		void doMove(Move move) {
 			Square startSquare = move.getDeparture();
-			for (auto &pieceSquare : pieceSquareFld) {
+			for (auto &pieceSquare : _squares) {
 				if (pieceSquare == startSquare) {
 					pieceSquare = move.getDestination();
 					break;
@@ -165,12 +169,15 @@ namespace ChessBitbase {
 		 */
 		Square computesRealSquare(bitBoard_t checkPieces, Square rawSquare) {
 			Square realSquare = rawSquare;
-			for (uint32_t pieceNo = 0; pieceNo < pieceSquareFld.size(); pieceNo++) {
+			while (true) {
 				bitBoard_t mapOfAllFieldBeforeAndIncludingCurrentField = (1ULL << realSquare);
-				mapOfAllFieldBeforeAndIncludingCurrentField += mapOfAllFieldBeforeAndIncludingCurrentField - 1;
+				mapOfAllFieldBeforeAndIncludingCurrentField |= mapOfAllFieldBeforeAndIncludingCurrentField - 1;
 				if ((mapOfAllFieldBeforeAndIncludingCurrentField & checkPieces) != 0) {
-					realSquare++;
+					++realSquare;
 					checkPieces &= checkPieces - 1;
+				}
+				else {
+					break;
 				}
 			}
 			return realSquare;
@@ -235,13 +242,13 @@ namespace ChessBitbase {
 			uint64_t indexValueBasedOnPawnSquare = mappedSquare - A2;
 			// Reduces the index for every square the pawn cannot exist because there is already 
 			// another piece
-			for (auto pieceSquare : pieceSquareFld) {
+			for (auto pieceSquare : _squares) {
 				if (pieceSquare < mappedSquare && pieceSquare >= A2) {
 					indexValueBasedOnPawnSquare--;
 				}
 			}
 			_index += (int64_t)indexValueBasedOnPawnSquare * _sizeInBit;
-			_sizeInBit *= AMOUT_OF_PAWN_POSITIONS - pieceSquareFld.size();
+			_sizeInBit *= AMOUT_OF_PAWN_POSITIONS - getNumberOfPieces();
 			addPieceSquare(mappedSquare);
 		}
 
@@ -252,13 +259,13 @@ namespace ChessBitbase {
 		void addNonPawnPieceToIndex(Square pieceSquare) {
 			Square mappedSquare = mapSquare(pieceSquare, _mapType);
 			uint64_t indexValueBasedOnPieceSquare = mappedSquare;
-			for (auto pieceSquare : pieceSquareFld) {
+			for (auto pieceSquare : _squares) {
 				if (pieceSquare < mappedSquare) {
 					indexValueBasedOnPieceSquare--;
 				}
 			}
 			_index += (int64_t)indexValueBasedOnPieceSquare * _sizeInBit;
-			_sizeInBit *= (int64_t)BOARD_SIZE - pieceSquareFld.size();
+			_sizeInBit *= (int64_t)BOARD_SIZE - getNumberOfPieces();
 			addPieceSquare(mappedSquare);
 		}
 
@@ -266,7 +273,7 @@ namespace ChessBitbase {
 		 * Adds the square of a piece to the piece square list
 		 */
 		void addPieceSquare(Square square) {
-			pieceSquareFld.push_back(square);
+			_squares.push_back(square);
 			_piecesBB |= 1ULL << square;
 		}
 
@@ -274,9 +281,9 @@ namespace ChessBitbase {
 		 * Changes the square of a piece
 		 */
 		void changePieceSquare(uint32_t pieceNo, Square newSquare) {
-			if (pieceNo < pieceSquareFld.size()) {
-				Square oldSquare = pieceSquareFld[pieceNo];
-				pieceSquareFld[pieceNo] = newSquare;
+			if (pieceNo < getNumberOfPieces()) {
+				Square oldSquare = _squares[pieceNo];
+				_squares[pieceNo] = newSquare;
 				_piecesBB ^= 1ULL << oldSquare;
 				_piecesBB |= 1ULL << newSquare;
 			}
@@ -320,10 +327,8 @@ namespace ChessBitbase {
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithoutPawn;
 		static array<uint32_t, AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN> mapIndexToKingSquaresWithPawn;
 		static array<uint32_t, AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> mapIndexToKingSquaresWithoutPawn;
-		vector<Square> pieceSquareFld;
+		vector<Square> _squares;
 		bitBoard_t _piecesBB;
-		uint32_t _pieceAmount;
-		uint32_t _pawnAmount;
 		uint64_t _index;
 		uint64_t _sizeInBit;
 		uint8_t _mapType;

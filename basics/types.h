@@ -187,6 +187,7 @@ namespace ChessBasics {
 	constexpr Piece OPPONENT[COLOR_AMOUNT] = { BLACK, WHITE };
 	constexpr Piece operator+(Piece a, int32_t b) { return Piece(int32_t(a) + b); }
 	inline Piece& operator++(Piece& piece) { return piece = Piece(piece + 1); }
+	inline Piece& operator+=(Piece& a, int32_t b) { return a = Piece(a + b); }
 
 	/**
 	 * Checks, if a piece is a pawn
@@ -203,6 +204,13 @@ namespace ChessBasics {
 	 */
 	inline static Piece getPieceColor(Piece piece) {
 		return Piece(piece & COLOR_MASK);
+	}
+
+	/**
+	 * Gets the type of piece by removing the color information
+	 */
+	inline static Piece getPieceType(Piece piece) {
+		return Piece(piece & ~COLOR_MASK);
 	}
 
 	/**
