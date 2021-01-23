@@ -1,12 +1,17 @@
 # Quabla Change log
 Quabla chess engine
 
+## 0.0.14
+- Playing strength:
+- Evaluation values for passed pawns changed - based on 900 very fast game per setting
+
+
 ## 0.0.12
 - UCI
-	- Playing strength unchanged: 2200 ELO
-	- King security more balanced
-	- Refactoring ...
 	- Now sending thinking updates every second
+- Playing strength unchanged: 2200 ELO
+- King security more balanced
+- Refactoring ...
 
 ## 0.0.6 2021-01-18 minor change
 - Playing strengh: 2200 Elo 
