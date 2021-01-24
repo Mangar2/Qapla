@@ -35,7 +35,7 @@ using namespace ChessInterface;
 
 namespace ChessSearch {
 
-#if defined(_DEBUG) || defined(DOWHATIF)
+#if defined(_DEBUG) || defined(WHATIF_RELEASE)
 #define WHATIF(x) x
 #define DOWHATIF true
 #else

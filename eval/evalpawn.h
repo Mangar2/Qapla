@@ -353,7 +353,7 @@ namespace ChessEval {
 
 		template <Piece COLOR>
 		inline static bitBoard_t computePawnMoveRay(const bitBoard_t pawnBB) {
-			bitBoard_t pawnMoveRay;
+			bitBoard_t pawnMoveRay = 0;
 			if (COLOR == WHITE && pawnBB != 0) {
 				pawnMoveRay = pawnBB << NORTH | pawnBB << 2 * NORTH | pawnBB << 3 * NORTH |
 					pawnBB << 4 * NORTH | pawnBB << 5 * NORTH;
