@@ -25,7 +25,6 @@
 #include <mutex>
 #include <string>
 #include "../basics/types.h"
- // #include "whatif.h"
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
 #include "killermove.h"
@@ -34,12 +33,14 @@
 #include "tt.h"
 #include "searchparameter.h"
 #include "extension.h"
+#include "../eval/eval.h"
 
 using namespace std;
 using namespace ChessMoveGenerator;
+using namespace ChessEval;
 
 enum class Cutoff {
-	NONE, DRAW_BY_REPETITION, HASH, FASTER_MATE_FOUND, RAZORING, NOT_ENOUGH_MATERIAL, NULL_MOVE,
+	NONE, DRAW_BY_REPETITION, HASH, FASTER_MATE_FOUND, RAZORING, NOT_ENOUGH_MATERIAL, NULL_MOVE, FUTILITY,
 	COUNT
 };
 
@@ -187,6 +188,24 @@ namespace ChessSearch {
 		void extendSearch(MoveGenerator& board) {
 			searchDepthExtension = Extension::calculateExtension(board, previousMove, remainingDepth);
 			remainingDepth += searchDepthExtension;
+		}
+
+		/**
+		 * Examine, if we can do a futility pruning based on an evaluation score
+		 */
+		inline bool futility(MoveGenerator& board) {
+			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
+			if (searchState == SearchType::PV) return false;
+
+			eval = Eval::evaluateBoardPosition(board);
+			if (!board.isWhiteToMove()) {
+				eval = -eval;
+			}
+			bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) > beta;
+			if (doFutility) {
+				bestValue = eval;
+			}
+			return doFutility;
 		}
 
 		/**
@@ -374,6 +393,7 @@ namespace ChessSearch {
 		value_t betaAtPlyStart;
 		value_t bestValue;
 		value_t currentValue;
+		value_t eval;
 		Move bestMove;
 		Move previousMove;
 		ply_t remainingDepth;

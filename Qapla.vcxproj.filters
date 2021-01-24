@@ -167,9 +167,6 @@
     <ClInclude Include="search\extension.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="search\searchparameter.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="basics\piecesignature.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -177,9 +174,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\searchstack.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\see.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\computinginfo.h">
@@ -306,6 +300,12 @@
       <Filter>pgn</Filter>
     </ClInclude>
     <ClInclude Include="search\whatIf.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\see.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchparameter.h">
       <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>

@@ -30,6 +30,7 @@
 #include "../movegenerator/movegenerator.h"
 #include "computinginfo.h"
 #include "whatif.h"
+#include "see.h"
 
 using namespace ChessInterface;
 using namespace ChessEval;
@@ -186,6 +187,9 @@ namespace ChessSearch {
 						}
 						break;
 					}
+					if (SearchParameter::QUIESCENSE_USE_SEE_PRUNINT && SEE::isLoosingCaptureLight(board, move)) {
+						continue; 
+					}
 
 					BoardState boardState = board.getBoardState();
 					board.doMove(move);
@@ -194,12 +198,11 @@ namespace ChessSearch {
 
 					if (valueOfNextPlySearch > bestValue) {
 						bestValue = valueOfNextPlySearch;
+						if (bestValue >= beta) {
+							break;
+						}
 						if (bestValue > alpha) {
 							alpha = bestValue;
-							if (bestValue >= beta) {
-								break;
-							}
-
 						}
 					}
 				}

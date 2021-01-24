@@ -47,7 +47,7 @@ BitBaseIndex::InitStatic::InitStatic() {
 	for (Square whiteKingSquare = A1; whiteKingSquare <= H8; whiteKingSquare = computeNextKingSquareForPositionsWithPawn(whiteKingSquare)) {
 		for (Square blackKingSquare = A1; blackKingSquare <= H8; ++blackKingSquare) {
 			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
-			assert(lookupIndex < BOARD_SIZE* BOARD_SIZE);
+			assert(lookupIndex < uint32_t(BOARD_SIZE * BOARD_SIZE));
 			mapTwoKingsToIndexWithPawn[lookupIndex] = index;
 			mapIndexToKingSquaresWithPawn[index] = lookupIndex;
 			if (!isAdjacent(whiteKingSquare, blackKingSquare)) {
@@ -65,7 +65,7 @@ BitBaseIndex::InitStatic::InitStatic() {
 				continue;
 			}
 			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
-			assert(lookupIndex < BOARD_SIZE* BOARD_SIZE);
+			assert(lookupIndex < uint32_t(BOARD_SIZE* BOARD_SIZE));
 			assert(index < AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN);
 			mapTwoKingsToIndexWithoutPawn[lookupIndex] = index;
 			mapIndexToKingSquaresWithoutPawn[index] = lookupIndex;

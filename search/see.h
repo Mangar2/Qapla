@@ -42,6 +42,9 @@
  * Hiding behind the queen is solved by retrying bishops and rooks, once the queen(s) are tried.
  */
 
+#ifndef __SEE_H
+#define __SEE_H
+
 #include "searchdef.h"
 #include "../movegenerator/movegenerator.h"
 
@@ -73,7 +76,7 @@ namespace ChessSearch {
 		/**
 		 * @returns true, if moving piece is move valuable than the captured piece and the captured piece is defended by a pawn
 		 */
-		bool isLoosingCaptureLight(const MoveGenerator & board, Move move) {
+		static bool isLoosingCaptureLight(const MoveGenerator & board, Move move) {
 			bool result = false;
 			value_t movingPieceValue = board.getPieceValueForMoveSorting(move.getMovingPiece());
 			value_t capturedPieceValue = board.getPieceValueForMoveSorting(move.getCapture());
@@ -171,7 +174,7 @@ namespace ChessSearch {
 		 * Returns true, if a piece is defended by a pawn
 		 */
 		template <Piece COLOR>
-		inline bool isDefendedByPawn(const MoveGenerator& board, Square square) {
+		inline static bool isDefendedByPawn(const MoveGenerator& board, Square square) {
 			return
 				(BitBoardMasks::pawnCaptures[OPPONENT[COLOR]][square] &
 					board.getPieceBB(PAWN + COLOR)) != 0;
@@ -347,3 +350,5 @@ namespace ChessSearch {
 	};
 
 }
+
+#endif // __SEE_H

@@ -69,6 +69,7 @@ namespace ChessSearch {
 
 		static const bool DO_NULLMOVE = true;
 
+		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50;
 
@@ -77,6 +78,9 @@ namespace ChessSearch {
 
 		static const bool DO_CHECK_EXTENSIONS = true;
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
+
+		static const ply_t DO_FUTILITY_DEPTH = 0;
+		constexpr static value_t futilityMargin(ply_t depth) { return 100 * (depth + 1); }
 
 		static const bool DO_RAZORING = false;
 		static const ply_t RAZORING_DEPTH = 3;

@@ -48,6 +48,10 @@ namespace ChessSearch {
 
 	private:
 
+		enum class SearchType {
+			PV, NORMAL, PV_LAST_PLY, LAST_PLY
+		};
+
 		/**
 		 * Update status information on ply 0
 		 */
@@ -60,6 +64,7 @@ namespace ChessSearch {
 		/**
 		 * Check for cutoffs
 		 */
+		template <SearchType TYPE>
 		bool hasCutoff(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
 			if (ply < 1) return false;
 			if (curPly.alpha > MAX_VALUE - value_t(ply)) {
@@ -77,7 +82,10 @@ namespace ChessSearch {
 			else if (curPly.probeTT(board)) {
 				curPly.setCutoff(Cutoff::HASH);
 			}
-			else if (isNullmoveCutoff(board, stack, ply)) {
+			else if (curPly.futility(board)) {
+				curPly.setCutoff(Cutoff::FUTILITY);
+			} 
+			else if (TYPE == SearchType::NORMAL && isNullmoveCutoff(board, stack, ply)) {
 				curPly.setCutoff(Cutoff::NULL_MOVE);
 			}
 			WhatIf::whatIf.cutoff(board, *_computingInfo, stack, ply, curPly.cutoff);
