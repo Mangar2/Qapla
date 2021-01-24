@@ -98,7 +98,6 @@ void Winboard::analyzeMove() {
 		_clock.setAnalyseMode(true);
 		_computeThread = std::thread([this]() {
 			_board->computeMove(_clock);
-			_mode = Mode::WAIT;
 		});
 	}
 }
