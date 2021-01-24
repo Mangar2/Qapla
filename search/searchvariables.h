@@ -272,20 +272,15 @@ namespace ChessSearch {
 		 */
 		Move selectNextMove(MoveGenerator& board) {
 			Move move;
-			if (searchState == SearchType::PV && !bestMove.isEmpty() && remainingDepth >= 2) {
-				setNullWindowSearch();
-			}
-			else if (searchState == SearchType::NULL_WINDOW && currentValue >= beta) {
+			if (searchState == SearchType::NULL_WINDOW && currentValue >= beta) {
 				setResearchWithPVWindow();
-				move = moveProvider.getCurrentMove();
+				return moveProvider.getCurrentMove();
 				assert(!move.isEmpty());
 			}
-			if (bestValue < betaAtPlyStart && move.isEmpty()) {
-				moveNo++;
-				move = moveProvider.selectNextMove(board);
+			if (bestValue >= betaAtPlyStart) {
+				return move;
 			}
-			return move;
-
+			return moveProvider.selectNextMove(board);
 		}
 
 		/**
@@ -301,6 +296,7 @@ namespace ChessSearch {
 		 */
 		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
 			currentValue = searchResult;
+			if (searchState == SearchType::NULL_WINDOW) return;
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
 				if (searchResult > alpha) {
@@ -315,11 +311,10 @@ namespace ChessSearch {
 						// Never set alpha > beta, it will harm the PVS algorithm
 						alpha = searchResult;
 					}
-
-					else if (remainingDepth > 1) {
-						// HistoryTable::setSearchResult(remainingDepth, bestMove, moveProvider);
-					}
 				}
+			}
+			if (searchState == SearchType::PV && remainingDepth >= 2 && currentValue < betaAtPlyStart) {
+				setNullWindowSearch();
 			}
 		}
 
@@ -338,7 +333,7 @@ namespace ChessSearch {
 			bool drawByRepetetivePositionValue = (bestValue == 0);
 			if (!drawByRepetetivePositionValue) {
 				ttPtr->setEntry(hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
-				// WHATIF(WhatIf::whatIf.setHash(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false));
+				// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 			}
 		}
 

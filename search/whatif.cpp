@@ -24,7 +24,7 @@ void WhatIf::init(const Board& board, const ComputingInfo& computingInfo, value_
 
 void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {
 	printMoves(stack, currentMove, ply);
-	printf("[w:%6ld,%6ld]", stack[ply].beta, stack[ply].alpha);
+	printf("[w:%6ld,%6ld]", stack[ply].alpha, stack[ply].beta);
 	printf("[d:%ld]", stack[ply].remainingDepth);
 	if (stack[ply].remainingDepth > 0) {
 		if (stack[ply + 1].searchState != SearchVariables::SearchType::START) {
@@ -112,7 +112,7 @@ void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, cons
 	}
 	if (stack[0].remainingDepth == searchDepth && hashFoundPly != -1 && ply >= hashFoundPly - 1 && ply <= hashFoundPly) {
 		printMoves(stack, stack[ply].previousMove, ply - 1);
-		printf("[w:%6ld,%6ld]", stack[ply].beta, stack[ply].alpha);
+		printf("[w:%6ld,%6ld]", stack[ply].alpha, stack[ply].beta);
 		printf("[d:%ld]", stack[ply].remainingDepth);
 		printf("[v:%6ld]", stack[ply].bestValue);
 		printf("[hm:%5s]", stack[ply].getTTMove().getLAN().c_str());
@@ -127,7 +127,7 @@ void WhatIf::setTT(TT* ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move mov
 	if (hashKey == hash) {
 		auto ttIndex = ttPtr->getTTEntryIndex(hashKey);
 		if (ttPtr->isNewEntryMoreValuable(ttIndex, depth, move)) {
-			printf("set hash [w%6ld %6ld][d:%2ld][v:%6ld][m:%5s]\n", beta, alpha, depth, bestValue, move.getLAN().c_str());
+			printf("set hash [w%6ld %6ld][d:%2ld][v:%6ld][m:%5s]\n", alpha, beta, depth, bestValue, move.getLAN().c_str());
 			ttPtr->printHash(hashKey);
 		}
 	}

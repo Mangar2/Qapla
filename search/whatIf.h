@@ -28,13 +28,15 @@
 #include "searchstack.h"
 #include "computinginfo.h"
 #include "../interface/iwhatIf.h"
+#include "tt.h"
 
 using namespace ChessBasics;
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;
 
-namespace ChessSearch {
 
+namespace ChessSearch {
+	
 #if defined(_DEBUG) || defined(WHATIF_RELEASE)
 #define WHATIF(x) x
 #define DOWHATIF true
