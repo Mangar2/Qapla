@@ -2,9 +2,9 @@
 Quabla chess engine
 
 ## 0.0.14
-- Playing strength:
-- Evaluation values for passed pawns changed - based on 900 very fast game per setting
-
+- Playing strength: about 2250 ELO
+	- Improved parameters for King security (+10 elo)
+	- Improved parameters for passed pawns  (+30 elo) ; Identified new parameters for passed pawns by playing very fast games (5s + 0.1ms)
 
 ## 0.0.12
 - UCI
