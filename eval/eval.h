@@ -70,27 +70,29 @@ namespace ChessEval {
 		 */
 		static void printEval(MoveGenerator& board) {
 			EvalResults evalResults;
-			value_t evalValue = lazyEval(board, evalResults);
+			value_t evalValue;
 			value_t endGameResult;
 
-			EvalPawn evalPawn;
 			board.print();
 
-			evalPawn.print(board, evalResults);
+			evalResults.materialValue = board.getMaterialValue();
+			evalResults.midgameInPercent = computeMidgameInPercent(board);
+			evalValue = evalResults.materialValue;
+			evalValue += EvalPawn::eval(board, evalResults);
+			endGameResult = EvalEndgame::eval(board, evalValue);
 
 			printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercent);
 			printf("Marerial            : %ld\n", evalResults.materialValue);
+			EvalPawn::print(board, evalResults);
 			board.getMaterialValue();
-
 			endGameResult = EvalEndgame::print(board, evalValue);
-			endGameResult = cutValueOnDrawPositions(board, endGameResult);
 
 			if (endGameResult != evalValue) {
 				evalValue = endGameResult;
 			}
 			else {
+				EvalMobility::print(board, evalResults);
 				if (evalResults.midgameInPercent > 0) {
-					EvalMobility::print(board, evalResults);
 					KingAttack::print(evalResults);
 				}
 			}
@@ -133,14 +135,12 @@ namespace ChessEval {
 
 			value_t result;
 			value_t endGameResult;
-			EvalPawn evalPawn;
 
 			evalResults.materialValue = board.getMaterialValue();
 			evalResults.midgameInPercent = computeMidgameInPercent(board);
 			result = evalResults.materialValue;
-			result += evalPawn.eval(board, evalResults);
+			result += EvalPawn::eval(board, evalResults);
 			endGameResult = EvalEndgame::eval(board, result);
-			endGameResult = cutValueOnDrawPositions(board, endGameResult);
 
 			if (endGameResult != result) {
 				result = endGameResult;
@@ -153,21 +153,6 @@ namespace ChessEval {
 				}
 			}
 			return result;
-		}
-
-
-
-		/**
-		 * Ensure that a side never gets more than 0 points if it has not enough material to win
-		 */
-		static value_t cutValueOnDrawPositions(MoveGenerator& board, value_t currentValue) {
-			if (currentValue > 0 && !board.hasEnoughMaterialToMate<WHITE>()) {
-				currentValue = 0;
-			}
-			if (currentValue < 0 && !board.hasEnoughMaterialToMate<BLACK>()) {
-				currentValue = 0;
-			}
-			return currentValue;
 		}
 
 		/** 

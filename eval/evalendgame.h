@@ -78,6 +78,12 @@ namespace ChessEval {
 		static value_t drawValue(MoveGenerator& board, value_t currentValue);
 
 		/**
+		 * Forces a near draw value (one side has more material, but probably will not win)
+		 */
+		template <Piece COLOR>
+		static value_t nearDrawValue(MoveGenerator& board, value_t currentValue);
+
+		/**
 		 * Forces a winning value
 		 */
 		template <Piece COLOR>
@@ -179,6 +185,7 @@ namespace ChessEval {
 		static const bitBoard_t BLACK_FIELDS = 0xAA55AA55AA55AA55ULL;
 
 		static constexpr value_t BONUS[COLOR_AMOUNT] = { WINNING_BONUS, -WINNING_BONUS };
+		static constexpr value_t NEAR_DRAW[COLOR_AMOUNT] = { 20, -20 };
 		static constexpr Square UP[COLOR_AMOUNT] = { NORTH, SOUTH };
 		static constexpr value_t COLOR_VALUE[COLOR_AMOUNT] = { 1, -1 };
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };

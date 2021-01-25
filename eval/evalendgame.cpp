@@ -63,6 +63,14 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KR+B*N*P+K", winningValue);
 	REGISTER("KNNPK", winningValue);
 
+	// Near Draw situation
+	REGISTER("KRBKR", nearDrawValue);
+	REGISTER("KRNKR", nearDrawValue);
+	REGISTER("KRNKBB", nearDrawValue);
+	REGISTER("KBBKR", nearDrawValue);
+	REGISTER("KBNKR", nearDrawValue);
+	REGISTER("KNNKR", nearDrawValue);
+
 	// Draw situations
 	REGISTER("KBK", drawValue);
 	REGISTER("KN+K", drawValue);
@@ -129,6 +137,11 @@ value_t EvalEndgame::KPsKPs(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::drawValue(MoveGenerator& board, value_t currentValue) {
 	return DRAW_VALUE;
+}
+
+template <Piece COLOR>
+value_t EvalEndgame::nearDrawValue(MoveGenerator& board, value_t currentValue) {
+	return NEAR_DRAW[COLOR];
 }
 
 template <Piece COLOR>
