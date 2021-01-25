@@ -280,6 +280,9 @@ namespace ChessSearch {
 			if (bestValue >= betaAtPlyStart) {
 				return move;
 			}
+			if (searchState == SearchType::PV && !bestMove.isEmpty() && remainingDepth >= 2) {
+				setNullWindowSearch();
+			}
 			return moveProvider.selectNextMove(board);
 		}
 
@@ -312,9 +315,6 @@ namespace ChessSearch {
 						alpha = searchResult;
 					}
 				}
-			}
-			if (searchState == SearchType::PV && remainingDepth >= 2 && currentValue < betaAtPlyStart) {
-				setNullWindowSearch();
 			}
 		}
 
