@@ -64,12 +64,17 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KNNPK", winningValue);
 
 	// Near Draw situation
-	REGISTER("KRBKR", nearDrawValue);
-	REGISTER("KRNKR", nearDrawValue);
-	REGISTER("KRNKBB", nearDrawValue);
-	REGISTER("KBBKR", nearDrawValue);
-	REGISTER("KBNKR", nearDrawValue);
-	REGISTER("KNNKR", nearDrawValue);
+	REGISTER("KRBKR", forceToAnyCornerButDraw);
+	REGISTER("KRNKR", forceToAnyCornerButDraw);
+	REGISTER("KRNKBB", forceToAnyCornerButDraw);
+	REGISTER("KBBKR", forceToAnyCornerButDraw);
+	REGISTER("KBNKR", forceToAnyCornerButDraw);
+	REGISTER("KNNKR", forceToAnyCornerButDraw);
+	REGISTER("KRKB", forceToAnyCornerButDraw);
+	REGISTER("KRKN", forceToAnyCornerButDraw);
+	REGISTER("KBKP", minusKnightPlusPawn);
+	REGISTER("KNKP", minusKnightPlusPawn);
+
 
 	// Draw situations
 	REGISTER("KBK", drawValue);
@@ -282,9 +287,14 @@ value_t EvalEndgame::KQKR(MoveGenerator& board, value_t currentValue) {
 }
 
 template <Piece COLOR>
+value_t EvalEndgame::forceToAnyCornerButDraw(MoveGenerator& board, value_t currentValue) {
+	return forceToAnyCorner<COLOR>(board, COLOR == WHITE ? 30 : -30);
+}
+
+template <Piece COLOR>
 value_t EvalEndgame::forceToAnyCorner(MoveGenerator& board, value_t currentValue) {
 	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
-	value_t distanceValue = -computeKingDistance(board) * 10 - computeDistanceToAnyCorner(opponentKingPos) * 20;
+	value_t distanceValue = -computeKingDistance(board) * 1 - computeDistanceToAnyCorner(opponentKingPos) * 2;
 	currentValue += COLOR == WHITE ? distanceValue : -distanceValue;
 	return currentValue;
 }
@@ -292,7 +302,7 @@ value_t EvalEndgame::forceToAnyCorner(MoveGenerator& board, value_t currentValue
 template <Piece COLOR>
 value_t EvalEndgame::forceToCorrectCorner(MoveGenerator& board, value_t currentValue, bool whiteCorner) {
 	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
-	value_t distanceValue = -computeKingDistance(board) * 10 - computeDistanceToCorrectCorner(opponentKingPos, whiteCorner) * 20;
+	value_t distanceValue = -computeKingDistance(board) * 1 - computeDistanceToCorrectCorner(opponentKingPos, whiteCorner) * 2;
 	currentValue += COLOR == WHITE ? distanceValue : -distanceValue;
 	return currentValue;
 }

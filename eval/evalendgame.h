@@ -125,6 +125,22 @@ namespace ChessEval {
 		static value_t forceToAnyCorner(MoveGenerator& board, value_t currentValue);
 
 		/**
+		 * Tries to trap the king in any corner, but evaluate near draw
+		 */
+		template <Piece COLOR>
+		static value_t forceToAnyCornerButDraw(MoveGenerator& board, value_t currentValue);
+
+		/**
+		 * Reduces the value
+		 */
+		template <Piece COLOR> 
+		static value_t minusKnightPlusPawn(MoveGenerator& board, value_t currentValue) {
+			constexpr value_t reduce = MaterialBalance::KNIGHT_VALUE - MaterialBalance::PAWN_VALUE;
+			return currentValue - 
+				(COLOR == WHITE ? reduce : -reduce);
+		}
+
+		/**
 		 * Tries to trap the opponent king in a white or black corner
 		 */
 		template <Piece COLOR>

@@ -117,14 +117,18 @@ namespace ChessInterface {
 		 */
 		void setPosition() {
 			const string boardToken = getNextTokenBlocking(true);
+			string debug;
 			if (boardToken == "fen") setPositionByFen(readFen());
 			else if (boardToken == "startpos") {
+				debug = "startpos";
 				setPositionByFen();
 				getNextTokenBlocking(true);
 			}
 			if (getCurrentToken() == "moves") {
+				debug += " moves";
 				string token = getNextTokenBlocking(true);
 				while (token != "\n" && token != "\r") {
+					debug += " " + token;
 					setMove(token);
 					token = getNextTokenBlocking(true);
 				}
