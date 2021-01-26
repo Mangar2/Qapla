@@ -95,6 +95,8 @@ namespace ChessSearch {
 					break;
 				}
 			}
+			// Ensures that all draw positions are removed and not used after undo or new game
+			moveHistory.removeDrawPositionsFromHash(tt);
 			// computingInfo.statisticForMoveOrdering.print();
 		}
 
