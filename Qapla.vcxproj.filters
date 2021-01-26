@@ -102,6 +102,9 @@
     <ClCompile Include="bitbase\bitbaseindex.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
+    <ClCompile Include="bitbase\bitbasereader.cpp">
+      <Filter>bitbase</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">

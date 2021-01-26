@@ -73,6 +73,7 @@ namespace ChessBasics {
 	public:
 
 		PieceSignature() : _signature(0) {}
+		PieceSignature(pieceSignature_t signature) : _signature(signature) {}
 
 		PieceSignature(const char* pieces) {
 			set(pieces);

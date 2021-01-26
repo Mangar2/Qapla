@@ -27,62 +27,76 @@
 #include <vector>
 #include <fstream>
 #include "../basics/move.h"
+#include "bitbaseindex.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 
 using namespace ChessMoveGenerator;
 
 namespace ChessBitbase {
+
 	class BoardAccess {
 	public:
-		static uint64_t getIndex(const MoveGenerator& board) {
+		/**
+		 * Computes a bitbase index from a board position
+		 */
+		static uint64_t computeIndex(const MoveGenerator& board) {
 			BitBaseIndex bitBaseIndex;
 			setBitBaseIndexFromBoard(board, bitBaseIndex);
-			uint64_t index = bitBaseIndex.getIndex();
+			uint64_t index = bitBaseIndex.computeIndex();
 			return index;
 		}
 
-		static uint64_t getIndex(bool whiteToMove, const PieceList& pieceList, move_t move) {
+		/**
+		 * Computes a bitbase index from piece list
+		 */
+		static uint64_t computeIndex(bool whiteToMove, const PieceList& pieceList, Move move) {
 			BitBaseIndex bitBaseIndex;
 			setBitBaseIndex(whiteToMove, bitBaseIndex, pieceList, move);
-			uint64_t index = bitBaseIndex.getIndex();
+			uint64_t index = bitBaseIndex.computeIndex();
 			return index;
 		}
 
-		static void setBitBaseIndexFromBoard(const MoveGenerator& board, BitBaseIndex& bitBaseIndex) {
-			bool hasPawn = (board.getPieceBitBoard(WHITE_PAWN) | board.getPieceBitBoard(BLACK_PAWN)) != 0;
-			bitBaseIndex.initialize(board.kingPos[WHITE], board.kingPos[BLACK], board.whiteToMove, hasPawn);
-			for (piece_t piece = WHITE_PAWN; piece <= BLACK_QUEEN; piece++) {
-				addPiece(board, piece, bitBaseIndex);
-			}
-		}
 
 	private:
 
-		static inline pos_t getPiecePos(uint32_t index, const PieceList& pieceList, move_t move) {
-			pos_t pos = pieceList.getPos(index);
-			if (pos == Move::getStartPos(move)) {
-				pos = Move::getTargetPos(move);
+		/**
+		 * Sets a bitbase Index having a board
+		 */
+		static void setBitBaseIndexFromBoard(const MoveGenerator& board, BitBaseIndex& bitBaseIndex) {
+			bool hasPawn = (board.getPieceBB(WHITE_PAWN) | board.getPieceBB(BLACK_PAWN)) != 0;
+			bitBaseIndex.initialize(board.isWhiteToMove(), board.getKingSquare<WHITE>(), board.getKingSquare<BLACK>(), hasPawn);
+			for (Piece piece = WHITE_PAWN; piece <= BLACK_QUEEN; ++piece) {
+				addAllPiecesOfType(board, piece, bitBaseIndex);
 			}
-			return pos;
 		}
 
-		static void setBitBaseIndex(bool whiteToMove, BitBaseIndex& bitBaseIndex, const PieceList& pieceList, move_t move) {
+		static inline Square getPiecePos(uint32_t index, const PieceList& pieceList, Move move) {
+			Square square = pieceList.getSquares()[index];
+			if (square == move.getDeparture()) {
+				square = move.getDestination();
+			}
+			return square;
+		}
+
+		static void setBitBaseIndex(bool whiteToMove, BitBaseIndex& bitBaseIndex, const PieceList& pieceList, Move move) {
 			bool hasPawn = pieceList.getNumberOfPawns() != 0;
-			pos_t whiteKingPos = getPiecePos(0, pieceList, move);
-			pos_t blackKingPos = getPiecePos(1, pieceList, move);
-			bitBaseIndex.initialize(whiteKingPos, blackKingPos, whiteToMove, hasPawn);
+			Square whiteKingPos = getPiecePos(0, pieceList, move);
+			Square blackKingPos = getPiecePos(1, pieceList, move);
+			bitBaseIndex.initialize(whiteToMove, whiteKingPos, blackKingPos, hasPawn);
 
-			for (uint32_t index = 2; index < pieceList.getPieceAmount(); index++) {
-				piece_t piece = pieceList.getPiece(index);
-				pos_t pos = getPiecePos(index, pieceList, move);
-				bitBaseIndex.addPieceToIndex(pos, piece);
+			for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
+				Piece piece = pieceList.getPiece(index);
+				Square square = getPiecePos(index, pieceList, move);
+				bitBaseIndex.addPieceToIndex(square, piece);
 			}
 		}
 
-
-		static void addPiece(const MoveGenerator& board, piece_t piece, BitBaseIndex& bitBaseIndex) {
-			bitBoard_t pieces = board.getPieceBitBoard(piece);
+		/**
+		 * Adds all pieces of one type (for example all white pawns)
+		 */
+		static void addAllPiecesOfType(const MoveGenerator& board, Piece piece, BitBaseIndex& bitBaseIndex) {
+			bitBoard_t pieces = board.getPieceBB(piece);
 			for (; pieces != 0; pieces &= pieces - 1) {
 				bitBaseIndex.addPieceToIndex(BitBoardMasks::lsb(pieces), piece);
 			}

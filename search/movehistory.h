@@ -37,6 +37,9 @@ namespace ChessSearch {
 		MoveHistory() {};
 		const MoveGenerator& getStartPosition() const { return startPosition; }
 
+		/**
+		 * Sets a new start poisition
+		 */
 		void setStartPosition(const MoveGenerator& aBoard) {
 			startPosition = aBoard;
 			_history.resize(0);
@@ -89,27 +92,53 @@ namespace ChessSearch {
 		 * Sets all positions already played to hash to identify draw in the search
 		 */
 		void setDrawPositionsToHash(const MoveGenerator& board, TT& tt) {
+			value_t drawPositionValue = board.isWhiteToMove() ? -1 : 1;
+			computeDrawHashes(board);
+			auto iterator = _drawHashes.rbegin();
+			for (; iterator != _drawHashes.rend(); ++iterator) {
+				tt.setEntry(*iterator, TTEntry::MAX_DEPTH, 0,
+					Move::EMPTY_MOVE, drawPositionValue, -MAX_VALUE, MAX_VALUE, 0);
+				drawPositionValue = -drawPositionValue;
+			}
+		}
+
+		/**
+		 * Sets all positions already played to hash to identify draw in the search
+		 */
+		void removeDrawPositionsFromHash(TT& tt) {
+			for (auto drawHash : _drawHashes) {
+				uint32_t entryIndex = tt.getTTEntryIndex(drawHash);
+				if (entryIndex != TT::INVALID_INDEX) {
+					tt.getEntry(entryIndex).clear();
+				}
+			}
+		}
+
+
+	private:
+
+		/**
+		 * Computes the draw hashes out of the history
+		 */
+		void computeDrawHashes(const MoveGenerator& board) {
+			_drawHashes.clear();
 			Board checkBoard = startPosition;
 			uint16_t moveNo = 0;
-			value_t drawPositionValue = board.isWhiteToMove() ? -1 : 1;
 			while (moveNo + board.getHalfmovesWithoutPawnMoveOrCapture() < _history.size()) {
 				checkBoard.doMove(_history[moveNo]);
 				moveNo++;
 			}
 			for (; ; moveNo++) {
-				value_t positionValue = checkBoard.isWhiteToMove() ? drawPositionValue : -drawPositionValue;
-				tt.setEntry(checkBoard.computeBoardHash(), TTEntry::MAX_DEPTH, 0, 
-					Move::EMPTY_MOVE, positionValue, -MAX_VALUE, MAX_VALUE, 0);
+				_drawHashes.push_back(checkBoard.computeBoardHash());
 				if (moveNo == _history.size()) {
 					break;
 				}
 				checkBoard.doMove(_history[moveNo]);
-				//checkBoard.printBoard();
 			}
 		}
 
-	private:
 		vector<Move> _history;
+		vector<hash_t> _drawHashes;
 		MoveGenerator startPosition;
 	};
 

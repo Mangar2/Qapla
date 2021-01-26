@@ -107,7 +107,7 @@ namespace ChessBitbase {
 		/**
 		 * Gets the index of the current position
 		 */
-		uint64_t getIndex() const {
+		uint64_t computeIndex() const {
 			return _index;
 		}
 

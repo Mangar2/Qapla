@@ -20,7 +20,16 @@
  *
  */
 
+#ifndef __BITBASEREADER_H
+#define __BITBASEREADER_H
+
+#include <map>
+#include "../movegenerator/movegenerator.h"
 #include "bitbase.h"
+#include "boardaccess.h"
+
+using namespace ChessMoveGenerator;
+using namespace std;
 
 namespace ChessBitbase {
 
@@ -28,7 +37,7 @@ namespace ChessBitbase {
 	{
 	public:
 		static void loadBitBase() {
-			kpk.readFromFile("KPK.btb");
+			loadRelevant3StoneBitBase();
 		}
 
 		static void loadRelevant3StoneBitBase() {
@@ -59,22 +68,22 @@ namespace ChessBitbase {
 			loadBitBase("KQQKQ");
 		}
 
-		static value_t getValueFromBitBase(GenBoard& board, PieceSignature signature, value_t currentValue) {
+		static value_t getValueFromBitBase(MoveGenerator& board, PieceSignature signature, value_t currentValue) {
 			value_t result = currentValue;
-			auto it = bitBases.find(signature.getSignature());
-			if (it != bitBases.end()) {
-				uint64_t index = BoardAccess::getIndex(board);
+			auto it = bitBases.find(signature.getPiecesSignature());
+			if (it != bitBases.end() && it->second.isLoaded()) {
+				uint64_t index = BoardAccess::computeIndex(board);
 				bool wins = it->second.getBit(index);
 				result = wins ? currentValue + WINNING_BONUS : 0;
 			}
 			return result;
 		}
 
-		static const value_t getValueFromBitBase(GenBoard& board, value_t currentValue) {
-			PieceSignature signature = board.pieceSignature;
+		static const value_t getValueFromBitBase(MoveGenerator& board, value_t currentValue) {
+			PieceSignature signature = PieceSignature(board.getPiecesSignature());
 			value_t result = getValueFromBitBase(board, signature, currentValue);
 			if (result == currentValue) {
-				signature.switchSide();
+				signature.changeSide();
 				result = -getValueFromBitBase(board, signature, -currentValue);
 			}
 			return result;
@@ -82,28 +91,24 @@ namespace ChessBitbase {
 
 		static void setBitBase(std::string pieceString, const BitBase& bitBase) {
 			PieceSignature signature;
-			signature.setFromString(pieceString.c_str());
-			bitBases[signature.getSignature()] = bitBase;
+			signature.set(pieceString.c_str());
+			bitBases[signature.getPiecesSignature()] = bitBase;
 		}
 
 		static void loadBitBase(std::string pieceString) {
 			PieceSignature signature;
-			signature.setFromString(pieceString.c_str());
-			FileClass fileClass;
-			fileClass.open(pieceString + ".btb", "rb");
-			if (fileClass.isOpen()) {
-				bitBases[signature.getSignature()].readFromFile(fileClass);
-			}
+			signature.set(pieceString.c_str());
+			bitBases[signature.getPiecesSignature()].readFromFile(pieceString + ".btb");
 		}
 
 		static bool isBitBaseAvailable(std::string pieceString) {
 			PieceSignature signature;
-			signature.setFromString(pieceString.c_str());
-			auto it = bitBases.find(signature.getSignature());
+			signature.set(pieceString.c_str());
+			auto it = bitBases.find(signature.getPiecesSignature());
 			return it != bitBases.end();
 		}
 
-		static std::map<pieceSignature_t, BitBase> bitBases;
+		static map<pieceSignature_t, BitBase> bitBases;
 
 	private:
 		BitBaseReader() {};
@@ -111,3 +116,4 @@ namespace ChessBitbase {
 
 }
 
+#endif // __BITBASEREADER_H
