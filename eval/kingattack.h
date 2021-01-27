@@ -44,25 +44,8 @@ namespace ChessEval {
 		static const uint32_t MAX_WEIGHT_COUNT = 20;
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-			{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600 };
-#ifdef _T0 
-		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 100, 100, 100};
-#endif
-#ifdef _TEST1 
-		static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 100, 100, 100 }; 
-#endif
-#ifdef _TEST2 
-		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 80, 80, 50 }; 
-#endif
-#ifdef _T3 
-		static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 80, 80, 50 }; 
-#endif
-#ifdef _T4 
-		static constexpr value_t pawnIndexFactor[8] = { 130, 115, 115, 110, 100, 90, 90, 70 }; 
-#endif
-#ifdef _T5
-		static constexpr value_t pawnIndexFactor[8] = { 180, 150, 150, 130, 100, 70, 70, 40 };
-#endif
+		{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600 };
+		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 100, 100, 100 };
 	};
 
 	class KingAttack {
@@ -206,9 +189,7 @@ namespace ChessEval {
 			}
 			value_t attackValue =
 				(KingAttackValues::attackWeight[evalResults.kingPressureCount[COLOR]] * evalResults.midgameInPercent) / 100;
-			uint32_t pawnShield = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			evalResults.kingAttackValue[COLOR] = 
-				(attackValue * KingAttackValues::pawnIndexFactor[pawnShield]) / 100;
+			evalResults.kingAttackValue[COLOR] = attackValue;
 			return evalResults.kingAttackValue[COLOR];
 		}
 

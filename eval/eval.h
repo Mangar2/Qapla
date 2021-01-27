@@ -36,6 +36,26 @@
 #include "evalmobility.h"
 #include "kingattack.h"
 
+struct RookValues {
+#ifdef _T0 
+#endif
+#ifdef _TEST1 
+static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 100, 100, 100 };
+#endif
+#ifdef _TEST2 
+static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 80, 80, 50 };
+#endif
+#ifdef _T3 
+static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 80, 80, 50 };
+#endif
+#ifdef _T4 
+static constexpr value_t pawnIndexFactor[8] = { 130, 115, 115, 110, 100, 90, 90, 70 };
+#endif
+#ifdef _T5
+static constexpr value_t pawnIndexFactor[8] = { 180, 150, 150, 130, 100, 70, 70, 40 };
+#endif
+};
+
 namespace ChessEval {
 
 	class Eval {
