@@ -93,7 +93,7 @@ namespace ChessEval {
 			else {
 				EvalMobility::print(board, evalResults);
 				if (evalResults.midgameInPercent > 0) {
-					KingAttack::print(evalResults);
+					KingAttack::print(board, evalResults);
 				}
 			}
 			printf("Total               : %ld\n", evalValue);

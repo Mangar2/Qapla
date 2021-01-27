@@ -181,7 +181,7 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 		else if ((pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0 && isPositionInBitMask<COLOR>(POS_H8, kingInfluence)) {
 			result = DRAW_VALUE;
 		}
-		else if (BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawns) && kingInfluence != 0) {
+		else if (BitBoardMasks::shiftColor<COLOR, NORTH>(pawns) && kingInfluence != 0) {
 			result += BONUS[COLOR];
 		}
 	}
@@ -246,7 +246,7 @@ value_t EvalEndgame::KNPsK(MoveGenerator& board, value_t currentValue) {
 	value_t result = materialAndPawnStructure(board);
 	Square kingPos = board.getKingSquare<COLOR>();
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
-	bitBoard_t pawnMoves = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawns);
+	bitBoard_t pawnMoves = BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
 	pawnMoves &= ~(board.getPieceBB(PAWN + COLOR) + board.getPieceBB(KING + COLOR));
 	bitBoard_t kingMoves = board.pieceAttackMask[kingPos] & ~board.getAllPiecesBB() & ~board.attackMask[OPPONENT[COLOR]];
 

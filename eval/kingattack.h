@@ -45,6 +45,24 @@ namespace ChessEval {
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
 			{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600 };
+#ifdef _T0 
+		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 100, 100, 100};
+#endif
+#ifdef _TEST1 
+		static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 100, 100, 100 }; 
+#endif
+#ifdef _TEST2 
+		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 80, 80, 50 }; 
+#endif
+#ifdef _T3 
+		static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 80, 80, 50 }; 
+#endif
+#ifdef _T4 
+		static constexpr value_t pawnIndexFactor[8] = { 130, 115, 115, 110, 100, 90, 90, 70 }; 
+#endif
+#ifdef _T5
+		static constexpr value_t pawnIndexFactor[8] = { 180, 150, 150, 130, 100, 70, 70, 40 };
+#endif
 	};
 
 	class KingAttack {
@@ -70,16 +88,23 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& board, EvalResults& evalResults) {
 			computeAttacks<WHITE>(evalResults);
 			computeAttacks<BLACK>(evalResults);
-			value_t result = computeAttackValue<WHITE>(board.getKingSquare<WHITE>(), evalResults) -
-				computeAttackValue<BLACK>(board.getKingSquare<BLACK>(), evalResults);
+			value_t result = computeAttackValue<WHITE>(board, evalResults) -
+				computeAttackValue<BLACK>(board, evalResults);
 			return result;
 		}
 
 		/**
 		 * Prints the evaluation results
 		 */
-		static void print(EvalResults& evalResults) {
+		static void print(MoveGenerator& board, EvalResults& evalResults) {
+			eval(board, evalResults);
 			printf("King attack\n");
+			printf("White pawn shield      : %ld%%\n", 
+				KingAttackValues::pawnIndexFactor[
+					computePawnShieldIndex<WHITE>(board.getKingSquare<WHITE>(), board.getPieceBB(WHITE_PAWN))]);
+			printf("Black pawn shield      : %ld%%\n",
+				KingAttackValues::pawnIndexFactor[
+					computePawnShieldIndex<BLACK>(board.getKingSquare<BLACK>(), board.getPieceBB(BLACK_PAWN))]);
 			printf("White (pressure %1ld)  : %ld\n", evalResults.kingPressureCount[WHITE], evalResults.kingAttackValue[WHITE]);
 			printf("Black (pressure %1ld)  : %ld\n", evalResults.kingPressureCount[BLACK], -evalResults.kingAttackValue[BLACK]);
 		}
@@ -134,11 +159,33 @@ namespace ChessEval {
 	private:
 
 		/**
+		 * Computes an index for the pawn shield
+		 * Bit FWE F = Front pawn exists, W = West pawn Exists, E = East pawn exists
+		 */
+		template <Piece COLOR> 
+		inline static uint32_t computePawnShieldIndex(Square kingSquare, bitBoard_t myPawnBB) {
+			uint32_t index = 0;
+			bitBoard_t kingBB = 1ULL << kingSquare;
+			bitBoard_t kingNorth = kingBB |
+				BitBoardMasks::shiftColor<COLOR, NORTH>(kingBB) |
+				BitBoardMasks::shiftColor<COLOR, NORTH + NORTH>(kingBB);
+			bitBoard_t kingFront = myPawnBB & kingNorth;
+			bitBoard_t kingWest = myPawnBB & BitBoardMasks::shiftColor<COLOR, WEST>(kingNorth);
+			bitBoard_t kingEast = myPawnBB & BitBoardMasks::shiftColor<COLOR, EAST>(kingNorth);
+			index += (kingFront != 0) * 4;
+			index += (kingWest != 0 || (kingBB & BitBoardMasks::FILE_A_BITMASK) != 0) * 2;
+			index += kingEast != 0 || (kingBB & BitBoardMasks::FILE_H_BITMASK) != 0;
+			return index;
+		}
+
+		/**
 		 * Counts the undefended or under-defended attacks for squares near king
 		 * King itself is not counted as defending piece
 		 */
 		template <Piece COLOR>
-		inline static value_t computeAttackValue(Square kingSquare, EvalResults& evalResults) {
+		inline static value_t computeAttackValue(MoveGenerator& board, EvalResults& evalResults) {
+			Square kingSquare = board.getKingSquare<COLOR>();
+			bitBoard_t myPawnBB = board.getPieceBB(PAWN + COLOR);
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t attackArea = _kingAttackBB[COLOR][kingSquare];
 
@@ -157,8 +204,11 @@ namespace ChessEval {
 			if (evalResults.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
 				evalResults.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
 			}
-			evalResults.kingAttackValue[COLOR] = 
+			value_t attackValue =
 				(KingAttackValues::attackWeight[evalResults.kingPressureCount[COLOR]] * evalResults.midgameInPercent) / 100;
+			uint32_t pawnShield = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
+			evalResults.kingAttackValue[COLOR] = 
+				(attackValue * KingAttackValues::pawnIndexFactor[pawnShield]) / 100;
 			return evalResults.kingAttackValue[COLOR];
 		}
 

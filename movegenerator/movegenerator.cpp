@@ -218,13 +218,13 @@ genSilentPawnMoves(MoveList& moveList)
 	const Square MOVE_DOWN = COLOR == WHITE ? SOUTH : NORTH;
 
 	bitBoard_t pawnTarget = (bitBoardsPiece[PIECE] & ~pinnedMask[COLOR]);
-	pawnTarget = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawnTarget);
+	pawnTarget = BitBoardMasks::shiftColor<COLOR, NORTH>(pawnTarget);
 	// Do not generate promotions in silent moves
 	pawnTarget &= ~bitBoardAllPieces & ~LAST_ROW;
 	// Use all pawn bits with no piece in front
 	genMovesMultiplePieces(PIECE, MOVE_DOWN, pawnTarget, moveList);
 	// Use all pawn bits on row 2 with no piece in next two rows
-	pawnTarget = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawnTarget);
+	pawnTarget = BitBoardMasks::shiftColor<COLOR, NORTH>(pawnTarget);
 	genMovesMultiplePieces(PIECE, MOVE_DOWN * 2, 
 		pawnTarget & ~bitBoardAllPieces & RANK_4, moveList);
 }
@@ -238,11 +238,11 @@ genSilentSinglePawnMoves(Square departure, bitBoard_t allowedPositionMask, MoveL
 	const bitBoard_t RANK_4 = COLOR == WHITE ? BitBoardMasks::RANK_4_BITMASK : BitBoardMasks::RANK_5_BITMASK;
 	const Square MOVE_UP = COLOR == WHITE ? NORTH : -NORTH;
 
-	bitBoard_t destination = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(1ULL << departure) & allowedPositionMask;
+	bitBoard_t destination = BitBoardMasks::shiftColor<COLOR, NORTH>(1ULL << departure) & allowedPositionMask;
 	if (destination)
 	{
 		moveList.addSilentMove(Move(departure, departure + MOVE_UP, PIECE));
-		destination = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(destination);
+		destination = BitBoardMasks::shiftColor<COLOR, NORTH>(destination);
 		if (destination & allowedPositionMask & RANK_4) {
 			moveList.addSilentMove(Move(departure, departure + 2 * MOVE_UP, PIECE));
 		}
@@ -312,15 +312,15 @@ genNonSilentPawnMoves(MoveList& moveList, Square epPos)
 	bitBoard_t pawnTarget;
 	
 	// Test capturing to the left. All pawns on column A are cleared
-	pawnTarget = BitBoardMasks::shiftPawnBitBoard<COLOR, NW>(pawns); 
+	pawnTarget = BitBoardMasks::shiftColor<COLOR, NW>(pawns); 
 	genPawnCaptures<COLOR>(pawnTarget & bitBoardAllPiecesOfOneColor[OPPONENT_COLOR], NW, moveList);
 
 	// Test capturing to the right. All pawns on column H are cleared
-	pawnTarget = BitBoardMasks::shiftPawnBitBoard<COLOR, NE>(pawns);
+	pawnTarget = BitBoardMasks::shiftColor<COLOR, NE>(pawns);
 	genPawnCaptures<COLOR>(pawnTarget & bitBoardAllPiecesOfOneColor[OPPONENT_COLOR], NE, moveList);
 
 	// Generate non capture promotions
-	genPawnPromotions<COLOR>(BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawns) & ~bitBoardAllPieces, 
+	genPawnPromotions<COLOR>(BitBoardMasks::shiftColor<COLOR, NORTH>(pawns) & ~bitBoardAllPieces, 
 		NORTH, moveList);
 
 	if (epPos)
@@ -517,8 +517,8 @@ void MoveGenerator::genEvades(MoveList& moveList)
 	moveList.clear();
 
 	// Check if a pawn is attacking king
-	directAttack = BitBoardMasks::shiftPawnBitBoard<COLOR, NW>(bitBoardsPiece[KING + COLOR]);
-	directAttack |= BitBoardMasks::shiftPawnBitBoard<COLOR, NE>(bitBoardsPiece[KING + COLOR]);
+	directAttack = BitBoardMasks::shiftColor<COLOR, NW>(bitBoardsPiece[KING + COLOR]);
+	directAttack |= BitBoardMasks::shiftColor<COLOR, NE>(bitBoardsPiece[KING + COLOR]);
 	directAttack &= bitBoardsPiece[PAWN + OPPONENT_COLOR];
 
 	// Check if a knight is attacking king
@@ -548,21 +548,21 @@ void MoveGenerator::genEvades(MoveList& moveList)
 		// Advance one
 		// Move the occupied bits to current pawn position
 		pawns = bitBoardsPiece[PAWN + COLOR] & removePinnedPiecesMask;
-		destination = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawns) & ~bitBoardAllPieces;
+		destination = BitBoardMasks::shiftColor<COLOR, NORTH>(pawns) & ~bitBoardAllPieces;
 		// Use all pawn bits with no piece in front
 		genMovesMultiplePieces(uint32_t(PAWN + COLOR), MOVE_DOWN, destination & possibleTargetPositions & ~LAST_ROW, moveList);
 		genPawnPromotions<COLOR>(destination & possibleTargetPositions, NORTH, moveList);
 
 		// Use all pawn bits on row 2 with no piece in next two rows
-		destination = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(destination) & RANK_4 & ~bitBoardAllPieces & possibleTargetPositions;
+		destination = BitBoardMasks::shiftColor<COLOR, NORTH>(destination) & RANK_4 & ~bitBoardAllPieces & possibleTargetPositions;
 		genMovesMultiplePieces(PAWN + COLOR, MOVE_DOWN + MOVE_DOWN, destination, moveList);
 		
 		// Test capturing to the left. All pawns on column A are cleared
-		destination = BitBoardMasks::shiftPawnBitBoard<COLOR, NW>(pawns) & possibleTargetPositions & bitBoardAllPiecesOfOneColor[OPPONENT_COLOR];
+		destination = BitBoardMasks::shiftColor<COLOR, NW>(pawns) & possibleTargetPositions & bitBoardAllPiecesOfOneColor[OPPONENT_COLOR];
 		genPawnCaptures<COLOR>(destination , NW, moveList);
 
 		// Test capturing to the right. All pawns on column H are cleared
-		destination = BitBoardMasks::shiftPawnBitBoard<COLOR, NE>(pawns) & possibleTargetPositions & bitBoardAllPiecesOfOneColor[OPPONENT_COLOR];
+		destination = BitBoardMasks::shiftColor<COLOR, NE>(pawns) & possibleTargetPositions & bitBoardAllPiecesOfOneColor[OPPONENT_COLOR];
 		genPawnCaptures<COLOR>(destination, NE, moveList);
 
 		// En passant moves

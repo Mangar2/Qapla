@@ -107,9 +107,9 @@ inline bool PawnRace::moveKingAway(Square ownKingPos) {
 template<Piece COLOR>
 inline void PawnRace::makePawnMove() {
 	const bitBoard_t THIRD_ROW = COLOR == WHITE ? BitBoardMasks::RANK_3_BITMASK : BitBoardMasks::RANK_6_BITMASK;
-	pawnPositions[COLOR] = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawnPositions[COLOR]);
+	pawnPositions[COLOR] = BitBoardMasks::shiftColor<COLOR, NORTH>(pawnPositions[COLOR]);
 	if (pawnPositions[COLOR] & THIRD_ROW) {
-		pawnPositions[COLOR] = BitBoardMasks::shiftPawnBitBoard<COLOR, NORTH>(pawnPositions[COLOR]);
+		pawnPositions[COLOR] = BitBoardMasks::shiftColor<COLOR, NORTH>(pawnPositions[COLOR]);
 	}
 }
 

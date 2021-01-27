@@ -126,7 +126,7 @@ namespace ChessMoveGenerator {
 		 */
 		template <uint32_t COLOR>
 		inline static bitBoard_t computePawnAttackMask(bitBoard_t pawns) {
-			bitBoard_t attack = shiftPawnBitBoard<COLOR, NW>(pawns) | shiftPawnBitBoard<COLOR, NE>(pawns);
+			bitBoard_t attack = shiftColor<COLOR, NW>(pawns) | shiftColor<COLOR, NE>(pawns);
 			return attack;
 		}
 
@@ -134,7 +134,7 @@ namespace ChessMoveGenerator {
 		 * Shifts the pawn bitboard by one move
 		 */
 		template<uint32_t COLOR, Square DIRECTION>
-		inline static bitBoard_t shiftPawnBitBoard(bitBoard_t bitboard) {
+		inline static bitBoard_t shiftColor(bitBoard_t bitboard) {
 			if (COLOR == WHITE) {
 				return shift<DIRECTION>(bitboard);
 			}
