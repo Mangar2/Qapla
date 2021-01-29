@@ -34,6 +34,7 @@
 #include "evalendgame.h"
 #include "evalpawn.h"
 #include "evalmobility.h"
+#include "rook.h"
 #include "kingattack.h"
 
 struct RookValues {
@@ -111,6 +112,10 @@ namespace ChessEval {
 				evalValue = endGameResult;
 			}
 			else {
+				Rook::eval<true>(board, evalResults);
+				EvalValue rookEval = Rook::eval<false>(board, evalResults);
+				value_t rookValue = rookEval.getValue(computeMidgameV2InPercent(board));
+				evalValue += rookValue;
 				EvalMobility::print(board, evalResults);
 				if (evalResults.midgameInPercent > 0) {
 					KingAttack::print(board, evalResults);
@@ -149,6 +154,17 @@ namespace ChessEval {
 		}
 
 		/**
+		 * Calculates the midgame factor in percent
+		 */
+		static value_t computeMidgameV2InPercent(MoveGenerator& board) {
+			value_t pieces = board.getStaticPiecesValue<WHITE>() + board.getStaticPiecesValue<BLACK>();
+			if (pieces > 64) {
+				pieces = 64;
+			}
+			return midgameV2InPercent[pieces];
+		}
+
+		/**
 		 * Calculates an evaluation for the current board position
 		*/
 		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults) {
@@ -167,6 +183,10 @@ namespace ChessEval {
 			}
 			else {
 				// Do not change ordering of the following calls. King attack needs result from Mobility
+				EvalValue evalValue = Rook::eval<false>(board, evalResults);
+				value_t rookValue = evalValue.getValue(computeMidgameV2InPercent(board));
+				result += rookValue;
+
 				result += EvalMobility::eval(board, evalResults);
 				if (evalResults.midgameInPercent > 0) {
 					result += KingAttack::eval(board, evalResults);
@@ -174,6 +194,20 @@ namespace ChessEval {
 			}
 			return result;
 		}
+
+		/**
+		 * Determines the game phase based on a static piece value
+		 * queens = 9, rooks = 5, bishop/knights = 3, pawns +1 if >= 3.
+		 */
+		static constexpr array<value_t, 65> midgameV2InPercent = {
+			0, 0,  0,  0,  0,  0,  0,  0,  0,
+			0,  0,  0,  3,  6,  9,  12,  12,
+			12, 16, 20, 24, 28, 32, 36, 40,
+			44, 47, 50, 53, 56, 60, 64, 66,
+			68, 70, 72, 74, 76, 78, 80, 82,
+			84, 86, 88, 90, 92, 94, 96, 98,
+			100, 100, 100, 100, 100, 100, 100, 100,
+			100, 100, 100, 100, 100, 100, 100, 100 };
 
 		/** 
 		 * Determines the game phase based on a static piece value 

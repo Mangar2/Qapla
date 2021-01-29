@@ -105,6 +105,9 @@
     <ClCompile Include="bitbase\bitbasereader.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
+    <ClCompile Include="eval\rook.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">
@@ -310,6 +313,12 @@
     </ClInclude>
     <ClInclude Include="search\searchparameter.h">
       <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\evalvalue.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\rook.h">
+      <Filter>eval</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

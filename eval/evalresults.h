@@ -65,11 +65,14 @@ namespace ChessEval {
 		bitBoard_t passedPawns[2];
 		// Ranks in front of pawns
 		bitBoard_t pawnMoveRay[2];
+		// Rooks index
+		uint32_t rookIndex[2];
 		// Usually inactive
 		value_t rookAttackFactor[2];
 		value_t bishopAttackFactor[2];
 		value_t knightAttackFactor[2];
 		value_t queenAttackFactor[2];
+
 	};
 
 }

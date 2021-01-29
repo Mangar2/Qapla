@@ -216,6 +216,11 @@ namespace ChessMoveGenerator {
 		static const bitBoard_t FILE_G_BITMASK = 0x4040404040404040;
 		static const bitBoard_t FILE_H_BITMASK = 0x8080808080808080;
 
+		static constexpr bitBoard_t fileBB[8] = {
+			FILE_A_BITMASK, FILE_B_BITMASK, FILE_C_BITMASK, FILE_D_BITMASK,
+			FILE_E_BITMASK, FILE_F_BITMASK, FILE_G_BITMASK, FILE_H_BITMASK
+		};
+
 		/**
 		 * Shifts a board in a direction
 		 * @param bitBoard board to shift
