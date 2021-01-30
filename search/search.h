@@ -152,7 +152,7 @@ namespace ChessSearch {
 				searchInfo.bestValue = -negaMax(board, stack, curMove, ply + 1);
 			}
 			else {
-				searchInfo.bestValue = searchLastPlys(board, searchInfo, stack, curMove, ply);
+				searchInfo.bestValue = -negaMaxLastPlys(board, stack, curMove, ply + 1);
 			}
 			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
 			searchInfo.unsetNullmove();
@@ -163,12 +163,6 @@ namespace ChessSearch {
 			// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
 			return isCutoff;
 		}
-
-
-		/**
-		 * Search the last plies - either negamax or quiescense
-		 */
-		value_t searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo, SearchStack& stack, Move curMove, ply_t ply);
 
 		/**
 		 * Negamax algorithm for the last plies of the search

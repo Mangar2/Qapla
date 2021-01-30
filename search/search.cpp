@@ -31,6 +31,12 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 	value_t searchResult;
 	Move curMove;
 
+	if (stack[ply - 1].remainingDepth == 0) {
+		searchInfo.previousMove = previousPlyMove;
+		return QuiescenceSearch::search(board, *_computingInfo,
+			previousPlyMove, -stack[ply - 1].beta, -stack[ply - 1].alpha, ply);
+	}
+
 	_computingInfo->_nodesSearched++;
 	searchInfo.setFromPreviousPly(board, stack[ply - 1], previousPlyMove);
 	WhatIf::whatIf.moveSelected(board, *_computingInfo, stack, previousPlyMove, ply);
@@ -42,15 +48,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 
 		while (!(curMove = searchInfo.selectNextMove(board)).isEmpty()) {
 
-			if (searchInfo.remainingDepth > 0) {
-				searchResult = -negaMaxLastPlys(board, stack, curMove, ply + 1);
-			}
-			else {
-				stack[ply + 1].previousMove = curMove;
-				searchResult = -QuiescenceSearch::search(board, *_computingInfo,
-					curMove, -searchInfo.beta, -searchInfo.alpha, ply + 1);
-			}
-
+			searchResult = -negaMaxLastPlys(board, stack, curMove, ply + 1);
 			searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
 			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
 
@@ -59,21 +57,6 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 
 	searchInfo.terminatePly(board);
 	return searchInfo.bestValue;
-}
-
-/**
- * Search the last plies - either negamax or quiescense
- */
-value_t Search::searchLastPlys(MoveGenerator& board, SearchVariables& searchInfo, SearchStack& stack, Move curMove, ply_t ply) {
-	value_t searchResult;
-	if (searchInfo.remainingDepth <= 0) {
-		searchResult = -QuiescenceSearch::search(board, *_computingInfo, curMove,
-			-searchInfo.beta, -searchInfo.alpha, ply + 1);
-	}
-	else {
-		searchResult = -negaMaxLastPlys(board, stack, curMove, ply + 1);
-	}
-	return searchResult;
 }
 
 
@@ -109,7 +92,7 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 				searchResult = -negaMax(board, stack, curMove, ply + 1);
 			}
 			else {
-				searchResult = searchLastPlys(board, searchInfo, stack, curMove, ply);
+				searchResult = -negaMaxLastPlys(board, stack, curMove, ply + 1);
 			}
 
 			if (stack[0].remainingDepth > 1 && _clockManager->mustAbortCalculation(ply)) {
