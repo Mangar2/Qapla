@@ -137,12 +137,34 @@ namespace ChessEval {
 		static const uint32_t HALF_OPEN_FILE = 4;
 		static const uint32_t OPEN_FILE = 8;
 		static const uint32_t RANK7 = 16;
+		
+		// -10 = 49,5; -20 = 50,07; -35 = 49,18; -50 = 51,85; -70 = 50,75; -100 = 51,16
+		static constexpr value_t _trapped[2] = { 0, 0 }; 
 
-		static constexpr value_t _trapped[2] = { -10, 0 };
-		static constexpr value_t _protectsPP[2] = { 0, 0 };
-		static constexpr value_t _halfOpenFile[2] = { 0, 0 };
+		// 0 = 48,72; 10 = 49,50; 20 = 48,56; 30 = 49,50; 40 = 49,11; 50 = 48,11
 		static constexpr value_t _openFile[2] = { 0, 0 };
 		static constexpr value_t _rank7[2] = { 0, 0 };
+
+#ifdef _TEST0 
+		static constexpr value_t _rank7[2] = { 0, 0 };
+#endif
+#ifdef _TEST1 
+		static constexpr value_t _rank7[2] = { 10, 0 };
+#endif
+#ifdef _TEST2 
+		static constexpr value_t _rank7[2] = { 20, 0 };
+#endif
+#ifdef _T3 
+		static constexpr value_t _rank7[2] = { 30, 0 };
+#endif
+#ifdef _T4 
+		static constexpr value_t _rank7[2] = { 40, 0 };
+#endif
+#ifdef _T5
+		static constexpr value_t _rank7[2] = { 50, 0 };
+#endif
+		static constexpr value_t _protectsPP[2] = { 0, 0 };
+		static constexpr value_t _halfOpenFile[2] = { 0, 0 };
 		static array<value_t, INDEX_SIZE * 2> indexToValue;
 
 	};

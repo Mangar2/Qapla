@@ -183,9 +183,9 @@ namespace ChessEval {
 			}
 			else {
 				// Do not change ordering of the following calls. King attack needs result from Mobility
-				EvalValue evalValue = Rook::eval<false>(board, evalResults);
-				value_t rookValue = evalValue.getValue(computeMidgameV2InPercent(board));
-				result += rookValue;
+				// EvalValue evalValue = Rook::eval<false>(board, evalResults);
+				// value_t rookValue = evalValue.getValue(computeMidgameV2InPercent(board));
+				// result += rookValue;
 
 				result += EvalMobility::eval(board, evalResults);
 				if (evalResults.midgameInPercent > 0) {

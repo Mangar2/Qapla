@@ -9,6 +9,7 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Release|x64 = Release|x64
+		Test0|x64 = Test0|x64
 		Test1|x64 = Test1|x64
 		Test2|x64 = Test2|x64
 		Test3|x64 = Test3|x64
@@ -21,6 +22,8 @@ Global
 		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Debug|x64.Build.0 = Debug|x64
 		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Release|x64.ActiveCfg = Release|x64
 		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Release|x64.Build.0 = Release|x64
+		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Test0|x64.ActiveCfg = Test0|x64
+		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Test0|x64.Build.0 = Test0|x64
 		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Test1|x64.ActiveCfg = Test1|x64
 		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Test1|x64.Build.0 = Test1|x64
 		{3BA6A7D9-12B5-4331-9C33-0EE02045EAAB}.Test2|x64.ActiveCfg = Test2|x64
