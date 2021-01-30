@@ -47,6 +47,13 @@ namespace ChessSearch {
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
 
 		/**
+		 * Clears the hash for example on a new game
+		 */
+		void clearHash() {
+			tt.clear();
+		}
+
+		/**
 		 * true, if the search found a mate
 		 */
 		bool hasMateFound(ComputingInfo& computingInfo) {
@@ -81,6 +88,7 @@ namespace ChessSearch {
 			else {
 				tt.setNextSearch();
 			}
+			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\x64\\Debug\\tt.bin");
 			moveHistory.setDrawPositionsToHash(board, tt);
 
 			if (clockSetting.getSearchDepthLimit() > 0) {
@@ -97,6 +105,8 @@ namespace ChessSearch {
 			}
 			// Ensures that all draw positions are removed and not used after undo or new game
 			moveHistory.removeDrawPositionsFromHash(tt);
+			//static int i = 0;
+			// tt.writeToFile("tt" + to_string(i) + ".bin"); i++;
 			// computingInfo.statisticForMoveOrdering.print();
 		}
 

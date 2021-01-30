@@ -26,6 +26,8 @@
 #define __TT_H
 
 #include <vector>
+#include <fstream>
+#include <iterator>
 #include "ttentry.h"
 // #include "FileClass.h"
 
@@ -47,6 +49,18 @@ namespace ChessSearch {
 				entry.clear();
 			}
 			ageIndicator = 0;
+		}
+
+		/**
+		 * For assertions
+		 */
+		bool hasDrawEntry() {
+			for (uint32_t i = 0; i < _tt.size(); i++) {
+				if (_tt[i].alwaysUseValue()) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		/**
@@ -172,7 +186,14 @@ namespace ChessSearch {
 		/**
 		 * Gets a element by index
 		 */
-		inline TTEntry getEntry(uint32_t index) const {
+		inline const TTEntry& getEntry(uint32_t index) const {
+			return _tt[index];
+		}
+
+		/**
+	     * Gets a element by index
+		 */
+		inline TTEntry& getEntry(uint32_t index) {
 			return _tt[index];
 		}
 
@@ -291,6 +312,36 @@ namespace ChessSearch {
 		uint32_t getHashFillRateInPercent() {
 			return uint32_t(uint64_t(entries) * 100ULL / _tt.capacity());
 		}
+
+		/**
+		 * Writes the tt to a file
+		 */
+		bool writeToFile(string fileName) {
+			ofstream oFile(fileName, ios::binary + ios::trunc);
+			if (!oFile.is_open()) {
+				return false;
+			}
+			for (const auto& entry : _tt) {
+				oFile.write((char*)(&entry), sizeof(entry));
+			}
+			return true;
+		}
+
+		/**
+		 * Reads the tt to a file
+		 */
+		bool readFromFile(string fileName) {
+			ifstream iFile(fileName, ios::binary);
+			if (!iFile.is_open()) {
+				cerr << "Error: " << errno << endl;
+				return false;
+			}
+			for (auto& entry : _tt) {
+				iFile.read((char*)(&entry), sizeof(entry));
+			}
+			return true;
+		}
+
 		static const uint32_t INVALID_INDEX = UINT32_MAX;
 
 	private:

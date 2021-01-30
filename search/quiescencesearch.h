@@ -78,12 +78,15 @@ namespace ChessSearch {
 		 */
 		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move) {
 			value_t result = MAX_VALUE;
-			if (!move.isPromote()) {
-				Piece capturedPiece = move.getCapture();
-				if (board.doFutilityOnCapture(capturedPiece)) {
-					value_t maxGain = board.getAbsolutePieceValue(capturedPiece);
-					result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
-				}
+			// A winning bonus can be fully destroyed by capturing the piece
+			bool hasWinningBonus = standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS;
+			if (hasWinningBonus) return result;
+			if (move.isPromote()) return result;
+
+			Piece capturedPiece = move.getCapture();
+			if (board.doFutilityOnCapture(capturedPiece)) {
+				value_t maxGain = board.getAbsolutePieceValue(capturedPiece);
+				result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
 			}
 			return result;
 		}

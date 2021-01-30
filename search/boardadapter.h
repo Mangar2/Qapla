@@ -61,7 +61,7 @@ namespace ChessSearch {
 		/**
 		 * Retrieves the engine name
 		 */
-		virtual string getEngineName() { return "Qapla_0.0.3";  }
+		virtual string getEngineName() { return "Qapla_0.0.18";  }
 
 		/**
 		 * Retrieves the what if object
@@ -74,6 +74,9 @@ namespace ChessSearch {
 		/**
 		 * Sets the 
 		 */
+		virtual void newGame() {
+			iterativeDeepening.clearHash();
+		}
 
 		/**
 		 * Playes a move. Only the destination square must be provided, other information must be provided
@@ -116,6 +119,7 @@ namespace ChessSearch {
 			if (playedMovesInGame > 0) {
 				playedMovesInGame--;
 			}
+			iterativeDeepening.clearHash();
 		}
 
 		/**

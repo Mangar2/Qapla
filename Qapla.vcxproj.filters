@@ -155,9 +155,6 @@
     <ClInclude Include="search\clockmanager.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="search\searchvariables.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="search\killermove.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -239,9 +236,6 @@
     <ClInclude Include="tests\evalmobilitytest.h">
       <Filter>Tests</Filter>
     </ClInclude>
-    <ClInclude Include="search\iterativedeepening.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="interface\selectinterface.h">
       <Filter>interface</Filter>
     </ClInclude>
@@ -319,6 +313,12 @@
     </ClInclude>
     <ClInclude Include="eval\rook.h">
       <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="search\iterativedeepening.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchvariables.h">
+      <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

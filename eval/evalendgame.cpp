@@ -160,7 +160,7 @@ value_t EvalEndgame::winningValue(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	value_t result = materialAndPawnStructure(board);
-	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
 
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 
@@ -173,7 +173,7 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	}
 	else {
 
-		bitBoard_t kingInfluence = BitBoardMasks::kingMoves[opponentKingPos] | (1ULL << opponentKingPos);
+		bitBoard_t kingInfluence = BitBoardMasks::kingMoves[opponentKingSquare] | (1ULL << opponentKingSquare);
 
 		if ((pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 && isPositionInBitMask<COLOR>(POS_A8, kingInfluence)) {
 			result = DRAW_VALUE;
@@ -192,12 +192,12 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::KBNK(MoveGenerator& board, value_t currentValue) {
 	value_t result = board.getMaterialValue();
-	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
 	bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
 
 	result += BONUS[COLOR];
 	Square knightPos = BitBoardMasks::lsb(board.getPieceBB(KNIGHT + COLOR));
-	result += computeDistance(opponentKingPos, knightPos) * COLOR == WHITE ? -2 : 2;
+	result += computeDistance(opponentKingSquare, knightPos) * COLOR == WHITE ? -2 : 2;
 	result = forceToCorrectCorner<COLOR>(board, result, bishops & WHITE_FIELDS);
 	return result;
 }
@@ -217,8 +217,8 @@ value_t EvalEndgame::KBBK(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::KBsPsK(MoveGenerator& board, value_t currentValue) {
 	value_t result = materialAndPawnStructure(board);
-	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
-	bitBoard_t kingInfluence = BitBoardMasks::kingMoves[opponentKingPos] | (1ULL << opponentKingPos);
+	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	bitBoard_t kingInfluence = BitBoardMasks::kingMoves[opponentKingSquare] | (1ULL << opponentKingSquare);
 
 	bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
@@ -273,10 +273,10 @@ template <Piece COLOR>
 value_t EvalEndgame::KQKR(MoveGenerator& board, value_t currentValue) {
 	value_t result = board.getMaterialValue();
 	const Piece OPPONENT_COLOR = OPPONENT[COLOR];
-	Square opponentKingPos = board.getKingSquare<OPPONENT_COLOR>();
+	Square opponentKingSquare = board.getKingSquare<OPPONENT_COLOR>();
 	Square opponentRookPos = BitBoardMasks::lsb(board.getPieceBB(ROOK + OPPONENT_COLOR));
 	bitBoard_t kingAttackRay = Magics::genRookAttackMask(board.getKingSquare<COLOR>(), board.getPieceBB(KING + OPPONENT_COLOR));
-	bool rookMayPutKingInCheckDefendedByOwnKing = (kingAttackRay & board.pieceAttackMask[opponentRookPos] & board.pieceAttackMask[opponentKingPos]) != 0;
+	bool rookMayPutKingInCheckDefendedByOwnKing = (kingAttackRay & board.pieceAttackMask[opponentRookPos] & board.pieceAttackMask[opponentKingSquare]) != 0;
 
 	if (!rookMayPutKingInCheckDefendedByOwnKing) {
 		result += BONUS[COLOR];
@@ -293,16 +293,24 @@ value_t EvalEndgame::forceToAnyCornerButDraw(MoveGenerator& board, value_t curre
 
 template <Piece COLOR>
 value_t EvalEndgame::forceToAnyCorner(MoveGenerator& board, value_t currentValue) {
-	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
-	value_t distanceValue = -computeKingDistance(board) * 1 - computeDistanceToAnyCorner(opponentKingPos) * 2;
+	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	Square kingSquare = board.getKingSquare<COLOR>();
+	value_t opponentKingDistanceToCorner = computeDistanceToAnyCorner(opponentKingSquare);
+	value_t ownKingDinstanceToCorner = computeDistanceToAnyCorner(kingSquare);
+	value_t distanceValue = -computeKingDistance(board) * 2;
+	distanceValue -= opponentKingDistanceToCorner * 1;
+	if (ownKingDinstanceToCorner < opponentKingDistanceToCorner) {
+		distanceValue -= (opponentKingDistanceToCorner - ownKingDinstanceToCorner) * 4;
+	}
+
 	currentValue += COLOR == WHITE ? distanceValue : -distanceValue;
 	return currentValue;
 }
 
 template <Piece COLOR>
 value_t EvalEndgame::forceToCorrectCorner(MoveGenerator& board, value_t currentValue, bool whiteCorner) {
-	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
-	value_t distanceValue = -computeKingDistance(board) * 1 - computeDistanceToCorrectCorner(opponentKingPos, whiteCorner) * 2;
+	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	value_t distanceValue = -computeKingDistance(board) * 1 - computeDistanceToCorrectCorner(opponentKingSquare, whiteCorner) * 2;
 	currentValue += COLOR == WHITE ? distanceValue : -distanceValue;
 	return currentValue;
 }
@@ -373,7 +381,7 @@ value_t EvalEndgame::computeDistanceToAnyCorner(Square kingPos) {
 	value_t kingRank = value_t(getRank(kingPos));
 	value_t fileDistance = min(kingFile, value_t(File::H) - kingFile);
 	value_t rankDistance = min(kingRank, value_t(Rank::R8) - kingRank);
-	return max(fileDistance, rankDistance);
+	return max(fileDistance, rankDistance) * 2 + min(fileDistance, rankDistance);
 }
 
 value_t EvalEndgame::computeDistanceToCorrectCorner(Square kingPos, bool whiteCorner) {

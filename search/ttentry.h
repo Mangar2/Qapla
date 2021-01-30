@@ -97,7 +97,7 @@ namespace ChessSearch {
 		 * @returns true, if the value of the hash causes a Hash cutoff
 		 */
 		bool getValue(
-			value_t& positionValue, value_t& alpha, value_t& beta, ply_t remainingDepth, ply_t ply)
+			value_t& positionValue, value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply)
 		{
 			bool result = false;
 
@@ -203,6 +203,8 @@ namespace ChessSearch {
 			return positionValue;
 		}
 
+
+
 	private:
 
 		/**
@@ -221,13 +223,6 @@ namespace ChessSearch {
 		{
 			auto precision = getComputedPrecision();
 			return (precision == LESSER_OR_EQUAL) || (precision == EXACT);
-		}
-
-		/**
-		 * Returns the entry age
-		 */
-		auto getEntryAgeIdicator() { 
-			return (_info & ENTRY_AGE_INDICATOR_MASK) >> ENTRY_AGE_INDICATOR_SHIFT; 
 		}
 
 		// Sets the current hash entry to the current move no
@@ -281,6 +276,7 @@ namespace ChessSearch {
 		uint16_t _info;
 		hash_t _hash;
 	};
+
 }
 
 #endif // __HASHENTRYINFO_H

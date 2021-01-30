@@ -89,7 +89,6 @@ namespace ChessSearch {
 			selectFirstSearchState();
 			noNullmove = previousPlySearchInfo.previousMove.isNullMove() || previousPlyMove.isNullMove();
 			moveProvider.init();
-			moveNo = 0;
 			doMove(board, previousPlyMove);
 			cutoff = Cutoff::NONE;
 			keepBestMoveUnchanged = false;
@@ -109,7 +108,6 @@ namespace ChessSearch {
 			bestValue = -MAX_VALUE;
 			searchState = SearchType::PV;
 			noNullmove = true;
-			moveNo = 0;
 			cutoff = Cutoff::NONE;
 			positionHashSignature = board.computeBoardHash();
 			moveProvider.init();
@@ -152,7 +150,10 @@ namespace ChessSearch {
 				if (searchState != SearchType::PV) {
 					// keeps the best move for a tt entry, if the search does stay <= alpha
 					bestMove = move;
-					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
+					// The current search cannot handle the search instability from tt entries
+					// of older searches.
+					bool thisSearch = entry.getAgeIndicator() == ttPtr->getEntryAgeIndicator();
+					if (thisSearch && entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
 						cutoff = true;
 					}
 				}
@@ -272,18 +273,19 @@ namespace ChessSearch {
 		 */
 		Move selectNextMove(MoveGenerator& board) {
 			Move move;
+			if (bestValue >= betaAtPlyStart) {
+				return move;
+			}
 			if (searchState == SearchType::NULL_WINDOW && currentValue >= beta) {
 				setResearchWithPVWindow();
 				return moveProvider.getCurrentMove();
 				assert(!move.isEmpty());
 			}
-			if (bestValue >= betaAtPlyStart) {
-				return move;
-			}
-			if (searchState == SearchType::PV && !bestMove.isEmpty() && remainingDepth >= 2) {
+			if (searchState == SearchType::PV && (moveProvider.getTriedMovesAmount() > 0) && remainingDepth >= 2) {
 				setNullWindowSearch();
 			}
-			return moveProvider.selectNextMove(board);
+			move = moveProvider.selectNextMove(board);
+			return move;
 		}
 
 		/**
@@ -299,7 +301,9 @@ namespace ChessSearch {
 		 */
 		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
 			currentValue = searchResult;
-			if (searchState == SearchType::NULL_WINDOW) return;
+			if (searchState == SearchType::NULL_WINDOW) {
+				return;
+			}
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
 				if (searchResult > alpha) {
@@ -397,7 +401,6 @@ namespace ChessSearch {
 		ply_t lateMoveReduction;
 		ply_t searchDepthExtension;
 		BoardState boardState;
-		uint32_t moveNo;
 		SearchType searchState;
 		hash_t positionHashSignature;
 		bool noNullmove;

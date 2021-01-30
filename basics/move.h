@@ -36,6 +36,7 @@
 #include "types.h"
 #include <string>
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -228,10 +229,14 @@ public:
 		return result;
 	}
 
+	// friend class ostream& operator<<(ostream& stream, const Move& move);
+
 	void print() {
 		string moveString = getLAN();
 		cout << moveString;
 	}
+
+	uint32_t getData() const { return _move;  }
 
 private:
 
