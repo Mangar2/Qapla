@@ -152,8 +152,8 @@ namespace ChessSearch {
 					bestMove = move;
 					// The current search cannot handle the search instability from tt entries
 					// of older searches.
-					bool thisSearch = entry.getAgeIndicator() == ttPtr->getEntryAgeIndicator();
-					if (thisSearch && entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
+					// bool thisSearch = entry.getAgeIndicator() == ttPtr->getEntryAgeIndicator();
+					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
 						cutoff = true;
 					}
 				}
