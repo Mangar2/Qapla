@@ -97,7 +97,7 @@ namespace ChessSearch {
 		 */
 		static value_t probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply) {
 			bool cutoff = false;
-			value_t bestValue = -MAX_VALUE;
+			value_t bestValue = NO_VALUE;
 			uint32_t ttIndex = _tt->getTTEntryIndex(board.computeBoardHash());
 
 			if (ttIndex != TT::INVALID_INDEX) {
@@ -105,7 +105,7 @@ namespace ChessSearch {
 				static uint32_t amount = 0;
 				amount++;
 				if (amount % 100000 == 0) { cout << "Hits: " << amount << " fill: " << _tt->getHashFillRateInPercent() << endl; }
-				entry.getValue(bestValue, alpha, beta, 0, ply);
+				bestValue = entry.getValue(alpha, beta, 0, ply);
 			}
 			else {
 				static uint32_t amount = 0;
