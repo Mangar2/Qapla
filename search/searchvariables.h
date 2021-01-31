@@ -150,10 +150,9 @@ namespace ChessSearch {
 				if (searchState != SearchType::PV) {
 					// keeps the best move for a tt entry, if the search does stay <= alpha
 					bestMove = move;
-					// The current search cannot handle the search instability from tt entries
-					// of older searches.
-					// bool thisSearch = entry.getAgeIndicator() == ttPtr->getEntryAgeIndicator();
-					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
+					value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
+					if (ttValue != NO_VALUE) {
+						bestValue = ttValue;
 						cutoff = true;
 					}
 				}
