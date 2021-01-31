@@ -111,7 +111,7 @@ void EvalEndgame::registerFunction(string pieces, evalFunction_t function, bool 
 value_t EvalEndgame::materialAndPawnStructure(MoveGenerator& board) {
 	EvalPawn evalPawn;
 	EvalResults mobility;
-	value_t result = board.getMaterialValue();
+	value_t result = board.getMaterialValue().endgame();
 	result += evalPawn.eval(board, mobility);
 	return result;
 }
@@ -191,7 +191,7 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 
 template <Piece COLOR>
 value_t EvalEndgame::KBNK(MoveGenerator& board, value_t currentValue) {
-	value_t result = board.getMaterialValue();
+	value_t result = board.getMaterialValue().endgame();
 	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
 	bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
 
@@ -207,7 +207,7 @@ value_t EvalEndgame::KBBK(MoveGenerator& board, value_t currentValue) {
 	value_t result = DRAW_VALUE; 
 	bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
 	if ((bishops & WHITE_FIELDS) && (bishops & BLACK_FIELDS)) {
-		result = board.getMaterialValue();
+		result = board.getMaterialValue().endgame();
 		result += BONUS[COLOR];
 		result = forceToAnyCorner<COLOR>(board, result);
 	}
@@ -271,7 +271,7 @@ value_t EvalEndgame::KNPsK(MoveGenerator& board, value_t currentValue) {
 
 template <Piece COLOR>
 value_t EvalEndgame::KQKR(MoveGenerator& board, value_t currentValue) {
-	value_t result = board.getMaterialValue();
+	value_t result = board.getMaterialValue().endgame();
 	const Piece OPPONENT_COLOR = OPPONENT[COLOR];
 	Square opponentKingSquare = board.getKingSquare<OPPONENT_COLOR>();
 	Square opponentRookPos = BitBoardMasks::lsb(board.getPieceBB(ROOK + OPPONENT_COLOR));

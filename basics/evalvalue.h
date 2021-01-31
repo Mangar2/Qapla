@@ -50,9 +50,12 @@ namespace ChessBasics {
 		 * Returns the evaluation value based on the game state
 		 * @param midgameInPercent weight for the midgame, endgame weight is 100-midgameInPercent
 		 */
-		value_t getValue(value_t midgameInPercent) {
+		value_t getValue(value_t midgameInPercent) const {
 			return (value_t(_midgame) * midgameInPercent + value_t(_endgame) * (100 - midgameInPercent)) / 100;
 		}
+
+		constexpr value_t midgame() const { return _midgame; }
+		constexpr value_t endgame() const { return _endgame; }
 
 		EvalValue& operator+=(EvalValue add) { _midgame += add._midgame; _endgame += add._endgame; return *this; }
 		EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
@@ -61,6 +64,7 @@ namespace ChessBasics {
 
 		friend EvalValue operator+(EvalValue a, EvalValue b);
 		friend EvalValue operator-(EvalValue a, EvalValue b);
+		friend EvalValue operator-(EvalValue a);
 		friend EvalValue operator*(EvalValue a, EvalValue b);
 		friend EvalValue operator/(EvalValue a, EvalValue b);
 		//This method handles all the outputs.    
@@ -81,6 +85,10 @@ namespace ChessBasics {
 
 	static EvalValue operator-(EvalValue a, EvalValue b) {
 		return EvalValue(value_t(a._midgame - b._midgame), value_t(a._endgame - b._endgame));
+	}
+
+	static EvalValue operator-(EvalValue a) {
+		return EvalValue(-a._midgame, -a._endgame);
 	}
 
 	static EvalValue operator*(EvalValue a, EvalValue b) {

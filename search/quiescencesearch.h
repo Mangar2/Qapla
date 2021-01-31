@@ -167,7 +167,7 @@ namespace ChessSearch {
 			computingInfo._nodesSearched++;
 			WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);
 
-			value_t standPatValue = Eval::evaluateBoardPosition(board, alpha);
+			value_t standPatValue = Eval::eval(board, alpha);
 			// Eval::assertSymetry(board, standPatValue);
 			value_t bestValue;
 			value_t valueOfNextPlySearch;

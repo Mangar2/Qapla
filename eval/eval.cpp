@@ -29,14 +29,22 @@ using namespace ChessEval;
  /**
   * Calculates an evaluation for the current board position
  */
+template <bool PRINT>
 value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 
-	value_t result;
+	value_t result = 0;
 	value_t endGameResult;
 
-	evalResults.materialValue = board.getMaterialValue();
 	evalResults.midgameInPercent = computeMidgameInPercent(board);
-	result = evalResults.materialValue;
+	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(board);
+	if (PRINT) printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercentV2);
+	
+	// Add material to the evaluation
+	value_t material = board.getMaterialValue().getValue(evalResults.midgameInPercentV2);
+	result += material;
+	if (PRINT) printf("Marerial            : %ld\n", material);
+
+	// Add paw value to the evaluation
 	result += EvalPawn::eval(board, evalResults);
 	endGameResult = EvalEndgame::eval(board, result);
 
@@ -46,7 +54,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 	else {
 		// Do not change ordering of the following calls. King attack needs result from Mobility
 		// EvalValue evalValue = Rook::eval<false>(board, evalResults);
-		// value_t rookValue = evalValue.getValue(computeMidgameV2InPercent(board));
+		// value_t rookValue = evalValue.getValue(evalResults.midgameInPercentV2);
 		// result += rookValue;
 
 		result += EvalMobility::eval(board, evalResults);
@@ -64,7 +72,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 template <Piece COLOR>
 map<string, value_t> Eval::getEvalFactors(MoveGenerator& board) {
 	EvalResults evalResults;
-	lazyEval(board, evalResults);
+	lazyEval<false>(board, evalResults);
 	map<string, value_t> result;
 	auto factors = KingAttack::factors<COLOR>(board, evalResults);
 	result.insert(factors.begin(), factors.end());
@@ -87,31 +95,17 @@ map<string, value_t> Eval::getEvalFactors(MoveGenerator& board) {
  */
 void Eval::printEval(MoveGenerator& board) {
 	EvalResults evalResults;
-	value_t evalValue;
-	value_t endGameResult;
-
 	board.print();
 
-	evalResults.materialValue = board.getMaterialValue();
-	evalResults.midgameInPercent = computeMidgameInPercent(board);
-	evalValue = evalResults.materialValue;
-	evalValue += EvalPawn::eval(board, evalResults);
-	endGameResult = EvalEndgame::eval(board, evalValue);
-
-	printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercent);
-	printf("Marerial            : %ld\n", evalResults.materialValue);
+	value_t evalValue = lazyEval<true>(board, evalResults);
 	EvalPawn::print(board, evalResults);
-	board.getMaterialValue();
-	endGameResult = EvalEndgame::print(board, evalValue);
+
+	const value_t endGameResult = EvalEndgame::print(board, evalValue);
 
 	if (endGameResult != evalValue) {
 		evalValue = endGameResult;
 	}
 	else {
-		Rook::eval<true>(board, evalResults);
-		EvalValue rookEval = Rook::eval<false>(board, evalResults);
-		value_t rookValue = rookEval.getValue(computeMidgameV2InPercent(board));
-		evalValue += rookValue;
 		EvalMobility::print(board, evalResults);
 		if (evalResults.midgameInPercent > 0) {
 			KingAttack::print(board, evalResults);

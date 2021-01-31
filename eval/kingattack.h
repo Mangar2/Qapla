@@ -103,7 +103,7 @@ namespace ChessEval {
 			Square kingSquare = board.getKingSquare<OPPONENT>();
 			bitBoard_t attackArea = _kingAttackBB[OPPONENT][kingSquare];
 
-			if (evalResults.midgameInPercent > 50 && abs(evalResults.materialValue) < 100 && evalResults.kingPressureCount[COLOR] < 3) {
+			if (evalResults.midgameInPercent > 50 && evalResults.kingPressureCount[COLOR] < 3) {
 				result["King pawn defended attack"] =
 					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
 						evalResults.pawnAttack[OPPONENT] & attackArea);

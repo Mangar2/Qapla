@@ -44,7 +44,7 @@ namespace ChessEval {
 		static void assertSymetry(MoveGenerator& board, value_t evalResult) {
 			MoveGenerator symBoard;
 			board.setToSymetricBoard(symBoard);
-			value_t symEvalResult = evaluateBoardPosition(symBoard, -MAX_VALUE);
+			value_t symEvalResult = eval(symBoard, -MAX_VALUE);
 			if (symEvalResult != 1 || evalResult != 1) {
 				symEvalResult = -symEvalResult;
 			}
@@ -59,9 +59,9 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		 */
-		static value_t evaluateBoardPosition(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
+		static value_t eval(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
 			EvalResults evalResults;
-			return lazyEval(board, evalResults);
+			return lazyEval<false>(board, evalResults);
 		}
 
 		/**
@@ -104,6 +104,7 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		*/
+		template <bool PRINT>
 		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults);
 
 		/**

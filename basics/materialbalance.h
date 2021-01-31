@@ -36,20 +36,20 @@ namespace ChessBasics {
 	public:
 		MaterialBalance() {
 			pieceValues.fill(0);
-			pieceValues[WHITE_PAWN] = PAWN_VALUE;
-			pieceValues[BLACK_PAWN] = -PAWN_VALUE;
-			pieceValues[WHITE_KNIGHT] = KNIGHT_VALUE;
-			pieceValues[BLACK_KNIGHT] = -KNIGHT_VALUE;
-			pieceValues[WHITE_BISHOP] = BISHOP_VALUE;
-			pieceValues[BLACK_BISHOP] = -BISHOP_VALUE;
-			pieceValues[WHITE_ROOK] = ROOK_VALUE;
-			pieceValues[BLACK_ROOK] = -ROOK_VALUE;
-			pieceValues[WHITE_QUEEN] = QUEEN_VALUE;
-			pieceValues[BLACK_QUEEN] = -QUEEN_VALUE;
-			pieceValues[WHITE_KING] = MAX_VALUE;
-			pieceValues[BLACK_KING] = -MAX_VALUE;
+			pieceValues[WHITE_PAWN] = EvalValue(PAWN_VALUE_MG, PAWN_VALUE_EG);
+			pieceValues[BLACK_PAWN] = EvalValue(-PAWN_VALUE_MG, -PAWN_VALUE_EG);
+			pieceValues[WHITE_KNIGHT] = EvalValue(KNIGHT_VALUE_MG, KNIGHT_VALUE_EG);
+			pieceValues[BLACK_KNIGHT] = EvalValue(-KNIGHT_VALUE_MG, -KNIGHT_VALUE_EG);
+			pieceValues[WHITE_BISHOP] = EvalValue(BISHOP_VALUE_MG, BISHOP_VALUE_EG);
+			pieceValues[BLACK_BISHOP] = EvalValue(-BISHOP_VALUE_MG, -BISHOP_VALUE_EG);
+			pieceValues[WHITE_ROOK] = EvalValue(ROOK_VALUE_MG, ROOK_VALUE_EG);
+			pieceValues[BLACK_ROOK] = EvalValue(-ROOK_VALUE_MG, -ROOK_VALUE_EG);
+			pieceValues[WHITE_QUEEN] = EvalValue(QUEEN_VALUE_MG, QUEEN_VALUE_EG);
+			pieceValues[BLACK_QUEEN] = EvalValue(-QUEEN_VALUE_MG, -QUEEN_VALUE_EG);
+			pieceValues[WHITE_KING] = EvalValue(MAX_VALUE, MAX_VALUE);
+			pieceValues[BLACK_KING] = EvalValue(-MAX_VALUE, -MAX_VALUE);
 			for (Piece piece = NO_PIECE; piece <= BLACK_KING; ++piece) {
-				absolutePieceValues[piece] = abs(pieceValues[piece]);
+				absolutePieceValues[piece] = abs(pieceValues[piece].midgame());
 			}
 		}
 
@@ -57,27 +57,27 @@ namespace ChessBasics {
 		 * Clears the material values
 		 */
 		void clear() {
-			materialValue = 0;
+			_materialValue = 0;
 		}
 
 		/**
 		 * Adds a piece to the material value
 		 */
 		inline void addPiece(Piece piece) {
-			materialValue += pieceValues[piece];
+			_materialValue += pieceValues[piece];
 		}
 
 		/**
 		 * Removes the piece from the material value
 		 */
 		inline void removePiece(Piece piece) {
-			materialValue -= pieceValues[piece];
+			_materialValue -= pieceValues[piece];
 		}
 
 		/**
 		 * Gets the value of a piece
 		 */
-		inline value_t getPieceValue(Piece piece) const {
+		inline EvalValue getPieceValue(Piece piece) const {
 			return pieceValues[piece];
 		}
 
@@ -99,28 +99,33 @@ namespace ChessBasics {
 		 * Gets the material value of the board - positive values indicates
 		 * white positions is better
 		 */
-		inline value_t getMaterialValue() const {
-			return materialValue;
+		inline EvalValue getMaterialValue() const {
+			return _materialValue;
 		}
 
 		/**
 		 * Gets the material value of the current board from the player to move view
 		 * @param whiteToMove true, if it is the turn of white to play a move
 		 */
-		inline value_t getMaterialValue(bool whiteToMove) const {
-			return whiteToMove ? materialValue : -materialValue;
+		inline EvalValue getMaterialValue(bool whiteToMove) const {
+			return whiteToMove ? _materialValue : -_materialValue;
 		}
 
-		const static value_t PAWN_VALUE = 100;
-		const static value_t KNIGHT_VALUE = 325;
-		const static value_t BISHOP_VALUE = 325;
-		const static value_t ROOK_VALUE = 500;
-		const static value_t QUEEN_VALUE = 975;
+		const static value_t PAWN_VALUE_MG = 100;
+		const static value_t PAWN_VALUE_EG = 100;
+		const static value_t KNIGHT_VALUE_MG = 325;
+		const static value_t KNIGHT_VALUE_EG = 325;
+		const static value_t BISHOP_VALUE_MG = 325;
+		const static value_t BISHOP_VALUE_EG = 325;
+		const static value_t ROOK_VALUE_MG = 500;
+		const static value_t ROOK_VALUE_EG = 500;
+		const static value_t QUEEN_VALUE_MG = 975;
+		const static value_t QUEEN_VALUE_EG = 975;
 	
 	private:
 
-		value_t materialValue;
-		array<value_t, PIECE_AMOUNT> pieceValues;
+		EvalValue _materialValue;
+		array<EvalValue, PIECE_AMOUNT> pieceValues;
 		array<value_t, PIECE_AMOUNT> absolutePieceValues;
 
 		static constexpr array<value_t, PIECE_AMOUNT> pieceValuesForMoveSorting =

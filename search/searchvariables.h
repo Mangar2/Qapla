@@ -197,7 +197,7 @@ namespace ChessSearch {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
 			if (searchState == SearchType::PV) return false;
 
-			eval = Eval::evaluateBoardPosition(board);
+			eval = Eval::eval(board);
 			if (!board.isWhiteToMove()) {
 				eval = -eval;
 			}

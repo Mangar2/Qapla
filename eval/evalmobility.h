@@ -76,7 +76,7 @@ namespace ChessEval {
 			eval(board, evalResults);
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 
-			if (evalResults.midgameInPercent > 50  && abs(evalResults.materialValue) < 100) {
+			if (evalResults.midgameInPercent > 50) {
 				result["Queen attack"] = evalResults.queenAttackFactor[COLOR];
 				result["Rook attack"] = evalResults.rookAttackFactor[COLOR];
 				result["Bishop attack"] = evalResults.bishopAttackFactor[COLOR];

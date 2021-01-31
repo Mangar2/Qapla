@@ -88,7 +88,7 @@ namespace ChessEval {
 			eval(board, evalResults);
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 
-			if (evalResults.midgameInPercent > 50 && abs(evalResults.materialValue) < 100) {
+			if (evalResults.midgameInPercent > 50) {
 				result["Queen attack"] = evalResults.queenAttackFactor[COLOR];
 				result["Rook attack"] = evalResults.rookAttackFactor[COLOR];
 				result["Bishop attack"] = evalResults.bishopAttackFactor[COLOR];
@@ -104,7 +104,7 @@ namespace ChessEval {
 		static value_t computePawnValueNoPiece(MoveGenerator& board, EvalResults& evalResults) {
 			init<WHITE>(board, evalResults);
 			init<BLACK>(board, evalResults);
-			value_t result = board.getMaterialValue();
+			value_t result = board.getMaterialValue().endgame();
 			result += computePawnValueNoPieceButPawn<WHITE>(board, evalResults);
 			result -= computePawnValueNoPieceButPawn<BLACK>(board, evalResults);
 

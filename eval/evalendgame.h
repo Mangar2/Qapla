@@ -135,7 +135,7 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR> 
 		static value_t minusKnightPlusPawn(MoveGenerator& board, value_t currentValue) {
-			constexpr value_t reduce = MaterialBalance::KNIGHT_VALUE - MaterialBalance::PAWN_VALUE;
+			constexpr value_t reduce = MaterialBalance::KNIGHT_VALUE_EG - MaterialBalance::PAWN_VALUE_EG;
 			return currentValue - 
 				(COLOR == WHITE ? reduce : -reduce);
 		}

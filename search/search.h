@@ -119,7 +119,9 @@ namespace ChessSearch {
 			else if (searchInfo.beta <= -MAX_VALUE + value_t(ply)) {
 				result = false;
 			}
-			else if (board.getMaterialValue(board.isWhiteToMove()) + MaterialBalance::PAWN_VALUE < searchInfo.beta) {
+			else if (
+				board.getMaterialValue(board.isWhiteToMove()).midgame() + 
+				MaterialBalance::PAWN_VALUE_MG < searchInfo.beta) {
 				result = false;
 			}
 			else if (searchInfo.isTTValueBelowBeta(board, ply)) {
