@@ -153,7 +153,9 @@ namespace ChessSearch {
 					// The current search cannot handle the search instability from tt entries
 					// of older searches.
 					// bool thisSearch = entry.getAgeIndicator() == ttPtr->getEntryAgeIndicator();
-					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
+					value_t ttValue = bestValue;
+					if (entry.getValue(ttValue, alpha, beta, remainingDepth, ply)) {
+						bestValue = ttValue;
 						cutoff = true;
 					}
 				}

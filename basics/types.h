@@ -308,6 +308,7 @@ namespace ChessBasics {
 	}
 
 	const value_t MAX_VALUE = 30000;
+	const value_t NO_VALUE = -30001;
 	const value_t MIN_MATE_VALUE = MAX_VALUE - 1000;
 	const value_t WINNING_BONUS = 5000;
 

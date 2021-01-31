@@ -100,6 +100,7 @@ namespace ChessSearch {
 			value_t& positionValue, value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply)
 		{
 			bool result = false;
+			positionValue = NO_VALUE;
 
 			if ((_info != 0) && (getComputedDepth() >= remainingDepth)) {
 				const value_t storedValue = getPositionValue(ply);
@@ -128,8 +129,8 @@ namespace ChessSearch {
 			value_t positionValue = MAX_VALUE;
 			value_t alpha = -MAX_VALUE;
 			value_t beta = MAX_VALUE;
-			getValue(positionValue, alpha, beta, 0, ply);
-			bool result = beta < probeBeta || positionValue < probeBeta;
+			bool ttValue = getValue(positionValue, alpha, beta, 0, ply);
+			bool result = ttValue && (beta < probeBeta || positionValue < probeBeta);
 			return result;
 		}
 
