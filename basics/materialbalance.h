@@ -111,8 +111,21 @@ namespace ChessBasics {
 			return whiteToMove ? _materialValue : -_materialValue;
 		}
 
-		const static value_t PAWN_VALUE_MG = 100;
-		const static value_t PAWN_VALUE_EG = 100;
+#ifdef _TEST0 
+#endif
+#ifdef _TEST1 
+#endif
+#ifdef _TEST2 
+#endif
+#ifdef _T3 
+#endif
+#ifdef _T4 
+#endif
+#ifdef _T5
+#endif
+
+		const static value_t PAWN_VALUE_MG = 60;
+		const static value_t PAWN_VALUE_EG = 80;
 		const static value_t KNIGHT_VALUE_MG = 325;
 		const static value_t KNIGHT_VALUE_EG = 325;
 		const static value_t BISHOP_VALUE_MG = 325;
@@ -121,6 +134,7 @@ namespace ChessBasics {
 		const static value_t ROOK_VALUE_EG = 500;
 		const static value_t QUEEN_VALUE_MG = 975;
 		const static value_t QUEEN_VALUE_EG = 975;
+
 	
 	private:
 
