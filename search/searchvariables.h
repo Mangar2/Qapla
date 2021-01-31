@@ -140,30 +140,37 @@ namespace ChessSearch {
 		 * Gets an entry from the transposition table
 		 */
 		bool probeTT(MoveGenerator& board) {
-			bool cutoff = false;
 			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 
-			if (ttIndex != TT::INVALID_INDEX) {
-				TTEntry entry = ttPtr->getEntry(ttIndex);
-				Move move = entry.getMove();
-				moveProvider.setTTMove(move);
-				if (searchState != SearchType::PV) {
-					// keeps the best move for a tt entry, if the search does stay <= alpha
-					bestMove = move;
-					value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
-					if (ttValue != NO_VALUE) {
-						bestValue = ttValue;
-						cutoff = true;
-					}
-				}
-				else {
-					if (entry.alwaysUseValue()) {
-						bestValue = entry.getPositionValue(ply);
-						cutoff = true;
-					}
-				}
+			if (ttIndex == TT::INVALID_INDEX) {
+				return false;
 			}
-			return cutoff;
+
+			// Get the has move to set it to the move provider for move sorting
+			TTEntry entry = ttPtr->getEntry(ttIndex);
+			Move move = entry.getMove();
+			moveProvider.setTTMove(move);
+
+			// Gets the entry value return, if it is not usable
+			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
+			if (ttValue == NO_VALUE) {
+				return false;
+			}
+
+			bool winningValue = false; // (bestValue < -WINNING_BONUS || bestValue > WINNING_BONUS);
+			if (searchState != SearchType::PV || winningValue) {
+				// keeps the best move for a tt entry, if the search does stay <= alpha
+				bestMove = move;
+				bestValue = ttValue;
+				return true;
+			}
+
+			if (entry.alwaysUseValue()) {
+				bestValue = ttValue;
+				return true;
+			}
+
+			return false;
 		}
 
 		/**
