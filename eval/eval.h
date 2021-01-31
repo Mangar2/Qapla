@@ -28,34 +28,12 @@
  // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
 #include <vector>
+#include <map>
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
-#include "evalendgame.h"
-#include "evalpawn.h"
-#include "evalmobility.h"
-#include "rook.h"
-#include "kingattack.h"
 
-struct RookValues {
-#ifdef _T0 
-#endif
-#ifdef _TEST1 
-static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 100, 100, 100 };
-#endif
-#ifdef _TEST2 
-static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 80, 80, 50 };
-#endif
-#ifdef _T3 
-static constexpr value_t pawnIndexFactor[8] = { 150, 130, 130, 120, 100, 80, 80, 50 };
-#endif
-#ifdef _T4 
-static constexpr value_t pawnIndexFactor[8] = { 130, 115, 115, 110, 100, 90, 90, 70 };
-#endif
-#ifdef _T5
-static constexpr value_t pawnIndexFactor[8] = { 180, 150, 150, 130, 100, 70, 70, 40 };
-#endif
-};
+using namespace ChessMoveGenerator;
 
 namespace ChessEval {
 
@@ -89,57 +67,16 @@ namespace ChessEval {
 		/**
 		 * Prints the evaluation results
 		 */
-		static void printEval(MoveGenerator& board) {
-			EvalResults evalResults;
-			value_t evalValue;
-			value_t endGameResult;
-
-			board.print();
-
-			evalResults.materialValue = board.getMaterialValue();
-			evalResults.midgameInPercent = computeMidgameInPercent(board);
-			evalValue = evalResults.materialValue;
-			evalValue += EvalPawn::eval(board, evalResults);
-			endGameResult = EvalEndgame::eval(board, evalValue);
-
-			printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercent);
-			printf("Marerial            : %ld\n", evalResults.materialValue);
-			EvalPawn::print(board, evalResults);
-			board.getMaterialValue();
-			endGameResult = EvalEndgame::print(board, evalValue);
-
-			if (endGameResult != evalValue) {
-				evalValue = endGameResult;
-			}
-			else {
-				Rook::eval<true>(board, evalResults);
-				EvalValue rookEval = Rook::eval<false>(board, evalResults);
-				value_t rookValue = rookEval.getValue(computeMidgameV2InPercent(board));
-				evalValue += rookValue;
-				EvalMobility::print(board, evalResults);
-				if (evalResults.midgameInPercent > 0) {
-					KingAttack::print(board, evalResults);
-				}
-			}
-			printf("Total               : %ld\n", evalValue);
-		}
+		static void printEval(MoveGenerator& board);
 
 		/**
 		 * Gets a map of relevant factors to examine eval
 		 */
 		template <Piece COLOR>
-		map<string, value_t> getEvalFactors(MoveGenerator& board) {
-			EvalResults evalResults;
-			lazyEval(board, evalResults);
-			map<string, value_t> result;
-			auto factors = KingAttack::factors<COLOR>(board, evalResults);
-			result.insert(factors.begin(), factors.end());
-			auto mobilityFactors = EvalMobility::factors<COLOR>(board, evalResults);
-			result.insert(mobilityFactors.begin(), mobilityFactors.end());
-			return result;
-		}
+		map<string, value_t> getEvalFactors(MoveGenerator& board);
 
-
+		map<string, value_t> getEvalFactors(MoveGenerator& board);
+	
 	private:
 
 		/**
@@ -167,33 +104,7 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		*/
-		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults) {
-
-			value_t result;
-			value_t endGameResult;
-
-			evalResults.materialValue = board.getMaterialValue();
-			evalResults.midgameInPercent = computeMidgameInPercent(board);
-			result = evalResults.materialValue;
-			result += EvalPawn::eval(board, evalResults);
-			endGameResult = EvalEndgame::eval(board, result);
-
-			if (endGameResult != result) {
-				result = endGameResult;
-			}
-			else {
-				// Do not change ordering of the following calls. King attack needs result from Mobility
-				// EvalValue evalValue = Rook::eval<false>(board, evalResults);
-				// value_t rookValue = evalValue.getValue(computeMidgameV2InPercent(board));
-				// result += rookValue;
-
-				result += EvalMobility::eval(board, evalResults);
-				if (evalResults.midgameInPercent > 0) {
-					result += KingAttack::eval(board, evalResults);
-				}
-			}
-			return result;
-		}
+		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults);
 
 		/**
 		 * Determines the game phase based on a static piece value

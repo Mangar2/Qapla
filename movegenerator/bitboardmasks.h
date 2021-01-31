@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include "../basics/types.h"
+#include "../basics/evalvalue.h"
 #include "../basics/move.h"
 
 #if (defined(__INTEL_COMPILER) || defined(_MSC_VER))

@@ -27,11 +27,9 @@ Rook::InitStatics Rook::_staticConstructor;
 Rook::InitStatics::InitStatics() {
 	indexToValue.fill(0);
 	for (uint32_t i = 0; i < INDEX_SIZE; i++) {
-		if (i & RANK7) { addToIndexMap(i, _rank7); }
 		if (i & TRAPPED) { addToIndexMap(i, _trapped); }
 		if (i & OPEN_FILE) { addToIndexMap(i, _openFile); }
 		if (i & HALF_OPEN_FILE) { addToIndexMap(i, _halfOpenFile); }
-		if (i & PROTECTS_PP) { addToIndexMap(i, _protectsPP); }
 	}
 }
 

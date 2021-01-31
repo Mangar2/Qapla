@@ -23,6 +23,7 @@
 #define __PIECESIGNATURE_H
 
 #include <array>
+#include "evalvalue.h"
 #include "move.h"
 
 using namespace std;

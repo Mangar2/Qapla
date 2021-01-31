@@ -26,7 +26,7 @@
 #include "../basics/types.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
-#include "evalvalue.h"
+#include "../basics/evalvalue.h"
 #include "evalresults.h"
 
 using namespace ChessBasics;
@@ -57,11 +57,8 @@ namespace ChessEval {
 				rooks &= rooks - 1;
 				const Square rank8Destination = (COLOR == WHITE ? A8 : A1) + Square(getFile(rookSquare));
 				const bitBoard_t moveRay = BitBoardMasks::fileBB[int(getFile(rookSquare))];
-				rookIndex += isOnRank7<COLOR>(rookSquare) * RANK7;
 				rookIndex += isOnOpenFile(pawnsBB, moveRay) * OPEN_FILE;
 				rookIndex += isOnHalfOpenFile(ourPawnBB, moveRay) * HALF_OPEN_FILE;
-				rookIndex += 
-					protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
 				rookIndex += trappedByKing<COLOR>(rookSquare, position.getKingSquare<COLOR>()) * TRAPPED;
 				value += getFromIndexMap(rookIndex);
 				if (PRINT) printIndex(rookSquare, rookIndex);
@@ -75,29 +72,29 @@ namespace ChessEval {
 		 */
 		static void printIndex(Square square, uint16_t rookIndex) {
 			cout << "Rook properties: " << (char(getFile(square) + 'A')) << int(getRank(square) + 1);
-			if ((rookIndex & 16) != 0) { cout << " <Rank7>"; }
-			if ((rookIndex & 8) != 0) { cout << " <open file>"; }
-			if ((rookIndex & 4) != 0) { cout << " <half open file>"; }
-			if ((rookIndex & 2) != 0) { cout << " <protects pp>"; }
-			if ((rookIndex & 1) != 0) { cout << " <trapped by king>"; }
+			if ((rookIndex & OPEN_FILE) != 0) { cout << " <open file>"; }
+			if ((rookIndex & HALF_OPEN_FILE) != 0) { cout << " <half open file>"; }
+			if ((rookIndex & TRAPPED) != 0) { cout << " <trapped by king>"; }
 			cout << endl;
 		}
 
-		template <Piece COLOR>
-		static inline bool isOnRank7(Square rookSquare) {
-			return COLOR == WHITE ? 
-				(rookSquare >= A7 && rookSquare <= H7) :
-				(rookSquare >= A2 && rookSquare <= H2);
-		}
-
+		/**
+		 * Returns true, if the rook is on an open file
+		 */
 		static inline bool isOnOpenFile(bitBoard_t pawnsBB, bitBoard_t moveRay) {
 			return (moveRay & pawnsBB) == 0;
 		}
 
+		/**
+		 * Returns true, if the rook is on an half open file
+		 */
 		static inline bool isOnHalfOpenFile(bitBoard_t ourPawnBB, bitBoard_t moveRay) {
 			return (moveRay & ourPawnBB) == 0;
 		}
 		
+		/**
+		 * Returns true, if the rook protects a passed pawn from behind
+		 */
 		template <Piece COLOR>
 		static inline bool protectsPassedPawnFromBehind(bitBoard_t passedPawns, Square rookSquare, bitBoard_t moveRay) {
 			bitBoard_t protectBB = (moveRay & passedPawns);
@@ -106,6 +103,9 @@ namespace ChessEval {
 				(protectBB != 0 && (1ULL << rookSquare) > protectBB);
 		}
 
+		/**
+		 * Returns true, if the rook is trapped by a king
+		 */
 		template <Piece COLOR>
 		static inline bool trappedByKing(Square rookSquare, Square kingSquare) {
 			static constexpr bitBoard_t kingSide[2] = { 0x00000000000000E0, 0xE000000000000000 };
@@ -131,41 +131,35 @@ namespace ChessEval {
 			InitStatics();
 		} _staticConstructor;
 
-		static const uint32_t INDEX_SIZE = 32;
+		static const uint32_t INDEX_SIZE = 8;
 		static const uint32_t TRAPPED = 1;
-		static const uint32_t PROTECTS_PP = 2;
+		static const uint32_t OPEN_FILE = 2;
 		static const uint32_t HALF_OPEN_FILE = 4;
-		static const uint32_t OPEN_FILE = 8;
-		static const uint32_t RANK7 = 16;
 		
 		// -10 = 49,5; -20 = 50,07; -35 = 49,18; -50 = 51,85; -70 = 50,75; -100 = 51,16
-		static constexpr value_t _trapped[2] = { 0, 0 }; 
+		static constexpr value_t _trapped[2] = { -50, 0 }; 
 
 		// 0 = 48,72; 10 = 49,50; 20 = 48,56; 30 = 49,50; 40 = 49,11; 50 = 48,11
-		static constexpr value_t _openFile[2] = { 0, 0 };
-		static constexpr value_t _rank7[2] = { 0, 0 };
+		static constexpr value_t _openFile[2] = { 20, 0 };
+
+		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
+
+		static array<value_t, INDEX_SIZE * 2> indexToValue;
+
 
 #ifdef _TEST0 
-		static constexpr value_t _rank7[2] = { 0, 0 };
 #endif
 #ifdef _TEST1 
-		static constexpr value_t _rank7[2] = { 10, 0 };
 #endif
 #ifdef _TEST2 
-		static constexpr value_t _rank7[2] = { 20, 0 };
 #endif
 #ifdef _T3 
-		static constexpr value_t _rank7[2] = { 30, 0 };
 #endif
 #ifdef _T4 
-		static constexpr value_t _rank7[2] = { 40, 0 };
 #endif
 #ifdef _T5
-		static constexpr value_t _rank7[2] = { 50, 0 };
 #endif
-		static constexpr value_t _protectsPP[2] = { 0, 0 };
-		static constexpr value_t _halfOpenFile[2] = { 0, 0 };
-		static array<value_t, INDEX_SIZE * 2> indexToValue;
+		
 
 	};
 }

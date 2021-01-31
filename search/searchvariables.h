@@ -141,33 +141,26 @@ namespace ChessSearch {
 		 */
 		bool probeTT(MoveGenerator& board) {
 			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
+			if (ttIndex == TT::INVALID_INDEX) return false;
 
-			if (ttIndex == TT::INVALID_INDEX) {
-				return false;
-			}
-
-			// Get the has move to set it to the move provider for move sorting
 			TTEntry entry = ttPtr->getEntry(ttIndex);
 			Move move = entry.getMove();
 			moveProvider.setTTMove(move);
 
-			// Gets the entry value return, if it is not usable
-			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
-			if (ttValue == NO_VALUE) {
-				return false;
+			if (entry.alwaysUseValue()) {
+				bestValue = entry.getPositionValue(ply);
+				return true;
 			}
 
-			bool winningValue = false; // (bestValue < -WINNING_BONUS || bestValue > WINNING_BONUS);
-			if (searchState != SearchType::PV || winningValue) {
+			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
+			bool isWinningValue = ttValue <= WINNING_BONUS || ttValue >= WINNING_BONUS;
+			if (searchState != SearchType::PV || isWinningValue) {
 				// keeps the best move for a tt entry, if the search does stay <= alpha
 				bestMove = move;
-				bestValue = ttValue;
-				return true;
-			}
-
-			if (entry.alwaysUseValue()) {
-				bestValue = ttValue;
-				return true;
+				if (ttValue != NO_VALUE) {
+					bestValue = ttValue;
+					return true;
+				}
 			}
 
 			return false;

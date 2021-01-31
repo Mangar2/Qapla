@@ -746,7 +746,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_TEST2;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
     </ClCompile>
@@ -955,6 +955,7 @@
     <ClCompile Include="basics\piecesignature.cpp" />
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
     <ClCompile Include="bitbase\bitbasereader.cpp" />
+    <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\evalpawn.cpp" />
     <ClCompile Include="eval\kingAttack.cpp" />
@@ -978,6 +979,7 @@
     <ClInclude Include="basics\basicboard.h" />
     <ClInclude Include="basics\board.h" />
     <ClInclude Include="basics\boardstate.h" />
+    <ClInclude Include="basics\evalvalue.h" />
     <ClInclude Include="basics\hashconstants.h" />
     <ClInclude Include="basics\materialbalance.h" />
     <ClInclude Include="basics\move.h" />
@@ -994,7 +996,6 @@
     <ClInclude Include="eval\evalmobility.h" />
     <ClInclude Include="eval\evalpawn.h" />
     <ClInclude Include="eval\evalresults.h" />
-    <ClInclude Include="eval\evalvalue.h" />
     <ClInclude Include="eval\kingattack.h" />
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\pawnrace.h" />

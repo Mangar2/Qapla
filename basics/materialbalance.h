@@ -24,6 +24,7 @@
 
 #include <array>
 #include "../basics/types.h"
+#include "../basics/evalvalue.h"
 #include "../basics/move.h"
 
 using namespace std;

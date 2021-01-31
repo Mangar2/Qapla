@@ -27,6 +27,7 @@
  // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
 #include "../basics/types.h"
+#include "../basics/evalvalue.h"
 
 using namespace ChessBasics;
 

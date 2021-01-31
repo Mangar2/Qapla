@@ -108,6 +108,9 @@
     <ClCompile Include="eval\rook.cpp">
       <Filter>eval</Filter>
     </ClCompile>
+    <ClCompile Include="eval\eval.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">
@@ -308,9 +311,6 @@
     <ClInclude Include="search\searchparameter.h">
       <Filter>search</Filter>
     </ClInclude>
-    <ClInclude Include="eval\evalvalue.h">
-      <Filter>eval</Filter>
-    </ClInclude>
     <ClInclude Include="eval\rook.h">
       <Filter>eval</Filter>
     </ClInclude>
@@ -319,6 +319,9 @@
     </ClInclude>
     <ClInclude Include="search\searchvariables.h">
       <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\evalvalue.h">
+      <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -23,11 +23,23 @@
 #define __EVALVALUE_H
 
 #include <cstdint>
+#include <ostream>
 #include "../basics/types.h"
 
-using namespace ChessBasics;
+using namespace std;
 
-namespace ChessEval {
+namespace ChessBasics {
+
+	typedef int32_t value_t;
+
+	const value_t MAX_VALUE = 30000;
+	const value_t NO_VALUE = -30001;
+	const value_t MIN_MATE_VALUE = MAX_VALUE - 1000;
+	const value_t WINNING_BONUS = 5000;
+
+	// the draw value is reseved and signales a forced draw (stalemate, repetition)
+	const value_t DRAW_VALUE = 1;
+
 	class EvalValue {
 	public:
 		EvalValue() : _midgame(0), _endgame(0) {}

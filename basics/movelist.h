@@ -28,6 +28,7 @@
 
 #include <assert.h>
 #include <array>
+#include "evalvalue.h"
 #include "Move.h"
 
 namespace ChessBasics {

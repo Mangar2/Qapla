@@ -24,6 +24,7 @@
 #define __SENDSEARCHINFO_H
 
 #include "../basics/types.h"
+#include "../basics/evalvalue.h"
 #include "iinputoutput.h"
 #include <string>
 #include <vector>

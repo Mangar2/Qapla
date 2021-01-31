@@ -46,6 +46,7 @@
 #define __SEE_H
 
 #include "searchdef.h"
+#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 
 using namespace ChessMoveGenerator;
