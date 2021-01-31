@@ -147,15 +147,14 @@ namespace ChessSearch {
 				TTEntry entry = ttPtr->getEntry(ttIndex);
 				Move move = entry.getMove();
 				moveProvider.setTTMove(move);
+				value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
+				if (ttValue != NO_VALUE && searchState != SearchType::PV) {
+					bestValue = ttValue;
+				}
 				if (searchState != SearchType::PV) {
 					// keeps the best move for a tt entry, if the search does stay <= alpha
 					bestMove = move;
-					// The current search cannot handle the search instability from tt entries
-					// of older searches.
-					// bool thisSearch = entry.getAgeIndicator() == ttPtr->getEntryAgeIndicator();
-					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
-						cutoff = true;
-					}
+					cutoff = true;
 				}
 				else {
 					if (entry.alwaysUseValue()) {

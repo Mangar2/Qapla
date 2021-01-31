@@ -96,16 +96,15 @@ namespace ChessSearch {
 		 * @param ply current calculation ply
 		 * @returns true, if the value of the hash causes a Hash cutoff
 		 */
-		bool getValue(
-			value_t& positionValue, value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply)
+		value_t getValue(value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply)
 		{
-			bool result = false;
+			value_t positionValue = NO_VALUE;
 
 			if ((_info != 0) && (getComputedDepth() >= remainingDepth)) {
 				const value_t storedValue = getPositionValue(ply);
 				switch (getComputedPrecision())
 				{
-				case EXACT: positionValue = storedValue; result = true; break;
+				case EXACT: positionValue = storedValue; break;
 				case LESSER_OR_EQUAL: if (storedValue < beta) beta = storedValue; break;
 				case GREATER_OR_EQUAL: if (storedValue > alpha) alpha = storedValue; break;
 				default:assert(false);
@@ -114,22 +113,18 @@ namespace ChessSearch {
 				if (alpha >= beta)
 				{
 					positionValue = storedValue;
-					result = true;
 				}
 			}
 
-			return result;
+			return positionValue;
 		}
 
 		/**
 		 * Checks, if the stored hash value is below a beta value
 		 */
 		bool isTTValueBelowBeta(value_t probeBeta, ply_t ply) {
-			value_t positionValue = MAX_VALUE;
-			value_t alpha = -MAX_VALUE;
-			value_t beta = MAX_VALUE;
-			getValue(positionValue, alpha, beta, 0, ply);
-			bool result = beta < probeBeta || positionValue < probeBeta;
+			value_t positionValue = getValue(probeBeta - 1, probeBeta, 0, ply);
+			bool result = positionValue < probeBeta;
 			return result;
 		}
 
