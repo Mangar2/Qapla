@@ -1,4 +1,4 @@
-/**
+ï»¿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a transposition table entry class storing position information
  * - the current best move of the position
@@ -123,8 +123,8 @@ namespace ChessSearch {
 		 * Checks, if the stored hash value is below a beta value
 		 */
 		bool isTTValueBelowBeta(value_t probeBeta, ply_t ply) {
-			value_t positionValue = getValue(probeBeta - 1, probeBeta, 0, ply);
-			bool result = positionValue < probeBeta;
+			value_t ttValue = getValue(probeBeta-1, probeBeta, 0, ply);
+			bool result = ttValue != NO_VALUE && (ttValue < probeBeta);
 			return result;
 		}
 

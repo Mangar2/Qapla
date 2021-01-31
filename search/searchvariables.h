@@ -1,4 +1,4 @@
-/**
+ï»¿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements all needed variables for search in one structure
  */
@@ -147,14 +147,15 @@ namespace ChessSearch {
 				TTEntry entry = ttPtr->getEntry(ttIndex);
 				Move move = entry.getMove();
 				moveProvider.setTTMove(move);
-				value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
-				if (ttValue != NO_VALUE && searchState != SearchType::PV) {
-					bestValue = ttValue;
-				}
 				if (searchState != SearchType::PV) {
 					// keeps the best move for a tt entry, if the search does stay <= alpha
 					bestMove = move;
-					cutoff = true;
+					// The current search cannot handle the search instability from tt entries
+					// of older searches.
+					// bool thisSearch = entry.getAgeIndicator() == ttPtr->getEntryAgeIndicator();
+					if (entry.getValue(bestValue, alpha, beta, remainingDepth, ply)) {
+						cutoff = true;
+					}
 				}
 				else {
 					if (entry.alwaysUseValue()) {
