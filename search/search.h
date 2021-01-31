@@ -68,10 +68,10 @@ namespace ChessSearch {
 		bool hasCutoff(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
 			if (ply < 1) return false;
 			if (curPly.alpha > MAX_VALUE - value_t(ply)) {
-				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, curPly.alpha);
+				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
 			}
 			else if (curPly.beta < -MAX_VALUE + value_t(ply)) {
-				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, curPly.beta);
+				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 			}
 			else if (ply >= 3 && board.drawDueToMissingMaterial()) {
 				curPly.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
