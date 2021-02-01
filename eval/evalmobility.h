@@ -48,8 +48,6 @@ namespace ChessEval {
 			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board, mobility));
 			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board, mobility));
 			printf("Black Bishop        : %ld\n", -calcBishopMobility<BLACK>(board, mobility));
-			printf("White Rook          : %ld\n", calcRookMobility<WHITE>(board, mobility));
-			printf("Black Rook          : %ld\n", -calcRookMobility<BLACK>(board, mobility));
 			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board, mobility));
 			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board, mobility));
 			printf("Mobility total      : %ld\n", evalValue);
@@ -95,7 +93,7 @@ namespace ChessEval {
 			value_t evalResult = 0;
 			evalResult += calcKnightMobility<COLOR>(board, mobility);
 			evalResult += calcBishopMobility<COLOR>(board, mobility);
-			evalResult += calcRookMobility<COLOR>(board, mobility);
+			// evalResult += calcRookMobility<COLOR>(board, mobility);
 			evalResult += calcQueenMobility<COLOR>(board, mobility);
 			return evalResult;
 		}

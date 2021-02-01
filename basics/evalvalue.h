@@ -45,6 +45,7 @@ namespace ChessBasics {
 		EvalValue() : _midgame(0), _endgame(0) {}
 		EvalValue(value_t value) : _midgame(value), _endgame(value) {}
 		EvalValue(value_t midgame, value_t endgame) : _midgame(midgame), _endgame(endgame) {}
+		EvalValue(const value_t value[2]) : _midgame(value[0]), _endgame(value[1]) {}
 
 		/**
 		 * Returns the evaluation value based on the game state
@@ -75,7 +76,8 @@ namespace ChessBasics {
 	};
 
 	static ostream& operator<<(ostream& o, const EvalValue& v) {
-		o << "[" << v._midgame << ", " << v._endgame << "]";
+		o << "[" << std::right << std::setw(2) << v._midgame << ", " 
+			<< std::right << std::setw(2) << v._endgame << "]";
 		return o;
 	}
 

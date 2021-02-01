@@ -46,53 +46,83 @@ namespace ChessEval {
 		 */
 		template<Piece COLOR, bool PRINT>
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
-			EvalValue value;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
+			EvalValue value;
+			results.rookAttack[COLOR] = 0;
+			results.doubleRookAttack[COLOR] = 0;
 			bitBoard_t rooks = position.getPieceBB(ROOK + COLOR);
-			const bitBoard_t ourPawnBB = position.getPieceBB(PAWN + COLOR);
-			const bitBoard_t theirPawnBB = position.getPieceBB(PAWN + OPPONENT);
+			if (rooks == 0) return EvalValue(0, 0);
+			
+			bitBoard_t passThrough = results.queensBB | rooks;
+			bitBoard_t occupiedBB = position.getAllPiecesBB();
+			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThrough) &
+				~results.pawnAttack[OPPONENT];
+			occupiedBB &= ~passThrough;
+
 			while (rooks)
 			{
-				uint16_t rookIndex = 0;
 				const Square rookSquare = BitBoardMasks::lsb(rooks);
 				rooks &= rooks - 1;
-				const Square rank8Destination = (COLOR == WHITE ? A8 : A1) + Square(getFile(rookSquare));
-				const bitBoard_t moveRay = BitBoardMasks::fileBB[int(getFile(rookSquare))];
-				rookIndex += isOnOpenFile(results.pawnsBB, moveRay) * OPEN_FILE;
-				rookIndex += isOnHalfOpenFile(ourPawnBB, moveRay) * HALF_OPEN_FILE;
-				rookIndex += trappedByKing<COLOR>(rookSquare, position.getKingSquare<COLOR>()) * TRAPPED;
-				rookIndex +=
-					protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
-				value += getFromIndexMap(rookIndex);
-				if (PRINT) printIndex(rookSquare, rookIndex);
+				value += calcMobility<COLOR, PRINT>(results, rookSquare, occupiedBB, removeMask);
+				value += calcPropertyValue<COLOR, PRINT>(position, results, rookSquare);
 			}
-			if (PRINT) cout << (COLOR == WHITE ? "White" : "Black") << " rook: " << value << endl;
+			if (PRINT) cout << colorToString(COLOR) << " rooks: " 
+				<< std::right << std::setw(20) << value << endl;
 			return value;
 		}
 
 		/**
-		 * Calculates the mobility of a rook
+		 * Calculates several properties for a rook and return their value
+		 * Is on open file
+		 * Is on half open file
+		 * Is protecting a passed pawn from behind
+		 * Is trapped by king
 		 */
-		template<Piece COLOR>
+		template<Piece COLOR, bool PRINT>
+		static inline EvalValue calcPropertyValue(const MoveGenerator& position, EvalResults& results, 
+			Square rookSquare) 
+		{
+			uint16_t rookIndex = 0;
+			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
+			const bitBoard_t ourPawnBB = position.getPieceBB(PAWN + COLOR);
+			const bitBoard_t theirPawnBB = position.getPieceBB(PAWN + OPPONENT);
+			const Square rank8Destination = (COLOR == WHITE ? A8 : A1) + Square(getFile(rookSquare));
+			const bitBoard_t moveRay = BitBoardMasks::fileBB[int(getFile(rookSquare))];
+			rookIndex += isOnOpenFile(results.pawnsBB, moveRay) * OPEN_FILE;
+			rookIndex += isOnHalfOpenFile(ourPawnBB, moveRay) * HALF_OPEN_FILE;
+			rookIndex += trappedByKing<COLOR>(rookSquare, position.getKingSquare<COLOR>()) * TRAPPED;
+			rookIndex +=
+				protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
+			if (PRINT) printIndex(rookSquare, rookIndex);
+			return getFromIndexMap(rookIndex);
+		}
+
+		/**
+		 * Calculates the results of a rook
+		 */
+		template<Piece COLOR, bool PRINT>
 		static EvalValue calcMobility(
-			Square square, bitBoard_t occupiedBB, bitBoard_t removeBB, EvalResults& results) 
+			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
 			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
 			results.doubleRookAttack[COLOR] |= results.rookAttack[COLOR] & attackBB;
 			results.rookAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
-			return ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+			const EvalValue value = ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+			if (PRINT) cout << colorToString(COLOR) 
+				<< " rook (" << squareToString(square) << ") mobility: " 
+				<< std::right << std::setw(7) << value;
+			return value;
 		}
 
 		/**
 		 * Prints a rook index
 		 */
 		static void printIndex(Square square, uint16_t rookIndex) {
-			cout << "Rook properties: " << (char(getFile(square) + 'A')) << int(getRank(square) + 1);
-			if ((rookIndex & OPEN_FILE) != 0) { cout << " <open file>"; }
-			if ((rookIndex & HALF_OPEN_FILE) != 0) { cout << " <half open file>"; }
-			if ((rookIndex & TRAPPED) != 0) { cout << " <trapped by king>"; }
-			if ((rookIndex & PROTECTS_PP) != 0) { cout << " <protects pp>"; }
+			if ((rookIndex & OPEN_FILE) != 0) { cout << " <of>"; }
+			if ((rookIndex & HALF_OPEN_FILE) != 0) { cout << " <hof>"; }
+			if ((rookIndex & TRAPPED) != 0) { cout << " <tbk>"; }
+			if ((rookIndex & PROTECTS_PP) != 0) { cout << " <ppp>"; }
 			cout << endl;
 		}
 
@@ -161,29 +191,23 @@ namespace ChessEval {
 		static constexpr value_t _protectsPP[2] = { 20, 0 };
 		// 20:20 50.30; 40:0 51.45
 		static array<value_t, INDEX_SIZE * 2> indexToValue;
-
+		// Mobility Map for rooks
 		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = { 
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
 			{ 25, 25 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 } };
 
 
 #ifdef _TEST0 
-		static constexpr value_t _protectsPP[2] = { 10, 0 };
 #endif
 #ifdef _TEST1 
-		static constexpr value_t _protectsPP[2] = { 15, 5 };
 #endif
 #ifdef _TEST2 
-		static constexpr value_t _protectsPP[2] = { 20, 10 };
 #endif
 #ifdef _T3 
-		static constexpr value_t _protectsPP[2] = { 25, 10 };
 #endif
 #ifdef _T4 
-		static constexpr value_t _protectsPP[2] = { 25, 15 };
 #endif
 #ifdef _T5
-		static constexpr value_t _protectsPP[2] = { 30, 15 };
 #endif
 		
 

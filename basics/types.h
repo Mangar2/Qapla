@@ -23,6 +23,10 @@
 #define __TYPES_H
 
 #include <string>
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
 
 namespace ChessBasics {
 
@@ -280,6 +284,13 @@ namespace ChessBasics {
 		case 'K':return WHITE_KING;
 		default:return NO_PIECE;
 		}
+	}
+
+	/**
+	 * Converts a Color to a string
+	 */
+	static string colorToString(Piece color) {
+		return color == WHITE ? "White" : "Black";
 	}
 
 	/**
