@@ -40,16 +40,17 @@ namespace ChessEval {
 			return eval<WHITE, PRINT>(position, results) - eval<BLACK, PRINT>(position, results);
 		}
 	private:
+
 		/**
 		 * Evaluates Rooks
 		 */
 		template<Piece COLOR, bool PRINT>
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			EvalValue value;
+			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t rooks = position.getPieceBB(ROOK + COLOR);
 			const bitBoard_t ourPawnBB = position.getPieceBB(PAWN + COLOR);
-			const bitBoard_t theirPawnBB = position.getPieceBB(PAWN + (COLOR == WHITE ? BLACK : WHITE));
-			const bitBoard_t pawnsBB = ourPawnBB | theirPawnBB;
+			const bitBoard_t theirPawnBB = position.getPieceBB(PAWN + OPPONENT);
 			while (rooks)
 			{
 				uint16_t rookIndex = 0;
@@ -57,14 +58,30 @@ namespace ChessEval {
 				rooks &= rooks - 1;
 				const Square rank8Destination = (COLOR == WHITE ? A8 : A1) + Square(getFile(rookSquare));
 				const bitBoard_t moveRay = BitBoardMasks::fileBB[int(getFile(rookSquare))];
-				rookIndex += isOnOpenFile(pawnsBB, moveRay) * OPEN_FILE;
+				rookIndex += isOnOpenFile(results.pawnsBB, moveRay) * OPEN_FILE;
 				rookIndex += isOnHalfOpenFile(ourPawnBB, moveRay) * HALF_OPEN_FILE;
 				rookIndex += trappedByKing<COLOR>(rookSquare, position.getKingSquare<COLOR>()) * TRAPPED;
+				rookIndex +=
+					protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
 				value += getFromIndexMap(rookIndex);
 				if (PRINT) printIndex(rookSquare, rookIndex);
 			}
 			if (PRINT) cout << (COLOR == WHITE ? "White" : "Black") << " rook: " << value << endl;
 			return value;
+		}
+
+		/**
+		 * Calculates the mobility of a rook
+		 */
+		template<Piece COLOR>
+		static EvalValue calcMobility(
+			Square square, bitBoard_t occupiedBB, bitBoard_t removeBB, EvalResults& results) 
+		{
+			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
+			results.doubleRookAttack[COLOR] |= results.rookAttack[COLOR] & attackBB;
+			results.rookAttack[COLOR] |= attackBB;
+			attackBB &= removeBB;
+			return ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
 		}
 
 		/**
@@ -75,6 +92,7 @@ namespace ChessEval {
 			if ((rookIndex & OPEN_FILE) != 0) { cout << " <open file>"; }
 			if ((rookIndex & HALF_OPEN_FILE) != 0) { cout << " <half open file>"; }
 			if ((rookIndex & TRAPPED) != 0) { cout << " <trapped by king>"; }
+			if ((rookIndex & PROTECTS_PP) != 0) { cout << " <protects pp>"; }
 			cout << endl;
 		}
 
@@ -123,7 +141,7 @@ namespace ChessEval {
 			indexToValue[index * 2 + 1] += data[1];
 		}
 
-		static EvalValue getFromIndexMap(uint32_t index) {
+		static inline EvalValue getFromIndexMap(uint32_t index) {
 			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
 		}
 
@@ -131,33 +149,41 @@ namespace ChessEval {
 			InitStatics();
 		} _staticConstructor;
 
-		static const uint32_t INDEX_SIZE = 8;
+		static const uint32_t INDEX_SIZE = 16;
 		static const uint32_t TRAPPED = 1;
 		static const uint32_t OPEN_FILE = 2;
 		static const uint32_t HALF_OPEN_FILE = 4;
+		static const uint32_t PROTECTS_PP = 8;
 		
-		// -10 = 49,5; -20 = 50,07; -35 = 49,18; -50 = 51,85; -70 = 50,75; -100 = 51,16
 		static constexpr value_t _trapped[2] = { -50, 0 }; 
-
-		// 0 = 48,72; 10 = 49,50; 20 = 48,56; 30 = 49,50; 40 = 49,11; 50 = 48,11
 		static constexpr value_t _openFile[2] = { 20, 0 };
-
 		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
-
+		static constexpr value_t _protectsPP[2] = { 20, 0 };
+		// 20:20 50.30; 40:0 51.45
 		static array<value_t, INDEX_SIZE * 2> indexToValue;
+
+		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = { 
+			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
+			{ 25, 25 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 } };
 
 
 #ifdef _TEST0 
+		static constexpr value_t _protectsPP[2] = { 10, 0 };
 #endif
 #ifdef _TEST1 
+		static constexpr value_t _protectsPP[2] = { 15, 5 };
 #endif
 #ifdef _TEST2 
+		static constexpr value_t _protectsPP[2] = { 20, 10 };
 #endif
 #ifdef _T3 
+		static constexpr value_t _protectsPP[2] = { 25, 10 };
 #endif
 #ifdef _T4 
+		static constexpr value_t _protectsPP[2] = { 25, 15 };
 #endif
 #ifdef _T5
+		static constexpr value_t _protectsPP[2] = { 30, 15 };
 #endif
 		
 

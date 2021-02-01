@@ -991,6 +991,7 @@
     <ClInclude Include="bitbase\bitbasereader.h" />
     <ClInclude Include="bitbase\boardaccess.h" />
     <ClInclude Include="bitbase\piecelist.h" />
+    <ClInclude Include="eval\bishop.h" />
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />
     <ClInclude Include="eval\evalmobility.h" />

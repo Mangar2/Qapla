@@ -103,9 +103,14 @@ namespace ChessEval {
 
 		/**
 		 * Calculates an evaluation for the current board position
-		*/
+		 */
 		template <bool PRINT>
 		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults);
+
+		/**
+		 * Initializes some fields of eval results
+		 */
+		static void initEvalResults(MoveGenerator& board, EvalResults& evalResults);
 
 		/**
 		 * Determines the game phase based on a static piece value
