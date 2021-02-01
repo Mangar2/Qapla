@@ -30,6 +30,7 @@ Rook::InitStatics::InitStatics() {
 		if (i & TRAPPED) { addToIndexMap(i, _trapped); }
 		if (i & OPEN_FILE) { addToIndexMap(i, _openFile); }
 		if (i & HALF_OPEN_FILE) { addToIndexMap(i, _halfOpenFile); }
+		if (i & PROTECTS_PP) { addToIndexMap(i, _protectsPP); }
 	}
 }
 

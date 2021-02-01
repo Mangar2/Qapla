@@ -34,6 +34,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 
 	value_t result = 0;
 	value_t endGameResult;
+	initEvalResults(board, evalResults);
 
 	evalResults.midgameInPercent = computeMidgameInPercent(board);
 	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(board);
@@ -64,6 +65,10 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 	return result;
 }
 
+void Eval::initEvalResults(MoveGenerator& board, EvalResults& evalResults) {
+	evalResults.queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
+	evalResults.pawnsBB = board.getPieceBB(WHITE_PAWN) | board.getPieceBB(BLACK_PAWN);
+}
 
 /**
  * Gets a map of relevant factors to examine eval

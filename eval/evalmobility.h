@@ -61,8 +61,6 @@ namespace ChessEval {
 		 * Evaluates the mobility of all pieces (not pawns) on the board
 		 */
 		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
-			init(board, mobility);
-
 			value_t evalResult = eval<WHITE>(board, mobility) - eval<BLACK>(board, mobility);
 			return evalResult;
 		}
@@ -88,10 +86,6 @@ namespace ChessEval {
 
 
 	private:
-
-		static inline void init(MoveGenerator& board, EvalResults& mobility) {
-			mobility.queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
-		}
 
 		/**
 		 * Evaluate mobility for all pieces of one color

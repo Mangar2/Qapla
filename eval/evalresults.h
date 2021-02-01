@@ -34,8 +34,24 @@ using namespace ChessBasics;
 namespace ChessEval {
 
 	struct EvalResults {
+		template <Piece COLOR>
+		inline void clearAttacksBB() {
+			queenAttack[COLOR] = 0;
+			rookAttack[COLOR] = 0;
+			doubleRookAttack[COLOR] = 0;
+			bishopAttack[COLOR] = 0;
+			knightAttack[COLOR] = 0;
+			doubleKnightAttack[COLOR] = 0;
+		}
+		inline void clearAttacksBB() {
+			clearAttacksBB<WHITE>();
+			clearAttacksBB<BLACK>();
+		}
+
 		// White and black queens
 		bitBoard_t queensBB; 
+		// White and black pawns
+		bitBoard_t pawnsBB;
 		// Squares attacked by queens also behind a Rook & Bishop of same color
 		bitBoard_t queenAttack[2];
 		// Squares attacked by rooks also behind another Rook or Queen of same color or Queen of opposit color

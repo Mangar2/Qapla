@@ -323,6 +323,9 @@
     <ClInclude Include="search\killermove.h">
       <Filter>search</Filter>
     </ClInclude>
+    <ClInclude Include="eval\bishop.h">
+      <Filter>eval</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
