@@ -104,35 +104,86 @@ namespace ChessEval {
 			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
 		}
 
-		static constexpr value_t doubleBishop[2] = { 0, 0 };
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
 
 		// Mobility Map for bishops
+		/*
 		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = { 
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
 			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 } 
 		};
+		*/
+		
+		static constexpr value_t doubleBishop[2] = { 40, 25 };
+		static constexpr value_t indexToValue[4] = { 0, 0, doubleBishop[0], doubleBishop[1] };
 
 #ifdef _TEST0 
-		static constexpr value_t doubleBishop[2] = { 50, 0 };
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
 #endif
 #ifdef _TEST1 
-		static constexpr value_t doubleBishop[2] = { 50, 25 };
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -5, -5 }, { 0, 0 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
 #endif
 #ifdef _TEST2 
-		static constexpr value_t doubleBishop[2] = { 40, 25 };
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -10, -10 }, { -5, -5 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
 #endif
 #ifdef _T3 
-		static constexpr value_t doubleBishop[2] = { 60, 25 };
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -15, -15 }, { -10, -10 }, { -5, -5 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
 #endif
 #ifdef _T4 
-		static constexpr value_t doubleBishop[2] = { 50, 30 };
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
 #endif
-#ifdef _T5
-		static constexpr value_t doubleBishop[2] = { 50, 10 };
+#ifdef _TEST5
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -50, -50 }, { -30, -30 }, { -10, -10 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
+#endif
+#ifdef _TEST6
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -30, 0 }, { -20, 0 }, { -10, 0 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
+#endif
+#ifdef _TEST7
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ 0, -30 }, { 0, -20 }, { 0, -10 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
+#endif
+#ifdef _TEST8
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -30, -15 }, { -20, -10 }, { -10, -5 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
+#endif
+#ifdef _TEST9
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -15, -30 }, { -10, -20 }, { -5, -10 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
+#endif
+#ifdef _TEST10
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+			{ -50, -25 }, { -30, -15 }, { -10, -5 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
+		};
 #endif
 
-		static constexpr value_t indexToValue[4] = { 0, 0, doubleBishop[0], doubleBishop[1] };
 
 	};
 }

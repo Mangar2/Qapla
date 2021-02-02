@@ -326,6 +326,9 @@
     <ClInclude Include="eval\bishop.h">
       <Filter>eval</Filter>
     </ClInclude>
+    <ClInclude Include="eval\knight.h">
+      <Filter>eval</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
