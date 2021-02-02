@@ -92,7 +92,7 @@ namespace ChessEval {
 			bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
 			results.bishopAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
-			EvalValue value = BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+			const EvalValue value = BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
 			if (PRINT) cout << colorToString(COLOR)
 				<< " bishop (" << squareToString(square) << ") mobility: "
 				<< std::right << std::setw(5) << value << endl;

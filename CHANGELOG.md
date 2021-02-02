@@ -1,6 +1,22 @@
 # Quabla Change log
 Quabla chess engine
 
+## 0.0.
+- Playing strenght: about 2300 ELO
+- Bugfixing
+	- Fixed bugs where the transition table kept draw values for replaying moves from earlier games or after undo moves
+- Search
+	- Using hash entries even in PV, if the value > winning bonus. This fixed problems with finding mates
+	- Rearranged some code parts. 	
+- Eval
+	- Added some drawish endgame evaluation terms like KRBKR + 5 ELO (maybe)
+	- Every term will have separate values for mid- and endgame. Added a class to handle this.
+	- Added rook evaluation terms: trapped rook, rook on open and half open file: + 10 ELO
+	- Changed pawn value to less especially in midgame: + 10 ELO
+	- Added rook evaluation term for protecting passed pawns from behind + 15 ELO 
+	- Added bonus for double bishop on different colors, changed mobility values for bishops with low mobility
+	- Added evaluation terms for knights
+
 ## 0.0.14
 - Playing strength: about 2250 ELO
 	- Improved parameters for King security (+10 elo)

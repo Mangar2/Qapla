@@ -166,15 +166,24 @@ namespace ChessEval {
 			return trappedKingSide || trappedQueenSide;
 		}
 
+		/**
+		 * Adds a value pair to the index map
+		 */
 		static void addToIndexMap(uint32_t index, const value_t data[2]) {
 			indexToValue[index * 2] += data[0];
 			indexToValue[index * 2 + 1] += data[1];
 		}
 
+		/**
+		 * Gets a value pair from the index map
+		 */
 		static inline EvalValue getFromIndexMap(uint32_t index) {
 			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
 		}
 
+		/**
+		 * Initializes the index map on program start
+		 */
 		static struct InitStatics {
 			InitStatics();
 		} _staticConstructor;
@@ -195,22 +204,6 @@ namespace ChessEval {
 		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = { 
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
 			{ 25, 25 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 } };
-
-
-#ifdef _TEST0 
-#endif
-#ifdef _TEST1 
-#endif
-#ifdef _TEST2 
-#endif
-#ifdef _T3 
-#endif
-#ifdef _T4 
-#endif
-#ifdef _T5
-#endif
-		
-
 	};
 }
 
