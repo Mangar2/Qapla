@@ -49,19 +49,29 @@ namespace ChessEval {
 			EvalValue value;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t bishops = position.getPieceBB(BISHOP + COLOR);
+			results.bishopAttack[COLOR] = 0;
+			if (bishops == 0) {
+				return 0;
+			}
 			uint32_t index = 0;
 			index += hasDoubleBishop(bishops);
 			value = getFromIndexMap(index);
-			/*
+
+			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + OPPONENT);
+			bitBoard_t occupiedBB = position.getAllPiecesBB();
+			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThroughBB)
+				& ~results.pawnAttack[OPPONENT];
+			occupiedBB &= ~passThroughBB;
+
 			while (bishops)
 			{
-				uint16_t index = 0;
 				const Square bishopSquare = BitBoardMasks::lsb(bishops);
 				bishops &= bishops - 1;
+				value += calcMobility<COLOR, PRINT>(results, bishopSquare, occupiedBB, removeMask);
 			}
-			*/
-			if (PRINT) cout << colorToString(COLOR) << " bishop: " 
-				<< std::right << std::setw(19) << value << endl;
+
+			if (PRINT) cout << colorToString(COLOR) << " bishops: " 
+				<< std::right << std::setw(18) << value << endl;
 			return value;
 		}
 
@@ -75,18 +85,19 @@ namespace ChessEval {
 		/**
 		 * Calculates the mobility of a bishop
 		 */
-		/*
-		template<Piece COLOR>
-		static EvalValue calcMobility(Square square, bitBoard_t occupiedBB, bitBoard_t removeBB, EvalResults& results) {
-			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
-			mobility.doubleRookAttack[COLOR] |= mobility.rookAttack[COLOR] & attackBB;
-			mobility.rookAttack[COLOR] |= attackBB;
-			attackBB &= removeMaskBB;
-			return EvalMobilityValues::ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+		template<Piece COLOR, bool PRINT>
+		static EvalValue calcMobility(
+			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
+		{
+			bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
+			results.bishopAttack[COLOR] |= attackBB;
+			attackBB &= removeBB;
+			EvalValue value = BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+			if (PRINT) cout << colorToString(COLOR)
+				<< " bishop (" << squareToString(square) << ") mobility: "
+				<< std::right << std::setw(5) << value << endl;
+			return value;
 		}
-
-
-		*/
 
 
 		static inline EvalValue getFromIndexMap(uint32_t index) {
@@ -95,6 +106,12 @@ namespace ChessEval {
 
 		static constexpr value_t doubleBishop[2] = { 0, 0 };
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
+
+		// Mobility Map for bishops
+		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = { 
+			{ 0, 0 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 }, 
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 } 
+		};
 
 #ifdef _TEST0 
 		static constexpr value_t doubleBishop[2] = { 50, 0 };

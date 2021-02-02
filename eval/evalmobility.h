@@ -33,8 +33,6 @@ namespace ChessEval {
 	struct EvalMobilityValues {
 		const static value_t MOBILITY_VALUE = 2;
 		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 };
-		static constexpr value_t ROOK_MOBILITY_MAP[15] = { 0, 0, 0, 0, 0, 10, 15, 20, 25, 30, 30, 30, 30, 30, 30 };
-		static constexpr value_t BISHOP_MOBILITY_MAP[15] = { 0, 0, 0, 5, 10, 15, 20, 22, 24, 26, 28, 30, 30, 30, 30 };
 		static constexpr value_t KNIGHT_MOBILITY_MAP[9] = { -30, -20, -10, 0, 10, 20, 25, 25, 25 };
 	};
 
@@ -46,8 +44,6 @@ namespace ChessEval {
 			printf("Mobility:\n");
 			printf("White Knight        : %ld\n", calcKnightMobility<WHITE>(board, mobility));
 			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board, mobility));
-			printf("White Bishop        : %ld\n", calcBishopMobility<WHITE>(board, mobility));
-			printf("Black Bishop        : %ld\n", -calcBishopMobility<BLACK>(board, mobility));
 			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board, mobility));
 			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board, mobility));
 			printf("Mobility total      : %ld\n", evalValue);
@@ -92,82 +88,10 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
 			value_t evalResult = 0;
 			evalResult += calcKnightMobility<COLOR>(board, mobility);
-			evalResult += calcBishopMobility<COLOR>(board, mobility);
-			// evalResult += calcRookMobility<COLOR>(board, mobility);
 			evalResult += calcQueenMobility<COLOR>(board, mobility);
 			return evalResult;
 		}
 
-		/**
-		 * Calculates the mobility values of bishops
-		 */
-		template <Piece COLOR>
-		static value_t calcBishopMobility(MoveGenerator& board, EvalResults& mobility)
-		{
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
-			mobility.bishopAttack[COLOR] = 0;
-			if (bishops == 0) {
-				return 0;
-			}
-
-			bitBoard_t passThrough = mobility.queensBB | board.getPieceBB(ROOK + OPPONENT);
-			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = (~board.getPiecesOfOneColorBB<COLOR>() | passThrough) 
-				& ~mobility.pawnAttack[OPPONENT];
-			occupied &= ~passThrough;
-
-			Square departureSquare;
-			value_t result = 0;
-			while (bishops)
-			{
-				departureSquare = BitBoardMasks::lsb(bishops);
-				bishops &= bishops - 1;
-				bitBoard_t attack = Magics::genBishopAttackMask(departureSquare, occupied);
-				mobility.bishopAttack[COLOR] |= attack;
-				attack &= removeMask;
-				result += EvalMobilityValues::BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
-				// mobility.bishopAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
-
-			}
-			return result;
-		}
-
-		/**
-		 * Calculates the mobility values of rooks
-		 */
-		template <Piece COLOR>
-		static value_t calcRookMobility(MoveGenerator& board, EvalResults& mobility)
-		{
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			bitBoard_t rooks = board.getPieceBB(ROOK + COLOR);
-			mobility.rookAttack[COLOR] = 0;
-			mobility.doubleRookAttack[COLOR] = 0;
-			if (rooks == 0) {
-				return 0;
-			}
-
-			bitBoard_t passThrough = mobility.queensBB | rooks;
-			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = (~board.getPiecesOfOneColorBB<COLOR>() | passThrough) & 
-				~mobility.pawnAttack[OPPONENT];
-			occupied &= ~passThrough;
-
-			Square departureSquare;
-			value_t result = 0;
-			while (rooks)
-			{
-				departureSquare = BitBoardMasks::lsb(rooks);
-				rooks &= rooks - 1;
-				bitBoard_t attack = Magics::genRookAttackMask(departureSquare, occupied);
-				mobility.doubleRookAttack[COLOR] |= mobility.rookAttack[COLOR] & attack;
-				mobility.rookAttack[COLOR] |= attack;
-				attack &= removeMask;
-				result += EvalMobilityValues::ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
-				// mobility.rookAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
-			}
-			return result;
-		}
 
 		/**
 		 * Calculates the mobility value for Queens

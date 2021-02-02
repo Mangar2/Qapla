@@ -93,9 +93,9 @@ namespace ChessTest {
 		uint32_t fail;
 	};
 
-
 	static void runEvalMobilityTests() {
 		EvalMobilityTest test;
+		/*
 		test.test("N3k3/8/8/8/8/8/8/4K3", "Knight in corner", EvalMobilityValues::KNIGHT_MOBILITY_MAP[2]);
 		test.test("N3k3/p7/8/8/8/8/8/4K3", "Knight in corner one pawn attack", EvalMobilityValues::KNIGHT_MOBILITY_MAP[1]);
 		test.test("4k3/8/N7/8/8/8/8/4K3", "Knight at edge", EvalMobilityValues::KNIGHT_MOBILITY_MAP[4]);
@@ -127,7 +127,7 @@ namespace ChessTest {
 			EvalMobilityValues::BISHOP_MOBILITY_MAP[9] + 2 * EvalMobilityValues::ROOK_MOBILITY_MAP[7] + 
 			EvalMobilityValues::QUEEN_MOBILITY_MAP[18]);
 		test.test("4k3/8/8/8/8/8/PP6/QK6", "Queen cornered", EvalMobilityValues::QUEEN_MOBILITY_MAP[0]);
-
+		*/
 
 		// test.measureRuntime();
 	}
