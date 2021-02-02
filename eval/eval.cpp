@@ -22,6 +22,7 @@
 #include "evalpawn.h"
 #include "evalmobility.h"
 #include "rook.h"
+#include "bishop.h"
 #include "kingattack.h"
 
 using namespace ChessEval;
@@ -55,6 +56,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 	else {
 		// Do not change ordering of the following calls. King attack needs result from Mobility
 		EvalValue evalValue = Rook::eval<PRINT>(board, evalResults);
+		evalValue += Bishop::eval<PRINT>(board, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
 
 		result += EvalMobility::eval(board, evalResults);

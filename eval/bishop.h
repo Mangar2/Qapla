@@ -49,14 +49,27 @@ namespace ChessEval {
 			EvalValue value;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t bishops = position.getPieceBB(BISHOP + COLOR);
+			uint32_t index = 0;
+			index += hasDoubleBishop(bishops);
+			value = getFromIndexMap(index);
+			/*
 			while (bishops)
 			{
 				uint16_t index = 0;
 				const Square bishopSquare = BitBoardMasks::lsb(bishops);
 				bishops &= bishops - 1;
 			}
-			if (PRINT) cout << (COLOR == WHITE ? "White" : "Black") << " bishop: " << value << endl;
+			*/
+			if (PRINT) cout << colorToString(COLOR) << " bishop: " 
+				<< std::right << std::setw(19) << value << endl;
 			return value;
+		}
+
+		/**
+		 * Checks, if we have at least two bishops on different colored fields
+		 */
+		static bool hasDoubleBishop(bitBoard_t bishops) {
+			return ((bishops & WHITE_FIELDS) != 0 && (bishops & (~WHITE_FIELDS)) != 0);
 		}
 
 		/**
@@ -72,36 +85,37 @@ namespace ChessEval {
 			return EvalMobilityValues::ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
 		}
 
-		static void addToIndexMap(uint32_t index, const value_t data[2]) {
-			indexToValue[index * 2] += data[0];
-			indexToValue[index * 2 + 1] += data[1];
-		}
+
+		*/
+
 
 		static inline EvalValue getFromIndexMap(uint32_t index) {
 			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
 		}
 
-		static struct InitStatics {
-			InitStatics();
-		} _staticConstructor;
-
-		static const uint32_t INDEX_SIZE = 2;
-		static array<value_t, INDEX_SIZE * 2> indexToValue;
-		*/
+		static constexpr value_t doubleBishop[2] = { 0, 0 };
+		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
 
 #ifdef _TEST0 
+		static constexpr value_t doubleBishop[2] = { 50, 0 };
 #endif
 #ifdef _TEST1 
+		static constexpr value_t doubleBishop[2] = { 50, 25 };
 #endif
 #ifdef _TEST2 
+		static constexpr value_t doubleBishop[2] = { 40, 25 };
 #endif
 #ifdef _T3 
+		static constexpr value_t doubleBishop[2] = { 60, 25 };
 #endif
 #ifdef _T4 
+		static constexpr value_t doubleBishop[2] = { 50, 30 };
 #endif
 #ifdef _T5
+		static constexpr value_t doubleBishop[2] = { 50, 10 };
 #endif
-		
+
+		static constexpr value_t indexToValue[4] = { 0, 0, doubleBishop[0], doubleBishop[1] };
 
 	};
 }

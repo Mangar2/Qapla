@@ -79,8 +79,8 @@ namespace ChessEval {
 		 * Is trapped by king
 		 */
 		template<Piece COLOR, bool PRINT>
-		static inline EvalValue calcPropertyValue(const MoveGenerator& position, EvalResults& results, 
-			Square rookSquare) 
+		static inline EvalValue calcPropertyValue(const MoveGenerator& position, EvalResults& results,
+			Square rookSquare)
 		{
 			uint16_t rookIndex = 0;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;

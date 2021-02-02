@@ -37,6 +37,3 @@ Rook::InitStatics::InitStatics() {
 
 
 
-
-
-
