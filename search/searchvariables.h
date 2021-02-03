@@ -153,7 +153,7 @@ namespace ChessSearch {
 			}
 
 			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
-			bool isWinningValue = ttValue <= WINNING_BONUS || ttValue >= WINNING_BONUS;
+			bool isWinningValue = ttValue <= -WINNING_BONUS || ttValue >= WINNING_BONUS;
 			if (searchState != SearchType::PV || isWinningValue) {
 				// keeps the best move for a tt entry, if the search does stay <= alpha
 				bestMove = move;
@@ -308,10 +308,12 @@ namespace ChessSearch {
 				if (searchResult > alpha) {
 					if (!keepBestMoveUnchanged) {
 						bestMove = currentMove;
-						if (remainingDepth > 0 && searchState == SearchType::PV) {
-							pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
+						if (searchState == SearchType::PV) {
+							if (remainingDepth > 0) {
+								pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
+							}
+							pvMovesStore.setMove(ply, bestMove);
 						}
-						pvMovesStore.setMove(ply, bestMove);
 					}
 					if (searchResult < beta) {
 						// Never set alpha > beta, it will harm the PVS algorithm
