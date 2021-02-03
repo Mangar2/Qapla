@@ -133,8 +133,54 @@ namespace ChessEval {
 		};
 		
 		static constexpr value_t outpostValue[2] = { 0, 0 };
-		static constexpr value_t indexToValue[4] = { 0, 0, outpostValue[0], outpostValue[1] };
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };
+
+#ifdef _TEST0 
+		static constexpr value_t outpostValue[2] = { 0, 0 };
+
+#endif
+#ifdef _TEST1 
+		static constexpr value_t outpostValue[2] = { 5, 0 };
+
+#endif
+#ifdef _TEST2 
+		static constexpr value_t outpostValue[2] = { 10, 0 };
+
+#endif
+#ifdef _T3 
+		static constexpr value_t outpostValue[2] = { 15, 0 };
+
+#endif
+#ifdef _T4 		
+		static constexpr value_t outpostValue[2] = { 20, 0 };
+
+#endif
+#ifdef _TEST5
+		static constexpr value_t outpostValue[2] = { 25, 0 };
+
+#endif
+#ifdef _TEST6
+		static constexpr value_t outpostValue[2] = { 30, 0 };
+
+#endif
+#ifdef _TEST7
+		static constexpr value_t outpostValue[2] = { 35, 0 };
+
+#endif
+#ifdef _TEST8
+		static constexpr value_t outpostValue[2] = { 50, 0 };
+
+#endif
+#ifdef _TEST9
+		static constexpr value_t outpostValue[2] = { 10, 10 };
+
+#endif
+#ifdef _TEST10
+		static constexpr value_t outpostValue[2] = { 20, 20 };
+
+#endif
+		static constexpr value_t indexToValue[4] = { 0, 0, outpostValue[0], outpostValue[1] };
+
 
 	};
 }
