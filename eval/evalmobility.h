@@ -33,7 +33,6 @@ namespace ChessEval {
 	struct EvalMobilityValues {
 		const static value_t MOBILITY_VALUE = 2;
 		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 };
-		static constexpr value_t KNIGHT_MOBILITY_MAP[9] = { -30, -20, -10, 0, 10, 20, 25, 25, 25 };
 	};
 
 	class EvalMobility {
@@ -42,8 +41,6 @@ namespace ChessEval {
 		static value_t print(MoveGenerator& board, EvalResults& mobility) {
 			value_t evalValue = eval(board, mobility);
 			printf("Mobility:\n");
-			printf("White Knight        : %ld\n", calcKnightMobility<WHITE>(board, mobility));
-			printf("Black Knight        : %ld\n", -calcKnightMobility<BLACK>(board, mobility));
 			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board, mobility));
 			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board, mobility));
 			printf("Mobility total      : %ld\n", evalValue);
@@ -70,9 +67,6 @@ namespace ChessEval {
 
 			if (evalResults.midgameInPercent > 50) {
 				result["Queen attack"] = evalResults.queenAttackFactor[COLOR];
-				result["Rook attack"] = evalResults.rookAttackFactor[COLOR];
-				result["Bishop attack"] = evalResults.bishopAttackFactor[COLOR];
-				result["Knight attack"] = evalResults.knightAttackFactor[COLOR];
 			}
 			return result;
 		}
@@ -87,7 +81,6 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
 			value_t evalResult = 0;
-			evalResult += calcKnightMobility<COLOR>(board, mobility);
 			evalResult += calcQueenMobility<COLOR>(board, mobility);
 			return evalResult;
 		}
@@ -125,34 +118,7 @@ namespace ChessEval {
 			return result;
 		}
 
-		/**
-		 * Calculates the mobility value for Knights
-		 */
-		template <Piece COLOR>
-		static value_t calcKnightMobility(MoveGenerator& board, EvalResults& mobility)
-		{
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			mobility.knightAttack[COLOR] = 0;
-			mobility.doubleKnightAttack[COLOR] = 0;
-
-			bitBoard_t knights = board.getPieceBB(KNIGHT + COLOR);
-			bitBoard_t no_destination = ~board.getPiecesOfOneColorBB<COLOR>() & ~mobility.pawnAttack[OPPONENT];
-
-			Square departureSquare;
-			value_t result = 0;
-			while (knights)
-			{
-				departureSquare = BitBoardMasks::lsb(knights);
-				knights &= knights - 1;
-				bitBoard_t attack = BitBoardMasks::knightMoves[departureSquare];
-				mobility.doubleKnightAttack[COLOR] |= mobility.knightAttack[COLOR] & attack;
-				mobility.knightAttack[COLOR] |= attack;
-				attack &= no_destination;
-				result += EvalMobilityValues::KNIGHT_MOBILITY_MAP[BitBoardMasks::popCountForSparcelyPopulatedBitBoards(attack)];
-				// mobility.knightAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
-			}
-			return result;
-		}
+		
 	};
 }
 

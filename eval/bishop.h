@@ -56,6 +56,8 @@ namespace ChessEval {
 			uint32_t index = 0;
 			index += hasDoubleBishop(bishops);
 			value = getFromIndexMap(index);
+			if (PRINT && index > 0) cout << colorToString(COLOR) << " double bishop: "
+				<< std::right << std::setw(11) << value << endl;
 
 			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + OPPONENT);
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
@@ -104,22 +106,24 @@ namespace ChessEval {
 			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
 		}
 
+		/**
+		 * Bitmap to white fields, to check if bishops are on opposit colors
+		 */
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
 
-		// Mobility Map for bishops
-		/*
-		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = { 
-			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
-			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 } 
-		};
-		*/
-		
+		/**
+		 * Additional value for two bishops on different colors
+		 */
 		static constexpr value_t doubleBishop[2] = { 20, 10 };
 		static constexpr value_t indexToValue[4] = { 0, 0, doubleBishop[0], doubleBishop[1] };
 
+		/**
+		 * Mobility of a bishop. Having negative values for 0 or 1 fields to move to did not bring ELO
+		 * Still I kept it.
+		 */
 		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
-			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 3, 3 }, { 6, 6 }, { 9, 9 }, { 12, 12 }, { 15, 15 },
-			{ 18, 18 }, { 20, 20 }, { 22, 22 }, { 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }
+			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
 		};
 
 #ifdef _TEST0 

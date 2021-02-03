@@ -33,7 +33,7 @@ using namespace ChessBasics;
 using namespace ChessMoveGenerator;
 
 namespace ChessEval {
-	class Bishop {
+	class Knight {
 	public:
 		template <bool PRINT>
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
@@ -51,16 +51,19 @@ namespace ChessEval {
 			results.knightAttack[COLOR] = 0;
 			results.doubleKnightAttack[COLOR] = 0;
 			bitBoard_t knights = position.getPieceBB(KNIGHT + COLOR);
-			bitBoard_t removeBB = ~(position.getPiecesOfOneColorBB<COLOR>() & results.pawnAttack[OPPONENT]);
+			bitBoard_t removeBB = ~position.getPiecesOfOneColorBB<COLOR>() & ~results.pawnAttack[OPPONENT];
 
 			while (knights)
 			{
+
 				const Square knightSquare = BitBoardMasks::lsb(knights);
 				knights &= knights - 1;
-				calcMobility<COLOR, PRINT>(results, knightSquare, removeBB);
+				value += calcMobility<COLOR, PRINT>(results, knightSquare, removeBB);
+				value += calcPropertyValue<COLOR, PRINT>(position, results, knightSquare);
+				if (PRINT) cout << endl;
 			}
 
-			if (PRINT) cout << endl 
+			if (PRINT) cout  
 				<< colorToString(COLOR) << " knights: " 
 				<< std::right << std::setw(18) << value << endl;
 			return value;
@@ -73,9 +76,9 @@ namespace ChessEval {
 		static EvalValue calcMobility(
 			EvalResults& results, Square square, bitBoard_t removeBB)
 		{
-			bitBoard_t attackBB = BitBoardMasks::knightMoves[departureSquare];
-			mobility.doubleKnightAttack[COLOR] |= mobility.knightAttack[COLOR] & attackBB;
-			mobility.knightAttack[COLOR] |= attackBB;
+			bitBoard_t attackBB = BitBoardMasks::knightMoves[square];
+			results.doubleKnightAttack[COLOR] |= results.knightAttack[COLOR] & attackBB;
+			results.knightAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
 			const EvalValue value = KNIGHT_MOBILITY_MAP[BitBoardMasks::popCountForSparcelyPopulatedBitBoards(attackBB)];
 			if (PRINT) cout << colorToString(COLOR)
@@ -89,7 +92,7 @@ namespace ChessEval {
 		 * and not attackable by a pawn
 		 */
 		template<Piece COLOR, bool PRINT>
-		bool isOutpost(Square square, bitBoard_t opponentPawnsBB, const EvalResults& results) {
+		static inline bool isOutpost(Square square, bitBoard_t opponentPawnsBB, const EvalResults& results) {
 			bool result = false;
 			bitBoard_t knightBB = 1ULL << square;
 			bool isProtectedByPawnAndInOpponentArea =
@@ -100,6 +103,20 @@ namespace ChessEval {
 			}
 			if (PRINT && result) cout << "<otp>";
 			return false;
+		}
+
+		/**
+		 * Calculates properties and their Values for Knights
+		 */
+		template<Piece COLOR, bool PRINT>
+		static inline EvalValue calcPropertyValue(const MoveGenerator& position, EvalResults& results,
+			Square knightSquare)
+		{
+			uint16_t knightIndex = 0;
+			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
+			const bitBoard_t opponentPawnBB = position.getPieceBB(PAWN + OPPONENT);
+			knightIndex += isOutpost<COLOR, PRINT>(knightSquare, opponentPawnBB, results);
+			return getFromIndexMap(knightIndex);
 		}
 
 		/**
