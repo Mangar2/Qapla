@@ -114,11 +114,11 @@ namespace ChessEval {
 		};
 		*/
 		
-		static constexpr value_t doubleBishop[2] = { 40, 25 };
+		static constexpr value_t doubleBishop[2] = { 20, 10 };
 		static constexpr value_t indexToValue[4] = { 0, 0, doubleBishop[0], doubleBishop[1] };
 
 		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
-			{ -30, -30 }, { -15, -15 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
+			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 10, 10 }, { 15, 15 }, { 20, 20 }, { 22, 22 },
 			{ 24, 24 }, { 26, 26 }, { 28, 28 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }
 		};
 
