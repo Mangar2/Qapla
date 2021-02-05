@@ -69,14 +69,15 @@ namespace ChessSearch {
 		 * Searches the best move by iteratively deepening the search depth
 		 */
 		void searchByIterativeDeepening(
-			const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory)
+			const MoveGenerator& position, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory)
 		{
 
-			MoveGenerator searchBoard = board;
+			MoveGenerator searchBoard = position;
 			computingInfo._timeControl.storeStartTime();
 			clockManager.startCalculatingMove(60, clockSetting);
 			computingInfo.initSearch();
 			aspirationWindow.initSearch();
+			search.startNewSearch(searchBoard);
 
 			uint32_t curDepth;
 			uint32_t maxDepth = MAX_SEARCH_DEPTH;
@@ -89,7 +90,7 @@ namespace ChessSearch {
 				tt.setNextSearch();
 			}
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\x64\\Debug\\tt.bin");
-			moveHistory.setDrawPositionsToHash(board, tt);
+			moveHistory.setDrawPositionsToHash(position, tt);
 
 			if (clockSetting.getSearchDepthLimit() > 0) {
 				maxDepth = clockSetting.getSearchDepthLimit();
@@ -135,11 +136,11 @@ namespace ChessSearch {
 		/**
 		 * Searches one iteration - at constant search depth using an aspiration window
 		 */
-		void searchOneIteration(MoveGenerator& board, ComputingInfo& computingInfo, uint32_t searchDepth)
+		void searchOneIteration(MoveGenerator& position, ComputingInfo& computingInfo, uint32_t searchDepth)
 		{
 			SearchStack stack(&tt);
 			do {
-				stack.initSearch(board, aspirationWindow.alpha, aspirationWindow.beta, searchDepth);
+				stack.initSearch(position, aspirationWindow.alpha, aspirationWindow.beta, searchDepth);
 				if (searchDepth != 0) {
 					stack.setPV(computingInfo._pvMovesStore);
 				}
@@ -147,7 +148,7 @@ namespace ChessSearch {
 				computingInfo._pvMovesStore.setMove(1, Move::EMPTY_MOVE);
 
 				computingInfo._searchDepth = searchDepth;
-				search.searchRec(board, stack, computingInfo, clockManager);
+				search.searchRec(position, stack, computingInfo, clockManager);
 			} while (!clockManager.mustAbortCalculation(0) && aspirationWindow.retryWithNewWindow(computingInfo));
 			computingInfo.printSearchResult();
 		}
@@ -165,9 +166,10 @@ namespace ChessSearch {
 	 * Call this function to search
 	 */
 	static void searchByInterativeDeepening(
-		const MoveGenerator& board, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory) {
+		const MoveGenerator& position, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory) 
+	{
 		IterativeDeepening iterativeDeepening;
-		iterativeDeepening.searchByIterativeDeepening(board, clockSetting, computingInfo, moveHistory);
+		iterativeDeepening.searchByIterativeDeepening(position, clockSetting, computingInfo, moveHistory);
 	}
 
 }

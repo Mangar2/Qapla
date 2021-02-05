@@ -18,6 +18,7 @@
  */
 
 #include "rootmoves.h"
+#include "moveprovider.h"
 
 using namespace ChessSearch;
 
@@ -47,9 +48,8 @@ void RootMove::set(const SearchVariables& variables, uint64_t totalNodes, uint64
 	_alphaOfLastSearch = variables.alpha;
 	_betaOfLastSearch = variables.beta;
 	// _pvDepthOfLastSearch = variables.isInPV()
+	_depthOfLastSearch = variables.remainingDepth;
 }
-
-
 
 bool RootMove::doSearch(const SearchVariables& variables) const {
 	if (_isExcluded) {
@@ -73,5 +73,43 @@ bool RootMove::operator<(const RootMove& rootMove) const {
 
 bool RootMove::operator>(const RootMove& rootMove) const {
 
+}
+
+int32_t RootMoves::findMove(Move move) const {
+	int32_t result = -1;
+	for (int32_t i = 0; i < _moves.size(); ++i) {
+		if (_moves[i].getMove() == move) {
+			result = i;
+			break;
+		}
+	}
+	return result;
+}
+
+void RootMoves::setMoves(MoveGenerator& position) {
+	MoveProvider moveProvider;
+	moveProvider.computeMoves(position, Move::EMPTY_MOVE);
+	_moves.clear();
+	Move move;
+	while (!(move = moveProvider.selectNextMove(position)).isEmpty()) {
+		RootMove rootMove;
+		rootMove.setMove(move);
+		_moves.push_back(rootMove);
+	}
+}
+
+void RootMoves::bubbleSort(uint32_t first) {
+	uint32_t last = uint32_t(_moves.size()) - 1;
+
+	for (uint32_t i = first; i < last; ++i)
+	{
+		for (uint32_t j = last; j > i; --j)
+		{
+			if (_moves[j] > _moves[j-1])
+			{
+				std::swap(_moves[j], _moves[j - 1]);
+			}
+		}
+	}
 }
 

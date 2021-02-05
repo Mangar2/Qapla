@@ -22,11 +22,12 @@
 #ifndef __ROOTMOVES_H
 #define __ROOTMOVES_H
 
-#include <array>
+#include <vector>
 #include <string>
 #include "searchdef.h"
 #include "../basics/move.h"
 #include "../basics/evalvalue.h"
+#include "../movegenerator/movegenerator.h"
 #include "pv.h"
 #include "searchvariables.h"
 
@@ -38,13 +39,19 @@ namespace ChessSearch {
 	class RootMove
 	{
 	public:
-		RootMove() {}
+		RootMove() { init(); }
 
 		bool operator<(const RootMove& rootMove) const;
 		bool operator>(const RootMove& rootMove) const;
 
 		// Initializes all members
 		void init();
+
+		/**
+		 * Chess move
+		 */
+		void setMove(Move move) { _move = move; }
+		Move getMove() const { return _move; }
 
 		/**
 		 * @returns true, if the move is calculated as PV move
@@ -90,6 +97,28 @@ namespace ChessSearch {
 
 		bool _isExcluded;
 
+	};
+
+	class RootMoves {
+	public:
+		/**
+		 * Searches for a move in the root move list
+		 * @returns -1, if not found, else the position of the move
+		 */
+		int32_t findMove(Move move) const;
+
+		/**
+		 * Sets all moves
+		 */
+		void setMoves(MoveGenerator& position);
+
+		/**
+		 * Stable sort algorithm sorting all moves from first to last
+		 * @param first first move to consider, do not touch moves in front of first
+		 */
+		void bubbleSort(uint32_t first);
+	private:
+		vector<RootMove> _moves;
 	};
 
 

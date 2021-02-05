@@ -26,10 +26,11 @@
 #include "../movegenerator/movegenerator.h"
 #include "computinginfo.h"
 #include "clockmanager.h"
-#include "SearchStack.h"
+#include "searchstack.h"
+#include "rootmoves.h"
 #include "../eval/eval.h"
-#include "QuiescenceSearch.h"
-#include "ClockManager.h"
+#include "quiescencesearch.h"
+#include "clockmanager.h"
 #include "tt.h"
 #include "whatif.h"
  // #include "razoring.h"
@@ -43,6 +44,13 @@ namespace ChessSearch {
 	class Search {
 	public:
 		Search() {}
+
+		/**
+		 * Starts a new search
+		 */
+		void startNewSearch(MoveGenerator& position) {
+			_rootMoves.setMoves(position);
+		}
 
 		value_t searchRec(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager);
 
@@ -176,9 +184,12 @@ namespace ChessSearch {
 		 */
 		value_t negaMax(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
 
+
+
 		Eval eval;
 		ComputingInfo* _computingInfo;
 		ClockManager* _clockManager;
+		RootMoves _rootMoves;
 	};
 }
 

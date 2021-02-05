@@ -212,7 +212,7 @@ namespace ChessSearch {
 		 * Generates all moves in the current position
 		 */
 		void computeMoves(MoveGenerator& board) {
-			moveProvider.computeMoves(board, previousMove, remainingDepth);
+			moveProvider.computeMoves(board, previousMove);
 			bestValue = moveProvider.checkForGameEnd(board, ply);
 		}
 

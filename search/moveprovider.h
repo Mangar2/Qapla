@@ -105,13 +105,12 @@ namespace ChessSearch {
 		/**
 		 * Initializes the move provider to provide all moves in a sorted order
 		 */
-		inline void computeMoves(MoveGenerator& board, Move previousPlyMove, ply_t remainingSearchDepth) {
+		inline void computeMoves(MoveGenerator& board, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			board.genMovesOfMovingColor(moveList);
 			selectStage = MoveType::PV;
 			curMoveNo = 0;
 			triedMovesAmount = 0;
-			remainingDepth = remainingSearchDepth;
 			if (pvMove.isEmpty() && hashMove.isEmpty()) {
 				++selectStage;
 			}
@@ -377,7 +376,6 @@ namespace ChessSearch {
 		MoveType selectStage;
 		MoveType currentStage;
 		uint32_t curMoveNo;
-		ply_t remainingDepth;
 		Move pvMove;
 		Move hashMove;
 		Move previousMove;
