@@ -102,7 +102,7 @@ namespace ChessEval {
 				result = (opponentPawnCheckBB & opponentPawnsBB) == 0;
 			}
 			if (PRINT && result) cout << "<otp>";
-			return false;
+			return result;
 		}
 
 		/**
