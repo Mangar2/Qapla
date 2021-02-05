@@ -280,7 +280,7 @@ namespace ChessSearch {
 				return moveProvider.getCurrentMove();
 				assert(!move.isEmpty());
 			}
-			if (searchState == SearchType::PV && (moveProvider.getTriedMovesAmount() > 0)) {
+			if (searchState == SearchType::PV && (moveProvider.getTriedMovesAmount() > 0) && remainingDepth >= 2) {
 				setNullWindowSearch();
 			}
 			move = moveProvider.selectNextMove(board);
