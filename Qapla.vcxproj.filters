@@ -111,6 +111,9 @@
     <ClCompile Include="eval\eval.cpp">
       <Filter>eval</Filter>
     </ClCompile>
+    <ClCompile Include="search\rootmoves.cpp">
+      <Filter>search</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">
@@ -156,9 +159,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\clockmanager.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\pv.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\moveprovider.h">
@@ -328,6 +328,12 @@
     </ClInclude>
     <ClInclude Include="eval\knight.h">
       <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="search\rootmoves.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\pv.h">
+      <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
