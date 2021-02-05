@@ -132,7 +132,7 @@ namespace ChessEval {
 			{ 25, 25 }, { 25, 25 }, { 25, 25 }
 		};
 		
-		static constexpr value_t outpostValue[2] = { 0, 0 };
+		static constexpr value_t outpostValue[2] = { 30, 0 };
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };
 
 #ifdef _TEST0 
