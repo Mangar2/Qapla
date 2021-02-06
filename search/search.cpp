@@ -1,4 +1,4 @@
-/**
+ï»¿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  */
 
 #include "search.h"
@@ -51,6 +51,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move p
 			searchResult = -negaMaxLastPlys(board, stack, curMove, ply + 1);
 			searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
 			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
+			if (searchInfo.isFailHigh()) break;
 
 		}
 	}
@@ -91,9 +92,8 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 			}
 
 			searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
-
 			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
-
+			if (searchInfo.isFailHigh()) break;
 		}
 	}
 
@@ -110,15 +110,22 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 
 	SearchVariables& searchInfo = stack[0];
 	value_t searchResult;
+	RootMove rootMove;
 
 	searchInfo.computeMoves(board);
 
 	_computingInfo->_totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
 	_computingInfo->_currentConcideredMove.setEmpty();
+	_rootMoves.print();
 
-	for (auto& rootMove : _rootMoves.getMoves()) {
-		const Move curMove = rootMove.getMove();
-		_computingInfo->_currentConcideredMove = curMove;
+	for (size_t triedMoves = 0;;) {
+		bool research = searchInfo.updateSearchType(uint32_t(triedMoves));
+		if (!research) {
+			if (triedMoves >= _rootMoves.getMoves().size()) break;
+			rootMove = _rootMoves.getMoves()[triedMoves];
+			triedMoves++;
+		}
+		const Move curMove = _computingInfo->_currentConcideredMove = rootMove.getMove();
 
 		if (searchInfo.remainingDepth > 2) {
 			searchResult = -negaMax(board, stack, curMove, 1);
@@ -136,13 +143,12 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 
 		WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, 0);
 		updateThinkingInfoPly0(stack); 
-
+		if (searchInfo.isFailHigh()) break;
 	}
 
 	searchInfo.terminatePly(board);
 	_computingInfo->printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	_rootMoves.bubbleSort(0);
-	_rootMoves.print();
 	return searchInfo.bestValue;
 
 }

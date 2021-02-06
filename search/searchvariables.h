@@ -186,6 +186,8 @@ namespace ChessSearch {
 			cutoff = cutoffType;
 		}
 
+		inline bool isFailHigh() { return bestValue >= betaAtPlyStart; }
+
 
 		/**
 		 * Extend the current search
@@ -275,21 +277,23 @@ namespace ChessSearch {
 		/**
 		 * Selects the next move to try
 		 */
-		Move selectNextMove(MoveGenerator& board) {
-			Move move;
-			if (bestValue >= betaAtPlyStart) {
-				return move;
-			}
+		inline bool updateSearchType(uint32_t moveNo) {
 			if (searchState == SearchType::NULL_WINDOW && currentValue >= beta) {
 				setResearchWithPVWindow();
-				return moveProvider.getCurrentMove();
-				assert(!move.isEmpty());
+				return true;
 			}
-			if (isPVSearch() && (moveProvider.getTriedMovesAmount() > 0) && remainingDepth >= 2) {
+			if (isPVSearch() && (moveNo > 0) && remainingDepth >= 2) {
 				setNullWindowSearch();
 			}
-			move = moveProvider.selectNextMove(board);
-			return move;
+			return false;
+		}
+
+		/**
+		 * Selects the next move to try
+		 */
+		inline Move selectNextMove(MoveGenerator& board) {
+			bool research = updateSearchType(moveProvider.getTriedMovesAmount());
+			return research ? moveProvider.getCurrentMove() : moveProvider.selectNextMove(board);
 		}
 
 		/**
