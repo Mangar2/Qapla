@@ -116,7 +116,6 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 
 	_computingInfo->_totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
 	_computingInfo->_currentConcideredMove.setEmpty();
-	_rootMoves.print();
 
 	for (size_t triedMoves = 0;;) {
 		bool research = searchInfo.updateSearchType(uint32_t(triedMoves));
