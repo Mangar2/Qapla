@@ -63,7 +63,7 @@ namespace ChessBitbase {
 		bool getBit(uint64_t index) const {
 			bool result = false;
 			if (loaded && index < _sizeInBit) {
-				result = (_bitbase[index / BITS_IN_ELEMENT] & 1UL << (index % BITS_IN_ELEMENT)) != 0;
+				result = (_bitbase[index / BITS_IN_ELEMENT] & (1UL << (index % BITS_IN_ELEMENT))) != 0;
 			}
 			return result;
 		}

@@ -1518,6 +1518,7 @@
     <ClInclude Include="basics\piecesignature.h" />
     <ClInclude Include="basics\types.h" />
     <ClInclude Include="bitbase\bitbase.h" />
+    <ClInclude Include="bitbase\bitbasegenerator.h" />
     <ClInclude Include="bitbase\bitbaseindex.h" />
     <ClInclude Include="bitbase\bitbasereader.h" />
     <ClInclude Include="bitbase\boardaccess.h" />

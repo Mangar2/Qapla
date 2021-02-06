@@ -69,7 +69,7 @@ namespace ChessEval {
 		 * @returns true, if the square is set in the bitmask
 		 */
 		template <Piece COLOR>
-		inline bool isSquareInBitMask(Square square, bitBoard_t mask) {
+		inline static bool isSquareInBitMask(Square square, bitBoard_t mask) {
 			if (COLOR == BLACK) {
 				// mapping the colum of a position keeping the row (example B6 will become B2)
 				square ^= 0x38;
@@ -174,9 +174,6 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		inline static bool isSquareInBB(Square position, bitBoard_t mask);
-
-		template <Piece COLOR>
-		static value_t getValueFromBitbase(uint64_t index, const Bitbase& _bitbase, value_t currentValue);
 
 		/**
 		 * Static loopup tables initializer

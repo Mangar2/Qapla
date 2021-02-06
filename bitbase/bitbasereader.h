@@ -79,6 +79,9 @@ namespace ChessBitbase {
 			return result;
 		}
 
+		/**
+		 * Reads a value from bitboard having the board and a current value
+		 */
 		static const value_t getValueFromBitbase(MoveGenerator& board, value_t currentValue) {
 			PieceSignature signature = PieceSignature(board.getPiecesSignature());
 			value_t result = getValueFromBitbase(board, signature, currentValue);

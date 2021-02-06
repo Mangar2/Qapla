@@ -167,11 +167,7 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 
 	if ((pawns & (pawns - 1)) == 0) {
-		result = getValueFromBitbase<COLOR>(
-			COLOR == WHITE ? BitbaseIndex::kpkIndex(board) : BitbaseIndex::kkpIndex(board),
-			BitbaseReader::kpk,
-			result
-			);
+		result = BitbaseReader::getValueFromBitbase(board, currentValue);
 	}
 	else {
 
@@ -344,13 +340,6 @@ inline bool EvalEndgame::isSquareInBB(Square square, bitBoard_t mask) {
 	}
 	bitBoard_t positionMask = 1ULL << shift;
 	return (mask & positionMask) != 0;
-}
-
-template <Piece COLOR>
-value_t EvalEndgame::getValueFromBitbase(uint64_t index, const Bitbase& _bitbase, value_t currentValue) {
-	bool wins = _bitbase.getBit(index);
-	value_t result = wins ? currentValue + BONUS[COLOR] : DRAW_VALUE;
-	return result;
 }
 
 value_t EvalEndgame::computeDistance(Square square1, Square square2) {

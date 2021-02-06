@@ -309,10 +309,10 @@ namespace ChessBitbase {
 		void computeKingIndex(bool wtm, Square whiteKingSquare, Square blackKingSquare, bool hasPawn) {
 			uint32_t kingIndexNotShrinkedBySymetries = whiteKingSquare + blackKingSquare * BOARD_SIZE;
 			if (hasPawn) {
-				_sizeInBit += mapTwoKingsToIndexWithPawn[kingIndexNotShrinkedBySymetries] * COLOR_AMOUNT;
+				_index += mapTwoKingsToIndexWithPawn[kingIndexNotShrinkedBySymetries] * COLOR_AMOUNT;
 			}
 			else {
-				_sizeInBit += mapTwoKingsToIndexWithoutPawn[kingIndexNotShrinkedBySymetries] * COLOR_AMOUNT;
+				_index += mapTwoKingsToIndexWithoutPawn[kingIndexNotShrinkedBySymetries] * COLOR_AMOUNT;
 			}
 			_sizeInBit *= hasPawn ? AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN : AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
 		}

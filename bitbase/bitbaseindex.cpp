@@ -25,6 +25,7 @@ array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithPawn
 array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithoutPawn;
 array<uint32_t, BitbaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN> BitbaseIndex::mapIndexToKingSquaresWithPawn;
 array<uint32_t, BitbaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> BitbaseIndex::mapIndexToKingSquaresWithoutPawn;
+BitbaseIndex::InitStatic BitbaseIndex::_staticConstructor;
 
 /**
  * Checks, if two squares are adjacent
