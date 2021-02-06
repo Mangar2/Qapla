@@ -411,6 +411,7 @@ namespace ChessSearch {
 		bool sideToMoveIsInCheck;
 		bool keepBestMoveUnchanged;
 
+
 		Cutoff cutoff;
 		mutex mtxSearchResult;
 		MoveProvider moveProvider;

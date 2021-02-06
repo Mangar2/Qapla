@@ -110,16 +110,14 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 
 	SearchVariables& searchInfo = stack[0];
 	value_t searchResult;
-	Move curMove;
 
 	searchInfo.computeMoves(board);
 
 	_computingInfo->_totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
 	_computingInfo->_currentConcideredMove.setEmpty();
 
-	// for (auto& rootMove : _rootMoves.getMoves()) {
-	while (!(curMove = searchInfo.selectNextMove(board)).isEmpty()) {
-
+	for (auto& rootMove : _rootMoves.getMoves()) {
+		const Move curMove = rootMove.getMove();
 		_computingInfo->_currentConcideredMove = curMove;
 
 		if (searchInfo.remainingDepth > 2) {
@@ -133,7 +131,7 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 			break;
 		}
 
-		_rootMoves.findMove(curMove).set(searchResult, stack);
+		rootMove.set(searchResult, stack);
 		searchInfo.setSearchResult(searchResult, stack[1], curMove);
 
 		WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, 0);
