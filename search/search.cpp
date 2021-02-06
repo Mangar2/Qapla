@@ -133,8 +133,8 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 			break;
 		}
 
+		_rootMoves.findMove(curMove).set(searchResult, stack);
 		searchInfo.setSearchResult(searchResult, stack[1], curMove);
-		_rootMoves.findMove(curMove).set(stack[1]);
 
 		WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, 0);
 		updateThinkingInfoPly0(stack); 
@@ -143,6 +143,8 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 
 	searchInfo.terminatePly(board);
 	_computingInfo->printSearchInfo(_clockManager->isTimeToSendNextInfo());
+	_rootMoves.bubbleSort(0);
+	_rootMoves.print();
 	return searchInfo.bestValue;
 
 }

@@ -27,30 +27,31 @@ void RootMove::init() {
 
 	_alphaOfLastSearch = -MAX_VALUE;
 	_betaOfLastSearch = MAX_VALUE;
-
-	_pvDepthOfLastSearch = 0;
 	_depthOfLastSearch = 0;
+	_isPVSearched = false;
 
 	_nodeCountOfLastSearch = 0;
 	_totalNodeCount = 0;
 	_totalTableBaseHits = 0;
 	_totalBitbaseHits = 0;
 	_timeSpendToSearchMoveInMilliseconds = 0;
-
+	
 	_pvString = "";
 	_isExcluded = false;
 }
 
-void RootMove::set(const SearchVariables& variables)
+void RootMove::set(value_t searchResult, const SearchStack& stack)
 {
-	_valueOfLastSearch = variables.bestValue;
-	_alphaOfLastSearch = variables.alpha;
-	_betaOfLastSearch = variables.beta;
-	if (variables.isPVSearch()) {
-
+	_valueOfLastSearch = searchResult;
+	_alphaOfLastSearch = stack[0].alpha;
+	_betaOfLastSearch = stack[0].beta;
+	_isPVSearched = stack[0].isPVSearch();
+	_depthOfLastSearch = stack[0].remainingDepth;
+	_pvLine.setMove(1, Move::EMPTY_MOVE);
+	if (_isPVSearched) {
+		_pvLine.copyFromPV(stack[1].pvMovesStore, 1);
 	}
-	// _pvDepthOfLastSearch = variables.isInPV()
-	_depthOfLastSearch = variables.remainingDepth;
+	_pvLine.setMove(0, _move);
 }
 
 bool RootMove::doSearch(const SearchVariables& variables) const {
@@ -70,12 +71,28 @@ bool RootMove::doSearch(const SearchVariables& variables) const {
 	return false;
 }
 
-bool RootMove::operator<(const RootMove& rootMove) const {
-	return false;
+bool RootMove::operator<(const RootMove& other) const {
+	if (_depthOfLastSearch != other._depthOfLastSearch) {
+		return _depthOfLastSearch < other._depthOfLastSearch;
+	}
+	if (!other.isPVSearched()) return false;
+	if (!isPVSearched()) return true;
+
+	if (other.isFailLow()) return false;
+	if (isFailLow()) return true;
+
+	return _valueOfLastSearch < other._valueOfLastSearch;
 }
 
-bool RootMove::operator>(const RootMove& rootMove) const {
-	return false;
+void RootMove::print() const {
+	cout << _move.getLAN()
+		<< " [v:" << std::right << std::setw(5) << _valueOfLastSearch << "]"
+		<< " [d:" << std::right << std::setw(2) << _depthOfLastSearch << "]"
+		<< " [" << std::right << std::setw(5) << _alphaOfLastSearch << ", " 
+		<< std::right << std::setw(5) << _betaOfLastSearch << "]"
+		<< (isPVSearched() ? " [PV]" : "     ")
+		<< " " << _pvLine.toString()
+		<< endl;
 }
 
 RootMove& RootMoves::findMove(Move move) {
@@ -109,11 +126,17 @@ void RootMoves::bubbleSort(uint32_t first) {
 	{
 		for (uint32_t j = last; j > i; --j)
 		{
-			if (_moves[j] > _moves[j-1])
+			if (_moves[j - 1] < _moves[j])
 			{
 				std::swap(_moves[j], _moves[j - 1]);
 			}
 		}
+	}
+}
+
+void RootMoves::print() {
+	for (auto& move : _moves) {
+		move.print();
 	}
 }
 

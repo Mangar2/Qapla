@@ -29,7 +29,7 @@
 #include "../basics/evalvalue.h"
 #include "../movegenerator/movegenerator.h"
 #include "pv.h"
-#include "searchvariables.h"
+#include "searchstack.h"
 
 using namespace std;
 using namespace ChessBasics;
@@ -41,8 +41,13 @@ namespace ChessSearch {
 	public:
 		RootMove() { init(); }
 
+		/**
+		 * A root move is smaller that another
+		 * If it is searched with "PV" and the other is not
+		 * If both are searched with PV: if it failed low and the other did not
+		 * If both are searched with PV and not failed low: the one with the least value
+		 */
 		bool operator<(const RootMove& rootMove) const;
-		bool operator>(const RootMove& rootMove) const;
 
 		// Initializes all members
 		void init();
@@ -54,17 +59,17 @@ namespace ChessSearch {
 		Move getMove() const { return _move; }
 
 		/**
-		 * @returns true, if the move is calculated as PV move
+		 * @returns true, if the search was a PV search
 		 */
-		bool IsPV() const
-		{
-			return _pvDepthOfLastSearch == _depthOfLastSearch;
-		}
+		bool isPVSearched() const { return _isPVSearched; }
+
+		bool isFailLow() const { return _valueOfLastSearch <= _alphaOfLastSearch; }
+		bool isFailHigh() const { return _valueOfLastSearch >= _betaOfLastSearch; }
 
 		/**
 		 * Sets results after the search of a move is finished
 		 */
-		void set(const SearchVariables& variables);
+		void set(value_t searchResult, const SearchStack& stack);
 
 		/**
  		 * Checks, if we need to research this root move.
@@ -74,6 +79,11 @@ namespace ChessSearch {
 		 * @returns true, if we need to search this root move
 		 */ 
 		bool doSearch(const SearchVariables& variables) const;
+
+		/**
+		 * Print the move (used for debugging)
+	     */
+		void print() const;
 	private:
 		Move _move;
 
@@ -82,7 +92,7 @@ namespace ChessSearch {
 		value_t _alphaOfLastSearch;
 		value_t _betaOfLastSearch;
 
-		ply_t _pvDepthOfLastSearch;
+		bool _isPVSearched;
 		ply_t _depthOfLastSearch;
 
 		uint64_t _nodeCountOfLastSearch;
@@ -121,6 +131,11 @@ namespace ChessSearch {
 		 * Gets an iterator to iterate through the moves
 		 */
 		vector<RootMove>& getMoves() { return _moves; }
+
+		/**
+		 * Print the root moves (used for debugging)
+		 */
+		void print();
 	private:
 		vector<RootMove> _moves;
 	};

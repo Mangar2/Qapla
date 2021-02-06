@@ -104,7 +104,7 @@ namespace ChessSearch {
 		void printSearchResult()
 		{
 			MoveStringList primaryVariant;
-			for (uint8_t ply = 0; ply <= _searchDepth; ply++) {
+			for (uint8_t ply = 0; ply < _pvMovesStore.MAX_PV_LENGTH; ply++) {
 				Move move = _pvMovesStore.getMove(ply);
 				if (move == Move::EMPTY_MOVE) {
 					break;

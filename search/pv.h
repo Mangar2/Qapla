@@ -24,6 +24,7 @@
 #define __PV_H
 
 #include <array>
+#include <string>
 #include "searchdef.h"
 #include "../basics/move.h"
 
@@ -33,11 +34,9 @@ using namespace ChessBasics;
 namespace ChessSearch {
 	class PV
 	{
-	private:
-		static const uint8_t MAX_PV_LENGTH = 25;
 
 	public:
-
+		static const uint8_t MAX_PV_LENGTH = 25;
 		typedef uint32_t pvIndex_t;
 
 		PV() { clear(); }
@@ -121,6 +120,19 @@ namespace ChessSearch {
 			if (ply < MAX_PV_LENGTH) {
 				movesStore[ply].setEmpty();
 			}
+		}
+
+		/**
+		 * Gets the PV as string
+		 */
+		string toString() const {
+			string result;
+			string spacer = "";
+			for (ply_t ply = 0; ply < MAX_PV_LENGTH && !movesStore[ply].isEmpty(); ply++) {
+				result += spacer + movesStore[ply].getLAN();
+				spacer = " ";
+			}
+			return result;
 		}
 
 		/**
