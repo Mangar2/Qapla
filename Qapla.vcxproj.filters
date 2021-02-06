@@ -170,9 +170,6 @@
     <ClInclude Include="basics\materialbalance.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="search\searchstack.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="search\computinginfo.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -333,6 +330,9 @@
       <Filter>search</Filter>
     </ClInclude>
     <ClInclude Include="search\moveprovider.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchstack.h">
       <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>

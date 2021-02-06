@@ -41,12 +41,14 @@ void RootMove::init() {
 	_isExcluded = false;
 }
 
-void RootMove::set(const SearchVariables& variables, uint64_t totalNodes, uint64_t tableBaseHits,
-	uint64_t timeSpentInMilliseconds, const string& pvString, const PV& pvLine)
+void RootMove::set(const SearchVariables& variables)
 {
 	_valueOfLastSearch = variables.bestValue;
 	_alphaOfLastSearch = variables.alpha;
 	_betaOfLastSearch = variables.beta;
+	if (variables.isPVSearch()) {
+
+	}
 	// _pvDepthOfLastSearch = variables.isInPV()
 	_depthOfLastSearch = variables.remainingDepth;
 }
@@ -69,13 +71,14 @@ bool RootMove::doSearch(const SearchVariables& variables) const {
 }
 
 bool RootMove::operator<(const RootMove& rootMove) const {
+	return false;
 }
 
 bool RootMove::operator>(const RootMove& rootMove) const {
-
+	return false;
 }
 
-int32_t RootMoves::findMove(Move move) const {
+RootMove& RootMoves::findMove(Move move) {
 	int32_t result = -1;
 	for (int32_t i = 0; i < _moves.size(); ++i) {
 		if (_moves[i].getMove() == move) {
@@ -83,11 +86,12 @@ int32_t RootMoves::findMove(Move move) const {
 			break;
 		}
 	}
-	return result;
+	return _moves[result];
 }
 
 void RootMoves::setMoves(MoveGenerator& position) {
 	MoveProvider moveProvider;
+	position.computeAttackMasksForBothColors();
 	moveProvider.computeMoves(position, Move::EMPTY_MOVE);
 	_moves.clear();
 	Move move;

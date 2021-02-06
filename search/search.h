@@ -52,7 +52,7 @@ namespace ChessSearch {
 			_rootMoves.setMoves(position);
 		}
 
-		value_t searchRec(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager);
+		value_t searchRoot(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager);
 
 	private:
 
@@ -138,7 +138,7 @@ namespace ChessSearch {
 			else if (ply + searchInfo.remainingDepth < 3) {
 				result = false;
 			}
-			else if (searchInfo.isInPV()) {
+			else if (searchInfo.isPVSearch()) {
 				result = false;
 			}
 

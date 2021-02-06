@@ -103,7 +103,7 @@ value_t Search::negaMax(MoveGenerator& board, SearchStack& stack, Move previousP
 
 }
 
-value_t Search::searchRec(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager) {
+value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager) {
 	_computingInfo = &computingInfo;
 	_clockManager = &clockManager;
 	board.computeAttackMasksForBothColors();
@@ -117,6 +117,7 @@ value_t Search::searchRec(MoveGenerator& board, SearchStack& stack, ComputingInf
 	_computingInfo->_totalAmountOfMovesToConcider = stack[0].moveProvider.getTotalMoveAmount();
 	_computingInfo->_currentConcideredMove.setEmpty();
 
+	// for (auto& rootMove : _rootMoves.getMoves()) {
 	while (!(curMove = searchInfo.selectNextMove(board)).isEmpty()) {
 
 		_computingInfo->_currentConcideredMove = curMove;
@@ -133,6 +134,7 @@ value_t Search::searchRec(MoveGenerator& board, SearchStack& stack, ComputingInf
 		}
 
 		searchInfo.setSearchResult(searchResult, stack[1], curMove);
+		_rootMoves.findMove(curMove).set(stack[1]);
 
 		WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, 0);
 		updateThinkingInfoPly0(stack); 

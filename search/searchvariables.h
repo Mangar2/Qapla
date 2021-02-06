@@ -61,6 +61,11 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * @returns true, if the current search is a PV search
+		 */
+		inline bool isPVSearch() const { return searchState == SearchType::PV; }
+
+		/**
 		 * Selectes the first search state (IID, PV, NORMAL)
 		 */
 		void selectFirstSearchState() {
@@ -154,7 +159,7 @@ namespace ChessSearch {
 
 			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
 			bool isWinningValue = ttValue <= -WINNING_BONUS || ttValue >= WINNING_BONUS;
-			if (searchState != SearchType::PV || isWinningValue) {
+			if (!isPVSearch() || isWinningValue) {
 				// keeps the best move for a tt entry, if the search does stay <= alpha
 				bestMove = move;
 				if (ttValue != NO_VALUE) {
@@ -195,7 +200,7 @@ namespace ChessSearch {
 		 */
 		inline bool futility(MoveGenerator& board) {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
-			if (searchState == SearchType::PV) return false;
+			if (isPVSearch()) return false;
 
 			eval = Eval::eval(board);
 			if (!board.isWhiteToMove()) {
@@ -222,7 +227,7 @@ namespace ChessSearch {
 		bool doIID() {
 			return false;
 			bool result = false;
-			if (remainingDepth > 4 * ONE_PLY && moveProvider.getTTMove() == 0 && searchState == SearchType::PV) {
+			if (remainingDepth > 4 * ONE_PLY && moveProvider.getTTMove() == 0 && isPVSearch()) {
 				result = true;
 			}
 		}
@@ -280,7 +285,7 @@ namespace ChessSearch {
 				return moveProvider.getCurrentMove();
 				assert(!move.isEmpty());
 			}
-			if (searchState == SearchType::PV && (moveProvider.getTriedMovesAmount() > 0) && remainingDepth >= 2) {
+			if (isPVSearch() && (moveProvider.getTriedMovesAmount() > 0) && remainingDepth >= 2) {
 				setNullWindowSearch();
 			}
 			move = moveProvider.selectNextMove(board);
@@ -308,7 +313,7 @@ namespace ChessSearch {
 				if (searchResult > alpha) {
 					if (!keepBestMoveUnchanged) {
 						bestMove = currentMove;
-						if (searchState == SearchType::PV) {
+						if (isPVSearch()) {
 							if (remainingDepth > 0) {
 								pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
 							}
@@ -353,8 +358,6 @@ namespace ChessSearch {
 			}
 			undoMove(board);
 		}
-
-		bool isInPV() { return searchState == SearchType::PV; }
 
 		Move getMoveFromPVMovesStore(ply_t ply) const { return pvMovesStore.getMove(ply); }
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }

@@ -148,7 +148,7 @@ namespace ChessSearch {
 				computingInfo._pvMovesStore.setMove(1, Move::EMPTY_MOVE);
 
 				computingInfo._searchDepth = searchDepth;
-				search.searchRec(position, stack, computingInfo, clockManager);
+				search.searchRoot(position, stack, computingInfo, clockManager);
 			} while (!clockManager.mustAbortCalculation(0) && aspirationWindow.retryWithNewWindow(computingInfo));
 			computingInfo.printSearchResult();
 		}

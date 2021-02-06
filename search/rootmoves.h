@@ -64,8 +64,7 @@ namespace ChessSearch {
 		/**
 		 * Sets results after the search of a move is finished
 		 */
-		void set(const SearchVariables& variables, uint64_t totalNodes, uint64_t tableBaseHits,
-			uint64_t timeSpentInMilliseconds, const string& pvString, const PV& pvLine);
+		void set(const SearchVariables& variables);
 
 		/**
  		 * Checks, if we need to research this root move.
@@ -105,7 +104,7 @@ namespace ChessSearch {
 		 * Searches for a move in the root move list
 		 * @returns -1, if not found, else the position of the move
 		 */
-		int32_t findMove(Move move) const;
+		RootMove& findMove(Move move);
 
 		/**
 		 * Sets all moves
@@ -117,6 +116,11 @@ namespace ChessSearch {
 		 * @param first first move to consider, do not touch moves in front of first
 		 */
 		void bubbleSort(uint32_t first);
+
+		/**
+		 * Gets an iterator to iterate through the moves
+		 */
+		vector<RootMove>& getMoves() { return _moves; }
 	private:
 		vector<RootMove> _moves;
 	};
