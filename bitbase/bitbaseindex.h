@@ -16,7 +16,7 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
- * Calculates an index from a board position to a bitbase. The index is calculated by multiplying 
+ * Calculates an index from a board position to a _bitbase. The index is calculated by multiplying 
  * 1. One bit for white to move / black to move
  * 2. An index for the positions of the two kings supressing illegal positions where kings are adjacent
  * and calculating a symetry
@@ -24,6 +24,9 @@
  * The indes has no information about which pieces are on the board. It must only know whether a piece
  * is a pawn or not a pawn. 
  */
+
+#ifndef __BITBASEINDEX_H
+#define __BITBASEINDEX_H
 
 #include "bitbase.h"
 #include "piecelist.h"
@@ -35,10 +38,10 @@ using namespace ChessMoveGenerator;
 
 namespace ChessBitbase {
 
-	class BitBaseIndex
+	class BitbaseIndex
 	{
 	public:
-		BitBaseIndex() { clear(); }
+		BitbaseIndex() { clear(); }
 
 		/**
 		 * Clears the index
@@ -338,3 +341,5 @@ namespace ChessBitbase {
 	};
 
 }
+
+#endif // __BITBASEINDEX_H

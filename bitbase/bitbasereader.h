@@ -33,45 +33,45 @@ using namespace std;
 
 namespace ChessBitbase {
 
-	class BitBaseReader
+	class BitbaseReader
 	{
 	public:
-		static void loadBitBase() {
-			loadRelevant3StoneBitBase();
+		static void loadBitbase() {
+			loadRelevant3StoneBitbase();
 		}
 
-		static void loadRelevant3StoneBitBase() {
-			loadBitBase("KPK");
+		static void loadRelevant3StoneBitbase() {
+			loadBitbase("KPK");
 		}
 
-		static void loadRelevant4StoneBitBase() {
-			loadBitBase("KPKP");
-			loadBitBase("KPKN");
-			loadBitBase("KPKB");
-			loadBitBase("KPPK");
-			loadBitBase("KNPK");
-			loadBitBase("KBPK");
-			loadBitBase("KBNK");
-			loadBitBase("KBBK");
-			loadBitBase("KRKP");
-			loadBitBase("KRKN");
-			loadBitBase("KRKB");
-			loadBitBase("KRKR");
-			loadBitBase("KQKP");
-			loadBitBase("KQKN");
-			loadBitBase("KQKB");
-			loadBitBase("KQKR");
-			loadBitBase("KQKQ");
+		static void loadRelevant4StoneBitbase() {
+			loadBitbase("KPKP");
+			loadBitbase("KPKN");
+			loadBitbase("KPKB");
+			loadBitbase("KPPK");
+			loadBitbase("KNPK");
+			loadBitbase("KBPK");
+			loadBitbase("KBNK");
+			loadBitbase("KBBK");
+			loadBitbase("KRKP");
+			loadBitbase("KRKN");
+			loadBitbase("KRKB");
+			loadBitbase("KRKR");
+			loadBitbase("KQKP");
+			loadBitbase("KQKN");
+			loadBitbase("KQKB");
+			loadBitbase("KQKR");
+			loadBitbase("KQKQ");
 		}
 
-		static void load5StoneBitBase() {
-			loadBitBase("KQQKQ");
+		static void load5StoneBitbase() {
+			loadBitbase("KQQKQ");
 		}
 
-		static value_t getValueFromBitBase(MoveGenerator& board, PieceSignature signature, value_t currentValue) {
+		static value_t getValueFromBitbase(MoveGenerator& board, PieceSignature signature, value_t currentValue) {
 			value_t result = currentValue;
-			auto it = bitBases.find(signature.getPiecesSignature());
-			if (it != bitBases.end() && it->second.isLoaded()) {
+			auto it = bitbases.find(signature.getPiecesSignature());
+			if (it != bitbases.end() && it->second.isLoaded()) {
 				uint64_t index = BoardAccess::computeIndex(board);
 				bool wins = it->second.getBit(index);
 				result = wins ? currentValue + WINNING_BONUS : 0;
@@ -79,39 +79,42 @@ namespace ChessBitbase {
 			return result;
 		}
 
-		static const value_t getValueFromBitBase(MoveGenerator& board, value_t currentValue) {
+		static const value_t getValueFromBitbase(MoveGenerator& board, value_t currentValue) {
 			PieceSignature signature = PieceSignature(board.getPiecesSignature());
-			value_t result = getValueFromBitBase(board, signature, currentValue);
+			value_t result = getValueFromBitbase(board, signature, currentValue);
 			if (result == currentValue) {
 				signature.changeSide();
-				result = -getValueFromBitBase(board, signature, -currentValue);
+				result = -getValueFromBitbase(board, signature, -currentValue);
 			}
 			return result;
 		}
 
-		static void setBitBase(std::string pieceString, const BitBase& bitBase) {
+		static void setBitbase(std::string pieceString, const Bitbase& bitBase) {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
-			bitBases[signature.getPiecesSignature()] = bitBase;
+			bitbases[signature.getPiecesSignature()] = bitBase;
 		}
 
-		static void loadBitBase(std::string pieceString) {
+		static void loadBitbase(std::string pieceString) {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
-			bitBases[signature.getPiecesSignature()].readFromFile(pieceString + ".btb");
+			BitbaseIndex index;
+			Bitbase bitbase;
+			bitbase.readFromFile(pieceString + ".btb");
+			bitbases[signature.getPiecesSignature()] = bitbase;
 		}
 
-		static bool isBitBaseAvailable(std::string pieceString) {
+		static bool isBitbaseAvailable(std::string pieceString) {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
-			auto it = bitBases.find(signature.getPiecesSignature());
-			return it != bitBases.end();
+			auto it = bitbases.find(signature.getPiecesSignature());
+			return it != bitbases.end();
 		}
 
-		static map<pieceSignature_t, BitBase> bitBases;
+		static map<pieceSignature_t, Bitbase> bitbases;
 
 	private:
-		BitBaseReader() {};
+		BitbaseReader() {};
 	};
 
 }

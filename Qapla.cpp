@@ -35,6 +35,8 @@
 #include "pgn/pgnfiletokenizer.h"
 #include "pgn/pgngame.h"
 
+#include "bitbase/bitbasereader.h"
+
 using namespace ChessInterface;
 
 ChessSearch::BoardAdapter adapter;
@@ -273,6 +275,7 @@ int main()
 	// adapter.setWorkerAmount(1);
 	// runPerftTests(fenTests, 10000000000);
 	// std::this_thread::sleep_for(std::chrono::seconds(20));
+	ChessBitbase::BitbaseReader::loadBitbase();
 	ChessSearch::ChessEnvironment environment;
 	environment.run();
 	// createStatistic();

@@ -20,6 +20,9 @@
 #include "evalresults.h"
 #include "evalendgame.h"
 #include "kingpawnattack.h"
+#include "../bitbase/bitbaseindex.h"
+#include "../bitbase/bitbasereader.h"
+
 
 using namespace ChessEval;
 
@@ -54,7 +57,7 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KNP+K", KNPsK);
 	
 	// Pawn
-	// REGISTER("KP+K", KPsK)
+	REGISTER("KP+K", KPsK)
 
 	registerFunction("KP+KP+", KPsKPs);
 	
@@ -156,7 +159,6 @@ value_t EvalEndgame::winningValue(MoveGenerator& board, value_t currentValue) {
 	return result;
 }
 
-/*
 template <Piece COLOR>
 value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	value_t result = materialAndPawnStructure(board);
@@ -165,9 +167,9 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 
 	if ((pawns & (pawns - 1)) == 0) {
-		result = getValueFromBitBase<COLOR>(
-			COLOR == WHITE ? BitBaseIndex::kpkIndex(board) : BitBaseIndex::kkpIndex(board),
-			BitBaseReader::kpk,
+		result = getValueFromBitbase<COLOR>(
+			COLOR == WHITE ? BitbaseIndex::kpkIndex(board) : BitbaseIndex::kkpIndex(board),
+			BitbaseReader::kpk,
 			result
 			);
 	}
@@ -175,10 +177,10 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 
 		bitBoard_t kingInfluence = BitBoardMasks::kingMoves[opponentKingSquare] | (1ULL << opponentKingSquare);
 
-		if ((pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 && isPositionInBitMask<COLOR>(POS_A8, kingInfluence)) {
+		if ((pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 && isSquareInBitMask<COLOR>(A8, kingInfluence)) {
 			result = DRAW_VALUE;
 		}
-		else if ((pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0 && isPositionInBitMask<COLOR>(POS_H8, kingInfluence)) {
+		else if ((pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0 && isSquareInBitMask<COLOR>(H8, kingInfluence)) {
 			result = DRAW_VALUE;
 		}
 		else if (BitBoardMasks::shiftColor<COLOR, NORTH>(pawns) && kingInfluence != 0) {
@@ -187,7 +189,6 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	}
 	return result;
 }
-*/
 
 template <Piece COLOR>
 value_t EvalEndgame::KBNK(MoveGenerator& board, value_t currentValue) {
@@ -345,14 +346,12 @@ inline bool EvalEndgame::isSquareInBB(Square square, bitBoard_t mask) {
 	return (mask & positionMask) != 0;
 }
 
-/*
 template <Piece COLOR>
-value_t EvalEndgame::getValueFromBitBase(uint64_t index, const BitBase& bitBase, value_t currentValue) {
-	bool wins = bitBase.getBit(index);
+value_t EvalEndgame::getValueFromBitbase(uint64_t index, const Bitbase& _bitbase, value_t currentValue) {
+	bool wins = _bitbase.getBit(index);
 	value_t result = wins ? currentValue + BONUS[COLOR] : DRAW_VALUE;
 	return result;
 }
-*/
 
 value_t EvalEndgame::computeDistance(Square square1, Square square2) {
 	value_t fileDistance = abs(value_t(getFile(square1)) - value_t(getFile(square2)));

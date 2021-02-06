@@ -26,11 +26,11 @@
 #include <string>
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
-//#include "BitBaseIndex.h"
-//#include "BitBaseReader.h"
+#include "../bitbase/bitbase.h"
 #include "evalpawn.h"
 
 using namespace std;
+using namespace ChessBitbase;
 
 namespace ChessEval {
 
@@ -64,6 +64,19 @@ namespace ChessEval {
 
 
 	private:
+		/**
+		 * Checks, if a square is set in a bitmask handling color symmetry
+		 * @returns true, if the square is set in the bitmask
+		 */
+		template <Piece COLOR>
+		inline bool isSquareInBitMask(Square square, bitBoard_t mask) {
+			if (COLOR == BLACK) {
+				// mapping the colum of a position keeping the row (example B6 will become B2)
+				square ^= 0x38;
+			}
+			return (mask & (1ULL << square)) != 0;
+		}
+
 		typedef value_t evalFunction_t(MoveGenerator& board, value_t currentValue);
 
 		/**
@@ -101,8 +114,8 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static value_t KQPsKRPs(MoveGenerator& board, value_t currentValue);
 
-		// template <Piece COLOR>
-		// static value_t KPsK(MoveGenerator& board, value_t currentValue);
+		template <Piece COLOR>
+		static value_t KPsK(MoveGenerator& board, value_t currentValue);
 
 		static value_t KPsKPs(MoveGenerator& board, value_t currentValue);
 
@@ -162,8 +175,8 @@ namespace ChessEval {
 		template <Piece COLOR>
 		inline static bool isSquareInBB(Square position, bitBoard_t mask);
 
-		// template <Piece COLOR>
-		// static value_t getValueFromBitBase(uint64_t index, const BitBase& bitBase, value_t currentValue);
+		template <Piece COLOR>
+		static value_t getValueFromBitbase(uint64_t index, const Bitbase& _bitbase, value_t currentValue);
 
 		/**
 		 * Static loopup tables initializer

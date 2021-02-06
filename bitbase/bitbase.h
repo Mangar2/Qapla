@@ -25,50 +25,51 @@
 
 #include <vector>
 #include <fstream>
+#include <cerrno>
 #include "../basics/move.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 
 namespace ChessBitbase {
 
-	class BitBase {
+	class Bitbase {
 	public:
-		BitBase() : loaded(false) {}
+		Bitbase() : loaded(false) {}
 
-		BitBase(uint64_t bitBaseSizeInBit) : sizeInBit(bitBaseSizeInBit), loaded(false) {
-			bitBase.resize(sizeInBit / BITS_IN_ELEMENT + 1);
+		Bitbase(uint64_t bitBaseSizeInBit) : _sizeInBit(bitBaseSizeInBit), loaded(false) {
+			_bitbase.resize(_sizeInBit / BITS_IN_ELEMENT + 1);
 			clear();
 		};
 
 		/**
-		 * Sets all elements in the bitbase to zero
+		 * Sets all elements in the _bitbase to zero
 		 */
 		void clear() {
-			for (auto& element : bitBase) { element = 0;  }
+			for (auto& element : _bitbase) { element = 0;  }
 		}
 
 		/**
-		 * Sets a single bit in the bitbase
+		 * Sets a single bit in the _bitbase
 		 */
 		void setBit(uint64_t index) {
-			if (index < sizeInBit) {
-				bitBase[index / BITS_IN_ELEMENT] |= 1UL << (index % BITS_IN_ELEMENT);
+			if (index < _sizeInBit) {
+				_bitbase[index / BITS_IN_ELEMENT] |= 1UL << (index % BITS_IN_ELEMENT);
 			}
 		}
 
 		/**
-		 * Gets a single bit from the bitbase
+		 * Gets a single bit from the _bitbase
 		 */
 		bool getBit(uint64_t index) const {
 			bool result = false;
-			if (loaded && index < sizeInBit) {
-				result = (bitBase[index / BITS_IN_ELEMENT] & 1UL << (index % BITS_IN_ELEMENT)) != 0;
+			if (loaded && index < _sizeInBit) {
+				result = (_bitbase[index / BITS_IN_ELEMENT] & 1UL << (index % BITS_IN_ELEMENT)) != 0;
 			}
 			return result;
 		}
 
 		/**
-		 * Prints a statistic of a bitbase
+		 * Prints a statistic of a _bitbase
 		 */
 		void printStatistic() const {
 			uint64_t win = 0;
@@ -76,7 +77,7 @@ namespace ChessBitbase {
 			uint64_t loss = 0;
 			uint64_t illegal = 0;
 
-			for (uint64_t index = 0; index < sizeInBit; index++) {
+			for (uint64_t index = 0; index < _sizeInBit; index++) {
 				if (getBit(index)) {
 					win++;
 				}
@@ -84,38 +85,50 @@ namespace ChessBitbase {
 					draw++;
 				}
 			}
-			printf("Statistics; Positions stored: %lld, Win: %lld, no win (draw, loss, illegal): %lld\n", sizeInBit, win, draw);
+			printf("Statistics; Positions stored: %lld, Win: %lld, no win (draw, loss, illegal): %lld\n", _sizeInBit, win, draw);
 		}
 
 		/**
-		 * Stores a bitbase to a file
+		 * Stores a _bitbase to a file
 		 */
 		void storeToFile(string fileName) {
 			ofstream fout(fileName, ios::out | ios::binary);
-			fout.write((char*)&bitBase[0], bitBase.size() * sizeof(uint32_t));
+			fout.write((char*)&_bitbase[0], _bitbase.size() * sizeof(uint32_t));
 			fout.close();
 		}
 
 		/**
-		 * Reads a bitbase from the file
+		 * Reads a _bitbase from the file
 		 */
 		void readFromFile(string fileName) {
 			ifstream fin(fileName, ios::in | ios::binary);
-			fin.read((char*)&bitBase[0], bitBase.size() * sizeof(uint32_t));
+			if (!fin.is_open()) {
+				string message = "Error reading bitbase file ";
+				perror((message + fileName + ": ").c_str());
+				return;
+			}
+			fin.read((char*)&_sizeInBit, sizeof(_sizeInBit) * 1);
+			uint32_t vectorSize = computeVectorSize();
+			_bitbase.resize(vectorSize);
+			fin.read((char*)&_bitbase[0], vectorSize * sizeof(uint32_t));
 			fin.close();
 			loaded = true;
 		}
 
 		/**
-		 * Returns true, if the bitbase is loaded
+		 * Returns true, if the _bitbase is loaded
 		 */
 		bool isLoaded() { return loaded; }
 
 	private:
+		uint32_t computeVectorSize() {
+			return (uint32_t)(_sizeInBit / BITS_IN_ELEMENT) + 1;
+		}
+
 		bool loaded;
 		static const uint64_t BITS_IN_ELEMENT = sizeof(uint32_t) * 8;
-		vector<uint32_t> bitBase;
-		uint64_t sizeInBit;
+		vector<uint32_t> _bitbase;
+		uint64_t _sizeInBit;
 	};
 
 }

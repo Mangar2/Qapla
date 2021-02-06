@@ -38,21 +38,21 @@ namespace ChessBitbase {
 	class BoardAccess {
 	public:
 		/**
-		 * Computes a bitbase index from a board position
+		 * Computes a _bitbase index from a board position
 		 */
 		static uint64_t computeIndex(const MoveGenerator& board) {
-			BitBaseIndex bitBaseIndex;
-			setBitBaseIndexFromBoard(board, bitBaseIndex);
+			BitbaseIndex bitBaseIndex;
+			setBitbaseIndexFromBoard(board, bitBaseIndex);
 			uint64_t index = bitBaseIndex.computeIndex();
 			return index;
 		}
 
 		/**
-		 * Computes a bitbase index from piece list
+		 * Computes a _bitbase index from piece list
 		 */
 		static uint64_t computeIndex(bool whiteToMove, const PieceList& pieceList, Move move) {
-			BitBaseIndex bitBaseIndex;
-			setBitBaseIndex(whiteToMove, bitBaseIndex, pieceList, move);
+			BitbaseIndex bitBaseIndex;
+			setBitbaseIndex(whiteToMove, bitBaseIndex, pieceList, move);
 			uint64_t index = bitBaseIndex.computeIndex();
 			return index;
 		}
@@ -61,9 +61,9 @@ namespace ChessBitbase {
 	private:
 
 		/**
-		 * Sets a bitbase Index having a board
+		 * Sets a _bitbase Index having a board
 		 */
-		static void setBitBaseIndexFromBoard(const MoveGenerator& board, BitBaseIndex& bitBaseIndex) {
+		static void setBitbaseIndexFromBoard(const MoveGenerator& board, BitbaseIndex& bitBaseIndex) {
 			bool hasPawn = (board.getPieceBB(WHITE_PAWN) | board.getPieceBB(BLACK_PAWN)) != 0;
 			bitBaseIndex.initialize(board.isWhiteToMove(), board.getKingSquare<WHITE>(), board.getKingSquare<BLACK>(), hasPawn);
 			for (Piece piece = WHITE_PAWN; piece <= BLACK_QUEEN; ++piece) {
@@ -79,7 +79,7 @@ namespace ChessBitbase {
 			return square;
 		}
 
-		static void setBitBaseIndex(bool whiteToMove, BitBaseIndex& bitBaseIndex, const PieceList& pieceList, Move move) {
+		static void setBitbaseIndex(bool whiteToMove, BitbaseIndex& bitBaseIndex, const PieceList& pieceList, Move move) {
 			bool hasPawn = pieceList.getNumberOfPawns() != 0;
 			Square whiteKingPos = getPiecePos(0, pieceList, move);
 			Square blackKingPos = getPiecePos(1, pieceList, move);
@@ -95,7 +95,7 @@ namespace ChessBitbase {
 		/**
 		 * Adds all pieces of one type (for example all white pawns)
 		 */
-		static void addAllPiecesOfType(const MoveGenerator& board, Piece piece, BitBaseIndex& bitBaseIndex) {
+		static void addAllPiecesOfType(const MoveGenerator& board, Piece piece, BitbaseIndex& bitBaseIndex) {
 			bitBoard_t pieces = board.getPieceBB(piece);
 			for (; pieces != 0; pieces &= pieces - 1) {
 				bitBaseIndex.addPieceToIndex(BitBoardMasks::lsb(pieces), piece);

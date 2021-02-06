@@ -21,15 +21,15 @@
 
 using namespace ChessBitbase;
 
-array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitBaseIndex::mapTwoKingsToIndexWithPawn;
-array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitBaseIndex::mapTwoKingsToIndexWithoutPawn;
-array<uint32_t, BitBaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN> BitBaseIndex::mapIndexToKingSquaresWithPawn;
-array<uint32_t, BitBaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> BitBaseIndex::mapIndexToKingSquaresWithoutPawn;
+array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithPawn;
+array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithoutPawn;
+array<uint32_t, BitbaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN> BitbaseIndex::mapIndexToKingSquaresWithPawn;
+array<uint32_t, BitbaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> BitbaseIndex::mapIndexToKingSquaresWithoutPawn;
 
 /**
  * Checks, if two squares are adjacent
  */
-bool BitBaseIndex::isAdjacent(Square pos1, Square pos2) {
+bool BitbaseIndex::isAdjacent(Square pos1, Square pos2) {
 	bitBoard_t map = 1ULL << pos1;
 	bool result;
 
@@ -42,7 +42,7 @@ bool BitBaseIndex::isAdjacent(Square pos1, Square pos2) {
 	return result;
 }
 
-BitBaseIndex::InitStatic::InitStatic() {
+BitbaseIndex::InitStatic::InitStatic() {
 	uint32_t index = 0;
 	for (Square whiteKingSquare = A1; whiteKingSquare <= H8; whiteKingSquare = computeNextKingSquareForPositionsWithPawn(whiteKingSquare)) {
 		for (Square blackKingSquare = A1; blackKingSquare <= H8; ++blackKingSquare) {
@@ -76,7 +76,7 @@ BitBaseIndex::InitStatic::InitStatic() {
 	}
 }
 
-uint64_t BitBaseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
+uint64_t BitbaseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
 	uint32_t posIndex;
 	uint64_t amountOfKingPositions;
 	if (hasPawn) {
@@ -95,7 +95,7 @@ uint64_t BitBaseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
 	return index;
 }
 
-bool BitBaseIndex::setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, uint32_t nonPawnPieceAmount) {
+bool BitbaseIndex::setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, uint32_t nonPawnPieceAmount) {
 	clear();
 	uint32_t posIndex;
 	bool legalPosition = true;

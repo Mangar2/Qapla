@@ -19,6 +19,9 @@
  * List of pieces in a bitbase. Pieces can be added/deleted and sorted
  */
 
+#ifndef __PIECELIST_H
+#define __PIECELIST_H
+
 #include "../movegenerator/movegenerator.h"
 #include "../movegenerator/bitboardmasks.h"
 #include <ctype.h>
@@ -220,3 +223,5 @@ namespace ChessBitbase {
 	};
 
 }
+
+#endif // __PIECELIST_H
