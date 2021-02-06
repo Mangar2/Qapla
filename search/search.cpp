@@ -110,7 +110,7 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 
 	SearchVariables& searchInfo = stack[0];
 	value_t searchResult;
-	RootMove rootMove;
+	RootMove* rootMove = &_rootMoves.getMove(0);
 
 	searchInfo.computeMoves(board);
 
@@ -122,10 +122,10 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 		bool research = searchInfo.updateSearchType(uint32_t(triedMoves));
 		if (!research) {
 			if (triedMoves >= _rootMoves.getMoves().size()) break;
-			rootMove = _rootMoves.getMoves()[triedMoves];
+			rootMove = &_rootMoves.getMove(triedMoves);
 			triedMoves++;
 		}
-		const Move curMove = _computingInfo->_currentConcideredMove = rootMove.getMove();
+		const Move curMove = _computingInfo->_currentConcideredMove = rootMove->getMove();
 
 		if (searchInfo.remainingDepth > 2) {
 			searchResult = -negaMax(board, stack, curMove, 1);
@@ -138,7 +138,7 @@ value_t Search::searchRoot(MoveGenerator& board, SearchStack& stack, ComputingIn
 			break;
 		}
 
-		rootMove.set(searchResult, stack);
+		rootMove->set(searchResult, stack);
 		searchInfo.setSearchResult(searchResult, stack[1], curMove);
 
 		WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, 0);

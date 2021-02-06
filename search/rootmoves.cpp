@@ -90,8 +90,7 @@ void RootMove::print() const {
 		<< " [d:" << std::right << std::setw(2) << _depthOfLastSearch << "]"
 		<< " [" << std::right << std::setw(5) << _alphaOfLastSearch << ", " 
 		<< std::right << std::setw(5) << _betaOfLastSearch << "]"
-		<< (isPVSearched() ? " [PV]" : "     ")
-		<< " " << _pvLine.toString()
+		<< (isPVSearched() ? (" " + _pvLine.toString()) : "")
 		<< endl;
 }
 

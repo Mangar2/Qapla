@@ -133,6 +133,11 @@ namespace ChessSearch {
 		vector<RootMove>& getMoves() { return _moves; }
 
 		/**
+		 * Gets a reference to the move
+		 */
+		RootMove& getMove(size_t index) { return _moves[index]; }
+
+		/**
 		 * Print the root moves (used for debugging)
 		 */
 		void print();
