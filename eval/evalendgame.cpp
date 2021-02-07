@@ -163,25 +163,25 @@ template <Piece COLOR>
 value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	value_t result = materialAndPawnStructure(board);
 	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
-
+	Square myKingSquare = board.getKingSquare<COLOR>();
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 
 	if ((pawns & (pawns - 1)) == 0) {
 		result = BitbaseReader::getValueFromBitbase(board, currentValue);
+		if (result != currentValue) return result;
 	}
-	else {
 
-		bitBoard_t kingInfluence = BitBoardMasks::kingMoves[opponentKingSquare] | (1ULL << opponentKingSquare);
+	bitBoard_t opponentKingInfluence = BitBoardMasks::kingMoves[opponentKingSquare] | (1ULL << opponentKingSquare);
+	bitBoard_t myKingInfluence = BitBoardMasks::kingMoves[myKingSquare] | (1ULL << myKingSquare);
 
-		if ((pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 && isSquareInBitMask<COLOR>(A8, kingInfluence)) {
-			result = DRAW_VALUE;
-		}
-		else if ((pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0 && isSquareInBitMask<COLOR>(H8, kingInfluence)) {
-			result = DRAW_VALUE;
-		}
-		else if (BitBoardMasks::shiftColor<COLOR, NORTH>(pawns) && kingInfluence != 0) {
-			result += BONUS[COLOR];
-		}
+	if ((pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 && isSquareInBitMask<COLOR>(A8, opponentKingInfluence)) {
+		result = DRAW_VALUE;
+	}
+	else if ((pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0 && isSquareInBitMask<COLOR>(H8, opponentKingInfluence)) {
+		result = DRAW_VALUE;
+	}
+	else if ((BitBoardMasks::shiftColor<COLOR, NORTH>(pawns) & myKingInfluence) != 0) {
+		result += BONUS[COLOR];
 	}
 	return result;
 }

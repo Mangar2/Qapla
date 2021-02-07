@@ -36,7 +36,7 @@ namespace ChessSearch {
 	{
 
 	public:
-		static const uint8_t MAX_PV_LENGTH = 25;
+		static const uint8_t MAX_PV_LENGTH = 50;
 		typedef uint32_t pvIndex_t;
 
 		PV() { clear(); }

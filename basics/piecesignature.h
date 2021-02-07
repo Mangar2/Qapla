@@ -171,7 +171,7 @@ namespace ChessBasics {
 		 * Tricky but jump free implementation
 		 */
 		bool drawDueToMissingMaterial() const {
-			const pieceSignature_t ONLY_KNIGHT_AND_BISHOP =
+			constexpr pieceSignature_t ONLY_KNIGHT_AND_BISHOP =
 				pieceSignature_t(SignatureMask::ALL) & ~(Signature::BISHOP | Signature::KNIGHT);
 
 			// Checks that no other bit is set than "one bishop" and "one knight"
