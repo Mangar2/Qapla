@@ -39,6 +39,8 @@ namespace ChessBitbase {
 	public:
 		static void loadBitbase() {
 			loadRelevant3StoneBitbase();
+			loadBitbase("KBK");
+			loadBitbase("KBKB");
 		}
 
 		static void loadRelevant3StoneBitbase() {
@@ -83,12 +85,9 @@ namespace ChessBitbase {
 			return result;
 		}
 
-		static void setBitbase(std::string pieceString, const Bitbase& bitBase) {
-			PieceSignature signature;
-			signature.set(pieceString.c_str());
-			bitbases[signature.getPiecesSignature()] = bitBase;
-		}
-
+		/**
+		 * Loads a bitbase and stores it for later use
+		 */
 		static void loadBitbase(std::string pieceString) {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
@@ -97,6 +96,9 @@ namespace ChessBitbase {
 			bitbases[signature.getPiecesSignature()] = bitbase;
 		}
 
+		/**
+		 * Tests, if a bitbase is available
+		 */
 		static bool isBitbaseAvailable(std::string pieceString) {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
@@ -104,10 +106,20 @@ namespace ChessBitbase {
 			return (it != bitbases.end() && it->second.isLoaded());
 		}
 
-		static map<pieceSignature_t, Bitbase> bitbases;
+		/**
+		 * Sets a bitbase
+		 */
+		static void setBitbase(std::string pieceString, const Bitbase& bitBase) {
+			PieceSignature signature;
+			signature.set(pieceString.c_str());
+			bitbases[signature.getPiecesSignature()] = bitBase;
+		}
 
 	private:
 
+		/**
+		 * Gets a value from a bitbase
+		 */
 		static value_t getValueFromBitbase(MoveGenerator& position, pieceSignature_t signature, value_t currentValue) {
 			value_t result = currentValue;
 			auto it = bitbases.find(signature);
@@ -120,6 +132,8 @@ namespace ChessBitbase {
 		}
 
 		BitbaseReader() {};
+		static map<pieceSignature_t, Bitbase> bitbases;
+
 	};
 
 }

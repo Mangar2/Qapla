@@ -36,12 +36,6 @@
 #include "movehistory.h"
 #include "../bitbase/bitbasegenerator.h"
 
- /*
-
-#include "WhatIf.h"
-*/
-
-
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;
 using namespace ChessEval;
@@ -77,7 +71,7 @@ namespace ChessSearch {
 		 * Load databases like tablebases or bitbases
 		 */
 		virtual void initialize() {
-			ChessBitbase::BitbaseReader::loadBitbase("KPK");
+			ChessBitbase::BitbaseReader::loadBitbase();
 		}
 
 		/**

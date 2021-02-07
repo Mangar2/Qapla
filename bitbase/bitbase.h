@@ -30,6 +30,7 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "bitbaseindex.h"
+#include "huffmancode.h"
 
 namespace ChessBitbase {
 
@@ -138,7 +139,11 @@ namespace ChessBitbase {
 			BitbaseIndex index;
 			index.setPieceSquaresByIndex(0, list);
 			size_t size = index.getSizeInBit();
-			return readFromFile(path + pieceString + extension, size);
+			bool success = readFromFile(path + pieceString + extension, size);
+			if (success) {
+				compress();
+			}
+			return success;
 		}
 
 		/**
@@ -147,6 +152,11 @@ namespace ChessBitbase {
 		bool isLoaded() { return _loaded; }
 
 	private:
+		void compress() {
+			HuffmanCode huffman(_bitbase);
+			
+		}
+
 		uint32_t computeVectorSize() {
 			return (uint32_t)(_sizeInBit / BITS_IN_ELEMENT) + 1;
 		}
