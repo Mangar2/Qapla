@@ -207,8 +207,9 @@ namespace ChessBitbase {
 		 * Sort the pieces
 		 */
 		void bubbleSort() {
-			for (uint32_t outerLoop = _numberOfPieces - 1; outerLoop > 0; outerLoop--) {
-				for (uint32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
+			if (_numberOfPieces == 0) return;
+			for (int32_t outerLoop = _numberOfPieces - 1; outerLoop > 0; outerLoop--) {
+				for (int32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
 					if (_pieces[innerLoop - 1] > _pieces[innerLoop]) {
 						swap(innerLoop - 1, innerLoop);
 					}

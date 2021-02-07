@@ -345,6 +345,7 @@ namespace ChessBitbase {
 		 * so that any bitbase KQKP can get to is available
 		 */
 		void computeBitbaseRec(PieceList& pieceList) {
+			if (pieceList.getNumberOfPieces() == 0) return;
 			string pieceString = pieceList.getPieceString();
 			if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
 				BitbaseReader::loadBitbase(pieceString);

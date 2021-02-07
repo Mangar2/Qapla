@@ -113,13 +113,13 @@ namespace ChessBitbase {
 		/**
 		 * Reads a _bitbase from the file
 		 */
-		void readFromFile(string fileName, size_t sizeInBit) {
+		bool readFromFile(string fileName, size_t sizeInBit) {
 			_sizeInBit = sizeInBit;
 			ifstream fin(fileName, ios::in | ios::binary);
 			if (!fin.is_open()) {
 				string message = "Error reading bitbase file ";
 				perror((message + fileName + ": ").c_str());
-				return;
+				return false;
 			}
 			uint32_t vectorSize = computeVectorSize();
 			_bitbase.resize(vectorSize);
@@ -127,17 +127,18 @@ namespace ChessBitbase {
 			fin.close();
 			cout << "Read: " << fileName << endl;
 			_loaded = true;
+			return true;
 		}
 
 		/**
 		 * Reads a _bitbase from the file having a piece string
 		 */
-		void readFromFile(string pieceString, string extension = ".btb", string path = "./") {
+		bool readFromFile(string pieceString, string extension = ".btb", string path = "./") {
 			PieceList list(pieceString);
 			BitbaseIndex index;
 			index.setPieceSquaresByIndex(0, list);
 			size_t size = index.getSizeInBit();
-			readFromFile(path + pieceString + extension, size);
+			return readFromFile(path + pieceString + extension, size);
 		}
 
 		/**

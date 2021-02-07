@@ -101,7 +101,7 @@ namespace ChessBitbase {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
 			auto it = bitbases.find(signature.getPiecesSignature());
-			return it != bitbases.end();
+			return (it != bitbases.end() && it->second.isLoaded());
 		}
 
 		static map<pieceSignature_t, Bitbase> bitbases;
