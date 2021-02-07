@@ -54,6 +54,11 @@ namespace ChessInterface {
 		virtual string getEngineName() = 0;
 
 		/**
+		 * Initializations are done here
+		 */
+		virtual void initialize() {}
+
+		/**
 		 * Sets a move, the information may be incomplete as long as the information is unambiguous
 		 */
 		virtual bool doMove(char movingPiece,
@@ -159,6 +164,11 @@ namespace ChessInterface {
 		 */
 		virtual IWhatIf* getWhatIf() = 0;
 
+		/**
+		 * Generates bitbases for a signature and all bitbases needed
+		 * to compute this bitabase (if they cannot be loaded)
+		 */
+		virtual void generateBitbases(string signature) {}
 
 	};
 }

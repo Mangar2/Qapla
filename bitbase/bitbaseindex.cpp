@@ -108,9 +108,10 @@ bool BitbaseIndex::setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, u
 
 	for (uint32_t pawn = 0; pawn < pawnAmount; pawn++) {
 		const uint32_t numberOfPieces = getNumberOfPieces();
-		posIndex = _index % (AMOUT_OF_PAWN_POSITIONS - numberOfPieces);
-		_index /= AMOUT_OF_PAWN_POSITIONS - numberOfPieces;
-		_sizeInBit *= AMOUT_OF_PAWN_POSITIONS - numberOfPieces;
+		const uint32_t relevantPawnPositionNumber = NUMBER_OF_PAWN_POSITIONS - numberOfPieces;
+		posIndex = _index % relevantPawnPositionNumber;
+		_index /= relevantPawnPositionNumber;
+		_sizeInBit *= relevantPawnPositionNumber;
 		addPieceSquare(computesRealSquare(_piecesBB >> 8, Square(posIndex)) + A2);
 		if (_squares[numberOfPieces - 1] > H8) {
 			legalPosition = false;

@@ -202,7 +202,7 @@ namespace ChessInterface {
 				}
 				token += buffer[aIndex];
 			}
-			// If the token does not end with a space, it could be incompletely loaded -> return 0 to indicate
+			// If the token does not end with a space, it could be incompletely _loaded -> return 0 to indicate
 			// that no token has been found.
 			return buffer[aIndex] == 0 ? 0 : aIndex;
 		}

@@ -304,6 +304,7 @@ void Winboard::undoMove() {
 void Winboard::runLoop() {
 	_mode = Mode::WAIT;
 	string token = "";
+	_board->initialize();
 	while (token != "quit") {
 		switch (_mode) {
 		case Mode::ANALYZE: handleInputWhileInAnalyzeMode(); break;
@@ -393,6 +394,7 @@ void Winboard::handleInput() {
 	else if (token == "result") getToEOLBlocking();
 	else if (token == "cores") readCores();
 	else if (token == "memory") readMemory();
+	else if (token == "generate") _board->generateBitbases(getNextTokenBlocking());
 	else if (checkClockCommands()) {}
 	else if (checkMoveCommand()) {}
 }

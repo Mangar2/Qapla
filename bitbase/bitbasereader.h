@@ -26,6 +26,7 @@
 #include <map>
 #include "../movegenerator/movegenerator.h"
 #include "bitbase.h"
+#include "piecelist.h"
 #include "boardaccess.h"
 
 using namespace ChessMoveGenerator;
@@ -68,26 +69,16 @@ namespace ChessBitbase {
 			loadBitbase("KQQKQ");
 		}
 
-		static value_t getValueFromBitbase(MoveGenerator& position, value_t currentValue) {
-			value_t result = currentValue;
-			auto it = bitbases.find(position.getPiecesSignature());
-			if (it != bitbases.end() && it->second.isLoaded()) {
-				uint64_t index = BoardAccess::computeIndex(position);
-				bool wins = it->second.getBit(index);
-				result = wins ? currentValue + WINNING_BONUS : 0;
-			}
-			return result;
-		}
 
 		/**
 		 * Reads a value from bitboard having the position and a current value
 		 */
-		static const value_t getValueFromBitbase(MoveGenerator& position, value_t currentValue) {
+		static value_t getValueFromBitbase(MoveGenerator& position, value_t currentValue) {
 			PieceSignature signature = PieceSignature(position.getPiecesSignature());
-			value_t result = getValueFromBitbase(position, signature, currentValue);
+			value_t result = getValueFromBitbase(position, signature.getPiecesSignature(), currentValue);
 			if (result == currentValue) {
 				signature.changeSide();
-				result = -getValueFromBitbase(position, signature, -currentValue);
+				result = -getValueFromBitbase(position, signature.getPiecesSignature(), -currentValue);
 			}
 			return result;
 		}
@@ -101,9 +92,8 @@ namespace ChessBitbase {
 		static void loadBitbase(std::string pieceString) {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
-			BitbaseIndex index;
 			Bitbase bitbase;
-			bitbase.readFromFile(pieceString + ".btb");
+			bitbase.readFromFile(pieceString);
 			bitbases[signature.getPiecesSignature()] = bitbase;
 		}
 
@@ -117,6 +107,18 @@ namespace ChessBitbase {
 		static map<pieceSignature_t, Bitbase> bitbases;
 
 	private:
+
+		static value_t getValueFromBitbase(MoveGenerator& position, pieceSignature_t signature, value_t currentValue) {
+			value_t result = currentValue;
+			auto it = bitbases.find(signature);
+			if (it != bitbases.end() && it->second.isLoaded()) {
+				uint64_t index = BoardAccess::computeIndex(position);
+				bool wins = it->second.getBit(index);
+				result = wins ? currentValue + WINNING_BONUS : 0;
+			}
+			return result;
+		}
+
 		BitbaseReader() {};
 	};
 

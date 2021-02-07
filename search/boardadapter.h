@@ -34,6 +34,7 @@
 #include "../eval/eval.h"
 #include "../search/iterativedeepening.h"
 #include "movehistory.h"
+#include "../bitbase/bitbasegenerator.h"
 
  /*
 
@@ -62,6 +63,22 @@ namespace ChessSearch {
 		 * Retrieves the engine name
 		 */
 		virtual string getEngineName() { return "Qapla_0.0.18";  }
+
+		/**
+		 * Generates bitbases for a signature and all bitbases needed
+		 * to compute this bitabase (if they cannot be loaded)
+		 */
+		virtual void generateBitbases(string signature) {
+			ChessBitbase::BitbaseGenerator generator;
+			generator.computeBitbaseRec(signature);
+		}
+
+		/**
+		 * Load databases like tablebases or bitbases
+		 */
+		virtual void initialize() {
+			ChessBitbase::BitbaseReader::loadBitbase("KPK");
+		}
 
 		/**
 		 * Retrieves the what if object

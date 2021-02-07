@@ -275,7 +275,7 @@ namespace ChessSearch {
 				file.read(&newEntryAmount, sizeof(newEntryAmount), 1);
 				setCapacity(newEntryAmount);
 				file.read(entry, sizeof(hash_t), entryAmount * ELEMENTS_PER_HASH_ENTRY);
-				printf("Hash file loaded\n");
+				printf("Hash file _loaded\n");
 			}
 		}
 		*/

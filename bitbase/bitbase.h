@@ -35,18 +35,18 @@ namespace ChessBitbase {
 
 	class Bitbase {
 	public:
-		Bitbase() : loaded(false) {}
+		Bitbase(bool loaded = false) : _loaded(loaded) {}
 
 
 		/**
 		 * @param bitbaseSizeInBit number of positions stored in the bitbase
 		 */
-		Bitbase(uint64_t bitBaseSizeInBit) : _sizeInBit(bitBaseSizeInBit), loaded(false) {
+		Bitbase(uint64_t bitBaseSizeInBit) : _sizeInBit(bitBaseSizeInBit), _loaded(true) {
 			_bitbase.resize(_sizeInBit / BITS_IN_ELEMENT + 1);
 			clear();
 		};
 
-		Bitbase(BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {};
+		Bitbase(const BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {};
 
 
 		/**
@@ -75,7 +75,7 @@ namespace ChessBitbase {
 		 */
 		bool getBit(uint64_t index) const {
 			bool result = false;
-			if (loaded && index < _sizeInBit) {
+			if (_loaded && index < _sizeInBit) {
 				result = (_bitbase[index / BITS_IN_ELEMENT] & (1UL << (index % BITS_IN_ELEMENT))) != 0;
 			}
 			return result;
@@ -113,32 +113,44 @@ namespace ChessBitbase {
 		/**
 		 * Reads a _bitbase from the file
 		 */
-		void readFromFile(string fileName) {
+		void readFromFile(string fileName, size_t sizeInBit) {
+			_sizeInBit = sizeInBit;
 			ifstream fin(fileName, ios::in | ios::binary);
 			if (!fin.is_open()) {
 				string message = "Error reading bitbase file ";
 				perror((message + fileName + ": ").c_str());
 				return;
 			}
-			fin.read((char*)&_sizeInBit, sizeof(_sizeInBit) * 1);
 			uint32_t vectorSize = computeVectorSize();
 			_bitbase.resize(vectorSize);
 			fin.read((char*)&_bitbase[0], vectorSize * sizeof(uint32_t));
 			fin.close();
-			loaded = true;
+			cout << "Read: " << fileName << endl;
+			_loaded = true;
 		}
 
 		/**
-		 * Returns true, if the _bitbase is loaded
+		 * Reads a _bitbase from the file having a piece string
 		 */
-		bool isLoaded() { return loaded; }
+		void readFromFile(string pieceString, string extension = ".btb", string path = "./") {
+			PieceList list(pieceString);
+			BitbaseIndex index;
+			index.setPieceSquaresByIndex(0, list);
+			size_t size = index.getSizeInBit();
+			readFromFile(path + pieceString + extension, size);
+		}
+
+		/**
+		 * Returns true, if the _bitbase is _loaded
+		 */
+		bool isLoaded() { return _loaded; }
 
 	private:
 		uint32_t computeVectorSize() {
 			return (uint32_t)(_sizeInBit / BITS_IN_ELEMENT) + 1;
 		}
 
-		bool loaded;
+		bool _loaded;
 		static const uint64_t BITS_IN_ELEMENT = sizeof(uint32_t) * 8;
 		vector<uint32_t> _bitbase;
 		uint64_t _sizeInBit;

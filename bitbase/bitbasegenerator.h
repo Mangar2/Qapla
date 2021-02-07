@@ -339,12 +339,11 @@ namespace ChessBitbase {
 				timeInMilliseconds % 1000);
 		}
 
-
-		void computeBitbase(const char* pieceString) {
-			PieceList pieceList(pieceString);
-			computeBitbaseRec(pieceList);
-		}
-
+		/**
+		 * Recursively computes bitbases based on a bitbase string
+		 * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ... 
+		 * so that any bitbase KQKP can get to is available
+		 */
 		void computeBitbaseRec(PieceList& pieceList) {
 			string pieceString = pieceList.getPieceString();
 			if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
@@ -399,7 +398,9 @@ namespace ChessBitbase {
 					bitsChanged += initialComputePosition(index, position, bitbase, computedPositions);
 				}
 			}
-			printf("\nInitial, positions set: %ld\n", bitsChanged);
+			cout << endl
+				<< "Amount of direct draw or loss: " << amountOfDirectDrawOrLoss << endl
+				<< "Initial winning positions: " << bitsChanged << endl;
 			printTimeSpent(clock);
 
 			for (uint32_t loopCount = 0; loopCount < 100; loopCount++) {
@@ -438,6 +439,15 @@ namespace ChessBitbase {
 		void computeBitbase(string pieceString) {
 			PieceList list(pieceString);
 			computeBitbase(list);
+		}
+
+		/**
+		 * Computes a bitbase for a piece string (example KPK) and 
+		 * all other bitbases needed
+		 */
+		void computeBitbaseRec(string pieceString) {
+			PieceList list(pieceString);
+			computeBitbaseRec(list);
 		}
 
 		/**
@@ -542,10 +552,10 @@ namespace ChessBitbase {
 			bitbase.readFromFile(pieceString);
 			PieceList pieceList(pieceString.c_str());
 			BitbaseIndex bitbaseIndex;
-			uint32_t index;
+			uint64_t index;
 			while (true) {
 				cin >> index;
-				printf("%ld\n", index);
+				printf("%lld\n", index);
 				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
 					position.clear();
 					addPiecesToPosition(position, bitbaseIndex, pieceList);

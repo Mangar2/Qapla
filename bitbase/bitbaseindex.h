@@ -28,7 +28,6 @@
 #ifndef __BITBASEINDEX_H
 #define __BITBASEINDEX_H
 
-#include "bitbase.h"
 #include "piecelist.h"
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
@@ -49,6 +48,7 @@ namespace ChessBitbase {
 		void clear() {
 			_index = 0;
 			_mapType = 0;
+			_piecesBB = 0;
 			_squares.clear();
 		}
 
@@ -250,7 +250,7 @@ namespace ChessBitbase {
 				}
 			}
 			_index += (int64_t)indexValueBasedOnPawnSquare * _sizeInBit;
-			_sizeInBit *= AMOUT_OF_PAWN_POSITIONS - getNumberOfPieces();
+			_sizeInBit *= NUMBER_OF_PAWN_POSITIONS - getNumberOfPieces();
 			addPieceSquare(mappedSquare);
 		}
 
@@ -321,7 +321,7 @@ namespace ChessBitbase {
 		static const uint32_t MAP_TO_A1_D1_D4_TRIANGLE = 4;
 		static const uint64_t AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN = 1806;
 		static const uint64_t AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN = 462;
-		static const uint64_t AMOUT_OF_PAWN_POSITIONS = BOARD_SIZE - 2 * NORTH;
+		static const uint64_t NUMBER_OF_PAWN_POSITIONS = BOARD_SIZE - 2 * NORTH;
 		static const uint64_t AMOUT_OF_PIECE_POSITIONS = BOARD_SIZE;
 		static const uint64_t COLORS = 2;
 
