@@ -29,6 +29,7 @@
 #include "../basics/move.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "bitbaseindex.h"
 
 namespace ChessBitbase {
 
@@ -36,10 +37,22 @@ namespace ChessBitbase {
 	public:
 		Bitbase() : loaded(false) {}
 
+
+		/**
+		 * @param bitbaseSizeInBit number of positions stored in the bitbase
+		 */
 		Bitbase(uint64_t bitBaseSizeInBit) : _sizeInBit(bitBaseSizeInBit), loaded(false) {
 			_bitbase.resize(_sizeInBit / BITS_IN_ELEMENT + 1);
 			clear();
 		};
+
+		Bitbase(BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {};
+
+
+		/**
+		 * Gets the amount of stored positions
+		 */
+		uint64_t getSizeInBit() { return _sizeInBit; }
 
 		/**
 		 * Sets all elements in the _bitbase to zero

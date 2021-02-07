@@ -83,11 +83,10 @@ namespace ChessBitbase {
 		/**
 		 * Sets the positions of pieces by having an index an a list of piece types
 		 */
-		/*
-		bool setPiecePositionsByIndex(uint64_t index, const PieceList& pieceList) {
-			return setPiecePositionsByIndex(index, pieceList.getNumberOfPawns(), pieceList.getNumberOfPiecesWithoutPawns());
+		bool setPieceSquaresByIndex(uint64_t index, const PieceList& pieceList) {
+			return setPieceSquaresByIndex(index,
+				pieceList.getNumberOfPawns(), pieceList.getNumberOfPiecesWithoutPawns());
 		}
-		*/
 
 		/**
 		 * Gets the square of a piece

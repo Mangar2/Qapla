@@ -44,7 +44,7 @@ namespace ChessBitbase {
 		 * @param pieceString: String with the list of current pieces.
 		 * @example PieceList("KRPKP") for king with rook and pawn vs. King with pawn
 		 */
-		PieceList(const char* pieceString) {
+		PieceList(string pieceString) {
 			clear();
 			bool whitePiece = true;
 			Piece piece;

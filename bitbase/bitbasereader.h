@@ -68,11 +68,11 @@ namespace ChessBitbase {
 			loadBitbase("KQQKQ");
 		}
 
-		static value_t getValueFromBitbase(MoveGenerator& board, PieceSignature signature, value_t currentValue) {
+		static value_t getValueFromBitbase(MoveGenerator& position, value_t currentValue) {
 			value_t result = currentValue;
-			auto it = bitbases.find(signature.getPiecesSignature());
+			auto it = bitbases.find(position.getPiecesSignature());
 			if (it != bitbases.end() && it->second.isLoaded()) {
-				uint64_t index = BoardAccess::computeIndex(board);
+				uint64_t index = BoardAccess::computeIndex(position);
 				bool wins = it->second.getBit(index);
 				result = wins ? currentValue + WINNING_BONUS : 0;
 			}
@@ -80,14 +80,14 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * Reads a value from bitboard having the board and a current value
+		 * Reads a value from bitboard having the position and a current value
 		 */
-		static const value_t getValueFromBitbase(MoveGenerator& board, value_t currentValue) {
-			PieceSignature signature = PieceSignature(board.getPiecesSignature());
-			value_t result = getValueFromBitbase(board, signature, currentValue);
+		static const value_t getValueFromBitbase(MoveGenerator& position, value_t currentValue) {
+			PieceSignature signature = PieceSignature(position.getPiecesSignature());
+			value_t result = getValueFromBitbase(position, signature, currentValue);
 			if (result == currentValue) {
 				signature.changeSide();
-				result = -getValueFromBitbase(board, signature, -currentValue);
+				result = -getValueFromBitbase(position, signature, -currentValue);
 			}
 			return result;
 		}

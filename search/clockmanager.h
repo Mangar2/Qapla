@@ -38,13 +38,20 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Sets the current time as start time
+		 */
+		void setStartTime() {
+			_startTime = getSystemTimeInMilliseconds();
+		}
+
+		/**
 		 * Starts calculation of next move
 		 * @param movesLeftForClockControl amount of moves to play in the time provided by clockSetting
 		 * @param clockSetting the time available to play the chess game
 		 */
 		void startCalculatingMove(int32_t movesLeftForClockControl, const ClockSetting& clockSetting)
 		{
-			_startTime = getSystemTimeInMilliseconds();
+			setStartTime();
 			movesLeftForClockControl = 0;
 			if (movesLeftForClockControl <= 0) {
 				movesLeftForClockControl = 60 - clockSetting.getPlayedMovesInGame();

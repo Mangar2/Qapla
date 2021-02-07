@@ -25,7 +25,9 @@
 
 #include "bitbase.h"
 #include "bitbaseindex.h"
+#include "bitbasereader.h"
 #include "../search/quiescencesearch.h"
+#include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
 //#include "ThinkingTimeManager.h"
 #include <iostream>
@@ -114,7 +116,7 @@ namespace ChessBitbase {
 					continue;
 				}
 				position.doMove(move);
-				positionValue = BitbaseReader::getValueFromBitbase(position, position.pieceSignature, 0);
+				positionValue = BitbaseReader::getValueFromBitbase(position, 0);
 				position.undoMove(move, boardState);
 
 				if (position.isWhiteToMove() && positionValue >= WINNING_BONUS) {
@@ -154,7 +156,7 @@ namespace ChessBitbase {
 		}
 
 
-		bool computeValue(MoveGenerator& position, Bitbase& bitBase, bool verbose) {
+		bool computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose) {
 			MoveList moveList;
 			Move move;
 			bool whiteToMove = position.isWhiteToMove();
@@ -172,8 +174,8 @@ namespace ChessBitbase {
 			for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				move = moveList[moveNo];
 				if (!move.isCaptureOrPromote()) {
-					index = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-					result = bitBase.getBit(index);
+					index = BoardAccess::computeIndex(!whiteToMove, pieceList, move);
+					result = bitbase.getBit(index);
 					if (verbose) {
 						printf("%s, index: %lld, value: %s\n", move.getLAN().c_str(), 
 							index, result ? "win" : "draw or unknown");
@@ -190,13 +192,13 @@ namespace ChessBitbase {
 			return result;
 		}
 
-		uint32_t computePosition(uint64_t index, MoveGenerator& position, Bitbase& bitBase, Bitbase& computedPositions) {
+		uint32_t computePosition(uint64_t index, MoveGenerator& position, Bitbase& bitbase, Bitbase& computedPositions) {
 			uint32_t result = 0;
-			if (computeValue(position, bitBase, false)) {
+			if (computeValue(position, bitbase, false)) {
 				if (index == debugIndex) {
-					computeValue(position, bitBase, true);
+					computeValue(position, bitbase, true);
 				}
-				bitBase.setBit(index);
+				bitbase.setBit(index);
 				computedPositions.setBit(index);
 				result++;
 			}
@@ -225,7 +227,11 @@ namespace ChessBitbase {
 			return result;
 		}
 
-		uint32_t initialComputePosition(uint64_t index, MoveGenerator& position, Eval& eval, Bitbase& bitBase, Bitbase& computedPositions) {
+		/**
+		 * 
+		 */
+		uint32_t initialComputePosition(uint64_t index, MoveGenerator& position, 
+			Bitbase& bitbase, Bitbase& computedPositions) {
 			uint32_t result = 0;
 			MoveList moveList;
 			bool kingInCheck = false;
@@ -233,7 +239,7 @@ namespace ChessBitbase {
 				kingInCheck = false;
 			}
 
-			if (position.isIllegalPosition2()) {
+			if (!position.isLegalPosition()) {
 				amountOfIllegalPositions++;
 				computedPositions.setBit(index);
 				return 0;
@@ -245,7 +251,7 @@ namespace ChessBitbase {
 
 				positionValue = initialSearch(position);
 				if (positionValue == 1) {
-					bitBase.setBit(index);
+					bitbase.setBit(index);
 					computedPositions.setBit(index);
 					result++;
 				}
@@ -261,7 +267,7 @@ namespace ChessBitbase {
 						position.print();
 						printf("index: %lld, mate detected\n", index);
 					}
-					bitBase.setBit(index);
+					bitbase.setBit(index);
 					result++;
 				}
 				else {
@@ -279,21 +285,18 @@ namespace ChessBitbase {
 			}
 		}
 
-		void addPiecesToBoard(MoveGenerator& position, const BitbaseIndex& bitBaseIndex, const PieceList& pieceList) {
-			position.setPiece(bitBaseIndex.getPiecePos(0), WHITE_KING);
-			position.setPiece(bitBaseIndex.getPiecePos(1), BLACK_KING);
-			for (uint32_t pieceNo = 0; pieceNo < pieceList.getPieceAmount(); pieceNo++) {
-				position.setPiece(bitBaseIndex.getPiecePos(2 + pieceNo), pieceList.getPiece(pieceNo));
+		void addPiecesToPosition(MoveGenerator& position, const BitbaseIndex& bitbaseIndex, const PieceList& pieceList) {
+			position.setPiece(bitbaseIndex.getPieceSquare(0), WHITE_KING);
+			position.setPiece(bitbaseIndex.getPieceSquare(1), BLACK_KING);
+			for (uint32_t pieceNo = 0; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
+				position.setPiece(bitbaseIndex.getPieceSquare(2 + pieceNo), pieceList.getPiece(pieceNo));
 			}
-			position.setWhiteToMove(bitBaseIndex.getWhiteToMove());
+			position.setWhiteToMove(bitbaseIndex.isWhiteToMove());
 		}
 
-		void removePiecesFromBoard(MoveGenerator& position, const BitbaseIndex& bitBaseIndex) {
-			for (uint32_t pieceNo = 0; pieceNo < bitBaseIndex.getPieceAmount(); pieceNo++) {
-				position.removePieceFromPosition(bitBaseIndex.getPiecePos(pieceNo));
-			}
-		}
-
+		/**
+		 * Prints the difference of two bitbases
+		 */
 		void compareBitbases(const char* pieceString, Bitbase& bitbase1, Bitbase& bitbase2) {
 			MoveGenerator position;
 			PieceList pieceList(pieceString);
@@ -302,9 +305,9 @@ namespace ChessBitbase {
 				bool newResult = bitbase1.getBit(index);
 				bool oldResult = bitbase2.getBit(index);
 				if (bitbase1.getBit(index) != bitbase2.getBit(index)) {
-					BitbaseIndex bitBaseIndex;
-					bitBaseIndex.setPiecePositionsByIndex(index, pieceList);
-					addPiecesToBoard(position, bitBaseIndex, pieceList);
+					BitbaseIndex bitbaseIndex;
+					bitbaseIndex.setPieceSquaresByIndex(index, pieceList);
+					addPiecesToPosition(position, bitbaseIndex, pieceList);
 					printf("new: %s, old: %s\n", newResult ? "won" : "not won", oldResult ? "won" : "not won");
 					printf("index: %lld\n", index);
 					position.print();
@@ -313,16 +316,22 @@ namespace ChessBitbase {
 			}
 		}
 
+		/**
+		 * Prints the differences of two bitbases in files
+		 */
 		void compareFiles(string pieceString) {
-			Bitbase bitBase1;
-			Bitbase bitBase2;
-			bitBase1.readFromFile(pieceString);
-			bitBase2.readFromFile("generated\\" + pieceString);
-			compareBitbases(pieceString.c_str(), bitBase1, bitBase2);
+			Bitbase bitbase1;
+			Bitbase bitbase2;
+			bitbase1.readFromFile(pieceString);
+			bitbase2.readFromFile("generated\\" + pieceString);
+			compareBitbases(pieceString.c_str(), bitbase1, bitbase2);
 		}
 
-		void printTimeSpent(ThinkingTimeManager& timeManager) {
-			uint64_t timeInMilliseconds = timeManager.getTimeSpentInMilliseconds();
+		/**
+		 * Prints the time spent so far
+		 */
+		void printTimeSpent(ClockManager& clock) {
+			uint64_t timeInMilliseconds = clock.getTimeSpentInMilliseconds();
 			printf("Time spend: %lld:%lld:%lld.%lld\n",
 				timeInMilliseconds / (60 * 60 * 1000),
 				(timeInMilliseconds / (60 * 1000)) % 60,
@@ -360,6 +369,9 @@ namespace ChessBitbase {
 			}
 		}
 
+		/**
+		 * Computes a bitbase for a set of pieces described by a piece list.
+		 */
 		void computeBitbase(PieceList& pieceList) {
 			MoveGenerator position;
 			string pieceString = pieceList.getPieceString();
@@ -368,73 +380,88 @@ namespace ChessBitbase {
 				printf("Bitbase already loaded\n");
 				return;
 			}
-			BitbaseIndex bitBaseIndex;
+			BitbaseIndex bitbaseIndex;
 			uint32_t bitsChanged = 0;
-			bitBaseIndex.setPiecePositionsByIndex(0, pieceList);
-			uint64_t sizeInBit = bitBaseIndex.getSizeInBit();
-			Bitbase bitBase(bitBaseIndex);
-			Bitbase computedPositions(bitBaseIndex);
-			ThinkingTimeManager timeManager;
+			bitbaseIndex.setPieceSquaresByIndex(0, pieceList);
+			uint64_t sizeInBit = bitbaseIndex.getSizeInBit();
+			Bitbase bitbase(bitbaseIndex);
+			Bitbase computedPositions(bitbaseIndex);
+			ClockManager clock;
 
-			timeManager.startTimer();
-			position.clear();
+			clock.setStartTime();
 			amountOfIllegalPositions = 0;
 			amountOfDirectDrawOrLoss = 0;
 			for (uint64_t index = 0; index < sizeInBit; index++) {
 				printInfo(index, sizeInBit, bitsChanged);
-				if (bitBaseIndex.setPiecePositionsByIndex(index, pieceList)) {
-					addPiecesToBoard(position, bitBaseIndex, pieceList);
-					bitsChanged += initialComputePosition(index, position, eval, bitBase, computedPositions);
-					removePiecesFromBoard(position, bitBaseIndex);
+				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
+					position.clear();
+					addPiecesToPosition(position, bitbaseIndex, pieceList);
+					bitsChanged += initialComputePosition(index, position, bitbase, computedPositions);
 				}
 			}
 			printf("\nInitial, positions set: %ld\n", bitsChanged);
-			printTimeSpent(timeManager);
+			printTimeSpent(clock);
 
 			for (uint32_t loopCount = 0; loopCount < 100; loopCount++) {
 				bitsChanged = 0;
 				for (uint64_t index = 0; index < sizeInBit; index++) {
 					printInfo(index, sizeInBit, bitsChanged);
 
-					if (!computedPositions.getBit(index) && bitBaseIndex.setPiecePositionsByIndex(index, pieceList)) {
-						addPiecesToBoard(position, bitBaseIndex, pieceList);
-						assert(index == BoardAccess::getIndex(position));
-						bitsChanged += computePosition(index, position, bitBase, computedPositions);
+					if (!computedPositions.getBit(index) && bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
+						position.clear();
+						addPiecesToPosition(position, bitbaseIndex, pieceList);
+						assert(index == BoardAccess::computeIndex(position));
+						bitsChanged += computePosition(index, position, bitbase, computedPositions);
 						//if (bitsChanged == 0) { position.printBoard(); }
-						removePiecesFromBoard(position, bitBaseIndex);
 					}
 				}
 
 				printf("\nLoop: %ld, positions set: %ld\n", loopCount, bitsChanged);
-				printTimeSpent(timeManager);
+				printTimeSpent(clock);
 				if (bitsChanged == 0) {
 					break;
 				}
 			}
-			//compareToFile(pieceString, bitBase);
-			bitBase.printStatistic();
+			//compareToFile(pieceString, bitbase);
+			bitbase.printStatistic();
 			printf("Illegal positions: %lld, draw or loss found in quiescense: %lld, sum: %lld \n",
 				amountOfIllegalPositions, amountOfDirectDrawOrLoss, amountOfDirectDrawOrLoss + amountOfIllegalPositions);
-			printTimeSpent(timeManager);
+			printTimeSpent(clock);
 			string fileName = pieceString + string(".btb");
-			bitBase.storeToFile(fileName.c_str());
-			BitbaseReader::setBitbase(pieceString, bitBase);
-			//testAllKPK(bitBase);
+			bitbase.storeToFile(fileName.c_str());
+			BitbaseReader::setBitbase(pieceString, bitbase);
 		}
 
-		void testBoard(MoveGenerator& position, Square wk, Square bk, bool wtm, bool expected, Bitbase& bitBase) {
+		/**
+		 * Computes a bitbase for a piece string (example KPK)
+		 */
+		void computeBitbase(string pieceString) {
+			PieceList list(pieceString);
+			computeBitbase(list);
+		}
+
+		/**
+		 * Test a position
+		 * @param position chess position without kings
+		 * @param wk square of white king
+		 * @param bk square of black king
+		 * @param wtm white to move
+		 * @param expected expected value for the position (win or non win)
+		 * @param bitbase bit base to test
+		 */
+		void testBoard(MoveGenerator& position, Square wk, Square bk, bool wtm, bool expected, Bitbase& bitbase) {
 			position.setPiece(wk, WHITE_KING);
 			position.setPiece(bk, BLACK_KING);
 			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::getIndex(position);
-			if (bitBase.getBit(checkIndex) == expected) {
+			uint64_t checkIndex = BoardAccess::computeIndex(position);
+			if (bitbase.getBit(checkIndex) == expected) {
 				printf("Test OK\n");
 			}
 			else {
 				printf("%s, index:%lld\n", position.isWhiteToMove() ? "white" : "black", checkIndex);
 				printf("Test failed\n");
 				position.print();
-				computeValue(position, bitBase, true);
+				computeValue(position, bitbase, true);
 				showDebugIndex("KRKP");
 			}
 		}
@@ -444,68 +471,66 @@ namespace ChessBitbase {
 			Square pos;
 		};
 
-		void testKQKR(Square wk, Square bk, Square q, Square r, bool wtm, bool expected, Bitbase& bitBase) {
+		void testKQKR(Square wk, Square bk, Square q, Square r, bool wtm, bool expected, Bitbase& bitbase) {
 			MoveGenerator position;
 			position.setPiece(q, WHITE_QUEEN);
 			position.setPiece(r, BLACK_ROOK);
-			testBoard(position, wk, bk, wtm, expected, bitBase);
+			testBoard(position, wk, bk, wtm, expected, bitbase);
 		}
 
-		void testKRKQ(Square wk, Square bk, Square r, Square q, bool wtm, bool expected, Bitbase& bitBase) {
+		void testKRKQ(Square wk, Square bk, Square r, Square q, bool wtm, bool expected, Bitbase& bitbase) {
 			MoveGenerator position;
 			position.setPiece(q, BLACK_QUEEN);
 			position.setPiece(r, WHITE_ROOK);
-			testBoard(position, wk, bk, wtm, expected, bitBase);
+			testBoard(position, wk, bk, wtm, expected, bitbase);
 		}
-
 
 		void testAllKQKR() {
-			Bitbase bitBase;
-			bitBase.readFromFile("KQKR.btb_generated");
-			testKQKR(B7, B1, C8, A2, false, false, bitBase);
-			testKQKR(B7, B1, D8, A2, false, true, bitBase);
-			testKQKR(B7, B1, C8, A3, false, true, bitBase);
-			testKQKR(B7, B1, C8, A2, true, true, bitBase);
+			Bitbase bitbase;
+			bitbase.readFromFile("KQKR.btb_generated");
+			testKQKR(B7, B1, C8, A2, false, false, bitbase);
+			testKQKR(B7, B1, D8, A2, false, true, bitbase);
+			testKQKR(B7, B1, C8, A3, false, true, bitbase);
+			testKQKR(B7, B1, C8, A2, true, true, bitbase);
 		}
 
-
-		void testKPK(Square wk, Square bk, Square p, bool wtm, bool expected, Bitbase& bitBase) {
+		void testKPK(Square wk, Square bk, Square p, bool wtm, bool expected, Bitbase& bitbase) {
 			MoveGenerator position;
 			position.setPiece(p, WHITE_PAWN);
-			testBoard(position, wk, bk, wtm, expected, bitBase);
+			testBoard(position, wk, bk, wtm, expected, bitbase);
 		}
 
-		void testAllKPK(Bitbase& bitBase) {
-			testKPK(E5, E8, E7, false, false, bitBase);
-			testKPK(D6, E8, E7, true, false, bitBase);
-			testKPK(A2, A5, E2, true, true, bitBase);
-			testKPK(A2, A5, E2, false, false, bitBase);
-			testKPK(A3, A5, E2, true, false, bitBase);
-			testKPK(A3, A5, E2, false, true, bitBase);
+		void testAllKPK(Bitbase& bitbase) {
+			testKPK(E5, E8, E7, false, false, bitbase);
+			testKPK(D6, E8, E7, true, false, bitbase);
+			testKPK(A2, A5, E2, true, true, bitbase);
+			testKPK(A2, A5, E2, false, false, bitbase);
+			testKPK(A3, A5, E2, true, false, bitbase);
+			testKPK(A3, A5, E2, false, true, bitbase);
 		}
 
 		void testAllKPK() {
-			Bitbase bitBase;
-			bitBase.readFromFile("KPK");
-			testAllKPK(bitBase);
+			Bitbase bitbase;
+			bitbase.readFromFile("KPK");
+			testAllKPK(bitbase);
 		}
 
-		void testKRKP(Square wk, Square bk, Square p, Square r, bool wtm, bool expected, Bitbase& bitBase) {
+		void testKRKP(Square wk, Square bk, Square p, Square r, bool wtm, bool expected, Bitbase& bitbase) {
 			MoveGenerator position;
 			position.setPiece(wk, WHITE_KING);
 			position.setPiece(bk, BLACK_KING);
 			position.setPiece(p, BLACK_PAWN);
 			position.setPiece(r, WHITE_ROOK);
 			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::getIndex(position);
-			if (bitBase.getBit(checkIndex) == expected) {
+			uint64_t checkIndex = BoardAccess::computeIndex(position);
+			if (bitbase.getBit(checkIndex) == expected) {
 				printf("Test OK\n");
 			}
 			else {
 				position.print();
 				printf("%s, index:%lld\n", position.isWhiteToMove() ? "white" : "black", checkIndex);
 				printf("Test failed\n");
-				computeValue(position, bitBase, true);
+				computeValue(position, bitbase, true);
 				showDebugIndex("KRKP");
 
 			}
@@ -513,20 +538,20 @@ namespace ChessBitbase {
 
 		void showDebugIndex(string pieceString) {
 			MoveGenerator position;
-			Bitbase bitBase;
-			bitBase.readFromFile(pieceString);
+			Bitbase bitbase;
+			bitbase.readFromFile(pieceString);
 			PieceList pieceList(pieceString.c_str());
-			BitbaseIndex bitBaseIndex;
+			BitbaseIndex bitbaseIndex;
 			uint32_t index;
 			while (true) {
 				cin >> index;
 				printf("%ld\n", index);
-				if (bitBaseIndex.setPiecePositionsByIndex(index, pieceList)) {
+				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
 					position.clear();
-					addPiecesToBoard(position, bitBaseIndex, pieceList);
-					printf("index:%lld, result for white %s\n", index, bitBase.getBit(index) ? "win" : "draw");
+					addPiecesToPosition(position, bitbaseIndex, pieceList);
+					printf("index:%lld, result for white %s\n", index, bitbase.getBit(index) ? "win" : "draw");
 
-					computeValue(position, bitBase, true);
+					computeValue(position, bitbase, true);
 				}
 				else {
 					break;
@@ -536,21 +561,21 @@ namespace ChessBitbase {
 
 
 		void testAllKRKP() {
-			Bitbase bitBase;
-			bitBase.readFromFile("KRKP");
-			testKRKP(F2, D4, F6, F3, true, true, bitBase);
-			testKRKP(F2, D4, F6, F3, false, true, bitBase);
-			testKRKP(A7, G4, F2, B5, false, false, bitBase);
-			testKRKP(A7, G4, F2, B5, true, false, bitBase);
-			testKRKP(A7, G4, F5, B5, true, true, bitBase);
-			testKRKP(A7, G4, F5, B5, false, false, bitBase);
-			testKRKP(C3, C1, D2, A2, false, false, bitBase);
+			Bitbase bitbase;
+			bitbase.readFromFile("KRKP");
+			testKRKP(F2, D4, F6, F3, true, true, bitbase);
+			testKRKP(F2, D4, F6, F3, false, true, bitbase);
+			testKRKP(A7, G4, F2, B5, false, false, bitbase);
+			testKRKP(A7, G4, F2, B5, true, false, bitbase);
+			testKRKP(A7, G4, F5, B5, true, true, bitbase);
+			testKRKP(A7, G4, F5, B5, false, false, bitbase);
+			testKRKP(C3, C1, D2, A2, false, false, bitbase);
 		}
 
 		void testAllKRKQ() {
-			Bitbase bitBase;
-			bitBase.readFromFile("KRKQ");
-			testKRKQ(C3, C1, A2, D1, false, false, bitBase);
+			Bitbase bitbase;
+			bitbase.readFromFile("KRKQ");
+			testKRKQ(C3, C1, A2, D1, false, false, bitbase);
 		}
 
 

@@ -158,9 +158,6 @@
     <ClInclude Include="search\searchdef.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="search\clockmanager.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="search\threadpool.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -337,6 +334,9 @@
     </ClInclude>
     <ClInclude Include="bitbase\bitbasegenerator.h">
       <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="search\clockmanager.h">
+      <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

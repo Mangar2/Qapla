@@ -53,7 +53,25 @@ namespace ChessMoveGenerator {
 				result = (bitBoardsPiece[WHITE_KING] & attackMask[BLACK]) != 0;
 			}
 			else {
-				return (bitBoardsPiece[BLACK_KING] & attackMask[WHITE]) != 0;
+				result = (bitBoardsPiece[BLACK_KING] & attackMask[WHITE]) != 0;
+			}
+			return result;
+		}
+
+		/**
+		 * Checks, if the king not on move is in check
+		 */
+		bool isLegalPosition() {
+			bool result;
+			computeAttackMasksForBothColors();
+			bool hasKingOfBothColors = 
+				(bitBoardsPiece[WHITE_KING] != 0) && (bitBoardsPiece[BLACK_KING] != 0);
+			bool result = hasKingOfBothColors;
+			if (!isWhiteToMove()) {
+				result = result && (bitBoardsPiece[WHITE_KING] & attackMask[BLACK]) != 0;
+			}
+			else {
+				result = result && (bitBoardsPiece[BLACK_KING] & attackMask[WHITE]) != 0;
 			}
 			return result;
 		}

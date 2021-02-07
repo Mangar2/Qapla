@@ -189,8 +189,10 @@ namespace ChessBasics {
 	
 	constexpr Piece OPPONENT[COLOR_AMOUNT] = { BLACK, WHITE };
 	constexpr Piece operator+(Piece a, int32_t b) { return Piece(int32_t(a) + b); }
+	constexpr Piece operator-(Piece a, int32_t b) { return Piece(int32_t(a) - b); }
 	inline Piece& operator++(Piece& piece) { return piece = Piece(piece + 1); }
 	inline Piece& operator+=(Piece& a, int32_t b) { return a = Piece(a + b); }
+	inline Piece& operator-=(Piece& a, int32_t b) { return a = Piece(a - b); }
 
 	/**
 	 * Checks, if a piece is a pawn
