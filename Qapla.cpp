@@ -29,9 +29,6 @@
 #include "interface/selectinterface.h"
 
 #include "search/search.h"
-#include "tests/evalpawntest.h"
-#include "tests/evalmobilitytest.h"
-
 #include "pgn/pgnfiletokenizer.h"
 #include "pgn/pgngame.h"
 
@@ -198,7 +195,6 @@ void checkThreadSpeed() {
 */
 
 void runTests() {
-	ChessTest::runEvalMobilityTests();
 }
 
 void createStatistic() {

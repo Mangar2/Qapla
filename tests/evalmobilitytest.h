@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include "../eval/evalmobility.h"
 #include "../search/boardadapter.h"
 
 using namespace ChessEval;

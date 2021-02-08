@@ -34,7 +34,6 @@
 #include "evalresults.h"
 #include "evalendgame.h"
 #include "evalpawn.h"
-#include "evalmobility.h"
 
 using namespace std;
 

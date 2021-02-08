@@ -215,9 +215,6 @@
     <ClInclude Include="eval\evalendgame.h">
       <Filter>eval</Filter>
     </ClInclude>
-    <ClInclude Include="eval\evalmobility.h">
-      <Filter>eval</Filter>
-    </ClInclude>
     <ClInclude Include="eval\evalpawn.h">
       <Filter>eval</Filter>
     </ClInclude>
@@ -345,6 +342,9 @@
       <Filter>bitbase</Filter>
     </ClInclude>
     <ClInclude Include="eval\pst.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\queen.h">
       <Filter>eval</Filter>
     </ClInclude>
   </ItemGroup>

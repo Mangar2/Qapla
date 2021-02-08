@@ -84,8 +84,6 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static void computeMasks(MoveGenerator& position, EvalResults& results) {
 			position.computePinnedMask<COLOR>();
-			results.pinnedBB[WHITE] = position.pinnedMask[WHITE];
-			results.pinnedBB[BLACK] = position.pinnedMask[BLACK];
 		}
 
 		/**

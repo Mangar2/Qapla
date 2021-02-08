@@ -39,8 +39,6 @@ namespace ChessBitbase {
 	public:
 		static void loadBitbase() {
 			loadRelevant3StoneBitbase();
-			loadBitbase("KBK");
-			loadBitbase("KBKB");
 		}
 
 		static void loadRelevant3StoneBitbase() {

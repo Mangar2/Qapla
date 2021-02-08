@@ -35,7 +35,7 @@ namespace ChessEval {
 		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 };
 	};
 
-	class EvalMobility {
+	class Queen {
 	public:
 
 		static value_t print(MoveGenerator& board, EvalResults& mobility) {
