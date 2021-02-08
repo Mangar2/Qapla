@@ -16,11 +16,11 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
- * Implements functions to eval the mobility of chess pieces
+ * Implements evaluation for queens
  */
 
-#ifndef __EVALMOBILITY_H
-#define __EVALMOBILITY_H
+#ifndef __QUEEN_H
+#define __QUEEN_H
 
 #include <map>
 #include "../movegenerator/movegenerator.h"
@@ -30,95 +30,75 @@ using namespace ChessMoveGenerator;
 
 namespace ChessEval {
 
-	struct EvalMobilityValues {
-		const static value_t MOBILITY_VALUE = 2;
-		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 };
-	};
-
 	class Queen {
 	public:
-
-		static value_t print(MoveGenerator& board, EvalResults& mobility) {
-			value_t evalValue = eval(board, mobility);
-			printf("Mobility:\n");
-			printf("White Queen         : %ld\n", calcQueenMobility<WHITE>(board, mobility));
-			printf("Black Queen         : %ld\n", -calcQueenMobility<BLACK>(board, mobility));
-			printf("Mobility total      : %ld\n", evalValue);
-			return evalValue;
-
-		}
-
 		/**
-		 * Evaluates the mobility of all pieces (not pawns) on the board
+		 * Evaluates the evaluation value for queens
 		 */
-		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
-			value_t evalResult = eval<WHITE>(board, mobility) - eval<BLACK>(board, mobility);
+		template <bool PRINT>
+		static value_t eval(MoveGenerator& position, EvalResults& results) {
+			value_t evalResult = eval<WHITE, PRINT>(position, results) - eval<BLACK, PRINT>(position, results);
 			return evalResult;
 		}
-
-		/**
-		 * Gets a list of detailed evaluation information
-		 */
-		template <Piece COLOR>
-		static map<string, value_t> factors(MoveGenerator& board, EvalResults& evalResults) {
-			map<string, value_t> result;
-			eval(board, evalResults);
-			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-
-			if (evalResults.midgameInPercent > 50) {
-				result["Queen attack"] = evalResults.queenAttackFactor[COLOR];
-			}
-			return result;
-		}
-
-
 
 	private:
 
 		/**
-		 * Evaluate mobility for all pieces of one color
+		 * Calculates the evaluation value for Queens
 		 */
-		template <Piece COLOR>
-		static value_t eval(MoveGenerator& board, EvalResults& mobility) {
-			value_t evalResult = 0;
-			evalResult += calcQueenMobility<COLOR>(board, mobility);
-			return evalResult;
-		}
-
-
-		/**
-		 * Calculates the mobility value for Queens
-		 */
-		template <Piece COLOR>
-		static value_t calcQueenMobility(MoveGenerator& board, EvalResults& mobility)
+		template <Piece COLOR, bool PRINT>
+		static value_t eval(MoveGenerator& position, EvalResults& results)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			bitBoard_t queens = board.getPieceBB(QUEEN + COLOR);
-			mobility.queenAttack[COLOR] = 0;
+			bitBoard_t queens = position.getPieceBB(QUEEN + COLOR);
+			results.queenAttack[COLOR] = 0;
 			if (queens == 0) {
 				return 0;
 			}
 
-			bitBoard_t occupied = board.getAllPiecesBB();
-			bitBoard_t removeMask = ~mobility.pawnAttack[OPPONENT];
+			bitBoard_t occupied = position.getAllPiecesBB();
+			bitBoard_t removeMask = ~results.pawnAttack[OPPONENT];
 
 			Square departureSquare;
-			value_t result = 0;
+			value_t value = 0;
 			while (queens)
 			{
 				departureSquare = BitBoardMasks::lsb(queens);
 				queens &= queens - 1;
-				bitBoard_t attack = Magics::genRookAttackMask(departureSquare, occupied & ~board.getPieceBB(ROOK + COLOR));
-				attack |= Magics::genBishopAttackMask(departureSquare, occupied & ~board.getPieceBB(BISHOP + COLOR));
-				mobility.queenAttack[COLOR] |= attack;
-				attack &= removeMask;
-				result += EvalMobilityValues::QUEEN_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
+				value += calcMobility<COLOR, PRINT>(position, results, departureSquare, occupied, removeMask);
 			}
-			return result;
+			if (PRINT) cout 
+				<< endl
+				<< colorToString(COLOR) << " queens: "
+				<< std::right << std::setw(20) << value << endl;
+			return value;
 		}
 
-		
+		/**
+		 * Calculates the mobility of a queen
+		 */
+		template<Piece COLOR, bool PRINT>
+		static value_t calcMobility(MoveGenerator& position,
+			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
+		{
+			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB & ~position.getPieceBB(ROOK + COLOR));
+			attackBB |= Magics::genBishopAttackMask(square, occupiedBB & ~position.getPieceBB(BISHOP + COLOR));
+			results.queenAttack[COLOR] |= attackBB;
+			attackBB &= removeBB;
+			const value_t value = QUEEN_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+
+			if (PRINT) cout << colorToString(COLOR)
+				<< " queen (" << squareToString(square) << ") mobility: "
+				<< std::right << std::setw(7) << value;
+			return value;
+		}
+
+		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { 
+			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 
+			10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 
+		};
+
 	};
 }
 
-#endif // __EVALMOBILITY_H
+#endif // __QUEEN_H

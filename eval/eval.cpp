@@ -60,7 +60,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 		evalValue += Bishop::eval<PRINT>(board, evalResults);
 		evalValue += Knight::eval<PRINT>(board, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
-		result += Queen::eval(board, evalResults);
+		result += Queen::eval<PRINT>(board, evalResults);
 
 		if (evalResults.midgameInPercent > 0) {
 			result += KingAttack::eval(board, evalResults);
@@ -84,8 +84,6 @@ map<string, value_t> Eval::getEvalFactors(MoveGenerator& board) {
 	map<string, value_t> result;
 	auto factors = KingAttack::factors<COLOR>(board, evalResults);
 	result.insert(factors.begin(), factors.end());
-	auto mobilityFactors = Queen::factors<COLOR>(board, evalResults);
-	result.insert(mobilityFactors.begin(), mobilityFactors.end());
 	return result;
 }
 
@@ -114,7 +112,6 @@ void Eval::printEval(MoveGenerator& board) {
 		evalValue = endGameResult;
 	}
 	else {
-		Queen::print(board, evalResults);
 		if (evalResults.midgameInPercent > 0) {
 			KingAttack::print(board, evalResults);
 		}
