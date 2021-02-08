@@ -52,6 +52,8 @@ namespace ChessEval {
 		bitBoard_t queensBB; 
 		// White and black pawns
 		bitBoard_t pawnsBB;
+		// Pinned pieces
+		bitBoard_t pinnedBB[2];
 		// Squares attacked by queens also behind a Rook & Bishop of same color
 		bitBoard_t queenAttack[2];
 		// Squares attacked by rooks also behind another Rook or Queen of same color or Queen of opposit color

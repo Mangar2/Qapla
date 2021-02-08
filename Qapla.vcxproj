@@ -1491,6 +1491,7 @@
     <ClCompile Include="eval\kingAttack.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
+    <ClCompile Include="eval\pst.cpp" />
     <ClCompile Include="eval\rook.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
     <ClCompile Include="interface\winboard.cpp" />
@@ -1534,6 +1535,7 @@
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\knight.h" />
     <ClInclude Include="eval\pawnrace.h" />
+    <ClInclude Include="eval\pst.h" />
     <ClInclude Include="eval\rook.h" />
     <ClInclude Include="interface\chessinterface.h" />
     <ClInclude Include="interface\clocksetting.h" />

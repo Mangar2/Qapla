@@ -113,7 +113,6 @@ namespace ChessEval {
 				mobility.queenAttack[COLOR] |= attack;
 				attack &= removeMask;
 				result += EvalMobilityValues::QUEEN_MOBILITY_MAP[BitBoardMasks::popCount(attack)];
-				// mobility.queenAttackFactor[COLOR] = BitBoardMasks::popCount(attack);
 			}
 			return result;
 		}

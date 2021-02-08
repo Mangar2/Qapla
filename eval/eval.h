@@ -61,6 +61,8 @@ namespace ChessEval {
 		 */
 		static value_t eval(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
 			EvalResults evalResults;
+			// computeMasks<WHITE>(board, evalResults);
+			// computeMasks<BLACK>(board, evalResults);
 			return lazyEval<false>(board, evalResults);
 		}
 
@@ -78,6 +80,13 @@ namespace ChessEval {
 		map<string, value_t> getEvalFactors(MoveGenerator& board);
 	
 	private:
+
+		template <Piece COLOR>
+		static void computeMasks(MoveGenerator& position, EvalResults& results) {
+			position.computePinnedMask<COLOR>();
+			results.pinnedBB[WHITE] = position.pinnedMask[WHITE];
+			results.pinnedBB[BLACK] = position.pinnedMask[BLACK];
+		}
 
 		/**
 		 * Calculates the midgame factor in percent

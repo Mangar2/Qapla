@@ -7,6 +7,7 @@ Quabla chess engine
 	- Fixed bugs where the transition table kept draw values for replaying moves from earlier games or after undo moves
 - Search
 	- Using hash entries even in PV, if the value > winning bonus. This fixed problems with finding mates
+	- Adding root moves with a stable bubblesort moving all historic PV moves to the front. Prepared for multi-pv search and for excluded moves, still this is not yet implemented.
 	- Rearranged some code parts. 	
 - Eval
 	- Added some drawish endgame evaluation terms like KRBKR + 5 ELO (maybe)
@@ -16,6 +17,8 @@ Quabla chess engine
 	- Added rook evaluation term for protecting passed pawns from behind + 15 ELO 
 	- Added bonus for double bishop on different colors, changed mobility values for bishops with low mobility
 	- Added evaluation terms for knights
+	- Added bitbases - but yet only activated for KPK
+	- Added dedicated evaluation for KPsK
 
 ## 0.0.14
 - Playing strength: about 2250 ELO

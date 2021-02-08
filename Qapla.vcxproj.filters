@@ -114,6 +114,9 @@
     <ClCompile Include="search\rootmoves.cpp">
       <Filter>search</Filter>
     </ClCompile>
+    <ClCompile Include="eval\pst.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h">
@@ -340,6 +343,9 @@
     </ClInclude>
     <ClInclude Include="bitbase\huffmancode.h">
       <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\pst.h">
+      <Filter>eval</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

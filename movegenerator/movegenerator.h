@@ -151,6 +151,12 @@ namespace ChessMoveGenerator {
 		 */
 		void computeAttackMasksForBothColors();
 
+		/**
+		 * Computes a mask of pinned pieces
+		 */
+		template <Piece COLOR>
+		void computePinnedMask();
+
 	private:
 		enum moveGenType_t { SILENT, NON_SILENT, ALL };
 
@@ -164,9 +170,6 @@ namespace ChessMoveGenerator {
 		 * @param moveList Output parameter: list holding all moves
 		 */ 
 		void genMovesMultiplePieces(uint32_t piece, int32_t aStep, bitBoard_t destinationBB, MoveList& moveList);
-
-		template <Piece COLOR>
-		void computePinnedMask();
 
 		template<Piece COLOR>
 		void genEPMove(Square startPos, Square epPos, MoveList& moveList);

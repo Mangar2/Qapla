@@ -65,6 +65,9 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KQ+R*B*N*P+K", winningValue);
 	REGISTER("KR+B*N*P+K", winningValue);
 	REGISTER("KNNPK", winningValue);
+	REGISTER("KBBKN", winningValue);
+	REGISTER("KRRP*KN", winningValue);
+	REGISTER("KRRP*KB", winningValue);
 
 	// Near Draw situation
 	REGISTER("KRBKR", forceToAnyCornerButDraw);
@@ -77,6 +80,7 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KRKN", forceToAnyCornerButDraw);
 	REGISTER("KBKP", minusKnightPlusPawn);
 	REGISTER("KNKP", minusKnightPlusPawn);
+	REGISTER("KQNKRR", forceToAnyCornerButDraw);
 
 
 	// Draw situations
