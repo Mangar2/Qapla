@@ -21,5 +21,5 @@
 
 using namespace ChessBitbase;
 
-map<pieceSignature_t, Bitbase> BitbaseReader::bitbases;
+map<pieceSignature_t, Bitbase> BitbaseReader::_bitbases;
 

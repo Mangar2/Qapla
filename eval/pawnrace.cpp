@@ -48,7 +48,7 @@ void PawnRace::computeFastestCandidate(const Board& board) {
 	hasRunner[COLOR] = false;
 
 	bool atMove = board.isWhiteToMove() == (COLOR == WHITE);
-	Square opponentKingPos = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingPos = board.getKingSquare<switchColor(COLOR)>();
 	Square ownKingPos = board.getKingSquare<COLOR>();
 	uint64_t pawns = passedPawns[COLOR];
 
@@ -76,8 +76,8 @@ void PawnRace::computeFastestCandidate(const Board& board) {
 
 template<Piece COLOR>
 inline void PawnRace::computeLegalPositions(const MoveGenerator& board) {
-	bitBoard_t opponentKingAttack = board.pieceAttackMask[board.getKingSquare<OPPONENT[COLOR]>()];
-	legalPositions[COLOR] = ~board.getPieceBB(PAWN + COLOR) & ~board.pawnAttackMask[OPPONENT[COLOR]] & ~opponentKingAttack;
+	bitBoard_t opponentKingAttack = board.pieceAttackMask[board.getKingSquare<switchColor(COLOR)>()];
+	legalPositions[COLOR] = ~board.getPieceBB(PAWN + COLOR) & ~board.pawnAttackMask[switchColor(COLOR)] & ~opponentKingAttack;
 }
 
 template<Piece COLOR>
@@ -99,8 +99,8 @@ inline bool PawnRace::moveKingAway(Square ownKingPos) {
 	bitBoard_t kingBitBoard = kingPositions[COLOR];
 	kingPositions[COLOR] = BitBoardMasks::kingMoves[ownKingPos] & legalPositions[COLOR];
 	kingPositions[COLOR] &= ~(BitBoardMasks::shift<NORTH>(kingBitBoard) | BitBoardMasks::shift<SOUTH>(kingBitBoard));
-	kingPositions[COLOR] &= ~BitBoardMasks::moveInAllDirections(kingPositions[OPPONENT[COLOR]]);
-	legalPositions[OPPONENT[COLOR]] &= ~BitBoardMasks::moveInAllDirections(kingPositions[COLOR]);
+	kingPositions[COLOR] &= ~BitBoardMasks::moveInAllDirections(kingPositions[switchColor(COLOR)]);
+	legalPositions[switchColor(COLOR)] &= ~BitBoardMasks::moveInAllDirections(kingPositions[COLOR]);
 	return kingPositions[COLOR] != 0;
 }
 
@@ -122,14 +122,14 @@ inline bool PawnRace::pawnPromoted() {
 template<Piece COLOR>
 void PawnRace::setPawnPromoted() {
 	hasRunner[COLOR] = true;
-	makeKingMove<OPPONENT[COLOR]>();
+	makeKingMove<switchColor(COLOR)>();
 	isRunnerTempoSafe[COLOR] = !isPawnCapturedByKing<COLOR>();
 	hasTempoCriticalPassedPawn[COLOR] = false;
 }
 
 template<Piece COLOR>
 bool PawnRace::isPawnCapturedByKing() {
-	return (kingPositions[OPPONENT[COLOR]] & pawnPositions[COLOR]) != 0;
+	return (kingPositions[switchColor(COLOR)] & pawnPositions[COLOR]) != 0;
 }
 
 template<Piece COLOR>
@@ -165,7 +165,7 @@ void PawnRace::checkIfCandidateIsRunner(const MoveGenerator& board) {
 				makePawnMove<COLOR>();
 			}
 		}
-		makeKingMove<OPPONENT[COLOR]>();
+		makeKingMove<switchColor(COLOR)>();
 		if (isPawnCapturedByKing<COLOR>()) {
 			setPawnCapturedByKing<COLOR>();
 			break;
@@ -181,8 +181,8 @@ void PawnRace::checkIfCandidateIsRunner(const MoveGenerator& board) {
 template<Piece COLOR>
 value_t PawnRace::computeBonus() {
 	value_t result = 0;
-	if (hasRunner[COLOR] && !hasRunner[OPPONENT[COLOR]]) {
-		bool notRunnerDueToOpponentPassedPawnForcesTempoLoss = (!isRunnerTempoSafe[COLOR] && hasTempoCriticalPassedPawn[OPPONENT[COLOR]]);
+	if (hasRunner[COLOR] && !hasRunner[switchColor(COLOR)]) {
+		bool notRunnerDueToOpponentPassedPawnForcesTempoLoss = (!isRunnerTempoSafe[COLOR] && hasTempoCriticalPassedPawn[switchColor(COLOR)]);
 		if (!notRunnerDueToOpponentPassedPawnForcesTempoLoss) {
 			result = (20 - bestRunnerDistanceInHalfmoves[COLOR]) * RUNNER_FACTOR;
 		}
@@ -203,7 +203,7 @@ bool PawnRace::hasPromisingCandidate() {
 	bool result;
 	bool hasCandidate = candidatePawnSquare[COLOR] != NO_SQUARE;
 	result = !hasRunner[COLOR] && hasCandidate;
-	result &= bestRunnerDistanceInHalfmoves[COLOR] <= bestRunnerDistanceInHalfmoves[OPPONENT[COLOR]] + 1;
+	result &= bestRunnerDistanceInHalfmoves[COLOR] <= bestRunnerDistanceInHalfmoves[switchColor(COLOR)] + 1;
 	return result;
 }
 

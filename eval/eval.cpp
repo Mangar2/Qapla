@@ -59,8 +59,8 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 		EvalValue evalValue = Rook::eval<PRINT>(board, evalResults);
 		evalValue += Bishop::eval<PRINT>(board, evalResults);
 		evalValue += Knight::eval<PRINT>(board, evalResults);
+		evalValue += Queen::eval<PRINT>(board, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
-		result += Queen::eval<PRINT>(board, evalResults);
 
 		if (evalResults.midgameInPercent > 0) {
 			result += KingAttack::eval(board, evalResults);
@@ -69,9 +69,11 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 	return result;
 }
 
-void Eval::initEvalResults(MoveGenerator& board, EvalResults& evalResults) {
-	evalResults.queensBB = board.getPieceBB(WHITE_QUEEN) | board.getPieceBB(BLACK_QUEEN);
-	evalResults.pawnsBB = board.getPieceBB(WHITE_PAWN) | board.getPieceBB(BLACK_PAWN);
+void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
+	evalResults.queensBB = position.getPieceBB(WHITE_QUEEN) | position.getPieceBB(BLACK_QUEEN);
+	evalResults.pawnsBB = position.getPieceBB(WHITE_PAWN) | position.getPieceBB(BLACK_PAWN);
+	position.computePinnedMask<WHITE>();
+	position.computePinnedMask<BLACK>();
 }
 
 /**

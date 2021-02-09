@@ -42,7 +42,7 @@ namespace ChessBitbase {
 		 */
 		static uint64_t computeIndex(const MoveGenerator& board) {
 			BitbaseIndex bitBaseIndex;
-			setBitbaseIndexFromBoard(board, bitBaseIndex);
+			setBitbaseIndexFromBoard<WHITE>(board, bitBaseIndex);
 			uint64_t index = bitBaseIndex.computeIndex();
 			return index;
 		}
@@ -63,9 +63,11 @@ namespace ChessBitbase {
 		/**
 		 * Sets a _bitbase Index having a board
 		 */
+		template<Piece COLOR>
 		static void setBitbaseIndexFromBoard(const MoveGenerator& board, BitbaseIndex& bitBaseIndex) {
+			constexpr Piece OPPONENT = switchColor(COLOR);
 			bool hasPawn = (board.getPieceBB(WHITE_PAWN) | board.getPieceBB(BLACK_PAWN)) != 0;
-			bitBaseIndex.initialize(board.isWhiteToMove(), board.getKingSquare<WHITE>(), board.getKingSquare<BLACK>(), hasPawn);
+			bitBaseIndex.initialize(board.isWhiteToMove(), board.getKingSquare<COLOR>(), board.getKingSquare<OPPONENT>(), hasPawn);
 			for (Piece piece = WHITE_PAWN; piece <= BLACK_QUEEN; ++piece) {
 				addAllPiecesOfType(board, piece, bitBaseIndex);
 			}

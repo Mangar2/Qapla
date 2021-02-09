@@ -93,6 +93,7 @@ namespace ChessEval {
 			rookIndex += trappedByKing<COLOR>(rookSquare, position.getKingSquare<COLOR>()) * TRAPPED;
 			rookIndex +=
 				protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
+			rookIndex += isPinned(position.pinnedMask[COLOR], rookSquare) * PINNED;
 			if (PRINT) printIndex(rookSquare, rookIndex);
 			return getFromIndexMap(rookIndex);
 		}
@@ -123,7 +124,15 @@ namespace ChessEval {
 			if ((rookIndex & HALF_OPEN_FILE) != 0) { cout << " <hof>"; }
 			if ((rookIndex & TRAPPED) != 0) { cout << " <tbk>"; }
 			if ((rookIndex & PROTECTS_PP) != 0) { cout << " <ppp>"; }
+			if ((rookIndex & PINNED) != 0) { cout << " <pin>"; }
 			cout << endl;
+		}
+
+		/**
+		 * Returns true, if the rook is pinned
+		 */
+		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
+			return (pinnedBB & (1ULL << square)) != 0;
 		}
 
 		/**
@@ -170,15 +179,15 @@ namespace ChessEval {
 		 * Adds a value pair to the index map
 		 */
 		static void addToIndexMap(uint32_t index, const value_t data[2]) {
-			indexToValue[index * 2] += data[0];
-			indexToValue[index * 2 + 1] += data[1];
+			_indexToValue[index * 2] += data[0];
+			_indexToValue[index * 2 + 1] += data[1];
 		}
 
 		/**
 		 * Gets a value pair from the index map
 		 */
 		static inline EvalValue getFromIndexMap(uint32_t index) {
-			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
+			return EvalValue(_indexToValue[index * 2], _indexToValue[index * 2 + 1]);
 		}
 
 		/**
@@ -188,18 +197,20 @@ namespace ChessEval {
 			InitStatics();
 		} _staticConstructor;
 
-		static const uint32_t INDEX_SIZE = 16;
+		static const uint32_t INDEX_SIZE = 32;
 		static const uint32_t TRAPPED = 1;
 		static const uint32_t OPEN_FILE = 2;
 		static const uint32_t HALF_OPEN_FILE = 4;
 		static const uint32_t PROTECTS_PP = 8;
+		static const uint32_t PINNED = 16;
 		
 		static constexpr value_t _trapped[2] = { -50, 0 }; 
 		static constexpr value_t _openFile[2] = { 20, 0 };
 		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
 		static constexpr value_t _protectsPP[2] = { 20, 0 };
+		static constexpr value_t _pinned[2] = { 0, 0 };
 		// 20:20 50.30; 40:0 51.45
-		static array<value_t, INDEX_SIZE * 2> indexToValue;
+		static array<value_t, INDEX_SIZE * 2> _indexToValue;
 		// Mobility Map for rooks
 		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = { 
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 10, 10 }, { 15, 15 }, { 20, 20 },

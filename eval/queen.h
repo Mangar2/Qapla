@@ -36,8 +36,8 @@ namespace ChessEval {
 		 * Evaluates the evaluation value for queens
 		 */
 		template <bool PRINT>
-		static value_t eval(MoveGenerator& position, EvalResults& results) {
-			value_t evalResult = eval<WHITE, PRINT>(position, results) - eval<BLACK, PRINT>(position, results);
+		static EvalValue eval(MoveGenerator& position, EvalResults& results) {
+			EvalValue evalResult = eval<WHITE, PRINT>(position, results) - eval<BLACK, PRINT>(position, results);
 			return evalResult;
 		}
 
@@ -47,7 +47,7 @@ namespace ChessEval {
 		 * Calculates the evaluation value for Queens
 		 */
 		template <Piece COLOR, bool PRINT>
-		static value_t eval(MoveGenerator& position, EvalResults& results)
+		static EvalValue eval(MoveGenerator& position, EvalResults& results)
 		{
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t queens = position.getPieceBB(QUEEN + COLOR);
@@ -59,18 +59,20 @@ namespace ChessEval {
 			bitBoard_t occupied = position.getAllPiecesBB();
 			bitBoard_t removeMask = ~results.pawnAttack[OPPONENT];
 
-			Square departureSquare;
-			value_t value = 0;
+			EvalValue value = 0;
 			while (queens)
 			{
-				departureSquare = BitBoardMasks::lsb(queens);
+				const Square square = BitBoardMasks::lsb(queens);
 				queens &= queens - 1;
-				value += calcMobility<COLOR, PRINT>(position, results, departureSquare, occupied, removeMask);
+				value += calcMobility<COLOR, PRINT>(position, results, square, occupied, removeMask);
+				if (isPinned<PRINT>(position.pinnedMask[COLOR], square)) {
+					value += _pinned;
+				}
+				if (PRINT) cout << endl;
 			}
 			if (PRINT) cout 
-				<< endl
 				<< colorToString(COLOR) << " queens: "
-				<< std::right << std::setw(20) << value << endl;
+				<< std::right << std::setw(19) << value << endl;
 			return value;
 		}
 
@@ -92,6 +94,18 @@ namespace ChessEval {
 				<< std::right << std::setw(7) << value;
 			return value;
 		}
+
+		/**
+		 * Returns true, if the queen is pinned
+		 */
+		template<bool PRINT>
+		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
+			bool result = (pinnedBB & (1ULL << square)) != 0;
+			if (PRINT && result) cout << " <pin>";
+			return result;
+		}
+
+		static constexpr value_t _pinned[2] = { 0, 0 };
 
 		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { 
 			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 

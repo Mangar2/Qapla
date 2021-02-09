@@ -106,6 +106,16 @@ namespace ChessEval {
 		}
 
 		/**
+		 * Returns true, if the knight is pinned
+		 */
+		template<bool PRINT>
+		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
+			bool result = (pinnedBB & (1ULL << square)) != 0;
+			if (PRINT && result) cout << "<pin>";
+			return result;
+		}
+
+		/**
 		 * Calculates properties and their Values for Knights
 		 */
 		template<Piece COLOR, bool PRINT>
@@ -115,7 +125,8 @@ namespace ChessEval {
 			uint16_t knightIndex = 0;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			const bitBoard_t opponentPawnBB = position.getPieceBB(PAWN + OPPONENT);
-			knightIndex += isOutpost<COLOR, PRINT>(knightSquare, opponentPawnBB, results);
+			knightIndex += isOutpost<COLOR, PRINT>(knightSquare, opponentPawnBB, results) * OUTPOST;
+			knightIndex += isPinned<PRINT>(position.pinnedMask[COLOR], knightSquare) * PINNED;
 			return getFromIndexMap(knightIndex);
 		}
 
@@ -123,7 +134,7 @@ namespace ChessEval {
 		 * Gets a value pair from the index map
 		 */
 		static inline EvalValue getFromIndexMap(uint32_t index) {
-			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
+			return EvalValue(_indexToValue[index * 2], _indexToValue[index * 2 + 1]);
 		}
 
 		// Mobility Map for knights
@@ -131,55 +142,43 @@ namespace ChessEval {
 			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 }, { 20, 20 }, 
 			{ 25, 25 }, { 25, 25 }, { 25, 25 }
 		};
+
+		static const uint32_t OUTPOST = 1;
+		static const uint32_t PINNED = 2;
 		
-		static constexpr value_t outpostValue[2] = { 20, 0 };
+		static constexpr value_t _outpost[2] = { 20, 0 };
+		static constexpr value_t _pinned[2] = { 0, 0 };
+		static constexpr value_t _indexToValue[8] = { 
+			0, 0, 
+			_outpost[0], _outpost[1],
+			_pinned[0], _pinned[1], 
+			_pinned[0] + _outpost[0], _pinned[1] + _outpost[1]
+		};
+
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };
 
 #ifdef _TEST0 
-		static constexpr value_t outpostValue[2] = { 0, 0 };
-
 #endif
 #ifdef _TEST1 
-		static constexpr value_t outpostValue[2] = { 5, 0 };
-
 #endif
 #ifdef _TEST2 
-		static constexpr value_t outpostValue[2] = { 10, 0 };
-
 #endif
 #ifdef _T3 
-		static constexpr value_t outpostValue[2] = { 15, 0 };
-
 #endif
 #ifdef _T4 		
-		static constexpr value_t outpostValue[2] = { 20, 0 };
-
 #endif
 #ifdef _TEST5
-		static constexpr value_t outpostValue[2] = { 25, 0 };
-
 #endif
 #ifdef _TEST6
-		static constexpr value_t outpostValue[2] = { 30, 0 };
-
 #endif
 #ifdef _TEST7
-		static constexpr value_t outpostValue[2] = { 35, 0 };
-
 #endif
 #ifdef _TEST8
-		static constexpr value_t outpostValue[2] = { 50, 0 };
-
 #endif
 #ifdef _TEST9
-		static constexpr value_t outpostValue[2] = { 10, 10 };
-
 #endif
 #ifdef _TEST10
-		static constexpr value_t outpostValue[2] = { 20, 20 };
-
 #endif
-		static constexpr value_t indexToValue[4] = { 0, 0, outpostValue[0], outpostValue[1] };
 
 
 	};

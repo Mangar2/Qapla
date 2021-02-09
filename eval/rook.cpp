@@ -21,16 +21,17 @@
 
 using namespace ChessEval;
 
-array<value_t, Rook::INDEX_SIZE * 2> Rook::indexToValue;
+array<value_t, Rook::INDEX_SIZE * 2> Rook::_indexToValue;
 Rook::InitStatics Rook::_staticConstructor;
 
 Rook::InitStatics::InitStatics() {
-	indexToValue.fill(0);
+	_indexToValue.fill(0);
 	for (uint32_t i = 0; i < INDEX_SIZE; i++) {
 		if (i & TRAPPED) { addToIndexMap(i, _trapped); }
 		if (i & OPEN_FILE) { addToIndexMap(i, _openFile); }
 		if (i & HALF_OPEN_FILE) { addToIndexMap(i, _halfOpenFile); }
 		if (i & PROTECTS_PP) { addToIndexMap(i, _protectsPP); }
+		if (i & PINNED) { addToIndexMap(i, _pinned); }
 	}
 }
 

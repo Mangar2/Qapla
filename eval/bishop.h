@@ -57,7 +57,7 @@ namespace ChessEval {
 			index += hasDoubleBishop(bishops);
 			value = getFromIndexMap(index);
 			if (PRINT && index > 0) cout << colorToString(COLOR) << " double bishop: "
-				<< std::right << std::setw(11) << value << endl;
+				<< std::right << std::setw(12) << value << endl;
 
 			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + OPPONENT);
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
@@ -70,6 +70,11 @@ namespace ChessEval {
 				const Square bishopSquare = BitBoardMasks::lsb(bishops);
 				bishops &= bishops - 1;
 				value += calcMobility<COLOR, PRINT>(results, bishopSquare, occupiedBB, removeMask);
+				if (isPinned(position.pinnedMask[COLOR], bishopSquare)) {
+					value += EvalValue(_pinned);
+					if (PRINT) cout << "<pin>";
+				}
+				if (PRINT) cout << endl;
 			}
 
 			if (PRINT) cout << colorToString(COLOR) << " bishops: " 
@@ -97,13 +102,20 @@ namespace ChessEval {
 			const EvalValue value = BISHOP_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
 			if (PRINT) cout << colorToString(COLOR)
 				<< " bishop (" << squareToString(square) << ") mobility: "
-				<< std::right << std::setw(5) << value << endl;
+				<< std::right << std::setw(5) << value;
 			return value;
 		}
 
 
 		static inline EvalValue getFromIndexMap(uint32_t index) {
-			return EvalValue(indexToValue[index * 2], indexToValue[index * 2 + 1]);
+			return EvalValue(_indexToValue[index * 2], _indexToValue[index * 2 + 1]);
+		}
+
+		/**
+		 * Returns true, if the bishop is pinned
+		 */
+		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
+			return (pinnedBB & (1ULL << square)) != 0;
 		}
 
 		/**
@@ -114,8 +126,9 @@ namespace ChessEval {
 		/**
 		 * Additional value for two bishops on different colors
 		 */
-		static constexpr value_t doubleBishop[2] = { 20, 10 };
-		static constexpr value_t indexToValue[4] = { 0, 0, doubleBishop[0], doubleBishop[1] };
+		static constexpr value_t _doubleBishop[2] = { 20, 10 };
+		static constexpr value_t _pinned[2] = { 0, 0 };
+		static constexpr value_t _indexToValue[4] = { 0, 0, _doubleBishop[0], _doubleBishop[1] };
 
 		/**
 		 * Mobility of a bishop. Having negative values for 0 or 1 fields to move to did not bring ELO

@@ -177,7 +177,7 @@ namespace ChessSearch {
 		template <Piece COLOR>
 		inline static bool isDefendedByPawn(const MoveGenerator& board, Square square) {
 			return
-				(BitBoardMasks::pawnCaptures[OPPONENT[COLOR]][square] &
+				(BitBoardMasks::pawnCaptures[switchColor(COLOR)][square] &
 					board.getPieceBB(PAWN + COLOR)) != 0;
 		}
 

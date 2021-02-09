@@ -158,7 +158,7 @@ namespace ChessEval {
 		static value_t computePawnValueNoPieceButPawn(MoveGenerator& board, EvalResults& evalResults) {
 			const bool NO_PIECES_BUT_PAWNS_ON_BOARD = true;
 			bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
-			bitBoard_t passedPawns = computePassedPawns<COLOR>(pawns, evalResults.pawnMoveRay[OPPONENT[COLOR]]);
+			bitBoard_t passedPawns = computePassedPawns<COLOR>(pawns, evalResults.pawnMoveRay[switchColor(COLOR)]);
 
 			value_t pawnValue = computePawnValueForSparcelyPolulatedBitboards<COLOR>(pawns & 
 				~passedPawns, EvalPawnValues::ADVANCED_PAWN_VALUE);
@@ -172,7 +172,7 @@ namespace ChessEval {
 		 */
 		template<Piece COLOR>
 		static value_t computeRunnerPace(Board& board, bitBoard_t passedPawns) {
-			const Piece OPPONENT_COLOR = OPPONENT[COLOR];
+			const Piece OPPONENT_COLOR = switchColor(COLOR);
 			const Square CHANGE_SIDE = COLOR == WHITE ? 0 : 0x38;
 
 			Square opponentKingPos = board.getKingSquare<OPPONENT_COLOR>();
@@ -230,7 +230,7 @@ namespace ChessEval {
 					result += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
 				}
 				else if (noPieces && isDistantPassedPawn(pawnPos, board.getPieceBB(PAWN + COLOR), 
-						board.getPieceBB(PAWN + OPPONENT[COLOR])))
+						board.getPieceBB(PAWN + switchColor(COLOR))))
 				{
 					result += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
 				}
@@ -250,7 +250,7 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static value_t computePassedPawnValue(MoveGenerator& board, EvalResults& evalResults) {
 			bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
-			bitBoard_t passedPawnBB = computePassedPawns<COLOR>(pawns, evalResults.pawnMoveRay[OPPONENT[COLOR]]);
+			bitBoard_t passedPawnBB = computePassedPawns<COLOR>(pawns, evalResults.pawnMoveRay[switchColor(COLOR)]);
 			value_t result = computePassedPawnValue<COLOR>(board, passedPawnBB);
 			evalResults.passedPawns[COLOR] = passedPawnBB;
 			return COLOR == WHITE ? result : -result;

@@ -166,7 +166,7 @@ value_t EvalEndgame::winningValue(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 	value_t result = materialAndPawnStructure(board);
-	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingSquare = board.getKingSquare<switchColor(COLOR)>();
 	Square myKingSquare = board.getKingSquare<COLOR>();
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 
@@ -193,7 +193,7 @@ value_t EvalEndgame::KPsK(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::KBNK(MoveGenerator& board, value_t currentValue) {
 	value_t result = board.getMaterialValue().endgame();
-	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingSquare = board.getKingSquare<switchColor(COLOR)>();
 	bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
 
 	result += BONUS[COLOR];
@@ -218,7 +218,7 @@ value_t EvalEndgame::KBBK(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::KBsPsK(MoveGenerator& board, value_t currentValue) {
 	value_t result = materialAndPawnStructure(board);
-	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingSquare = board.getKingSquare<switchColor(COLOR)>();
 	bitBoard_t kingInfluence = BitBoardMasks::kingMoves[opponentKingSquare] | (1ULL << opponentKingSquare);
 
 	bitBoard_t bishops = board.getPieceBB(BISHOP + COLOR);
@@ -249,13 +249,13 @@ value_t EvalEndgame::KNPsK(MoveGenerator& board, value_t currentValue) {
 	bitBoard_t pawns = board.getPieceBB(PAWN + COLOR);
 	bitBoard_t pawnMoves = BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
 	pawnMoves &= ~(board.getPieceBB(PAWN + COLOR) + board.getPieceBB(KING + COLOR));
-	bitBoard_t kingMoves = board.pieceAttackMask[kingPos] & ~board.getAllPiecesBB() & ~board.attackMask[OPPONENT[COLOR]];
+	bitBoard_t kingMoves = board.pieceAttackMask[kingPos] & ~board.getAllPiecesBB() & ~board.attackMask[switchColor(COLOR)];
 
 	if (pawnMoves == 0 && kingMoves == 0) {
 		bool atMove = COLOR == WHITE ? board.isWhiteToMove() : !board.isWhiteToMove();
 		bool allPawnsInOneEdge = (pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 || (pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0;
 		
-		bitBoard_t opponentKingAndOwnKnight = board.getPieceBB(KNIGHT + COLOR) + board.getPieceBB(KING + OPPONENT[COLOR]);
+		bitBoard_t opponentKingAndOwnKnight = board.getPieceBB(KNIGHT + COLOR) + board.getPieceBB(KING + switchColor(COLOR));
 		bool opponentKingAndKnightOnSameColor = (opponentKingAndOwnKnight & WHITE_FIELDS) == 0 || (opponentKingAndOwnKnight & BLACK_FIELDS) == 0;
 		bool knightPushesKingAway = (opponentKingAndKnightOnSameColor && !atMove) || (!opponentKingAndKnightOnSameColor && atMove);
 		
@@ -273,7 +273,7 @@ value_t EvalEndgame::KNPsK(MoveGenerator& board, value_t currentValue) {
 template <Piece COLOR>
 value_t EvalEndgame::KQKR(MoveGenerator& board, value_t currentValue) {
 	value_t result = board.getMaterialValue().endgame();
-	const Piece OPPONENT_COLOR = OPPONENT[COLOR];
+	const Piece OPPONENT_COLOR = switchColor(COLOR);
 	Square opponentKingSquare = board.getKingSquare<OPPONENT_COLOR>();
 	Square opponentRookPos = BitBoardMasks::lsb(board.getPieceBB(ROOK + OPPONENT_COLOR));
 	bitBoard_t kingAttackRay = Magics::genRookAttackMask(board.getKingSquare<COLOR>(), board.getPieceBB(KING + OPPONENT_COLOR));
@@ -294,7 +294,7 @@ value_t EvalEndgame::forceToAnyCornerButDraw(MoveGenerator& board, value_t curre
 
 template <Piece COLOR>
 value_t EvalEndgame::forceToAnyCorner(MoveGenerator& board, value_t currentValue) {
-	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingSquare = board.getKingSquare<switchColor(COLOR)>();
 	Square kingSquare = board.getKingSquare<COLOR>();
 	value_t opponentKingDistanceToCorner = computeDistanceToAnyCorner(opponentKingSquare);
 	value_t ownKingDinstanceToCorner = computeDistanceToAnyCorner(kingSquare);
@@ -310,7 +310,7 @@ value_t EvalEndgame::forceToAnyCorner(MoveGenerator& board, value_t currentValue
 
 template <Piece COLOR>
 value_t EvalEndgame::forceToCorrectCorner(MoveGenerator& board, value_t currentValue, bool whiteCorner) {
-	Square opponentKingSquare = board.getKingSquare<OPPONENT[COLOR]>();
+	Square opponentKingSquare = board.getKingSquare<switchColor(COLOR)>();
 	value_t distanceValue = -computeKingDistance(board) * 1 - computeDistanceToCorrectCorner(opponentKingSquare, whiteCorner) * 2;
 	currentValue += COLOR == WHITE ? distanceValue : -distanceValue;
 	return currentValue;

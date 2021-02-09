@@ -28,7 +28,7 @@ KingPawnAttack::KingPawnAttack()
 
 template<Piece COLOR>
 inline void KingPawnAttack::initRace(MoveGenerator& board) {
-	legalPositions[COLOR] = ~(board.getPieceBB(PAWN + COLOR) | board.pawnAttackMask[OPPONENT[COLOR]]);
+	legalPositions[COLOR] = ~(board.getPieceBB(PAWN + COLOR) | board.pawnAttackMask[switchColor(COLOR)]);
 	weakPawns[COLOR] = board.getPieceBB(PAWN + COLOR) & ~board.pawnAttackMask[COLOR];
 	kingPositions[COLOR] = board.getPieceBB(KING + COLOR);
 	kingAttack[COLOR] = BitBoardMasks::moveInAllDirections(kingPositions[COLOR]);
@@ -39,16 +39,16 @@ inline void KingPawnAttack::initRace(MoveGenerator& board) {
 template<Piece COLOR>
 inline void KingPawnAttack::makeMove() {
 	kingPositions[COLOR] = kingAttack[COLOR] & ~formerPositions[COLOR] & legalPositions[COLOR];
-	kingPositions[COLOR] &= ~kingAttack[OPPONENT[COLOR]];
+	kingPositions[COLOR] &= ~kingAttack[switchColor(COLOR)];
 	kingAttack[COLOR] = BitBoardMasks::moveInAllDirections(kingPositions[COLOR]);
-	kingPositions[COLOR] &= ~formerAttack[OPPONENT[COLOR]];
+	kingPositions[COLOR] &= ~formerAttack[switchColor(COLOR)];
 	formerPositions[COLOR] |= kingPositions[COLOR];
 	formerAttack[COLOR] |= kingAttack[COLOR];
 }
 
 template<Piece COLOR>
 inline bool KingPawnAttack::capturesPawn() {
-	bool result = (kingPositions[COLOR] & weakPawns[OPPONENT[COLOR]]) != 0;
+	bool result = (kingPositions[COLOR] & weakPawns[switchColor(COLOR)]) != 0;
 	return result;
 }
 

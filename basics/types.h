@@ -187,7 +187,6 @@ namespace ChessBasics {
 		COLOR_MASK = 0x01
 	};
 	
-	constexpr Piece OPPONENT[COLOR_AMOUNT] = { BLACK, WHITE };
 	constexpr Piece operator+(Piece a, int32_t b) { return Piece(int32_t(a) + b); }
 	constexpr Piece operator-(Piece a, int32_t b) { return Piece(int32_t(a) - b); }
 	inline Piece& operator++(Piece& piece) { return piece = Piece(piece + 1); }
@@ -197,24 +196,31 @@ namespace ChessBasics {
 	/**
 	 * Checks, if a piece is a pawn
 	 */
-	inline static auto isPawn(Piece piece) { return (piece & ~COLOR_MASK) == PAWN; }
+	constexpr auto isPawn(Piece piece) { return (piece & ~COLOR_MASK) == PAWN; }
 
 	/**
      * Checks, if a piece is a pawn
      */
-	inline static auto isKing(Piece piece) { return (piece & ~COLOR_MASK) == KING; }
+	constexpr auto isKing(Piece piece) { return (piece & ~COLOR_MASK) == KING; }
 
 	/**
 	 * Gets the color of a piece (WHITE or BLACK)
 	 */
-	inline static Piece getPieceColor(Piece piece) {
+	constexpr Piece getPieceColor(Piece piece) {
 		return Piece(piece & COLOR_MASK);
+	}
+
+	/**
+	 * Switches the color of a pice (BLACK to WHITE | WHITE to BLACK)
+	 */
+	constexpr Piece switchColor(Piece piece) {
+		return Piece(piece ^ COLOR_MASK);
 	}
 
 	/**
 	 * Gets the type of piece by removing the color information
 	 */
-	inline static Piece getPieceType(Piece piece) {
+	constexpr Piece getPieceType(Piece piece) {
 		return Piece(piece & ~COLOR_MASK);
 	}
 
