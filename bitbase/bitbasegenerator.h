@@ -288,8 +288,9 @@ namespace ChessBitbase {
 		void addPiecesToPosition(MoveGenerator& position, const BitbaseIndex& bitbaseIndex, const PieceList& pieceList) {
 			position.setPiece(bitbaseIndex.getPieceSquare(0), WHITE_KING);
 			position.setPiece(bitbaseIndex.getPieceSquare(1), BLACK_KING);
-			for (uint32_t pieceNo = 0; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
-				position.setPiece(bitbaseIndex.getPieceSquare(2 + pieceNo), pieceList.getPiece(pieceNo));
+			const uint32_t kingAmount = 2;
+			for (uint32_t pieceNo = kingAmount; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
+				position.setPiece(bitbaseIndex.getPieceSquare(pieceNo), pieceList.getPiece(pieceNo));
 			}
 			position.setWhiteToMove(bitbaseIndex.isWhiteToMove());
 		}

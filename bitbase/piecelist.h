@@ -61,7 +61,7 @@ namespace ChessBitbase {
 					}
 				}
 			}
-			bubbleSort();
+			bubbleSort<true>();
 		}
 
 		/**
@@ -91,7 +91,8 @@ namespace ChessBitbase {
 		template<Piece COLOR>
 		string getPieceStringOfColor() {
 			string result = "K";
-			for (int32_t pieceNo = getNumberOfPieces() - 1; pieceNo >= 0; pieceNo--) {
+			const uint32_t indexWithoutKings = 2;
+			for (int32_t pieceNo = getNumberOfPieces() - 1; pieceNo >= indexWithoutKings; pieceNo--) {
 				if (getPieceColor(getPiece(pieceNo)) == COLOR) {
 					result += toupper(pieceToChar(getPieceType(getPiece(pieceNo))));
 				}
@@ -141,7 +142,7 @@ namespace ChessBitbase {
 			if (pieceNo < _numberOfPieces && isPawn(_pieces[pieceNo])) {
 				_pieces[pieceNo] += promotePieceType - PAWN;
 				_numberOfPawns--;
-				bubbleSort();
+				bubbleSort<true>();
 			}
 		}
 
@@ -154,9 +155,9 @@ namespace ChessBitbase {
 				_pieceSquares[pieceNo] = switchSide(_pieceSquares[pieceNo]);
 			}
 			// White king to index 0, Black king to index 1
-			swap(0, 1);
+			swap<false>(0, 1);
 			// Bring black pieces behind white pieces
-			bubbleSort();
+			bubbleSort<false>();
 		}
 
 		/**
@@ -216,25 +217,29 @@ namespace ChessBitbase {
 		/**
 		 * Swap two pieces and squares in the piece list
 		 */
+		template <bool ONLY_PIECES>
 		void swap(uint32_t index1, uint32_t index2) {
 			Piece piece = _pieces[index1];
 			_pieces[index1] = _pieces[index2];
 			_pieces[index2] = piece;
-			Square square = _pieceSquares[index1];
-			_pieceSquares[index1] = _pieceSquares[index2];
-			_pieceSquares[index2] = square;
+			if (!ONLY_PIECES) {
+				Square square = _pieceSquares[index1];
+				_pieceSquares[index1] = _pieceSquares[index2];
+				_pieceSquares[index2] = square;
+			}
 		}
 
 		/**
 		 * Sort the pieces
 		 */
+		template <bool ONLY_PIECES>
 		void bubbleSort() {
 			if (_numberOfPieces == 0) return;
 			const uint32_t indexWithoutKings = 2;
 			for (int32_t outerLoop = _numberOfPieces - 1; outerLoop > indexWithoutKings; outerLoop--) {
 				for (int32_t innerLoop = indexWithoutKings + 1; innerLoop <= outerLoop; innerLoop++) {
 					if (_pieces[innerLoop - 1] > _pieces[innerLoop]) {
-						swap(innerLoop - 1, innerLoop);
+						swap<ONLY_PIECES>(innerLoop - 1, innerLoop);
 					}
 				}
 			}

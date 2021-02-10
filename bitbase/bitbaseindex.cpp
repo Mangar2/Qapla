@@ -118,7 +118,8 @@ bool BitbaseIndex::setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, u
 		}
 	}
 
-	for (uint32_t piece = 0; piece < nonPawnPieceAmount; piece++) {
+	const uint32_t kingAmount = 2;
+	for (uint32_t piece = 0; piece < nonPawnPieceAmount - kingAmount; piece++) {
 		const uint32_t numberOfPieces = getNumberOfPieces();
 		posIndex = _index % (AMOUT_OF_PIECE_POSITIONS - numberOfPieces);
 		_index /= AMOUT_OF_PIECE_POSITIONS - numberOfPieces;
