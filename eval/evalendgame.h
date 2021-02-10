@@ -24,13 +24,12 @@
 #define __EVALENDGAME_H
 
 #include <string>
+#include <vector>
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
-#include "../bitbase/bitbase.h"
 #include "evalpawn.h"
 
 using namespace std;
-using namespace ChessBitbase;
 
 namespace ChessEval {
 
@@ -44,7 +43,7 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& board, value_t currentValue) {
 
 			uint8_t functionNo = mapPieceSignatureToFunctionNo[board.getPiecesSignature()];
-			if (functionNo < functionAmount) {
+			if (functionNo < functionMap.size()) {
 				currentValue = functionMap[functionNo](board, currentValue);
 			}
 
@@ -60,6 +59,14 @@ namespace ChessEval {
 				printf("Eval endgame mod    : %ld => %ld\n", currentValue, newValue);
 			}
 			return newValue;
+		}
+
+		/**
+		 * Registers the use of a bitbase
+		 */
+		static void registerBitbase(string pieces) {
+			registerFunction(pieces, getFromBitbase, false);
+			registerFunction(pieces, getFromBitbase, true);
 		}
 
 
@@ -107,6 +114,10 @@ namespace ChessEval {
 		 */
 		static value_t materialAndPawnStructure(MoveGenerator& board);
 
+		/**
+		 * Gets a value from a bitbase
+		 */
+		static value_t getFromBitbase(MoveGenerator& position, value_t currentValue);
 
 		template <Piece COLOR>
 		static value_t KQKR(MoveGenerator& board, value_t currentValue);
@@ -217,11 +228,7 @@ namespace ChessEval {
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
 
-
-		static const uint8_t MAX_EVAL_FUNCTIONS = 50;
-		static evalFunction_t* functionMap[MAX_EVAL_FUNCTIONS];
-		static uint8_t functionAmount;
-
+		static vector<evalFunction_t*> functionMap;
 		static uint8_t mapPieceSignatureToFunctionNo[PieceSignature::PIECE_SIGNATURE_SIZE];
 
 	};

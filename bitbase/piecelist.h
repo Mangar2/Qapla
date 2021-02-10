@@ -47,17 +47,15 @@ namespace ChessBitbase {
 		PieceList(string pieceString) {
 			clear();
 			bool whitePiece = true;
-			Piece piece;
-			uint32_t stringPos;
-			_numberOfPieces = 0;
-			_numberOfPawns = 0;
+			addPiece(WHITE_KING);
+			addPiece(BLACK_KING);
 			if (pieceString[0] == 'K') {
-				for (stringPos = 1; pieceString[stringPos] != 0; stringPos++) {
+				for (uint32_t stringPos = 1; pieceString[stringPos] != 0; stringPos++) {
 					if (pieceString[stringPos] == 'K') {
 						whitePiece = false;
 					}
 					else {
-						piece = getPieceType(charToPiece(pieceString[stringPos]));
+						Piece piece = getPieceType(charToPiece(pieceString[stringPos]));
 						piece += (whitePiece ? WHITE : BLACK);
 						addPiece(piece);
 					}
@@ -148,10 +146,31 @@ namespace ChessBitbase {
 		}
 
 		/**
+		 * Switches the side -> black to white
+		 */
+		void toSymetric() {
+			for (uint32_t pieceNo = 0; pieceNo < getNumberOfPieces(); ++pieceNo) {
+				_pieces[pieceNo] = switchColor(_pieces[pieceNo]);
+				_pieceSquares[pieceNo] = switchSide(_pieceSquares[pieceNo]);
+			}
+			// White king to index 0, Black king to index 1
+			swap(0, 1);
+			// Bring black pieces behind white pieces
+			bubbleSort();
+		}
+
+		/**
 		 * Gets a piece
 		 */
 		Piece getPiece(uint32_t pieceNo) const {
 			return _pieces[pieceNo];
+		}
+
+		/**
+		 * Gets the Square of a piece
+	      */
+		const Square getSquare(uint32_t pieceNo) const {
+			return _pieceSquares[pieceNo];
 		}
 
 		/**
@@ -195,12 +214,15 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * Swap two pieces in the piece list
+		 * Swap two pieces and squares in the piece list
 		 */
 		void swap(uint32_t index1, uint32_t index2) {
-			Piece tmp = _pieces[index1];
+			Piece piece = _pieces[index1];
 			_pieces[index1] = _pieces[index2];
-			_pieces[index2] = tmp;
+			_pieces[index2] = piece;
+			Square square = _pieceSquares[index1];
+			_pieceSquares[index1] = _pieceSquares[index2];
+			_pieceSquares[index2] = square;
 		}
 
 		/**
@@ -208,8 +230,9 @@ namespace ChessBitbase {
 		 */
 		void bubbleSort() {
 			if (_numberOfPieces == 0) return;
-			for (int32_t outerLoop = _numberOfPieces - 1; outerLoop > 0; outerLoop--) {
-				for (int32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
+			const uint32_t indexWithoutKings = 2;
+			for (int32_t outerLoop = _numberOfPieces - 1; outerLoop > indexWithoutKings; outerLoop--) {
+				for (int32_t innerLoop = indexWithoutKings + 1; innerLoop <= outerLoop; innerLoop++) {
 					if (_pieces[innerLoop - 1] > _pieces[innerLoop]) {
 						swap(innerLoop - 1, innerLoop);
 					}

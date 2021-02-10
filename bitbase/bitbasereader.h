@@ -25,6 +25,7 @@
 
 #include <map>
 #include "../movegenerator/movegenerator.h"
+#include "../eval/evalendgame.h"
 #include "bitbase.h"
 #include "piecelist.h"
 #include "boardaccess.h"
@@ -75,14 +76,30 @@ namespace ChessBitbase {
 		 */
 		static value_t getValueFromBitbase(MoveGenerator& position, value_t currentValue) {
 			PieceSignature signature = PieceSignature(position.getPiecesSignature());
-			const Bitbase* bitbase = getBitbase(signature);
-			value_t result = getValueFromBitbase(position, signature.getPiecesSignature(), currentValue);
-			uint64_t index = BoardAccess::computeIndex(position);
-			if (result == currentValue) {
-				signature.changeSide();
-				result = -getValueFromBitbase(position, signature.getPiecesSignature(), -currentValue);
+			// 1. Test if the bitbase has a win for white view (example KPK)
+			const Bitbase* whiteBitbase = getBitbase(signature);
+			if (whiteBitbase != 0) {
+				uint64_t index = BoardAccess::computeIndex<0>(position);
+				if (whiteBitbase->getBit(index)) {
+					return currentValue + WINNING_BONUS;
+				}
+				else {
+					currentValue = 1;
+				}
 			}
-			return result;
+			// 2. Test if the bitbase has a win for black (example KKP using the KPK bitbase)
+			signature.changeSide();
+			const Bitbase* blackBitbase = getBitbase(signature);
+			if (blackBitbase != 0) {
+				uint64_t index = BoardAccess::computeIndex<1>(position);
+				if (blackBitbase->getBit(index)) {
+					return currentValue - WINNING_BONUS;
+				}
+				else {
+					currentValue = -1;
+				}
+			}
+			return currentValue;
 		}
 
 		/**
@@ -92,8 +109,10 @@ namespace ChessBitbase {
 			PieceSignature signature;
 			signature.set(pieceString.c_str());
 			Bitbase bitbase;
-			bitbase.readFromFile(pieceString);
-			_bitbases[signature.getPiecesSignature()] = bitbase;
+			if (bitbase.readFromFile(pieceString)) {
+				_bitbases[signature.getPiecesSignature()] = bitbase;
+				ChessEval::EvalEndgame::registerBitbase(pieceString);
+			}
 		}
 
 		/**
@@ -127,20 +146,6 @@ namespace ChessBitbase {
 				bitbase = &it->second;
 			}
 			return bitbase;
-		}
-
-		/**
-		 * Gets a value from a bitbase
-		 */
-		static value_t getValueFromBitbase(MoveGenerator& position, pieceSignature_t signature, value_t currentValue) {
-			value_t result = currentValue;
-			auto it = _bitbases.find(signature);
-			if (it != _bitbases.end() && it->second.isLoaded()) {
-				uint64_t index = BoardAccess::computeIndex(position);
-				bool wins = it->second.getBit(index);
-				result = wins ? currentValue + WINNING_BONUS : 0;
-			}
-			return result;
 		}
 
 		BitbaseReader() {};

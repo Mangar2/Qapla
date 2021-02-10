@@ -412,7 +412,7 @@ namespace ChessBitbase {
 					if (!computedPositions.getBit(index) && bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
 						position.clear();
 						addPiecesToPosition(position, bitbaseIndex, pieceList);
-						assert(index == BoardAccess::computeIndex(position));
+						assert(index == BoardAccess::computeIndex<0>(position));
 						bitsChanged += computePosition(index, position, bitbase, computedPositions);
 						//if (bitsChanged == 0) { position.printBoard(); }
 					}
@@ -464,7 +464,7 @@ namespace ChessBitbase {
 			position.setPiece(wk, WHITE_KING);
 			position.setPiece(bk, BLACK_KING);
 			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::computeIndex(position);
+			uint64_t checkIndex = BoardAccess::computeIndex<0>(position);
 			if (bitbase.getBit(checkIndex) == expected) {
 				printf("Test OK\n");
 			}
@@ -533,7 +533,7 @@ namespace ChessBitbase {
 			position.setPiece(p, BLACK_PAWN);
 			position.setPiece(r, WHITE_ROOK);
 			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::computeIndex(position);
+			uint64_t checkIndex = BoardAccess::computeIndex<0>(position);
 			if (bitbase.getBit(checkIndex) == expected) {
 				printf("Test OK\n");
 			}

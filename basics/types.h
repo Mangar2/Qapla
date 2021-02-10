@@ -98,28 +98,35 @@ namespace ChessBasics {
 	/**
 	 * Gets the rank of a square
 	 */
-	static Rank getRank(Square square) {
+	constexpr Rank getRank(Square square) {
 		return Rank(square / NORTH);
 	}
 
 	/**
 	 * Gets the opposit rank of a square
 	 */
-	static Rank getOppositRank(Square square) {
+	constexpr Rank getOppositRank(Square square) {
 		return Rank::R8 - Square(getRank(square));
+	}
+
+	/**
+	 * Switch the side of a square (example E2 to E7)
+	 */
+	constexpr Square switchSide(Square square) {
+		return Square(square ^ 0x38);
 	}
 
 	/**
 	 * Gets the file of a square
 	 */
-	static File getFile(Square square) {
+	constexpr File getFile(Square square) {
 		return File(square % NORTH);
 	}
 
 	/**
 	 * Calculates a square from rank and file
 	 */
-	static Square computeSquare(File file, Rank rank) {
+	constexpr Square computeSquare(File file, Rank rank) {
 		return Square(Square(file) + Square(rank) * NORTH);
 	}
 
