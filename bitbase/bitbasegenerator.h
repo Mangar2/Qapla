@@ -79,6 +79,32 @@ namespace ChessBitbase {
 		}
 
 		/**
+		 * Mark all candidate positions we need to look at after a new bitbase position is set to 1
+		 * Candidate positions are computed by running through the attack masks of every piece and 
+		 * computing reverse moves (ignoring all special cases like check, captures, ...)
+		 */
+		void markCandidates(MoveGenerator& position, Bitbase& bitbase) {
+			bool wtm = position.isWhiteToMove();
+			PieceList pieceList(position);
+			for (Piece piece = WHITE_KNIGHT; piece <= BLACK_KING; ++piece) {
+				bitBoard_t pieceBB = position.getPieceBB(piece);
+				Move move;
+				move.setMovingPiece(piece);
+				for (; pieceBB; pieceBB &= pieceBB - 1) {
+					Square departure = BitBoardMasks::lsb(pieceBB);
+					bitBoard_t attackBB = position.attackMask[departure];
+					move.setDeparture(departure);
+					for (; attackBB; attackBB &= attackBB - 1) {
+						const Square destination = BitBoardMasks::lsb(attackBB);
+						move.setDestination(destination);
+						uint64_t index = BoardAccess::computeIndex(!wtm, pieceList, move);
+						bitbase.setBit(index);
+					}
+				}
+			}
+		}
+
+		/**
 		 * Computes a position value by probing all moves and lookup the result in this bitmap
 		 * Captures are excluded, they have been tested in the initial search. 
 		 */

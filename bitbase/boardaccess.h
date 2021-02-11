@@ -77,7 +77,10 @@ namespace ChessBitbase {
 			}
 		}
 
-
+		/**
+		 * Gets the position of a piece after a move by checking if the move is moving this piece and then
+		 * returns the destination of the move
+		 */
 		static inline Square getPiecePos(uint32_t index, const PieceList& pieceList, Move move) {
 			Square square = pieceList.getSquare(index);
 			if (square == move.getDeparture()) {
