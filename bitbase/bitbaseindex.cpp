@@ -113,7 +113,7 @@ bool BitbaseIndex::setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, u
 		_index /= relevantPawnPositionNumber;
 		_sizeInBit *= relevantPawnPositionNumber;
 		addPieceSquare(computesRealSquare(_piecesBB >> 8, Square(posIndex)) + A2);
-		if (_squares[numberOfPieces - 1] > H8) {
+		if (_squares[numberOfPieces - 1] >= BOARD_SIZE) {
 			legalPosition = false;
 		}
 	}

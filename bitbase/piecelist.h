@@ -112,7 +112,7 @@ namespace ChessBitbase {
 		 * Adds a piece to the list
 		 */
 		void addPiece(Piece piece) {
-			_pieces.push_back(piece);
+			_pieces[_numberOfPieces] = piece;
 			_numberOfPieces++;
 			if (isPawn(piece)) {
 				_numberOfPawns++;
@@ -175,20 +175,6 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * Gets the Square of a piece
-		 */
-		const vector<Square>& getSquares() const {
-			return _pieceSquares;
-		}
-
-		/**
-		 * Gets the Square of a piece
-		 */
-		vector<Square>& getSquares() {
-			return _pieceSquares;
-		}
-
-		/**
 		 * Gets the amount of pawns
 		 */
 		uint32_t getNumberOfPawns() const { return _numberOfPawns; }
@@ -209,7 +195,7 @@ namespace ChessBitbase {
 		 */
 		void addPiecesFromBitBoard(bitBoard_t piecesBitBoard, Piece piece) {
 			for (; piecesBitBoard != 0; piecesBitBoard &= piecesBitBoard - 1) {
-				_pieceSquares.push_back(BitBoardMasks::lsb(piecesBitBoard));
+				_pieceSquares[_numberOfPieces] = (BitBoardMasks::lsb(piecesBitBoard));
 				addPiece(piece);
 			}
 		}
@@ -247,8 +233,9 @@ namespace ChessBitbase {
 
 		uint32_t _numberOfPieces;
 		uint32_t _numberOfPawns;
-		vector<Piece> _pieces;
-		vector<Square> _pieceSquares;
+		static const uint32_t MAX_PIECES_COUNT = 10;
+		array<Piece, MAX_PIECES_COUNT> _pieces;
+		array<Square, MAX_PIECES_COUNT> _pieceSquares;
 	};
 
 }

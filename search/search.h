@@ -81,6 +81,12 @@ namespace ChessSearch {
 			else if (curPly.beta < -MAX_VALUE + value_t(ply)) {
 				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 			}
+			else if (curPly.alpha > WINNING_BONUS) {
+				curPly.eval = Eval::eval(board, WINNING_BONUS);
+				if (curPly.eval < WINNING_BONUS) {
+					curPly.setCutoff(Cutoff::LOST_WINNING_BONUS, curPly.eval);
+				}
+			}
 			else if (ply >= 3 && board.drawDueToMissingMaterial()) {
 				curPly.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
 			}

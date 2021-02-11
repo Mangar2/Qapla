@@ -44,61 +44,8 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * Searches the best move based on bitbases
+		 * Searches all captures and look up the position after capture in a bitboard.
 		 */
-		static value_t search(MoveGenerator& position, Eval& eval, Move lastMove, value_t alpha, value_t beta, int32_t depth)
-		{
-			MoveProvider moveProvider;
-			Move move;
-			BoardState boardState = position.getBoardState();
-			if (lastMove != 0) {
-				position.doMove(lastMove);
-			}
-			value_t newValue;
-			value_t curValue = eval.eval(position, -MAX_VALUE);
-			if (!position.isWhiteToMove()) {
-				curValue = -curValue;
-			}
-
-			if (depth > 0) {
-				moveProvider.computeMoves(position, Move::EMPTY_MOVE);
-				if (moveProvider.getTotalMoveAmount() == 0) {
-					curValue = moveProvider.checkForGameEnd(position, 0);
-				}
-			}
-			else {
-				moveProvider.computeCaptures(position, Move::EMPTY_MOVE);
-			}
-
-			if (curValue < beta) {
-				if (curValue > alpha) {
-					alpha = curValue;
-				}
-
-				while (!(move = moveProvider.selectNextMove(position)).isEmpty()) {
-
-					if (move.getCapture() == BLACK_KING) {
-						curValue = 0;
-						break;
-					}
-					newValue = -search(position, eval, move, -beta, -alpha, depth - 1);
-
-					if (newValue > curValue) {
-						curValue = newValue;
-						if (newValue >= beta) {
-							break;
-						}
-					}
-				}
-			}
-
-			if (lastMove != 0) {
-				position.undoMove(lastMove, boardState);
-			}
-			return curValue;
-
-		}
-
 		value_t initialSearch(MoveGenerator& position)
 		{
 			MoveProvider moveProvider;
@@ -132,30 +79,9 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * Quiescense search for bitboard generation
+		 * Computes a position value by probing all moves and lookup the result in this bitmap
+		 * Captures are excluded, they have been tested in the initial search. 
 		 */
-		value_t quiescense(MoveGenerator& position) {
-			value_t result = 0;
-			ComputingInfo computingInfo;
-			value_t positionValue = QuiescenceSearch::search(position, computingInfo, Move::EMPTY_MOVE, -MAX_VALUE, MAX_VALUE, 0);
-			if (!position.isWhiteToMove()) {
-				positionValue = -positionValue;
-			}
-			if (positionValue > WINNING_BONUS) {
-				result = 1;
-			}
-
-			else if (positionValue <= 1) {
-				result = -1;
-			}
-			else {
-				result = 0;
-			}
-
-			return result;
-		}
-
-
 		bool computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose) {
 			MoveList moveList;
 			Move move;
@@ -228,7 +154,7 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * 
+		 * Initially probe alle positions for a mate- draw or capture situation 
 		 */
 		uint32_t initialComputePosition(uint64_t index, MoveGenerator& position, 
 			Bitbase& bitbase, Bitbase& computedPositions) {
@@ -239,6 +165,7 @@ namespace ChessBitbase {
 				kingInCheck = false;
 			}
 
+			// Exclude all illegal positions (king not to move is in check) from future search
 			if (!position.isLegalPosition()) {
 				amountOfIllegalPositions++;
 				computedPositions.setBit(index);
@@ -248,7 +175,7 @@ namespace ChessBitbase {
 			position.genMovesOfMovingColor(moveList);
 			if (moveList.getTotalMoveAmount() > 0) {
 				value_t positionValue;
-
+				// Compute all captures and look up the positions in other bitboards
 				positionValue = initialSearch(position);
 				if (positionValue == 1) {
 					bitbase.setBit(index);
@@ -261,6 +188,7 @@ namespace ChessBitbase {
 				}
 			}
 			else {
+				// Mate or stalemate
 				computedPositions.setBit(index);
 				if (!position.isWhiteToMove() && position.isInCheck()) {
 					if (index == debugIndex) {
@@ -346,25 +274,23 @@ namespace ChessBitbase {
 		 * so that any bitbase KQKP can get to is available
 		 */
 		void computeBitbaseRec(PieceList& pieceList) {
-			if (pieceList.getNumberOfPieces() == 0) return;
+			if (pieceList.getNumberOfPieces() <= 2) return;
 			string pieceString = pieceList.getPieceString();
 			if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
 				BitbaseReader::loadBitbase(pieceString);
 			}
 			if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
-				if (pieceList.getNumberOfPieces() >= 1) {
-					for (uint32_t pieceNo = 0; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
-						PieceList newPieceList(pieceList);
-						if (isPawn(newPieceList.getPiece(pieceNo))) {
-							for (Piece piece = QUEEN; piece >= KNIGHT; piece -= 2) {
-								newPieceList.promotePawn(pieceNo, piece);
-								computeBitbaseRec(newPieceList);
-								newPieceList = pieceList;
-							}
+				for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
+					PieceList newPieceList(pieceList);
+					if (isPawn(newPieceList.getPiece(pieceNo))) {
+						for (Piece piece = QUEEN; piece >= KNIGHT; piece -= 2) {
+							newPieceList.promotePawn(pieceNo, piece);
+							computeBitbaseRec(newPieceList);
+							newPieceList = pieceList;
 						}
-						newPieceList.removePiece(pieceNo);
-						computeBitbaseRec(newPieceList);
 					}
+					newPieceList.removePiece(pieceNo);
+					computeBitbaseRec(newPieceList);
 				}
 				computeBitbase(pieceList);
 			}
@@ -387,6 +313,7 @@ namespace ChessBitbase {
 			uint64_t sizeInBit = bitbaseIndex.getSizeInBit();
 			Bitbase bitbase(bitbaseIndex);
 			Bitbase computedPositions(bitbaseIndex);
+			Bitbase probePositions(bitbaseIndex);
 			ClockManager clock;
 
 			clock.setStartTime();
@@ -407,6 +334,7 @@ namespace ChessBitbase {
 
 			for (uint32_t loopCount = 0; loopCount < 100; loopCount++) {
 				bitsChanged = 0;
+				bool first = true;
 				for (uint64_t index = 0; index < sizeInBit; index++) {
 					printInfo(index, sizeInBit, bitsChanged);
 
@@ -414,7 +342,12 @@ namespace ChessBitbase {
 						position.clear();
 						addPiecesToPosition(position, bitbaseIndex, pieceList);
 						assert(index == BoardAccess::computeIndex<0>(position));
-						bitsChanged += computePosition(index, position, bitbase, computedPositions);
+						uint32_t success = computePosition(index, position, bitbase, computedPositions);
+						bitsChanged += success;
+						if (first && success) {
+							first = false;
+							position.printFen();
+						}
 						//if (bitsChanged == 0) { position.printBoard(); }
 					}
 				}

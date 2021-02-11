@@ -79,7 +79,7 @@ namespace ChessBitbase {
 
 
 		static inline Square getPiecePos(uint32_t index, const PieceList& pieceList, Move move) {
-			Square square = pieceList.getSquares()[index];
+			Square square = pieceList.getSquare(index);
 			if (square == move.getDeparture()) {
 				square = move.getDestination();
 			}
