@@ -34,6 +34,8 @@ namespace ChessInterface {
 		virtual void informAboutFinishedSearchAtCurrentDepth(
 			uint32_t searchDepth,
 			value_t positionValue,
+			bool lowerbound,
+			bool upperbound,
 			uint64_t timeSpendInMilliseconds,
 			uint64_t nodesSearched,
 			vector<string> primaryVariant

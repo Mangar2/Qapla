@@ -309,9 +309,6 @@ namespace ChessSearch {
 		 */
 		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
 			currentValue = searchResult;
-			if (searchState == SearchType::NULL_WINDOW) {
-				return;
-			}
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
 				if (searchResult > alpha) {
@@ -380,6 +377,24 @@ namespace ChessSearch {
 		 */
 		void setTT(TT* tt) {
 			ttPtr = tt;
+		}
+
+		/**
+		 * prints the information 
+		 */
+		void print() {
+			printf("[w:%6ld,%6ld]", alphaAtPlyStart, betaAtPlyStart);
+			printf("[d:%ld]", remainingDepth);
+			printf("[v:%6ld]", bestValue);
+			printf("[hm:%5s]", getTTMove().getLAN().c_str());
+			printf("[bm:%5s]", bestMove.getLAN().c_str());
+			printf("[st:%8s]", getSearchStateName().c_str());
+			if (isPVSearch()) {
+				printf(" [PV:");
+				pvMovesStore.print(ply);
+				printf(" ]");
+			}
+			printf("\n");
 		}
 
 		inline bool isTTValueBelowBeta(const Board& board, ply_t ply) {

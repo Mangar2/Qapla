@@ -35,23 +35,26 @@ namespace ChessInterface {
 		virtual void informAboutFinishedSearchAtCurrentDepth(
 			uint32_t searchDepth,
 			value_t positionValue,
+			bool lowerBound,
+			bool upperBound,
 			uint64_t timeSpendInMilliseconds,
 			uint64_t nodesSearched,
 			vector<string> primaryVariant
 		)
 		{
 			string info = "info";
+			string bound = lowerBound ? " lowerbound" : upperBound ? " upperbound" : "";
 			info += " time " +  to_string(timeSpendInMilliseconds);
 			info += " nodes " + to_string(nodesSearched);
 			info += " depth " + to_string(searchDepth + 1);
 			if (positionValue >= MIN_MATE_VALUE) {
-				info += " score mate " + to_string((MAX_VALUE - positionValue + 1) / 2);
+				info += " score mate " + to_string((MAX_VALUE - positionValue + 1) / 2) + bound;
 			}
 			else if (positionValue <= -MIN_MATE_VALUE) {
-				info += " score mate " + to_string(-(MAX_VALUE + positionValue + 1) / 2);
+				info += " score mate " + to_string(-(MAX_VALUE + positionValue + 1) / 2) + bound;
 			}
 			else {
-				info += " score cp " + to_string(positionValue);
+				info += " score cp " + to_string(positionValue) + bound;
 			}
 			info += " pv";
 			for (auto& move : primaryVariant) {

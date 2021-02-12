@@ -34,9 +34,9 @@ namespace ChessSearch {
 		SearchStack(TT* tt) :
 			ttPtr(tt) {
 			for (uint32_t ply = 0; ply < MAX_SEARCH_DEPTH; ply++) {
-				stack[ply].ply = ply;
-				searchVariablePtr[ply] = &stack[ply];
-				stack[ply].setTT(tt);
+				_stack[ply].ply = ply;
+				searchVariablePtr[ply] = &_stack[ply];
+				_stack[ply].setTT(tt);
 			}
 			referenceCount = 1;
 		}
@@ -54,21 +54,21 @@ namespace ChessSearch {
 		TT* getTT() const { return ttPtr; }
 
 		void initSearch(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
-			stack[0].init(board, alpha, beta, searchDepth);
+			_stack[0].init(board, alpha, beta, searchDepth);
 		}
 
 		Move getMoveFromPVMovesStore(SearchVariables::pvIndex_t ply) {
-			return stack[0].getMoveFromPVMovesStore(ply);
+			return _stack[0].getMoveFromPVMovesStore(ply);
 		}
 
-		const PV& getPV() const { return stack[0].pvMovesStore; }
+		const PV& getPV() const { return _stack[0].pvMovesStore; }
 
 		/**
 		 * Sets the PV moves store
 		 */
 		void setPV(PV& pv) {
 			for (uint32_t ply = 0; ply < MAX_SEARCH_DEPTH; ply++) {
-				stack[ply].setPVMove(pv.getMove(ply));
+				_stack[ply].setPVMove(pv.getMove(ply));
 				if (pv.getMove(ply) == Move::EMPTY_MOVE) {
 					break;
 				}
@@ -80,8 +80,8 @@ namespace ChessSearch {
 		 */
 		void copyKillers(SearchStack& foreignStack, ply_t fromPly) {
 			for (ply_t ply = fromPly; ply < MAX_SEARCH_DEPTH; ply++) {
-				stack[ply].moveProvider.setKillerMove(foreignStack[ply].moveProvider);
-				if (stack[ply].getKillerMove()[0] == Move::EMPTY_MOVE) {
+				_stack[ply].moveProvider.setKillerMove(foreignStack[ply].moveProvider);
+				if (_stack[ply].getKillerMove()[0] == Move::EMPTY_MOVE) {
 					break;
 				}
 			}
@@ -111,11 +111,28 @@ namespace ChessSearch {
 			return drawByRepetition;
 		}
 
+		/**
+		 * Prints the moves of the stack
+		 */
+		void printMoves(Move currentMove, ply_t ply) const {
+			for (ply_t index = 1; index <= ply + 1; index++) {
+				if ((index - 1) % 2 == 0) {
+					printf("%ld. ", (index / 2 + 1));
+				}
+				if (index <= ply) {
+					printf("%s ", _stack[index].previousMove.getLAN().c_str());
+				}
+				else if (currentMove != Move::EMPTY_MOVE) {
+					printf("%s ", currentMove.getLAN().c_str());
+				}
+			}
+		}
+
 	private:
 		TT* ttPtr;
 		static const uint8_t MAX_SEARCH_DEPTH = 128;
 		array<SearchVariables*, MAX_SEARCH_DEPTH> searchVariablePtr;
-		array<SearchVariables, MAX_SEARCH_DEPTH> stack;
+		array<SearchVariables, MAX_SEARCH_DEPTH> _stack;
 		uint32_t referenceCount;
 	};
 

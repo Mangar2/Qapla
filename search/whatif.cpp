@@ -25,6 +25,7 @@ void WhatIf::init(const Board& board, const ComputingInfo& computingInfo, value_
 void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {
 	printMoves(stack, currentMove, ply);
 	printf("[w:%6ld,%6ld]", stack[ply].alpha, stack[ply].beta);
+	printf("[bv:%6ld]", stack[ply].bestValue);
 	printf("[d:%ld]", stack[ply].remainingDepth);
 	if (stack[ply].remainingDepth > 0) {
 		if (stack[ply + 1].searchState != SearchVariables::SearchType::START) {
@@ -194,17 +195,7 @@ void WhatIf::setNullmove(ply_t ply) {
 }
 
 void WhatIf::printMoves(const SearchStack& stack, Move currentMove, ply_t ply) {
-	for (ply_t index = 1; index <= ply + 1; index++) {
-		if ((index - 1) % 2 == 0) {
-			printf("%ld. ", (index / 2 + 1));
-		}
-		if (index <= ply) {
-			printf("%s ", stack[index].previousMove.getLAN().c_str());
-		}
-		else if (currentMove != Move::EMPTY_MOVE) {
-			printf("%s ", currentMove.getLAN().c_str());
-		}
-	}
+	stack.printMoves(currentMove, ply);
 }
 
 #endif

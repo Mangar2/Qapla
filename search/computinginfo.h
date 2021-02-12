@@ -75,6 +75,15 @@ namespace ChessSearch {
 			}
 		}
 
+		/**
+		 * Starts searching the next iteration
+		 */
+		void nextIteration(uint32_t movesToConcider) {
+			_totalAmountOfMovesToConcider = movesToConcider;
+			_currentConcideredMove.setEmpty();
+			_currentMoveNoSearched = 0;
+		}
+
 		void requestPrintSearchInfo() { _printRequest = true; }
 
 		/**
@@ -115,6 +124,8 @@ namespace ChessSearch {
 				_sendSearchInfo->informAboutFinishedSearchAtCurrentDepth(
 					_searchDepth,
 					_positionValueInCentiPawn,
+					_positionValueInCentiPawn >= _beta,
+					_positionValueInCentiPawn <= _alpha,
 					_timeControl.getTimeSpentInMilliseconds(),
 					_nodesSearched,
 					primaryVariant);
@@ -141,6 +152,8 @@ namespace ChessSearch {
 		ISendSearchInfo* _sendSearchInfo;
 		StdTimeControl _timeControl;
 		value_t _positionValueInCentiPawn;
+		value_t _alpha;
+		value_t _beta;
 		uint32_t _searchDepth;
 		uint32_t _totalAmountOfMovesToConcider;
 		Move _currentConcideredMove;

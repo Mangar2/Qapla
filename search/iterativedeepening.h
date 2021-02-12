@@ -89,7 +89,7 @@ namespace ChessSearch {
 			else {
 				tt.setNextSearch();
 			}
-			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\x64\\Debug\\tt.bin");
+			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, tt);
 
 			if (clockSetting.getSearchDepthLimit() > 0) {
@@ -104,6 +104,8 @@ namespace ChessSearch {
 					break;
 				}
 			}
+
+			// tt.writeToFile("tt.bin");
 			// Ensures that all draw positions are removed and not used after undo or new game
 			moveHistory.removeDrawPositionsFromHash(tt);
 			//static int i = 0;
@@ -141,6 +143,8 @@ namespace ChessSearch {
 			SearchStack stack(&tt);
 			do {
 				stack.initSearch(position, aspirationWindow.alpha, aspirationWindow.beta, searchDepth);
+				computingInfo._alpha = aspirationWindow.alpha;
+				computingInfo._beta = aspirationWindow.beta;
 				if (searchDepth != 0) {
 					stack.setPV(computingInfo._pvMovesStore);
 				}
@@ -149,8 +153,18 @@ namespace ChessSearch {
 
 				computingInfo._searchDepth = searchDepth;
 				search.searchRoot(position, stack, computingInfo, clockManager);
+				computingInfo.printSearchResult();
+				/*
+				if (position.isWhiteToMove() && computingInfo._positionValueInCentiPawn < 0) {
+					cout << "white not winning" << endl;
+					exit(1);
+				}
+				if (!position.isWhiteToMove() && computingInfo._positionValueInCentiPawn > 0) {
+					cout << "black not loosing" << endl;
+					exit(1);
+				}
+				*/
 			} while (!clockManager.mustAbortCalculation(0) && aspirationWindow.retryWithNewWindow(computingInfo));
-			computingInfo.printSearchResult();
 		}
 
 

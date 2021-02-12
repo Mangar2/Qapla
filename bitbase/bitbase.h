@@ -72,6 +72,15 @@ namespace ChessBitbase {
 		}
 
 		/**
+		 * Clears a single bit in the _bitbase
+		 */
+		void clearBit(uint64_t index) {
+			if (index < _sizeInBit) {
+				_bitbase[index / BITS_IN_ELEMENT] &= ~(1UL << (index % BITS_IN_ELEMENT));
+			}
+		}
+
+		/**
 		 * Gets a single bit from the _bitbase
 		 */
 		bool getBit(uint64_t index) const {

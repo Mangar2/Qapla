@@ -79,27 +79,34 @@ namespace ChessBitbase {
 		}
 
 		/**
+		 * Mark candidates for a dedicated piece identified by a partially filled move
+		 */
+		void markCandidates(MoveGenerator& position, Bitbase& bitbase, PieceList& list, Move move) {
+			bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
+			for (; attackBB; attackBB &= attackBB - 1) {
+				const Square destination = BitBoardMasks::lsb(attackBB);
+				move.setDestination(destination);
+				uint64_t index = BoardAccess::computeIndex(!position.isWhiteToMove(), list, move);
+				bitbase.setBit(index);
+			}
+		}
+
+		/**
 		 * Mark all candidate positions we need to look at after a new bitbase position is set to 1
 		 * Candidate positions are computed by running through the attack masks of every piece and 
 		 * computing reverse moves (ignoring all special cases like check, captures, ...)
 		 */
 		void markCandidates(MoveGenerator& position, Bitbase& bitbase) {
-			bool wtm = position.isWhiteToMove();
 			PieceList pieceList(position);
+			position.computeAttackMasksForBothColors();
 			for (Piece piece = WHITE_KNIGHT; piece <= BLACK_KING; ++piece) {
 				bitBoard_t pieceBB = position.getPieceBB(piece);
 				Move move;
 				move.setMovingPiece(piece);
 				for (; pieceBB; pieceBB &= pieceBB - 1) {
 					Square departure = BitBoardMasks::lsb(pieceBB);
-					bitBoard_t attackBB = position.attackMask[departure];
 					move.setDeparture(departure);
-					for (; attackBB; attackBB &= attackBB - 1) {
-						const Square destination = BitBoardMasks::lsb(attackBB);
-						move.setDestination(destination);
-						uint64_t index = BoardAccess::computeIndex(!wtm, pieceList, move);
-						bitbase.setBit(index);
-					}
+					markCandidates(position, bitbase, pieceList, move);
 				}
 			}
 		}
@@ -232,7 +239,7 @@ namespace ChessBitbase {
 		}
 
 
-		void printInfo(uint64_t index, uint64_t size, uint32_t bitsChanged, uint32_t step = 1) {
+		void printInfo(uint64_t index, uint64_t size, uint64_t bitsChanged, uint32_t step = 1) {
 			uint64_t onePercent = size / 100;
 			if (index % onePercent >= onePercent - step) {
 				printf(".");
@@ -322,6 +329,55 @@ namespace ChessBitbase {
 			}
 		}
 
+		void computeBitbase(
+			Bitbase& wonPositions, Bitbase& computedPositions, PieceList& pieceList, ClockManager& clock)
+		{
+			BitbaseIndex bitbaseIndex;
+			bitbaseIndex.setPieceSquaresByIndex(0, pieceList);
+			Bitbase probePositions(bitbaseIndex);
+
+			for (uint32_t loopCount = 0; loopCount < 100; loopCount++) {
+
+				MoveGenerator position;
+				uint64_t bitsChanged = 0;
+				bool first = true;
+				for (uint64_t index = 0; index < bitbaseIndex.getSizeInBit(); index++) {
+					printInfo(index, bitbaseIndex.getSizeInBit(), bitsChanged);
+					
+					if (!computedPositions.getBit(index)) {
+						// if (loopCount > 0 && !probePositions.getBit(index)) continue;
+						bool isLegal = bitbaseIndex.setPieceSquaresByIndex(index, pieceList);
+						if (!isLegal) continue;
+						position.clear();
+						addPiecesToPosition(position, bitbaseIndex, pieceList);
+						assert(index == BoardAccess::computeIndex<0>(position));
+						uint32_t success = computePosition(index, position, wonPositions, computedPositions);
+						/*
+						if (loopCount > 0 && success && !probePositions.getBit(index)) {
+							success = true;
+						}
+						probePositions.clearBit(index);
+						if (success) {
+							markCandidates(position, probePositions);
+						}
+						*/
+						bitsChanged += success;
+						if (first && success) {
+							first = false;
+							position.printFen();
+						}
+						//if (bitsChanged == 0) { position.printBoard(); }
+					}
+				}
+
+				printf("\nLoop: %ld, positions set: %lld\n", loopCount, bitsChanged);
+				printTimeSpent(clock);
+				if (bitsChanged == 0) {
+					break;
+				}
+			}
+		}
+
 		/**
 		 * Computes a bitbase for a set of pieces described by a piece list.
 		 */
@@ -337,9 +393,8 @@ namespace ChessBitbase {
 			uint32_t bitsChanged = 0;
 			bitbaseIndex.setPieceSquaresByIndex(0, pieceList);
 			uint64_t sizeInBit = bitbaseIndex.getSizeInBit();
-			Bitbase bitbase(bitbaseIndex);
+			Bitbase wonPositions(bitbaseIndex);
 			Bitbase computedPositions(bitbaseIndex);
-			Bitbase probePositions(bitbaseIndex);
 			ClockManager clock;
 
 			clock.setStartTime();
@@ -350,7 +405,7 @@ namespace ChessBitbase {
 				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
 					position.clear();
 					addPiecesToPosition(position, bitbaseIndex, pieceList);
-					bitsChanged += initialComputePosition(index, position, bitbase, computedPositions);
+					bitsChanged += initialComputePosition(index, position, wonPositions, computedPositions);
 				}
 			}
 			cout << endl
@@ -358,40 +413,16 @@ namespace ChessBitbase {
 				<< "Initial winning positions: " << bitsChanged << endl;
 			printTimeSpent(clock);
 
-			for (uint32_t loopCount = 0; loopCount < 100; loopCount++) {
-				bitsChanged = 0;
-				bool first = true;
-				for (uint64_t index = 0; index < sizeInBit; index++) {
-					printInfo(index, sizeInBit, bitsChanged);
+			computeBitbase(wonPositions, computedPositions, pieceList, clock);
 
-					if (!computedPositions.getBit(index) && bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
-						position.clear();
-						addPiecesToPosition(position, bitbaseIndex, pieceList);
-						assert(index == BoardAccess::computeIndex<0>(position));
-						uint32_t success = computePosition(index, position, bitbase, computedPositions);
-						bitsChanged += success;
-						if (first && success) {
-							first = false;
-							position.printFen();
-						}
-						//if (bitsChanged == 0) { position.printBoard(); }
-					}
-				}
-
-				printf("\nLoop: %ld, positions set: %ld\n", loopCount, bitsChanged);
-				printTimeSpent(clock);
-				if (bitsChanged == 0) {
-					break;
-				}
-			}
-			//compareToFile(pieceString, bitbase);
-			bitbase.printStatistic();
+			//compareToFile(pieceString, wonPositions);
+			wonPositions.printStatistic();
 			printf("Illegal positions: %lld, draw or loss found in quiescense: %lld, sum: %lld \n",
 				amountOfIllegalPositions, amountOfDirectDrawOrLoss, amountOfDirectDrawOrLoss + amountOfIllegalPositions);
 			printTimeSpent(clock);
 			string fileName = pieceString + string(".btb");
-			bitbase.storeToFile(fileName.c_str());
-			BitbaseReader::setBitbase(pieceString, bitbase);
+			wonPositions.storeToFile(fileName.c_str());
+			BitbaseReader::setBitbase(pieceString, wonPositions);
 		}
 
 		/**

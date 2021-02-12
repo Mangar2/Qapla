@@ -81,7 +81,7 @@ namespace ChessSearch {
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool mustAbortCalculation(uint32_t ply) const {
+		bool mustAbortCalculation(uint32_t ply) {
 			uint64_t timeSpent = getTimeSpentInMilliseconds();
 			bool abort = false;
 			if (_searchStopped) {
@@ -96,6 +96,8 @@ namespace ChessSearch {
 			else {
 				abort = timeSpent > _maxTimePerMove;
 			}
+			// Ensure that the information to stop the search is stable
+			_searchStopped = abort;
 			return abort;
 		}
 
