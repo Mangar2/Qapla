@@ -347,6 +347,9 @@
     <ClInclude Include="eval\queen.h">
       <Filter>eval</Filter>
     </ClInclude>
+    <ClInclude Include="eval\threat.h">
+      <Filter>eval</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

@@ -58,10 +58,11 @@ namespace ChessBasics {
 		constexpr value_t midgame() const { return _midgame; }
 		constexpr value_t endgame() const { return _endgame; }
 
-		EvalValue& operator+=(EvalValue add) { _midgame += add._midgame; _endgame += add._endgame; return *this; }
-		EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
-		EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
-		EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
+		inline EvalValue& operator+=(EvalValue add) { _midgame += add._midgame; _endgame += add._endgame; return *this; }
+		inline EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
+		inline EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
+		inline EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
+		inline EvalValue operator*(value_t mul) { _midgame *= mul; _endgame *= mul; }
 
 		friend EvalValue operator+(EvalValue a, EvalValue b);
 		friend EvalValue operator-(EvalValue a, EvalValue b);

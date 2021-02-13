@@ -234,9 +234,15 @@ namespace ChessMoveGenerator {
 
 	public:
 
+		// Squares attacked by any piece
 		array<bitBoard_t, 2> attackMask;
+
+		// Squares where pieces are pinned
 		array<bitBoard_t, 2> pinnedMask;
+
+		// Squares attacked by pawns
 		array<bitBoard_t, 2> pawnAttackMask;
+
 		array<bitBoard_t, BOARD_SIZE> pieceAttackMask;
 		
 		// Bits to check against attack mask to see, if castling is possible

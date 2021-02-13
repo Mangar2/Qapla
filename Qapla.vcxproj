@@ -1537,6 +1537,7 @@
     <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="eval\pst.h" />
     <ClInclude Include="eval\rook.h" />
+    <ClInclude Include="eval\threat.h" />
     <ClInclude Include="interface\chessinterface.h" />
     <ClInclude Include="interface\clocksetting.h" />
     <ClInclude Include="interface\computinginfoexchange.h" />
