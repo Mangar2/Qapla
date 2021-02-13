@@ -309,6 +309,9 @@ namespace ChessSearch {
 		 */
 		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
 			currentValue = searchResult;
+			if (searchState == SearchType::NULL_WINDOW) {
+				return;
+			}
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
 				if (searchResult > alpha) {
