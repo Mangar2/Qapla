@@ -59,7 +59,7 @@ namespace ChessEval {
 			if (PRINT && index > 0) cout << colorToString(COLOR) << " double bishop: "
 				<< std::right << std::setw(12) << value << endl;
 
-			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + OPPONENT);
+			bitBoard_t passThroughBB = position.getPieceBB(QUEEN + OPPONENT) | position.getPieceBB(ROOK + OPPONENT);
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
 			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThroughBB)
 				& ~results.pawnAttack[OPPONENT];
