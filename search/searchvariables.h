@@ -186,7 +186,9 @@ namespace ChessSearch {
 			cutoff = cutoffType;
 		}
 
-		inline bool isFailHigh() { return bestValue >= betaAtPlyStart; }
+		inline bool isFailHigh() { 
+			return bestValue >= betaAtPlyStart && searchState != SearchType::NULL_WINDOW; 
+		}
 
 
 		/**
@@ -309,9 +311,6 @@ namespace ChessSearch {
 		 */
 		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
 			currentValue = searchResult;
-			if (searchState == SearchType::NULL_WINDOW) {
-				return;
-			}
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
 				if (searchResult > alpha) {
@@ -427,7 +426,6 @@ namespace ChessSearch {
 		ply_t lateMoveReduction;
 		ply_t searchDepthExtension;
 		BoardState boardState;
-		SearchType searchState;
 		hash_t positionHashSignature;
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
@@ -440,6 +438,7 @@ namespace ChessSearch {
 		PV pvMovesStore;
 
 	private:
+		SearchType searchState;
 		TT* ttPtr;
 	};
 
