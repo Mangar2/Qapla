@@ -64,6 +64,7 @@ namespace ChessSearch {
 		 * @returns true, if the current search is a PV search
 		 */
 		inline bool isPVSearch() const { return searchState == SearchType::PV; }
+		inline bool isNormalSearch() const { return searchState == SearchType::NORMAL; }
 
 		/**
 		 * Selectes the first search state (IID, PV, NORMAL)
@@ -404,12 +405,12 @@ namespace ChessSearch {
 		}
 
 		enum class SearchType {
-			START, PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID,
+			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID,
 			AMOUNT
 		};
 
 		const array<string, int(SearchType::AMOUNT)> searchStateNames
-		{ "Start", "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID" };
+		{ "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID" };
 
 		value_t alpha;
 		value_t alphaAtPlyStart;

@@ -28,23 +28,19 @@ void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, c
 	printf("[bv:%6ld]", stack[ply].bestValue);
 	printf("[d:%ld]", stack[ply].remainingDepth);
 	if (stack[ply].remainingDepth > 0) {
-		if (stack[ply + 1].searchState != SearchVariables::SearchType::START) {
-			printf("[v:%6ld]", -stack[ply + 1].bestValue);
-			printf("[hm:%5s]", stack[ply + 1].getTTMove().getLAN().c_str());
-		}
-		else if (stack[ply + 1].cutoff == Cutoff::HASH) {
+		if (stack[ply + 1].cutoff == Cutoff::HASH) {
 			printf("[v:%6ld]", -stack[ply + 1].bestValue);
 			printf("[c:  HASH]");
 		}
 		else {
-			printf("[v:%6s]", "-");
-			printf("[hm:%5s]", "-");
+			printf("[v:%6ld]", -stack[ply + 1].bestValue);
+			printf("[hm:%5s]", stack[ply + 1].getTTMove().getLAN().c_str());
 		}
 	}
 	printf("[bm:%5s]", stack[ply].bestMove.getLAN().c_str());
 	printf("[st:%8s]", stack[ply].getSearchStateName().c_str());
 	printf("[n:%10lld]", computingInfo._nodesSearched);
-	if (stack[ply].searchState == SearchVariables::SearchType::PV) {
+	if (stack[ply].isPVSearch()) {
 		printf(" [PV:");
 		stack[ply].pvMovesStore.print(ply);
 		printf(" ]");
