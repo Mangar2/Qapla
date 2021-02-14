@@ -53,7 +53,7 @@ namespace ChessEval {
 			bitBoard_t rooks = position.getPieceBB(ROOK + COLOR);
 			if (rooks == 0) return EvalValue(0, 0);
 			
-			bitBoard_t passThrough = position.getPieceBB(QUEEN + OPPONENT) | rooks;
+			bitBoard_t passThrough = results.queensBB | rooks;
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
 			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThrough) &
 				~results.pawnAttack[OPPONENT];
