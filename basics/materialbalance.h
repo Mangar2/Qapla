@@ -111,19 +111,6 @@ namespace ChessBasics {
 			return whiteToMove ? _materialValue : -_materialValue;
 		}
 
-#ifdef _TEST0 
-#endif
-#ifdef _TEST1 
-#endif
-#ifdef _TEST2 
-#endif
-#ifdef _T3 
-#endif
-#ifdef _T4 
-#endif
-#ifdef _T5
-#endif
-
 		const static value_t PAWN_VALUE_MG = 60;
 		const static value_t PAWN_VALUE_EG = 80;
 		const static value_t KNIGHT_VALUE_MG = 325;

@@ -1483,6 +1483,7 @@
     <ClCompile Include="basics\board.cpp" />
     <ClCompile Include="basics\hashconstants.cpp" />
     <ClCompile Include="basics\piecesignature.cpp" />
+    <ClCompile Include="basics\pst.cpp" />
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
     <ClCompile Include="bitbase\bitbasereader.cpp" />
     <ClCompile Include="eval\eval.cpp" />
@@ -1491,7 +1492,6 @@
     <ClCompile Include="eval\kingAttack.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
-    <ClCompile Include="eval\pst.cpp" />
     <ClCompile Include="eval\rook.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
     <ClCompile Include="interface\winboard.cpp" />
@@ -1517,6 +1517,7 @@
     <ClInclude Include="basics\move.h" />
     <ClInclude Include="basics\movelist.h" />
     <ClInclude Include="basics\piecesignature.h" />
+    <ClInclude Include="basics\pst.h" />
     <ClInclude Include="basics\types.h" />
     <ClInclude Include="bitbase\bitbase.h" />
     <ClInclude Include="bitbase\bitbasegenerator.h" />
@@ -1535,7 +1536,6 @@
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\knight.h" />
     <ClInclude Include="eval\pawnrace.h" />
-    <ClInclude Include="eval\pst.h" />
     <ClInclude Include="eval\rook.h" />
     <ClInclude Include="eval\threat.h" />
     <ClInclude Include="interface\chessinterface.h" />

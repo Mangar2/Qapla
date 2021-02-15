@@ -154,28 +154,28 @@ namespace ChessBasics {
 		 * No side has any pawn, no side has more than either a Knight or a Bishop
 		 */
 		inline auto drawDueToMissingMaterial() const {
-			return pieceSignature.drawDueToMissingMaterial();
+			return _pieceSignature.drawDueToMissingMaterial();
 		}
 
 		/**
 		 * Checks if a side has enough material to mate
 		 */
 		template<Piece COLOR> auto hasEnoughMaterialToMate() const {
-			return pieceSignature.hasEnoughMaterialToMate<COLOR>();
+			return _pieceSignature.hasEnoughMaterialToMate<COLOR>();
 		}
 
 		/**
 		 * Computes if futility pruning should be applied based on the captured piece
 		 */
 		inline auto doFutilityOnCapture(Piece capturedPiece) const {
-			return pieceSignature.doFutilityOnCapture(capturedPiece);
+			return _pieceSignature.doFutilityOnCapture(capturedPiece);
 		}
 
 		/**
 		 * Gets the signature of all pieces
 		 */
 		inline auto getPiecesSignature() const {
-			return pieceSignature.getPiecesSignature();
+			return _pieceSignature.getPiecesSignature();
 		}
 
 		/**
@@ -183,34 +183,34 @@ namespace ChessBasics {
 		 * The pawns are not really counted.
 		 */
 		template <Piece COLOR>
-		inline auto getStaticPiecesValue() const { return pieceSignature.getStaticPiecesValue<COLOR>(); }
+		inline auto getStaticPiecesValue() const { return _pieceSignature.getStaticPiecesValue<COLOR>(); }
 
 		/**
 		 * Gets the absolute value of a piece
 		 */
 		inline auto getAbsolutePieceValue(Piece piece) const {
-			return materialBalance.getAbsolutePieceValue(piece);
+			return _materialBalance.getAbsolutePieceValue(piece);
 		}
 
 		/**
 		 * Gets the value of a piece
 		 */
 		inline auto getPieceValue(Piece piece) const {
-			return materialBalance.getPieceValue(piece);
+			return _materialBalance.getPieceValue(piece) + _pstBonus;
 		}
 
 		/**
 		 * Gets the value of a piece used for move ordering
 		 */
 		inline auto getPieceValueForMoveSorting(Piece piece) const {
-			return materialBalance.getPieceValueForMoveSorting(piece);
+			return _materialBalance.getPieceValueForMoveSorting(piece);
 		}
 
 		/**
 		 * Gets the material balance value of the board
 		 */
 		inline auto getMaterialValue() const {
-			return materialBalance.getMaterialValue();
+			return _materialBalance.getMaterialValue();
 		}
 
 		/**
@@ -218,14 +218,14 @@ namespace ChessBasics {
 		 * Positive, if the player to move has a better position
 		 */
 		inline auto getMaterialValue(bool whiteToMove) const {
-			return materialBalance.getMaterialValue(whiteToMove);
+			return _materialBalance.getMaterialValue(whiteToMove);
 		}
 
 		/**
 		 * Returns true, if the side to move has any range piece
 		 */
 		inline auto sideToMoveHasQueenRookBishop(bool whiteToMove) const {
-			return pieceSignature.sideToMoveHasQueenRookBishop(whiteToMove);
+			return _pieceSignature.sideToMoveHasQueenRookBishop(whiteToMove);
 		}
 
 		/**
@@ -347,8 +347,10 @@ namespace ChessBasics {
 		void doMoveSpecialities(Move move);
 		void undoMoveSpecialities(Move move);
 
-		PieceSignature pieceSignature;
-		MaterialBalance materialBalance;
+		EvalValue _pstBonus;
+
+		PieceSignature _pieceSignature;
+		MaterialBalance _materialBalance;
 
 	};
 }

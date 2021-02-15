@@ -18,6 +18,7 @@
  */
 
 #include "board.h"
+#include "pst.h"
 
 using namespace ChessBasics;
 
@@ -28,9 +29,9 @@ Board::Board() {
 void Board::clear() {
 	_basicBoard.clear();
 	clearBB();
-	pieceSignature.clear();
-	materialBalance.clear();
-
+	_pieceSignature.clear();
+	_materialBalance.clear();
+	_pstBonus = 0;
 	kingSquares[WHITE] = E1;
 	kingSquares[BLACK] = E8;
 }
@@ -56,15 +57,17 @@ void Board::removePiece(Square squareOfPiece) {
 	Piece pieceToRemove = _basicBoard[squareOfPiece];
 	removePieceBB(squareOfPiece, pieceToRemove);
 	_basicBoard.removePiece(squareOfPiece);
-	pieceSignature.removePiece(pieceToRemove, bitBoardsPiece[pieceToRemove]);
-	materialBalance.removePiece(pieceToRemove);
+	_pieceSignature.removePiece(pieceToRemove, bitBoardsPiece[pieceToRemove]);
+	_materialBalance.removePiece(pieceToRemove);
+	_pstBonus -= PST::getValue(squareOfPiece, pieceToRemove);
 }
 
 void Board::addPiece(Square squareOfPiece, Piece pieceToAdd) {
-	pieceSignature.addPiece(pieceToAdd, bitBoardsPiece[pieceToAdd]);
+	_pieceSignature.addPiece(pieceToAdd, bitBoardsPiece[pieceToAdd]);
 	addPieceBB(squareOfPiece, pieceToAdd);
 	_basicBoard.addPiece(squareOfPiece, pieceToAdd);
-	materialBalance.addPiece(pieceToAdd);
+	_materialBalance.addPiece(pieceToAdd);
+	_pstBonus += PST::getValue(squareOfPiece, pieceToAdd);
 }
 
 void Board::movePiece(Square departure, Square destination) {

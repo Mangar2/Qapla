@@ -34,21 +34,15 @@
     <Filter Include="interface">
       <UniqueIdentifier>{b0dc1192-51ca-4f22-af41-e7e1f7a1f4ba}</UniqueIdentifier>
     </Filter>
+    <Filter Include="basics">
+      <UniqueIdentifier>{b170a292-c337-4ed6-b164-88032488fb47}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="basics\basicboard.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="basics\board.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="basics\hashconstants.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="search\perft.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="basics\piecesignature.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="eval\evalpawn.cpp">
@@ -59,9 +53,6 @@
     </ClCompile>
     <ClCompile Include="interface\winboard.cpp">
       <Filter>interface</Filter>
-    </ClCompile>
-    <ClCompile Include="search\quiescencesearch.cpp">
-      <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="Qapla.cpp">
       <Filter>Quelldateien</Filter>
@@ -114,27 +105,24 @@
     <ClCompile Include="search\rootmoves.cpp">
       <Filter>search</Filter>
     </ClCompile>
-    <ClCompile Include="eval\pst.cpp">
-      <Filter>eval</Filter>
+    <ClCompile Include="basics\pst.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\board.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\basicboard.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\piecesignature.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
+    <ClCompile Include="search\quiescencesearch.cpp">
+      <Filter>search</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="basics\basicboard.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="basics\board.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="basics\boardstate.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="basics\move.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="basics\movelist.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="basics\types.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\boardadapter.h">
@@ -144,9 +132,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\perft.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="interface\movescanner.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="basics\hashconstants.h">
@@ -164,20 +149,11 @@
     <ClInclude Include="search\threadpool.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="basics\piecesignature.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="basics\materialbalance.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="search\computinginfo.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="tests\evalpawntest.h">
       <Filter>Tests</Filter>
-    </ClInclude>
-    <ClInclude Include="search\aspirationwindow.h">
-      <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="interface\winboard.h">
       <Filter>interface</Filter>
@@ -305,9 +281,6 @@
     <ClInclude Include="search\searchvariables.h">
       <Filter>search</Filter>
     </ClInclude>
-    <ClInclude Include="basics\evalvalue.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="search\extension.h">
       <Filter>search</Filter>
     </ClInclude>
@@ -341,14 +314,44 @@
     <ClInclude Include="bitbase\huffmancode.h">
       <Filter>bitbase</Filter>
     </ClInclude>
-    <ClInclude Include="eval\pst.h">
-      <Filter>eval</Filter>
-    </ClInclude>
     <ClInclude Include="eval\queen.h">
       <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="eval\threat.h">
       <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\pst.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\basicboard.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\board.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\piecesignature.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\types.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\evalvalue.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="search\aspirationwindow.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\movescanner.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\move.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\materialbalance.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\boardstate.h">
+      <Filter>basics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
