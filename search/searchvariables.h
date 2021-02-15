@@ -211,7 +211,8 @@ namespace ChessSearch {
 			if (!board.isWhiteToMove()) {
 				eval = -eval;
 			}
-			bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) > beta;
+			if (eval > WINNING_BONUS) return false;
+			bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
 			if (doFutility) {
 				bestValue = eval;
 			}

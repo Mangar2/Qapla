@@ -99,7 +99,7 @@ void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo
  * Gets a short string representation of cutoff values for whatif
  */
 string getCutoffString(Cutoff cutoff) {
-	return array<string, int(Cutoff::COUNT)> { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL" } [int(cutoff)] ;
+	return array<string, int(Cutoff::COUNT)> { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY" } [int(cutoff)] ;
 }
 
 void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply, Cutoff cutoff) {

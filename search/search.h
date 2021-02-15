@@ -90,6 +90,9 @@ namespace ChessSearch {
 			else if (curPly.probeTT(board)) {
 				curPly.setCutoff(Cutoff::HASH);
 			}
+			else if (board.isInCheck()) {
+				return false;
+			}
 			else if (curPly.futility(board)) {
 				curPly.setCutoff(Cutoff::FUTILITY);
 			} 
