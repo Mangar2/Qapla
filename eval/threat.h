@@ -71,7 +71,7 @@ namespace ChessEval {
 			return evthreats;
 		}
 
-		static constexpr value_t PAWN_THREAT[2] = { 50, 25 };
+		static constexpr value_t PAWN_THREAT[2] = { 30, 25 };
 		static constexpr value_t HANGING[2] = { 20, 10 };
 		static constexpr value_t ATTACKED_ROOK[2] = { 20, 10 };
 		static constexpr value_t ATTACKED_QUEEN[2] = { 20, 10 };
