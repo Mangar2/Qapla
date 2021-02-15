@@ -96,9 +96,10 @@ void Winboard::analyzeMove() {
 	}
 	else {
 		_clock.setAnalyseMode(true);
-		_board->prepareSearch();
+		stopCompute(false);
 		_computeThread = std::thread([this]() {
 			_board->computeMove(_clock);
+			waitForStopRequest();
 		});
 	}
 }
@@ -118,9 +119,10 @@ void Winboard::computeMove() {
 		_mode = Mode::COMPUTE;
 		_clock.storeCalculationStartTime();
 		_clock.setAnalyseMode(false);
-		_board->prepareSearch();
+		stopCompute(false);
 		_computeThread = std::thread([this]() {
 			_board->computeMove(_clock);
+			waitForStopRequest();
 			_mode = Mode::WAIT;
 			ComputingInfoExchange computingInfo = _board->getComputingInfo();
 			println("move " + computingInfo.currentConsideredMove);
@@ -270,8 +272,7 @@ bool Winboard::checkMoveCommand() {
 	if (handleMove()) {
 		moveCommandFound = true;
 		if (_mode == Mode::ANALYZE) {
-			_board->moveNow();
-			waitForComputingThreadToEnd();
+			stopCompute();
 			analyzeMove();
 		}
 		else if (!forceMode) {
@@ -284,13 +285,11 @@ bool Winboard::checkMoveCommand() {
 void Winboard::undoMove() {
 	forceMode = true;
 	if (_mode == Mode::ANALYZE) {
-		_board->moveNow();
-		waitForComputingThreadToEnd();
+		stopCompute();
 		analyzeMove();
 	}
 	else if (_mode == Mode::COMPUTE) {
-		_board->moveNow();
-		waitForComputingThreadToEnd();
+		stopCompute();
 		_board->undoMove();
 		_board->undoMove();
 	}
@@ -328,7 +327,7 @@ void Winboard::runLoop() {
  */
 void Winboard::handleInputWhileComputingMove() {
 	const string token = getCurrentToken();
-	if (token == "?") _board->moveNow();
+	if (token == "?") stopCompute();
 	else if (token == ".") _board->requestPrintSearchInfo();
 	else println("Error (command not supported in computing mode): " + token);
 }
@@ -337,8 +336,7 @@ void Winboard::handleInputWhileInAnalyzeMode() {
 	const string token = getCurrentToken();
 
 	if (token == "new" || token == "setboard" || token == "usermove" || token == "undo" || token == "exit") {
-		_board->moveNow();
-		waitForComputingThreadToEnd();
+		stopCompute();
 	}
 	if (token == ".") _board->requestPrintSearchInfo();
 	else if (token == "ping") handlePing();

@@ -30,6 +30,8 @@
 #include "movescanner.h"
 #include "fenscanner.h"
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 
 using namespace std;
 
@@ -106,6 +108,17 @@ namespace ChessInterface {
 		}
 
 		/**
+		 * Wait for stopCompute
+		 */
+		void waitForStopRequest() {
+			unique_lock<mutex> lock = unique_lock<mutex>(_stopProtect);
+			_stopRequested.wait(lock, [this] {
+					bool doWait = !_stopCompute;
+					return !doWait;
+			});
+		}
+
+		/**
 		 * Wait for the computing thread to end and joins the thread.
 		 */
 		void waitForComputingThreadToEnd() {
@@ -117,9 +130,20 @@ namespace ChessInterface {
 		/**
 		 * Stop current computing
 		 */
-		void stopCompute() {
-			_board->moveNow();
-			waitForComputingThreadToEnd();
+		void stopCompute(bool stop = true) {
+			if (stop) {
+				{
+					const lock_guard<mutex> lock(_stopProtect);
+					_stopCompute = true;
+					_board->moveNow();
+					_stopRequested.notify_one();
+				}
+				waitForComputingThreadToEnd();
+			}
+			else {
+				_stopCompute = false;
+				_board->prepareSearch();
+			}
 		}
 
 	protected:
@@ -134,7 +158,10 @@ namespace ChessInterface {
 		IChessBoard* _board;
 		IInputOutput* _ioHandler;
 		ClockSetting _clock;
+		condition_variable _stopRequested;
+		mutex _stopProtect;
 		thread _computeThread;
+		bool _stopCompute;
 		uint32_t _maxTheadCount; 
 		uint32_t _maxMemory;
 		string _egtPath;

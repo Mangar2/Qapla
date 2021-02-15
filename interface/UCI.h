@@ -52,10 +52,11 @@ namespace ChessInterface {
 		 */
 		void computeMove() {
 			_clock.storeCalculationStartTime();
-			_board->prepareSearch();
+			stopCompute(false);
 			_computeThread = thread([this]() {
 				_board->computeMove(_clock);
 				ComputingInfoExchange computingInfo = _board->getComputingInfo();
+				waitForStopRequest();
 				println("bestmove " + computingInfo.currentConsideredMove);
 			});
 		}
