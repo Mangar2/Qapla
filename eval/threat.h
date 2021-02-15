@@ -51,30 +51,29 @@ namespace ChessEval {
 			const bitBoard_t nonProtectedPieces = opponentPieces & ~position.attackMask[OPPONENT];
 			const bitBoard_t minorAttack = result.bishopAttack[COLOR] | result.knightAttack[COLOR];
 			const bitBoard_t minorOrRookAttack = minorAttack | result.rookAttack[COLOR];
+			
+			const bitBoard_t threats =
+				position.pawnAttackMask[COLOR] & opponentPieces
+				| nonProtectedPieces & position.attackMask[COLOR]
+				| position.getPieceBB(OPPONENT + ROOK) & minorAttack
+				| position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack
+				| position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR];
 
-			const bitBoard_t pawnThreat = position.pawnAttackMask[COLOR] & opponentPieces;
-			const bitBoard_t hanging = nonProtectedPieces & position.attackMask[COLOR] & ~pawnThreat;
-			const bitBoard_t attackedRooks = position.getPieceBB(OPPONENT + ROOK) & minorAttack & ~hanging & ~pawnThreat;
-			const bitBoard_t attackedQueens = position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack & ~hanging & ~pawnThreat;
-
-			const EvalValue evPawnThreat = BitBoardMasks::popCount(pawnThreat) * EvalValue(PAWN_THREAT);
-			const EvalValue evHanging = BitBoardMasks::popCount(hanging) * EvalValue(HANGING);
-			const EvalValue evAttackedRooks = BitBoardMasks::popCount(attackedRooks) * EvalValue(ATTACKED_ROOK);
-			const EvalValue evAttackedQueens = BitBoardMasks::popCount(attackedQueens) * EvalValue(ATTACKED_QUEEN);
-			const EvalValue evthreats = evPawnThreat + evHanging +evAttackedRooks + evAttackedQueens;
+			value_t threatAmout = BitBoardMasks::popCount(threats);
+			if (threatAmout > 10) {
+				threatAmout = 10;
+			}
+			const EvalValue evThreats = THREAT_LOOKUP[threatAmout];
 			if (PRINT) cout
-				<< colorToString(COLOR) << " pawn threat: " << std::right << std::setw(14) << evPawnThreat << endl
-				<< colorToString(OPPONENT) << " hanging: " << std::right << std::setw(18) << evHanging << endl
-				<< colorToString(OPPONENT) << " attacked rooks: " << std::right << std::setw(11) << evAttackedRooks << endl
-				<< colorToString(OPPONENT) << " attacked queens: " << std::right << std::setw(10) << evAttackedQueens << endl
-				<< colorToString(COLOR) << " threats: " << std::right << std::setw(18) << evthreats << endl;
-			return evthreats;
+				<< colorToString(COLOR) << " threats (" << threatAmout << "): " << std::right << std::setw(14) << evThreats << endl;
+			return evThreats;
 		}
 
-		static constexpr value_t PAWN_THREAT[2] = { 30, 25 };
-		static constexpr value_t HANGING[2] = { 20, 10 };
-		static constexpr value_t ATTACKED_ROOK[2] = { 20, 10 };
-		static constexpr value_t ATTACKED_QUEEN[2] = { 20, 10 };
+		static constexpr value_t THREAT_LOOKUP[11][2] =
+		{
+			{ 0, 0 }, { 10, 10 }, { 50, 40 }, { 100, 80 }, { 200, 180 }, { 300, 300 },
+			{ 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }
+		};
 
 	};
 }
