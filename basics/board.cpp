@@ -75,6 +75,8 @@ void Board::movePiece(Square departure, Square destination) {
 	if (isKing(pieceToMove)) {
 		kingSquares[getPieceColor(pieceToMove)] = destination;
 	}
+	_pstBonus += PST::getValue(destination, pieceToMove) -
+		PST::getValue(departure, pieceToMove);
 	movePieceBB(departure, destination, pieceToMove);
 	_basicBoard.movePiece(departure, destination);
 }

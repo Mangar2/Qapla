@@ -103,14 +103,6 @@ namespace ChessBasics {
 			return _materialValue;
 		}
 
-		/**
-		 * Gets the material value of the current board from the player to move view
-		 * @param whiteToMove true, if it is the turn of white to play a move
-		 */
-		inline EvalValue getMaterialValue(bool whiteToMove) const {
-			return whiteToMove ? _materialValue : -_materialValue;
-		}
-
 		const static value_t PAWN_VALUE_MG = 60;
 		const static value_t PAWN_VALUE_EG = 80;
 		const static value_t KNIGHT_VALUE_MG = 325;

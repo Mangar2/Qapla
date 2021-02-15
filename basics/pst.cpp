@@ -43,7 +43,7 @@ PST::InitStatics::InitStatics() {
 			}
 
 			_pst[WHITE + piece][square] = value;
-			_pst[BLACK + piece][square] = -value;
+			_pst[BLACK + piece][switchSide(square)] = -value;
 		}
 	}
 }

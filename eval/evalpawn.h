@@ -50,7 +50,7 @@ namespace ChessEval {
 
 		const static value_t DOUBLE_PAWN_PENALTY = -20;
 
-		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   5,  10,  15,   0, 0 };
+		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   0,  0,  0,  0, 0 };
 		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  20,  35,  50,  70, 120, 0 };
 		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  35, 50, 70, 120, 0 };
 		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 15,  25,  40, 60, 85, 140, 0 };
@@ -133,7 +133,6 @@ namespace ChessEval {
 			bitBoard_t pawnBB = board.getPieceBB(PAWN + COLOR);
 			bitBoard_t pawnMoveRay = evalResults.pawnMoveRay[COLOR];
 			if (pawnBB != 0) {
-				result += computeAdvancedPawnValue<COLOR>(pawnBB);
 				result += computeIsolatedPawnValue<COLOR>(pawnMoveRay);
 				result += computeDoublePawnValue<COLOR>(pawnBB, pawnMoveRay);
 				result += computePassedPawnValue<COLOR>(board, evalResults);
@@ -307,27 +306,6 @@ namespace ChessEval {
 		inline static value_t computeDoublePawnValue(bitBoard_t pawnBB, bitBoard_t pawnMoveRay) {
 			value_t result = computeAmountOfDoublePawns(pawnBB, pawnMoveRay) * EvalPawnValues::DOUBLE_PAWN_PENALTY;
 			return COLOR == WHITE ? result : -result;
-		}
-
-		/**
-		 * Computes the advanced pawn bonus
-		 */
-		template <Piece COLOR>
-		static value_t computeAdvancedPawnValue(bitBoard_t pawnsBB) {
-			value_t pawnValue = 0;
-			if (COLOR == WHITE) {
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalPawnValues::ADVANCED_PAWN_VALUE[3];
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalPawnValues::ADVANCED_PAWN_VALUE[4];
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 5) * EvalPawnValues::ADVANCED_PAWN_VALUE[5];
-				pawnValue += BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 6) * EvalPawnValues::ADVANCED_PAWN_VALUE[6];
-			}
-			else {
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 4) * EvalPawnValues::ADVANCED_PAWN_VALUE[3];
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 3) * EvalPawnValues::ADVANCED_PAWN_VALUE[4];
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 2) * EvalPawnValues::ADVANCED_PAWN_VALUE[5];
-				pawnValue -= BitBoardMasks::popCountInFirstRank(pawnsBB >> NORTH * 1) * EvalPawnValues::ADVANCED_PAWN_VALUE[6];
-			}
-			return pawnValue;
 		}
 
 		/**

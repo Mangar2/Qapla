@@ -52,7 +52,6 @@ namespace ChessBasics {
 		inline auto isWhiteToMove() const { return _basicBoard.whiteToMove; }
 		inline void setWhiteToMove(bool whiteToMove) { _basicBoard.whiteToMove = whiteToMove; }
 
-
 		/**
 		 * Checks, if two positions are identical
 		 */
@@ -196,7 +195,7 @@ namespace ChessBasics {
 		 * Gets the value of a piece
 		 */
 		inline auto getPieceValue(Piece piece) const {
-			return _materialBalance.getPieceValue(piece) + _pstBonus;
+			return _materialBalance.getPieceValue(piece);
 		}
 
 		/**
@@ -210,7 +209,7 @@ namespace ChessBasics {
 		 * Gets the material balance value of the board
 		 */
 		inline auto getMaterialValue() const {
-			return _materialBalance.getMaterialValue();
+			return _materialBalance.getMaterialValue() + _pstBonus;
 		}
 
 		/**
@@ -218,7 +217,7 @@ namespace ChessBasics {
 		 * Positive, if the player to move has a better position
 		 */
 		inline auto getMaterialValue(bool whiteToMove) const {
-			return _materialBalance.getMaterialValue(whiteToMove);
+			return whiteToMove ? getMaterialValue() : - getMaterialValue();
 		}
 
 		/**
