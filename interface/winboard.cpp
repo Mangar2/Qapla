@@ -122,7 +122,6 @@ void Winboard::computeMove() {
 		stopCompute(false);
 		_computeThread = std::thread([this]() {
 			_board->computeMove(_clock);
-			waitForStopRequest();
 			_mode = Mode::WAIT;
 			ComputingInfoExchange computingInfo = _board->getComputingInfo();
 			println("move " + computingInfo.currentConsideredMove);

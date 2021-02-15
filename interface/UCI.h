@@ -54,9 +54,12 @@ namespace ChessInterface {
 			_clock.storeCalculationStartTime();
 			stopCompute(false);
 			_computeThread = thread([this]() {
+				bool isAnalyze = _clock.getAnalyseMode();
 				_board->computeMove(_clock);
 				ComputingInfoExchange computingInfo = _board->getComputingInfo();
-				waitForStopRequest();
+				if (isAnalyze) {
+					waitForStopRequest();
+				}
 				println("bestmove " + computingInfo.currentConsideredMove);
 			});
 		}
