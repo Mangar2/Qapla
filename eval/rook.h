@@ -205,7 +205,7 @@ namespace ChessEval {
 		static const uint32_t PINNED = 16;
 		
 		static constexpr value_t _trapped[2] = { -50, 0 }; 
-		static constexpr value_t _openFile[2] = { 0, 0 };
+		static constexpr value_t _openFile[2] = { 10, 0 };
 		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
 		static constexpr value_t _protectsPP[2] = { 20, 0 };
 		static constexpr value_t _pinned[2] = { 0, 0 };

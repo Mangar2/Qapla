@@ -99,7 +99,7 @@ namespace ChessEval {
 				(knightBB & OUTPOST_BB[COLOR] & results.pawnAttack[COLOR]) != 0;
 			if (isProtectedByPawnAndInOpponentArea) {
 				bitBoard_t shift = COLOR == WHITE ? (square + NW) : (square + SOUTH + SW);
-				bitBoard_t opponentPawnCheckBB = 0x707ULL << shift;
+				bitBoard_t opponentPawnCheckBB = 0x505ULL << shift;
 				result = (opponentPawnCheckBB & opponentPawnsBB) == 0;
 			}
 			if (PRINT && result) cout << "<otp>";
