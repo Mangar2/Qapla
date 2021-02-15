@@ -113,8 +113,11 @@ namespace ChessSearch {
 			// computingInfo.statisticForMoveOrdering.print();
 		}
 
-		void stopSearch() {
-			clockManager.stopSearch();
+		/**
+		 * Sets or clears the stop search flag
+		 */
+		void stopSearch(bool doStop = true) {
+			clockManager.stopSearch(doStop);
 		}
 
 	private:

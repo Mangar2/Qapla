@@ -138,6 +138,13 @@ namespace ChessInterface {
 		 * Stop calcuation and play the current move
 		 */
 		virtual void moveNow() = 0;
+		
+		/**
+		 * Prepare search, usually sets the stop search flag to false
+	     * Is called from the managing thread and not from the search thread
+		 * to prevent races
+		 */
+		virtual void prepareSearch() = 0;
 
 		/**
 		 * Returns the current game status

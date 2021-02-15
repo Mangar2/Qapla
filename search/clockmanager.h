@@ -75,7 +75,6 @@ namespace ChessSearch {
 				_maxTimePerMove = _averageTimePerMove;
 			}
 			_analyzeMode = clockSetting.getAnalyseMode();
-			_searchStopped = false;
 		}
 
 		/**
@@ -136,8 +135,8 @@ namespace ChessSearch {
 		/**
 		 * Call to stop the search immediately
 		 */
-		void stopSearch() { 
-			_searchStopped = true; 
+		void stopSearch(bool stop) { 
+			_searchStopped = stop; 
 		}
 
 		/**

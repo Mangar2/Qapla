@@ -253,6 +253,15 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Prepare search, usually sets the stop search flag to false
+		 * Is called from the managing thread and not from the search thread
+		 * to prevent races
+		 */
+		virtual void prepareSearch() {
+			iterativeDeepening.stopSearch(false);
+		}
+
+		/**
 		 * Compute a move
 		 */
 		virtual void computeMove(const ClockSetting& clockSetting, bool verbose = true) {

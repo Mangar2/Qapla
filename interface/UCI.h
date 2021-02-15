@@ -52,6 +52,7 @@ namespace ChessInterface {
 		 */
 		void computeMove() {
 			_clock.storeCalculationStartTime();
+			_board->prepareSearch();
 			_computeThread = thread([this]() {
 				_board->computeMove(_clock);
 				ComputingInfoExchange computingInfo = _board->getComputingInfo();
