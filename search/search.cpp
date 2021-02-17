@@ -27,6 +27,7 @@ using namespace ChessSearch;
  */
 value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply)
 {
+	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position);
 	SearchVariables& searchInfo = stack[ply];
 	value_t searchResult;
 	Move curMove;
@@ -62,6 +63,8 @@ value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Mov
 
 
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply) {
+	
+	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position);
 
 	SearchVariables& searchInfo = stack[ply];
 	value_t searchResult;

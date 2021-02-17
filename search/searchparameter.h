@@ -65,6 +65,7 @@ namespace ChessSearch {
 			return res;
 		}
 
+		static const uint32_t MAX_SEARCH_DEPTH = 128;
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 5;
 
 		static const bool DO_NULLMOVE = true;

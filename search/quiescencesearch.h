@@ -172,10 +172,6 @@ namespace ChessSearch {
 			value_t bestValue;
 			value_t valueOfNextPlySearch;
 
-			if (!board.isWhiteToMove()) {
-				standPatValue = -standPatValue;
-			}
-
 			bestValue = standPatValue;
 			if (standPatValue < beta) {
 				if (standPatValue > alpha) {

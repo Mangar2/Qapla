@@ -66,10 +66,10 @@ namespace ChessSearch {
 			_nextInfoTime = 0;
 			if (clockSetting.getTimeToThinkForAllMovesInMilliseconds() < 10 * 1000) {
 				// Very short time left -> urgent move
-				_maxTimePerMove /= 4;
+				_maxTimePerMove /= 2;
 			} 
 		
-			_maxTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
+			_maxTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds();
 
 			if (_averageTimePerMove > _maxTimePerMove) {
 				_maxTimePerMove = _averageTimePerMove;

@@ -33,7 +33,7 @@ namespace ChessSearch {
 
 		SearchStack(TT* tt) :
 			ttPtr(tt) {
-			for (uint32_t ply = 0; ply < MAX_SEARCH_DEPTH; ply++) {
+			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
 				_stack[ply].ply = ply;
 				searchVariablePtr[ply] = &_stack[ply];
 				_stack[ply].setTT(tt);
@@ -67,7 +67,7 @@ namespace ChessSearch {
 		 * Sets the PV moves store
 		 */
 		void setPV(PV& pv) {
-			for (uint32_t ply = 0; ply < MAX_SEARCH_DEPTH; ply++) {
+			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
 				_stack[ply].setPVMove(pv.getMove(ply));
 				if (pv.getMove(ply) == Move::EMPTY_MOVE) {
 					break;
@@ -79,7 +79,7 @@ namespace ChessSearch {
 		 * Copy killer moves from one ply to another
 		 */
 		void copyKillers(SearchStack& foreignStack, ply_t fromPly) {
-			for (ply_t ply = fromPly; ply < MAX_SEARCH_DEPTH; ply++) {
+			for (ply_t ply = fromPly; ply < _stack.size(); ply++) {
 				_stack[ply].moveProvider.setKillerMove(foreignStack[ply].moveProvider);
 				if (_stack[ply].getKillerMove()[0] == Move::EMPTY_MOVE) {
 					break;
@@ -130,9 +130,8 @@ namespace ChessSearch {
 
 	private:
 		TT* ttPtr;
-		static const uint8_t MAX_SEARCH_DEPTH = 128;
-		array<SearchVariables*, MAX_SEARCH_DEPTH> searchVariablePtr;
-		array<SearchVariables, MAX_SEARCH_DEPTH> _stack;
+		array<SearchVariables*, SearchParameter::MAX_SEARCH_DEPTH> searchVariablePtr;
+		array<SearchVariables, SearchParameter::MAX_SEARCH_DEPTH> _stack;
 		uint32_t referenceCount;
 	};
 

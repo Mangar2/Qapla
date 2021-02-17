@@ -22,6 +22,7 @@
 #ifndef __ITERATIVEDEEPENING_H
 #define __ITERATIVEDEEPENING_H
 
+#include <algorithm>
 #include "../movegenerator/movegenerator.h"
 #include "movehistory.h"
 #include "search.h"
@@ -80,7 +81,12 @@ namespace ChessSearch {
 			search.startNewSearch(searchBoard);
 
 			uint32_t curDepth;
-			uint32_t maxDepth = MAX_SEARCH_DEPTH;
+			uint32_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
+			uint32_t depthLimit = clockSetting.getSearchDepthLimit();
+			if (depthLimit > 0 && depthLimit < maxDepth) {
+				maxDepth = depthLimit;
+			}
+
 			Move result;
 			// HistoryTable::clear();
 			if (clockManager.isAnalyzeMode()) {
@@ -92,9 +98,7 @@ namespace ChessSearch {
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, tt);
 
-			if (clockSetting.getSearchDepthLimit() > 0) {
-				maxDepth = clockSetting.getSearchDepthLimit();
-			}
+			static const uint8_t DEPTH_BUFFER = 0;
 			for (curDepth = 0; curDepth < maxDepth; curDepth++) {
 				searchOneIteration(searchBoard, computingInfo, curDepth);
 				if (!clockManager.mayCalculateNextDepth()) {

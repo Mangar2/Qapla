@@ -163,7 +163,7 @@ namespace ChessInterface {
 					if (token == "wtime") setTime(param, true);
 					else if (token == "btime") setTime(param, false);
 					else if (token == "winc") setTimeInc(param, true);
-					else if (token == "binc") setTimeInc(param, true);
+					else if (token == "binc") setTimeInc(param, false);
 					else if (token == "movestogo") _clock.setMoveAmountForClock(uint32_t(param));
 					else if (token == "depth") _clock.setSearchDepthLimit(uint32_t(param));
 					else if (token == "nodes") _clock.setNodeCount(param);

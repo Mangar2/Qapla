@@ -61,7 +61,8 @@ namespace ChessEval {
 		 */
 		static value_t eval(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
 			EvalResults evalResults;
-			return lazyEval<false>(board, evalResults);
+			value_t positionValue = lazyEval<false>(board, evalResults);
+			return board.isWhiteToMove() ? positionValue : -positionValue;
 		}
 
 		/**

@@ -208,9 +208,7 @@ namespace ChessSearch {
 			if (isPVSearch()) return false;
 
 			eval = Eval::eval(board);
-			if (!board.isWhiteToMove()) {
-				eval = -eval;
-			}
+
 			if (eval > WINNING_BONUS) return false;
 			bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
 			if (doFutility) {
