@@ -1,10 +1,13 @@
 # Quabla Change log
 Quabla chess engine
 
-## 0.0.
-- Playing strenght: about 2300 ELO
+## 0.0.52
+- Playing strenght: about 2350 ELO
+- Bypassed Spike 0.8 playing strength
 - Bugfixing
 	- Fixed bugs where the transition table kept draw values for replaying moves from earlier games or after undo moves
+	- Bugfix in uci: BINC (increase for black) is no longer ignored
+	- Bugfix Crash, if search depths > 128 plys
 - Search
 	- Using hash entries even in PV, if the value > winning bonus. This fixed problems with finding mates
 	- Adding root moves with a stable bubblesort moving all historic PV moves to the front. Prepared for multi-pv search and for excluded moves, still this is not yet implemented.
@@ -16,9 +19,12 @@ Quabla chess engine
 	- Changed pawn value to less especially in midgame: + 10 ELO
 	- Added rook evaluation term for protecting passed pawns from behind + 15 ELO 
 	- Added bonus for double bishop on different colors, changed mobility values for bishops with low mobility
-	- Added evaluation terms for knights
+	- Added evaluation terms for knights like outpost
 	- Added bitbases - but yet only activated for KPK
 	- Added dedicated evaluation for KPsK
+	- Added threat count evaluation (hanging pieces, pieces attacked by pawns) + 10 ELO
+	- Added piece square tables + 30 ELO
+	- Added futility pruning (conservative) + 25 ELO
 
 ## 0.0.14
 - Playing strength: about 2250 ELO

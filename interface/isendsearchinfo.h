@@ -75,6 +75,7 @@ namespace ChessInterface {
 		 * @param movesLeftToConsider number of moves to be searched 
 		 * @param totalAmountOfMovesToConsider total number of possible moves in the actual chess position
 		 * @param currentConsideredMove move currently concidered (in chess notation)
+		 * @param hashFullInPercent the hash fill rate in percent
 		 */
 		virtual void informAboutAdvancementsInSearch(
 			uint32_t searchDepth,
@@ -83,7 +84,8 @@ namespace ChessInterface {
 			uint64_t nodesSearched,
 			uint32_t movesLeftToConsider,
 			uint32_t totalAmountOfMovesToConsider,
-			const string& currentConsideredMove) = 0;
+			const string& currentConsideredMove,
+			uint32_t hashFullInPercent) = 0;
 
 		//virtual void printStatistic() = 0;
 

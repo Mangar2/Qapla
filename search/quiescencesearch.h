@@ -102,15 +102,7 @@ namespace ChessSearch {
 
 			if (ttIndex != TT::INVALID_INDEX) {
 				TTEntry entry = _tt->getEntry(ttIndex);
-				static uint32_t amount = 0;
-				amount++;
-				if (amount % 100000 == 0) { cout << "Hits: " << amount << " fill: " << _tt->getHashFillRateInPercent() << endl; }
 				bestValue = entry.getValue(alpha, beta, 0, ply);
-			}
-			else {
-				static uint32_t amount = 0;
-				amount++;
-				if (amount % 1000000 == 0) { cout << "Non-Hit: " << amount << endl; }
 			}
 			return bestValue;
 		}

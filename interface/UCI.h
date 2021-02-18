@@ -96,7 +96,8 @@ namespace ChessInterface {
 		 */
 		void uciCommand() {
 			_clock.setTimeBetweenInfoInMilliseconds(1000);
-			println("id name " + _board->getEngineName());
+			println("id name " + _board->getEngineInfo()["name"]);
+			println("id author " + _board->getEngineInfo()["author"]);
 			println("option name Hash type spin default 32 min 1 max 1024");
 			println("option name Ponder type check");
 			_board->initialize();
@@ -179,6 +180,15 @@ namespace ChessInterface {
 		}
 
 		/**
+		 * Called to start a new game. 
+		 * Stops computing and sets a new game to the board.
+		 */
+		void newGame() {
+			stopCompute();
+			_board->newGame();
+		}
+
+		/**
 		 * processes any uci command
 		 */
 		void processCommand() {
@@ -186,7 +196,7 @@ namespace ChessInterface {
 			if (token == "uci") uciCommand();
 			else if (token == "go") go();
 			else if (token == "isready") println("readyok");
-			else if (token == "ucinewgame") _board->newGame();
+			else if (token == "ucinewgame") newGame();
 			else if (token == "position") setPosition();
 			else if (token == "stop") stopCompute();
 			getNextTokenBlocking(true);

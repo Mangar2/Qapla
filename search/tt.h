@@ -48,7 +48,8 @@ namespace ChessSearch {
 			for (TTEntry& entry : _tt) {
 				entry.clear();
 			}
-			ageIndicator = 0;
+			_ageIndicator = 0;
+			_entries = 0;
 		}
 
 		/**
@@ -108,7 +109,7 @@ namespace ChessSearch {
 
 			if (_tt[index].isEmpty())
 			{
-				entries++;
+				_entries++;
 			}
 			else if (isNewEntryMoreValuable(index, computedDepth, move))
 			{
@@ -116,7 +117,7 @@ namespace ChessSearch {
 				if (hashIsDifferent && _tt[index + 1].doOverwriteAlwaysReplaceEntry(
 					positionValue, alpha, beta, computedDepth)) 
 				{
-					if (isEntryFromFormerSearch(_tt[index + 1])) entries++;
+					if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
 					_tt[index + 1] = _tt[index];
 				}
 			}
@@ -125,7 +126,7 @@ namespace ChessSearch {
 				if (_tt[index + 1].doOverwriteAlwaysReplaceEntry(
 					positionValue, alpha, beta, computedDepth)) 
 				{
-					if (isEntryFromFormerSearch(_tt[index + 1])) entries++;
+					if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
 					index++;
 				}
 			}
@@ -144,11 +145,11 @@ namespace ChessSearch {
 			uint32_t index = computeEntryIndex(hashKey);
 			if (_tt[index].isEmpty())
 			{
-				entries++;
+				_entries++;
 			}
 			else {
 				++index;
-				if (isEntryFromFormerSearch(_tt[index])) entries++;
+				if (isEntryFromFormerSearch(_tt[index])) _entries++;
 			}
 			set(index, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
 		}
@@ -161,7 +162,7 @@ namespace ChessSearch {
 			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
-			if (isEntryFromFormerSearch(_tt[index])) entries++;
+			if (isEntryFromFormerSearch(_tt[index])) _entries++;
 			set(index, hashKey, computedDepth, ply, move, 
 				positionValue, alpha, beta, nullmoveThreat);
 		}
@@ -226,8 +227,8 @@ namespace ChessSearch {
 		 */
 		void setNextSearch()
 		{
-			ageIndicator++;
-			entries = 0;
+			_ageIndicator++;
+			_entries = 0;
 		}
 
 		/**
@@ -284,7 +285,7 @@ namespace ChessSearch {
 		 * Gets the age indicator of the current search
 		 */
 		int32_t getEntryAgeIndicator() const { 
-			return ageIndicator; 
+			return _ageIndicator; 
 		}
 
 		/**
@@ -309,8 +310,8 @@ namespace ChessSearch {
 		/**
 		 * Gets the fill rate in percent only counting entries of current search
 		 */
-		uint32_t getHashFillRateInPercent() {
-			return uint32_t(uint64_t(entries) * 100ULL / _tt.capacity());
+		uint32_t getHashFillRateInPermill() {
+			return uint32_t(uint64_t(_entries) * 1000ULL / _tt.capacity());
 		}
 
 		/**
@@ -355,7 +356,7 @@ namespace ChessSearch {
 			value_t positionValue, value_t alpha, value_t beta, uint32_t nullmoveThreat)
 		{
 			auto& entry = _tt[index];
-			entry.setInfo(computedDepth, ageIndicator, nullmoveThreat);
+			entry.setInfo(computedDepth, _ageIndicator, nullmoveThreat);
 			entry.setValue(positionValue, alpha, beta, ply);
 			entry.setMove(move);
 			entry.setTT(hashKey);
@@ -374,14 +375,14 @@ namespace ChessSearch {
 		 * returns true, if the entry is not from the current search
 		 */ 
 		bool isEntryFromFormerSearch(const TTEntry& entry) {
-			return ageIndicator != entry.getAgeIndicator();
+			return _ageIndicator != entry.getAgeIndicator();
 		}
 
 		// Transposition table
 		vector<TTEntry> _tt;
 
-		int32_t ageIndicator;
-		int32_t entries;
+		int32_t _ageIndicator;
+		int32_t _entries;
 
 	};
 

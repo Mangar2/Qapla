@@ -382,6 +382,13 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Gets the hash fill rate in permill
+		 */
+		inline uint32_t getHashFullInPermill() {
+			return ttPtr->getHashFillRateInPermill();
+		}
+
+		/**
 		 * prints the information 
 		 */
 		void print() {

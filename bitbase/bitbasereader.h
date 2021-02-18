@@ -40,7 +40,6 @@ namespace ChessBitbase {
 	public:
 		static void loadBitbase() {
 			loadRelevant3StoneBitbase();
-			loadRelevant4StoneBitbase();
 		}
 
 		static void loadRelevant3StoneBitbase() {

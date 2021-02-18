@@ -128,10 +128,10 @@ namespace ChessSearch {
 			return result;
 		}
 
-		void updateEntryAgeIndicator(hash_t ageIndicator)
+		void updateEntryAgeIndicator(hash_t _ageIndicator)
 		{
 			_info &= ~(ENTRY_AGE_INDICATOR_MASK << ENTRY_AGE_INDICATOR_SHIFT);
-			_info += (ageIndicator << ENTRY_AGE_INDICATOR_SHIFT) & ENTRY_AGE_INDICATOR_MASK;
+			_info += (_ageIndicator << ENTRY_AGE_INDICATOR_SHIFT) & ENTRY_AGE_INDICATOR_MASK;
 		}
 
 		Move getMove() const { return _move;  }

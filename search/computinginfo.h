@@ -52,6 +52,13 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Sets the hash fill rate in percent
+		 */
+		void setHashFullInPermill(uint32_t hashFull) {
+			_hashFullInPermill = hashFull;
+		}
+
+		/**
 		 * Initializes the members
 		 */
 		void clear() {
@@ -101,7 +108,8 @@ namespace ChessSearch {
 					_nodesSearched,
 					_totalAmountOfMovesToConcider - _currentMoveNoSearched,
 					_totalAmountOfMovesToConcider,
-					_currentConcideredMove.getLAN()
+					_currentConcideredMove.getLAN(),
+					_hashFullInPermill
 				);
 				_printRequest = false;
 			}
@@ -156,6 +164,7 @@ namespace ChessSearch {
 		value_t _beta;
 		uint32_t _searchDepth;
 		uint32_t _totalAmountOfMovesToConcider;
+		uint32_t _hashFullInPermill;
 		Move _currentConcideredMove;
 		uint32_t _currentMoveNoSearched;
 		uint64_t _nodesSearched;

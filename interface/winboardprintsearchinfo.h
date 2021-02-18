@@ -61,6 +61,18 @@ namespace ChessInterface {
 		virtual void informAboutChangedPrimaryVariant() {
 		}
 
+		/**
+		 * Informs amount an advancement in search like the next move on ply 0
+		 * @param searchDepth depth (amount of plys) searched
+		 * @param positionValue computed position value (+100 for a white pawn advantage, -100 for a black pawn advantage)
+		 * @param timeSpendInMilliseconds (time spend to calculate the current position including the search
+		 * until reaching the current depth)
+		 * @param nodesSearched number of nodes (usually calls to "set move") searched so far
+		 * @param movesLeftToConsider number of moves to be searched
+		 * @param totalAmountOfMovesToConsider total number of possible moves in the actual chess position
+		 * @param currentConsideredMove move currently concidered (in chess notation)
+		 * @param hashFullInPercent the hash fill rate in percent
+		 */
 		virtual void informAboutAdvancementsInSearch(
 			uint32_t searchDepth,
 			value_t positionValue,
@@ -68,7 +80,8 @@ namespace ChessInterface {
 			uint64_t nodesSearched,
 			uint32_t movesLeftToConsider,
 			uint32_t totalAmountOfMovesToConsider,
-			const string& currentConsideredMove
+			const string& currentConsideredMove,
+			uint32_t hashFullInPercent
 		)
 		{
 			const auto BUF_SIZE = 256;

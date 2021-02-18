@@ -103,6 +103,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, Move previo
 	// if (stack[ply - 1].isPVSearch() && position.isWhiteToMove() == (searchInfo.bestValue <= 0)) { printf("info string ");  stack.printMoves(searchInfo.bestMove, ply); searchInfo.print(); }
 
 	searchInfo.terminatePly(position);
+	_computingInfo->setHashFullInPermill(searchInfo.getHashFullInPermill());
 	_computingInfo->printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	return searchInfo.bestValue;
 
@@ -151,6 +152,7 @@ value_t Search::searchRoot(MoveGenerator& position, SearchStack& stack, Computin
 	}
 
 	searchInfo.terminatePly(position);
+	_computingInfo->setHashFullInPermill(searchInfo.getHashFullInPermill());
 	_computingInfo->printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	_rootMoves.bubbleSort(0);
 	return searchInfo.bestValue;

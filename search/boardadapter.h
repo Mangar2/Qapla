@@ -56,7 +56,12 @@ namespace ChessSearch {
 		/**
 		 * Retrieves the engine name
 		 */
-		virtual string getEngineName() { return "Qapla_0.0.18";  }
+		virtual map<string, string> getEngineInfo() { 
+			return map<string, string>{
+				{ "name", "Qapla 0.0.52" },
+				{ "author", "Volker Böhm"}
+			};
+		}
 
 		/**
 		 * Generates bitbases for a signature and all bitbases needed

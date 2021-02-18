@@ -23,10 +23,12 @@
 #ifndef __ICHESSBOARD_H
 #define __ICHESSBOARD_H
 
+#include <map>
 #include "clocksetting.h"
 #include "computinginfoexchange.h"
 #include "iwhatif.h"
 #include "isendsearchinfo.h"
+
 
 namespace ChessInterface {
 
@@ -51,7 +53,7 @@ namespace ChessInterface {
 		/**
 		 * Retrieves the name of the engine
 		 */
-		virtual string getEngineName() = 0;
+		virtual map<string, string> getEngineInfo() = 0;
 
 		/**
 		 * Initializations are done here

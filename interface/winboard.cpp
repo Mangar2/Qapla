@@ -62,10 +62,11 @@ Winboard::Winboard() {
 void Winboard::handleProtover() {
 	if (getNextTokenNonBlocking() != "") {
 		protoVer = uint8_t(getCurrentTokenAsUnsignedInt());
+		
 		if (protoVer > 1) {
 			println("feature done=0");
 			println("feature colors=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
-			println("feature myname=\"" + _board->getEngineName() + "\"");
+			println("feature myname=\"" + _board->getEngineInfo()["name"] + " by " + _board->getEngineInfo()["author"] + "\"");
 			println("feature done=1");
 		}
 	}
