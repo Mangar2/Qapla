@@ -110,15 +110,14 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, Move previo
 ComputingInfo Search::searchRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager) {
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
-
+	
 	SearchVariables& searchInfo = stack[0];
 	value_t searchResult;
 	RootMove* rootMove = &_rootMoves.getMove(0);
+	stack.setPV(rootMove->getPV());
 
 	searchInfo.computeMoves(position);
-
 	_computingInfo.nextIteration(searchInfo);
-
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
 
 	for (size_t triedMoves = 0;;) {

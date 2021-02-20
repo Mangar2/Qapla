@@ -59,6 +59,13 @@ namespace ChessSearch {
 		Move getMove() const { return _move; }
 
 		/**
+		 * Gets the pv of the move
+		 */
+		const PV& getPV() const {
+			return _pvLine;
+		}
+
+		/**
 		 * @returns true, if the search was a PV search
 		 */
 		bool isPVSearched() const { return _isPVSearched; }

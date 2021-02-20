@@ -78,25 +78,6 @@ namespace ChessEval {
 			return eval<WHITE>(board, evalResults) + eval<BLACK>(board, evalResults);
 		}
 
-
-		/**
-		 * Gets a list of detailed evaluation information
-		 */
-		template <Piece COLOR>
-		static map<string, value_t> factors(MoveGenerator& board, EvalResults& evalResults) {
-			map<string, value_t> result;
-			eval(board, evalResults);
-			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-
-			if (evalResults.midgameInPercent > 50) {
-				result["Queen attack"] = evalResults.queenAttackFactor[COLOR];
-				result["Rook attack"] = evalResults.rookAttackFactor[COLOR];
-				result["Bishop attack"] = evalResults.bishopAttackFactor[COLOR];
-				result["Knight attack"] = evalResults.knightAttackFactor[COLOR];
-			}
-			return result;
-		}
-
 		/**
 		 * Computes the value of the pawn structure in the case there is no
 		 * piece on the board
