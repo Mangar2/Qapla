@@ -69,14 +69,12 @@ namespace ChessSearch {
 		/**
 		 * Searches the best move by iteratively deepening the search depth
 		 */
-		ComputingInfo searchByIterativeDeepening(
-			const MoveGenerator& position, const ClockSetting& clockSetting, MoveHistory& moveHistory)
+		ComputingInfo searchByIterativeDeepening(const MoveGenerator& position, MoveHistory& moveHistory)
 		{
 
 			MoveGenerator searchBoard = position;
 			ComputingInfo computingInfo;
 			_aspirationWindow.initSearch();
-			initClockForNextSearch(clockSetting);
 			_search.startNewSearch(searchBoard);
 
 			uint32_t curDepth;
@@ -134,7 +132,7 @@ namespace ChessSearch {
 		/**
 		 * Sets the clock for the next search
 		 */
-		void initClockForNextSearch(const ClockSetting& clockSetting) {
+		void setClockForNextSearch(const ClockSetting& clockSetting) {
 			_clockSetting = clockSetting;
 			_clockManager.startCalculatingMove(60, clockSetting);
 		}

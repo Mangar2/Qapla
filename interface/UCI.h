@@ -52,14 +52,12 @@ namespace ChessInterface {
 		 */
 		void computeMove() {
 			_clock.storeCalculationStartTime();
-			stopCompute(false);
+			_board->setClock(_clock);
+			setInfiniteSearch(_clock.isAnalyseMode() || _clock.isPonderMode());
 			_computeThread = thread([this]() {
-				bool waitForStop = _clock.isAnalyseMode();
-				_board->computeMove(_clock);
+				_board->computeMove();
 				ComputingInfoExchange computingInfo = _board->getComputingInfo();
-				if (waitForStop || _clock.isPonderMode()) {
-					waitForStopRequest();
-				}
+				waitOnInfiniteSearch();
 				print("bestmove " + computingInfo.currentConsideredMove);
 				if (computingInfo.ponderMove != "") {
 					print(" ponder " + computingInfo.ponderMove);
@@ -149,10 +147,7 @@ namespace ChessInterface {
 				token = getNextTokenBlocking(true);
 				if (token == "\n" || token == "\r") break;
 				if (token == "infinite") _clock.setAnalyseMode();
-				else if (token == "ponder") {
-					_clock.setPonderMode();
-					break;
-				}
+				else if (token == "ponder") _clock.setPonderMode();
 				else {
 					getNextTokenBlocking(true);
 					uint64_t param = getCurrentTokenAsUnsignedInt();
@@ -168,11 +163,6 @@ namespace ChessInterface {
 				}
 			};
 			computeMove();
-		}
-
-		void ponderHit() {
-			_board->ponderHit();
-			_clock.setSearchMode();
 		}
 
 		/**

@@ -256,21 +256,20 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Initializes the next search by the current clock setting
-		 * Is called from the managing thread and not from the search thread
-		 * to prevent races
+		 * Sets the clock for the next move.
+		 * It must be set by the managing thread and not the computing thread to avoid races!
 		 */
-		virtual void initClockForNextSearch(const ClockSetting& clockSetting) {
-			iterativeDeepening.initClockForNextSearch(clockSetting);
+		virtual void setClock(const ClockSetting& clockSetting) {
+			curClock = clockSetting;
+			curClock.setPlayedMovesInGame(playedMovesInGame);
+			iterativeDeepening.setClockForNextSearch(curClock);
 		}
 
 		/**
 		 * Compute a move
 		 */
-		virtual void computeMove(const ClockSetting& clockSetting, bool verbose = true) {
-			curClock = clockSetting;
-			curClock.setPlayedMovesInGame(playedMovesInGame);
-			_computingInfo = iterativeDeepening.searchByIterativeDeepening(position, curClock, moveHistory);
+		virtual void computeMove(bool verbose = true) {
+			_computingInfo = iterativeDeepening.searchByIterativeDeepening(position, moveHistory);
 		}
 
 		/**

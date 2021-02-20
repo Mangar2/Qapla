@@ -97,10 +97,11 @@ void Winboard::analyzeMove() {
 	}
 	else {
 		_clock.setAnalyseMode();
-		stopCompute(false);
+		setInfiniteSearch(true);
+		_board->setClock(_clock);
 		_computeThread = std::thread([this]() {
-			_board->computeMove(_clock);
-			waitForStopRequest();
+			_board->computeMove();
+			waitOnInfiniteSearch();
 		});
 	}
 }
@@ -120,9 +121,10 @@ void Winboard::computeMove() {
 		_mode = Mode::COMPUTE;
 		_clock.storeCalculationStartTime();
 		_clock.setSearchMode();
-		stopCompute(false);
+		setInfiniteSearch(false);
+		_board->setClock(_clock);
 		_computeThread = std::thread([this]() {
-			_board->computeMove(_clock);
+			_board->computeMove();
 			_mode = Mode::WAIT;
 			ComputingInfoExchange computingInfo = _board->getComputingInfo();
 			println("move " + computingInfo.currentConsideredMove);
@@ -197,7 +199,8 @@ void Winboard::handleWhatIf() {
 	ClockSetting whatIfClock;
 	whatIfClock.setAnalyseMode();
 	whatIfClock.setSearchDepthLimit(searchDepth);
-	_board->computeMove(whatIfClock);
+	_board->setClock(whatIfClock);
+	_board->computeMove();
 	whatIf->clear();
 }
 

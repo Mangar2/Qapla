@@ -127,9 +127,15 @@ namespace ChessInterface {
 		virtual void printEvalInfo() = 0;
 
 		/**
+		 * Sets the clock for the next move.
+		 * It must be set by the managing thread and not the computing thread to avoid races!
+		 */
+		virtual void setClock(const ClockSetting& clockSetting) = 0;
+
+		/**
 		 * Starts to compute a move
 		 */
-		virtual void computeMove(const ClockSetting& clockSetting, bool verbose = true) = 0;
+		virtual void computeMove(bool verbose = true) = 0;
 
 		/**
 		 * Signals a ponder hit
@@ -146,13 +152,6 @@ namespace ChessInterface {
 		 */
 		virtual void moveNow() = 0;
 		
-		/**
-		 * Initializes the next search by the current clock setting
-	     * Is called from the managing thread and not from the search thread
-		 * to prevent races
-		 */
-		virtual void initClockForNextSearch(const ClockSetting& clockSetting) = 0;
-
 		/**
 		 * Returns the current game status
 		 */

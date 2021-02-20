@@ -110,11 +110,10 @@ namespace ChessInterface {
 		/**
 		 * Wait for stopCompute
 		 */
-		void waitForStopRequest() {
-			unique_lock<mutex> lock = unique_lock<mutex>(_stopProtect);
-			_stopRequested.wait(lock, [this] {
-					bool doWait = !_stopCompute;
-					return !doWait;
+		void waitOnInfiniteSearch() {
+			unique_lock<mutex> lock = unique_lock<mutex>(_waitProtect);
+			_waitCondition.wait(lock, [this] {
+					return !_isInfiniteSearch;
 			});
 		}
 
@@ -130,20 +129,33 @@ namespace ChessInterface {
 		/**
 		 * Stop current computing
 		 */
-		void stopCompute(bool stop = true) {
-			if (stop) {
-				{
-					const lock_guard<mutex> lock(_stopProtect);
-					_stopCompute = true;
-					_board->moveNow();
-					_stopRequested.notify_one();
-				}
-				waitForComputingThreadToEnd();
+		void stopCompute() {
+			{
+				const lock_guard<mutex> lock(_waitProtect);
+				_isInfiniteSearch = false;
+				_board->moveNow();
+				_waitCondition.notify_one();
 			}
-			else {
-				_stopCompute = false;
-				_board->initClockForNextSearch(_clock);
-			}
+			waitForComputingThreadToEnd();
+			
+		}
+
+		/**
+		 * Sets a wait flag
+		 */
+		void setInfiniteSearch(bool infinite) {
+			_isInfiniteSearch = infinite;
+		}
+
+		/**
+		 * Handles a ponder - hit
+		 */
+		void ponderHit() {
+			const lock_guard<mutex> lock(_waitProtect);
+			_isInfiniteSearch = false;
+			_board->ponderHit();
+			_clock.setSearchMode();
+			_waitCondition.notify_one();
 		}
 
 	protected:
@@ -158,10 +170,10 @@ namespace ChessInterface {
 		IChessBoard* _board;
 		IInputOutput* _ioHandler;
 		ClockSetting _clock;
-		condition_variable _stopRequested;
-		mutex _stopProtect;
+		condition_variable _waitCondition;
+		mutex _waitProtect;
+		bool _isInfiniteSearch;
 		thread _computeThread;
-		bool _stopCompute;
 		uint32_t _maxTheadCount; 
 		uint32_t _maxMemory;
 		string _egtPath;
