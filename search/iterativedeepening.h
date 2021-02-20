@@ -39,8 +39,8 @@ namespace ChessSearch {
 
 	public:
 		IterativeDeepening() { 
-			tt.setSizeInKilobytes(32736); 
-			QuiescenceSearch::setTT(&tt);
+			_tt.setSizeInKilobytes(32736); 
+			QuiescenceSearch::setTT(&_tt);
 		}
 
 		static const uint64_t ESTIMATED_TIME_FACTOR_FOR_NEXT_DEPTH = 4;
@@ -51,16 +51,16 @@ namespace ChessSearch {
 		 * Clears the hash for example on a new game
 		 */
 		void clearHash() {
-			tt.clear();
+			_tt.clear();
 		}
 
 		/**
 		 * true, if the search found a mate
 		 */
-		bool hasMateFound(ComputingInfo& computingInfo) {
+		bool hasMateFound(const ComputingInfo& computingInfo) {
 			const value_t SECURITY_BUFFER = 2;
 			bool result = false;
-			if (abs(computingInfo._positionValueInCentiPawn) > MAX_VALUE - (value_t)computingInfo._searchDepth + SECURITY_BUFFER) {
+			if (abs(computingInfo.getPositionValueInCentiPawn()) > MAX_VALUE - (value_t)computingInfo.getSearchDepht() + SECURITY_BUFFER) {
 				result = true;
 			}
 			return result;
@@ -69,60 +69,92 @@ namespace ChessSearch {
 		/**
 		 * Searches the best move by iteratively deepening the search depth
 		 */
-		void searchByIterativeDeepening(
-			const MoveGenerator& position, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory)
+		ComputingInfo searchByIterativeDeepening(
+			const MoveGenerator& position, const ClockSetting& clockSetting, MoveHistory& moveHistory)
 		{
 
 			MoveGenerator searchBoard = position;
-			computingInfo._timeControl.storeStartTime();
-			clockManager.startCalculatingMove(60, clockSetting);
-			computingInfo.initSearch();
-			aspirationWindow.initSearch();
-			search.startNewSearch(searchBoard);
+			ComputingInfo computingInfo;
+			_aspirationWindow.initSearch();
+			initClockForNextSearch(clockSetting);
+			_search.startNewSearch(searchBoard);
 
 			uint32_t curDepth;
 			uint32_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
-			uint32_t depthLimit = clockSetting.getSearchDepthLimit();
+			uint32_t depthLimit = _clockSetting.getSearchDepthLimit();
 			if (depthLimit > 0 && depthLimit < maxDepth) {
 				maxDepth = depthLimit;
 			}
 
 			Move result;
 			// HistoryTable::clear();
-			if (clockManager.isAnalyzeMode()) {
-				tt.clear();
+			if (_clockManager.isAnalyzeMode()) {
+				_tt.clear();
 			}
 			else {
-				tt.setNextSearch();
+				_tt.setNextSearch();
 			}
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
-			moveHistory.setDrawPositionsToHash(position, tt);
+			moveHistory.setDrawPositionsToHash(position, _tt);
 
 			static const uint8_t DEPTH_BUFFER = 0;
 			for (curDepth = 0; curDepth < maxDepth; curDepth++) {
-				searchOneIteration(searchBoard, computingInfo, curDepth);
-				if (!clockManager.mayCalculateNextDepth()) {
+				computingInfo = searchOneIteration(searchBoard, curDepth);
+				if (!_clockManager.mayCalculateNextDepth()) {
 					break;
 				}
-				if (hasMateFound(computingInfo) && clockManager.stopSearchOnMateFound()) {
+				if (hasMateFound(computingInfo) && _clockManager.stopSearchOnMateFound()) {
 					break;
 				}
 			}
 
 			// tt.writeToFile("tt.bin");
 			// Ensures that all draw positions are removed and not used after undo or new game
-			moveHistory.removeDrawPositionsFromHash(tt);
+			moveHistory.removeDrawPositionsFromHash(_tt);
 			//static int i = 0;
 			// tt.writeToFile("tt" + to_string(i) + ".bin"); i++;
 			// computingInfo.statisticForMoveOrdering.print();
+			return computingInfo;
 		}
 
 		/**
-		 * Sets or clears the stop search flag
+		 * Stops the serach
 		 */
-		void stopSearch(bool doStop = true) {
-			clockManager.stopSearch(doStop);
+		void stopSearch() {
+			_clockManager.stopSearch();
 		}
+
+		/**
+		 * Signals a ponder hit
+		 */
+		void ponderHit() {
+			_clockManager.setSearchMode();
+		}
+
+		/**
+		 * Sets the clock for the next search
+		 */
+		void initClockForNextSearch(const ClockSetting& clockSetting) {
+			_clockSetting = clockSetting;
+			_clockManager.startCalculatingMove(60, clockSetting);
+		}
+		
+		/**
+		 * Sets the interface printing search information
+		 */
+		void setSendSearchInfoInterface(ISendSearchInfo* sendSearchInfo) {
+			_search.setSendSearchInfoInterface(sendSearchInfo);
+		}
+
+		/**
+		 * Stores the requests to print search information.
+		 * Next time the search calls print search info, it will be printed and the
+		 * request flag will be set to false again
+		 */
+		void requestPrintSearchInfo() {
+			_search.requestPrintSearchInfo();
+		}
+
 
 	private:
 
@@ -145,53 +177,30 @@ namespace ChessSearch {
 		/**
 		 * Searches one iteration - at constant search depth using an aspiration window
 		 */
-		void searchOneIteration(MoveGenerator& position, ComputingInfo& computingInfo, uint32_t searchDepth)
+		ComputingInfo searchOneIteration(MoveGenerator& position, uint32_t searchDepth)
 		{
-			SearchStack stack(&tt);
+			SearchStack stack(&_tt);
+			ComputingInfo computingInfo;
 			do {
-				stack.initSearch(position, aspirationWindow.alpha, aspirationWindow.beta, searchDepth);
-				computingInfo._alpha = aspirationWindow.alpha;
-				computingInfo._beta = aspirationWindow.beta;
+				stack.initSearch(position, _aspirationWindow.alpha, _aspirationWindow.beta, searchDepth);
 				if (searchDepth != 0) {
-					stack.setPV(computingInfo._pvMovesStore);
+					stack.setPV(computingInfo.getPV());
 				}
-				// Keep the first move and use it if the following search is aborded without result
-				computingInfo._pvMovesStore.setMove(1, Move::EMPTY_MOVE);
 
-				computingInfo._searchDepth = searchDepth;
-				search.searchRoot(position, stack, computingInfo, clockManager);
+				computingInfo = _search.searchRoot(position, stack, _clockManager);
 				computingInfo.printSearchResult();
-				/*
-				if (position.isWhiteToMove() && computingInfo._positionValueInCentiPawn < 0) {
-					cout << "white not winning" << endl;
-					exit(1);
-				}
-				if (!position.isWhiteToMove() && computingInfo._positionValueInCentiPawn > 0) {
-					cout << "black not loosing" << endl;
-					exit(1);
-				}
-				*/
-			} while (!clockManager.mustAbortCalculation(0) && aspirationWindow.retryWithNewWindow(computingInfo));
+			} while (!_clockManager.mustAbortCalculation(0) && _aspirationWindow.retryWithNewWindow(computingInfo));
+			
+			return computingInfo;
 		}
 
-
-	private:
-		ClockManager clockManager;
-		TT tt;
-		Search search;
-		AspirationWindow aspirationWindow;
+		ClockSetting _clockSetting;
+		ClockManager _clockManager;
+		TT _tt;
+		Search _search;
+		AspirationWindow _aspirationWindow;
 
 	};
-
-	/**
-	 * Call this function to search
-	 */
-	static void searchByInterativeDeepening(
-		const MoveGenerator& position, const ClockSetting& clockSetting, ComputingInfo& computingInfo, MoveHistory& moveHistory) 
-	{
-		IterativeDeepening iterativeDeepening;
-		iterativeDeepening.searchByIterativeDeepening(position, clockSetting, computingInfo, moveHistory);
-	}
 
 }
 

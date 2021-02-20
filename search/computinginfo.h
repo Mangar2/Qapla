@@ -32,8 +32,9 @@
 #include "../interface/stdtimecontrol.h"
 #include "pv.h"
 #include "../interface/isendsearchinfo.h"
-//#include "StatisticForMoveOrdering.h"
+#include "../interface/computinginfoexchange.h"
 #include "searchparameter.h"
+#include "searchstack.h"
 
 using namespace ChessInterface;
 
@@ -77,18 +78,18 @@ namespace ChessSearch {
 		 */
 		void initSearch() {
 			_nodesSearched = 0;
-			if (SearchParameter::CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE) {
-				// statisticForMoveOrdering.clear();
-			}
+			_timeControl.storeStartTime();
 		}
 
 		/**
 		 * Starts searching the next iteration
 		 */
-		void nextIteration(uint32_t movesToConcider) {
-			_totalAmountOfMovesToConcider = movesToConcider;
+		void nextIteration(const SearchVariables& searchInfo) {
+			setWindow(searchInfo.alphaAtPlyStart, searchInfo.betaAtPlyStart);
+			_totalAmountOfMovesToConcider = searchInfo.moveProvider.getTotalMoveAmount();
 			_currentConcideredMove.setEmpty();
 			_currentMoveNoSearched = 0;
+			_searchDepth = searchInfo.remainingDepth;
 		}
 
 		void requestPrintSearchInfo() { _printRequest = true; }
@@ -118,7 +119,7 @@ namespace ChessSearch {
 		/**
 		 * Prints the information about the result of a search
 		 */
-		void printSearchResult()
+		void printSearchResult() const
 		{
 			MoveStringList primaryVariant;
 			for (uint8_t ply = 0; ply < _pvMovesStore.MAX_PV_LENGTH; ply++) {
@@ -151,25 +152,101 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Gets the current primary variant
+		 */
+		const PV& getPV() const {
+			return _pvMovesStore;
+		}
+
+		/**
+		 * Clears the primary variant, leaving the first move
+		 */
+		void clearPV() {
+			_pvMovesStore.setMove(1, Move::EMPTY_MOVE);
+		}
+
+		/**
 		 * Set verbose mode (prints more info)
 		 */
 		void setVerbose(bool isVerbose) {
 			_verbose = isVerbose;
 		}
 
+		/**
+		 * Depth of the current search
+		 */
+		void setSearchDepth(uint32_t searchDepth) {
+			_searchDepth = searchDepth;
+		}
+
+		uint32_t getSearchDepht() const {
+			return _searchDepth;
+		}
+
+		/**
+		 * Sets the current search window
+		 */
+		void setWindow(value_t alpha, value_t beta) {
+			_alpha = alpha;
+			_beta = beta;
+		}
+
+		/**
+		 * Sets the current concidered move
+		 */
+		void setCurrentMove(Move move) {
+			_currentConcideredMove = move;
+		}
+
+		/**
+		 * Update status information on ply 0
+		 */
+		void rootMoveSearched(SearchStack& stack) {
+			_currentMoveNoSearched++;
+			_positionValueInCentiPawn = stack[0].bestValue;
+			updatePV(stack[0].pvMovesStore);
+		}
+
+
+		/**
+		 * Creates an exchange version of the computing info structure
+	     */
+		ComputingInfoExchange getExchangeStructure() const {
+			ComputingInfoExchange exchange;
+			exchange.currentConsideredMove = getPV().getMove(0).getLAN();
+			exchange.ponderMove = getPV().getMove(1).getLAN();
+			if (exchange.ponderMove == "empty" || exchange.ponderMove == "null") {
+				exchange.ponderMove = "";
+			}
+			exchange.nodesSearched = _nodesSearched;
+			exchange.searchDepth = _searchDepth;
+			exchange.elapsedTimeInMilliseconds = _timeControl.getTimeSpentInMilliseconds();
+			exchange.totalAmountOfMovesToConcider = _totalAmountOfMovesToConcider;
+			exchange.movesLeftToConcider = _totalAmountOfMovesToConcider - _currentMoveNoSearched;
+			return exchange;
+		}
+
+		/**
+		 * Gets the current position value
+		 */
+		value_t getPositionValueInCentiPawn() const {
+			return _positionValueInCentiPawn;
+		}
+
+		uint64_t _nodesSearched;
+
+	private:
+
 		ISendSearchInfo* _sendSearchInfo;
 		StdTimeControl _timeControl;
 		value_t _positionValueInCentiPawn;
 		value_t _alpha;
 		value_t _beta;
-		uint32_t _searchDepth;
 		uint32_t _totalAmountOfMovesToConcider;
 		uint32_t _hashFullInPermill;
 		Move _currentConcideredMove;
 		uint32_t _currentMoveNoSearched;
-		uint64_t _nodesSearched;
-		// StatisticForMoveOrdering statisticForMoveOrdering;
-
+		uint32_t _searchDepth;
 		volatile bool _printRequest;
 		PV _pvMovesStore;
 		bool _debug;

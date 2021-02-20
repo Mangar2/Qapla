@@ -49,25 +49,34 @@ namespace ChessSearch {
 		 * Starts a new search
 		 */
 		void startNewSearch(MoveGenerator& position) {
+			_computingInfo.initSearch();
 			_rootMoves.setMoves(position);
 		}
 
-		value_t searchRoot(MoveGenerator& board, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager);
+		/**
+		 * Sets the interface printing search information
+		 */
+		void setSendSearchInfoInterface(ISendSearchInfo* sendSearchInfo, bool verbose = true) {
+			_computingInfo.setSendSearchInfo(sendSearchInfo);
+			_computingInfo.setVerbose(verbose);
+		}
+
+		/**
+		 * Stores the requests to print search information. 
+		 * Next time the search calls print search info, it will be printed and the 
+		 * request flag will be set to false again
+		 */
+		void requestPrintSearchInfo() {
+			_computingInfo.requestPrintSearchInfo();
+		}
+
+		ComputingInfo searchRoot(MoveGenerator& board, SearchStack& stack, ClockManager& clockManager);
 
 	private:
 
 		enum class SearchType {
 			PV, NORMAL, PV_LAST_PLY, LAST_PLY
 		};
-
-		/**
-		 * Update status information on ply 0
-		 */
-		void updateThinkingInfoPly0(SearchStack& stack) {
-			_computingInfo->_currentMoveNoSearched++;
-			_computingInfo->_positionValueInCentiPawn = stack[0].bestValue;
-			_computingInfo->updatePV(stack[0].pvMovesStore);
-		}
 
 		/**
 		 * Check for cutoffs
@@ -99,7 +108,7 @@ namespace ChessSearch {
 			else if (TYPE == SearchType::NORMAL && isNullmoveCutoff(board, stack, ply)) {
 				curPly.setCutoff(Cutoff::NULL_MOVE);
 			}
-			WhatIf::whatIf.cutoff(board, *_computingInfo, stack, ply, curPly.cutoff);
+			WhatIf::whatIf.cutoff(board, _computingInfo, stack, ply, curPly.cutoff);
 			return curPly.cutoff != Cutoff::NONE;
 		}
 
@@ -167,7 +176,7 @@ namespace ChessSearch {
 			else {
 				searchInfo.bestValue = -negaMaxLastPlys(board, stack, curMove, ply + 1);
 			}
-			WhatIf::whatIf.moveSearched(board, *_computingInfo, stack, curMove, ply);
+			WhatIf::whatIf.moveSearched(board, _computingInfo, stack, curMove, ply);
 			searchInfo.unsetNullmove();
 			const bool isCutoff = searchInfo.bestValue >= searchInfo.beta;
 			if (!isCutoff) {
@@ -187,11 +196,18 @@ namespace ChessSearch {
 		 */
 		value_t negaMax(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
 
+		/**
+		 * Returns the information about the root moves
+		 */
+		const RootMoves& getRootMoves() const {
+			return _rootMoves;
+		}
 
-
+	private:
 		Eval eval;
-		ComputingInfo* _computingInfo;
+		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
+
 		RootMoves _rootMoves;
 	};
 }

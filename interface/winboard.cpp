@@ -96,7 +96,7 @@ void Winboard::analyzeMove() {
 		printGameResult(result);
 	}
 	else {
-		_clock.setAnalyseMode(true);
+		_clock.setAnalyseMode();
 		stopCompute(false);
 		_computeThread = std::thread([this]() {
 			_board->computeMove(_clock);
@@ -119,7 +119,7 @@ void Winboard::computeMove() {
 	else {
 		_mode = Mode::COMPUTE;
 		_clock.storeCalculationStartTime();
-		_clock.setAnalyseMode(false);
+		_clock.setSearchMode();
 		stopCompute(false);
 		_computeThread = std::thread([this]() {
 			_board->computeMove(_clock);
@@ -195,7 +195,7 @@ void Winboard::handleWhatIf() {
 		}
 	}
 	ClockSetting whatIfClock;
-	whatIfClock.setAnalyseMode(true);
+	whatIfClock.setAnalyseMode();
 	whatIfClock.setSearchDepthLimit(searchDepth);
 	_board->computeMove(whatIfClock);
 	whatIf->clear();

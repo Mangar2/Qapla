@@ -142,7 +142,7 @@ namespace ChessInterface {
 			}
 			else {
 				_stopCompute = false;
-				_board->prepareSearch();
+				_board->initClockForNextSearch(_clock);
 			}
 		}
 

@@ -44,13 +44,13 @@ namespace ChessSearch {
 
 	class BoardAdapter : public IChessBoard {
 	public:
-		BoardAdapter() : boardModified(true) {}
+		BoardAdapter() : positionModified(true) {}
 
 		/**
 		 * Sets the class printing search information in the right format
 		 */
 		virtual void setSendSerchInfo(ISendSearchInfo* sendSearchInfo) {
-			computingInfo.setSendSearchInfo(sendSearchInfo);
+			iterativeDeepening.setSendSearchInfoInterface(sendSearchInfo);
 		};
 
 		/**
@@ -83,7 +83,7 @@ namespace ChessSearch {
 		 * Retrieves the what if object
 		 */
 		virtual IWhatIf* getWhatIf() {
-			WhatIf::whatIf.setBoard(board);
+			WhatIf::whatIf.setBoard(position);
 			return &WhatIf::whatIf;
 		}
 
@@ -109,20 +109,18 @@ namespace ChessSearch {
 			uint32_t destinationFile, uint32_t destinationRank,
 			char promotePiece)
 		{
-			Move move = findMove(board, movingPiece, departureFile, departureRank,
+			Move move = findMove(position, movingPiece, departureFile, departureRank,
 				destinationFile, destinationRank, promotePiece);
 
 			if (!move.isEmpty()) {
-				if (boardModified) {
-					moveHistory.setStartPosition(board);
-					boardModified = false;
+				if (positionModified) {
+					moveHistory.setStartPosition(position);
+					positionModified = false;
 				}
-				board.doMove(move);
+				position.doMove(move);
 				moveHistory.addMove(move);
 				playedMovesInGame++;
 			}
-
-			// board.print();
 
 			return !move.isEmpty();
 		};
@@ -131,7 +129,7 @@ namespace ChessSearch {
 		 * Undoes the last move
 		 */
 		virtual void undoMove() {
-			board = moveHistory.undoMove();
+			position = moveHistory.undoMove();
 			if (playedMovesInGame > 0) {
 				playedMovesInGame--;
 			}
@@ -139,11 +137,11 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Clears the board, setting everything to empty.
+		 * Clears the position, setting everything to empty.
 		 */
 		virtual void clearBoard() {
-			board.clear();
-			boardModified = true;
+			position.clear();
+			positionModified = true;
 			playedMovesInGame = 0;
 		}
 
@@ -151,14 +149,14 @@ namespace ChessSearch {
 		 * Set side to move
 		 */
 		virtual void setWhiteToMove(bool whiteToMove) {
-			board.setWhiteToMove(whiteToMove);
+			position.setWhiteToMove(whiteToMove);
 		}
 
 		/**
 		 * Gets side to move
 		 */
 		virtual bool isWhiteToMove() {
-			return board.isWhiteToMove();
+			return position.isWhiteToMove();
 		}
 
 		/**
@@ -169,7 +167,7 @@ namespace ChessSearch {
 			const Rank castRank = static_cast<Rank>(rank);
 			if (isFileInBoard(castFile) && isRankInBoard(castRank)) {
 				const Square square = computeSquare(castFile, castRank);
-				board.setPiece(square, charToPiece(piece));
+				position.setPiece(square, charToPiece(piece));
 			}
 		}
 
@@ -177,28 +175,28 @@ namespace ChessSearch {
 		 * Allow or deny white queen side castling
 		 */
 		virtual void setWhiteQueenSideCastlingRight(bool allow) {
-			board.setCastlingRight(WHITE, false, allow);
+			position.setCastlingRight(WHITE, false, allow);
 		}
 
 		/**
 		 * Allow or deny white king side castling
 		 */
 		virtual void setWhiteKingSideCastlingRight(bool allow) {
-			board.setCastlingRight(WHITE, true, allow);
+			position.setCastlingRight(WHITE, true, allow);
 		}
 
 		/**
 		 * Allow or deny black queen side castling
 		 */
 		virtual void setBlackQueenSideCastlingRight(bool allow) {
-			board.setCastlingRight(BLACK, false, allow);
+			position.setCastlingRight(BLACK, false, allow);
 		}
 
 		/**
 		 * Allow or deny black king side castling
 		 */
 		virtual void setBlackKingSideCastlingRight(bool allow) {
-			board.setCastlingRight(BLACK, true, allow);
+			position.setCastlingRight(BLACK, true, allow);
 		}
 
 		/**
@@ -207,14 +205,14 @@ namespace ChessSearch {
 		virtual void setEPSquare(uint32_t epFile, uint32_t epRank) {
 			// Adjust ep, beause it is stored as postion of the pawn to capture
 			epRank = epRank == 3 ? 4 : 5;
-			board.setEP(computeSquare(File(epFile), Rank(epRank)));
+			position.setEP(computeSquare(File(epFile), Rank(epRank)));
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture
 		 */
 		virtual void setHalfmovesWithouthPawnMoveOrCapture(uint16_t number) {
-			board.setHalfmovesWithoutPawnMoveOrCapture(number);
+			position.setHalfmovesWithoutPawnMoveOrCapture(number);
 		}
 
 		/**
@@ -229,7 +227,7 @@ namespace ChessSearch {
 		 */
 		virtual uint64_t perft(uint16_t depth, bool verbose = true, uint32_t maxTheadCount = 1) {
 			uint32_t additionalWorkerCount = maxTheadCount == 0 ? 0 : maxTheadCount - 1;
-			uint64_t res = ChessSearch::doPerftRec(board, depth, additionalWorkerCount, true, verbose);
+			uint64_t res = ChessSearch::doPerftRec(position, depth, additionalWorkerCount, true, verbose);
 			return res;
 		}
 
@@ -237,12 +235,12 @@ namespace ChessSearch {
 		 * Provides the result of the game
 		 */
 		virtual GameResult getGameResult() {
-			GameResult result = isMate(board);
+			GameResult result = isMate(position);
 			if (result == GameResult::NOT_ENDED) {
-				if (moveHistory.isDrawByRepetition(board)) {
+				if (moveHistory.isDrawByRepetition(position)) {
 					result = GameResult::DRAW_BY_REPETITION;
 				}
-				else if (board.getHalfmovesWithoutPawnMoveOrCapture() > 100) {
+				else if (position.getHalfmovesWithoutPawnMoveOrCapture() > 100) {
 					result = GameResult::DRAW_BY_50_MOVES_RULE;
 				}
 			}
@@ -258,12 +256,12 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Prepare search, usually sets the stop search flag to false
+		 * Initializes the next search by the current clock setting
 		 * Is called from the managing thread and not from the search thread
 		 * to prevent races
 		 */
-		virtual void prepareSearch() {
-			iterativeDeepening.stopSearch(false);
+		virtual void initClockForNextSearch(const ClockSetting& clockSetting) {
+			iterativeDeepening.initClockForNextSearch(clockSetting);
 		}
 
 		/**
@@ -272,30 +270,29 @@ namespace ChessSearch {
 		virtual void computeMove(const ClockSetting& clockSetting, bool verbose = true) {
 			curClock = clockSetting;
 			curClock.setPlayedMovesInGame(playedMovesInGame);
-			computingInfo.setVerbose(verbose);
-			iterativeDeepening.searchByIterativeDeepening(board, curClock, computingInfo, moveHistory);
+			_computingInfo = iterativeDeepening.searchByIterativeDeepening(position, curClock, moveHistory);
 		}
 
 		/**
-		 * Creates an exchange version of the computing info structure to send to winboard
+		 * Signals a ponder hit
+		 */
+		virtual void ponderHit() {
+			iterativeDeepening.ponderHit();
+		}
+
+
+		/**
+		 * Creates an exchange version of the computing info structure to send to winposition
 		 */
 		virtual ComputingInfoExchange getComputingInfo() {
-			ComputingInfoExchange exchange;
-			exchange.currentConsideredMove = computingInfo._pvMovesStore.getMove(0).getLAN();
-			exchange.nodesSearched = computingInfo._nodesSearched;
-			exchange.searchDepth = computingInfo._searchDepth;
-			exchange.elapsedTimeInMilliseconds = computingInfo._timeControl.getTimeSpentInMilliseconds();
-			exchange.totalAmountOfMovesToConcider = computingInfo._totalAmountOfMovesToConcider;
-			exchange.movesLeftToConcider =
-				computingInfo._totalAmountOfMovesToConcider - computingInfo._currentMoveNoSearched;
-			return exchange;
+			return _computingInfo.getExchangeStructure();
 		}
 
 		/**
 		 * Prints the actual Search status information
 		 */
 		virtual void requestPrintSearchInfo() {
-			computingInfo.requestPrintSearchInfo();
+			iterativeDeepening.requestPrintSearchInfo();
 		}
 
 		/**
@@ -303,7 +300,7 @@ namespace ChessSearch {
 		 */
 		virtual void printEvalInfo() {
 			Eval eval;
-			eval.printEval(board);
+			eval.printEval(position);
 		}
 
 		/**
@@ -312,7 +309,7 @@ namespace ChessSearch {
 		template <Piece COLOR>
 		auto getEvalFactors() {
 			Eval eval;
-			return eval.getEvalFactors<COLOR>(board);
+			return eval.getEvalFactors<COLOR>(position);
 		}
 
 		/**
@@ -323,16 +320,16 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Provides the board object with the current position
+		 * Provides the position object with the current position
 		 */
 		MoveGenerator& getBoard() {
-			return board;
+			return position;
 		}
 
 		/**
 		 * Find the correct move providing a partial move information
 		 */
-		static Move findMove(MoveGenerator& board, char movingPieceChar,
+		static Move findMove(MoveGenerator& position, char movingPieceChar,
 			uint32_t departureFile, uint32_t departureRank,
 			uint32_t destinationFile, uint32_t destinationRank, char promotePieceChar)
 		{
@@ -340,8 +337,8 @@ namespace ChessSearch {
 			Move foundMove;
 
 			uint16_t moveNoFound = 0;
-			board.genMovesOfMovingColor(moveList);
-			const bool whiteToMove = board.isWhiteToMove();
+			position.genMovesOfMovingColor(moveList);
+			const bool whiteToMove = position.isWhiteToMove();
 			Piece promotePiece = charToPiece(whiteToMove ? toupper(promotePieceChar) : tolower(promotePieceChar));
 			Piece movingPiece = charToPiece(whiteToMove ? toupper(movingPieceChar) : tolower(movingPieceChar));
 
@@ -372,14 +369,14 @@ namespace ChessSearch {
 		/**
 		 * Checks, if we have a mate situation
 		 */
-		GameResult isMate(MoveGenerator& board) {
+		GameResult isMate(MoveGenerator& position) {
 			GameResult result = GameResult::NOT_ENDED;
 			MoveList moveList;
-			board.genMovesOfMovingColor(moveList);
+			position.genMovesOfMovingColor(moveList);
 
 			if (moveList.getTotalMoveAmount() == 0) {
-				if (board.isWhiteToMove()) {
-					if (board.isInCheck()) {
+				if (position.isWhiteToMove()) {
+					if (position.isInCheck()) {
 						result = GameResult::BLACK_WINS_BY_MATE;
 					}
 					else {
@@ -387,7 +384,7 @@ namespace ChessSearch {
 					}
 				}
 				else {
-					if (board.isInCheck()) {
+					if (position.isInCheck()) {
 						result = GameResult::WHITE_WINS_BY_MATE;
 					}
 					else {
@@ -399,11 +396,11 @@ namespace ChessSearch {
 			return result;
 		}
 
-		bool boardModified;
-		MoveGenerator board;
+		bool positionModified;
+		MoveGenerator position;
 		MoveHistory moveHistory;
 		uint32_t playedMovesInGame;
-		ComputingInfo computingInfo;
+		ComputingInfo _computingInfo;
 		ClockSetting curClock;
 		IterativeDeepening iterativeDeepening;
 		// WhatIf whatIf;

@@ -54,21 +54,18 @@ namespace ChessInterface {
 			_clock.storeCalculationStartTime();
 			stopCompute(false);
 			_computeThread = thread([this]() {
-				bool isAnalyze = _clock.getAnalyseMode();
+				bool waitForStop = _clock.isAnalyseMode();
 				_board->computeMove(_clock);
 				ComputingInfoExchange computingInfo = _board->getComputingInfo();
-				if (isAnalyze) {
+				if (waitForStop || _clock.isPonderMode()) {
 					waitForStopRequest();
 				}
-				println("bestmove " + computingInfo.currentConsideredMove);
+				print("bestmove " + computingInfo.currentConsideredMove);
+				if (computingInfo.ponderMove != "") {
+					print(" ponder " + computingInfo.ponderMove);
+				}
+				println("");
 			});
-		}
-
-		/**
-		 * Starts search a move in ponder mode
-		 */
-		void ponder() {
-			_clock.setPonderMode();
 		}
 
 		/**
@@ -99,7 +96,6 @@ namespace ChessInterface {
 			println("id name " + _board->getEngineInfo()["name"]);
 			println("id author " + _board->getEngineInfo()["author"]);
 			println("option name Hash type spin default 32 min 1 max 1024");
-			println("option name Ponder type check");
 			_board->initialize();
 			println("uciok");
 		}
@@ -149,13 +145,12 @@ namespace ChessInterface {
 			stopCompute();
 			_clock.reset();
 			string token = "";
-			bool ponder = false;
 			while (token != "\n" && token != "\r") {
 				token = getNextTokenBlocking(true);
 				if (token == "\n" || token == "\r") break;
-				if (token == "infinite") _clock.setAnalyseMode(true);
+				if (token == "infinite") _clock.setAnalyseMode();
 				else if (token == "ponder") {
-					ponder = true;
+					_clock.setPonderMode();
 					break;
 				}
 				else {
@@ -172,11 +167,12 @@ namespace ChessInterface {
 					else if (token == "movetime") _clock.setExactTimePerMoveInMilliseconds(param);
 				}
 			};
-			if (ponder) {
-			}
-			else {
-				computeMove();
-			}
+			computeMove();
+		}
+
+		void ponderHit() {
+			_board->ponderHit();
+			_clock.setSearchMode();
 		}
 
 		/**
@@ -195,6 +191,7 @@ namespace ChessInterface {
 			const string token = getCurrentToken();
 			if (token == "uci") uciCommand();
 			else if (token == "go") go();
+			else if (token == "ponderhit") ponderHit();
 			else if (token == "isready") println("readyok");
 			else if (token == "ucinewgame") newGame();
 			else if (token == "position") setPosition();

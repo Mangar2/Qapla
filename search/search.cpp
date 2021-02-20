@@ -34,13 +34,13 @@ value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Mov
 
 	if (stack[ply - 1].remainingDepth == 0) {
 		searchInfo.previousMove = previousPlyMove;
-		return QuiescenceSearch::search(position, *_computingInfo,
+		return QuiescenceSearch::search(position, _computingInfo,
 			previousPlyMove, -stack[ply - 1].beta, -stack[ply - 1].alpha, ply);
 	}
 
-	_computingInfo->_nodesSearched++;
+	_computingInfo._nodesSearched++;
 	searchInfo.setFromPreviousPly(position, stack[ply - 1], previousPlyMove);
-	WhatIf::whatIf.moveSelected(position, *_computingInfo, stack, previousPlyMove, ply);
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, previousPlyMove, ply);
 
 	if (!hasCutoff<SearchType::LAST_PLY>(position, stack, searchInfo, ply)) {
 
@@ -51,7 +51,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Mov
 
 			searchResult = -negaMaxLastPlys(position, stack, curMove, ply + 1);
 			searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
-			WhatIf::whatIf.moveSearched(position, *_computingInfo, stack, curMove, ply);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, ply);
 			if (searchInfo.isFailHigh()) break;
 
 		}
@@ -72,9 +72,9 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, Move previo
 	Move curMove;
 
 	searchInfo.setFromPreviousPly(position, stack[ply - 1], previousPlyMove);
-	_computingInfo->_nodesSearched++;
+	_computingInfo._nodesSearched++;
 
-	WhatIf::whatIf.moveSelected(position, *_computingInfo, stack, previousPlyMove, ply);
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, previousPlyMove, ply);
 	cutoff = hasCutoff<SearchType::NORMAL>(position, stack, searchInfo, ply);
 
 	if (!cutoff) {
@@ -95,22 +95,19 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, Move previo
 			}
 
 			searchInfo.setSearchResult(searchResult, stack[ply + 1], curMove);
-			WhatIf::whatIf.moveSearched(position, *_computingInfo, stack, curMove, ply);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, ply);
 			if (searchInfo.isFailHigh()) break;
 		}
 	}
 
-	// if (stack[ply - 1].isPVSearch() && position.isWhiteToMove() == (searchInfo.bestValue <= 0)) { printf("info string ");  stack.printMoves(searchInfo.bestMove, ply); searchInfo.print(); }
-
 	searchInfo.terminatePly(position);
-	_computingInfo->setHashFullInPermill(searchInfo.getHashFullInPermill());
-	_computingInfo->printSearchInfo(_clockManager->isTimeToSendNextInfo());
+	_computingInfo.setHashFullInPermill(searchInfo.getHashFullInPermill());
+	_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	return searchInfo.bestValue;
 
 }
 
-value_t Search::searchRoot(MoveGenerator& position, SearchStack& stack, ComputingInfo& computingInfo, ClockManager& clockManager) {
-	_computingInfo = &computingInfo;
+ComputingInfo Search::searchRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager) {
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
 
@@ -120,8 +117,9 @@ value_t Search::searchRoot(MoveGenerator& position, SearchStack& stack, Computin
 
 	searchInfo.computeMoves(position);
 
-	_computingInfo->nextIteration(stack[0].moveProvider.getTotalMoveAmount());
-	WhatIf::whatIf.moveSelected(position, *_computingInfo, stack, Move::EMPTY_MOVE, 0);
+	_computingInfo.nextIteration(searchInfo);
+
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
 
 	for (size_t triedMoves = 0;;) {
 		bool research = searchInfo.updateSearchType(uint32_t(triedMoves));
@@ -130,7 +128,8 @@ value_t Search::searchRoot(MoveGenerator& position, SearchStack& stack, Computin
 			rootMove = &_rootMoves.getMove(triedMoves);
 			triedMoves++;
 		}
-		const Move curMove = _computingInfo->_currentConcideredMove = rootMove->getMove();
+		const Move curMove = rootMove->getMove();
+		_computingInfo.setCurrentMove(curMove);
 
 		if (searchInfo.remainingDepth > 2) {
 			searchResult = -negaMax(position, stack, curMove, 1);
@@ -146,16 +145,16 @@ value_t Search::searchRoot(MoveGenerator& position, SearchStack& stack, Computin
 		rootMove->set(searchResult, stack);
 		searchInfo.setSearchResult(searchResult, stack[1], curMove);
 
-		WhatIf::whatIf.moveSearched(position, *_computingInfo, stack, curMove, 0);
-		updateThinkingInfoPly0(stack); 
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, 0);
+		_computingInfo.rootMoveSearched(stack); 
 		if (searchInfo.isFailHigh()) break;
 	}
 
 	searchInfo.terminatePly(position);
-	_computingInfo->setHashFullInPermill(searchInfo.getHashFullInPermill());
-	_computingInfo->printSearchInfo(_clockManager->isTimeToSendNextInfo());
+	_computingInfo.setHashFullInPermill(searchInfo.getHashFullInPermill());
+	_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	_rootMoves.bubbleSort(0);
-	return searchInfo.bestValue;
+	return _computingInfo;
 
 }
 

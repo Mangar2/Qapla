@@ -43,6 +43,7 @@ namespace ChessInterface {
 			movesLeftToConcider = 0;
 			totalAmountOfMovesToConcider = 0;
 			currentConsideredMove = "";
+			ponderMove = "";
 		};
 
 		uint64_t elapsedTimeInMilliseconds;
@@ -51,6 +52,7 @@ namespace ChessInterface {
 		uint32_t movesLeftToConcider;
 		uint32_t totalAmountOfMovesToConcider;
 		string currentConsideredMove;
+		string ponderMove;
 	};
 }
 

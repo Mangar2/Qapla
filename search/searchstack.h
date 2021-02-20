@@ -66,7 +66,7 @@ namespace ChessSearch {
 		/**
 		 * Sets the PV moves store
 		 */
-		void setPV(PV& pv) {
+		void setPV(const PV& pv) {
 			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
 				_stack[ply].setPVMove(pv.getMove(ply));
 				if (pv.getMove(ply) == Move::EMPTY_MOVE) {

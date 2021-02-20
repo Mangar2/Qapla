@@ -16,7 +16,7 @@ WhatIf::WhatIf() : maxPly(0), searchDepth(0), count(0) {
 }
 
 void WhatIf::init(const Board& board, const ComputingInfo& computingInfo, value_t alpha, value_t beta) {
-	if (computingInfo._searchDepth == searchDepth) {
+	if (computingInfo.getSearchDepht() == searchDepth) {
 		printf("New search [w:%6ld,%6ld]\n", beta, alpha);
 	}
 	hashFoundPly = -1;
@@ -52,7 +52,7 @@ void WhatIf::moveSelected(const Board& board, const ComputingInfo& computingInfo
 	if (ply <= hashFoundPly) {
 		hashFoundPly = -1;
 	}
-	if (computingInfo._searchDepth == searchDepth && board.computeBoardHash() == hash && ply <= amountOfMovesToSearch + 1) {
+	if (computingInfo.getSearchDepht() == searchDepth && board.computeBoardHash() == hash && ply <= amountOfMovesToSearch + 1) {
 		hashFoundPly = ply;
 		qsearch = inQsearch;
 	}

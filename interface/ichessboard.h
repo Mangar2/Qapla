@@ -132,6 +132,11 @@ namespace ChessInterface {
 		virtual void computeMove(const ClockSetting& clockSetting, bool verbose = true) = 0;
 
 		/**
+		 * Signals a ponder hit
+		 */
+		virtual void ponderHit() {}
+
+		/**
 		 * Print an information string for the current search status
 		 */
 		virtual void requestPrintSearchInfo() = 0;
@@ -142,11 +147,11 @@ namespace ChessInterface {
 		virtual void moveNow() = 0;
 		
 		/**
-		 * Prepare search, usually sets the stop search flag to false
+		 * Initializes the next search by the current clock setting
 	     * Is called from the managing thread and not from the search thread
 		 * to prevent races
 		 */
-		virtual void prepareSearch() = 0;
+		virtual void initClockForNextSearch(const ClockSetting& clockSetting) = 0;
 
 		/**
 		 * Returns the current game status

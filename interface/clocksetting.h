@@ -44,7 +44,7 @@ namespace ChessInterface {
 			_nodeCount = 0;
 			_userClock = 0;
 			_mate = 0;
-			_mode = Mode::COMPUTE;
+			_mode = Mode::search;
 			_moveAmountForClock = 40;
 			_timeToThinkForAllMovesInMilliseconds = 60 * 1000;
 			_timeIncrementPerMoveInMilliseconds = 0;
@@ -71,7 +71,9 @@ namespace ChessInterface {
 		/**
 		 * Gets the search depth limit
 		 */
-		uint32_t getSearchDepthLimit() const { return _searchDepth; }
+		uint32_t getSearchDepthLimit() const { 
+			return _searchDepth; 
+		}
 
 		/**
 		 * Sets the time to think for all moves for the computer
@@ -182,28 +184,35 @@ namespace ChessInterface {
 		 * Gets the amount of moves to be played in the current clock time
 		 */
 		uint32_t getMoveAmountForClock() const { return _moveAmountForClock; }
+
+		/**
+		 * Sets search mode 
+		 */
+		void setSearchMode() {
+			_mode = Mode::search;
+		}
 		
 		/**
 		 * Sets analyze mode (infinite search)
 		 */
-		void setAnalyseMode(bool analyse) { 
-			_mode = analyse ? Mode::ANALYSE : Mode::COMPUTE; 
+		void setAnalyseMode() { 
+			_mode = Mode::analyze; 
 		}
 		
 		/**
 		 * @returns true, if the engine is analyzing (endless search) 
 		 */
-		bool getAnalyseMode() const { return _mode == Mode::ANALYSE; }
+		bool isAnalyseMode() const { return _mode == Mode::analyze; }
 		
 		/**
 		 * Sets the ponder mode to true -> the position will be pondered (endless search)
 		 */
-		void setPonderMode() { _mode = Mode::ANALYSE; }
+		void setPonderMode() { _mode = Mode::ponder; }
 
 		/**
 		 * @returns true, if the engine is currently pondering (calculating while not at move)
 		 */
-		bool isPonderMode() const { return _mode == Mode::PONDER; }
+		bool isPonderMode() const { return _mode == Mode::ponder; }
 
 		/**
 		 * Sets the amount of moves already played in the game
@@ -238,7 +247,7 @@ namespace ChessInterface {
 		uint64_t _calculationStartTime;
 		uint64_t _timeBetweenInfoInMilliseconds;
 		enum Mode {
-			COMPUTE, ANALYSE, PONDER
+			search, analyze, ponder
 		};
 		Mode _mode;
 

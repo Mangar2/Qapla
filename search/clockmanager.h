@@ -31,7 +31,8 @@ namespace ChessSearch {
 	
 	class ClockManager {
 	public:
-		ClockManager() {}
+		ClockManager() {
+		}
 
 		uint64_t getTimeSpentInMilliseconds() const {
 			return getSystemTimeInMilliseconds() - _startTime;
@@ -74,7 +75,8 @@ namespace ChessSearch {
 			if (_averageTimePerMove > _maxTimePerMove) {
 				_maxTimePerMove = _averageTimePerMove;
 			}
-			_analyzeMode = clockSetting.getAnalyseMode();
+			_mode = clockSetting.isAnalyseMode() ? Mode::analyze : 
+				clockSetting.isPonderMode() ? Mode::ponder : Mode::search;
 		}
 
 		/**
@@ -83,20 +85,21 @@ namespace ChessSearch {
 		bool mustAbortCalculation(uint32_t ply) {
 			uint64_t timeSpent = getTimeSpentInMilliseconds();
 			bool abort = false;
-			if (_searchStopped) {
+			if (_mode == Mode::stopped) {
 				abort = true;
 			}
-			else if (_analyzeMode) {
+			else if (_mode != Mode::search) {
 				abort = false;
 			}
-			else if (ply == 0) {
-				abort = timeSpent > _maxTimePerMove || timeSpent > _averageTimePerMove * 4;
+			else if (timeSpent > _maxTimePerMove) {
+				abort = true;
+				stopSearch();
 			}
-			else {
-				abort = timeSpent > _maxTimePerMove;
+			else if (ply == 0 && timeSpent > _averageTimePerMove * 4) {
+				abort = true;
+				stopSearch();
 			}
 			// Ensure that the information to stop the search is stable
-			_searchStopped = abort;
 			return abort;
 		}
 
@@ -106,10 +109,10 @@ namespace ChessSearch {
 		 */
 		bool mayCalculateNextDepth() const {
 			bool result;
-			if (_searchStopped) {
+			if (_mode == Mode::stopped) {
 				result = false;
 			}
-			else if (_analyzeMode) {
+			else if (_mode != Mode::search) {
 				result = true;
 			}
 			else {
@@ -135,22 +138,36 @@ namespace ChessSearch {
 		/**
 		 * Call to stop the search immediately
 		 */
-		void stopSearch(bool stop) { 
-			_searchStopped = stop; 
+		void stopSearch() { 
+			_mode = Mode::stopped; 
+		}
+
+		/**
+		 * Checks, if search has been stopped
+		 */
+		bool isSearchStopped() {
+			return _mode == Mode::stopped;
+		}
+
+		/**
+		 * Sets the mode to normal search
+		 */
+		void setSearchMode() {
+			_mode = Mode::search;
 		}
 
 		/**
 		 * Check, if search must be stopped on mate found
 		 */
 		bool stopSearchOnMateFound() const {
-			return !_analyzeMode;
+			return _mode == Mode::search;
 		}
 
 		/**
 		 * @returns true, if search is in analyze (never stopping) mode
 		 */
 		bool isAnalyzeMode() const { 
-			return _analyzeMode; 
+			return _mode == Mode::analyze; 
 		}
 
 	private:
@@ -171,8 +188,11 @@ namespace ChessSearch {
 		uint64_t _nextInfoTime;
 		uint64_t _timeBetweenInfoInMilliseconds;
 
-		bool _analyzeMode;
-		bool _searchStopped;
+		enum class Mode {
+			search, analyze, ponder, stopped
+		};
+
+		Mode _mode;
 	};
 }
 
