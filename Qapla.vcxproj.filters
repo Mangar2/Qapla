@@ -353,6 +353,9 @@
     <ClInclude Include="basics\boardstate.h">
       <Filter>basics</Filter>
     </ClInclude>
+    <ClInclude Include="eval\pawntt.h">
+      <Filter>eval</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

@@ -56,6 +56,11 @@ namespace ChessInterface {
 		bool handleMove(string move = "");
 
 		/**
+		 * Starts pondering
+		 */
+		void ponder(string move);
+
+		/**
 		 * Prints a game result information
 		 */
 		void printGameResult(GameResult result);
@@ -70,7 +75,7 @@ namespace ChessInterface {
 		 * Sets xBoard mode 
 		 */
 		void handleXBoard() {
-			xBoardMode = true;
+			_xBoardMode = true;
 		}
 
 		/**
@@ -161,12 +166,14 @@ namespace ChessInterface {
 		 */
 		void handleInput();
 
-		bool editModeIsWhiteColor;
+		bool _editModeIsWhiteColor;
 		volatile Mode _mode;
-		uint8_t protoVer;
-		bool xBoardMode;
-		bool computerIsWhite;
-		bool forceMode;
+		uint8_t _protoVer;
+		bool _xBoardMode;
+		bool _computerIsWhite;
+		bool _forceMode;
+		bool _easy;
+		string ponderMove;
 		ISendSearchInfo* _sendSearchInfo;
 	};
 

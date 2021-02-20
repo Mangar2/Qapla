@@ -52,18 +52,19 @@ void Winboard::printGameResult(GameResult result) {
 
 Winboard::Winboard() {
 	_mode = Mode::WAIT;
-	forceMode = false;
-	computerIsWhite = false;
-	protoVer = 1;
-	xBoardMode = false;
-	editModeIsWhiteColor = true;
+	_forceMode = false;
+	_computerIsWhite = false;
+	_protoVer = 1;
+	_xBoardMode = false;
+	_editModeIsWhiteColor = true;
+	_easy = true;
 };
 
 void Winboard::handleProtover() {
 	if (getNextTokenNonBlocking() != "") {
-		protoVer = uint8_t(getCurrentTokenAsUnsignedInt());
+		_protoVer = uint8_t(getCurrentTokenAsUnsignedInt());
 		
-		if (protoVer > 1) {
+		if (_protoVer > 1) {
 			println("feature done=0");
 			println("feature colors=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
 			println("feature myname=\"" + _board->getEngineInfo()["name"] + " by " + _board->getEngineInfo()["author"] + "\"");
@@ -73,7 +74,7 @@ void Winboard::handleProtover() {
 }
 
 void Winboard::handleRemove() {
-	if (computerIsWhite != _board->isWhiteToMove()) {
+	if (_computerIsWhite != _board->isWhiteToMove()) {
 		_board->undoMove();
 		_board->undoMove();
 	}
@@ -106,12 +107,23 @@ void Winboard::analyzeMove() {
 	}
 }
 
+void Winboard::ponder(string move) {
+	if (_easy) return;
+	if (!setMove(move)) return;
+	_clock.storeCalculationStartTime();
+	_clock.setPonderMode();
+	setInfiniteSearch(true);
+	_board->setClock(_clock);
+	_board->computeMove();
+	waitOnInfiniteSearch();
+}
+
 /**
  * Starts computing a move - sets analyze mode to false
  */
 void Winboard::computeMove() {
-	forceMode = false;
-	computerIsWhite = _board->isWhiteToMove();
+	_forceMode = false;
+	_computerIsWhite = _board->isWhiteToMove();
 
 	GameResult result = _board->getGameResult();
 	if (result != GameResult::NOT_ENDED) {
@@ -128,8 +140,10 @@ void Winboard::computeMove() {
 			_mode = Mode::WAIT;
 			ComputingInfoExchange computingInfo = _board->getComputingInfo();
 			println("move " + computingInfo.currentConsideredMove);
+			ponderMove = computingInfo.ponderMove;
 			handleMove(computingInfo.currentConsideredMove);
 			_clock.storeTimeSpent();
+			// ponder(ponderMove);
 		});
 	}
 }
@@ -278,7 +292,7 @@ bool Winboard::checkMoveCommand() {
 			stopCompute();
 			analyzeMove();
 		}
-		else if (!forceMode) {
+		else if (!_forceMode) {
 			computeMove();
 		}
 	}
@@ -286,7 +300,7 @@ bool Winboard::checkMoveCommand() {
 }
 
 void Winboard::undoMove() {
-	forceMode = true;
+	_forceMode = true;
 	if (_mode == Mode::ANALYZE) {
 		stopCompute();
 		analyzeMove();
@@ -347,7 +361,7 @@ void Winboard::handleInputWhileInAnalyzeMode() {
 	else if (token == "undo") _board->undoMove();
 	else if (token == "new") setPositionByFen();
 	else if (token == "setboard") setBoard();
-	else if (token == "exit" || token == "force") { _mode = Mode::WAIT; forceMode = true; }
+	else if (token == "exit" || token == "force") { _mode = Mode::WAIT; _forceMode = true; }
 	else {
 		println("Error (command not supported in analyze mode): " + token);
 	}
@@ -356,13 +370,13 @@ void Winboard::handleInputWhileInAnalyzeMode() {
 void Winboard::handleInputWhiteInEditMode() {
 	const string token = getCurrentToken();
 	if (token == "#") _board->clearBoard();
-	else if (token == "c") editModeIsWhiteColor = !editModeIsWhiteColor;
+	else if (token == "c") _editModeIsWhiteColor = !_editModeIsWhiteColor;
 	else if (token == ".") _mode = Mode::WAIT;
 	else {
 		char piece = getCurrentToken()[0];
 		uint32_t col = getCurrentToken()[1] - 'a';
 		uint32_t row = getCurrentToken()[2] - '1';
-		if (!editModeIsWhiteColor) {
+		if (!_editModeIsWhiteColor) {
 			piece += 'a' - 'A';
 		}
 		_board->setPiece(col, row, piece);
@@ -372,14 +386,14 @@ void Winboard::handleInputWhiteInEditMode() {
 void Winboard::handleInput() {
 	const string token = getCurrentToken();
 	if (token == "analyze") analyzeMove();
-	else if (token == "force") forceMode = true;
+	else if (token == "force") _forceMode = true;
 	else if (token == "go") computeMove();
 	else if (token == "new") setPositionByFen();
 	else if (token == "setboard") setBoard();
 	else if (token == "whatif") handleWhatIf();
-	else if (token == "easy") {}
+	else if (token == "easy") _easy = true;
 	else if (token == "eval") _board->printEvalInfo();
-	else if (token == "hard") {}
+	else if (token == "hard") _easy = false;
 	else if (token == "post") {}
 	else if (token == "random") {}
 	else if (token == "accepted")  getNextTokenNonBlocking();
@@ -390,7 +404,7 @@ void Winboard::handleInput() {
 	else if (token == "white") _board->setWhiteToMove(true);
 	else if (token == "black") _board->setWhiteToMove(false);
 	else if (token == "ping") handlePing();
-	else if (token == "edit") { _mode = Mode::EDIT; editModeIsWhiteColor = true; }
+	else if (token == "edit") { _mode = Mode::EDIT; _editModeIsWhiteColor = true; }
 	else if (token == "undo") undoMove();
 	else if (token == "remove") handleRemove();
 	else if (token == "wmtest") WMTest();

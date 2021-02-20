@@ -1529,6 +1529,7 @@
     <ClInclude Include="eval\bishop.h" />
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />
+    <ClInclude Include="eval\pawntt.h" />
     <ClInclude Include="eval\queen.h" />
     <ClInclude Include="eval\evalpawn.h" />
     <ClInclude Include="eval\evalresults.h" />
