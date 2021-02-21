@@ -366,13 +366,10 @@ namespace ChessSearch {
 			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
 				if (!bestMove.isEmpty()) {
 					moveProvider.setKillerMove(bestMove);
-					setTTEntry(board.computeBoardHash());
 				}
-				/*
 				if (!isPVFailLow()) {
 					setTTEntry(board.computeBoardHash());
 				}
-				*/
 			}
 			undoMove(board);
 		}
