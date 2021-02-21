@@ -124,7 +124,7 @@ value_t EvalEndgame::materialAndPawnStructure(MoveGenerator& position) {
 	Pawn evalPawn;
 	EvalResults mobility;
 	value_t result = position.getMaterialValue().endgame();
-	result += evalPawn.eval(position, mobility);
+	result += evalPawn.eval<false>(position, mobility);
 	return result;
 }
 

@@ -49,7 +49,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 	if (PRINT) printf("Marerial            : %ld\n", material);
 
 	// Add paw value to the evaluation
-	result += Pawn::eval(board, evalResults);
+	result += Pawn::eval<PRINT>(board, evalResults);
 	endGameResult = EvalEndgame::eval(board, result);
 
 	if (endGameResult != result) {
@@ -108,7 +108,6 @@ void Eval::printEval(MoveGenerator& board) {
 	board.print();
 
 	value_t evalValue = lazyEval<true>(board, evalResults);
-	Pawn::print(board, evalResults);
 
 	const value_t endGameResult = EvalEndgame::print(board, evalValue);
 
