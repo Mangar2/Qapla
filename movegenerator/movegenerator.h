@@ -241,7 +241,7 @@ namespace ChessMoveGenerator {
 		array<bitBoard_t, 2> pinnedMask;
 
 		// Squares attacked by pawns
-		array<bitBoard_t, 2> pawnAttackMask;
+		array<bitBoard_t, 2> pawnAttack;
 
 		array<bitBoard_t, BOARD_SIZE> pieceAttackMask;
 		

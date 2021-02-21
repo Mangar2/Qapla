@@ -57,7 +57,7 @@ namespace ChessEval {
 			}
 
 			bitBoard_t occupied = position.getAllPiecesBB();
-			bitBoard_t removeMask = ~results.pawnAttack[OPPONENT] & ~position.getPiecesOfOneColorBB<COLOR>();
+			bitBoard_t removeMask = ~position.pawnAttack[OPPONENT] & ~position.getPiecesOfOneColorBB<COLOR>();
 
 			EvalValue value = 0;
 			while (queens)

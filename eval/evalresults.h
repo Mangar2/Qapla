@@ -64,8 +64,6 @@ namespace ChessEval {
 		bitBoard_t knightAttack[2];
 		// Squares attacked by two knights
 		bitBoard_t doubleKnightAttack[2];
-		// Squares attacked by pawns
-		bitBoard_t pawnAttack[2];
 		// Squares attacked by any piece
 		bitBoard_t piecesAttack[2];
 		// Squares attacked by two pieces (any) ...

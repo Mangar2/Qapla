@@ -45,9 +45,6 @@
     <ClCompile Include="search\perft.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="eval\evalpawn.cpp">
-      <Filter>eval</Filter>
-    </ClCompile>
     <ClCompile Include="eval\evalendgame.cpp">
       <Filter>eval</Filter>
     </ClCompile>
@@ -120,6 +117,9 @@
     <ClCompile Include="search\quiescencesearch.cpp">
       <Filter>search</Filter>
     </ClCompile>
+    <ClCompile Include="eval\pawn.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\movelist.h">
@@ -189,9 +189,6 @@
       <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="eval\evalendgame.h">
-      <Filter>eval</Filter>
-    </ClInclude>
-    <ClInclude Include="eval\evalpawn.h">
       <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="interface\winboardprintsearchinfo.h">
@@ -354,6 +351,9 @@
       <Filter>basics</Filter>
     </ClInclude>
     <ClInclude Include="eval\pawntt.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\pawn.h">
       <Filter>eval</Filter>
     </ClInclude>
   </ItemGroup>

@@ -51,7 +51,7 @@ namespace ChessEval {
 			results.knightAttack[COLOR] = 0;
 			results.doubleKnightAttack[COLOR] = 0;
 			bitBoard_t knights = position.getPieceBB(KNIGHT + COLOR);
-			bitBoard_t removeBB = ~position.getPiecesOfOneColorBB<COLOR>() & ~results.pawnAttack[OPPONENT];
+			bitBoard_t removeBB = ~position.getPiecesOfOneColorBB<COLOR>() & ~position.pawnAttack[OPPONENT];
 
 			while (knights)
 			{
@@ -59,7 +59,7 @@ namespace ChessEval {
 				const Square knightSquare = BitBoardMasks::lsb(knights);
 				knights &= knights - 1;
 				value += calcMobility<COLOR, PRINT>(results, knightSquare, removeBB);
-				value += calcPropertyValue<COLOR, PRINT>(position, results, knightSquare);
+				value += calcPropertyValue<COLOR, PRINT>(position, knightSquare);
 				if (PRINT) cout << endl;
 			}
 
@@ -92,11 +92,11 @@ namespace ChessEval {
 		 * and not attackable by a pawn
 		 */
 		template<Piece COLOR, bool PRINT>
-		static inline bool isOutpost(Square square, bitBoard_t opponentPawnsBB, const EvalResults& results) {
+		static inline bool isOutpost(Square square, bitBoard_t opponentPawnsBB, const MoveGenerator& position) {
 			bool result = false;
 			bitBoard_t knightBB = 1ULL << square;
 			bool isProtectedByPawnAndInOpponentArea =
-				(knightBB & OUTPOST_BB[COLOR] & results.pawnAttack[COLOR]) != 0;
+				(knightBB & OUTPOST_BB[COLOR] & position.pawnAttack[COLOR]) != 0;
 			if (isProtectedByPawnAndInOpponentArea) {
 				bitBoard_t shift = COLOR == WHITE ? (square + NW) : (square + SOUTH + SW);
 				bitBoard_t opponentPawnCheckBB = 0x505ULL << shift;
@@ -120,13 +120,12 @@ namespace ChessEval {
 		 * Calculates properties and their Values for Knights
 		 */
 		template<Piece COLOR, bool PRINT>
-		static inline EvalValue calcPropertyValue(const MoveGenerator& position, EvalResults& results,
-			Square knightSquare)
+		static inline EvalValue calcPropertyValue(const MoveGenerator& position, Square knightSquare)
 		{
 			uint16_t knightIndex = 0;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			const bitBoard_t opponentPawnBB = position.getPieceBB(PAWN + OPPONENT);
-			knightIndex += isOutpost<COLOR, PRINT>(knightSquare, opponentPawnBB, results) * OUTPOST;
+			knightIndex += isOutpost<COLOR, PRINT>(knightSquare, opponentPawnBB, position) * OUTPOST;
 			knightIndex += isPinned<PRINT>(position.pinnedMask[COLOR], knightSquare) * PINNED;
 			return getFromIndexMap(knightIndex);
 		}

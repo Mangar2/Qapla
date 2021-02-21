@@ -1488,7 +1488,7 @@
     <ClCompile Include="bitbase\bitbasereader.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
-    <ClCompile Include="eval\evalpawn.cpp" />
+    <ClCompile Include="eval\pawn.cpp" />
     <ClCompile Include="eval\kingAttack.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
@@ -1531,7 +1531,7 @@
     <ClInclude Include="eval\evalendgame.h" />
     <ClInclude Include="eval\pawntt.h" />
     <ClInclude Include="eval\queen.h" />
-    <ClInclude Include="eval\evalpawn.h" />
+    <ClInclude Include="eval\pawn.h" />
     <ClInclude Include="eval\evalresults.h" />
     <ClInclude Include="eval\kingattack.h" />
     <ClInclude Include="eval\kingpawnattack.h" />

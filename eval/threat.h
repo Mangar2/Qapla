@@ -53,7 +53,7 @@ namespace ChessEval {
 			const bitBoard_t minorOrRookAttack = minorAttack | result.rookAttack[COLOR];
 			
 			const bitBoard_t threats =
-				position.pawnAttackMask[COLOR] & opponentPieces
+				position.pawnAttack[COLOR] & opponentPieces
 				| nonProtectedPieces & position.attackMask[COLOR]
 				| position.getPieceBB(OPPONENT + ROOK) & minorAttack
 				| position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack

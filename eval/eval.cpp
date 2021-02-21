@@ -19,7 +19,7 @@
 
 #include "eval.h"
 #include "evalendgame.h"
-#include "evalpawn.h"
+#include "pawn.h"
 #include "queen.h"
 #include "rook.h"
 #include "bishop.h"
@@ -49,7 +49,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 	if (PRINT) printf("Marerial            : %ld\n", material);
 
 	// Add paw value to the evaluation
-	result += EvalPawn::eval(board, evalResults);
+	result += Pawn::eval(board, evalResults);
 	endGameResult = EvalEndgame::eval(board, result);
 
 	if (endGameResult != result) {
@@ -108,7 +108,7 @@ void Eval::printEval(MoveGenerator& board) {
 	board.print();
 
 	value_t evalValue = lazyEval<true>(board, evalResults);
-	EvalPawn::print(board, evalResults);
+	Pawn::print(board, evalResults);
 
 	const value_t endGameResult = EvalEndgame::print(board, evalValue);
 

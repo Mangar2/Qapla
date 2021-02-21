@@ -27,7 +27,7 @@
 #include <vector>
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
-#include "evalpawn.h"
+#include "pawn.h"
 
 using namespace std;
 

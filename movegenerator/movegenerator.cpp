@@ -125,9 +125,9 @@ bitBoard_t MoveGenerator::computeAttackMask()
 	const Piece OPPONENT_COLOR = COLOR == WHITE ? BLACK : WHITE;
 
 	bitBoard_t allPiecesButNoKing = bitBoardAllPieces & ~bitBoardsPiece[KING + OPPONENT_COLOR];
-	pawnAttackMask[COLOR] = BitBoardMasks::computePawnAttackMask<COLOR>(bitBoardsPiece[PAWN + COLOR]);
+	pawnAttack[COLOR] = BitBoardMasks::computePawnAttackMask<COLOR>(bitBoardsPiece[PAWN + COLOR]);
 
-	bitBoard_t result = pawnAttackMask[COLOR];
+	bitBoard_t result = pawnAttack[COLOR];
 	result |= computeAttackMaskForPieces<KNIGHT>(bitBoardsPiece[KNIGHT + COLOR], allPiecesButNoKing);
 	result |= computeAttackMaskForPieces<BISHOP>(bitBoardsPiece[BISHOP + COLOR], allPiecesButNoKing);
 	result |= computeAttackMaskForPieces<ROOK>(bitBoardsPiece[ROOK + COLOR], allPiecesButNoKing);
@@ -197,7 +197,7 @@ void MoveGenerator::clear()
 	Board::clear();
 	initCastlingMasksForMoveGeneration();
 	attackMask.fill(0);
-	pawnAttackMask.fill(0);
+	pawnAttack.fill(0);
 	pieceAttackMask.fill(0);
 	bitBoardsPiece.fill(0);
 }

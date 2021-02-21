@@ -33,7 +33,7 @@
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "evalendgame.h"
-#include "evalpawn.h"
+#include "pawn.h"
 
 using namespace std;
 
@@ -65,74 +65,74 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Calculates an evaluation for the current board position
+		 * Calculates an evaluation for the current position position
 		 */
-		static value_t eval(MoveGenerator& board, EvalResults& evalResults) {
-			computeAttacks<WHITE>(evalResults);
-			computeAttacks<BLACK>(evalResults);
-			value_t result = computeAttackValue<WHITE>(board, evalResults) -
-				computeAttackValue<BLACK>(board, evalResults);
+		static value_t eval(MoveGenerator& position, EvalResults& results) {
+			computeAttacks<WHITE>(position, results);
+			computeAttacks<BLACK>(position, results);
+			value_t result = computeAttackValue<WHITE>(position, results) -
+				computeAttackValue<BLACK>(position, results);
 			return result;
 		}
 
 		/**
 		 * Prints the evaluation results
 		 */
-		static void print(MoveGenerator& board, EvalResults& evalResults) {
-			eval(board, evalResults);
+		static void print(MoveGenerator& position, EvalResults& results) {
+			eval(position, results);
 			printf("King attack\n");
 			printf("White pawn shield      : %ld%%\n", 
 				KingAttackValues::pawnIndexFactor[
-					computePawnShieldIndex<WHITE>(board.getKingSquare<WHITE>(), board.getPieceBB(WHITE_PAWN))]);
+					computePawnShieldIndex<WHITE>(position.getKingSquare<WHITE>(), position.getPieceBB(WHITE_PAWN))]);
 			printf("Black pawn shield      : %ld%%\n",
 				KingAttackValues::pawnIndexFactor[
-					computePawnShieldIndex<BLACK>(board.getKingSquare<BLACK>(), board.getPieceBB(BLACK_PAWN))]);
-			printf("White (pressure %1ld)  : %ld\n", evalResults.kingPressureCount[WHITE], evalResults.kingAttackValue[WHITE]);
-			printf("Black (pressure %1ld)  : %ld\n", evalResults.kingPressureCount[BLACK], -evalResults.kingAttackValue[BLACK]);
+					computePawnShieldIndex<BLACK>(position.getKingSquare<BLACK>(), position.getPieceBB(BLACK_PAWN))]);
+			printf("White (pressure %1ld)  : %ld\n", results.kingPressureCount[WHITE], results.kingAttackValue[WHITE]);
+			printf("Black (pressure %1ld)  : %ld\n", results.kingPressureCount[BLACK], -results.kingAttackValue[BLACK]);
 		}
 
 		/**
 		 * Gets a list of detailed evaluation information
 		 */
 		template <Piece COLOR>
-		static map<string, value_t> factors(MoveGenerator& board, EvalResults& evalResults) {
+		static map<string, value_t> factors(MoveGenerator& position, EvalResults& results) {
 			map<string, value_t> result;
-			eval(board, evalResults);
+			eval(position, results);
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			Square kingSquare = board.getKingSquare<OPPONENT>();
+			Square kingSquare = position.getKingSquare<OPPONENT>();
 			bitBoard_t attackArea = _kingAttackBB[OPPONENT][kingSquare];
 
-			if (evalResults.midgameInPercent > 50 && evalResults.kingPressureCount[COLOR] < 3) {
+			if (results.midgameInPercent > 50 && results.kingPressureCount[COLOR] < 3) {
 				result["King pawn defended attack"] =
-					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
-						evalResults.pawnAttack[OPPONENT] & attackArea);
+					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
+						position.pawnAttack[OPPONENT] & attackArea);
 				result["King defended attack"] =
-					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] & 
-						evalResults.piecesAttack[OPPONENT] & attackArea);
+					BitBoardMasks::popCount(results.piecesAttack[COLOR] & 
+						results.piecesAttack[OPPONENT] & attackArea);
 				result["King non pawn defended attack"] =
-					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
-						evalResults.piecesAttack[OPPONENT] & ~evalResults.pawnAttack[OPPONENT] & attackArea);
+					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
+						results.piecesAttack[OPPONENT] & ~position.pawnAttack[OPPONENT] & attackArea);
 				result["King single attack without pawn defended fields"] =
-					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
-						~evalResults.pawnAttack[OPPONENT] & attackArea);
+					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
+						~position.pawnAttack[OPPONENT] & attackArea);
 				result["King double attack defended twice"] =
-					BitBoardMasks::popCount(evalResults.piecesDoubleAttack[COLOR] & 
-						evalResults.piecesDoubleAttack[OPPONENT] & attackArea);
+					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & 
+						results.piecesDoubleAttack[OPPONENT] & attackArea);
 				result["King double attack defended once"] =
-					BitBoardMasks::popCount(evalResults.piecesDoubleAttack[COLOR] & 
-						evalResults.piecesAttack[OPPONENT] & attackArea);
+					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & 
+						results.piecesAttack[OPPONENT] & attackArea);
 				result["King double attack defended by pawns"] =
-					BitBoardMasks::popCount(evalResults.piecesDoubleAttack[COLOR] &
-						evalResults.pawnAttack[OPPONENT] & attackArea);
+					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] &
+						position.pawnAttack[OPPONENT] & attackArea);
 				result["King single no pawn defence + king protected double + 2 * king unprotected double"] =
-					BitBoardMasks::popCount(evalResults.piecesAttack[COLOR] &
-						~evalResults.pawnAttack[OPPONENT] & attackArea) +
-					BitBoardMasks::popCount(evalResults.piecesDoubleAttack[COLOR] & attackArea &
-						evalResults.piecesAttack[OPPONENT]) +
-					BitBoardMasks::popCount(evalResults.piecesDoubleAttack[COLOR] & attackArea & 
-						~evalResults.piecesAttack[OPPONENT]) * 2;
+					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
+						~position.pawnAttack[OPPONENT] & attackArea) +
+					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & attackArea &
+						results.piecesAttack[OPPONENT]) +
+					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & attackArea & 
+						~results.piecesAttack[OPPONENT]) * 2;
 
-				result["King pressure"] = evalResults.kingPressureCount[OPPONENT];
+				result["King pressure"] = results.kingPressureCount[OPPONENT];
 			}
 			return result;
 		}
@@ -165,51 +165,51 @@ namespace ChessEval {
 		 * King itself is not counted as defending piece
 		 */
 		template <Piece COLOR>
-		inline static value_t computeAttackValue(MoveGenerator& board, EvalResults& evalResults) {
-			Square kingSquare = board.getKingSquare<COLOR>();
-			bitBoard_t myPawnBB = board.getPieceBB(PAWN + COLOR);
+		inline static value_t computeAttackValue(MoveGenerator& position, EvalResults& results) {
+			Square kingSquare = position.getKingSquare<COLOR>();
+			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t attackArea = _kingAttackBB[COLOR][kingSquare];
 
-			bitBoard_t kingAttacks = attackArea & evalResults.piecesAttack[OPPONENT];
-			bitBoard_t kingAttacksNotDefendedByPawns = kingAttacks & ~evalResults.pawnAttack[COLOR];
+			bitBoard_t kingAttacks = attackArea & results.piecesAttack[OPPONENT];
+			bitBoard_t kingAttacksNotDefendedByPawns = kingAttacks & ~position.pawnAttack[COLOR];
 
-			bitBoard_t kingDoubleAttacks = attackArea & evalResults.piecesDoubleAttack[OPPONENT];
-			bitBoard_t kingDoubleAttacksDefended = kingDoubleAttacks & evalResults.piecesAttack[COLOR];
-			bitBoard_t kingDoubleAttacksUndefended = kingDoubleAttacks & ~evalResults.piecesAttack[COLOR];
+			bitBoard_t kingDoubleAttacks = attackArea & results.piecesDoubleAttack[OPPONENT];
+			bitBoard_t kingDoubleAttacksDefended = kingDoubleAttacks & results.piecesAttack[COLOR];
+			bitBoard_t kingDoubleAttacksUndefended = kingDoubleAttacks & ~results.piecesAttack[COLOR];
 
-			evalResults.kingPressureCount[COLOR] =
+			results.kingPressureCount[COLOR] =
 				BitBoardMasks::popCount(kingAttacksNotDefendedByPawns) +
 				BitBoardMasks::popCount(kingDoubleAttacksDefended) +
 				BitBoardMasks::popCount(kingDoubleAttacksUndefended) * 2;
 
-			if (evalResults.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
-				evalResults.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
+			if (results.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
+				results.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
 			}
 			value_t attackValue =
-				(KingAttackValues::attackWeight[evalResults.kingPressureCount[COLOR]] * evalResults.midgameInPercent) / 100;
-			evalResults.kingAttackValue[COLOR] = attackValue;
-			return evalResults.kingAttackValue[COLOR];
+				(KingAttackValues::attackWeight[results.kingPressureCount[COLOR]] * results.midgameInPercent) / 100;
+			results.kingAttackValue[COLOR] = attackValue;
+			return results.kingAttackValue[COLOR];
 		}
 
 		/**
 		 * Computes attack bitboards for all pieces of one color - single and double attacks
 		 */
 		template <Piece COLOR>
-		inline static void computeAttacks(EvalResults& evalResults) {
+		inline static void computeAttacks(MoveGenerator& position, EvalResults& results) {
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			bitBoard_t doubleAttack = evalResults.doubleRookAttack[COLOR] | evalResults.doubleKnightAttack[COLOR];
-			bitBoard_t attack = evalResults.queenAttack[COLOR];
-			doubleAttack |= attack & evalResults.rookAttack[COLOR];
-			attack |= evalResults.rookAttack[COLOR];
-			doubleAttack |= attack & evalResults.bishopAttack[COLOR];
-			attack |= evalResults.bishopAttack[COLOR];
-			doubleAttack |= attack & evalResults.knightAttack[COLOR];
-			attack |= evalResults.knightAttack[COLOR];
-			doubleAttack |= attack & evalResults.pawnAttack[COLOR];
-			attack |= evalResults.pawnAttack[COLOR];
-			evalResults.piecesAttack[COLOR] = attack;
-			evalResults.piecesDoubleAttack[COLOR] = doubleAttack;
+			bitBoard_t doubleAttack = results.doubleRookAttack[COLOR] | results.doubleKnightAttack[COLOR];
+			bitBoard_t attack = results.queenAttack[COLOR];
+			doubleAttack |= attack & results.rookAttack[COLOR];
+			attack |= results.rookAttack[COLOR];
+			doubleAttack |= attack & results.bishopAttack[COLOR];
+			attack |= results.bishopAttack[COLOR];
+			doubleAttack |= attack & results.knightAttack[COLOR];
+			attack |= results.knightAttack[COLOR];
+			doubleAttack |= attack & position.pawnAttack[COLOR];
+			attack |= position.pawnAttack[COLOR];
+			results.piecesAttack[COLOR] = attack;
+			results.piecesDoubleAttack[COLOR] = doubleAttack;
 		}
 
 

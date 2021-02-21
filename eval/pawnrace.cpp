@@ -77,7 +77,7 @@ void PawnRace::computeFastestCandidate(const Board& board) {
 template<Piece COLOR>
 inline void PawnRace::computeLegalPositions(const MoveGenerator& board) {
 	bitBoard_t opponentKingAttack = board.pieceAttackMask[board.getKingSquare<switchColor(COLOR)>()];
-	legalPositions[COLOR] = ~board.getPieceBB(PAWN + COLOR) & ~board.pawnAttackMask[switchColor(COLOR)] & ~opponentKingAttack;
+	legalPositions[COLOR] = ~board.getPieceBB(PAWN + COLOR) & ~board.pawnAttack[switchColor(COLOR)] & ~opponentKingAttack;
 }
 
 template<Piece COLOR>

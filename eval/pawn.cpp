@@ -17,23 +17,23 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  */
 
-#include "evalpawn.h"
+#include "pawn.h"
 
 using namespace ChessEval;
 
-value_t EvalPawn::isolatedPawnAmountLookup[EvalPawn::LOOKUP_TABLE_SIZE];
-bitBoard_t EvalPawn::kingInfluenceTable[COLOR_AMOUNT][COLOR_AMOUNT][BOARD_SIZE];
-bitBoard_t EvalPawn::kingSupportPawnTable[COLOR_AMOUNT][BOARD_SIZE];
+value_t Pawn::isolatedPawnAmountLookup[Pawn::LOOKUP_TABLE_SIZE];
+bitBoard_t Pawn::kingInfluenceTable[COLOR_AMOUNT][COLOR_AMOUNT][BOARD_SIZE];
+bitBoard_t Pawn::kingSupportPawnTable[COLOR_AMOUNT][BOARD_SIZE];
 
-EvalPawn::InitStatics EvalPawn::_staticConstructor;
+Pawn::InitStatics Pawn::_staticConstructor;
 
-EvalPawn::InitStatics::InitStatics() {
+Pawn::InitStatics::InitStatics() {
 	computeKingInfluenceTable();
 	computeIsolatedPawnLookupTable();
 	computeKingSupportTable();
 }
 
-bool EvalPawn::kingReachesPawn(Square kingPos, Square pawnPos, bool atMove) {
+bool Pawn::kingReachesPawn(Square kingPos, Square pawnPos, bool atMove) {
 	Rank kingRankAfterFirstHalfmove = getRank(kingPos);
 	int32_t distanceToPromote = int32_t(Rank::R8 - uint32_t(getRank(pawnPos)));
 	int32_t colKingPawnDistance = abs(int32_t(getFile(kingPos)) - int32_t(getFile(pawnPos)));
@@ -45,7 +45,7 @@ bool EvalPawn::kingReachesPawn(Square kingPos, Square pawnPos, bool atMove) {
 	return result;
 }
 
-bool EvalPawn::kingSupportsPassedPawn(Square kingPos, Square pawnPos, bool atMove) {
+bool Pawn::kingSupportsPassedPawn(Square kingPos, Square pawnPos, bool atMove) {
 	bool result = false;
 	if (getRank(kingPos) >= Rank::R7) {
 		bool kingOnAdjacentFileOfPawn = getFile(kingPos) == getFile(pawnPos) + 1 || getFile(kingPos) == getFile(pawnPos) - 1;
@@ -57,7 +57,7 @@ bool EvalPawn::kingSupportsPassedPawn(Square kingPos, Square pawnPos, bool atMov
 	return result;
 }
 
-bitBoard_t EvalPawn::computeKingInfluence(Square kingPos, bool atMove, testFunction_t testFunction) {
+bitBoard_t Pawn::computeKingInfluence(Square kingPos, bool atMove, testFunction_t testFunction) {
 	bitBoard_t kingInfluence = 1ULL << kingPos;
 	for (Square pawnPos = A3; pawnPos <= H8; ++pawnPos) {
 		if (testFunction(kingPos, pawnPos, atMove)) {
@@ -70,7 +70,7 @@ bitBoard_t EvalPawn::computeKingInfluence(Square kingPos, bool atMove, testFunct
 	return kingInfluence;
 }
 
-void EvalPawn::computeKingInfluenceTable() {
+void Pawn::computeKingInfluenceTable() {
 	for (Square kingPos = A1; kingPos <= H8; ++kingPos) {
 		kingInfluenceTable[BLACK][WHITE][kingPos] = computeKingInfluence(kingPos, false, kingReachesPawn);
 		kingInfluenceTable[BLACK][BLACK][kingPos] = computeKingInfluence(kingPos, true, kingReachesPawn);
@@ -81,7 +81,7 @@ void EvalPawn::computeKingInfluenceTable() {
 	}
 }
 
-void EvalPawn::computeKingSupportTable() {
+void Pawn::computeKingSupportTable() {
 	for (Square kingPos = A1; kingPos <= H8; ++kingPos) {
 		kingSupportPawnTable[WHITE][kingPos] = computeKingInfluence(kingPos, false, kingSupportsPassedPawn);
 	}
@@ -90,7 +90,7 @@ void EvalPawn::computeKingSupportTable() {
 	}
 }
 
-void EvalPawn::computeIsolatedPawnLookupTable() {
+void Pawn::computeIsolatedPawnLookupTable() {
 	uint32_t pawnMask;
 	isolatedPawnAmountLookup[0] = 0;
 	for (pawnMask = 1; pawnMask < LOOKUP_TABLE_SIZE; pawnMask++) {
@@ -108,7 +108,7 @@ void EvalPawn::computeIsolatedPawnLookupTable() {
 	}
 }
 
-value_t EvalPawn::print(MoveGenerator& board, EvalResults& evalResults) {
+value_t Pawn::print(MoveGenerator& board, EvalResults& evalResults) {
 	value_t value = eval(board, evalResults);
 	printf("Pawns\n");
 	printf("White isolated pawn : %ld\n", computeIsolatedPawnValue<WHITE>(evalResults.pawnMoveRay[WHITE]));

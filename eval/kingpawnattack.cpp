@@ -28,8 +28,8 @@ KingPawnAttack::KingPawnAttack()
 
 template<Piece COLOR>
 inline void KingPawnAttack::initRace(MoveGenerator& board) {
-	legalPositions[COLOR] = ~(board.getPieceBB(PAWN + COLOR) | board.pawnAttackMask[switchColor(COLOR)]);
-	weakPawns[COLOR] = board.getPieceBB(PAWN + COLOR) & ~board.pawnAttackMask[COLOR];
+	legalPositions[COLOR] = ~(board.getPieceBB(PAWN + COLOR) | board.pawnAttack[switchColor(COLOR)]);
+	weakPawns[COLOR] = board.getPieceBB(PAWN + COLOR) & ~board.pawnAttack[COLOR];
 	kingPositions[COLOR] = board.getPieceBB(KING + COLOR);
 	kingAttack[COLOR] = BitBoardMasks::moveInAllDirections(kingPositions[COLOR]);
 	formerPositions[COLOR] = kingPositions[COLOR];

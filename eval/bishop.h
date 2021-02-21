@@ -62,7 +62,7 @@ namespace ChessEval {
 			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + OPPONENT);
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
 			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThroughBB)
-				& ~results.pawnAttack[OPPONENT];
+				& ~position.pawnAttack[OPPONENT];
 			occupiedBB &= ~passThroughBB;
 
 			while (bishops)
