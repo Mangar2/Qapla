@@ -64,6 +64,7 @@ namespace ChessSearch {
 		 * @returns true, if the current search is a PV search
 		 */
 		inline bool isPVSearch() const { return searchState == SearchType::PV; }
+		inline bool isNullWindowSearch() const { return searchState == SearchType::NULL_WINDOW; }
 		inline bool isNormalSearch() const { return searchState == SearchType::NORMAL; }
 
 		/**
@@ -97,8 +98,8 @@ namespace ChessSearch {
 			moveProvider.init();
 			doMove(board, previousPlyMove);
 			cutoff = Cutoff::NONE;
-			keepBestMoveUnchanged = false;
 			lateMoveReduction = 0;
+			ttValueLessThanAlpha = false;
 		}
 
 		/**
@@ -117,8 +118,8 @@ namespace ChessSearch {
 			cutoff = Cutoff::NONE;
 			positionHashSignature = board.computeBoardHash();
 			moveProvider.init();
-			keepBestMoveUnchanged = false;
 			lateMoveReduction = 0;
+			ttValueLessThanAlpha = false;
 		}
 
 		/**
@@ -149,14 +150,16 @@ namespace ChessSearch {
 			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 			if (ttIndex == TT::INVALID_INDEX) return false;
 
-			TTEntry entry = ttPtr->getEntry(ttIndex);
-			Move move = entry.getMove();
+			const TTEntry entry = ttPtr->getEntry(ttIndex);
+			const Move move = entry.getMove();
 			moveProvider.setTTMove(move);
 
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
 				return true;
 			}
+
+			ttValueLessThanAlpha = entry.isTTValueGreaterOrEqual();
 
 			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
 			bool isWinningValue = ttValue <= -WINNING_BONUS || ttValue >= WINNING_BONUS;
@@ -206,6 +209,7 @@ namespace ChessSearch {
 		inline bool futility(MoveGenerator& board) {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
 			if (isPVSearch()) return false;
+			if (ttValueLessThanAlpha) return false;
 
 			eval = Eval::eval(board);
 
@@ -262,7 +266,6 @@ namespace ChessSearch {
 		void setNullWindowSearch() {
 			beta = alpha + 1;
 			searchState = SearchType::NULL_WINDOW;
-			keepBestMoveUnchanged = true;
 		}
 
 		/**
@@ -273,7 +276,6 @@ namespace ChessSearch {
 			bestValue = alpha;
 			beta = betaAtPlyStart;
 			searchState = SearchType::PV;
-			keepBestMoveUnchanged = false;
 		}
 
 		/**
@@ -314,7 +316,7 @@ namespace ChessSearch {
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
 				if (searchResult > alpha) {
-					if (!keepBestMoveUnchanged) {
+					if (!isNullWindowSearch()) {
 						bestMove = currentMove;
 						if (isPVSearch()) {
 							if (remainingDepth > 0) {
@@ -351,13 +353,26 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Indicates that the PV failed low
+		 */
+		bool isPVFailLow() {
+			return isPVSearch() && bestValue <= alphaAtPlyStart;
+		}
+
+		/**
 		 * terminates the search-ply
 		 */
 		void terminatePly(MoveGenerator& board) {
-
-			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isEmpty() && !bestMove.isNullMove()) {
-				moveProvider.setKillerMove(bestMove);
-				setTTEntry(board.computeBoardHash());
+			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
+				if (!bestMove.isEmpty()) {
+					moveProvider.setKillerMove(bestMove);
+					setTTEntry(board.computeBoardHash());
+				}
+				/*
+				if (!isPVFailLow()) {
+					setTTEntry(board.computeBoardHash());
+				}
+				*/
 			}
 			undoMove(board);
 		}
@@ -436,8 +451,7 @@ namespace ChessSearch {
 		hash_t positionHashSignature;
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
-		bool keepBestMoveUnchanged;
-
+		bool ttValueLessThanAlpha;
 
 		Cutoff cutoff;
 		mutex mtxSearchResult;

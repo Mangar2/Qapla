@@ -133,6 +133,13 @@ public:
 	}
 
 	/**
+	 * Gets the hash key for the pawn structure
+	 */
+	inline hash_t getPawnHash() const {
+		return boardState.pawnHash;
+	}
+
+	/**
 	 * Update all based for doMove
 	 * @param departure departure position of the move
 	 * @param destination destination position of the move

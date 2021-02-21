@@ -30,12 +30,13 @@
 
 #include <map>
 #include "../basics/types.h"
+#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "evalendgame.h"
-#include "pawn.h"
 
 using namespace std;
+using namespace ChessMoveGenerator;
 
 namespace ChessEval {
 

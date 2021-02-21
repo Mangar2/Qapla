@@ -22,6 +22,7 @@
 #ifndef __TYPES_H
 #define __TYPES_H
 
+#include <array>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -32,6 +33,7 @@ namespace ChessBasics {
 
 	typedef int32_t square_t;
 	typedef uint64_t bitBoard_t;
+	typedef array<bitBoard_t, 2> colorBB_t;
 
 	/**
 	 * Chess board Squares

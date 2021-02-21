@@ -74,16 +74,21 @@ namespace ChessSearch {
 		 * on the alpha/beta window
 		 */
 		void setValue(value_t positionValue, value_t alpha, value_t beta, ply_t ply) {
+			static uint32_t good = 0;  static uint32_t bad = 0;
 			_info &= ~PRECISION_MASK;
 			if (positionValue <= alpha) {
 				_info |= LESSER_OR_EQUAL << PRECISION_SHIFT;
+				good++;
 			}
 			else if (positionValue >= beta) {
 				_info |= GREATER_OR_EQUAL << PRECISION_SHIFT;
+				bad++;
 			}
 			else {
 				_info |= EXACT << PRECISION_SHIFT;
 			}
+			// if (bad % 100000 == 0) cout << "good: " << good << " bad: " << bad << endl;
+
 			setPositionValue(positionValue, ply);
 		}
 
@@ -96,7 +101,7 @@ namespace ChessSearch {
 		 * @param ply current calculation ply
 		 * @returns true, if the value of the hash causes a Hash cutoff
 		 */
-		value_t getValue(value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply)
+		value_t getValue(value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply) const
 		{
 			value_t positionValue = NO_VALUE;
 
@@ -117,6 +122,20 @@ namespace ChessSearch {
 			}
 
 			return positionValue;
+		}
+
+		/**
+		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
+		 */
+		bool isTTValueLesserOrEqual() const {
+			return getComputedPrecision() == LESSER_OR_EQUAL;
+		}
+
+		/**
+		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
+		 */
+		bool isTTValueGreaterOrEqual() const {
+			return getComputedPrecision() == GREATER_OR_EQUAL;
 		}
 
 		/**
@@ -184,7 +203,7 @@ namespace ChessSearch {
 		 * Gets the position value and adjusts mate values according
 		 * the current calculation ply
 		 */
-		int16_t getPositionValue(int32_t ply)
+		int16_t getPositionValue(int32_t ply) const
 		{
 			int16_t positionValue = _value;
 			if (positionValue > MIN_MATE_VALUE) {

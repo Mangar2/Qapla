@@ -27,9 +27,9 @@
 #include <vector>
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
-#include "pawn.h"
 
 using namespace std;
+using namespace ChessMoveGenerator;
 
 namespace ChessEval {
 

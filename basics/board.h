@@ -134,6 +134,13 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Gets the hash key for the pawn structure
+		 */
+		inline hash_t getPawnHash() const {
+			return _basicBoard.getPawnHash();
+		}
+
+		/**
 		 * Gets the amount of half moves without pawn move or capture to implement
 		 * the 50-moves-draw rule
 		 */

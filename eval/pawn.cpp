@@ -24,6 +24,7 @@ using namespace ChessEval;
 value_t Pawn::isolatedPawnAmountLookup[Pawn::LOOKUP_TABLE_SIZE];
 bitBoard_t Pawn::kingInfluenceTable[COLOR_AMOUNT][COLOR_AMOUNT][BOARD_SIZE];
 bitBoard_t Pawn::kingSupportPawnTable[COLOR_AMOUNT][BOARD_SIZE];
+PawnTT Pawn::_tt;
 
 Pawn::InitStatics Pawn::_staticConstructor;
 
@@ -31,6 +32,7 @@ Pawn::InitStatics::InitStatics() {
 	computeKingInfluenceTable();
 	computeIsolatedPawnLookupTable();
 	computeKingSupportTable();
+	_tt.setSizeInKilobytes(512);
 }
 
 bool Pawn::kingReachesPawn(Square kingPos, Square pawnPos, bool atMove) {

@@ -53,21 +53,23 @@ namespace ChessEval {
 		// White and black pawns
 		bitBoard_t pawnsBB;
 		// Squares attacked by queens also behind a Rook & Bishop of same color
-		bitBoard_t queenAttack[2];
+		colorBB_t queenAttack;
 		// Squares attacked by rooks also behind another Rook or Queen of same color or Queen of opposit color
-		bitBoard_t rookAttack[2];
+		colorBB_t rookAttack;
 		// Squares attacked by two rooks also behind another Rook or Queen of same color or Queen of opposit color
-		bitBoard_t doubleRookAttack[2];
+		colorBB_t doubleRookAttack;
 		// Squares attacked by bishops also behind another Bishop or Queen of same color or Queen, Rook of opposit color
-		bitBoard_t bishopAttack[2];
+		colorBB_t bishopAttack;
 		// Squares attacked by knighs
-		bitBoard_t knightAttack[2];
+		colorBB_t knightAttack;
 		// Squares attacked by two knights
-		bitBoard_t doubleKnightAttack[2];
+		colorBB_t doubleKnightAttack;
 		// Squares attacked by any piece
-		bitBoard_t piecesAttack[2];
+		colorBB_t piecesAttack;
 		// Squares attacked by two pieces (any) ...
-		bitBoard_t piecesDoubleAttack[2];
+		colorBB_t piecesDoubleAttack;
+		// Fields with passed pawns
+		colorBB_t passedPawns;
 		// The midgame factor in percent
 		value_t midgameInPercent;
 		value_t midgameInPercentV2;
@@ -75,8 +77,6 @@ namespace ChessEval {
 		value_t kingPressureCount[2];
 		// Evaluation of the king attack
 		value_t kingAttackValue[2];
-		// Fields with passed pawns
-		bitBoard_t passedPawns[2];
 		// Rooks index
 		uint32_t rookIndex[2];
 		// Usually inactive

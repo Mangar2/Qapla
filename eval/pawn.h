@@ -29,14 +29,13 @@
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "pawnrace.h"
+#include "pawntt.h"
 
 using namespace std;
 using namespace ChessBasics;
 using namespace ChessMoveGenerator;
 
 namespace ChessEval {
-
-	typedef bitBoard_t colorBB_t[2];
 
 	struct EvalPawnValues {
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
@@ -66,16 +65,29 @@ namespace ChessEval {
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
 		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
+
 		/**
 		 * Calculates the evaluation for the pawn values on the position
 		 */
 		template <bool PRINT>
 		static value_t eval(MoveGenerator& position, EvalResults& results) {
+			/*
+			value_t value = probeTT(position, results);
+			if (!PRINT && value != NO_VALUE) {
+				return value;
+			}
+			*/
+	
 			colorBB_t moveRay;
 			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
 			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
 
-			return eval<PRINT, WHITE>(position, results, moveRay) - eval<PRINT, BLACK>(position, results, moveRay);
+			value_t value =
+				eval<PRINT, WHITE>(position, results, moveRay)
+				- eval<PRINT, BLACK>(position, results, moveRay);
+
+			// _tt.setEntry(position.getPawnHash(), value, results.passedPawns);
+			return value;
 		}
 
 		/**
@@ -106,6 +118,21 @@ namespace ChessEval {
 		}
 
 	private:
+
+		/**
+		 * Tries to get the pawn evaluation from a transposition table
+		 */
+		static value_t probeTT(MoveGenerator& position, EvalResults& results) {
+			value_t value = NO_VALUE;
+			hash_t key = position.getPawnHash();
+			uint32_t index = _tt.getTTEntryIndex(key);
+			if (index != _tt.INVALID_INDEX) {
+				const PawnTTEntry& entry = _tt.getEntry(index);
+				results.passedPawns = entry._passedPawns;
+				value = entry._mgValue;
+			}
+			return value;
+		}
 
 		/**
 		 * Evaluates pawns per color
@@ -312,6 +339,8 @@ namespace ChessEval {
 
 			return pawnMoveRay;
 		}
+
+		static PawnTT _tt;
 
 		static struct InitStatics {
 			InitStatics();

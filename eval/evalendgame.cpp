@@ -23,6 +23,7 @@
 #include "../bitbase/bitbase.h"
 #include "../bitbase/bitbaseindex.h"
 #include "../bitbase/bitbasereader.h"
+#include "pawn.h"
 
 
 using namespace ChessEval;

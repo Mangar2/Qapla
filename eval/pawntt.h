@@ -35,13 +35,15 @@ namespace ChessEval {
 		int16_t _mgValue;
 		int16_t _egValue;
 		hash_t _hash;
+		colorBB_t _passedPawns;
 
 		void setEmpty() { _hash = 0; }
 		bool isEmpty() const { return _hash == 0; }
-		void set(hash_t hash, EvalValue value) {
+		void set(hash_t hash, EvalValue value, colorBB_t passedPawns) {
 			_hash = hash;
 			_mgValue = value.midgame();
 			_egValue = value.endgame();
+			_passedPawns = passedPawns;
 		}
 		EvalValue getValue() const {
 			return EvalValue(_mgValue, _egValue);
@@ -89,10 +91,10 @@ namespace ChessEval {
 		/**
 		 * Sets a hash entry 
 		 */
-		uint32_t setEntry(hash_t hashKey, EvalValue value)
+		uint32_t setEntry(hash_t hashKey, EvalValue value, colorBB_t passedPawns)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
-			_tt[index].set(hashKey, value);
+			_tt[index].set(hashKey, value, passedPawns);
 			return index;
 		}
 
