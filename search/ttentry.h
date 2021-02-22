@@ -74,20 +74,16 @@ namespace ChessSearch {
 		 * on the alpha/beta window
 		 */
 		void setValue(value_t positionValue, value_t alpha, value_t beta, ply_t ply) {
-			static uint32_t good = 0;  static uint32_t bad = 0;
 			_info &= ~PRECISION_MASK;
 			if (positionValue <= alpha) {
 				_info |= LESSER_OR_EQUAL << PRECISION_SHIFT;
-				good++;
 			}
 			else if (positionValue >= beta) {
 				_info |= GREATER_OR_EQUAL << PRECISION_SHIFT;
-				bad++;
 			}
 			else {
 				_info |= EXACT << PRECISION_SHIFT;
 			}
-			// if (bad % 100000 == 0) cout << "good: " << good << " bad: " << bad << endl;
 
 			setPositionValue(positionValue, ply);
 		}
@@ -127,15 +123,22 @@ namespace ChessSearch {
 		/**
 		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
 		 */
-		bool isTTValueLesserOrEqual() const {
+		bool isValueLesserOrEqual() const {
 			return getComputedPrecision() == LESSER_OR_EQUAL;
 		}
 
 		/**
 		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
 		 */
-		bool isTTValueGreaterOrEqual() const {
+		bool isValueGreaterOrEqual() const {
 			return getComputedPrecision() == GREATER_OR_EQUAL;
+		}
+
+		/**
+		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
+		 */
+		bool isValueExact() const {
+			return getComputedPrecision() == EXACT;
 		}
 
 		/**

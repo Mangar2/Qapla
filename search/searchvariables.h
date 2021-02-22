@@ -100,6 +100,7 @@ namespace ChessSearch {
 			cutoff = Cutoff::NONE;
 			lateMoveReduction = 0;
 			ttValueLessThanAlpha = false;
+			eval = NO_VALUE;
 		}
 
 		/**
@@ -120,6 +121,7 @@ namespace ChessSearch {
 			moveProvider.init();
 			lateMoveReduction = 0;
 			ttValueLessThanAlpha = false;
+			eval = NO_VALUE;
 		}
 
 		/**
@@ -156,10 +158,14 @@ namespace ChessSearch {
 
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
+				eval = bestValue;
 				return true;
 			}
 
-			ttValueLessThanAlpha = entry.isTTValueGreaterOrEqual();
+			ttValueLessThanAlpha = entry.isValueGreaterOrEqual();
+			if (entry.isValueExact()) {
+				eval = entry.getPositionValue(ply);
+			}
 
 			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
 			bool isWinningValue = ttValue <= -WINNING_BONUS || ttValue >= WINNING_BONUS;
@@ -210,8 +216,9 @@ namespace ChessSearch {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
 			if (isPVSearch()) return false;
 			if (ttValueLessThanAlpha) return false;
-
-			eval = Eval::eval(board);
+			if (eval == NO_VALUE) {
+				eval = Eval::eval(board);
+			}
 
 			if (eval > WINNING_BONUS) return false;
 			bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
