@@ -63,19 +63,19 @@ namespace ChessSearch {
 		/**
 		 * @returns true, if the current search is a PV search
 		 */
-		inline bool isPVSearch() const { return searchState == SearchType::PV; }
-		inline bool isNullWindowSearch() const { return searchState == SearchType::NULL_WINDOW; }
-		inline bool isNormalSearch() const { return searchState == SearchType::NORMAL; }
+		inline bool isPVSearch() const { return searchState == SearchFinding::PV; }
+		inline bool isNullWindowSearch() const { return searchState == SearchFinding::NULL_WINDOW; }
+		inline bool isNormalSearch() const { return searchState == SearchFinding::NORMAL; }
 
 		/**
 		 * Selectes the first search state (IID, PV, NORMAL)
 		 */
 		void selectFirstSearchState() {
 			if (beta > alpha + 1) {
-				searchState = SearchType::PV;
+				searchState = SearchFinding::PV;
 			}
 			else {
-				searchState = SearchType::NORMAL;
+				searchState = SearchFinding::NORMAL;
 			}
 		}
 
@@ -114,7 +114,7 @@ namespace ChessSearch {
 			betaAtPlyStart = beta;
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
-			searchState = SearchType::PV;
+			searchState = SearchFinding::PV;
 			noNullmove = true;
 			cutoff = Cutoff::NONE;
 			positionHashSignature = board.computeBoardHash();
@@ -197,7 +197,7 @@ namespace ChessSearch {
 		}
 
 		inline bool isFailHigh() { 
-			return bestValue >= betaAtPlyStart && searchState != SearchType::NULL_WINDOW; 
+			return bestValue >= betaAtPlyStart && searchState != SearchFinding::NULL_WINDOW; 
 		}
 
 
@@ -251,7 +251,7 @@ namespace ChessSearch {
 		 * Set the search variables to a nullmove search
 		 */
 		void setNullmove() {
-			searchState = SearchType::NULLMOVE;
+			searchState = SearchFinding::NULLMOVE;
 			remainingDepth -= SearchParameter::getNullmoveReduction(ply, remainingDepth);
 			alpha = beta - 1;
 		}
@@ -260,7 +260,7 @@ namespace ChessSearch {
 		 * Set the search variables to a nullmove search
 		 */
 		void unsetNullmove() {
-			searchState = SearchType::NORMAL;
+			searchState = SearchFinding::NORMAL;
 			remainingDepth = remainingDepthAtPlyStart;
 			alpha = alphaAtPlyStart;
 			// Nullmoves are never done in check
@@ -272,7 +272,7 @@ namespace ChessSearch {
 		 */
 		void setNullWindowSearch() {
 			beta = alpha + 1;
-			searchState = SearchType::NULL_WINDOW;
+			searchState = SearchFinding::NULL_WINDOW;
 		}
 
 		/**
@@ -282,14 +282,14 @@ namespace ChessSearch {
 			// Needed to ensure that the research will be > bestValue and set the PV
 			bestValue = alpha;
 			beta = betaAtPlyStart;
-			searchState = SearchType::PV;
+			searchState = SearchFinding::PV;
 		}
 
 		/**
 		 * Selects the next move to try
 		 */
 		inline bool updateSearchType(uint32_t moveNo) {
-			if (searchState == SearchType::NULL_WINDOW && currentValue >= beta) {
+			if (searchState == SearchFinding::NULL_WINDOW && currentValue >= beta) {
 				setResearchWithPVWindow();
 				return true;
 			}
@@ -429,12 +429,12 @@ namespace ChessSearch {
 			return ttPtr->isTTValueBelowBeta(positionHashSignature, beta, ply);
 		}
 
-		enum class SearchType {
+		enum class SearchFinding {
 			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID,
 			AMOUNT
 		};
 
-		const array<string, int(SearchType::AMOUNT)> searchStateNames
+		const array<string, int(SearchFinding::AMOUNT)> searchStateNames
 		{ "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID" };
 
 		value_t alpha;
@@ -463,7 +463,7 @@ namespace ChessSearch {
 		PV pvMovesStore;
 
 	private:
-		SearchType searchState;
+		SearchFinding searchState;
 		TT* ttPtr;
 	};
 

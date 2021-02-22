@@ -27,6 +27,10 @@
 
 namespace ChessInterface {
 
+	enum class ClockMode {
+		search, analyze, ponder, stopped
+	};
+
 	class ClockSetting {
 
 	public:
@@ -44,7 +48,7 @@ namespace ChessInterface {
 			_nodeCount = 0;
 			_userClock = 0;
 			_mate = 0;
-			_mode = Mode::search;
+			_mode = ClockMode::search;
 			_moveAmountForClock = 40;
 			_timeToThinkForAllMovesInMilliseconds = 60 * 1000;
 			_timeIncrementPerMoveInMilliseconds = 0;
@@ -189,30 +193,35 @@ namespace ChessInterface {
 		 * Sets search mode 
 		 */
 		void setSearchMode() {
-			_mode = Mode::search;
+			_mode = ClockMode::search;
 		}
 		
 		/**
 		 * Sets analyze mode (infinite search)
 		 */
 		void setAnalyseMode() { 
-			_mode = Mode::analyze; 
+			_mode = ClockMode::analyze; 
 		}
 		
 		/**
 		 * @returns true, if the engine is analyzing (endless search) 
 		 */
-		bool isAnalyseMode() const { return _mode == Mode::analyze; }
+		bool isAnalyseMode() const { return _mode == ClockMode::analyze; }
 		
 		/**
 		 * Sets the ponder mode to true -> the position will be pondered (endless search)
 		 */
-		void setPonderMode() { _mode = Mode::ponder; }
+		void setPonderMode() { _mode = ClockMode::ponder; }
 
 		/**
 		 * @returns true, if the engine is currently pondering (calculating while not at move)
 		 */
-		bool isPonderMode() const { return _mode == Mode::ponder; }
+		bool isPonderMode() const { return _mode == ClockMode::ponder; }
+
+		/**
+		 * @returns the clock mode (search, ponder, analyze, stopped)
+		 */
+		ClockMode getMode() const { return _mode;  }
 
 		/**
 		 * Sets the amount of moves already played in the game
@@ -246,10 +255,8 @@ namespace ChessInterface {
 		uint64_t _exactTimePerMoveInMilliseconds;
 		uint64_t _calculationStartTime;
 		uint64_t _timeBetweenInfoInMilliseconds;
-		enum Mode {
-			search, analyze, ponder
-		};
-		Mode _mode;
+
+		ClockMode _mode;
 
 	};
 

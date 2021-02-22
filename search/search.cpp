@@ -42,7 +42,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Mov
 	searchInfo.setFromPreviousPly(position, stack[ply - 1], previousPlyMove);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, previousPlyMove, ply);
 
-	if (!hasCutoff<SearchType::LAST_PLY>(position, stack, searchInfo, ply)) {
+	if (!hasCutoff<SearchFinding::LAST_PLY>(position, stack, searchInfo, ply)) {
 
 		searchInfo.computeMoves(position);
 		searchInfo.extendSearch(position);
@@ -75,7 +75,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, Move previo
 	_computingInfo._nodesSearched++;
 
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, previousPlyMove, ply);
-	cutoff = hasCutoff<SearchType::NORMAL>(position, stack, searchInfo, ply);
+	cutoff = hasCutoff<SearchFinding::NORMAL>(position, stack, searchInfo, ply);
 
 	if (!cutoff) {
 		searchInfo.computeMoves(position);
