@@ -38,7 +38,10 @@ namespace ChessSearch {
 		ClockManager() {
 		}
 
-		uint64_t getTimeSpentInMilliseconds() const {
+		/**
+		 * Computes the time spent so far
+		 */
+		uint64_t computeTimeSpentInMilliseconds() const {
 			return getSystemTimeInMilliseconds() - _startTime;
 		}
 
@@ -67,8 +70,8 @@ namespace ChessSearch {
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool mustAbortCalculation(uint32_t ply) {
-			uint64_t timeSpent = getTimeSpentInMilliseconds();
+		bool mustAbortSearch(uint32_t ply) {
+			uint64_t timeSpent = computeTimeSpentInMilliseconds();
 			bool abort = false;
 			if (_mode == ClockMode::stopped) {
 				abort = true;
@@ -80,9 +83,12 @@ namespace ChessSearch {
 				abort = true;
 				stopSearch();
 			}
-			else if (ply == 0 && timeSpent > _averageTimePerMove * 4) {
-				abort = true;
-				stopSearch();
+			else if (ply == 0) {
+				uint64_t time = min(_maxTimePerMove, (_averageTimePerMove / 10) * 8);
+				if (timeSpent > time) {
+					abort = true;
+					stopSearch();
+				}
 			}
 			// Ensure that the information to stop the search is stable
 			return abort;
@@ -92,7 +98,7 @@ namespace ChessSearch {
 		 * Checks if there is suitable to start the calculation of the next depth
 		 * @returns true, if calculation of next depth is ok
 		 */
-		bool mayCalculateNextDepth() const {
+		bool mayComputeNextDepth() const {
 			bool result;
 			if (_mode == ClockMode::stopped) {
 				result = false;
@@ -101,8 +107,8 @@ namespace ChessSearch {
 				result = true;
 			}
 			else {
-				uint64_t timeSpent = getSystemTimeInMilliseconds() - _startTime;
-				result = timeSpent < _averageTimePerMove / 3;
+				uint64_t time = min(_maxTimePerMove, (_averageTimePerMove / 10) * 7);
+				result = computeTimeSpentInMilliseconds() < time;
 			}
 			return result;
 		}
@@ -130,7 +136,7 @@ namespace ChessSearch {
 		/**
 		 * Checks, if search has been stopped
 		 */
-		bool isSearchStopped() {
+		bool isSearchStopped() const {
 			return _mode == ClockMode::stopped;
 		}
 
@@ -191,6 +197,7 @@ namespace ChessSearch {
 		}
 
 	private:
+
 
 		/**
 		 * Gets a predicted amount of moves to play until next time control

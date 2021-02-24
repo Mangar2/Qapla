@@ -100,7 +100,7 @@ namespace ChessSearch {
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
 				computingInfo = searchOneIteration(searchBoard, curDepth);
 				_clockManager.setSearchResult(curDepth, computingInfo.getPositionValueInCentiPawn());
-				if (!_clockManager.mayCalculateNextDepth()) {
+				if (!_clockManager.mayComputeNextDepth()) {
 					break;
 				}
 				if (hasMateFound(computingInfo) && _clockManager.stopSearchOnMateFound()) {
@@ -191,7 +191,7 @@ namespace ChessSearch {
 				computingInfo.printSearchResult();
 				_clockManager.setIterationResult(_window.alpha, _window.beta,
 					computingInfo.getPositionValueInCentiPawn());
-			} while (!_clockManager.mustAbortCalculation(0) && _window.retryWithNewWindow(computingInfo));
+			} while (!_clockManager.mustAbortSearch(0) && _window.retryWithNewWindow(computingInfo));
 			
 			return computingInfo;
 		}

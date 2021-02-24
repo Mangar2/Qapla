@@ -90,7 +90,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, Move previo
 				searchResult = -negaMaxLastPlys(position, stack, curMove, ply + 1);
 			}
 
-			if (stack[0].remainingDepth > 1 && _clockManager->mustAbortCalculation(ply)) {
+			if (stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(ply)) {
 				break;
 			}
 
@@ -137,7 +137,7 @@ ComputingInfo Search::searchRoot(MoveGenerator& position, SearchStack& stack, Cl
 			searchResult = -negaMaxLastPlys(position, stack, curMove, 1);
 		}
 
-		if (searchInfo.remainingDepth > 1 && _clockManager->mustAbortCalculation(0)) {
+		if (searchInfo.remainingDepth > 1 && _clockManager->mustAbortSearch(0)) {
 			break;
 		}
 

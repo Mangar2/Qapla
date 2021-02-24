@@ -293,7 +293,7 @@ namespace ChessBitbase {
 		 * Prints the time spent so far
 		 */
 		void printTimeSpent(ClockManager& clock) {
-			uint64_t timeInMilliseconds = clock.getTimeSpentInMilliseconds();
+			uint64_t timeInMilliseconds = clock.computeTimeSpentInMilliseconds();
 			printf("Time spend: %lld:%lld:%lld.%lld\n",
 				timeInMilliseconds / (60 * 60 * 1000),
 				(timeInMilliseconds / (60 * 1000)) % 60,
