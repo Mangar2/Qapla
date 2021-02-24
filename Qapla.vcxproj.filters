@@ -356,6 +356,9 @@
     <ClInclude Include="eval\pawn.h">
       <Filter>eval</Filter>
     </ClInclude>
+    <ClInclude Include="search\searchstate.h">
+      <Filter>search</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

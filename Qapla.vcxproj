@@ -1564,6 +1564,7 @@
     <ClInclude Include="search\aspirationwindow.h" />
     <ClInclude Include="search\boardadapter.h" />
     <ClInclude Include="search\clockmanager.h" />
+    <ClInclude Include="search\searchstate.h" />
     <ClInclude Include="search\computinginfo.h" />
     <ClInclude Include="search\extension.h" />
     <ClInclude Include="search\iterativedeepening.h" />

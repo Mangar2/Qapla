@@ -32,6 +32,7 @@
 #include "../interface/isendsearchinfo.h"
 #include "tt.h"
 #include "aspirationwindow.h"
+#include "searchstate.h"
 
 namespace ChessSearch {
 
@@ -74,12 +75,12 @@ namespace ChessSearch {
 
 			MoveGenerator searchBoard = position;
 			ComputingInfo computingInfo;
-			_aspirationWindow.initSearch();
+			_window.initSearch();
 			_search.startNewSearch(searchBoard);
+			_clockManager.setNewMove();
 
-			uint32_t curDepth;
-			uint32_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
-			uint32_t depthLimit = _clockSetting.getSearchDepthLimit();
+			ply_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
+			const ply_t depthLimit = _clockSetting.getSearchDepthLimit();
 			if (depthLimit > 0 && depthLimit < maxDepth) {
 				maxDepth = depthLimit;
 			}
@@ -96,8 +97,9 @@ namespace ChessSearch {
 			moveHistory.setDrawPositionsToHash(position, _tt);
 
 			static const uint8_t DEPTH_BUFFER = 0;
-			for (curDepth = 0; curDepth < maxDepth; curDepth++) {
+			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
 				computingInfo = searchOneIteration(searchBoard, curDepth);
+				_clockManager.setSearchResult(curDepth, computingInfo.getPositionValueInCentiPawn());
 				if (!_clockManager.mayCalculateNextDepth()) {
 					break;
 				}
@@ -180,14 +182,16 @@ namespace ChessSearch {
 			SearchStack stack(&_tt);
 			ComputingInfo computingInfo;
 			do {
-				stack.initSearch(position, _aspirationWindow.alpha, _aspirationWindow.beta, searchDepth);
+				stack.initSearch(position, _window.alpha, _window.beta, searchDepth);
 				if (searchDepth != 0) {
 					stack.setPV(computingInfo.getPV());
 				}
 
 				computingInfo = _search.searchRoot(position, stack, _clockManager);
 				computingInfo.printSearchResult();
-			} while (!_clockManager.mustAbortCalculation(0) && _aspirationWindow.retryWithNewWindow(computingInfo));
+				_clockManager.setIterationResult(_window.alpha, _window.beta,
+					computingInfo.getPositionValueInCentiPawn());
+			} while (!_clockManager.mustAbortCalculation(0) && _window.retryWithNewWindow(computingInfo));
 			
 			return computingInfo;
 		}
@@ -196,8 +200,7 @@ namespace ChessSearch {
 		ClockManager _clockManager;
 		TT _tt;
 		Search _search;
-		AspirationWindow _aspirationWindow;
-
+		AspirationWindow _window;
 	};
 
 }

@@ -143,6 +143,7 @@ ComputingInfo Search::searchRoot(MoveGenerator& position, SearchStack& stack, Cl
 
 		rootMove->set(searchResult, stack);
 		searchInfo.setSearchResult(searchResult, stack[1], curMove);
+		_clockManager->setSearchedRootMove(searchInfo.isPVFailLow(), searchInfo.bestValue);
 
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, 0);
 		_computingInfo.rootMoveSearched(stack); 

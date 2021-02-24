@@ -80,6 +80,13 @@ namespace ChessInterface {
 		}
 
 		/**
+		 * Gets the amount of nodes to be calculated
+		 */
+		uint64_t getNodeCount() const {
+			return _nodeCount;
+		}
+
+		/**
 		 * Sets the time to think for all moves for the computer
 		 */
 		void setComputerClockInMilliseconds(uint64_t clockInMilliseconds) {

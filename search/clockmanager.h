@@ -27,15 +27,12 @@
 #include <sys/timeb.h>
 #include "../basics/types.h"
 #include "../interface/clocksetting.h"
+#include "searchstate.h"
 
 using namespace std;
 
 namespace ChessSearch {
 
-	enum class SearchFinding {
-		forced, normal, silent, critical, suddenDeath, book
-	};
-	
 	class ClockManager {
 	public:
 		ClockManager() {
@@ -60,29 +57,10 @@ namespace ChessSearch {
 		void startCalculatingMove(int32_t movesToGo, const ClockSetting& clockSetting)
 		{
 			setStartTime();
+			setNewMove();
 			_clockSetting = clockSetting;
-			_movesToGo = movesToGo;
-			if (movesToGo <= 0) {
-				movesToGo = 60 - clockSetting.getPlayedMovesInGame();
-				if (movesToGo < 20) {
-					movesToGo = 20;
-				}
-			}
-			_averageTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / movesToGo;
-			_averageTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds() / 2;
-			_maxTimePerMove = clockSetting.getTimeToThinkForAllMovesInMilliseconds() / 10;
-			_timeBetweenInfoInMilliseconds = clockSetting.getTimeBetweenInfoInMilliseconds();
-			_nextInfoTime = 0;
-			if (clockSetting.getTimeToThinkForAllMovesInMilliseconds() < 10 * 1000) {
-				// Very short time left -> urgent move
-				_maxTimePerMove /= 2;
-			} 
-		
-			_maxTimePerMove += clockSetting.getTimeIncrementPerMoveInMilliseconds();
-
-			if (_averageTimePerMove > _maxTimePerMove) {
-				_maxTimePerMove = _averageTimePerMove;
-			}
+			_maxTimePerMove = computeMaxTime();
+			_averageTimePerMove = computeAverageTime();
 			_mode = clockSetting.getMode();
 		}
 
@@ -177,6 +155,41 @@ namespace ChessSearch {
 			return _mode == ClockMode::analyze; 
 		}
 
+		/**
+		 * Sets the search related finding about the position value change
+		 */
+		void setNewMove() {
+			_searchState.setNewMove();
+			computeAverageTime();
+		}
+
+		/**
+		 * Stores a new search result that is inside the aspiration window
+		 */
+		void setSearchResult(ply_t depth, value_t positionValue)
+		{
+			_searchState.setSearchResult(depth, positionValue);
+			computeAverageTime();
+		}
+
+		/**
+		 * Adjust the state accoring an iteration result that might be in or outside the
+		 * aspiration window
+		 */
+		void setIterationResult(value_t alpha, value_t beta, value_t positionValue)
+		{
+			_searchState.setIterationResult(alpha, beta, positionValue);
+			computeAverageTime();
+		}
+
+		/**
+		 * Adjust the state according having a new move in the root search
+		 */
+		void setSearchedRootMove(bool failLow, value_t positionValue) {
+			_searchState.setSearchedRootMove(failLow, positionValue);
+			computeAverageTime();
+		}
+
 	private:
 
 		/**
@@ -194,51 +207,28 @@ namespace ChessSearch {
 		}
 
 		/**
-		 * Modifies the average time by the situation found by search
+		 * Returns true, if the search is infinite
 		 */
-		uint64_t modifyTimeBySearchFinding(SearchFinding type, uint64_t averageTime) {
-			switch (type)
-			{
-			case SearchFinding::forced:
-				if (averageTime >= 1000) averageTime /= 5;
-				else averageTime = min(averageTime, 333ULL);
-				break;
-			case SearchFinding::silent:
-				averageTime = averageTime / 10 * 9;
-				break;
-			case SearchFinding::normal:
-				averageTime = averageTime / 8 * 10;
-				break;
-			case SearchFinding::critical:
-				averageTime *= 4;
-				break;
-			case SearchFinding::suddenDeath:
-				averageTime *= 15;
-				break;
-			case SearchFinding::book:
-				averageTime /= 5;
-				break;
-			}
-			return averageTime;
+		bool isInfiniteSearch() {
+			return _clockSetting.isAnalyseMode() || 
+				_clockSetting.isPonderMode() ||
+				_clockSetting.getSearchDepthLimit() > 0 || 
+				_clockSetting.getNodeCount() > 0;
 		}
-		
+
 		/**
 		 * Computes the avarage move time
 		 */
-		uint64_t computeAverageTime(SearchFinding type)
+		uint64_t computeAverageTime()
 		{
 			uint64_t averageTime = 0;
 
-			// Zeitlimit pro Zug
-			switch (_clockType)
+			if (isInfiniteSearch())
 			{
-			case ClockType::infinite:
-			case ClockType::nodeCount:
-				return numeric_limits<uint64_t>::max();
-			case ClockType::move:
-				return _clockSetting.getExactTimePerMoveInMilliseconds();
-			case ClockType::total:
-			case ClockType::timeLeft:
+				averageTime = numeric_limits<uint64_t>::max();
+			} else 	if (_clockSetting.getExactTimePerMoveInMilliseconds() > 0) {
+				averageTime = _clockSetting.getExactTimePerMoveInMilliseconds();
+			} else {
 				const uint64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
 				const uint32_t movesToGo = computeMovesToGo();
 				
@@ -253,12 +243,43 @@ namespace ChessSearch {
 					averageTime *= min(2000ULL, max(1000ULL, uint64_t((6810000 + timeLeft) / (6810 + 300))));
 					averageTime /= 1000;
 				}
-				break;
+				averageTime = _searchState.modifyTimeBySearchFinding(averageTime);
+				averageTime += _clockSetting.getTimeIncrementPerMoveInMilliseconds();
 			}
-			averageTime = modifyTimeBySearchFinding(type, averageTime);
-			averageTime += _clockSetting.getTimeIncrementPerMoveInMilliseconds();
 			return averageTime;
 		}
+
+		/**
+		 * Computes the maximum move time
+		 */
+		uint64_t computeMaxTime()
+		{
+			int64_t maxTime = 0;
+
+			if (isInfiniteSearch())
+			{
+				maxTime = numeric_limits<int64_t>::max();
+			}
+			else 	if (_clockSetting.getExactTimePerMoveInMilliseconds() > 0) {
+				maxTime = _clockSetting.getExactTimePerMoveInMilliseconds();
+			}
+			else {
+				const int64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
+				const int64_t timeIncrement = _clockSetting.getTimeIncrementPerMoveInMilliseconds();
+				const int32_t movesToGo = computeMovesToGo();
+				maxTime = timeLeft / 3;
+
+				// Keep at least two seconds
+				maxTime = min(maxTime, timeLeft - 2000);
+				// Not less than the fair share
+				maxTime = max(maxTime, timeLeft / (movesToGo + 1));
+				// Safety, not less than zero
+				maxTime = max(maxTime, 0LL);
+			}
+
+			return maxTime;
+		}
+
 
 		/**
 		 * 
@@ -276,18 +297,12 @@ namespace ChessSearch {
 		uint64_t _averageTimePerMove;
 		uint64_t _maxTimePerMove;
 		uint64_t _nextInfoTime;
-		uint32_t _movesToGo;
 		uint64_t _timeBetweenInfoInMilliseconds;
 
-		enum class ClockType {
-			move, total, timeLeft, nodeCount, infinite
-		};
-
-		ClockType _clockType;
-		MoveType _moveType;
 		ClockMode _mode;
 		
 		ClockSetting _clockSetting;
+		SearchState _searchState;
 
 		static const uint32_t KEEP_TIME_FOR_MOVES = 35;
 		static const uint32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
