@@ -116,11 +116,12 @@ namespace ChessSearch {
 		 * Checks, if it is time to send the next information to the gui
 		 */
 		bool isTimeToSendNextInfo() {
-			bool sendInfo = _timeBetweenInfoInMilliseconds > 0 && 
+			uint64_t timeBetweenInfoInMilliseconds = _clockSetting.getTimeBetweenInfoInMilliseconds();
+			bool sendInfo = timeBetweenInfoInMilliseconds > 0 && 
 				getSystemTimeInMilliseconds() > _nextInfoTime;
 
 			if (sendInfo) {
-				_nextInfoTime = getSystemTimeInMilliseconds() + _timeBetweenInfoInMilliseconds;
+				_nextInfoTime = getSystemTimeInMilliseconds() + timeBetweenInfoInMilliseconds;
 			}
 			return sendInfo;
 		}
@@ -303,7 +304,6 @@ namespace ChessSearch {
 		uint64_t _averageTimePerMove;
 		uint64_t _maxTimePerMove;
 		uint64_t _nextInfoTime;
-		uint64_t _timeBetweenInfoInMilliseconds;
 
 		ClockMode _mode;
 		
