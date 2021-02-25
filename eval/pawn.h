@@ -141,6 +141,7 @@ namespace ChessEval {
 		inline static value_t eval(MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
 			value_t value = 0;
 			bitBoard_t pawnBB = position.getPieceBB(PAWN + COLOR);
+			results.passedPawns[COLOR] = 0;
 			if (pawnBB != 0) {
 				value += computeIsolatedPawnValue<COLOR>(moveRay[COLOR]);
 				value += computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]);
