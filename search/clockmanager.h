@@ -84,8 +84,7 @@ namespace ChessSearch {
 				stopSearch();
 			}
 			else if (ply == 0) {
-				uint64_t time = min(_maxTimePerMove, (_averageTimePerMove / 10) * 8);
-				if (timeSpent > time) {
+				if (timeSpent > (_averageTimePerMove / 10) * 8) {
 					abort = true;
 					stopSearch();
 				}
