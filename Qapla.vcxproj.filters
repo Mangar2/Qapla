@@ -359,6 +359,9 @@
     <ClInclude Include="search\searchstate.h">
       <Filter>search</Filter>
     </ClInclude>
+    <ClInclude Include="basics\bits.h">
+      <Filter>basics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

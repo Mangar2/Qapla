@@ -53,7 +53,7 @@ void PawnRace::computeFastestCandidate(const Board& board) {
 	uint64_t pawns = passedPawns[COLOR];
 
 	for (; pawns != 0; pawns &= pawns - 1) {
-		Square pawnPos = BitBoardMasks::lsb(pawns);
+		Square pawnPos = lsb(pawns);
 		if (!inFrontOfPawn<COLOR>(opponentKingPos, pawnPos)) {
 			uint32_t curDistance = computePawnDistance<COLOR>(ownKingPos, pawnPos);
 			if (curDistance == 6) {

@@ -138,7 +138,7 @@ value_t EvalEndgame::KQPsKRPs(MoveGenerator& position, value_t currentValue) {
 	static const value_t QUEEN_BONUS_PER_PAWN = 10;
 	
 	auto result = materialAndPawnStructure(position);
-	auto pawnAmount = BitBoardMasks::popCount(position.getPieceBB(WHITE_PAWN) | position.getPieceBB(BLACK_PAWN));
+	auto pawnAmount = popCount(position.getPieceBB(WHITE_PAWN) | position.getPieceBB(BLACK_PAWN));
 	result += QUEEN_BONUS_PER_PAWN * pawnAmount * COLOR_VALUE[COLOR];
 	return result;
 }
@@ -206,7 +206,7 @@ value_t EvalEndgame::KBNK(MoveGenerator& position, value_t currentValue) {
 	bitBoard_t bishops = position.getPieceBB(BISHOP + COLOR);
 
 	result += BONUS[COLOR];
-	Square knightPos = BitBoardMasks::lsb(position.getPieceBB(KNIGHT + COLOR));
+	Square knightPos = lsb(position.getPieceBB(KNIGHT + COLOR));
 	result += computeDistance(opponentKingSquare, knightPos) * COLOR == WHITE ? -2 : 2;
 	result = forceToCorrectCorner<COLOR>(position, result, bishops & WHITE_FIELDS);
 	return result;
@@ -284,7 +284,7 @@ value_t EvalEndgame::KQKR(MoveGenerator& position, value_t currentValue) {
 	value_t result = position.getMaterialValue().endgame();
 	const Piece OPPONENT_COLOR = switchColor(COLOR);
 	Square opponentKingSquare = position.getKingSquare<OPPONENT_COLOR>();
-	Square opponentRookPos = BitBoardMasks::lsb(position.getPieceBB(ROOK + OPPONENT_COLOR));
+	Square opponentRookPos = lsb(position.getPieceBB(ROOK + OPPONENT_COLOR));
 	bitBoard_t kingAttackRay = Magics::genRookAttackMask(position.getKingSquare<COLOR>(), position.getPieceBB(KING + OPPONENT_COLOR));
 	bool rookMayPutKingInCheckDefendedByOwnKing = (kingAttackRay & position.pieceAttackMask[opponentRookPos] & position.pieceAttackMask[opponentKingSquare]) != 0;
 

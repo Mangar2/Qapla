@@ -59,7 +59,7 @@ namespace ChessEval {
 				| position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack
 				| position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR];
 
-			value_t threatAmout = BitBoardMasks::popCount(threats);
+			value_t threatAmout = popCountForSparcelyPopulatedBitBoards(threats);
 			if (threatAmout > 10) {
 				threatAmout = 10;
 			}

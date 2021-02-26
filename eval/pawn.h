@@ -211,7 +211,7 @@ namespace ChessEval {
 			const uint32_t CHANGE_SIDE = COLOR == WHITE ? 0 : 0x38;
 
 			for (; pawns != 0; pawns &= pawns - 1) {
-				Rank rank = getRank(Square(BitBoardMasks::lsb(pawns) ^ CHANGE_SIDE));
+				Rank rank = getRank(Square(lsb(pawns) ^ CHANGE_SIDE));
 				result += pawnValue[uint32_t(rank)];
 			}
 			return result;
@@ -225,7 +225,7 @@ namespace ChessEval {
 			value_t result = 0;
 			uint32_t changeSide = COLOR == WHITE ? 0 : 0x38;
 			for (bitBoard_t pawns = passedPawns; pawns != 0; pawns &= pawns - 1) {
-				Square pawnPos = BitBoardMasks::lsb(pawns);
+				Square pawnPos = lsb(pawns);
 				uint32_t rank = uint32_t(getRank(Square(pawnPos ^ changeSide)));
 				if (isConnectedPassedPawn(pawnPos, passedPawns)) {
 					result += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
@@ -322,7 +322,7 @@ namespace ChessEval {
 		 */
 		inline static value_t computeAmountOfDoublePawns(bitBoard_t pawns, bitBoard_t pawnMoveRay) {
 			bitBoard_t doublePawns = pawns & pawnMoveRay;
-			value_t doublePawnAmount = BitBoardMasks::popCount(doublePawns);
+			value_t doublePawnAmount = popCountForSparcelyPopulatedBitBoards(doublePawns);
 			return doublePawnAmount;
 		}
 

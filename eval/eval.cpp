@@ -86,8 +86,6 @@ map<string, value_t> Eval::getEvalFactors(MoveGenerator& board) {
 	EvalResults evalResults;
 	lazyEval<false>(board, evalResults);
 	map<string, value_t> result;
-	auto factors = KingAttack::factors<COLOR>(board, evalResults);
-	result.insert(factors.begin(), factors.end());
 	return result;
 }
 

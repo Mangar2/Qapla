@@ -61,7 +61,7 @@ namespace ChessEval {
 
 			while (rooks)
 			{
-				const Square rookSquare = BitBoardMasks::lsb(rooks);
+				const Square rookSquare = lsb(rooks);
 				rooks &= rooks - 1;
 				value += calcMobility<COLOR, PRINT>(results, rookSquare, occupiedBB, removeMask);
 				value += calcPropertyValue<COLOR, PRINT>(position, results, rookSquare);
@@ -109,7 +109,7 @@ namespace ChessEval {
 			results.doubleRookAttack[COLOR] |= results.rookAttack[COLOR] & attackBB;
 			results.rookAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
-			const EvalValue value = ROOK_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+			const EvalValue value = ROOK_MOBILITY_MAP[popCount(attackBB)];
 			if (PRINT) cout << colorToString(COLOR) 
 				<< " rook (" << squareToString(square) << ") mobility: " 
 				<< std::right << std::setw(7) << value;

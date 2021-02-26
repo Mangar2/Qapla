@@ -92,53 +92,6 @@ namespace ChessEval {
 			printf("Black (pressure %1ld)  : %ld\n", results.kingPressureCount[BLACK], -results.kingAttackValue[BLACK]);
 		}
 
-		/**
-		 * Gets a list of detailed evaluation information
-		 */
-		template <Piece COLOR>
-		static map<string, value_t> factors(MoveGenerator& position, EvalResults& results) {
-			map<string, value_t> result;
-			eval(position, results);
-			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			Square kingSquare = position.getKingSquare<OPPONENT>();
-			bitBoard_t attackArea = _kingAttackBB[OPPONENT][kingSquare];
-
-			if (results.midgameInPercent > 50 && results.kingPressureCount[COLOR] < 3) {
-				result["King pawn defended attack"] =
-					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
-						position.pawnAttack[OPPONENT] & attackArea);
-				result["King defended attack"] =
-					BitBoardMasks::popCount(results.piecesAttack[COLOR] & 
-						results.piecesAttack[OPPONENT] & attackArea);
-				result["King non pawn defended attack"] =
-					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
-						results.piecesAttack[OPPONENT] & ~position.pawnAttack[OPPONENT] & attackArea);
-				result["King single attack without pawn defended fields"] =
-					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
-						~position.pawnAttack[OPPONENT] & attackArea);
-				result["King double attack defended twice"] =
-					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & 
-						results.piecesDoubleAttack[OPPONENT] & attackArea);
-				result["King double attack defended once"] =
-					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & 
-						results.piecesAttack[OPPONENT] & attackArea);
-				result["King double attack defended by pawns"] =
-					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] &
-						position.pawnAttack[OPPONENT] & attackArea);
-				result["King single no pawn defence + king protected double + 2 * king unprotected double"] =
-					BitBoardMasks::popCount(results.piecesAttack[COLOR] &
-						~position.pawnAttack[OPPONENT] & attackArea) +
-					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & attackArea &
-						results.piecesAttack[OPPONENT]) +
-					BitBoardMasks::popCount(results.piecesDoubleAttack[COLOR] & attackArea & 
-						~results.piecesAttack[OPPONENT]) * 2;
-
-				result["King pressure"] = results.kingPressureCount[OPPONENT];
-			}
-			return result;
-		}
-
-
 	private:
 
 		/**
@@ -180,9 +133,9 @@ namespace ChessEval {
 			bitBoard_t kingDoubleAttacksUndefended = kingDoubleAttacks & ~results.piecesAttack[COLOR];
 
 			results.kingPressureCount[COLOR] =
-				BitBoardMasks::popCount(kingAttacksNotDefendedByPawns) +
-				BitBoardMasks::popCount(kingDoubleAttacksDefended) +
-				BitBoardMasks::popCount(kingDoubleAttacksUndefended) * 2;
+				popCountForSparcelyPopulatedBitBoards(kingAttacksNotDefendedByPawns) +
+				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksDefended) +
+				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2;
 
 			if (results.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
 				results.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;

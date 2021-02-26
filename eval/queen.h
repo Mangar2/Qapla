@@ -62,7 +62,7 @@ namespace ChessEval {
 			EvalValue value = 0;
 			while (queens)
 			{
-				const Square square = BitBoardMasks::lsb(queens);
+				const Square square = lsb(queens);
 				queens &= queens - 1;
 				value += calcMobility<COLOR, PRINT>(position, results, square, occupied, removeMask);
 				if (isPinned<PRINT>(position.pinnedMask[COLOR], square)) {
@@ -87,7 +87,7 @@ namespace ChessEval {
 			attackBB |= Magics::genBishopAttackMask(square, occupiedBB & ~position.getPieceBB(BISHOP + COLOR));
 			results.queenAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
-			const value_t value = QUEEN_MOBILITY_MAP[BitBoardMasks::popCount(attackBB)];
+			const value_t value = QUEEN_MOBILITY_MAP[popCount(attackBB)];
 
 			if (PRINT) cout << colorToString(COLOR)
 				<< " queen (" << squareToString(square) << ") mobility: "

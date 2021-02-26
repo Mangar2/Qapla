@@ -247,7 +247,7 @@ bitBoard_t indexToBitBoard(int aIndex, int bitAmount, bitBoard_t aMask)
 
 	for(i = 0; i < bitAmount; i++) 
 	{
-		j = BitBoardMasks::popLSB(aMask);
+		j = popLSB(aMask);
 		if (aIndex & (1 << i)) 
 			res |= (1ULL << j);
 	}

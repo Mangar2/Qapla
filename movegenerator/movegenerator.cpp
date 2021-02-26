@@ -39,7 +39,7 @@ genMovesSinglePiece(uint32_t movingPiece, Square departure, bitBoard_t destinati
 	Square destination;
 	for (; destinationBB; destinationBB &= destinationBB - 1)
 	{
-		destination = BitBoardMasks::lsb(destinationBB);
+		destination = lsb(destinationBB);
 		Piece capture = operator[](destination);
 		Move move(departure, destination, movingPiece, capture);
 		moveList.addMove(move);
@@ -51,7 +51,7 @@ genMovesMultiplePieces(uint32_t movingPiece, int32_t aStep, bitBoard_t destinati
 {
 	for (; destinationBB; destinationBB &= destinationBB - 1)
 	{
-		const Square destination = BitBoardMasks::lsb(destinationBB);
+		const Square destination = lsb(destinationBB);
 		const Square departure = destination + aStep;
 		Piece capture = operator[](destination);
 		moveList.addMove(Move(departure, destination, movingPiece, capture));
@@ -78,7 +78,7 @@ void MoveGenerator::computePinnedMask()
 	// Every piece set on Ray is pinning a white piece
 	// Set every piece from pinning piece to white king
 	for (; ray; ray &= ray - 1)
-		result |= BitBoardMasks::mRay[kingSquares[COLOR] + BitBoardMasks::lsb(ray) * 64];
+		result |= BitBoardMasks::mRay[kingSquares[COLOR] + lsb(ray) * 64];
 	// Now same thing with rooks
 	ray = Magics::genRookAttackMask(kingSquares[COLOR], allPieceNoPinned);
 	// Set bits on ray with white rook or queen 
@@ -86,7 +86,7 @@ void MoveGenerator::computePinnedMask()
 	// Every piece set on Ray is pinning a black piece
 	// Set every piece from pinning piece to own king
 	for (; ray; ray &= ray - 1)
-		result |= BitBoardMasks::mRay[kingSquares[COLOR] + BitBoardMasks::lsb(ray) * 64];
+		result |= BitBoardMasks::mRay[kingSquares[COLOR] + lsb(ray) * 64];
 	
 	// Now every bit on result is a position with black pinned piece or a position
 	// the black piece may move to without setting the king to check
@@ -114,7 +114,7 @@ template<Piece PIECE>
 bitBoard_t MoveGenerator::computeAttackMaskForPieces(bitBoard_t pieceBB, bitBoard_t allPiecesWithoutKing) {
 	bitBoard_t result = 0;
 	for (; pieceBB; pieceBB &= pieceBB - 1)
-		result |= computeAttackMaskForPiece<PIECE>(BitBoardMasks::lsb(pieceBB), allPiecesWithoutKing);
+		result |= computeAttackMaskForPiece<PIECE>(lsb(pieceBB), allPiecesWithoutKing);
 	return result;
 }
 
@@ -258,7 +258,7 @@ genPawnPromotions(bitBoard_t destinationBB, int32_t moveDirection, MoveList& mov
 	
 	for (destinationBB &= LAST_ROW; destinationBB; destinationBB &= destinationBB - 1)
 	{
-		Square destination = BitBoardMasks::lsb(destinationBB);
+		Square destination = lsb(destinationBB);
 		Square departure = destination + promotionDirection;
 		moveList.addPromote<COLOR>(departure, destination, operator[](destination));
 	}
@@ -327,7 +327,7 @@ genNonSilentPawnMoves(MoveList& moveList, Square epPos)
 	{
 		for(bitBoard_t epPawns = BitBoardMasks::mEPMask[epPos] & pawns; epPawns; epPawns &= epPawns - 1)
 		{
-			genEPMove<COLOR>(BitBoardMasks::lsb(epPawns), epPos, moveList);
+			genEPMove<COLOR>(lsb(epPawns), epPos, moveList);
 		}
 	}
 }
@@ -338,7 +338,7 @@ genPawnCaptureSinglePiece(Square departure, bitBoard_t destinationBB, MoveList& 
 	Square destination;
 	for (; destinationBB; destinationBB &= destinationBB - 1)
 	{
-		destination = BitBoardMasks::lsb(destinationBB);
+		destination = lsb(destinationBB);
 		if ((COLOR == WHITE && destination >= A8) || (COLOR == BLACK && destination <= H1)) {
 			moveList.addPromote<COLOR>(departure, destination, operator[](destination));
 		}
@@ -361,7 +361,7 @@ genMovesForPiece(MoveList& moveList)
 
 	while (pieces)
 	{
-		departure = BitBoardMasks::lsb(pieces);
+		departure = lsb(pieces);
 		pieces &= pieces - 1;
 
 		attack = pieceAttackMask[departure];
@@ -372,7 +372,7 @@ genMovesForPiece(MoveList& moveList)
 		attack &= TYPE == SILENT ? ~bitBoardAllPieces : bitBoardAllPiecesOfOneColor[OPPONENT_COLOR];
 
 		for (; attack; attack &= attack - 1) {
-			Square destination = BitBoardMasks::lsb(attack);
+			Square destination = lsb(attack);
 			if (TYPE == SILENT) {
 				moveList.addSilentMove(Move(departure, destination, PIECE));
 			}
@@ -411,7 +411,7 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 
 	for (pieces = pinnedMask[COLOR] & bitBoardAllPiecesOfOneColor[COLOR]; pieces; pieces &= pieces - 1)
 	{
-		departure = BitBoardMasks::lsb(pieces);
+		departure = lsb(pieces);
 		// Assure that piece stays in ray
 		allowedRayMask = BitBoardMasks::mFullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
 		Piece piece = operator[](departure);
@@ -452,7 +452,7 @@ void MoveGenerator::genPinnedCapturesForAllPieces(MoveList& moveList, Square epP
 
 	for (pieces = pinnedMask[COLOR] & bitBoardAllPiecesOfOneColor[COLOR]; pieces; pieces &= pieces - 1)
 	{
-		departure = BitBoardMasks::lsb(pieces);
+		departure = lsb(pieces);
 		// Assure that piece stays in ray
 		allowedRayMask = BitBoardMasks::mFullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
 		Piece piece = operator[](departure);
@@ -494,7 +494,7 @@ void MoveGenerator::genEvadesByBlocking(MoveList& moveList,
 	bitBoard_t destination = bitBoardsPiece[PIECE] & removePinnedPiecesMask;
 	for (destination ; destination; destination &= destination - 1)
 	{
-		departure = BitBoardMasks::lsb(destination);
+		departure = lsb(destination);
 		genMovesSinglePiece(PIECE, departure, pieceAttackMask[departure] & blockingPositions, moveList);
 	}
 }
@@ -541,7 +541,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 		// i.e. the ray between king and piece
 		if (rangeAttack)
 		{
-			possibleTargetPositions = BitBoardMasks::mRay[kingSquares[COLOR] + BitBoardMasks::lsb(rangeAttack) * 64];
+			possibleTargetPositions = BitBoardMasks::mRay[kingSquares[COLOR] + lsb(rangeAttack) * 64];
 		}
 		// Now targetBoard contains bits any piece may move to. Thus we now may generate the moves
 		// First try pawn
@@ -570,7 +570,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 		{
 			for(destination = BitBoardMasks::mEPMask[epPos] & pawns; destination; destination &= destination - 1)
 			{
-				genEPMove<COLOR>(BitBoardMasks::lsb(destination), epPos, moveList);
+				genEPMove<COLOR>(lsb(destination), epPos, moveList);
 			}
 		}
 		

@@ -195,7 +195,7 @@ namespace ChessBitbase {
 		 */
 		void addPiecesFromBitBoard(bitBoard_t piecesBitBoard, Piece piece) {
 			for (; piecesBitBoard != 0; piecesBitBoard &= piecesBitBoard - 1) {
-				_pieceSquares[_numberOfPieces] = (BitBoardMasks::lsb(piecesBitBoard));
+				_pieceSquares[_numberOfPieces] = (lsb(piecesBitBoard));
 				addPiece(piece);
 			}
 		}

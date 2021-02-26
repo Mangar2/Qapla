@@ -22,19 +22,12 @@
 #ifndef __BITBOARDMASKS_H
 #define __BITBOARDMASKS_H
 
+// #include <bit>
 #include <assert.h>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 #include "../basics/move.h"
-
-#if (defined(__INTEL_COMPILER) || defined(_MSC_VER))
-#  include <nmmintrin.h> // Intel and Microsoft header for _mm_popcnt_u64()
-#endif
-
-#if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
-#  include <intrin.h> // Microsoft header for _BitScanForward64()
-#  define IS_64BIT
-#endif
+#include "../basics/bits.h"
 
 using namespace ChessBasics;
 
@@ -52,75 +45,6 @@ namespace ChessMoveGenerator {
 		~BitBoardMasks()
 		{
 		}
-
-
-#if defined(__GNUC__)
-
-		inline static Square lsb(bitBoard_t bitBoard) {
-			assert(bitBoard);
-			return Square(__builtin_ctzll(bitBoard));
-		}
-
-		inline Square msb(bitBoard_t bitBoard) {
-			assert(bitBoard);
-			return Square(63 - __builtin_clzll(bitBoard));
-		}
-
-#elif defined(_WIN64) && defined(_MSC_VER)
-
-		inline static Square lsb(bitBoard_t bitBoard) {
-			assert(bitBoard);
-			unsigned long pos;
-			_BitScanForward64(&pos, bitBoard);
-			return (Square)pos;
-		}
-
-		inline static Square msb(bitBoard_t bitBoard) {
-			assert(bitBoard);
-			unsigned long pos;
-			_BitScanReverse64(&pos, bitBoard);
-			return (Square)pos;
-		}
-#endif
-
-		/**
-		 * Removes the least significant bit
-		 */
-		inline static uint32_t popLSB(bitBoard_t& bitBoard)
-		{
-			uint32_t res = lsb(bitBoard);
-			bitBoard &= bitBoard - 1;
-			return res;
-		}
-
-		static uint8_t popCountInFirstRank(bitBoard_t bitBoard) {
-			return popCountLookup[bitBoard & 0xFF];
-		}
-
-		static value_t popCount(bitBoard_t bitBoard) {
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-			return (int)_mm_popcnt_u64(bitBoard);
-
-#else // Assumed gcc or compatible compiler
-
-			return __builtin_popcountll(bitBoard);
-
-#endif
-		}
-
-		/**
-		 * Counts the amout of set bits in a 64 bit variables - only performant for
-		 * sparcely populated bitboards. (1-3 bits set).
-		 */
-		static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
-			uint8_t popCount = 0;
-			for (; bitBoard != 0; bitBoard &= bitBoard - 1) {
-				popCount++;
-			}
-			return popCount;
-		}
-
 
 		/**
 		 * Computes the attack mask for pawns

@@ -56,7 +56,7 @@ namespace ChessEval {
 			while (knights)
 			{
 
-				const Square knightSquare = BitBoardMasks::lsb(knights);
+				const Square knightSquare = lsb(knights);
 				knights &= knights - 1;
 				value += calcMobility<COLOR, PRINT>(results, knightSquare, removeBB);
 				value += calcPropertyValue<COLOR, PRINT>(position, knightSquare);
@@ -80,7 +80,7 @@ namespace ChessEval {
 			results.doubleKnightAttack[COLOR] |= results.knightAttack[COLOR] & attackBB;
 			results.knightAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
-			const EvalValue value = KNIGHT_MOBILITY_MAP[BitBoardMasks::popCountForSparcelyPopulatedBitBoards(attackBB)];
+			const EvalValue value = KNIGHT_MOBILITY_MAP[popCountForSparcelyPopulatedBitBoards(attackBB)];
 			if (PRINT) cout << colorToString(COLOR)
 				<< " knight (" << squareToString(square) << ") mobility: "
 				<< std::right << std::setw(5) << value;

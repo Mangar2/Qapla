@@ -84,7 +84,7 @@ namespace ChessBitbase {
 		void markCandidates(MoveGenerator& position, Bitbase& bitbase, PieceList& list, Move move) {
 			bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
 			for (; attackBB; attackBB &= attackBB - 1) {
-				const Square destination = BitBoardMasks::lsb(attackBB);
+				const Square destination = lsb(attackBB);
 				move.setDestination(destination);
 				uint64_t index = BoardAccess::computeIndex(!position.isWhiteToMove(), list, move);
 				bitbase.setBit(index);
@@ -104,7 +104,7 @@ namespace ChessBitbase {
 				Move move;
 				move.setMovingPiece(piece);
 				for (; pieceBB; pieceBB &= pieceBB - 1) {
-					Square departure = BitBoardMasks::lsb(pieceBB);
+					Square departure = lsb(pieceBB);
 					move.setDeparture(departure);
 					markCandidates(position, bitbase, pieceList, move);
 				}
