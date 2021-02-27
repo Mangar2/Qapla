@@ -23,8 +23,8 @@ using namespace ChessBitbase;
 
 array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithPawn;
 array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithoutPawn;
-array<uint32_t, BitbaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN> BitbaseIndex::mapIndexToKingSquaresWithPawn;
-array<uint32_t, BitbaseIndex::AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> BitbaseIndex::mapIndexToKingSquaresWithoutPawn;
+array<uint32_t, BitbaseIndex::NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN> BitbaseIndex::mapIndexToKingSquaresWithPawn;
+array<uint32_t, BitbaseIndex::NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> BitbaseIndex::mapIndexToKingSquaresWithoutPawn;
 BitbaseIndex::InitStatic BitbaseIndex::_staticConstructor;
 
 /**
@@ -67,7 +67,7 @@ BitbaseIndex::InitStatic::InitStatic() {
 			}
 			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
 			assert(lookupIndex < uint32_t(BOARD_SIZE* BOARD_SIZE));
-			assert(index < AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN);
+			assert(index < NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN);
 			mapTwoKingsToIndexWithoutPawn[lookupIndex] = index;
 			mapIndexToKingSquaresWithoutPawn[index] = lookupIndex;
 			if (!isAdjacent(whiteKingSquare, blackKingSquare)) {
@@ -81,12 +81,12 @@ uint64_t BitbaseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
 	uint32_t posIndex;
 	uint64_t amountOfKingPositions;
 	if (hasPawn) {
-		amountOfKingPositions = AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN;
+		amountOfKingPositions = NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN;
 		posIndex = mapIndexToKingSquaresWithPawn[index % amountOfKingPositions];
 	}
 	else
 	{
-		amountOfKingPositions = AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
+		amountOfKingPositions = NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
 		posIndex = mapIndexToKingSquaresWithoutPawn[index % amountOfKingPositions];
 	}
 	addPieceSquare(Square(posIndex % BOARD_SIZE));

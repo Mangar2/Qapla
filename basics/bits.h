@@ -37,6 +37,30 @@
 
 namespace ChessBasics {
 
+	const int32_t index64[64] = {
+		0, 47,  1, 56, 48, 27,  2, 60,
+	   57, 49, 41, 37, 28, 16,  3, 61,
+	   54, 58, 35, 52, 50, 42, 21, 44,
+	   38, 32, 29, 23, 17, 11,  4, 62,
+	   46, 55, 26, 59, 40, 36, 15, 53,
+	   34, 51, 20, 43, 31, 22, 10, 45,
+	   25, 39, 14, 33, 19, 30,  9, 24,
+	   13, 18,  8, 12,  7,  6,  5, 63
+	};
+
+	/**
+	 * bitScanForward
+	 * @author Kim Walisch (2012)
+	 * @param bb bitboard to scan
+	 * @precondition bb != 0
+	 * @return index (0..63) of least significant one bit
+	 */
+	_NODISCARD constexpr int32_t bitScanForward(bitBoard_t bb) noexcept {
+		const bitBoard_t debruijn64 = bitBoard_t(0x03f79d71b4cb0a89);
+		assert(bb != 0);
+		return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
+	}
+
 #if defined(__GNUC__)
 
 	inline static Square lsb(bitBoard_t bitBoard) {
@@ -44,56 +68,21 @@ namespace ChessBasics {
 		return Square(__builtin_ctzll(bitBoard));
 	}
 
-	inline Square msb(bitBoard_t bitBoard) {
-		assert(bitBoard);
-		return Square(63 - __builtin_clzll(bitBoard));
-	}
-
 #elif defined(_WIN64) && defined(_MSC_VER)
-
+	
 	inline static Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
+		return (Square)bitScanForward(bitBoard);
 		unsigned long pos;
 		_BitScanForward64(&pos, bitBoard);
 		return (Square)pos;
 	}
 
-	inline static Square msb(bitBoard_t bitBoard) {
-		assert(bitBoard);
-		unsigned long pos;
-		_BitScanReverse64(&pos, bitBoard);
-		return (Square)pos;
+#else 
+	inline static Square lsb(bitBoard_t bitBoard) {
+		return (Square)bitScanForward(bitBoard);
 	}
 #endif
-
-	/**
-	 * Counts the amout of set bits in a 64 bit variables - only performant for
-	 * sparcely populated bitboards. (1-3 bits set).
-	 */
-	static int32_t popCountBrianKernighan(bitBoard_t bitBoard) {
-		int32_t popCount = 0;
-		for (; bitBoard != 0; bitBoard &= bitBoard - 1) {
-			popCount++;
-		}
-		return popCount;
-	}
-
-	/**
-	 * Counts the amount of bits in a bitboard
-	 */
-	static int32_t popCountLookup(bitBoard_t bitBoard) {
-		/*
-		return popCountLookup[bitBoard & 0xff] +
-			popCountLookup[(bitBoard >> 8) & 0xff] +
-			popCountLookup[(bitBoard >> 16) & 0xff] +
-			popCountLookup[(bitBoard >> 24) & 0xff] +
-			popCountLookup[(bitBoard >> 32) & 0xff] +
-			popCountLookup[(bitBoard >> 40) & 0xff] +
-			popCountLookup[(bitBoard >> 48) & 0xff] +
-			popCountLookup[bitBoard >> 56];
-		*/
-		return 0;
-	}
 
 
 	/**
@@ -107,36 +96,71 @@ namespace ChessBasics {
 	}
 
 	/**
-	 * Counts the amount of bits in a bitboard
+	 * Counts the amount of bits in a bitboard - different implementations depending on the hardware support
+	 * If popcount is supported by hardware -> use it. If not use the algorithm from BrianKernighan for 
+	 * sparcely populated bitboards (0 - 3 bits set) or the SWAR-Popcount 
 	 */
 
-#if defined (__OLD_HARDWARE__)
-	inline static uint8_t popCount(bitBoard_t bitBoard) {
-		return popCountBrianKernighan(bitBoard);
+	 /**
+	  * Counts the amout of set bits in a 64 bit variables - only performant for
+	  * sparcely populated bitboards. (1-3 bits set).
+	  */
+	static int32_t popCountBrianKernighan(bitBoard_t bitBoard) {
+		int32_t popCount = 0;
+		for (; bitBoard != 0; bitBoard &= bitBoard - 1) {
+			popCount++;
+		}
+		return popCount;
 	}
-#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+
+	 /**
+	  * SWAR Mask version of popcount by Donald Knuth
+	  */
+	_NODISCARD constexpr int32_t SWARPopcount(bitBoard_t bitBoard) noexcept {
+		const bitBoard_t k1 = 0x5555555555555555ull;
+		const bitBoard_t k2 = 0x3333333333333333ull;
+		const bitBoard_t k4 = 0x0F0F0F0F0F0F0F0Full;
+		const bitBoard_t kf = 0x0101010101010101ull;
+
+		bitBoard = bitBoard - ((bitBoard >> 1) & k1);
+		bitBoard = (bitBoard & k2) + ((bitBoard >> 2) & k2);
+		bitBoard = (bitBoard + (bitBoard >> 4)) & k4;
+		bitBoard = (bitBoard * kf) >> 56;
+		return int32_t(bitBoard);
+	}
+
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
 	inline static int32_t popCount(bitBoard_t bitBoard) {
+		const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
 		return (int)_mm_popcnt_u64(bitBoard);
 	}
-#else // Assumed gcc or compatible compiler
+
+	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+		const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
+		return popCount(bitBoard);
+	}
+
+#elif defined(defined(__GNUC__))
 	inline static int32_t popCount(bitBoard_t bitBoard) {
 		return __builtin_popcountll(bitBoard);
 	}
-#endif
 
-	/**
-	 * Counts the amout of set bits in a 64 bit variables - only performant for
-	 * sparcely populated bitboards. (1-3 bits set).
-	 */
-#if defined (__OLD_HARDWARE__)
-	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
-		return popCountBrianKernighan(bitBoard);
-	}
-#else
 	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
 		return popCount(bitBoard);
 	}
+
+#else
+	inline static int32_t popCount(bitBoard_t bitBoard) {
+		return SWARPopcount(bitBoard);
+	}
+	
+	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+		return popCountBrianKernighan(bitBoard);
+	}
 #endif
+
 
 }
 

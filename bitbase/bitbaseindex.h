@@ -309,22 +309,22 @@ namespace ChessBitbase {
 			else {
 				_index += mapTwoKingsToIndexWithoutPawn[kingIndexNotShrinkedBySymetries] * COLOR_AMOUNT;
 			}
-			_sizeInBit *= hasPawn ? AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN : AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
+			_sizeInBit *= hasPawn ? NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN : NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
 		}
 
 		static const uint32_t MAP_FILE = 1;
 		static const uint32_t MAP_RANK = 2;
 		static const uint32_t MAP_TO_A1_D1_D4_TRIANGLE = 4;
-		static const uint64_t AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN = 1806;
-		static const uint64_t AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN = 462;
+		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN = 1806;
+		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN = 462;
 		static const uint64_t NUMBER_OF_PAWN_POSITIONS = BOARD_SIZE - 2 * NORTH;
 		static const uint64_t AMOUT_OF_PIECE_POSITIONS = BOARD_SIZE;
 		static const uint64_t COLORS = 2;
 
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithPawn;
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithoutPawn;
-		static array<uint32_t, AMOUNT_OF_TWO_KING_POSITIONS_WITH_PAWN> mapIndexToKingSquaresWithPawn;
-		static array<uint32_t, AMOUNT_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> mapIndexToKingSquaresWithoutPawn;
+		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN> mapIndexToKingSquaresWithPawn;
+		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> mapIndexToKingSquaresWithoutPawn;
 		static const uint32_t MAX_PIECES_COUNT = 10;
 		uint32_t _piecesCount;
 		array<Square, MAX_PIECES_COUNT> _squares;
