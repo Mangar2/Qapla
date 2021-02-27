@@ -58,7 +58,7 @@ namespace ChessSearch {
 		 */
 		virtual map<string, string> getEngineInfo() { 
 			return map<string, string>{
-				{ "name", "Qapla 0.0.52" },
+				{ "name", "Qapla 0.1.01" },
 				{ "author", "Volker Böhm"}
 			};
 		}
