@@ -93,7 +93,7 @@ namespace ChessInterface {
 			_clock.setTimeBetweenInfoInMilliseconds(1000);
 			println("id name " + _board->getEngineInfo()["name"]);
 			println("id author " + _board->getEngineInfo()["author"]);
-			println("option name Hash type spin default 32 min 1 max 1024");
+			println("option name Hash type spin default 32 min 1 max 16000");
 			_board->initialize();
 			println("uciok");
 		}
@@ -134,6 +134,21 @@ namespace ChessInterface {
 					token = getNextTokenBlocking(true);
 				}
 			}
+		}
+
+		/**
+		 * Sets an uci option
+		 */
+		void setOption() {
+			string name = "";
+			string value = "";
+			if (getNextTokenBlocking() == "name") {
+				name = getNextTokenBlocking();
+			}
+			if (getNextTokenBlocking() == "value") {
+				value = getNextTokenBlocking();
+			}
+			_board->setOption(name, value);
 		}
 
 		/**
@@ -185,6 +200,7 @@ namespace ChessInterface {
 			else if (token == "isready") println("readyok");
 			else if (token == "ucinewgame") newGame();
 			else if (token == "position") setPosition();
+			else if (token == "setoption") setOption();
 			else if (token == "stop") stopCompute();
 			getNextTokenBlocking(true);
 		}

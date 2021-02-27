@@ -64,6 +64,14 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Sets an option of the engine
+		 */
+		virtual void setOption(string name, string value) {
+			int32_t intValue = std::stoi(value);
+			if (name == "Hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
+		}
+
+		/**
 		 * Generates bitbases for a signature and all bitbases needed
 		 * to compute this bitabase (if they cannot be loaded)
 		 */
@@ -91,7 +99,7 @@ namespace ChessSearch {
 		 * Sets the 
 		 */
 		virtual void newGame() {
-			iterativeDeepening.clearHash();
+			iterativeDeepening.clearTT();
 		}
 
 		/**
@@ -133,7 +141,7 @@ namespace ChessSearch {
 			if (playedMovesInGame > 0) {
 				playedMovesInGame--;
 			}
-			iterativeDeepening.clearHash();
+			iterativeDeepening.clearTT();
 		}
 
 		/**

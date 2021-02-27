@@ -51,8 +51,15 @@ namespace ChessSearch {
 		/**
 		 * Clears the hash for example on a new game
 		 */
-		void clearHash() {
+		void clearTT() {
 			_tt.clear();
+		}
+
+		/**
+		 * Sets the size of the transposition table in kilobytes
+		 */
+		void setTTSizeInKilobytes(int32_t size) {
+			_tt.setSizeInKilobytes(size);
 		}
 
 		/**
