@@ -39,7 +39,7 @@ using namespace ChessBasics;
 namespace ChessSearch {
 
 	enum class SearchFinding {
-		forced, normal, silent, critical, suddenDeath, book
+		normal, critical, suddenDeath, book
 	};
 	
 	class SearchState {
@@ -55,6 +55,7 @@ namespace ChessSearch {
 			_depth = 0;
 			_values[_depth] = 0;
 			_state = SearchFinding::normal;
+			_rootSearchState = _state;
 		}
 
 		/**
@@ -78,12 +79,7 @@ namespace ChessSearch {
 
 			switch (_state)
 			{
-			case SearchFinding::forced:
-				if ((positionValue <= alpha) && (_depth > 7))
-					_state = SearchFinding::suddenDeath;
-				break;
 			case SearchFinding::normal:
-			case SearchFinding::silent:
 				if (positionValue <= alpha) {
 					_state = SearchFinding::suddenDeath;
 				}
@@ -131,18 +127,10 @@ namespace ChessSearch {
 		/**
 		 * Modifies the average time by the situation found by search
 		 */
-		uint64_t modifyTimeBySearchFinding(uint64_t averageTime) {
+		int64_t modifyTimeBySearchFinding(int64_t averageTime) {
 			switch (_rootSearchState)
 			{
-			case SearchFinding::forced:
-				if (averageTime >= 1000) averageTime /= 5;
-				else averageTime = min(averageTime, 333ULL);
-				break;
-			case SearchFinding::silent:
-				averageTime = averageTime / 10 * 9;
-				break;
 			case SearchFinding::normal:
-				averageTime = averageTime / 8 * 10;
 				break;
 			case SearchFinding::critical:
 				averageTime *= 4;

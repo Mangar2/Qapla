@@ -36,12 +36,13 @@ namespace ChessSearch {
 	class ClockManager {
 	public:
 		ClockManager() {
+			_verbose = false;
 		}
 
 		/**
 		 * Computes the time spent so far
 		 */
-		uint64_t computeTimeSpentInMilliseconds() const {
+		int64_t computeTimeSpentInMilliseconds() const {
 			return getSystemTimeInMilliseconds() - _startTime;
 		}
 
@@ -60,18 +61,18 @@ namespace ChessSearch {
 		void startCalculatingMove(int32_t movesToGo, const ClockSetting& clockSetting)
 		{
 			setStartTime();
-			setNewMove();
 			_clockSetting = clockSetting;
 			_maxTimePerMove = computeMaxTime();
-			_averageTimePerMove = computeAverageTime();
 			_mode = clockSetting.getMode();
+			// must be last!
+			setNewMove();
 		}
 
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool mustAbortSearch(uint32_t ply) {
-			uint64_t timeSpent = computeTimeSpentInMilliseconds();
+		bool mustAbortSearch(int32_t ply) {
+			int64_t timeSpent = computeTimeSpentInMilliseconds();
 			bool abort = false;
 			if (_mode == ClockMode::stopped) {
 				abort = true;
@@ -106,7 +107,7 @@ namespace ChessSearch {
 				result = true;
 			}
 			else {
-				uint64_t time = min(_maxTimePerMove, (_averageTimePerMove / 10) * 7);
+				int64_t time = min(_maxTimePerMove, (_averageTimePerMove / 10) * 7);
 				result = computeTimeSpentInMilliseconds() < time;
 			}
 			return result;
@@ -116,7 +117,7 @@ namespace ChessSearch {
 		 * Checks, if it is time to send the next information to the gui
 		 */
 		bool isTimeToSendNextInfo() {
-			uint64_t timeBetweenInfoInMilliseconds = _clockSetting.getTimeBetweenInfoInMilliseconds();
+			int64_t timeBetweenInfoInMilliseconds = _clockSetting.getTimeBetweenInfoInMilliseconds();
 			bool sendInfo = timeBetweenInfoInMilliseconds > 0 && 
 				getSystemTimeInMilliseconds() > _nextInfoTime;
 
@@ -166,7 +167,10 @@ namespace ChessSearch {
 		 */
 		void setNewMove() {
 			_searchState.setNewMove();
-			computeAverageTime();
+			_averageTimePerMove = computeAverageTime();
+			if (_verbose && _mode == ClockMode::search) {
+				cout << "info string, average time after new Move " << _averageTimePerMove << endl;
+			}
 		}
 
 		/**
@@ -175,7 +179,11 @@ namespace ChessSearch {
 		void setSearchResult(ply_t depth, value_t positionValue)
 		{
 			_searchState.setSearchResult(depth, positionValue);
-			computeAverageTime();
+			_averageTimePerMove = computeAverageTime();
+			if (_verbose && _mode == ClockMode::search) {
+				cout << "info string, average time after search result; [d: "
+					<< depth << "][v:" << positionValue << "] " << _averageTimePerMove << endl;
+			}
 		}
 
 		/**
@@ -185,7 +193,11 @@ namespace ChessSearch {
 		void setIterationResult(value_t alpha, value_t beta, value_t positionValue)
 		{
 			_searchState.setIterationResult(alpha, beta, positionValue);
-			computeAverageTime();
+			_averageTimePerMove = computeAverageTime();
+			if (_verbose && _mode == ClockMode::search) {
+				cout << "info string, average time after iteration result; [w: "
+					<< alpha << ", " << beta << "][v:" << positionValue << "] " << _averageTimePerMove << endl;
+			}
 		}
 
 		/**
@@ -193,7 +205,11 @@ namespace ChessSearch {
 		 */
 		void setSearchedRootMove(bool failLow, value_t positionValue) {
 			_searchState.setSearchedRootMove(failLow, positionValue);
-			computeAverageTime();
+			_averageTimePerMove = computeAverageTime();
+			if (_verbose && _mode == ClockMode::search) {
+				cout << "info string, average time after root move ; "
+					<< (failLow ? "[fail low]" : "") << "[v:" << positionValue << "] " << _averageTimePerMove << endl;
+			}
 		}
 
 	private:
@@ -202,10 +218,10 @@ namespace ChessSearch {
 		/**
 		 * Gets a predicted amount of moves to play until next time control
 		 */
-		uint32_t computeMovesToGo()
+		int32_t computeMovesToGo()
 		{
 			int32_t movesToGo = _clockSetting.getMoveAmountForClock();
-			const uint32_t movesPlayed = _clockSetting.getPlayedMovesInGame();
+			const int32_t movesPlayed = _clockSetting.getPlayedMovesInGame();
 			if (movesToGo == 0) {
 				movesToGo = max(AVERAGE_MOVE_COUNT_PER_GAME - (movesPlayed / 2), KEEP_TIME_FOR_MOVES);
 			}
@@ -226,18 +242,18 @@ namespace ChessSearch {
 		/**
 		 * Computes the avarage move time
 		 */
-		uint64_t computeAverageTime()
+		int64_t computeAverageTime()
 		{
-			uint64_t averageTime = 0;
+			int64_t averageTime = 0;
 
 			if (isInfiniteSearch())
 			{
-				averageTime = numeric_limits<uint64_t>::max();
+				averageTime = numeric_limits<int64_t>::max();
 			} else 	if (_clockSetting.getExactTimePerMoveInMilliseconds() > 0) {
 				averageTime = _clockSetting.getExactTimePerMoveInMilliseconds();
 			} else {
-				const uint64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
-				const uint32_t movesToGo = computeMovesToGo();
+				const int64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
+				const int32_t movesToGo = computeMovesToGo();
 				
 				// use movesToGo + 2 to not loose on time
 				averageTime = timeLeft / (movesToGo + 2);
@@ -247,7 +263,7 @@ namespace ChessSearch {
 				{
 					if ((timeLeft < 10000) && (_clockSetting.getTimeIncrementPerMoveInMilliseconds() <= 1))
 						averageTime /= 2;
-					averageTime *= min(2000ULL, max(1000ULL, uint64_t((6810000 + timeLeft) / (6810 + 300))));
+					averageTime *= min(2000LL, max(1000LL, int64_t((6810000 + timeLeft) / (6810 + 300))));
 					averageTime /= 1000;
 				}
 				averageTime = _searchState.modifyTimeBySearchFinding(averageTime);
@@ -259,7 +275,7 @@ namespace ChessSearch {
 		/**
 		 * Computes the maximum move time
 		 */
-		uint64_t computeMaxTime()
+		int64_t computeMaxTime()
 		{
 			int64_t maxTime = 0;
 
@@ -292,26 +308,27 @@ namespace ChessSearch {
 		 * 
 		 * Returns the system time in milliseconds
 		 */
-		uint64_t getSystemTimeInMilliseconds() const
+		int64_t getSystemTimeInMilliseconds() const
 		{
 			timeb aCurrentTime;
 			ftime(&aCurrentTime);
-			return ((uint64_t)(aCurrentTime.time) * 1000 +
-				(uint64_t)(aCurrentTime.millitm));
+			return ((int64_t)(aCurrentTime.time) * 1000 +
+				(int64_t)(aCurrentTime.millitm));
 		}
 
-		uint64_t _startTime;
-		uint64_t _averageTimePerMove;
-		uint64_t _maxTimePerMove;
-		uint64_t _nextInfoTime;
+		int64_t _startTime;
+		int64_t _averageTimePerMove;
+		int64_t _maxTimePerMove;
+		int64_t _nextInfoTime;
 
 		ClockMode _mode;
 		
 		ClockSetting _clockSetting;
 		SearchState _searchState;
+		bool _verbose;
 
-		static const uint32_t KEEP_TIME_FOR_MOVES = 35;
-		static const uint32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
+		static const int32_t KEEP_TIME_FOR_MOVES = 35;
+		static const int32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
 	};
 }
 

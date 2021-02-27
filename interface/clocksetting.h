@@ -49,7 +49,7 @@ namespace ChessInterface {
 			_userClock = 0;
 			_mate = 0;
 			_mode = ClockMode::search;
-			_moveAmountForClock = 40;
+			_moveAmountForClock = 0;
 			_timeToThinkForAllMovesInMilliseconds = 60 * 1000;
 			_timeIncrementPerMoveInMilliseconds = 0;
 			_exactTimePerMoveInMilliseconds = 0;
