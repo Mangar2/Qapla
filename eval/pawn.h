@@ -56,6 +56,9 @@ namespace ChessEval {
 		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  35, 50, 70, 120, 0 };
 		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 15,  25,  40, 60, 85, 140, 0 };
 		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
+
+		// Bonus for supported pawns multiplied by 2 to 4 depending on the support and if it has an opponent
+		static constexpr RankArray_t PAWN_SUPPORT = { 0, 3, 4, 5, 10, 15, 15, 0 };
 	};
 
 	class Pawn {
@@ -76,8 +79,7 @@ namespace ChessEval {
 			if (!PRINT && value != NO_VALUE) {
 				return value;
 			}
-			*/
-	
+
 			colorBB_t moveRay;
 			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
 			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
@@ -103,10 +105,6 @@ namespace ChessEval {
 			result += computePawnValueNoPieceButPawn<WHITE>(position, results, moveRay);
 			result -= computePawnValueNoPieceButPawn<BLACK>(position, results, moveRay);
 
-			//value_t whiteRunner = computeRunnerPace<WHITE>(position, passedPawnFld[WHITE]);
-			//value_t blackRunner = computeRunnerPace<BLACK>(position, passedPawnFld[BLACK]);
-			//value_t runnerValue = (blackRunner - whiteRunner) * 2;
-			//runnerValue += position.whiteToMove ? 1 : -1;
 			PawnRace pawnRace;
 			value_t runnerValue = pawnRace.runnerRace(position, 
 				results.passedPawns[WHITE], results.passedPawns[BLACK]);
@@ -146,7 +144,7 @@ namespace ChessEval {
 				value += computeIsolatedPawnValue<COLOR>(moveRay[COLOR]);
 				value += computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]);
 				value += computePassedPawnValue<COLOR>(position, results, moveRay);
-				value += computeConnectedPawnValue<COLOR>(position);
+				value += computeConnectedPawnValue<COLOR>(position, moveRay);
 			}
 			if (PRINT) cout << colorToString(COLOR) << " pawns: "
 					<< std::right << std::setw(20) << value << endl;
@@ -248,7 +246,7 @@ namespace ChessEval {
 		 * Computes bonus value for connected and phalanx (adjacent) pawns
 		 */
 		template <Piece COLOR>
-		static value_t computeConnectedPawnValue(const MoveGenerator& position) {
+		static value_t computeConnectedPawnValue(const MoveGenerator& position, colorBB_t moveRay) {
 			value_t result = 0;
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
@@ -256,13 +254,16 @@ namespace ChessEval {
 			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) & pawns;
 			bitBoard_t doubleConnect = connectWest & connectEast;
 			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
+			bitBoard_t opponentRay = moveRay[switchColor(COLOR)];
 			for (; doubleConnect != 0; doubleConnect &= doubleConnect - 1) {
 				Square square = lsb(doubleConnect);
-				result += 2 * pawnSupportByRank[int32_t(getRank<COLOR>(square))];
+				bool noOpponent = (opponentRay & (1ULL << square)) == 0;
+				result += (3 + noOpponent) * EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
 			}
 			for (; singleConnect != 0; singleConnect &= singleConnect - 1) {
 				Square square = lsb(singleConnect);
-				result += pawnSupportByRank[int32_t(getRank<COLOR>(square))];
+				bool noOpponent = (opponentRay & (1ULL << square)) == 0;
+				result += (2 + noOpponent) * EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
 			}
 			return result;
 
@@ -405,9 +406,7 @@ namespace ChessEval {
 			0x2828282828282828ULL, 0x5050505050505050ULL, 0xA0A0A0A0A0A0A0A0ULL, 0x4040404040404040ULL
 		};
 
-		static constexpr value_t pawnSupportByRank[int32_t(Rank::COUNT)] = {
-			0, 5, 6, 10, 20, 30, 30, 0
-		};
+
 
 	};
 

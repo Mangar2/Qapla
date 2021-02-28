@@ -32,7 +32,7 @@ Pawn::InitStatics::InitStatics() {
 	computeKingInfluenceTable();
 	computeIsolatedPawnLookupTable();
 	computeKingSupportTable();
-	_tt.setSizeInKilobytes(512);
+	_tt.setSizeInKilobytes(1024);
 }
 
 bool Pawn::kingReachesPawn(Square kingPos, Square pawnPos, bool atMove) {
