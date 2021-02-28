@@ -42,7 +42,7 @@ void Board::setToSymetricBoard(const Board& board) {
 	for (Square square = A1; square <= H8; ++square) {
 		const Piece piece = board[square];
 		if (piece != NO_PIECE) {
-			addPiece(Square(square ^ 0x38), Piece(piece ^ 1));
+			setPiece(Square(square ^ 0x38), Piece(piece ^ 1));
 		}
 	}
 	setCastlingRight(WHITE, true, isKingSideCastleAllowed<WHITE>());
@@ -50,7 +50,7 @@ void Board::setToSymetricBoard(const Board& board) {
 	setCastlingRight(BLACK, true, isKingSideCastleAllowed<BLACK>());
 	setCastlingRight(BLACK, false, isQueenSideCastleAllowed<BLACK>());
 	_basicBoard.setEP(Square(getEP() ^ 0x38));
-	setWhiteToMove(isWhiteToMove());
+	setWhiteToMove(!board.isWhiteToMove());
 }
 
 void Board::removePiece(Square squareOfPiece) {

@@ -41,13 +41,14 @@ namespace ChessEval {
 
 	public:
 
+		/**
+		 * Checks, that eval is symmetically identical
+		 */
 		static void assertSymetry(MoveGenerator& board, value_t evalResult) {
 			MoveGenerator symBoard;
-			board.setToSymetricBoard(symBoard);
+			symBoard.setToSymetricBoard(board);
 			value_t symEvalResult = eval(symBoard, -MAX_VALUE);
-			if (symEvalResult != 1 || evalResult != 1) {
-				symEvalResult = -symEvalResult;
-			}
+
 			if (symEvalResult != evalResult) {
 				printEval(board);
 				printEval(symBoard);
