@@ -72,7 +72,6 @@ namespace ChessBasics {
 	
 	inline static Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
-		return (Square)bitScanForward(bitBoard);
 		unsigned long pos;
 		_BitScanForward64(&pos, bitBoard);
 		return (Square)pos;
