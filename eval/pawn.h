@@ -74,7 +74,6 @@ namespace ChessEval {
 		 */
 		template <bool PRINT>
 		static value_t eval(MoveGenerator& position, EvalResults& results) {
-			/*
 			value_t value = probeTT(position, results);
 			if (!PRINT && value != NO_VALUE) {
 				return value;
@@ -84,11 +83,11 @@ namespace ChessEval {
 			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
 			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
 
-			value_t value =
+			value =
 				eval<PRINT, WHITE>(position, results, moveRay)
 				- eval<PRINT, BLACK>(position, results, moveRay);
 
-			// _tt.setEntry(position.getPawnHash(), value, results.passedPawns);
+			_tt.setEntry(position.getPawnHash(), value, results.passedPawns);
 			return value;
 		}
 
