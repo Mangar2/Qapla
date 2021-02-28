@@ -146,7 +146,7 @@ namespace ChessEval {
 				value += computeIsolatedPawnValue<COLOR>(moveRay[COLOR]);
 				value += computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]);
 				value += computePassedPawnValue<COLOR>(position, results, moveRay);
-				// value += computeConnectedPawnValue<COLOR>(position);
+				value += computeConnectedPawnValue<COLOR>(position);
 			}
 			if (PRINT) cout << colorToString(COLOR) << " pawns: "
 					<< std::right << std::setw(20) << value << endl;
@@ -209,10 +209,9 @@ namespace ChessEval {
 		template <Piece COLOR>
 		inline static value_t computePawnValueForSparcelyPolulatedBitboards(bitBoard_t pawns, const RankArray_t pawnValue) {
 			value_t result = 0;
-			const uint32_t CHANGE_SIDE = COLOR == WHITE ? 0 : 0x38;
 
 			for (; pawns != 0; pawns &= pawns - 1) {
-				Rank rank = getRank(Square(lsb(pawns) ^ CHANGE_SIDE));
+				Rank rank = getRank<COLOR>(lsb(pawns));
 				result += pawnValue[uint32_t(rank)];
 			}
 			return result;
@@ -224,10 +223,9 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static value_t computePassedPawnValue(MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
 			value_t result = 0;
-			uint32_t changeSide = COLOR == WHITE ? 0 : 0x38;
 			for (bitBoard_t pawns = passedPawns; pawns != 0; pawns &= pawns - 1) {
 				Square pawnPos = lsb(pawns);
-				uint32_t rank = uint32_t(getRank(Square(pawnPos ^ changeSide)));
+				uint32_t rank = uint32_t(getRank<COLOR>(pawnPos));
 				if (isConnectedPassedPawn(pawnPos, passedPawns)) {
 					result += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
 				}
@@ -254,8 +252,8 @@ namespace ChessEval {
 			value_t result = 0;
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
-			bitBoard_t connectWest = BitBoardMasks::shiftColor<COLOR, WEST>(pawnsNorth) | pawns;
-			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) | pawns;
+			bitBoard_t connectWest = BitBoardMasks::shiftColor<COLOR, WEST>(pawnsNorth) & pawns;
+			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) & pawns;
 			bitBoard_t doubleConnect = connectWest & connectEast;
 			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
 			for (; doubleConnect != 0; doubleConnect &= doubleConnect - 1) {
