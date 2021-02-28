@@ -146,6 +146,7 @@ namespace ChessEval {
 				value += computeIsolatedPawnValue<COLOR>(moveRay[COLOR]);
 				value += computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]);
 				value += computePassedPawnValue<COLOR>(position, results, moveRay);
+				// value += computeConnectedPawnValue<COLOR>(position);
 			}
 			if (PRINT) cout << colorToString(COLOR) << " pawns: "
 					<< std::right << std::setw(20) << value << endl;
@@ -244,6 +245,31 @@ namespace ChessEval {
 			}
 			return result;
 		}
+
+		/**
+		 * Computes bonus value for connected and phalanx (adjacent) pawns
+		 */
+		template <Piece COLOR>
+		static value_t computeConnectedPawnValue(const MoveGenerator& position) {
+			value_t result = 0;
+			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
+			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
+			bitBoard_t connectWest = BitBoardMasks::shiftColor<COLOR, WEST>(pawnsNorth) | pawns;
+			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) | pawns;
+			bitBoard_t doubleConnect = connectWest & connectEast;
+			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
+			for (; doubleConnect != 0; doubleConnect &= doubleConnect - 1) {
+				Square square = lsb(doubleConnect);
+				result += 2 * pawnSupportByRank[int32_t(getRank<COLOR>(square))];
+			}
+			for (; singleConnect != 0; singleConnect &= singleConnect - 1) {
+				Square square = lsb(singleConnect);
+				result += pawnSupportByRank[int32_t(getRank<COLOR>(square))];
+			}
+			return result;
+
+		}
+
 
 		/**
 		 * Compute the passed pawn vaues using precomputed bitboards stored in this class
@@ -379,6 +405,10 @@ namespace ChessEval {
 		static constexpr bitBoard_t connectedPassedPawnCheckMap[NORTH] = {
 			0x0202020202020202ULL, 0x0505050505050505ULL, 0x0A0A0A0A0A0A0A0AULL, 0x1414141414141414ULL,
 			0x2828282828282828ULL, 0x5050505050505050ULL, 0xA0A0A0A0A0A0A0A0ULL, 0x4040404040404040ULL
+		};
+
+		static constexpr value_t pawnSupportByRank[int32_t(Rank::COUNT)] = {
+			0, 5, 6, 10, 20, 30, 30, 0
 		};
 
 	};

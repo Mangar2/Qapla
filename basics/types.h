@@ -104,6 +104,8 @@ namespace ChessBasics {
 		return Rank(square / NORTH);
 	}
 
+
+
 	/**
 	 * Gets the opposit rank of a square
 	 */
@@ -231,6 +233,14 @@ namespace ChessBasics {
 	 */
 	constexpr Piece getPieceType(Piece piece) {
 		return Piece(piece & ~COLOR_MASK);
+	}
+
+	/**
+	 * Gets the rank of a piece (usally pawn) corrected by color
+	 */
+	template<Piece COLOR>
+	constexpr Rank getRank(Square square) {
+		return COLOR == WHITE ? Rank(square / NORTH) : Rank::R8 - Rank(square / NORTH);
 	}
 
 	/**
