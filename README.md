@@ -8,12 +8,16 @@ The current version 0.1.1 - a first pre-release.
 
 A chess engine is a console application playing chess. It has no graphical user interface. Use a popular chess UI and include Qapla in it.
 
+## Hardware requirement
+
+Qapla is currently only available for 64 bit windows. Qapla uses hardware support for some strongly used routines in modern computer chess (popCount, bitScanForeward). They are supported by intel processors since more than 10 years. If you have older processors, use the OLD_HW version. It is about 20% less fast than the version using hardware and it has (whyever) double size.
+
 ## Version numbering
 
 Qapla's version numbers have three digits:
 
 - 3rd digit: I create a "patch" version number for every build I test for improvements. Thus I might create 5 new versions in a day and run a test with five different versions afterwards.
-- 2cnd digit: Once I have enough features, elo�s together, I will built a new minor version, currently I plan to have at least 50 elo difference between minor versions
+- 2cnd digit: Once I have enough features, elo's together, I will built a new minor version, currently I plan to have at least 50 elo difference between minor versions
 - 1st digit: I will create the 1.0.X only if it is full featured (mutil-cpu, multi-pv, tablebases, ...)
 
 ## How do I test

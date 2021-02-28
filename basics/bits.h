@@ -61,14 +61,14 @@ namespace ChessBasics {
 		return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 	}
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__OLD_HW__)
 
 	inline static Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
 		return Square(__builtin_ctzll(bitBoard));
 	}
 
-#elif defined(_WIN64) && defined(_MSC_VER)
+#elif defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)
 	
 	inline static Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
@@ -130,7 +130,7 @@ namespace ChessBasics {
 		return int32_t(bitBoard);
 	}
 
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#if (defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)) || defined(__INTEL_COMPILER)
 
 	inline static int32_t popCount(bitBoard_t bitBoard) {
 		const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
@@ -142,7 +142,7 @@ namespace ChessBasics {
 		return popCount(bitBoard);
 	}
 
-#elif defined(defined(__GNUC__))
+#elif defined(__GNUC__) && !defined(__OLD_HW__)
 	inline static int32_t popCount(bitBoard_t bitBoard) {
 		return __builtin_popcountll(bitBoard);
 	}
