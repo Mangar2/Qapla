@@ -115,7 +115,7 @@ namespace ChessSearch {
 		/**
 		 * Compute internal iterative deepening
 		 */
-		void iid(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply) {
+		void iid(MoveGenerator& position, SearchStack& stack, ply_t ply) {
 			SearchVariables& searchInfo = stack[ply];
 			searchInfo.computeMoves(position);
 		}
@@ -133,12 +133,12 @@ namespace ChessSearch {
 		/**
 		 * Negamax algorithm for the last plies of the search
 		 */
-		value_t negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply);
+		value_t negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, ply_t ply);
 
 		/**
 		 * Do a full search using the negaMax algorithm
 		 */
-		value_t negaMax(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply);
+		value_t negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves

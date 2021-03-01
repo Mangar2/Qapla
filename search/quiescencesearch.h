@@ -54,8 +54,6 @@ namespace ChessSearch {
 			value_t result;
 			BoardState boardState = board.getBoardState();
 
-			board.doMove(lastMove);
-
 			if (board.isInCheck())
 			{
 				result = searchEvades(board, computingInfo, lastMove, alpha, beta, ply);
@@ -64,7 +62,6 @@ namespace ChessSearch {
 				result = quiescenseSearch(board, computingInfo, lastMove, alpha, beta, ply);
 			}
 
-			board.undoMove(lastMove, boardState);
 			return result;
 		}
 

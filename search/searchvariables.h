@@ -82,7 +82,7 @@ namespace ChessSearch {
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setFromPreviousPly(MoveGenerator& board, const SearchVariables& previousPlySearchInfo, Move previousPlyMove) {
+		void setFromPreviousPly(MoveGenerator& board, const SearchVariables& previousPlySearchInfo) {
 			beta = -previousPlySearchInfo.alpha;
 			alpha = -previousPlySearchInfo.beta;
 			alphaAtPlyStart = alpha;
@@ -94,9 +94,8 @@ namespace ChessSearch {
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			selectFirstSearchState();
-			noNullmove = previousPlySearchInfo.previousMove.isNullMove() || previousPlyMove.isNullMove();
+			noNullmove = previousPlySearchInfo.previousMove.isNullMove() || previousMove.isNullMove();
 			moveProvider.init();
-			doMove(board, previousPlyMove);
 			cutoff = Cutoff::NONE;
 			lateMoveReduction = 0;
 			ttValueLessThanAlpha = false;
@@ -378,7 +377,6 @@ namespace ChessSearch {
 					setTTEntry(board.computeBoardHash());
 				}
 			}
-			undoMove(board);
 		}
 
 		Move getMoveFromPVMovesStore(ply_t ply) const { return pvMovesStore.getMove(ply); }
