@@ -45,6 +45,64 @@ namespace ChessSearch {
 #define DOWHATIF false
 #endif
 
+	struct WhatIfVariables {
+		WhatIfVariables(const ComputingInfo& info, const SearchStack& stack, ply_t ply) {
+			_ply = ply;
+			_alpha = stack[ply].alpha;
+			_beta = stack[ply].beta;
+			_bestValue = stack[ply].bestValue;
+			_remainingDepth = stack[ply].remainingDepth;
+			_bestMove = stack[ply].bestMove.getLAN();
+			_searchState = stack[ply].getSearchStateName();
+			_nodesSearched = info._nodesSearched;
+			_pv = stack[ply].isPVSearch() ? stack[ply].pvMovesStore.toString() : "";
+			if (_remainingDepth > 0) {
+				_curValue = -stack[ply + 1].bestValue;
+				_ttMove = stack[ply + 1].getTTMove().getLAN();
+				_cutoff = _cutoffString[int(stack[ply + 1].cutoff)];
+			}
+			
+		}
+
+		ostream& operator<<(ostream& stream) {
+			stream << "[w:" << _alpha << "," << _beta << "]"
+				<< "[bv:" << _bestValue << "]"
+				<< "[d:" << _remainingDepth << "]";
+			if (_remainingDepth > 0) {
+				stream << "[v:" << _curValue << "]";
+				if (_cutoff != "") {
+					stream << "[c:" << _cutoff << "]";
+				}
+				else {
+					stream << "[ttm:" << _ttMove << "]";
+				}
+					
+			}
+			stream << "[" << "]"
+				<< "[bm:" << _bestMove << "]"
+				<< "[st:" << _searchState << "]"
+				<< "[n:" << _nodesSearched << "]"
+				<< "[pv:" << _pv << "]"
+				<< endl;
+		}
+
+		value_t _ply;
+		value_t _alpha;
+		value_t _beta;
+		value_t _bestValue;
+		value_t _curValue;
+		value_t _remainingDepth;
+		string _ttMove;
+		string _bestMove;
+		string _cutoff;
+		string _searchState;
+		uint64_t _nodesSearched;
+		string _pv;
+		static constexpr array<const char*, int(Cutoff::COUNT)> 
+			_cutoffString = { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY" };
+
+	};
+
 #if (DOWHATIF == false) 
 	class WhatIf : public IWhatIf {
 	public:
