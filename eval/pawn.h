@@ -58,7 +58,7 @@ namespace ChessEval {
 		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
 
 		// Bonus for supported pawns multiplied by 2 to 4 depending on the support and if it has an opponent
-		static constexpr RankArray_t PAWN_SUPPORT = { 0, 3, 4, 5, 10, 15, 15, 0 };
+		static constexpr RankArray_t PAWN_SUPPORT = { 0, 5, 6, 10, 20, 30, 30, 0 };
 	};
 
 	class Pawn {
@@ -143,7 +143,7 @@ namespace ChessEval {
 				value += computeIsolatedPawnValue<COLOR>(moveRay[COLOR]);
 				value += computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]);
 				value += computePassedPawnValue<COLOR>(position, results, moveRay);
-				value += computeConnectedPawnValue<COLOR>(position, moveRay);
+				value += computeConnectedPawnValue<COLOR>(position);
 			}
 			if (PRINT) cout << colorToString(COLOR) << " pawns: "
 					<< std::right << std::setw(20) << value << endl;
@@ -245,7 +245,7 @@ namespace ChessEval {
 		 * Computes bonus value for connected and phalanx (adjacent) pawns
 		 */
 		template <Piece COLOR>
-		static value_t computeConnectedPawnValue(const MoveGenerator& position, colorBB_t moveRay) {
+		static value_t computeConnectedPawnValue(const MoveGenerator& position) {
 			value_t result = 0;
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
@@ -253,17 +253,15 @@ namespace ChessEval {
 			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) & pawns;
 			bitBoard_t doubleConnect = connectWest & connectEast;
 			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
-			bitBoard_t opponentRay = moveRay[switchColor(COLOR)];
 			for (; doubleConnect != 0; doubleConnect &= doubleConnect - 1) {
 				Square square = lsb(doubleConnect);
-				bool noOpponent = (opponentRay & (1ULL << square)) == 0;
-				result += (3 + noOpponent) * EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
+				result += 2 * EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
 			}
 			for (; singleConnect != 0; singleConnect &= singleConnect - 1) {
 				Square square = lsb(singleConnect);
-				bool noOpponent = (opponentRay & (1ULL << square)) == 0;
-				result += (2 + noOpponent) * EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
+				result += EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
 			}
+
 			return result;
 
 		}
