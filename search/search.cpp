@@ -23,6 +23,80 @@
 using namespace ChessSearch;
 
 /**
+ * Check, if it is reasonable to do a nullmove search
+ */
+bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t ply) {
+	bool result = true;
+	if (!SearchParameter::DO_NULLMOVE) {
+		result = false;
+	}
+	else if (searchInfo.remainingDepth <= 2) {
+		result = false;
+	}
+	else if (searchInfo.noNullmove) {
+		result = false;
+	}
+	else if (!position.sideToMoveHasQueenRookBishop(position.isWhiteToMove())) {
+		result = false;
+	}
+	else if (position.isInCheck()) {
+		result = false;
+	}
+	else if (searchInfo.beta >= MAX_VALUE - value_t(ply)) {
+		result = false;
+	}
+	else if (searchInfo.beta <= -MAX_VALUE + value_t(ply)) {
+		result = false;
+	}
+	else if (
+		position.getMaterialValue(position.isWhiteToMove()).midgame() +
+		MaterialBalance::PAWN_VALUE_MG < searchInfo.beta) {
+		result = false;
+	}
+	else if (searchInfo.isTTValueBelowBeta(position, ply)) {
+		result = false;
+	}
+	else if (ply + searchInfo.remainingDepth < 3) {
+		result = false;
+	}
+	else if (searchInfo.isPVSearch()) {
+		result = false;
+	}
+
+	return result;
+}
+
+
+/**
+ * Check for a nullmove cutoff
+ */
+bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint32_t ply)
+{
+	SearchVariables& searchInfo = stack[ply];
+	if (!isNullmoveReasonable(position, searchInfo, ply)) {
+		return false;
+	}
+	assert(!position.isInCheck());
+	searchInfo.setNullmove();
+	Move curMove(Move::NULL_MOVE);
+
+	if (searchInfo.remainingDepth > 2) {
+		searchInfo.bestValue = -negaMax(position, stack, curMove, ply + 1);
+	}
+	else {
+		searchInfo.bestValue = -negaMaxLastPlys(position, stack, curMove, ply + 1);
+	}
+	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, ply);
+	searchInfo.unsetNullmove();
+	const bool isCutoff = searchInfo.bestValue >= searchInfo.beta;
+	if (!isCutoff) {
+		position.computeAttackMasksForBothColors();
+	}
+	// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
+	return isCutoff;
+}
+
+/**
  * Negamax algorithm for the last plies of the search
  */
 value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply)

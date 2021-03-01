@@ -70,7 +70,7 @@ namespace ChessSearch {
 			_computingInfo.requestPrintSearchInfo();
 		}
 
-		ComputingInfo searchRoot(MoveGenerator& board, SearchStack& stack, ClockManager& clockManager);
+		ComputingInfo searchRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager);
 
 	private:
 
@@ -82,7 +82,7 @@ namespace ChessSearch {
 		 * Check for cutoffs
 		 */
 		template <SearchFinding TYPE>
-		bool hasCutoff(MoveGenerator& board, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
+		bool hasCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
 			if (ply < 1) return false;
 			if (curPly.alpha > MAX_VALUE - value_t(ply)) {
 				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
@@ -90,111 +90,55 @@ namespace ChessSearch {
 			else if (curPly.beta < -MAX_VALUE + value_t(ply)) {
 				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 			}
-			else if (ply >= 3 && board.drawDueToMissingMaterial()) {
+			else if (ply >= 3 && position.drawDueToMissingMaterial()) {
 				curPly.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
 			}
-			else if (stack.isDrawByRepetitionInSearchTree(board, ply)) {
+			else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
 				curPly.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
 			}
-			else if (curPly.probeTT(board)) {
+			else if (curPly.probeTT(position)) {
 				curPly.setCutoff(Cutoff::HASH);
 			}
-			else if (board.isInCheck()) {
+			else if (position.isInCheck()) {
 				return false;
 			}
-			else if (curPly.futility(board)) {
+			else if (curPly.futility(position)) {
 				curPly.setCutoff(Cutoff::FUTILITY);
 			} 
-			else if (TYPE == SearchFinding::NORMAL && isNullmoveCutoff(board, stack, ply)) {
+			else if (TYPE == SearchFinding::NORMAL && isNullmoveCutoff(position, stack, ply)) {
 				curPly.setCutoff(Cutoff::NULL_MOVE);
 			}
-			WhatIf::whatIf.cutoff(board, _computingInfo, stack, ply, curPly.cutoff);
+			WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, curPly.cutoff);
 			return curPly.cutoff != Cutoff::NONE;
 		}
 
+		/**
+		 * Compute internal iterative deepening
+		 */
+		void iid(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply) {
+			SearchVariables& searchInfo = stack[ply];
+			searchInfo.computeMoves(position);
+		}
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
 		 */
-		bool isNullmoveReasonable(MoveGenerator& board, SearchVariables& searchInfo, ply_t ply) {
-			bool result = true;
-			if (!SearchParameter::DO_NULLMOVE) {
-				result = false;
-			}
-			else if (searchInfo.remainingDepth <= 2) {
-				result = false;
-			}
-			else if (searchInfo.noNullmove) {
-				result = false;
-			}
-			else if (!board.sideToMoveHasQueenRookBishop(board.isWhiteToMove())) {
-				result = false;
-			}
-			else if (board.isInCheck()) {
-				result = false;
-			}
-			else if (searchInfo.beta >= MAX_VALUE - value_t(ply)) {
-				result = false;
-			}
-			else if (searchInfo.beta <= -MAX_VALUE + value_t(ply)) {
-				result = false;
-			}
-			else if (
-				board.getMaterialValue(board.isWhiteToMove()).midgame() + 
-				MaterialBalance::PAWN_VALUE_MG < searchInfo.beta) {
-				result = false;
-			}
-			else if (searchInfo.isTTValueBelowBeta(board, ply)) {
-				result = false;
-			}
-			else if (ply + searchInfo.remainingDepth < 3) {
-				result = false;
-			}
-			else if (searchInfo.isPVSearch()) {
-				result = false;
-			}
-
-			return result;
-		}
+		bool isNullmoveReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t ply);
 
 		/**
 		 * Check for a nullmove cutoff
 		 */
-		bool isNullmoveCutoff(MoveGenerator& board, SearchStack& stack, uint32_t ply)
-		{
-			SearchVariables& searchInfo = stack[ply];
-			if (!isNullmoveReasonable(board, searchInfo, ply)) {
-				return false;
-			}
-			assert(!board.isInCheck());
-			searchInfo.setNullmove();
-			Move curMove(Move::NULL_MOVE);
-
-			if (searchInfo.remainingDepth > 2) {
-				searchInfo.bestValue = -negaMax(board, stack, curMove, ply + 1);
-			}
-			else {
-				searchInfo.bestValue = -negaMaxLastPlys(board, stack, curMove, ply + 1);
-			}
-			WhatIf::whatIf.moveSearched(board, _computingInfo, stack, curMove, ply);
-			searchInfo.unsetNullmove();
-			const bool isCutoff = searchInfo.bestValue >= searchInfo.beta;
-			if (!isCutoff) {
-				board.computeAttackMasksForBothColors();
-			}
-			// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
-			return isCutoff;
-		}
+		bool isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint32_t ply);
 
 		/**
 		 * Negamax algorithm for the last plies of the search
 		 */
-		value_t negaMaxLastPlys(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
+		value_t negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply);
 
 		/**
 		 * Do a full search using the negaMax algorithm
 		 */
-		value_t negaMax(MoveGenerator& board, SearchStack& stack, Move previousPlyMove, ply_t ply);
+		value_t negaMax(MoveGenerator& position, SearchStack& stack, Move previousPlyMove, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves
