@@ -259,6 +259,7 @@ namespace ChessSearch {
 			_searchState = SearchFinding::NULLMOVE;
 			setNodeType(NodeType::CUT);
 			remainingDepth -= SearchParameter::getNullmoveReduction(ply, remainingDepth);
+			remainingDepthAtPlyStart = remainingDepth;
 			alpha = beta - 1;
 		}
 
@@ -271,6 +272,17 @@ namespace ChessSearch {
 			alpha = alphaAtPlyStart;
 			// Nullmoves are never done in check
 			sideToMoveIsInCheck = false;
+		}
+
+		/**
+		 * Search depth remaining
+		 */
+		void setRemainingDepth(ply_t newDepth) {
+			remainingDepth = newDepth;
+		}
+
+		ply_t getRemainingDepth() const {
+			return remainingDepth;
 		}
 
 		/**

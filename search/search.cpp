@@ -77,10 +77,10 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 		return false;
 	}
 	assert(!position.isInCheck());
-	searchInfo.setNullmove();
 	
 	stack[ply + 1].doMove(position, searchInfo, Move::NULL_MOVE);
-	stack[ply + 1].setNodeType(SearchVariables::NodeType::CUT);
+	stack[ply + 1].setNullmove();
+	
 	if (searchInfo.remainingDepth > 2) {
 		searchInfo.bestValue = -negaMax(position, stack, ply + 1);
 	}
@@ -88,9 +88,8 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 		searchInfo.bestValue = -negaMaxLastPlys(position, stack, ply + 1);
 	}
 	stack[ply + 1].undoMove(position);
-
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, ply);
-	searchInfo.unsetNullmove();
+
 	const bool isCutoff = searchInfo.bestValue >= searchInfo.beta;
 	if (!isCutoff) {
 		position.computeAttackMasksForBothColors();

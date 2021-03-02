@@ -35,7 +35,7 @@ namespace ChessSearch {
 		 * Calculates the reduction by nullmove
 		 */
 		static uint32_t getNullmoveReduction(ply_t ply, int32_t remainingSearchDepth) {
-			return remainingSearchDepth > 3 ? 3 : 2;
+			return remainingSearchDepth >= 3 ? 3 : 2;
 		}
 
 		/**
