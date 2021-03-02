@@ -22,6 +22,7 @@
 #ifndef __WHATIF_H
 #define __WHATIF_H
 
+#include <ostream>
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
 #include "searchdef.h"
@@ -46,44 +47,56 @@ namespace ChessSearch {
 #endif
 
 	struct WhatIfVariables {
+
 		WhatIfVariables(const ComputingInfo& info, const SearchStack& stack, ply_t ply) {
+			_ttMove = "";
+			_cutoff = "";
+			_bestMove = "";
 			_ply = ply;
-			_alpha = stack[ply].alpha;
-			_beta = stack[ply].beta;
-			_bestValue = stack[ply].bestValue;
-			_remainingDepth = stack[ply].remainingDepth;
-			_bestMove = stack[ply].bestMove.getLAN();
-			_searchState = stack[ply].getSearchStateName();
+			const SearchVariables& variables = stack[ply];
+			_alpha = variables.alpha;
+			_beta = variables.beta;
+			_bestValue = variables.bestValue;
+			_remainingDepth = variables.remainingDepth;
+			_nodeType = variables.getNodeTypeName();
+			if (!variables.bestMove.isEmpty()) {
+				_bestMove = variables.bestMove.getLAN();
+			}
+			_searchState = variables.getSearchStateName();
 			_nodesSearched = info._nodesSearched;
-			_pv = stack[ply].isPVSearch() ? stack[ply].pvMovesStore.toString() : "";
+			_pv = variables.isPVSearch() ? variables.pvMovesStore.toString() : "";
+
 			if (_remainingDepth > 0) {
 				_curValue = -stack[ply + 1].bestValue;
-				_ttMove = stack[ply + 1].getTTMove().getLAN();
+				if (!stack[ply + 1].getTTMove().isEmpty()) {
+					_ttMove = stack[ply + 1].getTTMove().getLAN();
+				}
 				_cutoff = _cutoffString[int(stack[ply + 1].cutoff)];
 			}
 			
 		}
 
-		ostream& operator<<(ostream& stream) {
-			stream << "[w:" << _alpha << "," << _beta << "]"
-				<< "[bv:" << _bestValue << "]"
-				<< "[d:" << _remainingDepth << "]";
+		void printAll(ostream& stream = cout) {
+			stream 
+				<< "[w:" << std::setw(6) << _alpha << "," << std::setw(6) << _beta << "]"
+				<< "[bv:" << std::setw(6) << _bestValue << "]"
+				<< "[d:" << std::setw(2) << _remainingDepth << "]"
+				<< "[nt:" << std::setw(3) << _nodeType << "]";
+
 			if (_remainingDepth > 0) {
-				stream << "[v:" << _curValue << "]";
-				if (_cutoff != "") {
-					stream << "[c:" << _cutoff << "]";
-				}
-				else {
-					stream << "[ttm:" << _ttMove << "]";
-				}
-					
+				stream << "[v:" << std::setw(6) << _curValue << "]";
 			}
-			stream << "[" << "]"
-				<< "[bm:" << _bestMove << "]"
-				<< "[st:" << _searchState << "]"
-				<< "[n:" << _nodesSearched << "]"
-				<< "[pv:" << _pv << "]"
-				<< endl;
+
+			stream
+				<< "[c:" << std::setw(4) << _cutoff << "]"
+				<< "[ttm:" << std::setw(4) << _ttMove << "]"
+				<< "[bm:" << std::setw(4) << _bestMove << "]"
+				<< "[st:" << std::setw(6) << _searchState << "]"
+				<< "[n:" << std::setw(8) << _nodesSearched << "]";
+			if (_pv != "") {
+				stream << "[pv:" << _pv << "]";
+			}
+			stream << endl;
 		}
 
 		value_t _ply;
@@ -92,6 +105,7 @@ namespace ChessSearch {
 		value_t _bestValue;
 		value_t _curValue;
 		value_t _remainingDepth;
+		string _nodeType;
 		string _ttMove;
 		string _bestMove;
 		string _cutoff;
@@ -100,7 +114,6 @@ namespace ChessSearch {
 		string _pv;
 		static constexpr array<const char*, int(Cutoff::COUNT)> 
 			_cutoffString = { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY" };
-
 	};
 
 #if (DOWHATIF == false) 

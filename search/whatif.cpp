@@ -24,28 +24,8 @@ void WhatIf::init(const Board& board, const ComputingInfo& computingInfo, value_
 
 void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {
 	printMoves(stack, currentMove, ply);
-	printf("[w:%6ld,%6ld]", stack[ply].alpha, stack[ply].beta);
-	printf("[bv:%6ld]", stack[ply].bestValue);
-	printf("[d:%ld]", stack[ply].remainingDepth);
-	if (stack[ply].remainingDepth > 0) {
-		if (stack[ply + 1].cutoff == Cutoff::HASH) {
-			printf("[v:%6ld]", -stack[ply + 1].bestValue);
-			printf("[c:  HASH]");
-		}
-		else {
-			printf("[v:%6ld]", -stack[ply + 1].bestValue);
-			printf("[hm:%5s]", stack[ply + 1].getTTMove().getLAN().c_str());
-		}
-	}
-	printf("[bm:%5s]", stack[ply].bestMove.getLAN().c_str());
-	printf("[st:%8s]", stack[ply].getSearchStateName().c_str());
-	printf("[n:%10lld]", computingInfo._nodesSearched);
-	if (stack[ply].isPVSearch()) {
-		printf(" [PV:");
-		stack[ply].pvMovesStore.print(ply);
-		printf(" ]");
-	}
-	printf("\n");
+	WhatIfVariables variables(computingInfo, stack, ply);
+	variables.printAll();
 }
 
 void WhatIf::moveSelected(const Board& board, const ComputingInfo& computingInfo, Move currentMove, ply_t ply, bool inQsearch) {

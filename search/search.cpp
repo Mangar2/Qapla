@@ -79,7 +79,8 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	assert(!position.isInCheck());
 	searchInfo.setNullmove();
 	
-	stack[ply + 1].doMove(position, Move::NULL_MOVE);
+	stack[ply + 1].doMove(position, searchInfo, Move::NULL_MOVE);
+	stack[ply + 1].setNodeType(SearchVariables::NodeType::CUT);
 	if (searchInfo.remainingDepth > 2) {
 		searchInfo.bestValue = -negaMax(position, stack, ply + 1);
 	}
@@ -124,7 +125,7 @@ value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, ply
 
 		while (!(curMove = searchInfo.selectNextMove(position)).isEmpty()) {
 			
-			stack[ply + 1].doMove(position, curMove);
+			stack[ply + 1].doMove(position, searchInfo, curMove);
 			searchResult = -negaMaxLastPlys(position, stack, ply + 1);
 			stack[ply + 1].undoMove(position);
 
@@ -156,12 +157,13 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply) 
 	cutoff = hasCutoff<SearchFinding::NORMAL>(position, stack, searchInfo, ply);
 
 	if (!cutoff) {
+		// iid(position, stack, ply);
 		searchInfo.computeMoves(position);
 		searchInfo.extendSearch(position);
 
 		while (!(curMove = searchInfo.selectNextMove(position)).isEmpty()) {
 
-			stack[ply + 1].doMove(position, curMove);
+			stack[ply + 1].doMove(position, searchInfo, curMove);
 			if (searchInfo.remainingDepth > 2) {
 				searchResult = -negaMax(position, stack, ply + 1);
 			}
@@ -210,7 +212,7 @@ ComputingInfo Search::searchRoot(MoveGenerator& position, SearchStack& stack, Cl
 		const Move curMove = rootMove->getMove();
 		_computingInfo.setCurrentMove(curMove);
 
-		stack[1].doMove(position, curMove);
+		stack[1].doMove(position, searchInfo, curMove);
 		if (searchInfo.remainingDepth > 2) {
 			searchResult = -negaMax(position, stack, 1);
 		}

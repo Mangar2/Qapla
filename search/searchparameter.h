@@ -46,6 +46,14 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Calculates the reduction for internal iterative deepening
+		 */
+		static inline ply_t getIIDReduction(bool isPV)
+		{
+			return isPV ? 1 : 1;
+		}
+
+		/**
 		 * Calculates the late move reduction
 		 */
 		static ply_t getLateMoveReduction(bool pv, ply_t ply, uint32_t moveNo) {
@@ -69,6 +77,8 @@ namespace ChessSearch {
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 5;
 
 		static const bool DO_NULLMOVE = true;
+		static const bool DO_IID = true;
+		static const ply_t IID_MIN_DEPTH = 1;
 
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
 		static const bool USE_HASH_IN_QUIESCENSE = true;

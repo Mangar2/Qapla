@@ -205,7 +205,7 @@ public:
 			result = "null";
 		}
 		else if (isEmpty()) {
-			result = "empty";
+			result = "emty";
 		}
 		else {
 			result = "";

@@ -58,6 +58,13 @@ namespace ChessSearch {
 		};
 
 		/**
+		 * Returns true, if we are in an all search stage
+		 */
+		bool isAllSearch() {
+			return selectStage == MoveType::ALL;
+		}
+
+		/**
 		 * Initializes the move provider
 		 */
 		void init() {

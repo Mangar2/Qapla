@@ -116,8 +116,20 @@ namespace ChessSearch {
 		 * Compute internal iterative deepening
 		 */
 		void iid(MoveGenerator& position, SearchStack& stack, ply_t ply) {
+			if (!SearchParameter::DO_IID) return;
 			SearchVariables& searchInfo = stack[ply];
-			searchInfo.computeMoves(position);
+			if (searchInfo.remainingDepth <= SearchParameter::IID_MIN_DEPTH) return;
+			if (!searchInfo.isPVSearch() && !searchInfo.isCutNode()) return;
+			if (!searchInfo.getTTMove().isEmpty()) return;
+			searchInfo.remainingDepth -= SearchParameter::getIIDReduction(searchInfo.isPVSearch());
+			if (searchInfo.remainingDepth >= 3) {
+				cout << searchInfo.remainingDepth << endl;
+			}
+			value_t searchValue = negaMax(position, stack, ply);
+			if (!searchInfo.bestMove.isEmpty()) {
+				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);
+			}
+			searchInfo.setResearch();
 		}
 
 		/**
