@@ -421,6 +421,13 @@ namespace ChessSearch {
 		}
 
 		/**
+		 * Gets a pointer to the transposition tables
+		 */
+		TT* getTT() {
+			return ttPtr;
+		}
+
+		/**
 		 * Gets the hash fill rate in permill
 		 */
 		inline uint32_t getHashFullInPermill() {

@@ -155,8 +155,16 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply) 
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, searchInfo.previousMove, ply);
 	cutoff = hasCutoff<SearchFinding::NORMAL>(position, stack, searchInfo, ply);
 
+	if (ply == 1 && searchInfo.getTTMove().isEmpty()) {
+
+		cout << "no tt move " << position.computeBoardHash() 
+			<< "entry index " << searchInfo.getTT()->getTTEntryIndex(position.computeBoardHash())
+			<< endl;
+		
+	}
+
 	if (!cutoff) {
-		// iid(position, stack, ply);
+		iid(position, stack, ply);
 		searchInfo.computeMoves(position);
 		searchInfo.extendSearch(position);
 

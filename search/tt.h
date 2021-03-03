@@ -55,7 +55,7 @@ namespace ChessSearch {
 		/**
 		 * For assertions
 		 */
-		bool hasDrawEntry() {
+		bool hasDrawEntry() const {
 			for (uint32_t i = 0; i < _tt.size(); i++) {
 				if (_tt[i].alwaysUseValue()) {
 					return true;
@@ -68,7 +68,7 @@ namespace ChessSearch {
 		 * checks if the new entry is more valuable to store than the current entry
 		 * Tested, but not good: overwrite less, if no hash move is provided
 		 */
-		bool isNewEntryMoreValuable(uint32_t index, ply_t computedDepth, Move move) {
+		bool isNewEntryMoreValuable(uint32_t index, ply_t computedDepth, Move move) const {
 			bool result = isEntryFromFormerSearch(_tt[index]) ||
 				computedDepth >= _tt[index].getComputedDepth();
 			return result;
@@ -77,14 +77,14 @@ namespace ChessSearch {
 		/**
 		 * Gets the size of the transposition table in bytes
 		 */
-		size_t getSizeInBytes() { 
+		size_t getSizeInBytes() const { 
 			return _tt.capacity() * sizeof(TTEntry); 
 		}
 
 		/**
 		 * Computes the hash index of a hash key 
 		 */
-		int32_t	computeEntryIndex(hash_t hashKey) {
+		int32_t	computeEntryIndex(hash_t hashKey) const {
 			return int32_t(hashKey % _tt.capacity()) & ~1;
 		}
 
@@ -171,7 +171,7 @@ namespace ChessSearch {
 		 * Gets a valid tt entry index
 		 * @returns tt entry index with the correct hash signature or INVALID_INDEX
 		 */
-		uint32_t getTTEntryIndex(hash_t hashKey)
+		uint32_t getTTEntryIndex(hash_t hashKey) const
 		{
 			uint32_t index = computeEntryIndex(hashKey);
 			uint32_t result = INVALID_INDEX;
@@ -201,7 +201,7 @@ namespace ChessSearch {
 		/**
 		 * Checks, if the hash indicates a beta-cutoff situation
 		 */
-		bool isTTValueBelowBeta(hash_t hashKey, value_t beta, ply_t ply) {
+		bool isTTValueBelowBeta(hash_t hashKey, value_t beta, ply_t ply) const {
 			hash_t index = getTTEntryIndex(hashKey);
 			bool result = false;
 			if (index != INVALID_INDEX) {
@@ -213,7 +213,7 @@ namespace ChessSearch {
 		/**
 		 * Prints a full hash entry of two elements
 		 */
-		void printHash(hash_t hashKey)
+		void printHash(hash_t hashKey) const
 		{
 			uint32_t index = computeEntryIndex(hashKey);
 			printf("1. ");
@@ -234,7 +234,7 @@ namespace ChessSearch {
 		/**
 		 * Calculates an optimized amount of entries
 		 */
-		int32_t optimizeHashEntryAmount(int32_t sizeInKiloBytes)
+		int32_t optimizeHashEntryAmount(int32_t sizeInKiloBytes) const
 		{
 			int32_t newEntryAmount = sizeInKiloBytes * (1024 / sizeof(TTEntry));
 			if (newEntryAmount % 2 == 1) newEntryAmount--;
@@ -291,7 +291,7 @@ namespace ChessSearch {
 		/**
 		 * Prints a hash entry for debugging
 		 */
-		void printHashEntry(uint32_t index) {
+		void printHashEntry(uint32_t index) const {
 			auto& entry = _tt[index];
 			if (entry.isEmpty())
 			{
@@ -310,7 +310,7 @@ namespace ChessSearch {
 		/**
 		 * Gets the fill rate in percent only counting entries of current search
 		 */
-		uint32_t getHashFillRateInPermill() {
+		uint32_t getHashFillRateInPermill() const {
 			return uint32_t(uint64_t(_entries) * 1000ULL / _tt.capacity());
 		}
 
@@ -374,7 +374,7 @@ namespace ChessSearch {
 		/** 
 		 * returns true, if the entry is not from the current search
 		 */ 
-		bool isEntryFromFormerSearch(const TTEntry& entry) {
+		bool isEntryFromFormerSearch(const TTEntry& entry) const {
 			return _ageIndicator != entry.getAgeIndicator();
 		}
 

@@ -124,9 +124,7 @@ namespace ChessSearch {
 			ply_t formerDepth = searchInfo.getRemainingDepth();
 			searchInfo.setRemainingDepthAtPlyStart(
 				formerDepth - SearchParameter::getIIDReduction(searchInfo.isPVSearch()));
-			if (searchInfo.remainingDepth >= 3) {
-				cout << searchInfo.remainingDepth << endl;
-			}
+
 			value_t searchValue = negaMax(position, stack, ply);
 			if (!searchInfo.bestMove.isEmpty()) {
 				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);

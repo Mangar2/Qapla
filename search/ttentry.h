@@ -49,9 +49,9 @@ namespace ChessSearch {
 		TTEntry() { clear();  };
 
 		inline void setTT(hash_t hash) { _hash = hash; }
-		inline hash_t getHash() { return _hash; }
+		inline hash_t getHash() const { return _hash; }
 
-		bool isEmpty() { return _hash == 0; }
+		bool isEmpty() const { return _hash == 0; }
 		void clear() { 
 			_hash = 0;  
 			_info = 0;
@@ -144,7 +144,7 @@ namespace ChessSearch {
 		/**
 		 * Checks, if the stored hash value is below a beta value
 		 */
-		bool isTTValueBelowBeta(value_t probeBeta, ply_t ply) {
+		bool isTTValueBelowBeta(value_t probeBeta, ply_t ply) const {
 			value_t ttValue = getValue(probeBeta-1, probeBeta, 0, ply);
 			bool result = ttValue != NO_VALUE && (ttValue < probeBeta);
 			return result;
@@ -227,7 +227,7 @@ namespace ChessSearch {
 		/**
 		 * True, if the stored value is greater or equal to the computed value
 		 */
-		bool isValuePrecisionGreaterOrEqual()
+		bool isValuePrecisionGreaterOrEqual() const 
 		{
 			auto precision = getComputedPrecision();
 			return (precision == GREATER_OR_EQUAL) || (precision == EXACT);
@@ -236,7 +236,7 @@ namespace ChessSearch {
 		/**
 		 * True, if the stored value is less or equal to the computed value
 		 */
-		bool isValuePrecisionLesserOrEqual()
+		bool isValuePrecisionLesserOrEqual() const
 		{
 			auto precision = getComputedPrecision();
 			return (precision == LESSER_OR_EQUAL) || (precision == EXACT);
