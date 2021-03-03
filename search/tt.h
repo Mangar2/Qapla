@@ -110,27 +110,25 @@ namespace ChessSearch {
 			if (_tt[index].isEmpty())
 			{
 				_entries++;
+				set(index, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
 			}
 			else if (isNewEntryMoreValuable(index, computedDepth, move))
 			{
-				bool hashIsDifferent = hashKey != _tt[index + 1].getHash();
+				bool hashIsDifferent = hashKey != _tt[index].getHash();
 				if (hashIsDifferent && _tt[index + 1].doOverwriteAlwaysReplaceEntry(
 					positionValue, alpha, beta, computedDepth)) 
 				{
 					if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
 					_tt[index + 1] = _tt[index];
 				}
+				set(index, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
 			}
-			else if (hashKey != _tt[index + 1].getHash())
+			else if (_tt[index + 1].doOverwriteAlwaysReplaceEntry(positionValue, alpha, beta, computedDepth))
 			{
-				if (_tt[index + 1].doOverwriteAlwaysReplaceEntry(
-					positionValue, alpha, beta, computedDepth)) 
-				{
-					if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
-					index++;
-				}
+				if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
+				set(index + 1, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
 			}
-			set(index, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+
 			return index;
 		}
 
@@ -358,7 +356,10 @@ namespace ChessSearch {
 			auto& entry = _tt[index];
 			entry.setInfo(computedDepth, _ageIndicator, nullmoveThreat);
 			entry.setValue(positionValue, alpha, beta, ply);
-			entry.setMove(move);
+			// Keep the hash move, if the hash keys are identical and the new entry does not provide a move
+			if (!move.isEmpty() || hashKey != entry.getHash()) {
+				entry.setMove(move);
+			}
 			entry.setTT(hashKey);
 		}
 

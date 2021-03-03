@@ -77,7 +77,7 @@ namespace ChessSearch {
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 5;
 
 		static const bool DO_NULLMOVE = true;
-		static const bool DO_IID = true;
+		static const bool DO_IID = false;
 		static const ply_t IID_MIN_DEPTH = 1;
 
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
