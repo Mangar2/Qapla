@@ -121,7 +121,9 @@ namespace ChessSearch {
 			if (searchInfo.remainingDepth <= SearchParameter::IID_MIN_DEPTH) return;
 			if (!searchInfo.isPVSearch() && !searchInfo.isCutNode()) return;
 			if (!searchInfo.getTTMove().isEmpty()) return;
-			searchInfo.remainingDepth -= SearchParameter::getIIDReduction(searchInfo.isPVSearch());
+			ply_t formerDepth = searchInfo.getRemainingDepth();
+			searchInfo.setRemainingDepthAtPlyStart(
+				formerDepth - SearchParameter::getIIDReduction(searchInfo.isPVSearch()));
 			if (searchInfo.remainingDepth >= 3) {
 				cout << searchInfo.remainingDepth << endl;
 			}
@@ -129,7 +131,7 @@ namespace ChessSearch {
 			if (!searchInfo.bestMove.isEmpty()) {
 				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);
 			}
-			searchInfo.setResearch();
+			searchInfo.setResearch(formerDepth);
 		}
 
 		/**

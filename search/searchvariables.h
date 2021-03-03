@@ -99,10 +99,10 @@ namespace ChessSearch {
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setResearch() {
+		void setResearch(ply_t depth) {
 			alpha = alphaAtPlyStart;
 			beta = betaAtPlyStart;
-			remainingDepth = remainingDepthAtPlyStart;
+			setRemainingDepthAtPlyStart(depth);
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
 			bestMove.setEmpty();
@@ -258,20 +258,17 @@ namespace ChessSearch {
 		void setNullmove() {
 			_searchState = SearchFinding::NULLMOVE;
 			setNodeType(NodeType::CUT);
-			remainingDepth -= SearchParameter::getNullmoveReduction(ply, remainingDepth);
-			remainingDepthAtPlyStart = remainingDepth;
+			setRemainingDepthAtPlyStart(remainingDepth - 
+				SearchParameter::getNullmoveReduction(ply, remainingDepth));
 			alpha = beta - 1;
 		}
 
 		/**
-		 * Set the search variables to a nullmove search
+		 * Search depth remaining
 		 */
-		void unsetNullmove() {
-			_searchState = SearchFinding::NORMAL;
-			remainingDepth = remainingDepthAtPlyStart;
-			alpha = alphaAtPlyStart;
-			// Nullmoves are never done in check
-			sideToMoveIsInCheck = false;
+		void setRemainingDepthAtPlyStart(ply_t newDepth) {
+			remainingDepthAtPlyStart = newDepth;
+			remainingDepth = newDepth;
 		}
 
 		/**

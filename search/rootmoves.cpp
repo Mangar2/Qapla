@@ -58,7 +58,7 @@ bool RootMove::doSearch(const SearchVariables& variables) const {
 	if (_isExcluded) {
 		return false;
 	}
-	if (_depthOfLastSearch < variables.remainingDepthAtPlyStart) {
+	if (_depthOfLastSearch < variables.getRemainingDepth()) {
 		return true;
 	}
 	// If evaluated value was outside the window and is now inside the window, we need to search again
