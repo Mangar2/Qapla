@@ -30,7 +30,7 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& sear
 	if (!SearchParameter::DO_NULLMOVE) {
 		result = false;
 	}
-	else if (searchInfo.remainingDepth <= 2) {
+	else if (searchInfo.remainingDepth <= SearchParameter::NULLMOVE_REMAINING_DEPTH) {
 		result = false;
 	}
 	else if (searchInfo.noNullmove) {

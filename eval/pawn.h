@@ -100,7 +100,7 @@ namespace ChessEval {
 			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
 			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
 
-			value_t result = position.getMaterialValue().endgame();
+			value_t result = position.getMaterialAndPSTValue().endgame();
 			result += computePawnValueNoPieceButPawn<WHITE>(position, results, moveRay);
 			result -= computePawnValueNoPieceButPawn<BLACK>(position, results, moveRay);
 

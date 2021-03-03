@@ -216,6 +216,13 @@ namespace ChessBasics {
 		 * Gets the material balance value of the board
 		 */
 		inline auto getMaterialValue() const {
+			return _materialBalance.getMaterialValue();
+		}
+
+		/**
+		 * Gets the material balance value of the board
+		 */
+		inline auto getMaterialAndPSTValue() const {
 			return _materialBalance.getMaterialValue() + _pstBonus;
 		}
 

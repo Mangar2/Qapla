@@ -44,7 +44,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 	if (PRINT) printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercentV2);
 	
 	// Add material to the evaluation
-	value_t material = board.getMaterialValue().getValue(evalResults.midgameInPercentV2);
+	value_t material = board.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
 	result += material;
 	if (PRINT) printf("Marerial            : %ld\n", material);
 
@@ -109,10 +109,7 @@ void Eval::printEval(MoveGenerator& board) {
 
 	const value_t endGameResult = EvalEndgame::print(board, evalValue);
 
-	if (endGameResult != evalValue) {
-		evalValue = endGameResult;
-	}
-	else {
+	if (endGameResult == evalValue) {
 		if (evalResults.midgameInPercent > 0) {
 			KingAttack::print(board, evalResults);
 		}

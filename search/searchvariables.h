@@ -171,7 +171,7 @@ namespace ChessSearch {
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
 			const Move move = entry.getMove();
 			moveProvider.setTTMove(move);
-
+			
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
 				eval = bestValue;
