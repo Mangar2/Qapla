@@ -444,6 +444,7 @@ namespace ChessSearch {
 			printf("[hm:%5s]", getTTMove().getLAN().c_str());
 			printf("[bm:%5s]", bestMove.getLAN().c_str());
 			printf("[st:%8s]", getSearchStateName().c_str());
+			printf("[nt:%4s]", getNodeTypeName().c_str());
 			if (isPVSearch()) {
 				printf(" [PV:");
 				pvMovesStore.print(ply);

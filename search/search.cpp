@@ -161,7 +161,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply) 
 		searchInfo.extendSearch(position);
 
 		while (!(curMove = searchInfo.selectNextMove(position)).isEmpty()) {
-
 			stack[ply + 1].doMove(position, searchInfo, curMove);
 			if (searchInfo.remainingDepth > 2) {
 				searchResult = -negaMax(position, stack, ply + 1);

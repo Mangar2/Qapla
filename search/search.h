@@ -116,19 +116,33 @@ namespace ChessSearch {
 		 * Compute internal iterative deepening
 		 */
 		void iid(MoveGenerator& position, SearchStack& stack, ply_t ply) {
-			if (!SearchParameter::DO_IID) return;
 			SearchVariables& searchInfo = stack[ply];
-			if (searchInfo.remainingDepth <= SearchParameter::IID_MIN_DEPTH) return;
-			if (!searchInfo.isPVSearch() && !searchInfo.isCutNode()) return;
+			bool isPV = searchInfo.isPVSearch();
+
+			if (!SearchParameter::DO_IID) return;
+			if (searchInfo.remainingDepth <= SearchParameter::getIIDMinDepth(isPV)) return;
 			if (!searchInfo.getTTMove().isEmpty()) return;
+			if (!isPV && !searchInfo.isCutNode()) return;
+			if (!isPV && position.isInCheck()) return;
+
+			static uint32_t iidCount[2] = { 0, 0 };
+			static uint32_t iidSuccess[2] = { 0, 0 };
+ 			iidCount[isPV]++;
+
 			ply_t formerDepth = searchInfo.getRemainingDepth();
 			searchInfo.setRemainingDepthAtPlyStart(
-				formerDepth - SearchParameter::getIIDReduction(searchInfo.isPVSearch()));
+				formerDepth - SearchParameter::getIIDReduction(formerDepth, isPV));
 
 			value_t searchValue = negaMax(position, stack, ply);
 			if (!searchInfo.bestMove.isEmpty()) {
 				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);
+				iidSuccess[isPV]++;
 			}
+			
+			if (false) cout << "IDD rate; PV count: " << iidCount[1] << " PV success: " << iidSuccess[1]
+				<< " Non PV count: " << iidCount[0] << " Non PV success: " << iidSuccess[0]
+				<< endl; 
+
 			searchInfo.setResearch(formerDepth);
 		}
 

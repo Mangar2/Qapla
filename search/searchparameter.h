@@ -48,9 +48,17 @@ namespace ChessSearch {
 		/**
 		 * Calculates the reduction for internal iterative deepening
 		 */
-		static inline ply_t getIIDReduction(bool isPV)
+		static inline ply_t getIIDReduction(int32_t remainingSearchDepth, bool isPV)
 		{
-			return isPV ? 1 : 1;
+			return isPV ? 2 : 4;
+		}
+
+		/**
+		 * Calculates the minimal depth for internal iterative deepening
+		 */
+		static inline ply_t getIIDMinDepth(bool isPV)
+		{
+			return isPV ? 4 : 6;
 		}
 
 		/**
@@ -79,8 +87,7 @@ namespace ChessSearch {
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 2;
 
-		static const bool DO_IID = false;
-		static const ply_t IID_MIN_DEPTH = 1;
+		static const bool DO_IID = true;
 
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
 		static const bool USE_HASH_IN_QUIESCENSE = true;
