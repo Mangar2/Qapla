@@ -122,7 +122,7 @@ namespace ChessSearch {
 			if (!SearchParameter::DO_IID) return;
 			if (searchInfo.remainingDepth <= SearchParameter::getIIDMinDepth(isPV)) return;
 			if (!searchInfo.getTTMove().isEmpty()) return;
-			if (!isPV && !searchInfo.isCutNode()) return;
+			if (!isPV && (!SearchParameter::DO_IID_FOR_CUT_NODES || !searchInfo.isCutNode())) return;
 			if (!isPV && position.isInCheck()) return;
 
 			static uint32_t iidCount[2] = { 0, 0 };
