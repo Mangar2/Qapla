@@ -54,7 +54,7 @@ namespace ChessEval {
 		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   0,  0,  0,  0, 0 };
 		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  20,  35,  50,  70, 120, 0 };
 		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  35, 50, 70, 120, 0 };
-		static constexpr FileArray_t PPASSED_PAWN_THREAT_VALUE = { 0, 10,  20,  35, 50, 70, 120, 0 };
+		static constexpr FileArray_t PASSED_PAWN_THREAT_VALUE = { 0, 0,  0,  25, 50, 100, 200, 0 };
 		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 15,  25,  40, 60, 85, 140, 0 };
 		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
 
@@ -115,17 +115,43 @@ namespace ChessEval {
 			return result;
 		}
 
-		template <Piece COLOR>
+		template <bool PRINT>
 		static EvalValue evalPassedPawnThreads(const MoveGenerator& position, const EvalResults& results) {
-			Piece OPPONENT = switchColor(COLOR);
+			return
+				evalPassedPawnThreads<WHITE, PRINT>(position, results)
+				- evalPassedPawnThreads<BLACK, PRINT>(position, results);
+
+		}
+
+		template <Piece COLOR, bool PRINT>
+		static EvalValue evalPassedPawnThreads(const MoveGenerator& position, const EvalResults& results) {
+			value_t value = 0;
+			const Piece OPPONENT = switchColor(COLOR);
 			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
 			bitBoard_t pp = results.passedPawns[COLOR];
 			if (pp == 0) return 0;
 			bitBoard_t supported = position.attackMask[COLOR] & ~position.attackMask[OPPONENT];
-			bitBoard_t free = ~position.attackMask[OPPONENT] & ~position.getPiecesOfOneColorBB<OPPONENT>();
+			bitBoard_t stopped = position.getPiecesOfOneColorBB<OPPONENT>() | 
+				(position.attackMask[OPPONENT] & ~position.attackMask[COLOR]);  
+
 			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
 				Square square = lsb(pp);
+				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
+				if (threatValue == 0) continue;
+				value_t divisor = 1;
+				for (Square square = lsb(pp) + dir; ; square += dir) {
+					bitBoard_t pawn = 1ULL << square;
+					if (stopped & pawn) break;
+					bool isSupported = (supported & pawn) != 0;
+					value += threatValue * (1 + isSupported) / divisor;
+					divisor++;
+					if (COLOR == WHITE && square > Square::H7) break;
+					if (COLOR == BLACK && square < Square::A2) break;
+				}
 			}
+			if (PRINT) cout << colorToString(COLOR) << " passed pawn threat: "
+				<< std::right << std::setw(10) << value << endl;
+			return value;
 		}
 
 	private:
