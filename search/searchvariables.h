@@ -99,7 +99,7 @@ namespace ChessSearch {
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setResearch(ply_t depth) {
+		void setForResearch(MoveGenerator& position, ply_t depth) {
 			alpha = alphaAtPlyStart;
 			beta = betaAtPlyStart;
 			setRemainingDepthAtPlyStart(depth);
@@ -108,8 +108,8 @@ namespace ChessSearch {
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			selectFirstSearchState();
-			moveProvider.init();
 			cutoff = Cutoff::NONE;
+			position.computeAttackMasksForBothColors();
 		}
 
 		/**

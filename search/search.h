@@ -143,7 +143,7 @@ namespace ChessSearch {
 				<< " Non PV count: " << iidCount[0] << " Non PV success: " << iidSuccess[0]
 				<< endl; 
 
-			searchInfo.setResearch(formerDepth);
+			searchInfo.setForResearch(position, formerDepth);
 		}
 
 		/**
