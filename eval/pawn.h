@@ -118,11 +118,11 @@ namespace ChessEval {
 		static EvalValue evalPassedPawnThreads(const MoveGenerator& position, const EvalResults& results) {
 			Piece OPPONENT = switchColor(COLOR);
 			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
-			bitBoard_t pp = passedPawns[COLOR];
+			bitBoard_t pp = results.passedPawns[COLOR];
 			if (pp == 0) return 0;
 			bitBoard_t supported = position.attackMask[COLOR] & ~position.attackMask[OPPONENT];
-			bitBoard_t free = ~position.attackMask[switch (COLOR)] & ~position.getPiecesOfOneColorBB<OPPONENT>();
-			for (bitBoard_t pp = passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
+			bitBoard_t free = ~position.attackMask[OPPONENT] & ~position.getPiecesOfOneColorBB<OPPONENT>();
+			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
 				Square square = lsb(pp);
 			}
 		}
