@@ -46,7 +46,7 @@ KingAttack::InitStatics::InitStatics() {
 		if (getRank(kingSquare) == Rank::R8) {
 			attackArea |= BitBoardMasks::shift<SOUTH>(attackArea);
 		}
-		// _kingAttackBB[WHITE][kingSquare] = attackArea | BitBoardMasks::shift<NORTH>(attackArea);
-		// _kingAttackBB[BLACK][kingSquare] = attackArea | BitBoardMasks::shift<SOUTH>(attackArea);
+		_kingAttackBB[WHITE][kingSquare] = attackArea; // | BitBoardMasks::shift<NORTH>(attackArea);
+		_kingAttackBB[BLACK][kingSquare] = attackArea; // | BitBoardMasks::shift<SOUTH>(attackArea);
 	}
 }
