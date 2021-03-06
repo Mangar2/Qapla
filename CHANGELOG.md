@@ -1,8 +1,31 @@
 # Quabla Change log
 Quabla chess engine
 
-## 0.0.52
-- Playing strenght: about 2350 ELO
+## 0.1.? next to come ... soon
+
+- Playing strength: ???
+- Bugfix
+	- Serious bugfix in transposition table replacement strategy + 10 - 20 ELO (depends on the time control and the tt size)
+- Search
+	- Internal iterative deepening + 10 ELO (after several bugfixes). Do it in PV situations as well as in CUT nodes where king is not in check
+	- Added node type detection due to iid (of no big interrest now, but needed for parallelisation)
+- Refactoring
+	- I first started with an iterative search (instead of a recursive one). This leads to several debts left making it hard to implement iid. This has been changed/corrected
+
+## 0.1.1 2021-02-27
+
+- Playing strength: about 2400 ELO (no significant improve compared to 0.0.52)
+- Implemented a compiler option to support older hardware (without pop-count)
+- UCI
+	- Implementing pondering
+	- Implemented "Lower bound"/"Upper bound" information to info strings
+- Search
+	- Improved time management (use more time on drop/fail low situation)
+	- Implemented a pawn hash (no speed improvement measured, still kept it for later use with more pawn eval terms)
+
+## 0.0.52 2021-02-18
+
+- Playing strenght: about 2400 ELO
 - Bypassed Spike 0.8 playing strength
 - Bugfixing
 	- Fixed bugs where the transition table kept draw values for replaying moves from earlier games or after undo moves
@@ -26,25 +49,29 @@ Quabla chess engine
 	- Added piece square tables + 30 ELO
 	- Added futility pruning (conservative) + 25 ELO
 
-## 0.0.14
+## 0.0.14 2021-01-23
+
 - Playing strength: about 2250 ELO
 	- Improved parameters for King security (+10 elo)
 	- Improved parameters for passed pawns  (+30 elo) ; Identified new parameters for passed pawns by playing very fast games (5s + 0.1ms)
 
-## 0.0.12
+## 0.0.12 2021-01-21
+
 - UCI
 	- Now sending thinking updates every second
 - Playing strength unchanged: 2200 ELO
 - King security more balanced
 - Refactoring ...
 
-## 0.0.6 2021-01-18 minor change
+## 0.0.6 2021-01-18
+
 - Playing strengh: 2200 Elo 
 - Eval
 	- Added King security. Counts non defended attacks / double attacks around the king (3x4 fields, two to the north). +65 Elo
 	- Added an "Endgame" factor - reducing the king attack value based on the amount of pieces on the field
 
-## 0.0.5 2021-01-17 minor change
+## 0.0.5 2021-01-17
+
 - Playing strenght: 2100 Elo
 - UCI support added (not feature complete, but working)
 - Refactoring of several code parts
@@ -58,7 +85,7 @@ Quabla chess engine
 - Clock
 	- Reduce calculating time to 50%, if clock is below 10 seconds
 
-## 0.0.3 minor change
+## 0.0.3 2021-01-12
 
 - Playing strenght: 2000 Elo
 - Implemented Nullmove, R=3 (2 near tree-leaf), not in endgame withouth range pieces, not going directly to quiescence search. (+ 70-80 ELO)
@@ -71,7 +98,7 @@ Quabla chess engine
 	- Positions already visited in the game are now rated (near) draw in the search
 	- Hanging fixed when calling new or setboard in analyze mode
 
-## 0.0.2
+## 0.0.2 2021-01-10
 
 - Winboard: 
 	- Added "remove" command
