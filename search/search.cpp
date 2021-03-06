@@ -19,6 +19,7 @@
 
 #include "search.h"
 #include "whatif.h"
+#include "quiescence.h"
 
 using namespace ChessSearch;
 
@@ -108,8 +109,9 @@ value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, ply
 	value_t searchResult;
 	Move curMove;
 
-	if (stack[ply - 1].remainingDepth == 0) {
-		return QuiescenceSearch::search(position, _computingInfo, searchInfo.previousMove,
+	const ply_t remainingDepth = stack[ply - 1].remainingDepth + position.isInCheck();
+	if (remainingDepth <= 0) {
+		return Quiescence::search(position, _computingInfo, searchInfo.previousMove,
 			-stack[ply - 1].beta, -stack[ply - 1].alpha, ply);
 	}
 

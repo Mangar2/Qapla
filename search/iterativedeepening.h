@@ -25,6 +25,7 @@
 #include <algorithm>
 #include "../movegenerator/movegenerator.h"
 #include "movehistory.h"
+#include "quiescence.h"
 #include "search.h"
 #include "../interface/clocksetting.h"
 #include "computinginfo.h"
@@ -41,7 +42,7 @@ namespace ChessSearch {
 	public:
 		IterativeDeepening() { 
 			_tt.setSizeInKilobytes(32736); 
-			QuiescenceSearch::setTT(&_tt);
+			Quiescence::setTT(&_tt);
 		}
 
 		static const uint64_t ESTIMATED_TIME_FACTOR_FOR_NEXT_DEPTH = 4;

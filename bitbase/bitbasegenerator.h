@@ -26,11 +26,10 @@
 #include "bitbase.h"
 #include "bitbaseindex.h"
 #include "bitbasereader.h"
-#include "../search/quiescencesearch.h"
 #include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
-//#include "ThinkingTimeManager.h"
 #include <iostream>
+
 using namespace std;
 using namespace ChessMoveGenerator;
 using namespace ChessSearch;

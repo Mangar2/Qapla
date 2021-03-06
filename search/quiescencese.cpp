@@ -17,8 +17,8 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  */
 
-#include "quiescencesearch.h"
+#include "quiescence.h"
 
 using namespace ChessSearch;
 
-TT* QuiescenceSearch::_tt;
+TT* Quiescence::_tt;

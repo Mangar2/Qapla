@@ -37,34 +37,16 @@ using namespace ChessEval;
 
 namespace ChessSearch {
 
-	class QuiescenceSearch {
+	class Quiescence {
 
 	private:
-		QuiescenceSearch() {}
+		Quiescence() {}
 
 	public:
 
 		/**
-		 * Performs the quiescense search or evade search, if in check
+		 * Sets a pointer to the transposition table for later use
 		 */
-		static value_t search(
-			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove, 
-			value_t alpha, value_t beta, ply_t ply) 
-		{
-			value_t result;
-			BoardState boardState = board.getBoardState();
-
-			if (board.isInCheck())
-			{
-				result = searchEvades(board, computingInfo, lastMove, alpha, beta, ply);
-			}
-			else {
-				result = quiescenseSearch(board, computingInfo, lastMove, alpha, beta, ply);
-			}
-
-			return result;
-		}
-
 		static void setTT(TT* tt) { _tt = tt; }
 
 	private:
@@ -104,49 +86,11 @@ namespace ChessSearch {
 			return bestValue;
 		}
 
-		/**
-		 * Performs a full one-ply search for a check position (only evades are possible)
-		 */
-		static value_t searchEvades(
-			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove, 
-			value_t alpha, value_t beta, ply_t ply) 
-		{
-			value_t valueOfNextPlySearch;
-			Move move;
-			MoveProvider moveProvider;
-			computingInfo._nodesSearched++;
-			WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);
-
-			moveProvider.computeEvades(board, lastMove);
-
-			value_t bestValue = moveProvider.checkForGameEnd(board, ply);
-
-			while (!(move = moveProvider.selectNextMove(board)).isEmpty()) {
-
-				BoardState boardState = board.getBoardState();
-				board.doMove(move);
-				valueOfNextPlySearch = -quiescenseSearch(board, computingInfo, move, -beta, -alpha, ply + 1);
-				board.undoMove(move, boardState);
-
-				if (valueOfNextPlySearch > bestValue) {
-					bestValue = valueOfNextPlySearch;
-					if (bestValue > alpha) {
-						alpha = bestValue;
-						if (bestValue >= beta) {
-							break;
-						}
-
-					}
-				}
-			}
-			WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);
-			return bestValue;
-		}
-
+	public:
 		/**
 		 * Performs the quiescense search
 		 */
-		static value_t quiescenseSearch(
+		static value_t search(
 			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove, 
 			value_t alpha, value_t beta, ply_t ply)
 		{
@@ -181,7 +125,7 @@ namespace ChessSearch {
 
 					BoardState boardState = board.getBoardState();
 					board.doMove(move);
-					valueOfNextPlySearch = -quiescenseSearch(board, computingInfo, move, -beta, -alpha, ply + 1);
+					valueOfNextPlySearch = -search(board, computingInfo, move, -beta, -alpha, ply + 1);
 					board.undoMove(move, boardState);
 
 					if (valueOfNextPlySearch > bestValue) {

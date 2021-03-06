@@ -367,7 +367,6 @@ namespace ChessSearch {
 		 * Sets the transposition table capacity
 		 */
 		void setCapacity(uint64_t newCapacity) {
-			// _tt.reserve(newCapacity);
 			_tt.resize(newCapacity);
 			clear();
 		}

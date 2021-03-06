@@ -114,11 +114,11 @@
     <ClCompile Include="basics\piecesignature.cpp">
       <Filter>basics</Filter>
     </ClCompile>
-    <ClCompile Include="search\quiescencesearch.cpp">
-      <Filter>search</Filter>
-    </ClCompile>
     <ClCompile Include="eval\pawn.cpp">
       <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="search\quiescencese.cpp">
+      <Filter>search</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -248,9 +248,6 @@
     <ClInclude Include="search\search.h">
       <Filter>search</Filter>
     </ClInclude>
-    <ClInclude Include="search\quiescencesearch.h">
-      <Filter>search</Filter>
-    </ClInclude>
     <ClInclude Include="pgn\pgntokenizer.h">
       <Filter>pgn</Filter>
     </ClInclude>
@@ -361,6 +358,9 @@
     </ClInclude>
     <ClInclude Include="basics\bits.h">
       <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="search\quiescence.h">
+      <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

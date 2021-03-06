@@ -1528,7 +1528,7 @@
     <ClCompile Include="pgn\pgntokenizer.cpp" />
     <ClCompile Include="Qapla.cpp" />
     <ClCompile Include="search\perft.cpp" />
-    <ClCompile Include="search\quiescencesearch.cpp" />
+    <ClCompile Include="search\quiescencese.cpp" />
     <ClCompile Include="search\rootmoves.cpp" />
     <ClCompile Include="search\search.cpp" />
     <ClCompile Include="search\whatif.cpp" />
@@ -1598,7 +1598,7 @@
     <ClInclude Include="search\killermove.h" />
     <ClInclude Include="search\moveprovider.h" />
     <ClInclude Include="search\pv.h" />
-    <ClInclude Include="search\quiescencesearch.h" />
+    <ClInclude Include="search\quiescence.h" />
     <ClInclude Include="search\rootmoves.h" />
     <ClInclude Include="search\search.h" />
     <ClInclude Include="search\searchdef.h" />

@@ -29,7 +29,6 @@
 #include "searchstack.h"
 #include "rootmoves.h"
 #include "../eval/eval.h"
-#include "quiescencesearch.h"
 #include "clockmanager.h"
 #include "tt.h"
 #include "whatif.h"
