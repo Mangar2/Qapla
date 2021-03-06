@@ -62,7 +62,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 		evalValue += Knight::eval<PRINT>(board, evalResults);
 		evalValue += Queen::eval<PRINT>(board, evalResults);
 		evalValue += Threat::eval<PRINT>(board, evalResults);
-		// evalValue += Pawn::evalPassedPawnThreads<PRINT>(board, evalResults);
+		evalValue += Pawn::evalPassedPawnThreads<PRINT>(board, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
 
 		if (evalResults.midgameInPercent > 0) {

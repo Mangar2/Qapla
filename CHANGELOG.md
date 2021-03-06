@@ -9,6 +9,8 @@ Quabla chess engine
 - Search
 	- Internal iterative deepening + 10 ELO (after several bugfixes). Do it in PV situations as well as in CUT nodes where king is not in check
 	- Added node type detection due to iid (of no big interrest now, but needed for parallelisation)
+- Eval
+	- Added a term for pawn phalanxx and pawn chains + 2 - 5 ELO (have expected more, still kept it and the pawn hash now has a function :-) )
 - Refactoring
 	- I first started with an iterative search (instead of a recursive one). This leads to several debts left making it hard to implement iid. This has been changed/corrected
 
