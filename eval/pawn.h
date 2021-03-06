@@ -139,7 +139,7 @@ namespace ChessEval {
 				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
 				if (threatValue == 0) continue;
 				value_t divisor = 1;
-				for (Square square = lsb(pp) + dir; divisor < 2; square += dir) {
+				for (Square square = lsb(pp) + dir; divisor < 4; square += dir) {
 					bitBoard_t pawn = 1ULL << square;
 					if (stopped & pawn) break;
 					bool isSupported = (supported & pawn) != 0;
