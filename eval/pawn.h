@@ -116,15 +116,15 @@ namespace ChessEval {
 		}
 
 		template <bool PRINT>
-		static EvalValue evalPassedPawnThreads(const MoveGenerator& position, const EvalResults& results) {
+		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
 			return
-				evalPassedPawnThreads<WHITE, PRINT>(position, results)
-				- evalPassedPawnThreads<BLACK, PRINT>(position, results);
+				evalPassedPawnThreats<WHITE, PRINT>(position, results)
+				- evalPassedPawnThreats<BLACK, PRINT>(position, results);
 
 		}
 
 		template <Piece COLOR, bool PRINT>
-		static EvalValue evalPassedPawnThreads(const MoveGenerator& position, const EvalResults& results) {
+		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
 			value_t value = 0;
 			const Piece OPPONENT = switchColor(COLOR);
 			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
@@ -137,7 +137,9 @@ namespace ChessEval {
 			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
 				Square square = lsb(pp);
 				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
+				bool isAttacked = (position.attackMask[OPPONENT] & (1ULL << square)) != 0;
 				if (threatValue == 0) continue;
+				threatValue /= (1 + isAttacked);
 				value_t divisor = 1;
 				for (Square square = lsb(pp) + dir; divisor < 4; square += dir) {
 					bitBoard_t pawn = 1ULL << square;
