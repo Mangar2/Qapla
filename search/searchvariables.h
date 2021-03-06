@@ -177,6 +177,7 @@ namespace ChessSearch {
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
 				eval = bestValue;
+				if (isPVSearch()) cout << "************************************* cutoff hash in PV Search, always use value" << endl;
 				return true;
 			}
 
@@ -377,7 +378,8 @@ namespace ChessSearch {
 		void setTTEntry(hash_t hashKey) {
 			bool drawByRepetetivePositionValue = (bestValue == 0);
 			if (!drawByRepetetivePositionValue) {
-				ttPtr->setEntry(hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+				ply_t depth = max(remainingDepthAtPlyStart, 0);
+				ttPtr->setEntry(hashKey, depth, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 				// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 			}
 		}
