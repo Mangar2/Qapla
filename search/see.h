@@ -56,6 +56,7 @@ namespace ChessSearch {
 	class SEE {
 	public:
 		SEE() {
+			valueOfNextPieceOnTargetField = 0;
 			nodeCountStatistic = 0;
 		}
 

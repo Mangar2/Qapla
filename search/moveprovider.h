@@ -52,6 +52,7 @@ namespace ChessSearch {
 
 		MoveProvider() : curMoveNo(0) {
 			selectStage = MoveType::PV + 1;
+			currentStage = selectStage;
 			pvMove;
 			hashMove;
 			previousMove;

@@ -50,6 +50,8 @@ namespace ChessSearch {
 		typedef uint32_t pvIndex_t;
 
 		SearchVariables() {
+			_searchState = SearchFinding::PV;
+
 			cutoff = Cutoff::NONE;
 		};
 

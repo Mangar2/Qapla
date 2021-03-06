@@ -91,7 +91,7 @@ namespace ChessBitbase {
 		template<Piece COLOR>
 		string getPieceStringOfColor() {
 			string result = "K";
-			const uint32_t indexWithoutKings = 2;
+			const int32_t indexWithoutKings = 2;
 			for (int32_t pieceNo = getNumberOfPieces() - 1; pieceNo >= indexWithoutKings; pieceNo--) {
 				if (getPieceColor(getPiece(pieceNo)) == COLOR) {
 					result += toupper(pieceToChar(getPieceType(getPiece(pieceNo))));
@@ -221,7 +221,7 @@ namespace ChessBitbase {
 		template <bool ONLY_PIECES>
 		void bubbleSort() {
 			if (_numberOfPieces == 0) return;
-			const uint32_t indexWithoutKings = 2;
+			const int32_t indexWithoutKings = 2;
 			for (int32_t outerLoop = _numberOfPieces - 1; outerLoop > indexWithoutKings; outerLoop--) {
 				for (int32_t innerLoop = indexWithoutKings + 1; innerLoop <= outerLoop; innerLoop++) {
 					if (_pieces[innerLoop - 1] > _pieces[innerLoop]) {

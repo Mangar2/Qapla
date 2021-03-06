@@ -41,6 +41,8 @@ namespace ChessBitbase {
 		//static const uint64_t debugIndex =  2194203;
 		static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF;
 		BitbaseGenerator() {
+			amountOfDirectDrawOrLoss = 0;
+			amountOfIllegalPositions = 0;
 		}
 
 		/**

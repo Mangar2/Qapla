@@ -36,7 +36,7 @@ namespace ChessBitbase {
 
 	class Bitbase {
 	public:
-		Bitbase(bool loaded = false) : _loaded(loaded) {}
+		Bitbase(bool loaded = false) : _sizeInBit(0), _loaded(loaded) {}
 
 
 		/**

@@ -43,7 +43,7 @@ namespace ChessSearch {
 
 	class Search {
 	public:
-		Search() {}
+		Search() : _clockManager(0) {}
 
 		/**
 		 * Starts a new search

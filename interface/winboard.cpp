@@ -50,7 +50,7 @@ void Winboard::printGameResult(GameResult result) {
 	}
 }
 
-Winboard::Winboard() {
+Winboard::Winboard() : _sendSearchInfo(0) {
 	_mode = Mode::WAIT;
 	_forceMode = false;
 	_computerIsWhite = false;

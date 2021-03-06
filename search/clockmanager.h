@@ -37,6 +37,7 @@ namespace ChessSearch {
 	public:
 		ClockManager() {
 			_verbose = false;
+			_startTime = 0;
 		}
 
 		/**

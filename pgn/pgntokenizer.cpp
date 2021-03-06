@@ -23,6 +23,7 @@ using namespace ChessPGN;
 
 // -------------------------- CTor --------------------------------------------
 PGNTokenizer::PGNTokenizer(void)
+	: _pos(0)
 {
 	static int aInit = false;
 	if (!aInit)

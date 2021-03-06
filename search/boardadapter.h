@@ -44,7 +44,7 @@ namespace ChessSearch {
 
 	class BoardAdapter : public IChessBoard {
 	public:
-		BoardAdapter() : positionModified(true) {}
+		BoardAdapter() : positionModified(true), _workerCount(0) {}
 
 		/**
 		 * Sets the class printing search information in the right format

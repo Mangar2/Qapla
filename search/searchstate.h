@@ -46,6 +46,7 @@ namespace ChessSearch {
 	public:
 		SearchState() {
 			_hasBookMove = false;
+			_values.fill(0);
 		}
 
 		/**

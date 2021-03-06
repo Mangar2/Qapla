@@ -40,6 +40,8 @@ namespace ChessInterface {
 	class ChessInterface {
 
 	public:
+		ChessInterface() : _board(0), _ioHandler(0) {}
+
 		/**
 		 * Runs the UCI protocol interface steering the chess engine
 		 */

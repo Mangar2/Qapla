@@ -40,13 +40,15 @@ KingAttack::InitStatics::InitStatics() {
 		if (getFile(kingSquare) == File::H) {
 			attackArea |= BitBoardMasks::shift<WEST>(attackArea);
 		}
+		/*
 		if (getRank(kingSquare) == Rank::R1) {
 			attackArea |= BitBoardMasks::shift<NORTH>(attackArea);
 		}
 		if (getRank(kingSquare) == Rank::R8) {
 			attackArea |= BitBoardMasks::shift<SOUTH>(attackArea);
 		}
-		_kingAttackBB[WHITE][kingSquare] = attackArea; // | BitBoardMasks::shift<NORTH>(attackArea);
-		_kingAttackBB[BLACK][kingSquare] = attackArea; // | BitBoardMasks::shift<SOUTH>(attackArea);
+		*/
+		_kingAttackBB[WHITE][kingSquare] = attackArea | BitBoardMasks::shift<NORTH>(attackArea);
+		_kingAttackBB[BLACK][kingSquare] = attackArea | BitBoardMasks::shift<SOUTH>(attackArea);
 	}
 }

@@ -228,7 +228,7 @@ namespace ChessSearch {
 	template <uint32_t POOL_SIZE>
 	class ThreadPool {
 	public:
-		ThreadPool() : _waitingAmount(0) {}
+		ThreadPool() : _waitingAmount(0), _workerCount(0) {}
 		~ThreadPool() {
 			stopWorker();
 			stopExamine();

@@ -31,8 +31,10 @@ namespace ChessSearch {
 	class SearchStack {
 	public:
 
-		SearchStack(TT* tt) :
-			ttPtr(tt) {
+		SearchStack(TT* tt) 
+			: ttPtr(tt) 
+		{
+			searchVariablePtr.fill(0);
 			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
 				_stack[ply].ply = ply;
 				searchVariablePtr[ply] = &_stack[ply];
@@ -44,6 +46,7 @@ namespace ChessSearch {
 		SearchStack(const SearchStack& searchStack)
 			: SearchStack(searchStack.getTT())
 		{
+			searchVariablePtr.fill(0);
 		}
 
 		~SearchStack() {
