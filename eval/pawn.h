@@ -54,7 +54,7 @@ namespace ChessEval {
 		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   0,  0,  0,  0, 0 };
 		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  20,  30,  40,  50, 60, 0 };
 		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
-		static constexpr FileArray_t PASSED_PAWN_THREAT_VALUE = { 0, 0,  0,  10, 25, 50, 100, 0 };
+		static constexpr FileArray_t PASSED_PAWN_THREAT_VALUE = { 0, 0,  0,  10, 20, 40, 80, 0 };
 		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
 		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
 
@@ -141,7 +141,7 @@ namespace ChessEval {
 				if (threatValue == 0) continue;
 				threatValue /= (1 + isAttacked);
 				value_t divisor = 1;
-				for (Square square = lsb(pp) + dir; divisor < 4; square += dir) {
+				for (Square square = lsb(pp) + dir; divisor <= 2; square += dir) {
 					bitBoard_t pawn = 1ULL << square;
 					if (stopped & pawn) break;
 					bool isSupported = (supported & pawn) != 0;
