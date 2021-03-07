@@ -137,12 +137,6 @@
     <ClInclude Include="basics\hashconstants.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="search\tt.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\ttentry.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="search\searchdef.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -360,6 +354,12 @@
       <Filter>basics</Filter>
     </ClInclude>
     <ClInclude Include="search\quiescence.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\tt.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\ttentry.h">
       <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>
