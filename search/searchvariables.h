@@ -177,7 +177,6 @@ namespace ChessSearch {
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
 				eval = bestValue;
-				if (isPVSearch()) cout << "************************************* cutoff hash in PV Search, always use value" << endl;
 				return true;
 			}
 

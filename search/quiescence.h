@@ -24,16 +24,12 @@
 #ifndef __QUIESCENCESEARCH_H
 #define __QUIESCENCESEARCH_H
 
-#include "../eval/eval.h"
-#include "searchparameter.h"
-#include "moveprovider.h"
-#include "../movegenerator/movegenerator.h"
+#include "../basics/evalvalue.h"
 #include "computinginfo.h"
-#include "whatif.h"
-#include "see.h"
+#include "../search/tt.h"
+#include "../movegenerator/movegenerator.h"
 
-using namespace ChessInterface;
-using namespace ChessEval;
+using namespace ChessMoveGenerator;
 
 namespace ChessSearch {
 
@@ -49,100 +45,29 @@ namespace ChessSearch {
 		 */
 		static void setTT(TT* tt) { _tt = tt; }
 
+		/**
+	     * Performs the quiescense search
+	     */
+		static value_t search(
+			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove,
+			value_t alpha, value_t beta, ply_t ply);
+
+
 	private:
 
 		/**
 		 * Computes the maximal value a capture move can gain + safety margin
 		 * If this value is not enough to make it a valuable move, the move is skipped
 		 */
-		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move) {
-			value_t result = MAX_VALUE;
-			// A winning bonus can be fully destroyed by capturing the piece
-			bool hasWinningBonus = standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS;
-			if (hasWinningBonus) return result;
-			if (move.isPromote()) return result;
-
-			Piece capturedPiece = move.getCapture();
-			if (board.doFutilityOnCapture(capturedPiece)) {
-				value_t maxGain = board.getAbsolutePieceValue(capturedPiece);
-				result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
-			}
-			return result;
-		}
+		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move);
 
 		/**
 		 * Gets an entry from the transposition table
 		 * @returns hash value or -MAX_VALUE, if no value found
 		 */
-		static value_t probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply) {
-			bool cutoff = false;
-			value_t bestValue = NO_VALUE;
-			uint32_t ttIndex = _tt->getTTEntryIndex(board.computeBoardHash());
-
-			if (ttIndex != TT::INVALID_INDEX) {
-				TTEntry entry = _tt->getEntry(ttIndex);
-				bestValue = entry.getValue(alpha, beta, 0, ply);
-			}
-			return bestValue;
-		}
+		static value_t probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
 
 	public:
-		/**
-		 * Performs the quiescense search
-		 */
-		static value_t search(
-			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove, 
-			value_t alpha, value_t beta, ply_t ply)
-		{
-
-			MoveProvider moveProvider;
-			Move move;
-			computingInfo._nodesSearched++;
-			WhatIf::whatIf.moveSelected(board, computingInfo, lastMove, ply, true);
-
-			value_t standPatValue = Eval::eval(board, alpha);
-			// Eval::assertSymetry(board, standPatValue);
-			value_t bestValue;
-			value_t valueOfNextPlySearch;
-
-			bestValue = standPatValue;
-			if (standPatValue < beta) {
-				if (standPatValue > alpha) {
-					alpha = standPatValue;
-				}
-				moveProvider.computeCaptures(board, lastMove);
-				while (!(move = moveProvider.selectNextCapture(board)).isEmpty()) {
-					valueOfNextPlySearch = computePruneForewardValue(board, standPatValue, move);
-					if (valueOfNextPlySearch < alpha) {
-						if (valueOfNextPlySearch > bestValue) {
-							bestValue = valueOfNextPlySearch;
-						}
-						break;
-					}
-					if (SearchParameter::QUIESCENSE_USE_SEE_PRUNINT && SEE::isLoosingCaptureLight(board, move)) {
-						continue; 
-					}
-
-					BoardState boardState = board.getBoardState();
-					board.doMove(move);
-					valueOfNextPlySearch = -search(board, computingInfo, move, -beta, -alpha, ply + 1);
-					board.undoMove(move, boardState);
-
-					if (valueOfNextPlySearch > bestValue) {
-						bestValue = valueOfNextPlySearch;
-						if (bestValue >= beta) {
-							break;
-						}
-						if (bestValue > alpha) {
-							alpha = bestValue;
-						}
-					}
-				}
-			}
-
-			WhatIf::whatIf.moveSearched(board, computingInfo, lastMove, alpha, beta, bestValue, ply);
-			return bestValue;
-		}
 
 		static TT* _tt;
 

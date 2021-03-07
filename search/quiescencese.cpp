@@ -18,7 +18,109 @@
  */
 
 #include "quiescence.h"
+#include "../eval/eval.h"
+#include "searchparameter.h"
+#include "moveprovider.h"
+#include "whatif.h"
+#include "see.h"
 
+
+using namespace ChessInterface;
+using namespace ChessEval;
 using namespace ChessSearch;
 
 TT* Quiescence::_tt;
+
+/**
+ * Computes the maximal value a capture move can gain + safety margin
+ * If this value is not enough to make it a valuable move, the move is skipped
+ */
+value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t standPatValue, Move move) {
+	value_t result = MAX_VALUE;
+	// A winning bonus can be fully destroyed by capturing the piece
+	bool hasWinningBonus = standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS;
+	if (hasWinningBonus) return result;
+	if (move.isPromote()) return result;
+
+	Piece capturedPiece = move.getCapture();
+	if (position.doFutilityOnCapture(capturedPiece)) {
+		value_t maxGain = position.getAbsolutePieceValue(capturedPiece);
+		result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
+	}
+	return result;
+}
+
+/**
+ * Gets an entry from the transposition table
+ * @returns hash value or -MAX_VALUE, if no value found
+ */
+value_t Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
+	bool cutoff = false;
+	value_t bestValue = NO_VALUE;
+	uint32_t ttIndex = _tt->getTTEntryIndex(position.computeBoardHash());
+
+	if (ttIndex != TT::INVALID_INDEX) {
+		TTEntry entry = _tt->getEntry(ttIndex);
+		bestValue = entry.getValue(alpha, beta, 0, ply);
+	}
+	return bestValue;
+}
+
+/**
+ * Performs the quiescense search
+ */
+value_t Quiescence::search(
+	MoveGenerator& position, ComputingInfo& computingInfo, Move lastMove,
+	value_t alpha, value_t beta, ply_t ply)
+{
+
+	MoveProvider moveProvider;
+	Move move;
+	computingInfo._nodesSearched++;
+	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
+
+	value_t standPatValue = Eval::eval(position, alpha);
+	// Eval::assertSymetry(position, standPatValue);
+	value_t bestValue;
+	value_t valueOfNextPlySearch;
+
+	bestValue = standPatValue;
+	if (standPatValue < beta) {
+		if (standPatValue > alpha) {
+			alpha = standPatValue;
+		}
+		moveProvider.computeCaptures(position, lastMove);
+		while (!(move = moveProvider.selectNextCapture(position)).isEmpty()) {
+			valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, move);
+			if (valueOfNextPlySearch < alpha) {
+				if (valueOfNextPlySearch > bestValue) {
+					bestValue = valueOfNextPlySearch;
+				}
+				break;
+			}
+			if (SearchParameter::QUIESCENSE_USE_SEE_PRUNINT && SEE::isLoosingCaptureLight(position, move)) {
+				continue;
+			}
+
+			BoardState positionState = position.getBoardState();
+			position.doMove(move);
+			valueOfNextPlySearch = -search(position, computingInfo, move, -beta, -alpha, ply + 1);
+			position.undoMove(move, positionState);
+
+			if (valueOfNextPlySearch > bestValue) {
+				bestValue = valueOfNextPlySearch;
+				if (bestValue >= beta) {
+					break;
+				}
+				if (bestValue > alpha) {
+					alpha = bestValue;
+				}
+			}
+		}
+	}
+
+	WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, ply);
+	return bestValue;
+}
+
+
