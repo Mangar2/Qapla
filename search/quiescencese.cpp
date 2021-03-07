@@ -58,11 +58,16 @@ value_t Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta
 	bool cutoff = false;
 	value_t bestValue = NO_VALUE;
 	uint32_t ttIndex = _tt->getTTEntryIndex(position.computeBoardHash());
+	static uint64_t count, found, good = 0;
+	count++;
 
 	if (ttIndex != TT::INVALID_INDEX) {
+		found++;
 		TTEntry entry = _tt->getEntry(ttIndex);
 		bestValue = entry.getValue(alpha, beta, 0, ply);
+		if (bestValue != NO_VALUE) good++;
 	}
+	// if (count % 10000 == 0) { cout << "count: " << count << " found: " << found << " good: " << good << endl; }
 	return bestValue;
 }
 
@@ -78,7 +83,10 @@ value_t Quiescence::search(
 	Move move;
 	computingInfo._nodesSearched++;
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
-
+	if (SearchParameter::USE_HASH_IN_QUIESCENSE) {
+		value_t ttValue = probeTT(position, alpha, beta, ply);
+		if (ttValue != NO_VALUE) return ttValue;
+	}
 	value_t standPatValue = Eval::eval(position, alpha);
 	// Eval::assertSymetry(position, standPatValue);
 	value_t bestValue;

@@ -166,9 +166,15 @@ namespace ChessSearch {
 		/**
 		 * Gets an entry from the transposition table
 		 */
-		bool probeTT(MoveGenerator& position) {
+		bool probeTT(MoveGenerator& position, ply_t ply) {
+			static uint64_t count, found, good = 0;
+			static const ply_t PLY = 8;
+			if (remainingDepth == 0) count++;
+
 			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 			if (ttIndex == TT::INVALID_INDEX) return false;
+			if (remainingDepth == 0) found++;
+			if (count % 10000 == 0 && (remainingDepth == 0)) { cout << "count: " << count << " found: " << found << " good: " << good << endl; }
 
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
 			const Move move = entry.getMove();
@@ -192,6 +198,7 @@ namespace ChessSearch {
 				bestMove = move;
 				if (ttValue != NO_VALUE) {
 					bestValue = ttValue;
+					if (remainingDepth == 0) good++;
 					return true;
 				}
 			}

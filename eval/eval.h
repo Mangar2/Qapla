@@ -63,7 +63,12 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& board, value_t alpha = -MAX_VALUE) {
 			EvalResults evalResults;
 			value_t positionValue = lazyEval<false>(board, evalResults);
-			return board.isWhiteToMove() ? positionValue : -positionValue;
+			positionValue = board.isWhiteToMove() ? positionValue : -positionValue;
+			// If a value == 0, the position will not be stored in hash tables
+			// Value == 0 indicates a forced draw situation like repetetive moves 
+			// or move count without pawn move or capture == 50
+			if (positionValue == 0) positionValue = 1;
+			return positionValue;
 		}
 
 		/**

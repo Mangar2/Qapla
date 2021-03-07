@@ -95,7 +95,7 @@ namespace ChessSearch {
 			else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
 				curPly.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
 			}
-			else if (curPly.probeTT(position)) {
+			else if (curPly.probeTT(position, ply)) {
 				curPly.setCutoff(Cutoff::HASH);
 			}
 			else if (position.isInCheck()) {
