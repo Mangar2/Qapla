@@ -48,7 +48,7 @@ namespace ChessSearch {
 	public:
 		TTEntry() { clear();  };
 
-		inline void setTT(hash_t hash) { _hash = hash; }
+		inline void setTT(hash_t hash) { _hash = uint32_t(hash >> 32); }
 		inline hash_t getHash() const { return _hash; }
 
 		bool isEmpty() const { return _hash == 0; }
@@ -57,6 +57,16 @@ namespace ChessSearch {
 			_info = 0;
 			setEntryAgeIndicator(ENTRY_AGE_INDICATOR_MASK - 1);
 		}
+
+		inline bool hasHash(hash_t hash) const {
+			return _hash == (hash >> 32);
+		}
+
+		/**
+		 * Position evaluation
+		 */
+		inline void setEval(value_t eval) { _eval = eval; }
+		inline value_t getEval() const { return _eval;  }
 
 		/**
 		 * Sets the computed Depth, the entry age and the nullmove thread flag
@@ -291,7 +301,8 @@ namespace ChessSearch {
 		Move _move;
 		int16_t _value;
 		uint16_t _info;
-		hash_t _hash;
+		int32_t _eval;
+		uint32_t _hash;
 	};
 
 }

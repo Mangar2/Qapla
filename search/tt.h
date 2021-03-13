@@ -114,7 +114,7 @@ namespace ChessSearch {
 			}
 			else if (isNewEntryMoreValuable(index, computedDepth, move))
 			{
-				bool hashIsDifferent = hashKey != _tt[index].getHash();
+				bool hashIsDifferent = !_tt[index].hasHash(hashKey);
 				if (hashIsDifferent && _tt[index + 1].doOverwriteAlwaysReplaceEntry(
 					positionValue, alpha, beta, computedDepth)) 
 				{
@@ -173,10 +173,10 @@ namespace ChessSearch {
 		{
 			uint32_t index = computeEntryIndex(hashKey);
 			uint32_t result = INVALID_INDEX;
-			if (_tt[index].getHash() == hashKey) {
+			if (_tt[index].hasHash(hashKey)) {
 				result = index;
 			}
-			else if (_tt[index + 1].getHash() == hashKey) {
+			else if (_tt[index + 1].hasHash(hashKey)) {
 				result = index + 1;
 			}
 			return result;
@@ -357,7 +357,7 @@ namespace ChessSearch {
 			entry.setInfo(computedDepth, _ageIndicator, nullmoveThreat);
 			entry.setValue(positionValue, alpha, beta, ply);
 			// Keep the hash move, if the hash keys are identical and the new entry does not provide a move
-			if (!move.isEmpty() || hashKey != entry.getHash()) {
+			if (!move.isEmpty() || !entry.hasHash(hashKey)) {
 				entry.setMove(move);
 			}
 			entry.setTT(hashKey);
