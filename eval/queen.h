@@ -85,6 +85,9 @@ namespace ChessEval {
 		{
 			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB & ~position.getPieceBB(ROOK + COLOR));
 			attackBB |= Magics::genBishopAttackMask(square, occupiedBB & ~position.getPieceBB(BISHOP + COLOR));
+			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
+			results.piecesAttack[COLOR] |= attackBB;
+
 			results.queenAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
 			const value_t value = QUEEN_MOBILITY_MAP[popCount(attackBB)];

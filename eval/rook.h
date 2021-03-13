@@ -49,7 +49,6 @@ namespace ChessEval {
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			EvalValue value;
 			results.rookAttack[COLOR] = 0;
-			results.doubleRookAttack[COLOR] = 0;
 			bitBoard_t rooks = position.getPieceBB(ROOK + COLOR);
 			if (rooks == 0) return EvalValue(0, 0);
 			
@@ -106,8 +105,10 @@ namespace ChessEval {
 			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
 			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
-			results.doubleRookAttack[COLOR] |= results.rookAttack[COLOR] & attackBB;
 			results.rookAttack[COLOR] |= attackBB;
+			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
+			results.piecesAttack[COLOR] |= attackBB;
+
 			attackBB &= removeBB;
 			const EvalValue value = ROOK_MOBILITY_MAP[popCount(attackBB)];
 			if (PRINT) cout << colorToString(COLOR) 

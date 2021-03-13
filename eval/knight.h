@@ -49,7 +49,6 @@ namespace ChessEval {
 			EvalValue value;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			results.knightAttack[COLOR] = 0;
-			results.doubleKnightAttack[COLOR] = 0;
 			bitBoard_t knights = position.getPieceBB(KNIGHT + COLOR);
 			bitBoard_t removeBB = ~position.getPiecesOfOneColorBB<COLOR>() & ~position.pawnAttack[OPPONENT];
 
@@ -77,8 +76,10 @@ namespace ChessEval {
 			EvalResults& results, Square square, bitBoard_t removeBB)
 		{
 			bitBoard_t attackBB = BitBoardMasks::knightMoves[square];
-			results.doubleKnightAttack[COLOR] |= results.knightAttack[COLOR] & attackBB;
 			results.knightAttack[COLOR] |= attackBB;
+			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
+			results.piecesAttack[COLOR] |= attackBB;
+
 			attackBB &= removeBB;
 			const EvalValue value = KNIGHT_MOBILITY_MAP[popCountForSparcelyPopulatedBitBoards(attackBB)];
 			if (PRINT) cout << colorToString(COLOR)
@@ -156,31 +157,6 @@ namespace ChessEval {
 		};
 
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };
-
-#ifdef _TEST0 
-#endif
-#ifdef _TEST1 
-#endif
-#ifdef _TEST2 
-#endif
-#ifdef _T3 
-#endif
-#ifdef _T4 		
-#endif
-#ifdef _TEST5
-#endif
-#ifdef _TEST6
-#endif
-#ifdef _TEST7
-#endif
-#ifdef _TEST8
-#endif
-#ifdef _TEST9
-#endif
-#ifdef _TEST10
-#endif
-
-
 	};
 }
 

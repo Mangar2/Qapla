@@ -75,6 +75,8 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
 	evalResults.queensBB = position.getPieceBB(WHITE_QUEEN) | position.getPieceBB(BLACK_QUEEN);
 	evalResults.pawnsBB = position.getPieceBB(WHITE_PAWN) | position.getPieceBB(BLACK_PAWN);
+	evalResults.piecesAttack[WHITE] = evalResults.piecesAttack[BLACK] = 0;
+	evalResults.piecesDoubleAttack[WHITE] = evalResults.piecesDoubleAttack[BLACK] = 0;
 	position.computePinnedMask<WHITE>();
 	position.computePinnedMask<BLACK>();
 }

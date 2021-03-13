@@ -38,10 +38,10 @@ namespace ChessEval {
 		inline void clearAttacksBB() {
 			queenAttack[COLOR] = 0;
 			rookAttack[COLOR] = 0;
-			doubleRookAttack[COLOR] = 0;
 			bishopAttack[COLOR] = 0;
 			knightAttack[COLOR] = 0;
-			doubleKnightAttack[COLOR] = 0;
+			piecesAttack[COLOR] = 0;
+			piecesDoubleAttack[COLOR] = 0;
 		}
 		inline void clearAttacksBB() {
 			clearAttacksBB<WHITE>();
@@ -56,14 +56,10 @@ namespace ChessEval {
 		colorBB_t queenAttack;
 		// Squares attacked by rooks also behind another Rook or Queen of same color or Queen of opposit color
 		colorBB_t rookAttack;
-		// Squares attacked by two rooks also behind another Rook or Queen of same color or Queen of opposit color
-		colorBB_t doubleRookAttack;
 		// Squares attacked by bishops also behind another Bishop or Queen of same color or Queen, Rook of opposit color
 		colorBB_t bishopAttack;
 		// Squares attacked by knighs
 		colorBB_t knightAttack;
-		// Squares attacked by two knights
-		colorBB_t doubleKnightAttack;
 		// Squares attacked by any piece
 		colorBB_t piecesAttack;
 		// Squares attacked by two pieces (any) ...
@@ -77,14 +73,6 @@ namespace ChessEval {
 		value_t kingPressureCount[2];
 		// Evaluation of the king attack
 		value_t kingAttackValue[2];
-		// Rooks index
-		uint32_t rookIndex[2];
-		// Usually inactive
-		value_t rookAttackFactor[2];
-		value_t bishopAttackFactor[2];
-		value_t knightAttackFactor[2];
-		value_t queenAttackFactor[2];
-
 	};
 
 }

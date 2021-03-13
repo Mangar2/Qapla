@@ -152,18 +152,9 @@ namespace ChessEval {
 		template <Piece COLOR>
 		inline static void computeAttacks(MoveGenerator& position, EvalResults& results) {
 			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			bitBoard_t doubleAttack = results.doubleRookAttack[COLOR] | results.doubleKnightAttack[COLOR];
-			bitBoard_t attack = results.queenAttack[COLOR];
-			doubleAttack |= attack & results.rookAttack[COLOR];
-			attack |= results.rookAttack[COLOR];
-			doubleAttack |= attack & results.bishopAttack[COLOR];
-			attack |= results.bishopAttack[COLOR];
-			doubleAttack |= attack & results.knightAttack[COLOR];
-			attack |= results.knightAttack[COLOR];
-			doubleAttack |= attack & position.pawnAttack[COLOR];
-			attack |= position.pawnAttack[COLOR];
-			results.piecesAttack[COLOR] = attack;
-			results.piecesDoubleAttack[COLOR] = doubleAttack;
+			bitBoard_t pawnAttack = position.pawnAttack[COLOR];
+			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & pawnAttack;
+			results.piecesAttack[COLOR] |= pawnAttack;
 		}
 
 

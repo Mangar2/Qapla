@@ -98,7 +98,11 @@ namespace ChessEval {
 		{
 			bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
 			results.bishopAttack[COLOR] |= attackBB;
+			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
+			results.piecesAttack[COLOR] |= attackBB;
+
 			attackBB &= removeBB;
+
 			const EvalValue value = BISHOP_MOBILITY_MAP[popCount(attackBB)];
 			if (PRINT) cout << colorToString(COLOR)
 				<< " bishop (" << squareToString(square) << ") mobility: "
