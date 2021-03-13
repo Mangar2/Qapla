@@ -25,117 +25,146 @@
 #ifndef __ASPIRATIONWINDOW_H
 #define __ASPIRATIONWINDOW_H
 
+#include <math.h>
 #include "../basics/types.h"
 
 using namespace ChessBasics;
 
 namespace ChessSearch {
 	class AspirationWindow {
+	private:
+		enum class State {
+			Search, Dropping, Rising, Alternating
+		};
 	public:
 		void initSearch() {
-			alpha = -MAX_VALUE;
-			beta = MAX_VALUE;
-			stage = 0;
+			_alpha = -MAX_VALUE;
+			_beta = MAX_VALUE;
+			_state = State::Search;
+			_retryCount = 0;
+			_positionValue = 0;
 		}
 
 		/**
-		 * sets the window to the maximal size
+		 * Checks, if a position value is inside the aspiration window
 		 */
-		void setMaxWindow(value_t positionValue) {
-			if (positionValue < alpha) {
-				beta = positionValue + 1;
-				alpha = -MAX_VALUE;
-			}
-			if (positionValue >= beta) {
-				alpha = positionValue - 1;
-				beta = MAX_VALUE;
-			}
+		bool isInside(value_t positionValue) {
+			return (positionValue > _alpha && positionValue < _beta);
 		}
 
 		/**
-		 * increases the size of the window
+		 * Sets the next search depth
 		 */
-		void setWiderWindow(value_t positionValue, value_t windowSize) {
-			if (positionValue <= alpha) {
-				beta = positionValue + 1;
-				alpha = positionValue - windowSize;
-			}
-			if (positionValue >= beta) {
-				alpha = positionValue - 1;
-				beta = positionValue + windowSize;
-			}
-			if (beta > MAX_VALUE) {
-				beta = MAX_VALUE;
-			}
-			if (alpha < -MAX_VALUE) {
-				alpha = -MAX_VALUE;
-			}
-		}
-
-		/**
-		 * Sets the window position-value and size
-		 */
-		void setWindow(value_t positionValue, value_t windowSize) {
-			beta = positionValue + windowSize;
-			alpha = positionValue - windowSize;
-			if (beta > MAX_VALUE) {
-				beta = MAX_VALUE;
-			}
-			if (alpha < -MAX_VALUE) {
-				alpha = -MAX_VALUE;
-			}
-		}
-
-		/**
-		 * computes the size of the window for the search - retry
-		 */
-		void calculateNewRetryWindow(value_t positionValue) {
-			switch (stage) {
-			case 0: setWiderWindow(positionValue, 100); break;
-			case 1: setWiderWindow(positionValue, 500); break;
-			case 2: setMaxWindow(positionValue); break;
-			default: alpha = -MAX_VALUE; beta = MAX_VALUE; break;
-			}
-			//printf("[retry window a:%ld, b:%ld]\n", alpha, beta);
-		}
-
-		/**
-		 * Computes the size of the original window
-		 */
-		void calculateNewInitialWindow(value_t positionValue) {
-			switch (stage) {
-			case 0: setWindow(positionValue, 100); break;
-			case 1: setWindow(positionValue, 200); break;
-			case 2: setWindow(positionValue, 400); break;
-			default: alpha = -MAX_VALUE; beta = MAX_VALUE; break;
-			}
-			//printf("[initial window a:%ld, b:%ld]\n", alpha, beta);
+		void newDepth(ply_t searchDepth) {
+			_searchDepth = searchDepth;
+			_state = State::Search;
+			_retryCount /= 2;
+			value_t windowSize = calculateWindowSize(searchDepth, _positionValue, 0);
+			setWindow(_positionValue, windowSize);
 		}
 
 		/**
 		 * Retries the search with an updated window
 		 */
-		bool retryWithNewWindow(const ComputingInfo& computingInfo) {
-			value_t positionValue = computingInfo.getPositionValueInCentiPawn();
-			bool retry = (positionValue <= alpha || positionValue >= beta);
+		void setSearchResult(value_t positionValue) {
+			const value_t delta = std::abs(_positionValue - positionValue);
+			_positionValue = positionValue;
+			if (!isInside(positionValue)) {
+				switch (_state) {
+				case State::Search:
+					if (positionValue >= _beta) _state = State::Rising;
+					if (positionValue <= _alpha) _state = State::Dropping;
+					break;
+				case State::Rising:
+					if (positionValue <= _alpha) _state = State::Alternating;
+					break;
+				case State::Dropping:
+					if (positionValue >= _beta) _state = State::Alternating;
+					break;
+				}
+				_retryCount++;
+			}
 
-			if (retry) {
-				stage++;
-				calculateNewRetryWindow(positionValue);
-				//printf("[retry window a:%ld, b:%ld]\n", alpha, beta);
-			}
-			else {
-				stage = stage <= 0 ? 0 : stage - 1;
-				calculateNewInitialWindow(positionValue);
-			}
-			return retry;
+			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, delta);
+			setWindow(_positionValue, windowSize);
 		}
 
-		int32_t stage;
-		value_t alpha;
-		value_t beta;
-		value_t windowSize;
+		/**
+		 * Retrieves the aspiration window values (alpha, beta)
+		 */
+		value_t getAlpha() const { return _alpha; }
+		value_t getBeta() const { return _beta; }
+
+		/**
+		 * Gets the amount of retries
+		 */
+		int32_t getRetryCount() const { return _retryCount; }
+
+		/**
+		 * Gets the current state as string
+		 */
+		string getState() const {
+			const char* names[4] = { "Search", "Dropping", "Rising", "Alternating" };
+			return names[int(_state)];
+		}
+
+	private:
+
+		/**
+		 * Computes the size of the original window
+		 * @param searchDepth depth of the current search
+		 * @param positionValue positionValue of the current search
+		 * @param positionValueDelta difference between current positionValue and former positionValue
+		 */
+		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue, value_t positionValueDelta) {
+			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth) * 10;
+			const value_t deltaRelatedSize = positionValueDelta;
+			const value_t valueRelatedSize = positionValue / 20;
+			const value_t retryRelatedSize = _retryCount * 30;
+			const value_t minSize = 15;
+			return minSize + deltaRelatedSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
+		}
+
+		/**
+		 * Sets the window position-value and size
+		 */
+		void setWindow(value_t value, value_t windowSize = 2 * MAX_VALUE) {
+			_beta = value + windowSize;
+			_alpha = value - windowSize;
+			if (_state == State::Rising) {
+				_alpha = value - 1 - windowSize / 10;
+			}
+			else if (_state == State::Dropping) {
+				_beta = value + 1 + windowSize / 10;
+			}
+			if (_beta > MAX_VALUE) {
+				_beta = MAX_VALUE;
+			}
+			if (_alpha < -MAX_VALUE) {
+				_alpha = -MAX_VALUE;
+			}
+		}
+
+		State _state;
+		int32_t _retryCount;
+		value_t _alpha;
+		value_t _beta;
+		value_t _positionValue;
+		value_t _searchDepth;
+
+		static const ply_t STABLE_DEPTH = 8;
 	};
+
+	/**
+	 * Prints the window
+	 */
+	static ostream& operator<<(ostream& stream, AspirationWindow& window) {
+		stream
+			<< "[" << window.getAlpha() << ", " << window.getBeta() << "]"
+			<< " [" << window.getState() << "]"
+			<< " [r" << window.getRetryCount() << "]";
+		return stream;
+	}
 }
 
 #endif // __ASPIRATIONWINDOW_H

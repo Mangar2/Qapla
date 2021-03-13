@@ -189,17 +189,23 @@ namespace ChessSearch {
 		{
 			SearchStack stack(&_tt);
 			ComputingInfo computingInfo;
+			bool isInWindow = false;
+			_window.newDepth(searchDepth);
 			do {
-				stack.initSearch(position, _window.alpha, _window.beta, searchDepth);
+				cout << "info string " << _window << endl;
+				stack.initSearch(position, _window.getAlpha(), _window.getBeta(), searchDepth);
 				if (searchDepth != 0) {
 					stack.setPV(computingInfo.getPV());
 				}
 
 				computingInfo = _search.searchRoot(position, stack, _clockManager);
 				computingInfo.printSearchResult();
-				_clockManager.setIterationResult(_window.alpha, _window.beta,
-					computingInfo.getPositionValueInCentiPawn());
-			} while (!_clockManager.mustAbortSearch(0) && _window.retryWithNewWindow(computingInfo));
+				const value_t positionValue = computingInfo.getPositionValueInCentiPawn();
+				_clockManager.setIterationResult(_window.getAlpha(), _window.getBeta(), positionValue);
+				isInWindow = _window.isInside(positionValue);
+				_window.setSearchResult(positionValue);
+
+			} while (!_clockManager.mustAbortSearch(0) && !isInWindow);
 			
 			return computingInfo;
 		}
