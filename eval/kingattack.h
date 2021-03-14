@@ -41,10 +41,10 @@ using namespace ChessMoveGenerator;
 namespace ChessEval {
 
 	struct KingAttackValues {
-		static const uint32_t MAX_WEIGHT_COUNT = 20;
+		static const uint32_t MAX_WEIGHT_COUNT = 22;
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-		{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600 };
+		{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
 		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 100, 100, 100 };
 	};
 
@@ -115,6 +115,31 @@ namespace ChessEval {
 		}
 
 		/**
+		 * Examine fields to attack the king
+		 */
+		template <Piece COLOR>
+		inline static int32_t computeCheckMoves(MoveGenerator& position, EvalResults& results) {
+			const Piece us = COLOR;
+			const Piece them = switchColor(COLOR);
+			Square kingSquare = position.getKingSquare<us>();
+			bitBoard_t allPieces = position.getAllPiecesBB();
+			bitBoard_t kingAttack = BitBoardMasks::kingMoves[kingSquare];
+			bitBoard_t bishopChecks = Magics::genBishopAttackMask(kingSquare, allPieces);
+			bitBoard_t rookChecks = Magics::genRookAttackMask(kingSquare, allPieces);
+			bitBoard_t knightChecks = BitBoardMasks::knightMoves[kingSquare];
+
+			bishopChecks &= results.queenAttack[them] | results.bishopAttack[them];
+			rookChecks &= results.queenAttack[them] | results.rookAttack[them];
+			knightChecks &= results.knightAttack[them];
+
+			bitBoard_t checks = (bishopChecks | rookChecks | knightChecks) & ~position.getPiecesOfOneColorBB<them>();
+			bitBoard_t undefended = ~results.piecesAttack[us];
+			bitBoard_t safeChecks = checks & ((undefended & ~kingAttack) | (undefended & results.piecesDoubleAttack[them]));
+			return popCount(checks) + popCount(safeChecks) * 2;
+		}
+
+
+		/**
 		 * Counts the undefended or under-defended attacks for squares near king
 		 * King itself is not counted as defending piece
 		 */
@@ -135,7 +160,8 @@ namespace ChessEval {
 			results.kingPressureCount[COLOR] =
 				popCountForSparcelyPopulatedBitBoards(kingAttacksNotDefendedByPawns) +
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksDefended) +
-				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2;
+				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2 +
+				computeCheckMoves<COLOR>(position, results);
 
 			if (results.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
 				results.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
