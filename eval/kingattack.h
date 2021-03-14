@@ -41,10 +41,10 @@ using namespace ChessMoveGenerator;
 namespace ChessEval {
 
 	struct KingAttackValues {
-		static const uint32_t MAX_WEIGHT_COUNT = 22;
+		static const uint32_t MAX_WEIGHT_COUNT = 25;
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-		{ 0,  -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
+		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
 		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 100, 100, 100 };
 	};
 
@@ -161,7 +161,8 @@ namespace ChessEval {
 				popCountForSparcelyPopulatedBitBoards(kingAttacksNotDefendedByPawns) +
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksDefended) +
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2 +
-				computeCheckMoves<COLOR>(position, results);
+				computeCheckMoves<COLOR>(position, results) +
+				(position.getPieceBB(QUEEN + COLOR) != 0) * 3;
 
 			if (results.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
 				results.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
