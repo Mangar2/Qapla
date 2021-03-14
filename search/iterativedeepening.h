@@ -192,7 +192,6 @@ namespace ChessSearch {
 			bool isInWindow = false;
 			_window.newDepth(searchDepth);
 			do {
-				cout << "info string " << _window << endl;
 				stack.initSearch(position, _window.getAlpha(), _window.getBeta(), searchDepth);
 				if (searchDepth != 0) {
 					stack.setPV(computingInfo.getPV());
