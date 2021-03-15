@@ -53,30 +53,15 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * Initializes the index calculation
+		 * Sets the bitbase index from a piece List
 		 */
-		void initialize(bool wtm, Square whiteKingSquare, Square blackKingSquare, bool hasPawn) {
-			_hasPawn = hasPawn;
-			_wtm = wtm;
-			_index = wtm ? 0 : 1;
-			_sizeInBit = COLOR_AMOUNT;
-			_mapType = computeSquareMapType(whiteKingSquare, blackKingSquare, _hasPawn);
-			whiteKingSquare = mapSquare(whiteKingSquare, _mapType);
-			blackKingSquare = mapSquare(blackKingSquare, _mapType);
-			addPieceSquare(whiteKingSquare);
-			addPieceSquare(blackKingSquare);
-			computeKingIndex(_wtm, whiteKingSquare, blackKingSquare, _hasPawn);
-		}
-
-		/**
-		 * Adds another piece to the index
-		 */
-		void addPieceToIndex(Square square, Piece piece) {
-			if (isPawn(piece)) {
-				addPawnToIndex(square);
-			}
-			else {
-				addNonPawnPieceToIndex(square);
+		void setFromPieceList(const PieceList& pieceList, bool wtm) {
+			bool hasPawn = pieceList.getNumberOfPawns() != 0;
+			Square whiteKingPos = pieceList.getSquare(0);
+			Square blackKingPos = pieceList.getSquare(1);
+			initialize(wtm, whiteKingPos, blackKingPos, hasPawn);
+			for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
+				addPieceToIndex(pieceList.getSquare(index), pieceList.getPiece(index));
 			}
 		}
 
@@ -91,7 +76,7 @@ namespace ChessBitbase {
 		/**
 		 * Gets the square of a piece
 		 */
-		Square getPieceSquare(uint32_t pieceNo) const {
+		Square getSquare(uint32_t pieceNo) const {
 			Square result = NO_SQUARE;
 			if (pieceNo < getNumberOfPieces()) {
 				result = _squares[pieceNo];
@@ -130,6 +115,24 @@ namespace ChessBitbase {
 	private:
 
 		/**
+		 * Adds another piece to the index
+		 */
+		void addPieceToIndex(Square square, Piece piece) {
+			if (isPawn(piece)) {
+				addPawnToIndex(square);
+			}
+			else {
+				addNonPawnPieceToIndex(square);
+			}
+		}
+
+
+		/**
+		 * Initializes the index calculation
+		 */
+		void initialize(bool wtm, Square whiteKingSquare, Square blackKingSquare, bool hasPawn);
+
+		/**
 		 * Calculates and sets the squares of all pieces giving an index and the amount of pawns and pieces
 		 */
 		bool setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, uint32_t nonPawnPieceAmount);
@@ -142,10 +145,7 @@ namespace ChessBitbase {
 		/**
 		 * Computes the next possible king position for positions with pawns
 		 */
-		static Square computeNextKingSquareForPositionsWithPawn(Square currentSquare) {
-			Square nextSquare = getFile(currentSquare) < File::D ? currentSquare + 1 : currentSquare + 5;
-			return nextSquare;
-		}
+		static Square computeNextKingSquareForPositionsWithPawn(Square currentSquare);
 
 		/**
   		 * Checks, if two squares are adjacent
@@ -156,21 +156,7 @@ namespace ChessBitbase {
 		 * Computes the real square of a piece from a index-square ("raw") by adding one 
 		 * for every piece on a "lower" square
 		 */
-		Square computesRealSquare(bitBoard_t checkPieces, Square rawSquare) {
-			Square realSquare = rawSquare;
-			while (true) {
-				bitBoard_t mapOfAllFieldBeforeAndIncludingCurrentField = (1ULL << realSquare);
-				mapOfAllFieldBeforeAndIncludingCurrentField |= mapOfAllFieldBeforeAndIncludingCurrentField - 1;
-				if ((mapOfAllFieldBeforeAndIncludingCurrentField & checkPieces) != 0) {
-					++realSquare;
-					checkPieces &= checkPieces - 1;
-				}
-				else {
-					break;
-				}
-			}
-			return realSquare;
-		}
+		Square computesRealSquare(bitBoard_t checkPieces, Square rawSquare);
 
 		/**
 		 * Maps a Square to a symetric square. 
@@ -180,112 +166,38 @@ namespace ChessBitbase {
 		 * @param mapType - the symetric map, TRF (Triangle map bit, Rank map bit, File map bit)
 		 * @returns symmetric mapped square
 		 */
-		Square mapSquare(Square originalSquare, uint32_t mapType) {
-			uint32_t resultSquare = originalSquare;
-			if (mapType != 0) {
-				if ((mapType & MAP_FILE) != 0) {
-					resultSquare ^= 0x7;
-				}
-				if ((mapType & MAP_RANK) != 0) {
-					resultSquare ^= 0x38;
-				}
-				if ((mapType & MAP_TO_A1_D1_D4_TRIANGLE) != 0) {
-					resultSquare = (resultSquare >> 3) | ((resultSquare & 7) << 3);
-				}
-			}
-			return Square(resultSquare);
-		}
+		Square mapSquare(Square originalSquare, uint32_t mapType);
 
 		/**
 		 * Computes the mapping type of the current position
 		 */
-		uint32_t computeSquareMapType(Square whiteKingSquare, Square blackKingSquare, bool hasPawn) {
-			uint32_t mapType = 0;
-			if (getFile(whiteKingSquare) >= File::E) {
-				mapType |= MAP_FILE;
-				whiteKingSquare ^= 0x7;
-				blackKingSquare ^= 0x7;
-			}
-			if (!hasPawn) {
-				if (whiteKingSquare >= A5) {
-					mapType |= MAP_RANK;
-					whiteKingSquare ^= 0x38;
-					blackKingSquare ^= 0x38;
-				}
-				if (getFile(whiteKingSquare) < File(getRank(whiteKingSquare))) {
-					mapType |= MAP_TO_A1_D1_D4_TRIANGLE;
-				}
-				else if (getFile(whiteKingSquare) == File(getRank(whiteKingSquare)) && 
-					(getRank(blackKingSquare) > Rank(getFile(blackKingSquare)))) {
-					mapType |= MAP_TO_A1_D1_D4_TRIANGLE;
-				}
-			}
-			return mapType;
-		}
+		uint32_t computeSquareMapType(Square whiteKingSquare, Square blackKingSquare, bool hasPawn);
 
 		/**
 		 * Adds a pawn to the index
 		 */
-		void addPawnToIndex(Square pawnSquare) {
-			Square mappedSquare = mapSquare(pawnSquare, _mapType);
-
-			// Reduces the index for every square the pawn cannot exist because there is already 
-			// another piece
-			const bitBoard_t RANK1 = 0xFF;
-			const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _piecesBB & ~RANK1;
-			uint64_t indexValueBasedOnPawnSquare = uint64_t(mappedSquare - A2) - popCount(belowBB);
-
-			_index += (int64_t)indexValueBasedOnPawnSquare * _sizeInBit;
-			_sizeInBit *= NUMBER_OF_PAWN_POSITIONS - getNumberOfPieces();
-			addPieceSquare(mappedSquare);
-		}
+		void addPawnToIndex(Square pawnSquare);
 
 		/**
 		 * Pop count for sparcely populated bitboards
 		 */
-		uint32_t popCount(bitBoard_t bitBoard) {
-			uint32_t result = 0;
-			for (; bitBoard; bitBoard &= (bitBoard - 1)) {
-				result++; 
-			}
-			return result;
-		}
+		uint32_t popCount(bitBoard_t bitBoard);
 
 		/**
 		 * Add any piece except pawn to the index. Pawns are special, because they can only
 		 * walk in one direction
 		 */
-		void addNonPawnPieceToIndex(Square pieceSquare) {
-			Square mappedSquare = mapSquare(pieceSquare, _mapType);
-			
-			const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _piecesBB;
-			uint64_t indexValueBasedOnPieceSquare = uint64_t(mappedSquare) - popCount(belowBB);
-
-			_index += (int64_t)indexValueBasedOnPieceSquare * _sizeInBit;
-			_sizeInBit *= (int64_t)BOARD_SIZE - getNumberOfPieces();
-			addPieceSquare(mappedSquare);
-		}
+		void addNonPawnPieceToIndex(Square pieceSquare);
 
 		/**
 		 * Adds the square of a piece to the piece square list
 		 */
-		void addPieceSquare(Square square) {
-			_squares[_piecesCount] = square;
-			_piecesCount++;
-			_piecesBB |= 1ULL << square;
-		}
+		void addPieceSquare(Square square);
 
 		/**
 		 * Changes the square of a piece
 		 */
-		void changePieceSquare(uint32_t pieceNo, Square newSquare) {
-			if (pieceNo < getNumberOfPieces()) {
-				Square oldSquare = _squares[pieceNo];
-				_squares[pieceNo] = newSquare;
-				_piecesBB ^= 1ULL << oldSquare;
-				_piecesBB |= 1ULL << newSquare;
-			}
-		}
+		void changePieceSquare(uint32_t pieceNo, Square newSquare);
 
 		/**
 		 * Initializes static lookup maps
@@ -294,23 +206,11 @@ namespace ChessBitbase {
 			InitStatic();
 		} _staticConstructor;
 
-
-	private:
-
 		/**
 		 * Computes the index for two kings and moving right
 		 * @param index current index, adding the king positions
 		 */
-		void computeKingIndex(bool wtm, Square whiteKingSquare, Square blackKingSquare, bool hasPawn) {
-			uint32_t kingIndexNotShrinkedBySymetries = whiteKingSquare + blackKingSquare * BOARD_SIZE;
-			if (hasPawn) {
-				_index += uint64_t(mapTwoKingsToIndexWithPawn[kingIndexNotShrinkedBySymetries]) * COLOR_AMOUNT;
-			}
-			else {
-				_index += uint64_t(mapTwoKingsToIndexWithoutPawn[kingIndexNotShrinkedBySymetries]) * COLOR_AMOUNT;
-			}
-			_sizeInBit *= hasPawn ? NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN : NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
-		}
+		void computeKingIndex(bool wtm, Square whiteKingSquare, Square blackKingSquare, bool hasPawn);
 
 		static const uint32_t MAP_FILE = 1;
 		static const uint32_t MAP_RANK = 2;
@@ -327,6 +227,7 @@ namespace ChessBitbase {
 		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> mapIndexToKingSquaresWithoutPawn;
 		static const uint32_t MAX_PIECES_COUNT = 10;
 		uint32_t _piecesCount;
+		uint32_t _numberOfDiagonalSquares;
 		array<Square, MAX_PIECES_COUNT> _squares;
 		bitBoard_t _piecesBB;
 		uint64_t _index;

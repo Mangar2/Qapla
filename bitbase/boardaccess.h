@@ -46,15 +46,18 @@ namespace ChessBitbase {
 			PieceList pieceList(position);
 			bool wtm = position.isWhiteToMove() ^ SYMETRIC;
 			if (SYMETRIC) pieceList.toSymetric();
-			setBitbaseIndexFromPieceList(pieceList, wtm, bitBaseIndex);
+			bitBaseIndex.setFromPieceList(pieceList, wtm);
 			uint64_t index = bitBaseIndex.computeIndex();
 			return index;
 		}
 
 		/**
-		 * Computes a _bitbase index from piece list
+		 * Computes a _bitbase index from piece list and a move (applied to the piece list)
+		 * The move must not change the amount or type of the pieces in the list (no capture, no promote)
 		 */
 		static uint64_t computeIndex(bool whiteToMove, const PieceList& pieceList, Move move) {
+			assert(!move.isCapture());
+			assert(!move.isPromote());
 			BitbaseIndex bitBaseIndex;
 			setBitbaseIndex(whiteToMove, bitBaseIndex, pieceList, move);
 			uint64_t index = bitBaseIndex.computeIndex();
@@ -65,59 +68,17 @@ namespace ChessBitbase {
 	private:
 
 		/**
-		 * Sets a _bitbase Index having a position
-		 */
-		static void setBitbaseIndexFromPieceList(const PieceList& pieceList, bool wtm, BitbaseIndex& bitBaseIndex) {
-			bool hasPawn = pieceList.getNumberOfPawns() != 0;
-			Square whiteKingPos = pieceList.getSquare(0);
-			Square blackKingPos = pieceList.getSquare(1);
-			bitBaseIndex.initialize(wtm, whiteKingPos, blackKingPos, hasPawn);
-			for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
-				bitBaseIndex.addPieceToIndex(pieceList.getSquare(index), pieceList.getPiece(index));
-			}
-		}
-
-		/**
-		 * Gets the position of a piece after a move by checking if the move is moving this piece and then
-		 * returns the destination of the move
-		 */
-		static inline Square getPiecePos(uint32_t index, const PieceList& pieceList, Move move) {
-			Square square = pieceList.getSquare(index);
-			if (square == move.getDeparture()) {
-				square = move.getDestination();
-			}
-			return square;
-		}
-
-		/**
 		 * Sets a bitbase index having a piece list with pieces and squares
 		 */
 		static void setBitbaseIndex(bool whiteToMove, BitbaseIndex& bitBaseIndex, const PieceList& pieceList, Move move) {
-			bool hasPawn = pieceList.getNumberOfPawns() != 0;
-			Square whiteKingPos = getPiecePos(0, pieceList, move);
-			Square blackKingPos = getPiecePos(1, pieceList, move);
-			bitBaseIndex.initialize(whiteToMove, whiteKingPos, blackKingPos, hasPawn);
-
-			for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
-				Piece piece = pieceList.getPiece(index);
-				Square square = getPiecePos(index, pieceList, move);
-				bitBaseIndex.addPieceToIndex(square, piece);
-			}
-		}
-
-		/**
-		 * Adds all pieces of one type (for example all white pawns)
-		 */
-		template<Piece COLOR>
-		static void addAllPiecesOfType(const MoveGenerator& position, Piece piece, BitbaseIndex& bitBaseIndex) {
-			bitBoard_t piecesBB = position.getPieceBB(piece);
-			for (; piecesBB != 0; piecesBB &= piecesBB - 1) {
-				Square square = BitBoardMasks::lsb(piecesBB);
-				if (COLOR == BLACK) {
-					square = switchSide(square);
+			PieceList pieceListAfterMove(pieceList);
+			Square departure = move.getDeparture();
+			for (uint32_t index = 0; index < pieceList.getNumberOfPieces(); index++) {
+				if (pieceListAfterMove.getSquare(index) == departure) {
+					pieceListAfterMove.setSquare(index, move.getDestination());
 				}
-				bitBaseIndex.addPieceToIndex(square, piece);
 			}
+			bitBaseIndex.setFromPieceList(pieceListAfterMove, whiteToMove);
 		}
 	};
 

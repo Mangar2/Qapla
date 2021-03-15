@@ -68,12 +68,12 @@ namespace ChessBitbase {
 		 * Creates a new piece list initialized by a board position
 		 * @param board current board position
 		 */
-		PieceList(const Board& board) {
+		PieceList(const Board& position) {
 			clear();
-			addPiecesFromBitBoard(board.getPieceBB(WHITE_KING), WHITE_KING);
-			addPiecesFromBitBoard(board.getPieceBB(BLACK_KING), BLACK_KING);
+			addPiecesFromBitBoard(position.getPieceBB(WHITE_KING), WHITE_KING);
+			addPiecesFromBitBoard(position.getPieceBB(BLACK_KING), BLACK_KING);
 			for (Piece piece = WHITE_PAWN; piece <= BLACK_QUEEN; ++piece) {
-				addPiecesFromBitBoard(board.getPieceBB(piece), piece);
+				addPiecesFromBitBoard(position.getPieceBB(piece), piece);
 			}
 		}
 
@@ -117,6 +117,11 @@ namespace ChessBitbase {
 			if (isPawn(piece)) {
 				_numberOfPawns++;
 			}
+		}
+
+		void addPiece(Piece piece, Square square) {
+			_pieceSquares[_numberOfPieces] = square;
+			addPiece(piece);
 		}
 
 		/**
@@ -172,6 +177,13 @@ namespace ChessBitbase {
 	      */
 		const Square getSquare(uint32_t pieceNo) const {
 			return _pieceSquares[pieceNo];
+		}
+
+		/**
+		 * Sets the square of a piece
+		 */
+		void setSquare(uint32_t pieceNo, Square square) {
+			_pieceSquares[pieceNo] = square;
 		}
 
 		/**

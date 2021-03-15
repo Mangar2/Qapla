@@ -280,6 +280,11 @@ namespace ChessBasics {
 		BoardState getBoardState() { return _basicBoard.boardState; }
 
 		/**
+		 * Gets the board in Fen representation
+		 */
+		string getFen() const;
+
+		/**
 		 * Prints the board as fen to std-out
 		 */
 		void printFen() const;

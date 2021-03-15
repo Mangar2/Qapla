@@ -223,7 +223,8 @@ void Board::undoMove(Move move, BoardState boardState) {
 	assert(_basicBoard[departure] != NO_PIECE);
 }
 
-void Board::printFen() const {
+string Board::getFen() const {
+	string result = "";
 	File file;
 	Rank rank;
 	int amoutOfEmptyFields;
@@ -238,22 +239,21 @@ void Board::printFen() const {
 			else
 			{
 				if (amoutOfEmptyFields > 0) {
-					printf("%ld", amoutOfEmptyFields);
+					result += std::to_string(amoutOfEmptyFields);
 				}
-				printf("%c", pieceToChar(piece));
+				result.push_back(pieceToChar(piece));
 				amoutOfEmptyFields = 0;
 			}
 		}
 		if (amoutOfEmptyFields > 0) {
-			printf("%ld", amoutOfEmptyFields);
+			result += std::to_string(amoutOfEmptyFields);
 		}
 		if (rank > Rank::R1) {
-			printf("/");
+			result.push_back('/');
 		}
 	}
 
-	if (isWhiteToMove()) printf(" w ");
-	else printf(" b ");
+	result += isWhiteToMove()? " w" : " b";
 	/*
 	if (IsWKCastleAllowed()) printf("K");
 	if (IsWQCastleAllowed()) printf("Q");
@@ -278,7 +278,12 @@ void Board::printFen() const {
 	aRes = aRes + " " + mNonPermChangeAmount + " " +
 	(mHalfmovesAmount / 2 + 1);
 	*/
-	printf("\n");
+	return result;
+}
+
+
+void Board::printFen() const {
+	cout << getFen() << endl;
 }
 
 void Board::print() const {

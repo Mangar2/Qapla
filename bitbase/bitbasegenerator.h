@@ -84,10 +84,21 @@ namespace ChessBitbase {
 		 */
 		void markCandidates(MoveGenerator& position, Bitbase& bitbase, PieceList& list, Move move) {
 			bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
+			if (move.getMovingPiece() == WHITE_KING) {
+				attackBB &= ~position.pieceAttackMask[position.getKingSquare<BLACK>()];
+			}
+			if (move.getMovingPiece() == BLACK_KING) {
+				attackBB &= ~position.pieceAttackMask[position.getKingSquare<WHITE>()];
+			}
 			for (; attackBB; attackBB &= attackBB - 1) {
 				const Square destination = lsb(attackBB);
-				move.setDestination(destination);
-				uint64_t index = BoardAccess::computeIndex(!position.isWhiteToMove(), list, move);
+				const bool occupied = position.getAllPiecesBB() & (1ULL << destination);
+				if (occupied) {
+					continue;
+				}
+				Move curMove = move;
+				curMove.setDestination(destination);
+				uint64_t index = BoardAccess::computeIndex(!position.isWhiteToMove(), list, curMove);
 				bitbase.setBit(index);
 			}
 		}
@@ -100,7 +111,8 @@ namespace ChessBitbase {
 		void markCandidates(MoveGenerator& position, Bitbase& bitbase) {
 			PieceList pieceList(position);
 			position.computeAttackMasksForBothColors();
-			for (Piece piece = WHITE_KNIGHT; piece <= BLACK_KING; ++piece) {
+			Piece piece = WHITE_KNIGHT + int(position.isWhiteToMove());
+			for (; piece <= BLACK_KING; piece += 2) {
 				bitBoard_t pieceBB = position.getPieceBB(piece);
 				Move move;
 				move.setMovingPiece(piece);
@@ -248,11 +260,11 @@ namespace ChessBitbase {
 		}
 
 		void addPiecesToPosition(MoveGenerator& position, const BitbaseIndex& bitbaseIndex, const PieceList& pieceList) {
-			position.setPiece(bitbaseIndex.getPieceSquare(0), WHITE_KING);
-			position.setPiece(bitbaseIndex.getPieceSquare(1), BLACK_KING);
+			position.setPiece(bitbaseIndex.getSquare(0), WHITE_KING);
+			position.setPiece(bitbaseIndex.getSquare(1), BLACK_KING);
 			const uint32_t kingAmount = 2;
 			for (uint32_t pieceNo = kingAmount; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
-				position.setPiece(bitbaseIndex.getPieceSquare(pieceNo), pieceList.getPiece(pieceNo));
+				position.setPiece(bitbaseIndex.getSquare(pieceNo), pieceList.getPiece(pieceNo));
 			}
 			position.setWhiteToMove(bitbaseIndex.isWhiteToMove());
 		}
@@ -346,26 +358,31 @@ namespace ChessBitbase {
 					printInfo(index, bitbaseIndex.getSizeInBit(), bitsChanged);
 					
 					if (!computedPositions.getBit(index)) {
-						// if (loopCount > 0 && !probePositions.getBit(index)) continue;
+						if (loopCount > 0 && !probePositions.getBit(index)) continue;
 						bool isLegal = bitbaseIndex.setPieceSquaresByIndex(index, pieceList);
 						if (!isLegal) continue;
 						position.clear();
 						addPiecesToPosition(position, bitbaseIndex, pieceList);
 						assert(index == BoardAccess::computeIndex<0>(position));
+						/*
+						if (position.getFen() == "8/8/8/8/8/2K1R3/8/3k4 b") {
+							cout << index << endl;
+						}
+						*/
 						uint32_t success = computePosition(index, position, wonPositions, computedPositions);
 						/*
 						if (loopCount > 0 && success && !probePositions.getBit(index)) {
 							success = true;
 						}
+						*/
 						probePositions.clearBit(index);
 						if (success) {
 							markCandidates(position, probePositions);
 						}
-						*/
 						bitsChanged += success;
 						if (first && success) {
 							first = false;
-							position.printFen();
+							// position.printFen();
 						}
 						//if (bitsChanged == 0) { position.printBoard(); }
 					}
@@ -490,7 +507,7 @@ namespace ChessBitbase {
 
 		void testAllKQKR() {
 			Bitbase bitbase;
-			bitbase.readFromFile("KQKR.btb_generated");
+			bitbase.readFromFile("KQKR.btb");
 			testKQKR(B7, B1, C8, A2, false, false, bitbase);
 			testKQKR(B7, B1, D8, A2, false, true, bitbase);
 			testKQKR(B7, B1, C8, A3, false, true, bitbase);
