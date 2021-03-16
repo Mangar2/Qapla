@@ -40,8 +40,15 @@ namespace ChessBitbase {
 		//static const uint64_t debugIndex =  2194203;
 		static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF;
 		BitbaseGenerator() {
-			amountOfDirectDrawOrLoss = 0;
-			amountOfIllegalPositions = 0;
+		}
+
+		/**
+		 * Clears the situation counter
+		 */
+		void clear() {
+			_numberOfDirectLoss = 0;
+			_numberOfDirectDraw = 0;
+			_numberOfIllegalPositions = 0;
 		}
 
 		/**
@@ -213,7 +220,7 @@ namespace ChessBitbase {
 
 			// Exclude all illegal positions (king not to move is in check) from future search
 			if (!position.isLegalPosition()) {
-				amountOfIllegalPositions++;
+				_numberOfIllegalPositions++;
 				computedPositions.setBit(index);
 				return 0;
 			}
@@ -230,7 +237,7 @@ namespace ChessBitbase {
 				}
 				else if (positionValue == -1) {
 					computedPositions.setBit(index);
-					amountOfDirectDrawOrLoss++;
+					_numberOfDirectLoss++;
 				}
 			}
 			else {
@@ -245,7 +252,7 @@ namespace ChessBitbase {
 					result++;
 				}
 				else {
-					amountOfDirectDrawOrLoss++;
+					_numberOfDirectDraw++;
 				}
 			}
 			return result;
@@ -360,21 +367,13 @@ namespace ChessBitbase {
 					if (!computedPositions.getBit(index)) {
 						if (loopCount > 0 && !probePositions.getBit(index)) continue;
 						bool isLegal = bitbaseIndex.setPieceSquaresByIndex(index, pieceList);
+
 						if (!isLegal) continue;
 						position.clear();
 						addPiecesToPosition(position, bitbaseIndex, pieceList);
 						assert(index == BoardAccess::computeIndex<0>(position));
-						/*
-						if (position.getFen() == "8/8/8/8/8/2K1R3/8/3k4 b") {
-							cout << index << endl;
-						}
-						*/
+
 						uint32_t success = computePosition(index, position, wonPositions, computedPositions);
-						/*
-						if (loopCount > 0 && success && !probePositions.getBit(index)) {
-							success = true;
-						}
-						*/
 						probePositions.clearBit(index);
 						if (success) {
 							markCandidates(position, probePositions);
@@ -382,9 +381,7 @@ namespace ChessBitbase {
 						bitsChanged += success;
 						if (first && success) {
 							first = false;
-							// position.printFen();
 						}
-						//if (bitsChanged == 0) { position.printBoard(); }
 					}
 				}
 
@@ -416,8 +413,7 @@ namespace ChessBitbase {
 			ClockManager clock;
 
 			clock.setStartTime();
-			amountOfIllegalPositions = 0;
-			amountOfDirectDrawOrLoss = 0;
+			clear();
 			for (uint64_t index = 0; index < sizeInBit; index++) {
 				printInfo(index, sizeInBit, bitsChanged);
 				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
@@ -427,16 +423,18 @@ namespace ChessBitbase {
 				}
 			}
 			cout << endl
-				<< "Amount of direct draw or loss: " << amountOfDirectDrawOrLoss << endl
+				<< "Number of direct loss: " << _numberOfDirectLoss << endl
+				<< "Number of direct draw: " << _numberOfDirectDraw << endl
+				<< "Number of illegal positions: " << _numberOfIllegalPositions << endl
 				<< "Initial winning positions: " << bitsChanged << endl;
 			printTimeSpent(clock);
-
 			computeBitbase(wonPositions, computedPositions, pieceList, clock);
 
 			//compareToFile(pieceString, wonPositions);
-			wonPositions.printStatistic();
-			printf("Illegal positions: %lld, draw or loss found in quiescense: %lld, sum: %lld \n",
-				amountOfIllegalPositions, amountOfDirectDrawOrLoss, amountOfDirectDrawOrLoss + amountOfIllegalPositions);
+			cout 
+				<< wonPositions
+				<< " illigal positions " << _numberOfIllegalPositions << endl;
+
 			printTimeSpent(clock);
 			string fileName = pieceString + string(".btb");
 			wonPositions.storeToFile(fileName.c_str());
@@ -600,8 +598,9 @@ namespace ChessBitbase {
 
 
 		Eval eval;
-		uint64_t amountOfIllegalPositions;
-		uint64_t amountOfDirectDrawOrLoss;
+		uint64_t _numberOfIllegalPositions;
+		uint64_t _numberOfDirectLoss;
+		uint64_t _numberOfDirectDraw;
 	};
 
 }

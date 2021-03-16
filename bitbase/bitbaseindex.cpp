@@ -251,16 +251,17 @@ uint32_t BitbaseIndex::popCount(bitBoard_t bitBoard) {
 }
 
 void BitbaseIndex::addNonPawnPieceToIndex(Square square) {
+	Square mappedSquare = mapSquare(square, _mapType);
 	if (_numberOfDiagonalSquares == _piecesCount) {
-		if (isAboveDiagonal(square)) {
+		if (isAboveDiagonal(mappedSquare)) {
 			_mapType |= MAP_TO_A1_D1_D4_TRIANGLE;
+			mappedSquare = mapSquare(square, _mapType);
 		}
-		else if (isOnDiagonal(square)) {
+		else if (isOnDiagonal(mappedSquare)) {
 			_numberOfDiagonalSquares++;
 		}
 	}
 	
-	const Square mappedSquare = mapSquare(square, _mapType);
 	const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _piecesBB;
 	uint64_t indexValueBasedOnPieceSquare = uint64_t(mappedSquare) - popCount(belowBB);
 

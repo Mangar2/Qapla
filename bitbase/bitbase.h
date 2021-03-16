@@ -38,7 +38,6 @@ namespace ChessBitbase {
 	public:
 		Bitbase(bool loaded = false) : _sizeInBit(0), _loaded(loaded) {}
 
-
 		/**
 		 * @param bitbaseSizeInBit number of positions stored in the bitbase
 		 */
@@ -48,7 +47,6 @@ namespace ChessBitbase {
 		};
 
 		Bitbase(const BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {};
-
 
 		/**
 		 * Gets the amount of stored positions
@@ -92,13 +90,11 @@ namespace ChessBitbase {
 		}
 
 		/**
-		 * Prints a statistic of a _bitbase
+		 * Gets a statistic of a _bitbase
 		 */
-		void printStatistic() const {
+		string getStatistic() const {
 			uint64_t win = 0;
 			uint64_t draw = 0;
-			uint64_t loss = 0;
-			uint64_t illegal = 0;
 
 			for (uint64_t index = 0; index < _sizeInBit; index++) {
 				if (getBit(index)) {
@@ -108,7 +104,7 @@ namespace ChessBitbase {
 					draw++;
 				}
 			}
-			printf("Statistics; Positions stored: %lld, Win: %lld, no win (draw, loss, illegal): %lld\n", _sizeInBit, win, draw);
+			return " win: " + to_string(win) + " draw, loss or error: " + to_string(draw);
 		}
 
 		/**
@@ -175,6 +171,14 @@ namespace ChessBitbase {
 		vector<uint32_t> _bitbase;
 		uint64_t _sizeInBit;
 	};
+
+	/**
+	 * Pints a bitbase statistic
+	 */
+	static ostream& operator<<(ostream& stream, const Bitbase& bitBase) {
+		stream << bitBase.getStatistic();
+		return stream;
+	}
 
 }
 
