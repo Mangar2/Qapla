@@ -119,7 +119,7 @@ namespace ChessSearch {
 		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue, value_t positionValueDelta) {
 			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth) * 10;
 			const value_t deltaRelatedSize = positionValueDelta;
-			const value_t valueRelatedSize = positionValue / 20;
+			const value_t valueRelatedSize = abs(positionValue) / 20;
 			const value_t retryRelatedSize = _retryCount * 30;
 			const value_t minSize = 15;
 			return minSize + deltaRelatedSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;

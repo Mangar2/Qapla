@@ -149,6 +149,12 @@ namespace ChessEval {
 		static value_t forceToAnyCorner(MoveGenerator& board, value_t currentValue);
 
 		/**
+		 * Mating king in any corner or edge
+		 */
+		template <Piece COLOR>
+		static value_t forceToAnyCornerToMate(MoveGenerator& board, value_t currentValue);
+
+		/**
 		 * Tries to trap the king in any corner, but evaluate near draw
 		 */
 		template <Piece COLOR>
@@ -229,7 +235,7 @@ namespace ChessEval {
 		static const value_t KING_RACED_PAWN_BONUS = 150;
 
 		static vector<evalFunction_t*> functionMap;
-		static uint8_t mapPieceSignatureToFunctionNo[PieceSignature::PIECE_SIGNATURE_SIZE];
+		static array<uint8_t, PieceSignature::PIECE_SIGNATURE_SIZE> mapPieceSignatureToFunctionNo;
 
 	};
 

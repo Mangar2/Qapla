@@ -87,7 +87,7 @@ value_t Quiescence::search(
 		value_t ttValue = probeTT(position, alpha, beta, ply);
 		if (ttValue != NO_VALUE) return ttValue;
 	}
-	value_t standPatValue = Eval::eval(position, alpha);
+	value_t standPatValue = Eval::eval(position, ply, alpha);
 	// Eval::assertSymetry(position, standPatValue);
 	value_t bestValue;
 	value_t valueOfNextPlySearch;

@@ -69,13 +69,18 @@ namespace ChessSearch {
 			_computingInfo.requestPrintSearchInfo();
 		}
 
-		ComputingInfo searchRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager);
+		ComputingInfo negaMaxRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager);
 
 	private:
 
 		enum class SearchFinding {
 			PV, NORMAL, PV_LAST_PLY, LAST_PLY
 		};
+
+		/**
+		 * Check, if we have a bitbase value
+		 */
+		bool hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& curPly);
 
 		/**
 		 * Check for cutoffs
@@ -176,7 +181,7 @@ namespace ChessSearch {
 		Eval eval;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
-
+		pieceSignature_t _rootSignature;
 		RootMoves _rootMoves;
 	};
 }

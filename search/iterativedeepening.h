@@ -197,7 +197,7 @@ namespace ChessSearch {
 					stack.setPV(computingInfo.getPV());
 				}
 
-				computingInfo = _search.searchRoot(position, stack, _clockManager);
+				computingInfo = _search.negaMaxRoot(position, stack, _clockManager);
 				computingInfo.printSearchResult();
 				const value_t positionValue = computingInfo.getPositionValueInCentiPawn();
 				_clockManager.setIterationResult(_window.getAlpha(), _window.getBeta(), positionValue);

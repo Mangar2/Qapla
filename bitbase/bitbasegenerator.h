@@ -266,6 +266,9 @@ namespace ChessBitbase {
 			}
 		}
 
+		/**
+		 * Populates a position from a bitbase index for the squares and a piece list for the piece types
+		 */
 		void addPiecesToPosition(MoveGenerator& position, const BitbaseIndex& bitbaseIndex, const PieceList& pieceList) {
 			position.setPiece(bitbaseIndex.getSquare(0), WHITE_KING);
 			position.setPiece(bitbaseIndex.getSquare(1), BLACK_KING);
@@ -356,7 +359,7 @@ namespace ChessBitbase {
 			bitbaseIndex.setPieceSquaresByIndex(0, pieceList);
 			Bitbase probePositions(bitbaseIndex);
 
-			for (uint32_t loopCount = 0; loopCount < 100; loopCount++) {
+			for (uint32_t loopCount = 0; loopCount < 1024; loopCount++) {
 
 				MoveGenerator position;
 				uint64_t bitsChanged = 0;

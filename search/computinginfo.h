@@ -77,6 +77,7 @@ namespace ChessSearch {
 		 * initializes data before starting to search
 		 */
 		void initSearch() {
+			_pvMovesStore.clear();
 			_nodesSearched = 0;
 			_timeControl.storeStartTime();
 		}
@@ -204,7 +205,9 @@ namespace ChessSearch {
 		void rootMoveSearched(SearchStack& stack) {
 			_currentMoveNoSearched++;
 			_positionValueInCentiPawn = stack[0].bestValue;
-			updatePV(stack[0].pvMovesStore);
+			if (!stack[0].bestMove.isEmpty()) {
+				updatePV(stack[0].pvMovesStore);
+			}
 		}
 
 

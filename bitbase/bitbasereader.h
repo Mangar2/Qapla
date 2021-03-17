@@ -39,11 +39,27 @@ namespace ChessBitbase {
 	{
 	public:
 		static void loadBitbase() {
-			loadRelevant3StoneBitbase();
+			loadBitbaseRec("K*K");
+			loadBitbaseRec("K*K*");
+		}
+
+		static void loadBitbaseRec(string name) {
+			auto pos = name.find('*');
+			if (pos != string::npos) {
+				for (auto ch : string("QRBNP")) {
+					string next = name;
+					next[pos] = ch;
+					loadBitbaseRec(next);
+				}
+			}
+			else {
+				loadBitbase(name);
+			}
 		}
 
 		static void loadRelevant3StoneBitbase() {
 			loadBitbase("KPK");
+			loadBitbase("KQK");
 		}
 
 		static void loadRelevant4StoneBitbase() {
@@ -70,36 +86,42 @@ namespace ChessBitbase {
 			loadBitbase("KQQKQ");
 		}
 
-
 		/**
-		 * Reads a value from bitboard having the position and a current value
+		 * Reads a value from bitboard having the position
 		 */
-		static value_t getValueFromBitbase(MoveGenerator& position, value_t currentValue) {
+		static value_t getValueFromBitbase(const MoveGenerator& position) {
 			PieceSignature signature = PieceSignature(position.getPiecesSignature());
-			// 1. Test if the bitbase has a win for white view (example KPK)
+
+			// 1. Test if the bitbase has a win for white view (example KRKP)
 			const Bitbase* whiteBitbase = getBitbase(signature);
 			if (whiteBitbase != 0) {
 				uint64_t index = BoardAccess::computeIndex<0>(position);
 				if (whiteBitbase->getBit(index)) {
-					return currentValue + WINNING_BONUS;
-				}
-				else {
-					currentValue = 1;
+					return position.isWhiteToMove() ? 1 : -1;
 				}
 			}
-			// 2. Test if the bitbase has a win for black (example KKP using the KPK bitbase)
+
+			// 2. Test if the bitbase has a win for black (example KPKR using the KRKP bitbase)
 			signature.changeSide();
 			const Bitbase* blackBitbase = getBitbase(signature);
 			if (blackBitbase != 0) {
 				uint64_t index = BoardAccess::computeIndex<1>(position);
 				if (blackBitbase->getBit(index)) {
-					return currentValue - WINNING_BONUS;
-				}
-				else {
-					currentValue = -1;
+					return position.isWhiteToMove() ? -1 : 1;
 				}
 			}
-			return currentValue;
+			return 0;
+		}
+
+		/**
+		 * Reads a value from bitboard having the position and a current value
+		 */
+		static value_t getValueFromBitbase(const MoveGenerator& position, value_t currentValue) {
+			value_t value = getValueFromBitbase(position);
+			if (value > 0) value = currentValue + WINNING_BONUS;
+			else if (value < 0) value = currentValue - WINNING_BONUS;
+			else value = 1;
+			return value;
 		}
 
 		/**
@@ -111,7 +133,6 @@ namespace ChessBitbase {
 			Bitbase bitbase;
 			if (bitbase.readFromFile(pieceString)) {
 				_bitbases[signature.getPiecesSignature()] = bitbase;
-				ChessEval::EvalEndgame::registerBitbase(pieceString);
 			}
 		}
 

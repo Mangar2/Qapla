@@ -123,8 +123,10 @@ namespace ChessBitbase {
 			_sizeInBit = sizeInBit;
 			ifstream fin(fileName, ios::in | ios::binary);
 			if (!fin.is_open()) {
+				/*
 				string message = "Error reading bitbase file ";
 				perror((message + fileName + ": ").c_str());
+				*/
 				return false;
 			}
 			uint32_t vectorSize = computeVectorSize();

@@ -20,8 +20,26 @@
 #include "search.h"
 #include "whatif.h"
 #include "quiescence.h"
+#include "../bitbase/bitbasereader.h"
 
 using namespace ChessSearch;
+using namespace ChessBitbase;
+
+bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& curPly) {
+	// We only look into the bitbases, if we had a capture or a promote. This avoids "non-searching" on
+	// positions of bitbases.
+	if (position.getPiecesSignature() == _rootSignature) return false;
+	const value_t bitbaseValue = BitbaseReader::getValueFromBitbase(position);
+	if (bitbaseValue == 1 && curPly.beta <= MIN_MATE_VALUE) {
+		curPly.setCutoff(Cutoff::BITBASE, MIN_MATE_VALUE);
+		return true;
+	} 
+	if (bitbaseValue == -1 && curPly.alpha >= -MIN_MATE_VALUE) {
+		curPly.setCutoff(Cutoff::BITBASE, -MIN_MATE_VALUE);
+		return true;
+	}
+	return false;
+}
 
 /**
  * Check, if it is reasonable to do a nullmove search
@@ -104,7 +122,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
  */
 value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, ply_t ply)
 {
-	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position);
+	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position, ply);
 	SearchVariables& searchInfo = stack[ply];
 	value_t searchResult;
 	Move curMove;
@@ -141,10 +159,12 @@ value_t Search::negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, ply
 	return searchInfo.bestValue;
 }
 
-
+/**
+ * Negamax algorithm for plys 1..n-2
+ */
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply) {
 	
-	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position);
+	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position, ply);
 
 	SearchVariables& searchInfo = stack[ply];
 	value_t searchResult;
@@ -155,7 +175,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply) 
 	_computingInfo._nodesSearched++;
 
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, searchInfo.previousMove, ply);
-	cutoff = hasCutoff<SearchFinding::NORMAL>(position, stack, searchInfo, ply);
+
+	cutoff = 
+		hasBitbaseCutoff(position, searchInfo) ||
+		hasCutoff<SearchFinding::NORMAL>(position, stack, searchInfo, ply);
 
 	if (!cutoff) {
 		iid(position, stack, ply);
@@ -189,7 +212,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply) 
 
 }
 
-ComputingInfo Search::searchRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager) {
+/**
+ * Negamax algorithm for the first ply
+ */
+ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager) {
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
 	
@@ -213,6 +239,8 @@ ComputingInfo Search::searchRoot(MoveGenerator& position, SearchStack& stack, Cl
 		_computingInfo.setCurrentMove(curMove);
 
 		stack[1].doMove(position, searchInfo, curMove);
+		_rootSignature = position.getPiecesSignature();
+
 		if (searchInfo.remainingDepth > 2) {
 			searchResult = -negaMax(position, stack, 1);
 		}

@@ -189,8 +189,10 @@ namespace ChessBasics {
 			_signature = 0;
 			pieceSignature_t shift = 0;
 			pieceSignature_t lastSignature = 0;
+			uint32_t divider;
+			bool onlyAddOne;
 
-			for (int pos = 0; pos < 10 && pieces[pos] != 0; pos++) {
+			for (int pos = 0; pos < pieces.length(); pos++) {
 				switch (pieces[pos]) {
 				case 'K':
 					if (pos > 0) {
@@ -198,8 +200,11 @@ namespace ChessBasics {
 					}
 					break;
 				case '+':
-					_signature += lastSignature * (iteration % 3);
-					iteration /= 3;
+					// Add only one, if we have a double definition like BB+
+					onlyAddOne = _signature & (lastSignature * 2);
+					divider = onlyAddOne ? 2 : 3;
+					_signature += lastSignature * (iteration % divider);
+					iteration /= divider;
 					break;
 				case '*':
 					_signature -= lastSignature;

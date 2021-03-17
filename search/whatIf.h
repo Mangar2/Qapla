@@ -113,7 +113,7 @@ namespace ChessSearch {
 		uint64_t _nodesSearched;
 		string _pv;
 		static constexpr array<const char*, int(Cutoff::COUNT)> 
-			_cutoffString = { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY" };
+			_cutoffString = { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY", "BITBASE" };
 	};
 
 #if (DOWHATIF == false) 

@@ -33,7 +33,7 @@ using namespace ChessEval;
   * Calculates an evaluation for the current board position
  */
 template <bool PRINT>
-value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
+value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply) {
 
 	value_t result = 0;
 	value_t endGameResult;
@@ -54,6 +54,12 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults) {
 
 	if (endGameResult != result) {
 		result = endGameResult;
+		if (result > MIN_MATE_VALUE) {
+			result -= ply;
+		}
+		if (result < MIN_MATE_VALUE) {
+			result += ply;
+		}
 	}
 	else {
 		// Do not change ordering of the following calls. King attack needs result from Mobility
@@ -87,7 +93,7 @@ void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
 template <Piece COLOR>
 map<string, value_t> Eval::getEvalFactors(MoveGenerator& board) {
 	EvalResults evalResults;
-	lazyEval<false>(board, evalResults);
+	lazyEval<false>(board, evalResults, 0);
 	map<string, value_t> result;
 	return result;
 }
@@ -108,7 +114,7 @@ void Eval::printEval(MoveGenerator& board) {
 	EvalResults evalResults;
 	board.print();
 
-	value_t evalValue = lazyEval<true>(board, evalResults);
+	value_t evalValue = lazyEval<true>(board, evalResults, 0);
 
 	const value_t endGameResult = EvalEndgame::print(board, evalValue);
 

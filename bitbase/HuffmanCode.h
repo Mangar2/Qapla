@@ -86,10 +86,12 @@ namespace ChessBitbase {
 				optimize();
 			}
 			buildCode(forrest.top(), 0, 0);
+			/*
 			cout << "original size: " << data.size() * sizeof(uint32_t)
 				<< " compressed size: " << (computeSizeInBit() / 8)
 				<< " comressed to: " << (computeSizeInBit() * 100) / (8 * data.size() * sizeof(uint32_t)) << "%"
 				<< endl;
+			*/
 			// printCode();
 		}
 
