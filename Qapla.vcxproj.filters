@@ -143,9 +143,6 @@
     <ClInclude Include="search\threadpool.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="search\computinginfo.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="tests\evalpawntest.h">
       <Filter>Tests</Filter>
     </ClInclude>
@@ -360,6 +357,9 @@
       <Filter>search</Filter>
     </ClInclude>
     <ClInclude Include="search\ttentry.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\computinginfo.h">
       <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>

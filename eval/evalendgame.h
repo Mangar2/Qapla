@@ -119,6 +119,9 @@ namespace ChessEval {
 		 */
 		static value_t getFromBitbase(MoveGenerator& position, value_t currentValue);
 
+		template<Piece COLOR>
+		value_t checkBitbase(MoveGenerator& position, value_t value);
+
 		template <Piece COLOR>
 		static value_t KQKR(MoveGenerator& board, value_t currentValue);
 

@@ -65,6 +65,7 @@ namespace ChessSearch {
 		void clear() {
 			_searchDepth = 0;
 			_nodesSearched = 0;
+			_tbHits = 0;
 			_debug = false;
 			_totalAmountOfMovesToConcider = 0;
 			_currentMoveNoSearched = 0;
@@ -79,6 +80,7 @@ namespace ChessSearch {
 		void initSearch() {
 			_pvMovesStore.clear();
 			_nodesSearched = 0;
+			_tbHits = 0;
 			_timeControl.storeStartTime();
 		}
 
@@ -108,6 +110,7 @@ namespace ChessSearch {
 					_positionValueInCentiPawn,
 					_timeControl.getTimeSpentInMilliseconds(),
 					_nodesSearched,
+					_tbHits,
 					_totalAmountOfMovesToConcider - _currentMoveNoSearched,
 					_totalAmountOfMovesToConcider,
 					_currentConcideredMove.getLAN(),
@@ -138,6 +141,7 @@ namespace ChessSearch {
 					_positionValueInCentiPawn <= _alpha,
 					_timeControl.getTimeSpentInMilliseconds(),
 					_nodesSearched,
+					_tbHits,
 					primaryVariant);
 			}
 		}
@@ -237,6 +241,7 @@ namespace ChessSearch {
 		}
 
 		uint64_t _nodesSearched;
+		uint64_t _tbHits;
 
 	private:
 

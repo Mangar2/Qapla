@@ -23,19 +23,27 @@
 #include "../bitbase/bitbasereader.h"
 
 using namespace ChessSearch;
-using namespace ChessBitbase;
 
 bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& curPly) {
 	// We only look into the bitbases, if we had a capture or a promote. This avoids "non-searching" on
 	// positions of bitbases.
-	if (position.getPiecesSignature() == _rootSignature) return false;
-	const value_t bitbaseValue = BitbaseReader::getValueFromBitbase(position);
-	if (bitbaseValue == 1 && curPly.beta <= MIN_MATE_VALUE) {
+	// if (position.getPiecesSignature() == _rootSignature) return false;
+	// if (curPly.alpha >= -MIN_MATE_VALUE && curPly.beta <= MIN_MATE_VALUE) return false;
+	const QaplaBitbase::Result bitbaseValue = QaplaBitbase::BitbaseReader::getValueFromBitbase(position);
+	if (bitbaseValue == QaplaBitbase::Result::Unknown) {
+		return false;
+	}
+	_computingInfo._tbHits++;
+	if (bitbaseValue == QaplaBitbase::Result::Win) { // && curPly.beta <= MIN_MATE_VALUE) {
 		curPly.setCutoff(Cutoff::BITBASE, MIN_MATE_VALUE);
 		return true;
 	} 
-	if (bitbaseValue == -1 && curPly.alpha >= -MIN_MATE_VALUE) {
+	if (bitbaseValue == QaplaBitbase::Result::Loss) { // && curPly.alpha >= -MIN_MATE_VALUE) {
 		curPly.setCutoff(Cutoff::BITBASE, -MIN_MATE_VALUE);
+		return true;
+	}
+	if (bitbaseValue == QaplaBitbase::Result::Draw) {
+		curPly.setCutoff(Cutoff::BITBASE, 1);
 		return true;
 	}
 	return false;

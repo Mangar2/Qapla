@@ -34,7 +34,7 @@ using namespace std;
 using namespace ChessMoveGenerator;
 using namespace ChessSearch;
 
-namespace ChessBitbase {
+namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
 		//static const uint64_t debugIndex =  2194203;
@@ -368,7 +368,7 @@ namespace ChessBitbase {
 					printInfo(index, bitbaseIndex.getSizeInBit(), bitsChanged);
 					
 					if (!computedPositions.getBit(index)) {
-						if (loopCount > 0 && !probePositions.getBit(index)) continue;
+						// if (loopCount > 0 && !probePositions.getBit(index)) continue;
 						bool isLegal = bitbaseIndex.setPieceSquaresByIndex(index, pieceList);
 
 						if (!isLegal) continue;

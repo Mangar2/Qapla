@@ -19,7 +19,7 @@
 
 #include "bitbasereader.h"
 
-using namespace ChessBitbase;
+using namespace QaplaBitbase;
 
 map<pieceSignature_t, Bitbase> BitbaseReader::_bitbases;
 

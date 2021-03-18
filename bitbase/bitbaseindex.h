@@ -35,7 +35,7 @@
 using namespace ChessBasics;
 using namespace ChessMoveGenerator;
 
-namespace ChessBitbase {
+namespace QaplaBitbase {
 
 	class BitbaseIndex
 	{

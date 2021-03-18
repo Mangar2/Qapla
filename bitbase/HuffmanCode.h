@@ -28,7 +28,7 @@
 
 using namespace std;
 
-namespace ChessBitbase {
+namespace QaplaBitbase {
 
 
 	struct HuffmanNode {

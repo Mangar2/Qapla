@@ -38,6 +38,7 @@ namespace ChessInterface {
 			bool upperbound,
 			uint64_t timeSpendInMilliseconds,
 			uint64_t nodesSearched,
+			uint64_t tbHits,
 			vector<string> primaryVariant
 		)
 		{
@@ -68,6 +69,7 @@ namespace ChessInterface {
 		 * @param timeSpendInMilliseconds (time spend to calculate the current position including the search
 		 * until reaching the current depth)
 		 * @param nodesSearched number of nodes (usually calls to "set move") searched so far
+		 * @param tbHits amount of positions found in table bases or bit bases.
 		 * @param movesLeftToConsider number of moves to be searched
 		 * @param totalAmountOfMovesToConsider total number of possible moves in the actual chess position
 		 * @param currentConsideredMove move currently concidered (in chess notation)
@@ -78,6 +80,7 @@ namespace ChessInterface {
 			value_t positionValue,
 			uint64_t timeSpendInMilliseconds,
 			uint64_t nodesSearched,
+			uint64_t tbHits,
 			uint32_t movesLeftToConsider,
 			uint32_t totalAmountOfMovesToConsider,
 			const string& currentConsideredMove,

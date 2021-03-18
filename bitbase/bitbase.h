@@ -32,7 +32,7 @@
 #include "bitbaseindex.h"
 #include "huffmancode.h"
 
-namespace ChessBitbase {
+namespace QaplaBitbase {
 
 	class Bitbase {
 	public:
@@ -161,7 +161,6 @@ namespace ChessBitbase {
 	private:
 		void compress() {
 			HuffmanCode huffman(_bitbase);
-			
 		}
 
 		uint32_t computeVectorSize() {

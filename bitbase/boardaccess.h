@@ -33,7 +33,7 @@
 
 using namespace ChessMoveGenerator;
 
-namespace ChessBitbase {
+namespace QaplaBitbase {
 
 	class BoardAccess {
 	public:

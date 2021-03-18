@@ -19,7 +19,7 @@
 
 #include "bitbaseindex.h"
 
-using namespace ChessBitbase;
+using namespace QaplaBitbase;
 
 array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithPawn;
 array<uint32_t, BOARD_SIZE* BOARD_SIZE> BitbaseIndex::mapTwoKingsToIndexWithoutPawn;

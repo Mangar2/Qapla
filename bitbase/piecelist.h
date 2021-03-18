@@ -31,7 +31,7 @@
 using namespace std;
 using namespace ChessMoveGenerator;
 
-namespace ChessBitbase {
+namespace QaplaBitbase {
 
 	class PieceList {
 	public:

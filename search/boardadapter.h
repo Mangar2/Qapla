@@ -76,7 +76,7 @@ namespace ChessSearch {
 		 * to compute this bitabase (if they cannot be loaded)
 		 */
 		virtual void generateBitbases(string signature) {
-			ChessBitbase::BitbaseGenerator generator;
+			QaplaBitbase::BitbaseGenerator generator;
 			generator.computeBitbaseRec(signature);
 		}
 
@@ -84,7 +84,7 @@ namespace ChessSearch {
 		 * Load databases like tablebases or bitbases
 		 */
 		virtual void initialize() {
-			ChessBitbase::BitbaseReader::loadBitbase();
+			QaplaBitbase::BitbaseReader::loadBitbase();
 		}
 
 		/**

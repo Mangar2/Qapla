@@ -27,7 +27,7 @@
 
 
 using namespace ChessEval;
-using namespace ChessBitbase;
+using namespace QaplaBitbase;
 
 
 vector<EvalEndgame::evalFunction_t*> EvalEndgame::functionMap;
@@ -125,6 +125,11 @@ value_t EvalEndgame::materialAndPawnStructure(MoveGenerator& position) {
 
 value_t EvalEndgame::getFromBitbase(MoveGenerator& position, value_t value) {
 	return BitbaseReader::getValueFromBitbase(position, value);
+}
+
+template<Piece COLOR>
+value_t EvalEndgame::checkBitbase(MoveGenerator& position, value_t value) {
+	value_t bitbaseValue = BitbaseReader::getValueFromBitbase(position);
 }
 
 template<Piece COLOR>

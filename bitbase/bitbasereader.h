@@ -33,7 +33,11 @@
 using namespace ChessMoveGenerator;
 using namespace std;
 
-namespace ChessBitbase {
+namespace QaplaBitbase {
+
+	enum class Result {
+		Unknown, Loss, Draw, Win
+	};
 
 	class BitbaseReader
 	{
@@ -41,6 +45,7 @@ namespace ChessBitbase {
 		static void loadBitbase() {
 			loadBitbaseRec("K*K");
 			loadBitbaseRec("K*K*");
+			loadBitbaseRec("K**K");
 		}
 
 		static void loadBitbaseRec(string name) {
@@ -89,7 +94,7 @@ namespace ChessBitbase {
 		/**
 		 * Reads a value from bitboard having the position
 		 */
-		static value_t getValueFromBitbase(const MoveGenerator& position) {
+		static Result getValueFromBitbase(const MoveGenerator& position) {
 			PieceSignature signature = PieceSignature(position.getPiecesSignature());
 
 			// 1. Test if the bitbase has a win for white view (example KRKP)
@@ -97,7 +102,7 @@ namespace ChessBitbase {
 			if (whiteBitbase != 0) {
 				uint64_t index = BoardAccess::computeIndex<0>(position);
 				if (whiteBitbase->getBit(index)) {
-					return position.isWhiteToMove() ? 1 : -1;
+					return position.isWhiteToMove() ? Result::Win : Result::Loss;
 				}
 			}
 
@@ -107,20 +112,21 @@ namespace ChessBitbase {
 			if (blackBitbase != 0) {
 				uint64_t index = BoardAccess::computeIndex<1>(position);
 				if (blackBitbase->getBit(index)) {
-					return position.isWhiteToMove() ? -1 : 1;
+					return position.isWhiteToMove() ? Result::Loss : Result::Win;
 				}
 			}
-			return 0;
+			return (whiteBitbase != 0 && blackBitbase != 0) ? Result::Draw : Result::Unknown;
 		}
 
 		/**
 		 * Reads a value from bitboard having the position and a current value
 		 */
 		static value_t getValueFromBitbase(const MoveGenerator& position, value_t currentValue) {
-			value_t value = getValueFromBitbase(position);
-			if (value > 0) value = currentValue + WINNING_BONUS;
-			else if (value < 0) value = currentValue - WINNING_BONUS;
-			else value = 1;
+			const Result bitbaseResult = getValueFromBitbase(position);
+			value_t value = currentValue;
+			if (bitbaseResult == Result::Win) value = currentValue + WINNING_BONUS;
+			else if (bitbaseResult == Result::Loss) value = currentValue - WINNING_BONUS;
+			else if (bitbaseResult == Result::Draw) value = 1;
 			return value;
 		}
 
