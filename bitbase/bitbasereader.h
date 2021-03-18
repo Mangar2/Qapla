@@ -36,7 +36,7 @@ using namespace std;
 namespace QaplaBitbase {
 
 	enum class Result {
-		Unknown, Loss, Draw, Win
+		Unknown, Loss, Draw, DrawOrLoss, Win
 	};
 
 	class BitbaseReader
@@ -89,6 +89,20 @@ namespace QaplaBitbase {
 
 		static void load5StoneBitbase() {
 			loadBitbase("KQQKQ");
+		}
+
+		/**
+		 * Gets a bit from a bitbase identified by a position
+		 */
+		static Result getValueFromSingleBitbase(const MoveGenerator& position) {
+			PieceSignature signature = PieceSignature(position.getPiecesSignature());
+
+			const Bitbase* bitbase = getBitbase(signature);
+			if (bitbase != 0) {
+				uint64_t index = BoardAccess::computeIndex<0>(position);
+				return bitbase->getBit(index) ? Result::Win : Result::DrawOrLoss;
+			}
+			return Result::Unknown;
 		}
 
 		/**

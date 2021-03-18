@@ -59,7 +59,6 @@ namespace QaplaBitbase {
 			MoveProvider moveProvider;
 			Move move;
 
-			value_t positionValue = 0;
 			value_t result = 0;
 			BoardState boardState = position.getBoardState();
 
@@ -71,14 +70,15 @@ namespace QaplaBitbase {
 					continue;
 				}
 				position.doMove(move);
-				positionValue = BitbaseReader::getValueFromBitbase(position, 0);
+				const bool isWhiteWin = BitbaseReader::getValueFromSingleBitbase(position) == Result::Win;
 				position.undoMove(move, boardState);
 
-				if (position.isWhiteToMove() && positionValue >= WINNING_BONUS) {
+				if (position.isWhiteToMove() && isWhiteWin) {
 					result = 1;
 					break;
 				}
-				if (!position.isWhiteToMove() && positionValue < WINNING_BONUS) {
+
+				if (!position.isWhiteToMove() && !isWhiteWin) {
 					result = -1;
 					break;
 				}
@@ -87,26 +87,47 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Marks one candidate identified by a partially filled move and a destination square
+		 */
+		void markCandidate(bool wtm, Bitbase& bitbase, PieceList& list, Move move, Square destination) {
+			move.setDestination(destination);
+			uint64_t index = BoardAccess::computeIndex(!wtm, list, move);
+			bitbase.setBit(index);
+		}
+
+		/**
 		 * Mark candidates for a dedicated piece identified by a partially filled move
 		 */
-		void markCandidates(MoveGenerator& position, Bitbase& bitbase, PieceList& list, Move move) {
+		void markCandidates(const MoveGenerator& position, Bitbase& bitbase, PieceList& list, Move move) {
 			bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
+			const bool wtm = position.isWhiteToMove();
 			if (move.getMovingPiece() == WHITE_KING) {
 				attackBB &= ~position.pieceAttackMask[position.getKingSquare<BLACK>()];
 			}
 			if (move.getMovingPiece() == BLACK_KING) {
 				attackBB &= ~position.pieceAttackMask[position.getKingSquare<WHITE>()];
 			}
-			for (; attackBB; attackBB &= attackBB - 1) {
-				const Square destination = lsb(attackBB);
-				const bool occupied = position.getAllPiecesBB() & (1ULL << destination);
-				if (occupied) {
-					continue;
+			if (move.getMovingPiece() == WHITE_PAWN && move.getDeparture() >= A3) {
+				markCandidate(wtm, bitbase, list, move, move.getDeparture() - NORTH);
+				if (getRank(move.getDeparture()) == Rank::R4) {
+					markCandidate(wtm, bitbase, list, move, move.getDeparture() - 2 * NORTH);
 				}
-				Move curMove = move;
-				curMove.setDestination(destination);
-				uint64_t index = BoardAccess::computeIndex(!position.isWhiteToMove(), list, curMove);
-				bitbase.setBit(index);
+			}
+			if (move.getMovingPiece() == BLACK_PAWN && move.getDeparture() <= H6) {
+				markCandidate(wtm, bitbase, list, move, move.getDeparture() + NORTH);
+				if (getRank(move.getDeparture()) == Rank::R5) {
+					markCandidate(wtm, bitbase, list, move, move.getDeparture() + 2 * NORTH);
+				}
+			}
+			if (getPieceType(move.getMovingPiece()) != PAWN) {
+				for (; attackBB; attackBB &= attackBB - 1) {
+					const Square destination = lsb(attackBB);
+					const bool occupied = position.getAllPiecesBB() & (1ULL << destination);
+					if (occupied) {
+						continue;
+					}
+					markCandidate(wtm, bitbase, list, move, destination);
+				}
 			}
 		}
 
@@ -118,7 +139,7 @@ namespace QaplaBitbase {
 		void markCandidates(MoveGenerator& position, Bitbase& bitbase) {
 			PieceList pieceList(position);
 			position.computeAttackMasksForBothColors();
-			Piece piece = WHITE_KNIGHT + int(position.isWhiteToMove());
+			Piece piece = PAWN + int(position.isWhiteToMove());
 			for (; piece <= BLACK_KING; piece += 2) {
 				bitBoard_t pieceBB = position.getPieceBB(piece);
 				Move move;
@@ -377,7 +398,14 @@ namespace QaplaBitbase {
 						assert(index == BoardAccess::computeIndex<0>(position));
 
 						uint32_t success = computePosition(index, position, wonPositions, computedPositions);
+						if (loopCount > 0 && success && !probePositions.getBit(index)) {
+							cout << endl << "index: " << index << " fen: " << position.getFen() << endl;
+							computePosition(index, position, wonPositions, computedPositions);
+						}
 						probePositions.clearBit(index);
+						if (success && index == 142775) {
+							cout << endl << position.getFen() << endl;
+						}
 						if (success) {
 							markCandidates(position, probePositions);
 						}
@@ -422,6 +450,9 @@ namespace QaplaBitbase {
 				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
 					position.clear();
 					addPiecesToPosition(position, bitbaseIndex, pieceList);
+					if (index == 142775) {
+						initialComputePosition(index, position, wonPositions, computedPositions);
+					}
 					bitsChanged += initialComputePosition(index, position, wonPositions, computedPositions);
 				}
 			}
