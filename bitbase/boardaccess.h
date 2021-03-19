@@ -41,13 +41,13 @@ namespace QaplaBitbase {
 		 * Computes a _bitbase index from a position position
 		 */
 		template<bool SYMETRIC>
-		static uint64_t computeIndex(const MoveGenerator& position) {
-			BitbaseIndex bitBaseIndex;
+		static uint64_t getIndex(const MoveGenerator& position) {
 			PieceList pieceList(position);
+			BitbaseIndex bitBaseIndex(pieceList);
 			bool wtm = position.isWhiteToMove() ^ SYMETRIC;
 			if (SYMETRIC) pieceList.toSymetric();
-			bitBaseIndex.setFromPieceList(pieceList, wtm);
-			uint64_t index = bitBaseIndex.computeIndex();
+			bitBaseIndex.setSquares(pieceList, wtm);
+			uint64_t index = bitBaseIndex.getIndex();
 			return index;
 		}
 
@@ -55,12 +55,12 @@ namespace QaplaBitbase {
 		 * Computes a _bitbase index from piece list and a move (applied to the piece list)
 		 * The move must not change the amount or type of the pieces in the list (no capture, no promote)
 		 */
-		static uint64_t computeIndex(bool whiteToMove, const PieceList& pieceList, Move move) {
+		static uint64_t getIndex(bool whiteToMove, const PieceList& pieceList, Move move) {
 			assert(!move.isCapture());
 			assert(!move.isPromote());
-			BitbaseIndex bitBaseIndex;
+			BitbaseIndex bitBaseIndex(pieceList);
 			setBitbaseIndex(whiteToMove, bitBaseIndex, pieceList, move);
-			uint64_t index = bitBaseIndex.computeIndex();
+			uint64_t index = bitBaseIndex.getIndex();
 			return index;
 		}
 
@@ -78,7 +78,7 @@ namespace QaplaBitbase {
 					pieceListAfterMove.setSquare(index, move.getDestination());
 				}
 			}
-			bitBaseIndex.setFromPieceList(pieceListAfterMove, whiteToMove);
+			bitBaseIndex.setSquares(pieceListAfterMove, whiteToMove);
 		}
 	};
 

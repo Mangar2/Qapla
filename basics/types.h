@@ -194,7 +194,7 @@ namespace ChessBasics {
 		MIN_PIECE = WHITE_PAWN,
 		PIECE_AMOUNT = BLACK_KING + 1,
 		PIECE_MASK = 0x0F,
-		COLOR_AMOUNT = 0x02,
+		COLOR_COUNT = 0x02,
 		COLOR_MASK = 0x01
 	};
 	

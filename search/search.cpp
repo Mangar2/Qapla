@@ -25,6 +25,7 @@
 using namespace ChessSearch;
 
 bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& curPly) {
+	return false;
 	// We only look into the bitbases, if we had a capture or a promote. This avoids "non-searching" on
 	// positions of bitbases.
 	// if (position.getPiecesSignature() == _rootSignature) return false;

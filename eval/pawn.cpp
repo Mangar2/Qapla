@@ -22,8 +22,8 @@
 using namespace ChessEval;
 
 value_t Pawn::isolatedPawnAmountLookup[Pawn::LOOKUP_TABLE_SIZE];
-bitBoard_t Pawn::kingInfluenceTable[COLOR_AMOUNT][COLOR_AMOUNT][BOARD_SIZE];
-bitBoard_t Pawn::kingSupportPawnTable[COLOR_AMOUNT][BOARD_SIZE];
+bitBoard_t Pawn::kingInfluenceTable[COLOR_COUNT][COLOR_COUNT][BOARD_SIZE];
+bitBoard_t Pawn::kingSupportPawnTable[COLOR_COUNT][BOARD_SIZE];
 PawnTT Pawn::_tt;
 
 Pawn::InitStatics Pawn::_staticConstructor;

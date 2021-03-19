@@ -44,12 +44,12 @@ namespace ChessEval {
 		template<Piece COLOR>
 		inline bool capturesPawn();
 
-		bitBoard_t legalPositions[COLOR_AMOUNT];
-		bitBoard_t kingPositions[COLOR_AMOUNT];
-		bitBoard_t formerPositions[COLOR_AMOUNT];
-		bitBoard_t kingAttack[COLOR_AMOUNT];
-		bitBoard_t formerAttack[COLOR_AMOUNT];
-		bitBoard_t weakPawns[COLOR_AMOUNT];
+		bitBoard_t legalPositions[COLOR_COUNT];
+		bitBoard_t kingPositions[COLOR_COUNT];
+		bitBoard_t formerPositions[COLOR_COUNT];
+		bitBoard_t kingAttack[COLOR_COUNT];
+		bitBoard_t formerAttack[COLOR_COUNT];
+		bitBoard_t weakPawns[COLOR_COUNT];
 	};
 
 }

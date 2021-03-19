@@ -44,6 +44,7 @@ namespace QaplaBitbase {
 	public:
 		static void loadBitbase() {
 			loadBitbaseRec("K*K");
+			loadBitbaseRec("KK*");
 			loadBitbaseRec("K*K*");
 			loadBitbaseRec("K**K");
 		}
@@ -99,7 +100,7 @@ namespace QaplaBitbase {
 
 			const Bitbase* bitbase = getBitbase(signature);
 			if (bitbase != 0) {
-				uint64_t index = BoardAccess::computeIndex<0>(position);
+				uint64_t index = BoardAccess::getIndex<0>(position);
 				return bitbase->getBit(index) ? Result::Win : Result::DrawOrLoss;
 			}
 			return Result::Unknown;
@@ -107,6 +108,11 @@ namespace QaplaBitbase {
 
 		/**
 		 * Reads a value from bitboard having the position
+		 * @returns 
+		 * Win, if white wins
+		 * Loss, if the white looses
+		 * Draw, if the position is draw
+		 * Unknown, if bitboards are not (fully) available 
 		 */
 		static Result getValueFromBitbase(const MoveGenerator& position) {
 			PieceSignature signature = PieceSignature(position.getPiecesSignature());
@@ -114,7 +120,7 @@ namespace QaplaBitbase {
 			// 1. Test if the bitbase has a win for white view (example KRKP)
 			const Bitbase* whiteBitbase = getBitbase(signature);
 			if (whiteBitbase != 0) {
-				uint64_t index = BoardAccess::computeIndex<0>(position);
+				uint64_t index = BoardAccess::getIndex<0>(position);
 				if (whiteBitbase->getBit(index)) {
 					return position.isWhiteToMove() ? Result::Win : Result::Loss;
 				}
@@ -124,7 +130,7 @@ namespace QaplaBitbase {
 			signature.changeSide();
 			const Bitbase* blackBitbase = getBitbase(signature);
 			if (blackBitbase != 0) {
-				uint64_t index = BoardAccess::computeIndex<1>(position);
+				uint64_t index = BoardAccess::getIndex<1>(position);
 				if (blackBitbase->getBit(index)) {
 					return position.isWhiteToMove() ? Result::Loss : Result::Win;
 				}
@@ -134,6 +140,7 @@ namespace QaplaBitbase {
 
 		/**
 		 * Reads a value from bitboard having the position and a current value
+		 * @Resturns the position value from side to move view
 		 */
 		static value_t getValueFromBitbase(const MoveGenerator& position, value_t currentValue) {
 			const Result bitbaseResult = getValueFromBitbase(position);
@@ -149,11 +156,12 @@ namespace QaplaBitbase {
 		 */
 		static void loadBitbase(std::string pieceString) {
 			PieceSignature signature;
-			signature.set(pieceString.c_str());
+			signature.set(pieceString);
 			Bitbase bitbase;
 			if (bitbase.readFromFile(pieceString)) {
 				_bitbases[signature.getPiecesSignature()] = bitbase;
 			}
+			ChessEval::EvalEndgame::registerBitbase(pieceString);
 		}
 
 		/**

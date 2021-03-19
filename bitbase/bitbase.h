@@ -143,8 +143,7 @@ namespace QaplaBitbase {
 		 */
 		bool readFromFile(string pieceString, string extension = ".btb", string path = "./") {
 			PieceList list(pieceString);
-			BitbaseIndex index;
-			index.setPieceSquaresByIndex(0, list);
+			BitbaseIndex index(list);
 			size_t size = index.getSizeInBit();
 			bool success = readFromFile(path + pieceString + extension, size);
 			if (success) {

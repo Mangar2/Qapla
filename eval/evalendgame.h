@@ -119,9 +119,6 @@ namespace ChessEval {
 		 */
 		static value_t getFromBitbase(MoveGenerator& position, value_t currentValue);
 
-		template<Piece COLOR>
-		value_t checkBitbase(MoveGenerator& position, value_t value);
-
 		template <Piece COLOR>
 		static value_t KQKR(MoveGenerator& board, value_t currentValue);
 
@@ -230,10 +227,10 @@ namespace ChessEval {
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AAULL;
 		static const bitBoard_t BLACK_FIELDS = 0xAA55AA55AA55AA55ULL;
 
-		static constexpr value_t BONUS[COLOR_AMOUNT] = { WINNING_BONUS, -WINNING_BONUS };
-		static constexpr value_t NEAR_DRAW[COLOR_AMOUNT] = { 20, -20 };
-		static constexpr Square UP[COLOR_AMOUNT] = { NORTH, SOUTH };
-		static constexpr value_t COLOR_VALUE[COLOR_AMOUNT] = { 1, -1 };
+		static constexpr value_t BONUS[COLOR_COUNT] = { WINNING_BONUS, -WINNING_BONUS };
+		static constexpr value_t NEAR_DRAW[COLOR_COUNT] = { 20, -20 };
+		static constexpr Square UP[COLOR_COUNT] = { NORTH, SOUTH };
+		static constexpr value_t COLOR_VALUE[COLOR_COUNT] = { 1, -1 };
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
 

@@ -427,8 +427,8 @@ namespace ChessEval {
 		static const uint32_t LOOKUP_TABLE_SIZE = 1 << NORTH;
 		static const bitBoard_t LOOKUP_TABLE_MASK = LOOKUP_TABLE_SIZE - 1;
 		static value_t isolatedPawnAmountLookup[LOOKUP_TABLE_SIZE];
-		static bitBoard_t kingInfluenceTable[COLOR_AMOUNT][COLOR_AMOUNT][BOARD_SIZE];
-		static bitBoard_t kingSupportPawnTable[COLOR_AMOUNT][BOARD_SIZE];
+		static bitBoard_t kingInfluenceTable[COLOR_COUNT][COLOR_COUNT][BOARD_SIZE];
+		static bitBoard_t kingSupportPawnTable[COLOR_COUNT][BOARD_SIZE];
 
 		static constexpr bitBoard_t distantPassedPawnCheckNoOpponentPawn[NORTH] = {
 			0x0101010101010101ULL, 0x0303030303030303ULL, 0x070707070707070FULL, 0x0F0F0F0F0F0F0F0FULL,

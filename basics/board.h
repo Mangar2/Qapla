@@ -295,10 +295,10 @@ namespace ChessBasics {
 		void print() const;
 
 	protected:
-		array<Square, COLOR_AMOUNT> kingSquares;
+		array<Square, COLOR_COUNT> kingSquares;
 
 		array<bitBoard_t, PIECE_AMOUNT> bitBoardsPiece;
-		array<bitBoard_t, COLOR_AMOUNT> bitBoardAllPiecesOfOneColor;
+		array<bitBoard_t, COLOR_COUNT> bitBoardAllPiecesOfOneColor;
 		bitBoard_t bitBoardAllPieces;
 
 	private:

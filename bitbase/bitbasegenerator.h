@@ -37,7 +37,7 @@ using namespace ChessSearch;
 namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
-		//static const uint64_t debugIndex =  2194203;
+		// static const uint64_t debugIndex = 21024;
 		static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF;
 		BitbaseGenerator() {
 		}
@@ -91,7 +91,7 @@ namespace QaplaBitbase {
 		 */
 		void markCandidate(bool wtm, Bitbase& bitbase, PieceList& list, Move move, Square destination) {
 			move.setDestination(destination);
-			uint64_t index = BoardAccess::computeIndex(!wtm, list, move);
+			uint64_t index = BoardAccess::getIndex(!wtm, list, move);
 			bitbase.setBit(index);
 		}
 
@@ -165,6 +165,7 @@ namespace QaplaBitbase {
 			PieceList pieceList(position);
 
 			if (verbose) {
+				cout << endl << "index: " << BoardAccess::getIndex<0>(position) << endl;
 				position.print();
 				printf("%s\n", position.isWhiteToMove() ? "white" : "black");
 			}
@@ -174,7 +175,7 @@ namespace QaplaBitbase {
 			for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				move = moveList[moveNo];
 				if (!move.isCaptureOrPromote()) {
-					index = BoardAccess::computeIndex(!whiteToMove, pieceList, move);
+					index = BoardAccess::getIndex(!whiteToMove, pieceList, move);
 					result = bitbase.getBit(index);
 					if (verbose) {
 						printf("%s, index: %lld, value: %s\n", move.getLAN().c_str(), 
@@ -311,8 +312,8 @@ namespace QaplaBitbase {
 				bool newResult = bitbase1.getBit(index);
 				bool oldResult = bitbase2.getBit(index);
 				if (bitbase1.getBit(index) != bitbase2.getBit(index)) {
-					BitbaseIndex bitbaseIndex;
-					bitbaseIndex.setPieceSquaresByIndex(index, pieceList);
+					BitbaseIndex bitbaseIndex(pieceList);
+					bitbaseIndex.setSquares(index);
 					addPiecesToPosition(position, bitbaseIndex, pieceList);
 					printf("new: %s, old: %s\n", newResult ? "won" : "not won", oldResult ? "won" : "not won");
 					printf("index: %lld\n", index);
@@ -376,8 +377,8 @@ namespace QaplaBitbase {
 		void computeBitbase(
 			Bitbase& wonPositions, Bitbase& computedPositions, PieceList& pieceList, ClockManager& clock)
 		{
-			BitbaseIndex bitbaseIndex;
-			bitbaseIndex.setPieceSquaresByIndex(0, pieceList);
+			BitbaseIndex bitbaseIndex(pieceList);
+			bitbaseIndex.setSquares(0);
 			Bitbase probePositions(bitbaseIndex);
 
 			for (uint32_t loopCount = 0; loopCount < 1024; loopCount++) {
@@ -389,13 +390,13 @@ namespace QaplaBitbase {
 					printInfo(index, bitbaseIndex.getSizeInBit(), bitsChanged);
 					
 					if (!computedPositions.getBit(index)) {
-						// if (loopCount > 0 && !probePositions.getBit(index)) continue;
-						bool isLegal = bitbaseIndex.setPieceSquaresByIndex(index, pieceList);
+						if (loopCount > 0 && !probePositions.getBit(index)) continue;
+						bool isLegal = bitbaseIndex.setSquares(index);
 
 						if (!isLegal) continue;
 						position.clear();
 						addPiecesToPosition(position, bitbaseIndex, pieceList);
-						assert(index == BoardAccess::computeIndex<0>(position));
+						assert(index == BoardAccess::getIndex<0>(position));
 
 						uint32_t success = computePosition(index, position, wonPositions, computedPositions);
 						if (loopCount > 0 && success && !probePositions.getBit(index)) {
@@ -403,7 +404,7 @@ namespace QaplaBitbase {
 							computePosition(index, position, wonPositions, computedPositions);
 						}
 						probePositions.clearBit(index);
-						if (success && index == 142775) {
+						if (success && index == debugIndex) {
 							cout << endl << position.getFen() << endl;
 						}
 						if (success) {
@@ -435,9 +436,8 @@ namespace QaplaBitbase {
 				printf("Bitbase already loaded\n");
 				return;
 			}
-			BitbaseIndex bitbaseIndex;
+			BitbaseIndex bitbaseIndex(pieceList);
 			uint32_t bitsChanged = 0;
-			bitbaseIndex.setPieceSquaresByIndex(0, pieceList);
 			uint64_t sizeInBit = bitbaseIndex.getSizeInBit();
 			Bitbase wonPositions(bitbaseIndex);
 			Bitbase computedPositions(bitbaseIndex);
@@ -447,12 +447,9 @@ namespace QaplaBitbase {
 			clear();
 			for (uint64_t index = 0; index < sizeInBit; index++) {
 				printInfo(index, sizeInBit, bitsChanged);
-				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
+				if (bitbaseIndex.setSquares(index)) {
 					position.clear();
 					addPiecesToPosition(position, bitbaseIndex, pieceList);
-					if (index == 142775) {
-						initialComputePosition(index, position, wonPositions, computedPositions);
-					}
 					bitsChanged += initialComputePosition(index, position, wonPositions, computedPositions);
 				}
 			}
@@ -505,7 +502,7 @@ namespace QaplaBitbase {
 			position.setPiece(wk, WHITE_KING);
 			position.setPiece(bk, BLACK_KING);
 			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::computeIndex<0>(position);
+			uint64_t checkIndex = BoardAccess::getIndex<0>(position);
 			if (bitbase.getBit(checkIndex) == expected) {
 				printf("Test OK\n");
 			}
@@ -574,7 +571,7 @@ namespace QaplaBitbase {
 			position.setPiece(p, BLACK_PAWN);
 			position.setPiece(r, WHITE_ROOK);
 			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::computeIndex<0>(position);
+			uint64_t checkIndex = BoardAccess::getIndex<0>(position);
 			if (bitbase.getBit(checkIndex) == expected) {
 				printf("Test OK\n");
 			}
@@ -592,13 +589,13 @@ namespace QaplaBitbase {
 			MoveGenerator position;
 			Bitbase bitbase;
 			bitbase.readFromFile(pieceString);
-			PieceList pieceList(pieceString.c_str());
-			BitbaseIndex bitbaseIndex;
+			PieceList pieceList(pieceString);
+			BitbaseIndex bitbaseIndex(pieceList);
 			uint64_t index;
 			while (true) {
 				cin >> index;
 				printf("%lld\n", index);
-				if (bitbaseIndex.setPieceSquaresByIndex(index, pieceList)) {
+				if (bitbaseIndex.setSquares(index)) {
 					position.clear();
 					addPiecesToPosition(position, bitbaseIndex, pieceList);
 					printf("index:%lld, result for white %s\n", index, bitbase.getBit(index) ? "win" : "draw");

@@ -99,20 +99,20 @@ namespace ChessEval {
 		template<Piece COLOR>
 		value_t computeBonus();
 
-		bitBoard_t legalPositions[COLOR_AMOUNT];
-		bitBoard_t kingPositions[COLOR_AMOUNT];
-		bitBoard_t formerPositions[COLOR_AMOUNT];
-		bitBoard_t kingAttack[COLOR_AMOUNT];
-		bitBoard_t passedPawns[COLOR_AMOUNT];
-		bitBoard_t pawnPositions[COLOR_AMOUNT];
-		uint32_t bestPassedPawnDistanceInHalfmoves[COLOR_AMOUNT];
-		uint32_t bestRunnerDistanceInHalfmoves[COLOR_AMOUNT];
-		Square candidatePawnSquare[COLOR_AMOUNT];
-		bool hasRunner[COLOR_AMOUNT];
-		bool isRunnerTempoSafe[COLOR_AMOUNT];
-		bool hasTempoCriticalPassedPawn[COLOR_AMOUNT];
+		bitBoard_t legalPositions[COLOR_COUNT];
+		bitBoard_t kingPositions[COLOR_COUNT];
+		bitBoard_t formerPositions[COLOR_COUNT];
+		bitBoard_t kingAttack[COLOR_COUNT];
+		bitBoard_t passedPawns[COLOR_COUNT];
+		bitBoard_t pawnPositions[COLOR_COUNT];
+		uint32_t bestPassedPawnDistanceInHalfmoves[COLOR_COUNT];
+		uint32_t bestRunnerDistanceInHalfmoves[COLOR_COUNT];
+		Square candidatePawnSquare[COLOR_COUNT];
+		bool hasRunner[COLOR_COUNT];
+		bool isRunnerTempoSafe[COLOR_COUNT];
+		bool hasTempoCriticalPassedPawn[COLOR_COUNT];
 
-		static constexpr bitBoard_t PROMOTE_BIT_MASK[COLOR_AMOUNT] = { BitBoardMasks::RANK_8_BITMASK, BitBoardMasks::RANK_1_BITMASK };
+		static constexpr bitBoard_t PROMOTE_BIT_MASK[COLOR_COUNT] = { BitBoardMasks::RANK_8_BITMASK, BitBoardMasks::RANK_1_BITMASK };
 		static const value_t RUNNER_FACTOR = 15;
 	};
 

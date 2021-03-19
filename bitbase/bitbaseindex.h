@@ -40,7 +40,16 @@ namespace QaplaBitbase {
 	class BitbaseIndex
 	{
 	public:
-		BitbaseIndex() { clear(); }
+		/**
+		 * Creates a bitbase index and sets the pieces from a piece list
+		 * @param pieceList list of pieces to be used in the bitbase index
+		 */
+		BitbaseIndex(const PieceList& pieceList) { 
+			clear();
+			_pieceCount = pieceList.getNumberOfPieces();
+			_pawnCount = pieceList.getNumberOfPawns();
+			computeSize();
+		}
 
 		/**
 		 * Clears the index
@@ -49,29 +58,28 @@ namespace QaplaBitbase {
 			_index = 0;
 			_mapType = 0;
 			_piecesBB = 0;
-			_piecesCount = 0;
+			_pieceCount = 0;
+			_pawnCount = 0;
+			_numberOfDiagonalSquares = 0;
 		}
 
 		/**
 		 * Sets the bitbase index from a piece List
 		 */
-		void setFromPieceList(const PieceList& pieceList, bool wtm) {
-			bool hasPawn = pieceList.getNumberOfPawns() != 0;
+		void setSquares(const PieceList& pieceList, bool wtm) {
+			clear();
 			Square whiteKingPos = pieceList.getSquare(0);
 			Square blackKingPos = pieceList.getSquare(1);
-			initialize(wtm, whiteKingPos, blackKingPos, hasPawn);
+			initialize(wtm, whiteKingPos, blackKingPos, pieceList.getNumberOfPawns() > 0);
 			for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
 				addPieceToIndex(pieceList.getSquare(index), pieceList.getPiece(index));
 			}
 		}
 
 		/**
-		 * Sets the positions of pieces by having an index an a list of piece types
+		 * Sets the squares of pieces by having an index
 		 */
-		bool setPieceSquaresByIndex(uint64_t index, const PieceList& pieceList) {
-			return setPieceSquaresByIndex(index,
-				pieceList.getNumberOfPawns(), pieceList.getNumberOfPiecesWithoutPawns());
-		}
+		bool setSquares(uint64_t index);
 
 		/**
 		 * Gets the square of a piece
@@ -94,7 +102,7 @@ namespace QaplaBitbase {
 		/**
 		 * Gets the index of the current position
 		 */
-		uint64_t computeIndex() const {
+		uint64_t getIndex() const {
 			return _index;
 		}
 
@@ -102,7 +110,7 @@ namespace QaplaBitbase {
 		 * Gets the number of pieces (all pieces incl. kings and pawns)
 		 */
 		uint32_t getNumberOfPieces() const {
-			return _piecesCount;
+			return _pieceCount;
 		}
 
 		/**
@@ -113,6 +121,32 @@ namespace QaplaBitbase {
 		}
 
 	private:
+
+		/**
+		 * Computes the size of the bitbase index
+		 */
+		void computeSize() {
+			_sizeInBit = _pawnCount == 0 ?
+				NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN * COLOR_COUNT :
+				NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN * COLOR_COUNT;
+			if (_pawnCount > 0) {
+				_sizeInBit *= _pawnCount * NUMBER_OF_PAWN_POSITIONS;
+			}
+			uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - KING_COUNT - _pawnCount;
+			for (uint32_t pieces = _pieceCount - KING_COUNT - _pawnCount; pieces > 0; pieces--) {
+				_sizeInBit *= remainingPiecePositions;
+				remainingPiecePositions--;
+			}
+		}
+
+		bool setSquares(uint64_t index, uint32_t pawnsToAdd, uint32_t piecesToAdd);
+
+		/**
+		 * Returns true, if a field is already occupied
+		 */
+		bool isOccupied(Square square) {
+			return _piecesBB & (1ULL << square);
+		}
 
 		/**
 		 * Adds another piece to the index
@@ -131,11 +165,6 @@ namespace QaplaBitbase {
 		 * Initializes the index calculation
 		 */
 		void initialize(bool wtm, Square whiteKingSquare, Square blackKingSquare, bool hasPawn);
-
-		/**
-		 * Calculates and sets the squares of all pieces giving an index and the amount of pawns and pieces
-		 */
-		bool setPieceSquaresByIndex(uint64_t index, uint32_t pawnAmount, uint32_t nonPawnPieceAmount);
 
 		/**
 		 * Set the Squares of kings by having an index
@@ -218,15 +247,17 @@ namespace QaplaBitbase {
 		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN = 1806;
 		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN = 462;
 		static const uint64_t NUMBER_OF_PAWN_POSITIONS = BOARD_SIZE - 2 * NORTH;
-		static const uint64_t AMOUT_OF_PIECE_POSITIONS = BOARD_SIZE;
-		static const uint64_t COLORS = 2;
+		static const uint64_t NUMBER_OF_PIECE_POSITIONS = BOARD_SIZE;
+		static const uint64_t COLOR_COUNT = 2;
+		static const uint64_t KING_COUNT = 2;
 
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithPawn;
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithoutPawn;
 		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN> mapIndexToKingSquaresWithPawn;
 		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> mapIndexToKingSquaresWithoutPawn;
 		static const uint32_t MAX_PIECES_COUNT = 10;
-		uint32_t _piecesCount;
+		uint32_t _pieceCount;
+		uint32_t _pawnCount;
 		uint32_t _numberOfDiagonalSquares;
 		array<Square, MAX_PIECES_COUNT> _squares;
 		bitBoard_t _piecesBB;
@@ -235,7 +266,6 @@ namespace QaplaBitbase {
 		uint8_t _mapType;
 
 		bool _wtm;
-		bool _hasPawn;
 	};
 
 }

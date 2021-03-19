@@ -124,12 +124,13 @@ value_t EvalEndgame::materialAndPawnStructure(MoveGenerator& position) {
 }
 
 value_t EvalEndgame::getFromBitbase(MoveGenerator& position, value_t value) {
-	return BitbaseReader::getValueFromBitbase(position, value);
-}
-
-template<Piece COLOR>
-value_t EvalEndgame::checkBitbase(MoveGenerator& position, value_t value) {
-	value_t bitbaseValue = BitbaseReader::getValueFromBitbase(position);
+	if (value >= WINNING_BONUS || value <= -WINNING_BONUS) {
+		return value;
+	}
+	const value_t bitbaseValue = position.isWhiteToMove() ? 
+			BitbaseReader::getValueFromBitbase(position, value) : 
+			- BitbaseReader::getValueFromBitbase(position, -value);
+	return bitbaseValue;
 }
 
 template<Piece COLOR>
