@@ -1510,6 +1510,7 @@
     <ClCompile Include="basics\hashconstants.cpp" />
     <ClCompile Include="basics\piecesignature.cpp" />
     <ClCompile Include="basics\pst.cpp" />
+    <ClCompile Include="bitbase\bitbasegenerator.cpp" />
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
     <ClCompile Include="bitbase\bitbasereader.cpp" />
     <ClCompile Include="eval\eval.cpp" />

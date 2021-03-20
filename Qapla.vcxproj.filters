@@ -120,6 +120,9 @@
     <ClCompile Include="search\quiescencese.cpp">
       <Filter>search</Filter>
     </ClCompile>
+    <ClCompile Include="bitbase\bitbasegenerator.cpp">
+      <Filter>bitbase</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\movelist.h">

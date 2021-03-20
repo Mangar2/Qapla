@@ -30,6 +30,7 @@
 #include "searchstate.h"
 
 using namespace std;
+using namespace ChessInterface;
 
 namespace ChessSearch {
 

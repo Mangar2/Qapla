@@ -35,6 +35,7 @@
 #include "../search/iterativedeepening.h"
 #include "movehistory.h"
 #include "../bitbase/bitbasegenerator.h"
+#include "../bitbase/bitbasereader.h"
 
 using namespace ChessMoveGenerator;
 using namespace ChessInterface;

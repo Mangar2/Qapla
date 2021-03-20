@@ -239,6 +239,7 @@ void BitbaseIndex::addPawnToIndex(Square pawnSquare) {
 
 	_index += (int64_t)indexValueBasedOnPawnSquare * _sizeInBit;
 	_sizeInBit *= NUMBER_OF_PAWN_POSITIONS;
+	_pawnsBB |= 1ULL << mappedSquare;
 	addPieceSquare(mappedSquare);
 }
 

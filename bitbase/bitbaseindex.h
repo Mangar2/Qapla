@@ -58,6 +58,7 @@ namespace QaplaBitbase {
 			_index = 0;
 			_mapType = 0;
 			_piecesBB = 0;
+			_pawnsBB = 0;
 			_pieceCount = 0;
 			_pawnCount = 0;
 			_numberOfDiagonalSquares = 0;
@@ -261,6 +262,7 @@ namespace QaplaBitbase {
 		uint32_t _numberOfDiagonalSquares;
 		array<Square, MAX_PIECES_COUNT> _squares;
 		bitBoard_t _piecesBB;
+		bitBoard_t _pawnsBB;
 		uint64_t _index;
 		uint64_t _sizeInBit;
 		uint8_t _mapType;
