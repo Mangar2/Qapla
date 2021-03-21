@@ -365,6 +365,9 @@
     <ClInclude Include="search\computinginfo.h">
       <Filter>search</Filter>
     </ClInclude>
+    <ClInclude Include="bitbase\compress.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

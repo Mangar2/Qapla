@@ -29,13 +29,14 @@
 using namespace std;
 
 namespace QaplaBitbase {
-
+	typedef uint8_t bbt_t;
 
 	struct HuffmanNode {
+
 		/**
 		 * Creates a new leaf node
 		 */
-		HuffmanNode(uint32_t frequencyOfData, uint32_t data)
+		HuffmanNode(uint32_t frequencyOfData, bbt_t data)
 			: frequency(frequencyOfData), leafData(data), left(NULL), right(NULL)
 		{}
 
@@ -78,7 +79,7 @@ namespace QaplaBitbase {
 		/**
 		 * Builds a huffman code from a data vector
 		 */
-		HuffmanCode(const vector<uint32_t>& data) {
+		HuffmanCode(const vector<bbt_t>& data) {
 			clear();
 			count(data);
 			builtInitialForrest();
@@ -87,9 +88,9 @@ namespace QaplaBitbase {
 			}
 			buildCode(forrest.top(), 0, 0);
 			/*
-			cout << "original size: " << data.size() * sizeof(uint32_t)
+			cout << "original size: " << data.size() * sizeof(bbt_)
 				<< " compressed size: " << (computeSizeInBit() / 8)
-				<< " comressed to: " << (computeSizeInBit() * 100) / (8 * data.size() * sizeof(uint32_t)) << "%"
+				<< " comressed to: " << (computeSizeInBit() * 100) / (8 * data.size() * sizeof(bbt_t)) << "%"
 				<< endl;
 			*/
 			// printCode();
@@ -98,11 +99,11 @@ namespace QaplaBitbase {
 		/**
 		 * Use the calculated huffman code to compress the data
 		 */
-		vector<uint32_t> compress(const vector<uint32_t>& input) {
-			vector<uint32_t> compressed;
-			uint32_t current = 0;
+		vector<bbt_t> compress(const vector<bbt_t>& input) {
+			vector<bbt_t> compressed;
+			bbt_t current = 0;
 			uint32_t bitsLeft = sizeof(current) * 8;
-			uint64_t byteSize = input.size() * sizeof(uint32_t);
+			uint64_t byteSize = input.size() * sizeof(bbt_t);
 			const uint8_t* data = (uint8_t*) &input[0];
 			for (uint64_t i = 0; i < byteSize; ++i) {
 				uint8_t code = codeMap[data[i]];
@@ -125,17 +126,17 @@ namespace QaplaBitbase {
 		/**
 		 * Uncompresses code from the 
 		 */
-		vector<uint32_t> uncompress(const vector<uint32_t>& compressed, size_t targetSizeInBit) {
-			vector<uint32_t> uncompressed;
-			constexpr size_t elementSizeInBit = sizeof(uint32_t) * 8;
+		vector<bbt_t> uncompress(const vector<bbt_t>& compressed, size_t targetSizeInBit) {
+			vector<bbt_t> uncompressed;
+			constexpr size_t elementSizeInBit = sizeof(bbt_t) * 8;
 			size_t uncompressedIndex = 0;
 			size_t compressedIndex = 0;
-			uint32_t uncompressedElement = 0;
+			bbt_t uncompressedElement = 0;
 			while (uncompressedIndex < targetSizeInBit) {
-				const uint32_t nextElement = uncompressNext(compressed, compressedIndex);
+				const bbt_t nextElement = uncompressNext(compressed, compressedIndex);
 				compressedIndex += codeLengthMap[nextElement];
 				uncompressedIndex += sizeof(uint8_t);
-				const uint32_t bitsLeft = elementSizeInBit - uncompressedIndex % elementSizeInBit;
+				const bbt_t bitsLeft = elementSizeInBit - uncompressedIndex % elementSizeInBit;
 				uncompressedElement |= nextElement << bitsLeft;
 				if (bitsLeft == 0) {
 					uncompressed.push_back(uncompressedElement);
@@ -189,15 +190,15 @@ namespace QaplaBitbase {
 		/** 
 		 * Uncompresses the next element from the compressed data
 		 */
-		uint8_t uncompressNext(vector<uint32_t> compressed, uint64_t bitIndex) {
-			size_t elementSizeInBit = sizeof(uint32_t) * 8;
+		uint8_t uncompressNext(vector<bbt_t> compressed, uint64_t bitIndex) {
+			size_t elementSizeInBit = sizeof(bbt_t) * 8;
 			size_t vectorIndex = bitIndex / elementSizeInBit;
 			size_t elementIndex = elementSizeInBit - (bitIndex % elementSizeInBit);
 			uint8_t result = 0;
 			HuffmanNode* node = forrest.top();
 
 			while (!node->isLeaf()) {
-				uint32_t bit = compressed[vectorIndex] & (1L << elementIndex);
+				bbt_t bit = compressed[vectorIndex] & (1L << elementIndex);
 				node = (bit != 0) ? node->left : node->right;
 				if (elementIndex == 0) {
 					elementIndex = elementSizeInBit;
@@ -253,8 +254,8 @@ namespace QaplaBitbase {
 		/**
 		 * Counts the number of equal 8 bit elements in the data
 		 */
-		void count(const vector<uint32_t>& data) {
-			count((uint8_t*)&data[0], sizeof(uint32_t) * data.size());
+		void count(const vector<bbt_t>& data) {
+			count((uint8_t*)&data[0], sizeof(bbt_t) * data.size());
 		}
 
 		/**

@@ -31,13 +31,18 @@
 #include "../movegenerator/movegenerator.h"
 #include "bitbaseindex.h"
 #include "huffmancode.h"
+#include "compress.h"
 
 namespace QaplaBitbase {
+
+	/**
+	 * Basic type storing bits.
+	 */
+	typedef uint8_t bbt_t;
 
 	class Bitbase {
 	public:
 		Bitbase(bool loaded = false) : _sizeInBit(0), _loaded(loaded) {}
-
 		/**
 		 * @param bitbaseSizeInBit number of positions stored in the bitbase
 		 */
@@ -65,7 +70,7 @@ namespace QaplaBitbase {
 		 */
 		void setBit(uint64_t index) {
 			if (index < _sizeInBit) {
-				_bitbase[index / BITS_IN_ELEMENT] |= 1UL << (index % BITS_IN_ELEMENT);
+				_bitbase[index / BITS_IN_ELEMENT] |= bbt_t(1) << (index % BITS_IN_ELEMENT);
 			}
 		}
 
@@ -74,7 +79,7 @@ namespace QaplaBitbase {
 		 */
 		void clearBit(uint64_t index) {
 			if (index < _sizeInBit) {
-				_bitbase[index / BITS_IN_ELEMENT] &= ~(1UL << (index % BITS_IN_ELEMENT));
+				_bitbase[index / BITS_IN_ELEMENT] &= ~(bbt_t(1) << (index % BITS_IN_ELEMENT));
 			}
 		}
 
@@ -84,7 +89,7 @@ namespace QaplaBitbase {
 		bool getBit(uint64_t index) const {
 			bool result = false;
 			if (_loaded && index < _sizeInBit) {
-				result = (_bitbase[index / BITS_IN_ELEMENT] & (1UL << (index % BITS_IN_ELEMENT))) != 0;
+				result = (_bitbase[index / BITS_IN_ELEMENT] & (bbt_t(1) << (index % BITS_IN_ELEMENT))) != 0;
 			}
 			return result;
 		}
@@ -111,8 +116,25 @@ namespace QaplaBitbase {
 		 * Stores a _bitbase to a file
 		 */
 		void storeToFile(string fileName) {
+			vector<bbt_t> compressed;
+			vector<bbt_t> uncompressed;
+			compress(_bitbase, compressed);
+			uncompress(compressed, uncompressed);
+			if (_bitbase != uncompressed) {
+				cout << " compression error " << fileName << endl;
+				for (uint64_t index = 0; index < _bitbase.size(); index++) {
+					if (_bitbase[index] != uncompressed[index]) {
+						cout << " First error at index: " << index
+							<< " required: " << _bitbase[index]
+							<< " found: " << uncompressed[index]
+							<< endl;
+					}
+				}
+			}
 			ofstream fout(fileName, ios::out | ios::binary);
-			fout.write((char*)&_bitbase[0], _bitbase.size() * sizeof(uint32_t));
+			uint64_t size = compressed.size();
+			fout.write((char*)&size, sizeof(size));
+			fout.write((char*)&compressed[0], size * sizeof(bbt_t));
 			fout.close();
 		}
 
@@ -129,9 +151,13 @@ namespace QaplaBitbase {
 				*/
 				return false;
 			}
-			uint32_t vectorSize = computeVectorSize();
-			_bitbase.resize(vectorSize);
-			fin.read((char*)&_bitbase[0], vectorSize * sizeof(uint32_t));
+			uint64_t size;
+			fin.read((char*)&size, sizeof(size));
+			vector<bbt_t> compressed;
+			_bitbase.clear();
+			compressed.resize(size);
+			fin.read((char*)&compressed[0], size * sizeof(bbt_t));
+			uncompress(compressed, _bitbase);
 			fin.close();
 			cout << "Read: " << fileName << endl;
 			_loaded = true;
@@ -146,9 +172,6 @@ namespace QaplaBitbase {
 			BitbaseIndex index(list);
 			size_t size = index.getSizeInBit();
 			bool success = readFromFile(path + pieceString + extension, size);
-			if (success) {
-				compress();
-			}
 			return success;
 		}
 
@@ -158,7 +181,8 @@ namespace QaplaBitbase {
 		bool isLoaded() { return _loaded; }
 
 	private:
-		void compress() {
+		typedef uint8_t bbt_t;
+		void compress_test() {
 			HuffmanCode huffman(_bitbase);
 		}
 
@@ -167,8 +191,8 @@ namespace QaplaBitbase {
 		}
 
 		bool _loaded;
-		static const uint64_t BITS_IN_ELEMENT = sizeof(uint32_t) * 8;
-		vector<uint32_t> _bitbase;
+		static const uint64_t BITS_IN_ELEMENT = sizeof(bbt_t) * 8;
+		vector<bbt_t> _bitbase;
 		uint64_t _sizeInBit;
 	};
 
