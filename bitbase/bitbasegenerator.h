@@ -78,19 +78,21 @@ namespace QaplaBitbase {
 		/**
 		 * Marks one candidate identified by a partially filled move and a destination square
 		 */
-		void markCandidate(bool wtm, Bitbase& bitbase, PieceList& list, Move move, Square destination);
+		void markCandidate(bool wtm, Bitbase& bitbase, PieceList& list, 
+			Move move, Square destination, bool verbose);
 
 		/**
 		 * Mark candidates for a dedicated piece identified by a partially filled move
 		 */
-		void markCandidates(const MoveGenerator& position, Bitbase& bitbase, PieceList& list, Move move);
+		void markCandidates(const MoveGenerator& position, Bitbase& bitbase, PieceList& list, 
+			Move move, bool verbose);
 
 		/**
 		 * Mark all candidate positions we need to look at after a new bitbase position is set to 1
 		 * Candidate positions are computed by running through the attack masks of every piece and 
 		 * computing reverse moves (ignoring all special cases like check, captures, ...)
 		 */
-		void markCandidates(MoveGenerator& position, Bitbase& bitbase);
+		void markCandidates(MoveGenerator& position, Bitbase& bitbase, bool verbose = false);
 
 		/**
 		 * Computes a position value by probing all moves and lookup the result in this bitmap
@@ -107,7 +109,16 @@ namespace QaplaBitbase {
 		/**
 		 * Prints the difference of two bitbases
 		 */
-		void compareBitbases(const char* pieceString, Bitbase& bitbase1, Bitbase& bitbase2);
+		void compareBitbases(string pieceString, Bitbase& bitbase1, Bitbase& bitbase2);
+
+		/**
+		 * Prints the differences of two bitbases in files
+		 */
+		void compareToFile(string pieceString, Bitbase& won) {
+			Bitbase bitbase2;
+			bitbase2.readFromFile("generated\\" + pieceString);
+			compareBitbases(pieceString, won, bitbase2);
+		}
 
 		/**
 		 * Prints the differences of two bitbases in files
@@ -115,9 +126,11 @@ namespace QaplaBitbase {
 		void compareFiles(string pieceString) {
 			Bitbase bitbase1;
 			Bitbase bitbase2;
-			bitbase1.readFromFile(pieceString);
-			bitbase2.readFromFile("generated\\" + pieceString);
-			compareBitbases(pieceString.c_str(), bitbase1, bitbase2);
+			bool found1 = bitbase1.readFromFile(pieceString);
+			bool found2 = bitbase2.readFromFile(pieceString, ".btb", "./generated/");
+			if (found1 && found2) {
+				compareBitbases(pieceString, bitbase1, bitbase2);
+			}
 		}
 
 		/**
@@ -229,7 +242,11 @@ namespace QaplaBitbase {
 			testKRKQ(C3, C1, A2, D1, false, false, bitbase);
 		}
 
-	private:
+		/**
+		 * @returns true, if the bitbase has two pieces of the same kind that are badly ordered
+		 * (the first piece is on a larger square than the second piece).
+		 */
+		bool hasUnorderdDoublePiece(const PieceList& pieceList, const BitbaseIndex& index);
 
 		/**
 		 * Prints a progress information

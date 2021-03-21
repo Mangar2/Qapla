@@ -100,54 +100,64 @@ uint64_t BitbaseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
 	return numberOfKingPositions;
 }
 
-bool BitbaseIndex::setSquares(uint64_t index, uint32_t pawnsToAdd, uint32_t piecesToAdd) {
-	index /= COLOR_COUNT;
-	const bool hasPawns = pawnsToAdd > 0;
-	uint64_t numberOfKingPositions = setKingSquaresByIndex(index, hasPawns);
-	uint64_t sizeInBit = COLOR_COUNT * numberOfKingPositions;
-	index /= numberOfKingPositions;
-
-	for (uint32_t pawn = 0; pawn < pawnsToAdd; pawn++) {
-		const Square square = A2 + Square(index % NUMBER_OF_PAWN_POSITIONS);
-		index /= NUMBER_OF_PAWN_POSITIONS;
-		sizeInBit *= NUMBER_OF_PAWN_POSITIONS;
-		if (square >= A8 || isOccupied(square)) {
-			return false;
-		}
-		addPieceSquare(square);
-	}
-
-	uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - KING_COUNT - pawnsToAdd;
+void BitbaseIndex::setPieces(uint64_t index, const PieceList& pieceList) {
+	bool hasPawns = pieceList.getNumberOfPawns() > 0;
+	uint32_t piecesToAdd = pieceList.getNumberOfPiecesWithoutPawns() - KING_COUNT;
+	uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - KING_COUNT - pieceList.getNumberOfPawns();
 	bool allOnDiagonal = (!hasPawns) && isOnDiagonal(getSquare(0)) && isOnDiagonal(getSquare(1));
 	for (; piecesToAdd > 0; --piecesToAdd, --remainingPiecePositions) {
 		const Square square = computesRealSquare(_piecesBB, Square(index % remainingPiecePositions));
 		index /= remainingPiecePositions;
-		sizeInBit *= remainingPiecePositions;
+		_sizeInBit *= remainingPiecePositions;
 		if (square >= BOARD_SIZE) {
-			return false;
+			_isLegal = false;
+			break;
 		}
 		// This index is invalidated, because it is unused. The first piece must be below the
 		// diagonal. 
 		if (allOnDiagonal && isAboveDiagonal(square)) {
-			return false;
+			_isLegal = false;
+			break;
 		}
 		if (!isOnDiagonal(square)) {
 			allOnDiagonal = false;
 		}
 		addPieceSquare(square);
 	}
-	return true;
 }
 
-bool BitbaseIndex::setSquares(uint64_t index) {
-	_index = index;
-	_wtm = (index % COLOR_COUNT) == 0;
-	uint32_t pieceCount = _pieceCount;
-	_pieceCount = 0;
-	_piecesBB = 0;
-	const bool result = setSquares(index, _pawnCount, pieceCount - _pawnCount - KING_COUNT);
-	_pieceCount = pieceCount;
-	return result;
+uint64_t BitbaseIndex::setPawns(uint64_t index, const PieceList& pieceList) {
+	const bool hasPawns = pieceList.getNumberOfPawns() > 0;
+	uint64_t remainingPawnPositions = NUMBER_OF_PAWN_POSITIONS;
+	for (uint32_t pawn = 0; pawn < pieceList.getNumberOfPawns(); ++pawn, --remainingPawnPositions) {
+		const Square square = computesRealSquare(_pawnsBB, A2 + Square(index % NUMBER_OF_PAWN_POSITIONS));
+
+		index /= remainingPawnPositions;
+		_sizeInBit *= remainingPawnPositions;
+		if (square >= A8 || isOccupied(square)) {
+			_isLegal = false;
+			break;
+		}
+		_pawnsBB |= 1ULL << square;
+		addPieceSquare(square);
+	}
+	return index;
+}
+
+void BitbaseIndex::setSquares(const PieceList& pieceList) {
+	_isLegal = true;
+	_wtm = (_index % COLOR_COUNT) == 0;
+	uint64_t index = _index / COLOR_COUNT;
+	_sizeInBit = COLOR_COUNT;
+
+	uint64_t numberOfKingPositions = setKingSquaresByIndex(index, pieceList.getNumberOfPawns() > 0);
+	_sizeInBit *= numberOfKingPositions;
+	index /= numberOfKingPositions;
+
+	index = setPawns(index, pieceList);
+	if (_isLegal) {
+		setPieces(index, pieceList);
+	}
 }
 
 void BitbaseIndex::initialize(bool wtm, Square whiteKingSquare, Square blackKingSquare, bool hasPawn) {

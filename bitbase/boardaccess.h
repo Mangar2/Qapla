@@ -43,10 +43,9 @@ namespace QaplaBitbase {
 		template<bool SYMETRIC>
 		static uint64_t getIndex(const MoveGenerator& position) {
 			PieceList pieceList(position);
-			BitbaseIndex bitBaseIndex(pieceList);
 			bool wtm = position.isWhiteToMove() ^ SYMETRIC;
 			if (SYMETRIC) pieceList.toSymetric();
-			bitBaseIndex.setSquares(pieceList, wtm);
+			BitbaseIndex bitBaseIndex(pieceList, wtm);
 			uint64_t index = bitBaseIndex.getIndex();
 			return index;
 		}
@@ -55,11 +54,12 @@ namespace QaplaBitbase {
 		 * Computes a _bitbase index from piece list and a move (applied to the piece list)
 		 * The move must not change the amount or type of the pieces in the list (no capture, no promote)
 		 */
-		static uint64_t getIndex(bool whiteToMove, const PieceList& pieceList, Move move) {
+		static uint64_t getIndex(bool wtm, const PieceList& pieceList, Move move) {
 			assert(!move.isCapture());
 			assert(!move.isPromote());
-			BitbaseIndex bitBaseIndex(pieceList);
-			setBitbaseIndex(whiteToMove, bitBaseIndex, pieceList, move);
+			PieceList pieceListAfterMove(pieceList);
+			setMoveToPieceList(pieceListAfterMove, move);
+			BitbaseIndex bitBaseIndex(pieceListAfterMove, wtm);
 			uint64_t index = bitBaseIndex.getIndex();
 			return index;
 		}
@@ -70,15 +70,13 @@ namespace QaplaBitbase {
 		/**
 		 * Sets a bitbase index having a piece list with pieces and squares
 		 */
-		static void setBitbaseIndex(bool whiteToMove, BitbaseIndex& bitBaseIndex, const PieceList& pieceList, Move move) {
-			PieceList pieceListAfterMove(pieceList);
+		static void setMoveToPieceList(PieceList& pieceList, Move move) {
 			Square departure = move.getDeparture();
 			for (uint32_t index = 0; index < pieceList.getNumberOfPieces(); index++) {
-				if (pieceListAfterMove.getSquare(index) == departure) {
-					pieceListAfterMove.setSquare(index, move.getDestination());
+				if (pieceList.getSquare(index) == departure) {
+					pieceList.setSquare(index, move.getDestination());
 				}
 			}
-			bitBaseIndex.setSquares(pieceListAfterMove, whiteToMove);
 		}
 	};
 

@@ -40,6 +40,10 @@ namespace QaplaBitbase {
 	class BitbaseIndex
 	{
 	public:
+		BitbaseIndex() {
+			clear();
+		}
+
 		/**
 		 * Creates a bitbase index and sets the pieces from a piece list
 		 * @param pieceList list of pieces to be used in the bitbase index
@@ -52,22 +56,33 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Clears the index
+		 * Creates a bitbase index and sets the pieces and the squares from a piece list
+		 * @param pieceList list of pieces to be used in the bitbase index
+		 * @param wtm true, if white to move
 		 */
-		void clear() {
-			_index = 0;
-			_mapType = 0;
-			_piecesBB = 0;
-			_pawnsBB = 0;
-			_pieceCount = 0;
-			_pawnCount = 0;
-			_numberOfDiagonalSquares = 0;
+		BitbaseIndex(const PieceList& pieceList, bool wtm) {
+			set(pieceList, wtm);
+		}
+
+		/**
+		 * Creates a bitbase index, sets the piece counts from a piece list 
+		 * and the piece squares from an index
+		 * @param index index having the coded squares information
+		 * @param pieceList list of pieces to be used in the bitbase index
+		 */
+		BitbaseIndex(uint64_t index, const PieceList& pieceList) {
+			clear();
+			_index = index;
+			setSquares(pieceList);
+			if (_isLegal && hasUnorderdDoublePiece(pieceList)) {
+				_isLegal = false;
+			}
 		}
 
 		/**
 		 * Sets the bitbase index from a piece List
 		 */
-		void setSquares(const PieceList& pieceList, bool wtm) {
+		void set(const PieceList& pieceList, bool wtm) {
 			clear();
 			Square whiteKingPos = pieceList.getSquare(0);
 			Square blackKingPos = pieceList.getSquare(1);
@@ -76,11 +91,6 @@ namespace QaplaBitbase {
 				addPieceToIndex(pieceList.getSquare(index), pieceList.getPiece(index));
 			}
 		}
-
-		/**
-		 * Sets the squares of pieces by having an index
-		 */
-		bool setSquares(uint64_t index);
 
 		/**
 		 * Gets the square of a piece
@@ -121,7 +131,57 @@ namespace QaplaBitbase {
 			return _wtm;
 		}
 
+		/**
+		 * @returns true, if the index is a legal index
+		 */
+		bool isLegal() const { return _isLegal; }
+
 	private:
+
+		/**
+		 * @returns true, if the bitbase has two pieces of the same kind that are badly ordered
+		 * (the first piece is on a larger square than the second piece).
+		 */
+		bool hasUnorderdDoublePiece(const PieceList& pieceList) {
+			bool unordered = false;
+			Piece lastPiece = Piece::NO_PIECE;
+			for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
+				const bool samePiece = pieceList.getPiece(index) == pieceList.getPiece(index - 1);
+				if (samePiece) {
+					unordered = getSquare(index) <= getSquare(index - 1);
+					if (unordered) {
+						break;
+					}
+				}
+			}
+			return unordered;
+		};
+
+		/**
+		 * Clears the index
+		 */
+		void clear() {
+			_index = 0;
+			_mapType = 0;
+			_piecesBB = 0;
+			_pawnsBB = 0;
+			_pieceCount = 0;
+			_pawnCount = 0;
+			_numberOfDiagonalSquares = 0;
+			_isLegal = false;
+		}
+
+		/**
+		 * Sets all squares by an index
+		 */
+		void setSquares(const PieceList& pieceList);
+
+		/**
+		 * Sets all pawns based on the remaining index after setting the Kings
+		 * @retunrns remaining index after setting the pawns
+		 */
+		uint64_t setPawns(uint64_t index, const PieceList& pieceList);
+		void setPieces(uint64_t index, const PieceList& pieceList);
 
 		/**
 		 * Computes the size of the bitbase index
@@ -130,8 +190,9 @@ namespace QaplaBitbase {
 			_sizeInBit = _pawnCount == 0 ?
 				NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN * COLOR_COUNT :
 				NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN * COLOR_COUNT;
-			if (_pawnCount > 0) {
-				_sizeInBit *= _pawnCount * NUMBER_OF_PAWN_POSITIONS;
+			uint32_t remainingPawnPositions = NUMBER_OF_PAWN_POSITIONS;
+			for (uint32_t pawns = _pawnCount; pawns > 0; pawns--, remainingPawnPositions--) {
+				_sizeInBit *= remainingPawnPositions;
 			}
 			uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - KING_COUNT - _pawnCount;
 			for (uint32_t pieces = _pieceCount - KING_COUNT - _pawnCount; pieces > 0; pieces--) {
@@ -140,7 +201,6 @@ namespace QaplaBitbase {
 			}
 		}
 
-		bool setSquares(uint64_t index, uint32_t pawnsToAdd, uint32_t piecesToAdd);
 
 		/**
 		 * Returns true, if a field is already occupied
@@ -266,8 +326,9 @@ namespace QaplaBitbase {
 		uint64_t _index;
 		uint64_t _sizeInBit;
 		uint8_t _mapType;
-
+		bool _isLegal;
 		bool _wtm;
+
 	};
 
 }
