@@ -33,50 +33,129 @@ namespace QaplaBitbase {
 
 	enum CompType {
 		COPY = 0,
-		REPEAT = 1
+		REPEAT = 1,
+		REFERENCE = 2
 	};
 
 	static const uint8_t CONTINUE = 0x80;
 
-	class Sequences {
-		Sequences() : _index(0), _key(0) {}
+	struct SequenceResult {
+		SequenceResult() : _delta(0), _length(0), _gain(0) {}
 
-		void addValue(uint8_t value) {
-			_index++;
-			_key = (_key << 8) + value;
-			if (_index >= 4) {
-				pair<uint64_t, uint64_t> elem(_key, _index);
-				_sequences.insert(elem);
+		/**
+		 * Adds a match found
+		 * @param delta index delta where the match has been found
+		 * @param length length of the match
+		 */
+		void addMatch(uint64_t delta, uint64_t length) {
+			int64_t newGain = computeGain(delta, length);
+			if (newGain > _gain) {
+				_gain = newGain;
+				_length = length;
+				_delta = delta;
+			}
+		}
+
+		/**
+		 * The gain is the length of the copied section minus the amount of 
+		 * bytes needed to store the copy section.
+		 */
+		int64_t computeGain(uint64_t delta, uint64_t length) {
+			int64_t gain = length - 2;
+			if (length >= 32) {
+				gain--;
+				length /= 32;
+			}
+			while (length >= 128) {
+				gain--;
+				length /= 128;
+			}
+			while (delta >= 128) {
+				gain--;
+				delta /= 128;
+			}
+			return gain;
+		}
+
+		uint64_t _delta;
+		uint64_t _length;
+		int64_t _gain;
+	};
+
+	class Sequences {
+	public:
+		typedef uint32_t key_t;
+
+		Sequences() : _key(0), _index(0) {}
+
+		/**
+		 * Limits the amount of entries in a multimap for a key
+	 	 */
+		void limitEntries(uint64_t key, uint32_t max) {
+			auto range = _sequences.equal_range(_key);
+			uint64_t smallestIndex = range.first->second;
+			auto candidate = range.first;
+			uint32_t count = 0;
+			for (auto elem = range.first; elem != range.second; elem++) {
+				if (elem->second < smallestIndex) {
+					candidate = elem;
+					smallestIndex = elem->second;
+				}
+				count++;
+			}
+			if (count > max) {
+				_sequences.erase(candidate);
+			}
+		}
+
+		/**
+		 * Informs about new values
+		 */
+		void addValues(const vector<uint8_t>& in, uint64_t toIndex) {
+			for (; _index <= toIndex; _index++) {
+				const uint8_t value = in[_index];
+				_key = (_key * 0x100) + value;
+				if (_index >= sizeof(key_t)) {
+					const uint64_t realIndex = _index - sizeof(key_t) + 1;
+					pair<key_t, uint64_t> elem(_key, realIndex);
+					_sequences.insert(elem);
+					limitEntries(_key, 20);
+				}
 			}
 		}
 
 		/**
 		 * Gets the longest matching index
 		 */
-		uint64_t countLongestMatch(const vector<uint8_t>& in, uint64_t index) {
-			if (in.size() - index < 8) {
-				return 0;
+		SequenceResult longestMatch(const vector<uint8_t>& in, uint64_t index) {
+			SequenceResult result;
+			if (in.size() - index < sizeof(key_t)) {
+				return result;
 			}
-			uint64_t key = 0; 
-			for (int i = 0; i < 8; ++i) {
+			key_t key = 0;
+
+			for (int i = 0; i < sizeof(key); ++i) {
 				key = (key << 8) + in[index + i];
 			}
-			auto iterator = _sequences.begin(key);
-			for (; iterator != _sequences.end(key); ++iterator) {
-				uint64_t start = iterator->first;
-				uint64_t match = sizeof(uint64_t);
-				for (; in.size() < index + match; ++match) {
-					if (in[start + match] != in[index + match]) {
+			auto range = _sequences.equal_range(key);
+			for (auto elem = range.first; elem != range.second; elem++) {
+				uint64_t start = elem->second;
+				uint64_t length = sizeof(key_t);
+				for (; index + length < in.size(); ++length) {
+					if (in[start + length] != in[index + length]) {
 						break;
 					}
 				}
+				result.addMatch(index - start, length);
 			}
+			return result;
 		}
 
 	private:
-		uint64_t _key;
+		key_t _key;
 		uint64_t _index;
-		unordered_map<uint64_t, uint64_t> _sequences;
+		// unordered_map<key_t, uint64_t> _sequences;
+		unordered_multimap<key_t, uint64_t> _sequences;
 	};
 
 	/**
@@ -135,17 +214,42 @@ namespace QaplaBitbase {
 	}
 
 	/**
+	 * Adds the information to copy a sequence of data from a former position
+	 */
+	static uint64_t addSequence(vector<uint8_t>& out, SequenceResult seqResult) {
+		addCompressionInfo(out, REFERENCE, seqResult._length);
+		uint64_t delta = seqResult._delta;
+		uint8_t value = delta & 0x7F;
+		delta >>= 7;
+		while (delta != 0) {
+			value |= CONTINUE;
+			out.push_back(value);
+			value = delta & 0x7F;
+			delta >>= 7;
+		}
+		out.push_back(value);
+		return seqResult._length;
+	}
+
+	/**
 	 * Compressed a vector
 	 */
 	static void compress(const vector<uint8_t>& in, vector<uint8_t>& out) {
 		uint64_t uncompressed = 0;
 		uint64_t index = 0;
 		uint64_t last4Bytes = 0;
+		Sequences sequences;
 		
 		while (index < in.size()) {
-			const uint64_t equalValues = countEqualValues(in, index);
-			last4Bytes = (last4Bytes << 8) + in[index];
-			if (equalValues > 3) {
+			const int64_t equalValues = countEqualValues(in, index);
+			sequences.addValues(in, index);
+			const SequenceResult seqResult = sequences.longestMatch(in, index);
+			if (seqResult._gain > 1 && seqResult._gain > (equalValues - 2)) {
+				addUncompressedValues(out, uncompressed, in, index);
+				uncompressed = 0;
+				index += addSequence(out, seqResult);
+			}
+			else if (equalValues > 3) {
 				addUncompressedValues(out, uncompressed, in, index);
 				uncompressed = 0;
 				index += addEqualValues(out, equalValues, in[index]);
@@ -156,6 +260,21 @@ namespace QaplaBitbase {
 			}
 		}
 		addUncompressedValues(out, uncompressed, in, index);
+	}
+
+	/**
+	 * Gets a value with flexible length from a byte vector
+	 */
+	static uint64_t getValue(const vector<uint8_t>& in, uint64_t& index) {
+		uint64_t mul = 1;
+		uint64_t value = in[index] & 0x7F;
+		while (in[index] & CONTINUE) {
+			index++;
+			mul <<= 7;
+			value += (in[index] & 0x7F) * mul;
+		}
+		index++;
+		return value;
 	}
 
 	/**
@@ -176,6 +295,19 @@ namespace QaplaBitbase {
 			out.push_back(in[index]);
 		}
 		return 1;
+	}
+
+	/**
+	 * Copies a reference
+	 */
+	static uint64_t copyReference(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t index, uint64_t count) {
+		uint64_t newIndex = index;
+		uint64_t delta = getValue(in, newIndex);
+		uint64_t outIndex = out.size() - delta;
+		for (; count > 0; --count, ++outIndex) {
+			out.push_back(out[outIndex]);
+		}
+		return newIndex - index;
 	}
 
 
@@ -199,6 +331,9 @@ namespace QaplaBitbase {
 				break;
 			case REPEAT:
 				index += repeatValues(in, out, index, count);
+				break;
+			case REFERENCE:
+				index += copyReference(in, out, index, count);
 				break;
 			default:
 				// intentionally left blank

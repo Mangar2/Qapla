@@ -118,15 +118,17 @@ namespace QaplaBitbase {
 		void storeToFile(string fileName) {
 			vector<bbt_t> compressed;
 			vector<bbt_t> uncompressed;
+			cout << "compressing " << endl;
 			compress(_bitbase, compressed);
+			cout << "finished compressing, testing compression" << endl;
 			uncompress(compressed, uncompressed);
 			if (_bitbase != uncompressed) {
 				cout << " compression error " << fileName << endl;
 				for (uint64_t index = 0; index < _bitbase.size(); index++) {
 					if (_bitbase[index] != uncompressed[index]) {
 						cout << " First error at index: " << index
-							<< " required: " << _bitbase[index]
-							<< " found: " << uncompressed[index]
+							<< " required: " << int(_bitbase[index])
+							<< " found: " << int(uncompressed[index])
 							<< endl;
 					}
 				}
@@ -136,6 +138,7 @@ namespace QaplaBitbase {
 			fout.write((char*)&size, sizeof(size));
 			fout.write((char*)&compressed[0], size * sizeof(bbt_t));
 			fout.close();
+			cout << "finished testing, file " << fileName << " written" << endl;
 		}
 
 		/**
