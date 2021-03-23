@@ -100,6 +100,27 @@ uint64_t BitbaseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
 	return numberOfKingPositions;
 }
 
+bool BitbaseIndex::isLegalSquare(Square square, bool allOnDiagonal, const PieceList& pieceList) {
+	bool result = true;
+	if (square > H8) {
+		result = false;
+	} 
+	else if (allOnDiagonal && isAboveDiagonal(square)) {
+		// This index is invalidated, because it is unused. The first piece must be below the
+		// diagonal. 
+		result = false;
+	}
+	else {
+		// The second piece of the same kind must be on a larger square. Else it is an illegal symmetry.
+		bool samePiece = pieceList.getPiece(getNumberOfPieces()) == pieceList.getPiece(getNumberOfPieces() - 1);
+		bool onSquareBelow = square < _squares[getNumberOfPieces() - 1];
+		if (samePiece && onSquareBelow) {
+			result = false;
+		}
+	}
+	return result;
+}
+
 void BitbaseIndex::setPieces(uint64_t index, const PieceList& pieceList) {
 	bool hasPawns = pieceList.getNumberOfPawns() > 0;
 	uint32_t piecesToAdd = pieceList.getNumberOfPiecesWithoutPawns() - KING_COUNT;
@@ -107,18 +128,14 @@ void BitbaseIndex::setPieces(uint64_t index, const PieceList& pieceList) {
 	bool allOnDiagonal = (!hasPawns) && isOnDiagonal(getSquare(0)) && isOnDiagonal(getSquare(1));
 	for (; piecesToAdd > 0; --piecesToAdd, --remainingPiecePositions) {
 		const Square square = computesRealSquare(_piecesBB, Square(index % remainingPiecePositions));
+		
 		index /= remainingPiecePositions;
 		_sizeInBit *= remainingPiecePositions;
-		if (square >= BOARD_SIZE) {
+		if (!isLegalSquare(square, allOnDiagonal, pieceList)) {
 			_isLegal = false;
 			break;
 		}
-		// This index is invalidated, because it is unused. The first piece must be below the
-		// diagonal. 
-		if (allOnDiagonal && isAboveDiagonal(square)) {
-			_isLegal = false;
-			break;
-		}
+
 		if (!isOnDiagonal(square)) {
 			allOnDiagonal = false;
 		}
@@ -138,8 +155,7 @@ uint64_t BitbaseIndex::setPawns(uint64_t index, const PieceList& pieceList) {
 			_isLegal = false;
 			break;
 		}
-		_pawnsBB |= 1ULL << square;
-		addPieceSquare(square);
+		addPawnSquare(square);
 	}
 	return index;
 }
@@ -241,16 +257,15 @@ uint32_t BitbaseIndex::computeSquareMapType(Square whiteKingSquare, Square black
 }
 
 void BitbaseIndex::addPawnToIndex(Square pawnSquare) {
-	// We do not reduce the pawn index by occupied squares, because
-	// pieces may be placed on rank 1 and 8 where they do not reduce the 
-	// amount of possible pawn squares.
+
 	Square mappedSquare = mapSquare(pawnSquare, _mapType);
-	uint64_t indexValueBasedOnPawnSquare = uint64_t(mappedSquare - A2);
+	const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _pawnsBB;
+	uint64_t indexValueBasedOnPawnSquare = uint64_t(mappedSquare - A2) - popCount(belowBB);
 
 	_index += (int64_t)indexValueBasedOnPawnSquare * _sizeInBit;
-	_sizeInBit *= NUMBER_OF_PAWN_POSITIONS;
-	_pawnsBB |= 1ULL << mappedSquare;
-	addPieceSquare(mappedSquare);
+	_sizeInBit *= (NUMBER_OF_PAWN_POSITIONS - _pawnCount);
+
+	addPawnSquare(mappedSquare);
 }
 
 uint32_t BitbaseIndex::popCount(bitBoard_t bitBoard) {
@@ -279,6 +294,12 @@ void BitbaseIndex::addNonPawnPieceToIndex(Square square) {
 	_index += (int64_t)indexValueBasedOnPieceSquare * _sizeInBit;
 	_sizeInBit *= (int64_t)BOARD_SIZE - getNumberOfPieces();
 	addPieceSquare(mappedSquare);
+}
+
+void BitbaseIndex::addPawnSquare(Square square) {
+	_pawnCount++;
+	_pawnsBB |= 1ULL << square;
+	addPieceSquare(square);
 }
 
 void BitbaseIndex::addPieceSquare(Square square) {

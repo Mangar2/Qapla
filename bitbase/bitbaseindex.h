@@ -172,6 +172,11 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Checks, if a square is legal
+		 */
+		bool isLegalSquare(Square square, bool allOnDiagonal, const PieceList& pieceList);
+
+		/**
 		 * Sets all squares by an index
 		 */
 		void setSquares(const PieceList& pieceList);
@@ -278,6 +283,11 @@ namespace QaplaBitbase {
 		 * walk in one direction
 		 */
 		void addNonPawnPieceToIndex(Square pieceSquare);
+
+		/**
+		 * Adds the square of a pawn to the piece square list
+		 */
+		void addPawnSquare(Square square);
 
 		/**
 		 * Adds the square of a piece to the piece square list
