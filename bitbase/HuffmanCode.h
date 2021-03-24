@@ -99,12 +99,11 @@ namespace QaplaBitbase {
 		/**
 		 * Use the calculated huffman code to compress the data
 		 */
-		vector<bbt_t> compress(const vector<bbt_t>& input) {
-			vector<bbt_t> compressed;
+		void compress(const vector<bbt_t>& in, vector<bbt_t>& out) {
 			bbt_t current = 0;
 			uint32_t bitsLeft = sizeof(current) * 8;
-			uint64_t byteSize = input.size() * sizeof(bbt_t);
-			const uint8_t* data = (uint8_t*) &input[0];
+			uint64_t byteSize = in.size() * sizeof(bbt_t);
+			const uint8_t* data = (uint8_t*) &in[0];
 			for (uint64_t i = 0; i < byteSize; ++i) {
 				uint8_t code = codeMap[data[i]];
 				uint8_t codeLength = codeLengthMap[data[i]];
@@ -114,32 +113,30 @@ namespace QaplaBitbase {
 				} 
 				else {
 					current |= code >> (codeLength - bitsLeft);
-					compressed.push_back(current);
+					out.push_back(current);
 					bitsLeft = sizeof(current) * 8 + bitsLeft - codeLength;
 					current = code << bitsLeft;
 				}
 			}
-			compressed.push_back(current);
-			return compressed;
+			out.push_back(current);
 		}
 
 		/**
 		 * Uncompresses code from the 
 		 */
-		vector<bbt_t> uncompress(const vector<bbt_t>& compressed, size_t targetSizeInBit) {
-			vector<bbt_t> uncompressed;
+		void uncompress(const vector<bbt_t>& in, vector<bbt_t>& out, size_t targetSizeInBit) {
 			constexpr size_t elementSizeInBit = sizeof(bbt_t) * 8;
-			size_t uncompressedIndex = 0;
-			size_t compressedIndex = 0;
+			size_t outIndex = 0;
+			size_t inIndex = 0;
 			bbt_t uncompressedElement = 0;
-			while (uncompressedIndex < targetSizeInBit) {
-				const bbt_t nextElement = uncompressNext(compressed, compressedIndex);
-				compressedIndex += codeLengthMap[nextElement];
-				uncompressedIndex += sizeof(uint8_t);
-				const bbt_t bitsLeft = elementSizeInBit - uncompressedIndex % elementSizeInBit;
+			while (outIndex < targetSizeInBit) {
+				const bbt_t nextElement = uncompressNext(in, inIndex);
+				inIndex += codeLengthMap[nextElement];
+				outIndex += sizeof(uint8_t);
+				const bbt_t bitsLeft = elementSizeInBit - outIndex % elementSizeInBit;
 				uncompressedElement |= nextElement << bitsLeft;
 				if (bitsLeft == 0) {
-					uncompressed.push_back(uncompressedElement);
+					out.push_back(uncompressedElement);
 					uncompressedElement = 0;
 				}
 			}

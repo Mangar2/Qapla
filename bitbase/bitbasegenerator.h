@@ -26,6 +26,7 @@
 #include <iostream>
 #include "bitbase.h"
 #include "boardaccess.h"
+#include "generationstate.h"
 
 using namespace std;
 using namespace ChessMoveGenerator;
@@ -34,7 +35,7 @@ using namespace ChessSearch;
 namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
-		// static const uint64_t debugIndex = 21024;
+		// static const uint64_t debugIndex = 973913;
 		static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF;
 		BitbaseGenerator() {
 		}
@@ -66,11 +67,6 @@ namespace QaplaBitbase {
 	private:
 
 		/**
-		 * Clears the situation counter
-		 */
-		void clear();
-
-		/**
 		 * Searches all captures and look up the position after capture in a bitboard.
 		 */
 		value_t initialSearch(MoveGenerator& position);
@@ -78,33 +74,32 @@ namespace QaplaBitbase {
 		/**
 		 * Marks one candidate identified by a partially filled move and a destination square
 		 */
-		void markCandidate(bool wtm, Bitbase& bitbase, PieceList& list, 
-			Move move, Square destination, bool verbose);
+		uint64_t computeCandidateIndex(bool wtm, const PieceList& list, Move move, Square destination, bool verbose);
 
 		/**
-		 * Mark candidates for a dedicated piece identified by a partially filled move
+		 * Computes a list of candidates and pushes them to the candidates vector
 		 */
-		void markCandidates(const MoveGenerator& position, Bitbase& bitbase, PieceList& list, 
-			Move move, bool verbose);
+		void computeCandidates(vector<uint64_t>& candidates, const MoveGenerator& position,
+			const PieceList& list, Move move, bool verbose);
 
 		/**
 		 * Mark all candidate positions we need to look at after a new bitbase position is set to 1
 		 * Candidate positions are computed by running through the attack masks of every piece and 
 		 * computing reverse moves (ignoring all special cases like check, captures, ...)
 		 */
-		void markCandidates(MoveGenerator& position, Bitbase& bitbase, bool verbose = false);
+		void computeCandidates(vector<uint64_t>& candidates, MoveGenerator& position, bool verbose);
 
 		/**
 		 * Computes a position value by probing all moves and lookup the result in this bitmap
 		 * Captures are excluded, they have been tested in the initial search. 
 		 */
-		bool computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose);
+		bool computeValue(MoveGenerator& position, const Bitbase& bitbase, bool verbose);
 
 		/**
 		 * Sets the bitbase index for a position by computing the position value from the bitbase itself
 		 * @returns 1, if the position is a win (now) and 0, if it is still unknown
 		 */
-		uint32_t computePosition(uint64_t index, MoveGenerator& position, Bitbase& bitbase, Bitbase& computedPositions);
+		uint32_t computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
 		 * Prints the difference of two bitbases
@@ -243,12 +238,6 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * @returns true, if the bitbase has two pieces of the same kind that are badly ordered
-		 * (the first piece is on a larger square than the second piece).
-		 */
-		bool hasUnorderdDoublePiece(const PieceList& pieceList, const BitbaseIndex& index);
-
-		/**
 		 * Prints a progress information
 		 */
 		void printInfo(uint64_t index, uint64_t size, uint64_t bitsChanged, uint32_t step = 1) {
@@ -276,19 +265,22 @@ namespace QaplaBitbase {
 
 		/**
 		 * Compute the bitbase by checking each position for an update as long as no further update is found
-		 * @param wonPositions bitbase with all positions winning in one ply
-		 * @param computedPositions positions that are decided in one ply (illegal, win, draw, loss)
+		 * @param state Current computation state
 		 * @param pieceList list of pieces of the bitbase
 		 * @param clock time measurement for the bitbase generation
 		 */
-		void computeBitbase(
-			Bitbase& wonPositions, Bitbase& computedPositions, PieceList& pieceList, ClockManager& clock);
+		void computeBitbase(GenerationState& state, PieceList& pieceList, ClockManager& clock);
+
 
 		/**
 		 * Initially probe alle positions for a mate- draw or capture situation
 		 */
-		uint32_t initialComputePosition(uint64_t index, MoveGenerator& position,
-			Bitbase& bitbase, Bitbase& computedPositions);
+		uint32_t initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+
+		/**
+		 * Computes a workpackage
+		 */
+		void computeInitialWorkpackage(vector<uint64_t> work, GenerationState& state);
 
 		/**
 		 * Computes a bitbase for a set of pieces described by a piece list.

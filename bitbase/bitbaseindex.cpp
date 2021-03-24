@@ -147,7 +147,7 @@ uint64_t BitbaseIndex::setPawns(uint64_t index, const PieceList& pieceList) {
 	const bool hasPawns = pieceList.getNumberOfPawns() > 0;
 	uint64_t remainingPawnPositions = NUMBER_OF_PAWN_POSITIONS;
 	for (uint32_t pawn = 0; pawn < pieceList.getNumberOfPawns(); ++pawn, --remainingPawnPositions) {
-		const Square square = computesRealSquare(_pawnsBB, A2 + Square(index % NUMBER_OF_PAWN_POSITIONS));
+		const Square square = computesRealSquare(_pawnsBB, A2 + Square(index % remainingPawnPositions));
 
 		index /= remainingPawnPositions;
 		_sizeInBit *= remainingPawnPositions;

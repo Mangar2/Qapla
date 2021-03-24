@@ -24,6 +24,7 @@
 #define __BITBASEREADER_H
 
 #include <map>
+#include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
 #include "../eval/evalendgame.h"
 #include "bitbase.h"
@@ -43,10 +44,15 @@ namespace QaplaBitbase {
 	{
 	public:
 		static void loadBitbase() {
+			return;
+			ChessSearch::ClockManager clock;
+			clock.setStartTime();
 			loadBitbaseRec("K*K");
 			loadBitbaseRec("KK*");
 			loadBitbaseRec("K*K*");
 			loadBitbaseRec("K**K");
+			loadBitbaseRec("K**K*");
+			cout << "Time spent " << clock.computeTimeSpentInMilliseconds() << endl;
 		}
 
 		static void loadBitbaseRec(string name) {
@@ -158,8 +164,9 @@ namespace QaplaBitbase {
 			PieceSignature signature;
 			signature.set(pieceString);
 			Bitbase bitbase;
-			if (bitbase.readFromFile(pieceString)) {
-				_bitbases[signature.getPiecesSignature()] = bitbase;
+			_bitbases[signature.getPiecesSignature()] = bitbase;
+			if (!_bitbases[signature.getPiecesSignature()].readFromFile(pieceString)) {
+				_bitbases.erase(signature.getPiecesSignature());
 			}
 			ChessEval::EvalEndgame::registerBitbase(pieceString);
 		}

@@ -20,26 +20,21 @@
  */
 
 #include <iostream>
+#include <algorithm>
+#include <thread>
 #include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
 #include "../search/moveprovider.h"
 #include "bitbaseindex.h"
+#include "generationstate.h"
 #include "bitbasereader.h"
 #include "bitbasegenerator.h"
+
 
 using namespace std;
 using namespace ChessMoveGenerator;
 using namespace ChessSearch;
 using namespace QaplaBitbase;
-
-/**
- * Clears the situation counter
- */
-void BitbaseGenerator::clear() {
-	_numberOfDirectLoss = 0;
-	_numberOfDirectDraw = 0;
-	_numberOfIllegalPositions = 0;
-}
 
 /**
  * Searches all captures and look up the position after capture in a bitboard.
@@ -80,7 +75,7 @@ value_t BitbaseGenerator::initialSearch(MoveGenerator& position)
  * Computes a position value by probing all moves and lookup the result in this bitmap
  * Captures are excluded, they have been tested in the initial search. 
  */
-bool BitbaseGenerator::computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose) {
+bool BitbaseGenerator::computeValue(MoveGenerator& position, const Bitbase& bitbase, bool verbose) {
 	MoveList moveList;
 	Move move;
 	bool whiteToMove = position.isWhiteToMove();
@@ -121,14 +116,13 @@ bool BitbaseGenerator::computeValue(MoveGenerator& position, Bitbase& bitbase, b
  * Sets the bitbase index for a position by computing the position value from the bitbase itself
  * @returns 1, if the position is a win (now) and 0, if it is still unknown
  */
-uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator& position, Bitbase& bitbase, Bitbase& computedPositions) {
+uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator& position, GenerationState& state) {
 	uint32_t result = 0;
-	if (computeValue(position, bitbase, false)) {
+	if (computeValue(position, state.getWonPositions(), false)) {
 		if (index == debugIndex) {
-			computeValue(position, bitbase, true);
+			computeValue(position, state.getWonPositions(), true);
 		}
-		bitbase.setBit(index);
-		computedPositions.setBit(index);
+		state.setWin(index);
 		result++;
 	}
 
@@ -202,22 +196,22 @@ void BitbaseGenerator::showDebugIndex(string pieceString) {
 /**
  * Marks one candidate identified by a partially filled move and a destination square
  */
-void BitbaseGenerator::markCandidate(bool wtm, Bitbase& bitbase, PieceList& list, 
-	Move move, Square destination, bool verbose) 
+uint64_t BitbaseGenerator::computeCandidateIndex(bool wtm, const PieceList& list, Move move, 
+	Square destination, bool verbose)
 {
 	move.setDestination(destination);
 	uint64_t index = BoardAccess::getIndex(!wtm, list, move);
-	bitbase.setBit(index);
 	if (verbose) {
 		cout << "New candidate, index: " << index << " move " << move.getLAN() << endl;
 	}
+	return index;
 }
 
 /**
  * Mark candidates for a dedicated piece identified by a partially filled move
  */
-void BitbaseGenerator::markCandidates(const MoveGenerator& position, Bitbase& bitbase, 
-	PieceList& list, Move move, bool verbose)
+void BitbaseGenerator::computeCandidates(vector<uint64_t>& candidates, const MoveGenerator& position,
+	const PieceList& list, Move move, bool verbose)
 {
 	bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
 	const bool wtm = position.isWhiteToMove();
@@ -228,15 +222,19 @@ void BitbaseGenerator::markCandidates(const MoveGenerator& position, Bitbase& bi
 		attackBB &= ~position.pieceAttackMask[position.getKingSquare<WHITE>()];
 	}
 	if (move.getMovingPiece() == WHITE_PAWN && move.getDeparture() >= A3) {
-		markCandidate(wtm, bitbase, list, move, move.getDeparture() - NORTH, verbose);
+		candidates.push_back(
+			computeCandidateIndex(wtm, list, move, move.getDeparture() - NORTH, verbose));
 		if (getRank(move.getDeparture()) == Rank::R4) {
-			markCandidate(wtm, bitbase, list, move, move.getDeparture() - 2 * NORTH, verbose);
+			candidates.push_back(
+				computeCandidateIndex(wtm, list, move, move.getDeparture() - 2 * NORTH, verbose));
 		}
 	}
 	if (move.getMovingPiece() == BLACK_PAWN && move.getDeparture() <= H6) {
-		markCandidate(wtm, bitbase, list, move, move.getDeparture() + NORTH, verbose);
+		candidates.push_back(
+			computeCandidateIndex(wtm, list, move, move.getDeparture() + NORTH, verbose));
 		if (getRank(move.getDeparture()) == Rank::R5) {
-			markCandidate(wtm, bitbase, list, move, move.getDeparture() + 2 * NORTH, verbose);
+			candidates.push_back(
+				computeCandidateIndex(wtm, list, move, move.getDeparture() + 2 * NORTH, verbose));
 		}
 	}
 	if (getPieceType(move.getMovingPiece()) != PAWN) {
@@ -246,17 +244,17 @@ void BitbaseGenerator::markCandidates(const MoveGenerator& position, Bitbase& bi
 			if (occupied) {
 				continue;
 			}
-			markCandidate(wtm, bitbase, list, move, destination, verbose);
+			candidates.push_back(computeCandidateIndex(wtm, list, move, destination, verbose));
 		}
 	}
 }
 
 /**
- * Mark all candidate positions we need to look at after a new bitbase position is set to 1
+ * Computes all candidate positions we need to look at after a new bitbase position is set to 1
  * Candidate positions are computed by running through the attack masks of every piece and
  * computing reverse moves (ignoring all special cases like check, captures, ...)
  */
-void BitbaseGenerator::markCandidates(MoveGenerator& position, Bitbase& bitbase, bool verbose) {
+void BitbaseGenerator::computeCandidates(vector<uint64_t>& candidates, MoveGenerator& position, bool verbose) {
 	PieceList pieceList(position);
 	position.computeAttackMasksForBothColors();
 	Piece piece = PAWN + int(position.isWhiteToMove());
@@ -265,12 +263,12 @@ void BitbaseGenerator::markCandidates(MoveGenerator& position, Bitbase& bitbase,
 	}
 	for (; piece <= BLACK_KING; piece += 2) {
 		bitBoard_t pieceBB = position.getPieceBB(piece);
-		Move move;
-		move.setMovingPiece(piece);
 		for (; pieceBB; pieceBB &= pieceBB - 1) {
+			Move move;
+			move.setMovingPiece(piece);
 			Square departure = lsb(pieceBB);
 			move.setDeparture(departure);
-			markCandidates(position, bitbase, pieceList, move, verbose);
+			computeCandidates(candidates, position, pieceList, move, verbose);
 		}
 	}
 }
@@ -292,17 +290,12 @@ void BitbaseGenerator::addPiecesToPosition(
 
 /**
  * Compute the bitbase by checking each position for an update as long as no further update is found
- * @param wonPositions bitbase with all positions winning in one ply
- * @param computedPositions positions that are decided in one ply (illegal, win, draw, loss)
+ * @param state Current computation state
  * @param pieceList list of pieces of the bitbase
  * @param clock time measurement for the bitbase generation
  */
-void BitbaseGenerator::computeBitbase(
-	Bitbase& wonPositions, Bitbase& computedPositions, PieceList& pieceList, ClockManager& clock)
-{
-	BitbaseIndex bitbaseIndexType(pieceList);
-	Bitbase probePositions(bitbaseIndexType);
-	const uint64_t bitbaseSizeInBit = bitbaseIndexType.getSizeInBit();
+void BitbaseGenerator::computeBitbase(GenerationState& state, PieceList& pieceList, ClockManager& clock) {
+	const uint64_t bitbaseSizeInBit = state.getSizeInBit();
 
 	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++) {
 
@@ -312,8 +305,7 @@ void BitbaseGenerator::computeBitbase(
 		for (uint64_t index = 0; index < bitbaseSizeInBit; index++) {
 			printInfo(index, bitbaseSizeInBit, bitsChanged);
 
-			if (!computedPositions.getBit(index)) {
-				if (loopCount > 0 && !probePositions.getBit(index)) continue;
+			if (state.isPositionToCheck(index, loopCount > 0)) {
 				BitbaseIndex bitbaseIndex(index, pieceList);
 				if (!bitbaseIndex.isLegal()) {
 					cout << " Error, programming bug, should already be set in computedPositions " << endl;
@@ -324,14 +316,16 @@ void BitbaseGenerator::computeBitbase(
 				addPiecesToPosition(position, bitbaseIndex, pieceList);
 				assert(index == BoardAccess::getIndex<0>(position));
 
-				uint32_t success = computePosition(index, position, wonPositions, computedPositions);
-				if (loopCount > 0 && success && !probePositions.getBit(index)) {
-					cout << endl << "index: " << index << " fen: " << position.getFen() << endl;
-					computePosition(index, position, wonPositions, computedPositions);
+				uint32_t success = computePosition(index, position, state);
+				if (loopCount > 0 && success && !state.isCandidate(index)) {
+					cout << endl << "Error; Missing candidate flag; index: " << index << " fen: " << position.getFen() << endl;
+					computePosition(index, position, state);
 				}
-				probePositions.clearBit(index);
+				state.clearCandidate(index);
 				if (success) {
-					markCandidates(position, probePositions, index == debugIndex);
+					vector<uint64_t> candidates;
+					computeCandidates(candidates, position, index == debugIndex);
+					state.setCandidates(candidates);
 				}
 				bitsChanged += success;
 				if (first && success) {
@@ -351,9 +345,7 @@ void BitbaseGenerator::computeBitbase(
 /**
  * Initially probe alle positions for a mate- draw or capture situation
  */
-uint32_t BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& position,
-	Bitbase& bitbase, Bitbase& computedPositions) 
-{
+uint32_t BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state) {
 	uint32_t result = 0;
 	MoveList moveList;
 	bool kingInCheck = false;
@@ -363,8 +355,7 @@ uint32_t BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator&
 
 	// Exclude all illegal positions (king not to move is in check) from future search
 	if (!position.isLegalPosition()) {
-		_numberOfIllegalPositions++;
-		computedPositions.setBit(index);
+		state.setIllegal(index);
 		return 0;
 	}
 
@@ -374,51 +365,54 @@ uint32_t BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator&
 		// Compute all captures and look up the positions in other bitboards
 		positionValue = initialSearch(position);
 		if (positionValue == 1) {
-			bitbase.setBit(index);
-			computedPositions.setBit(index);
+			state.setWin(index);
 			result++;
 		}
 		else if (positionValue == -1) {
-			computedPositions.setBit(index);
-			_numberOfDirectLoss++;
+			state.setLossOrDraw(index);
 		}
 	}
 	else {
 		// Mate or stalemate
-		computedPositions.setBit(index);
 		if (!position.isWhiteToMove() && position.isInCheck()) {
 			if (index == debugIndex) {
 				position.print();
 				printf("index: %lld, mate detected\n", index);
 			}
-			bitbase.setBit(index);
+			state.setWin(index);
 			result++;
 		}
 		else {
-			_numberOfDirectDraw++;
+			state.setLossOrDraw(index);
 		}
 	}
 	return result;
 }
 
 /**
- * @returns true, if the bitbase has two pieces of the same kind that are badly ordered
- * (the first piece is on a larger square than the second piece).
+ * Computes a workpackage of initial positions for a bitbase; 
  */
-bool BitbaseGenerator::hasUnorderdDoublePiece(const PieceList& pieceList, const BitbaseIndex& bitbaseIndex) {
-	bool unordered = false;
-	Piece lastPiece = Piece::NO_PIECE;
-	for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
-		const bool samePiece = pieceList.getPiece(index) == pieceList.getPiece(index - 1);
-		if (samePiece) {
-			unordered = bitbaseIndex.getSquare(index) <= bitbaseIndex.getSquare(index - 1);
-			if (unordered) {
-				break;
+void BitbaseGenerator::computeInitialWorkpackage(vector<uint64_t> work, GenerationState& state) {
+	MoveGenerator position;
+	for (auto index : work) {
+		BitbaseIndex bitbaseIndex(index, state.getPieceList());
+		if (bitbaseIndex.isLegal()) {
+			position.clear();
+			addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
+			uint64_t testIndex = BoardAccess::getIndex<0>(position);
+			if (testIndex != index) {
+				cout << "Fatal error in index: " << index << " index computing has a bug " << endl;
+				cout << "Created board has index: " << testIndex << endl;
+				position.print();
+				exit(1);
 			}
+			initialComputePosition(index, position, state);
+		}
+		else {
+			state.setIllegal(index);
 		}
 	}
-	return unordered;
-};
+}
 
 /**
  * Computes a bitbase for a set of pieces described by a piece list.
@@ -426,52 +420,46 @@ bool BitbaseGenerator::hasUnorderdDoublePiece(const PieceList& pieceList, const 
 void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
-	printf("Computing bitbase for %s\n", pieceString.c_str());
 	if (BitbaseReader::isBitbaseAvailable(pieceString)) {
-		printf("Bitbase already loaded\n");
+		cout << "Bitbase " << pieceString << " already loaded" << endl;
 		return;
 	}
-	BitbaseIndex bitbaseIndexType(pieceList);
-	uint32_t bitsChanged = 0;
-	const uint64_t sizeInBit = bitbaseIndexType.getSizeInBit();
-	Bitbase wonPositions(sizeInBit);
-	Bitbase computedPositions(sizeInBit);
-	ClockManager clock;
+	const auto threadCount = 10;
 
+	cout << "Computing bitbase for " << pieceString << " using " << threadCount << " threads ...";
+
+	GenerationState state(pieceList);
+	uint64_t index = 0;
+	ClockManager clock;
 	clock.setStartTime();
-	clear();
-	for (uint64_t index = 0; index < sizeInBit; index++) {
-		printInfo(index, sizeInBit, bitsChanged);
-		BitbaseIndex bitbaseIndex(index, pieceList);
-		if (bitbaseIndex.isLegal() && !hasUnorderdDoublePiece(pieceList, bitbaseIndex)) {
-			position.clear();
-			addPiecesToPosition(position, bitbaseIndex, pieceList);
-			uint64_t testIndex = BoardAccess::getIndex<0>(position);
-			if (testIndex != index) {
-				cout << "Fatal error in index: " << index << " index computing has a bug " << endl;
-			}
-			bitsChanged += initialComputePosition(index, position, wonPositions, computedPositions);
-		}
-		else {
-			computedPositions.setBit(index);
+
+	array<thread, threadCount> threads;
+	for (auto& thr : threads) {
+		uint64_t package = min((state.getSizeInBit() + threadCount) / threadCount, state.getSizeInBit() - index);
+		vector<uint64_t> work = state.getWork(index, package, false);
+		thr = thread([this, work, &state]() {
+			computeInitialWorkpackage(work, state);
+		});
+		
+		index += package;
+	}
+	for (auto &thr : threads) {
+		if (thr.joinable()) {
+			thr.join();
+			cout << ".";
 		}
 	}
-	cout << endl
-		<< "Number of direct loss: " << _numberOfDirectLoss << endl
-		<< "Number of direct draw: " << _numberOfDirectDraw << endl
-		<< "Number of illegal positions: " << _numberOfIllegalPositions << endl
-		<< "Initial winning positions: " << bitsChanged << endl;
+	cout << endl;
+	state.printStatistic();
 	printTimeSpent(clock);
-	computeBitbase(wonPositions, computedPositions, pieceList, clock);
 
-	cout
-		<< wonPositions
-		<< " illigal positions " << _numberOfIllegalPositions << endl;
+	computeBitbase(state, pieceList, clock);
 
+	state.printStatistic();
 	printTimeSpent(clock);
 	string fileName = pieceString + string(".btb");
-	wonPositions.storeToFile(fileName.c_str());
-	BitbaseReader::setBitbase(pieceString, wonPositions);
+	state.storeToFile(fileName);
+	BitbaseReader::setBitbase(pieceString, state.getWonPositions());
 }
 
 /**

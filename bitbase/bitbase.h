@@ -43,15 +43,24 @@ namespace QaplaBitbase {
 	class Bitbase {
 	public:
 		Bitbase(bool loaded = false) : _sizeInBit(0), _loaded(loaded) {}
+
 		/**
-		 * @param bitbaseSizeInBit number of positions stored in the bitbase
+		 * @param sizeInBit number of positions stored in the bitbase
 		 */
-		Bitbase(uint64_t bitBaseSizeInBit) : _sizeInBit(bitBaseSizeInBit), _loaded(true) {
-			_bitbase.resize(_sizeInBit / BITS_IN_ELEMENT + 1);
-			clear();
+		Bitbase(uint64_t sizeInBit) : _loaded(true) {
+			setSize(sizeInBit);
 		};
 
 		Bitbase(const BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {};
+
+		/**
+		 * Sets the size of the bitbase
+		 */
+		void setSize(uint64_t sizeInBit) {
+			_sizeInBit = sizeInBit;
+			_bitbase.resize(_sizeInBit / BITS_IN_ELEMENT + 1);
+			clear();
+		}
 
 		/**
 		 * Gets the amount of stored positions
@@ -121,7 +130,7 @@ namespace QaplaBitbase {
 			cout << "compressing " << endl;
 			compress(_bitbase, compressed);
 			cout << "finished compressing, testing compression" << endl;
-			uncompress(compressed, uncompressed);
+			uncompress(compressed, uncompressed, _bitbase.size());
 			if (_bitbase != uncompressed) {
 				cout << " compression error " << fileName << endl;
 				for (uint64_t index = 0; index < _bitbase.size(); index++) {
@@ -160,7 +169,7 @@ namespace QaplaBitbase {
 			_bitbase.clear();
 			compressed.resize(size);
 			fin.read((char*)&compressed[0], size * sizeof(bbt_t));
-			uncompress(compressed, _bitbase);
+			uncompress(compressed, _bitbase, sizeInBit);
 			fin.close();
 			cout << "Read: " << fileName << endl;
 			_loaded = true;

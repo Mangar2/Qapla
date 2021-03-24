@@ -368,6 +368,12 @@
     <ClInclude Include="bitbase\compress.h">
       <Filter>bitbase</Filter>
     </ClInclude>
+    <ClInclude Include="bitbase\workpackage.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\generationstate.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

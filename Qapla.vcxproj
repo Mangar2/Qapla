@@ -1553,8 +1553,10 @@
     <ClInclude Include="bitbase\bitbasereader.h" />
     <ClInclude Include="bitbase\boardaccess.h" />
     <ClInclude Include="bitbase\compress.h" />
+    <ClInclude Include="bitbase\generationstate.h" />
     <ClInclude Include="bitbase\huffmancode.h" />
     <ClInclude Include="bitbase\piecelist.h" />
+    <ClInclude Include="bitbase\workpackage.h" />
     <ClInclude Include="eval\bishop.h" />
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />

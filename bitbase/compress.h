@@ -277,36 +277,45 @@ namespace QaplaBitbase {
 		return value;
 	}
 
+
 	/**
 	 * Copy values from in to out starting by index
 	 */
-	static uint64_t copyValues(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t index, uint64_t count) {
-		for (uint64_t i = count; i > 0; --i, ++index) {
-			out.push_back(in[index]);
-		}
+	static uint64_t copyValues(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t index, uint64_t& outIndex, uint64_t count) {
+
+		std::copy(in.begin() + index, in.begin() + index + count, out.begin() + outIndex);
+		outIndex += count;
 		return count;
 	}
 
 	/**
 	 * Repeat values from in to out
 	 */
-	static uint64_t repeatValues(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t index, uint64_t count) {
-		for (; count > 0; --count) {
-			out.push_back(in[index]);
-		}
+	static uint64_t repeatValues(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t index, uint64_t& outIndex, uint64_t count) {
+		fill(out.begin() + outIndex, out.begin() + outIndex + count, in[index]);
+		outIndex += count;
 		return 1;
 	}
 
 	/**
 	 * Copies a reference
 	 */
-	static uint64_t copyReference(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t index, uint64_t count) {
+	static uint64_t copyReference(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t index, uint64_t& outIndex, uint64_t count) {
 		uint64_t newIndex = index;
 		uint64_t delta = getValue(in, newIndex);
-		uint64_t outIndex = out.size() - delta;
-		for (; count > 0; --count, ++outIndex) {
-			out.push_back(out[outIndex]);
+		uint64_t sourceIndex = outIndex - delta;
+		if (sourceIndex + count <= outIndex) {
+			// May not be used to copy overlapping ranges
+			std::copy(out.begin() + sourceIndex, out.begin() + sourceIndex + count, out.begin() + outIndex);
+			outIndex += count;
 		}
+		else {
+			for (; count > 0; --count, ++sourceIndex, ++outIndex) {
+				out[outIndex] = out[sourceIndex];
+			}
+		}
+		
+		
 		return newIndex - index;
 	}
 
@@ -314,7 +323,9 @@ namespace QaplaBitbase {
 	/**
 	 * Uncompresses a vector
 	 */
-	static void uncompress(const vector<uint8_t>& in, vector<uint8_t>& out) {
+	static void uncompress(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t outSize) {
+		uint64_t outIndex = 0;
+		out.resize(outSize);
 		for (uint64_t index = 0; index < in.size();) {
 			const CompType type = CompType(in[index] & 0x3);
 			uint64_t count = (in[index] & 0x7F) >> 2;
@@ -327,13 +338,13 @@ namespace QaplaBitbase {
 			index++;
 			switch (type) {
 			case COPY:
-				index += copyValues(in, out, index, count);
+				index += copyValues(in, out, index, outIndex, count);
 				break;
 			case REPEAT:
-				index += repeatValues(in, out, index, count);
+				index += repeatValues(in, out, index, outIndex, count);
 				break;
 			case REFERENCE:
-				index += copyReference(in, out, index, count);
+				index += copyReference(in, out, index, outIndex, count);
 				break;
 			default:
 				// intentionally left blank
