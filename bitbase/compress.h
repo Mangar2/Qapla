@@ -17,6 +17,21 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
  * Implements compression for bitbases
+ * The first byte contains an information about following bytes:
+ * C NNNNN TT 
+ * TT two bit compression type, either "COPY" or "REFERENCE"
+ * NNNNN five bit number of bytes this referes to 
+ * C continuation flag - if 1 the next byte has more bits of for the number of bytes
+ * 
+ * A continuation byte has the format
+ * C NNNNNNN
+ * C continuation flag - more bits following ...
+ * NNNNNNN lower significant bits of the number
+ * 
+ * The uncompressed bytes to copy follows a  copy compression information
+ * The number of bytes to move backward follows the REFERENCE compression type
+ * The number is again coded with a flexibel amount of bytes by using the 
+ * continuation byte structure explained above.
  */
 
 #ifndef __COMPRESS_H
@@ -84,7 +99,7 @@ namespace QaplaBitbase {
 
 	class Sequences {
 	public:
-		typedef uint32_t key_t;
+		typedef uint64_t key_t;
 
 		Sequences() : _key(0), _index(0) {}
 
@@ -113,8 +128,7 @@ namespace QaplaBitbase {
 		 */
 		void addValues(const vector<uint8_t>& in, uint64_t toIndex) {
 			for (; _index <= toIndex; _index++) {
-				const uint8_t value = in[_index];
-				_key = (_key * 0x100) + value;
+				_key = (_key << 8) + in[_index];
 				if (_index >= sizeof(key_t)) {
 					const uint64_t realIndex = _index - sizeof(key_t) + 1;
 					pair<key_t, uint64_t> elem(_key, realIndex);
@@ -241,18 +255,12 @@ namespace QaplaBitbase {
 		Sequences sequences;
 		
 		while (index < in.size()) {
-			const int64_t equalValues = countEqualValues(in, index);
 			sequences.addValues(in, index);
 			const SequenceResult seqResult = sequences.longestMatch(in, index);
-			if (seqResult._gain > 1 && seqResult._gain > (equalValues - 2)) {
+			if (seqResult._gain > 1) {
 				addUncompressedValues(out, uncompressed, in, index);
 				uncompressed = 0;
 				index += addSequence(out, seqResult);
-			}
-			else if (equalValues > 3) {
-				addUncompressedValues(out, uncompressed, in, index);
-				uncompressed = 0;
-				index += addEqualValues(out, equalValues, in[index]);
 			}
 			else {
 				index++;

@@ -461,7 +461,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 		return;
 	}
 
-	cout << "Computing bitbase for " << pieceString << " using " << MAX_THREADS << " threads ...";
+	cout << endl << "Computing bitbase for " << pieceString << " using " << MAX_THREADS << " threads ...";
 
 	GenerationState state(pieceList);
 	uint64_t index = 0;
