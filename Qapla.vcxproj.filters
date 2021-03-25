@@ -374,6 +374,9 @@
     <ClInclude Include="bitbase\generationstate.h">
       <Filter>bitbase</Filter>
     </ClInclude>
+    <ClInclude Include="bitbase\result.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

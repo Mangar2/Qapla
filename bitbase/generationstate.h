@@ -90,9 +90,15 @@ namespace QaplaBitbase {
 			_candidates.setBit(index); 
 		}
 
-		void setCandidates(const vector<uint64_t>& candidates) {
+		/**
+		 * Sets a list of candidates 
+		 */
+		void setCandidates(const vector<uint64_t>& candidates, uint64_t debugIndex) {
 			for (auto index : candidates) {
 				setCandidate(index);
+				if (index == debugIndex) {
+					cout << endl << index << " set to candidates " << endl;
+				}
 			}
 		}
 
@@ -101,6 +107,13 @@ namespace QaplaBitbase {
 		 */
 		bool isCandidate(uint64_t index) {
 			return _candidates.getBit(index);
+		}
+
+		/**
+		 * Clears all candidates
+		 */
+		void clearAllCandidates() {
+			_candidates.clear();
 		}
 
 		/**

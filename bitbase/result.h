@@ -16,7 +16,10 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
- * Workpackage for a thread in bitbase generation
+ * Class holding the result of a bitbase generator work package
+ * List of indexes won
+ * List of indexes lost or dra
+ * List of indexes with illegal positions/situations
  */
 
 #ifndef __WORKPACKAGE_H
@@ -28,32 +31,25 @@
 
 namespace QaplaBitbase {
 
-	class Workpackage
+	class Result
 	{
 	public:
-		Workpackage(const std::vector<uint64_t>& indexList) {
-			_workList = indexList;
-			_workIndex = 0;
+		Result() {
 		}
 
-		bool isWorkRemaining() const {
-			return _workIndex < _workList.size();
-		}
+		void addWin(uint64_t index) { _win.push_back(index); }
+		void addLossOrDraw(uint64_t index) { _drawOrLoss.push_back(index); }
+		void addIllegal(uint64_t index) { _illegal.push_back(index); }
 
-		uint64_t getIndex(uint64_t workIndex) const { return _workList[workIndex]; }
-
-		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count) {
-			const lock_guard<mutex> lock(_mtxWork);
-			auto result = make_pair(_workIndex, min(_workIndex + count, _workList.size()));
-			_workIndex += count;
-			return result;
-		}
+		const std::vector<uint64_t>& getWins() const { return _win; }
+		const std::vector<uint64_t>& getLossOrDraw() const { return _drawOrLoss; }
+		const std::vector<uint64_t>& getIllegal() const { return _illegal; }
 
 
 	private:
-		std::vector<uint64_t> _workList;
-		uint64_t _workIndex;
-		mutex _mtxWork;
+		std::vector<uint64_t> _win;
+		std::vector<uint64_t> _drawOrLoss;
+		std::vector<uint64_t> _illegal;
 	};
 
 }

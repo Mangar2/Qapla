@@ -26,6 +26,7 @@
 #include <iostream>
 #include "bitbase.h"
 #include "boardaccess.h"
+#include "workpackage.h"
 #include "generationstate.h"
 
 using namespace std;
@@ -35,17 +36,10 @@ using namespace ChessSearch;
 namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
-		// static const uint64_t debugIndex = 973913;
+		// static const uint64_t debugIndex =  17;
 		static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF;
 		BitbaseGenerator() {
 		}
-
-		/**
-		 * Recursively computes bitbases based on a bitbase string
-		 * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
-		 * so that any bitbase KQKP can get to is available
-		 */
-		void computeBitbaseRec(PieceList& pieceList);
 
 		/**
 		 * Computes a bitbase for a piece string (example KPK)
@@ -61,10 +55,22 @@ namespace QaplaBitbase {
 		 */
 		void computeBitbaseRec(string pieceString) {
 			PieceList list(pieceString);
-			computeBitbaseRec(list);
+			computeBitbaseRec(list, true);
+			cout << "All Bitbases generated!" << endl;
 		}
 
 	private:
+
+		/**
+		 * Join all running threads
+		 */
+		void joinThreads() {
+			for (auto& thr : _threads) {
+				if (thr.joinable()) {
+					thr.join();
+				}
+			}
+		}
 
 		/**
 		 * Searches all captures and look up the position after capture in a bitboard.
@@ -264,12 +270,19 @@ namespace QaplaBitbase {
 		void addPiecesToPosition(MoveGenerator& position, const BitbaseIndex& bitbaseIndex, const PieceList& pieceList);
 
 		/**
+		 * Computes a workpackage for a compute-bitbase loop
+		 * @param work list of indexes to work on
+		 * @param candidates resulting candidates for further checks
+		 */
+		void computeWorkpackage(Workpackage& workpackage, 
+			vector<uint64_t>& candidates, GenerationState& state, bool firstLoop);
+
+		/**
 		 * Compute the bitbase by checking each position for an update as long as no further update is found
 		 * @param state Current computation state
-		 * @param pieceList list of pieces of the bitbase
 		 * @param clock time measurement for the bitbase generation
 		 */
-		void computeBitbase(GenerationState& state, PieceList& pieceList, ClockManager& clock);
+		void computeBitbase(GenerationState& state, ClockManager& clock);
 
 
 		/**
@@ -278,7 +291,7 @@ namespace QaplaBitbase {
 		uint32_t initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
-		 * Computes a workpackage
+		 * Computes a workpackage for the initial situation calculation
 		 */
 		void computeInitialWorkpackage(vector<uint64_t> work, GenerationState& state);
 
@@ -288,9 +301,20 @@ namespace QaplaBitbase {
 		 */
 		void computeBitbase(PieceList& pieceList);
 
+		/**
+		 * Recursively computes bitbases based on a bitbase string
+		 * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
+		 * so that any bitbase KQKP can get to is available
+		 */
+		void computeBitbaseRec(PieceList& pieceList, bool first);
+
 		uint64_t _numberOfIllegalPositions;
 		uint64_t _numberOfDirectLoss;
 		uint64_t _numberOfDirectDraw;
+
+		static const uint32_t MAX_THREADS = 16;
+		array<vector<uint64_t>, MAX_THREADS> _candidates;
+		array<thread, MAX_THREADS> _threads;
 	};
 
 }
