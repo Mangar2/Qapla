@@ -31,10 +31,10 @@
 
 namespace QaplaBitbase {
 
-	class Result
+	class GenerateResult
 	{
 	public:
-		Result() {
+		GenerateResult() {
 		}
 
 		void addWin(uint64_t index) { _win.push_back(index); }

@@ -158,6 +158,21 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Stores the huffman code to a byte vector
+		 */
+		void storeCode(vector<uint8_t>& out, HuffmanNode* node, uint32_t bitIndex) {
+			if (bitIndex == 0) {
+				out.push_back(0);
+			}
+			uint8_t byte = out[out.size() - 1];
+			if (node->isLeaf()) {
+
+			}
+			else {
+			}
+		}
+
+		/**
 		 * Prints the computed huffman coding
 		 */
 		void printCode() {

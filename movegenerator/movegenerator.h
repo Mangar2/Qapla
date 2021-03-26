@@ -145,6 +145,13 @@ namespace ChessMoveGenerator {
 			Board::setPiece(square, piece);
 			computeAttackMasksForBothColors();
 		}
+		
+		/**
+		 * Sets a piece, you need to call compute attack masks before move generation
+		 */
+		void unsafeSetPiece(Square square, Piece piece) {
+			Board::setPiece(square, piece);
+		}
 
 		/**
 		 * Computes all attack masks for WHITE and BLACK

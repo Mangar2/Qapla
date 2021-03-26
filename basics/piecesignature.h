@@ -142,6 +142,15 @@ namespace ChessBasics {
 		value_t getStaticPiecesValue() const { return staticPiecesValue[getSignature<COLOR>()]; }
 
 		/**
+		 * Checks, if a side has any material 
+		 */
+		template <Piece COLOR>
+		bool hasAnyMaterial() const {
+			pieceSignature_t signature = getSignature<COLOR>();
+			return (signature > 0);
+		}
+
+		/**
 		 * Checks if a side has a range piece
 		 */
 		template <Piece COLOR>

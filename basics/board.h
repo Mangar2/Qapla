@@ -171,6 +171,13 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Checks if a side has any material
+		 */
+		template<Piece COLOR> auto hasAnyMaterial() const {
+			return _pieceSignature.hasAnyMaterial<COLOR>();
+		}
+
+		/**
 		 * Computes if futility pruning should be applied based on the captured piece
 		 */
 		inline auto doFutilityOnCapture(Piece capturedPiece) const {

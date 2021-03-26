@@ -129,7 +129,6 @@ namespace QaplaBitbase {
 			vector<bbt_t> uncompressed;
 			cout << "compressing " << endl;
 			compress(_bitbase, compressed);
-			cout << "finished compressing, testing compression" << endl;
 			uncompress(compressed, uncompressed, _bitbase.size());
 			if (_bitbase != uncompressed) {
 				cout << " compression error " << fileName << endl;
@@ -147,13 +146,35 @@ namespace QaplaBitbase {
 			fout.write((char*)&size, sizeof(size));
 			fout.write((char*)&compressed[0], size * sizeof(bbt_t));
 			fout.close();
-			cout << "finished testing, file " << fileName << " written" << endl;
 		}
+
+
+		/**
+		 * Reads a _bitbase from the file having a piece string
+		 */
+		bool readFromFile(string pieceString, string extension = ".btb", string path = "./",
+			bool verbose = true) 
+		{
+			PieceList list(pieceString);
+			BitbaseIndex index(list);
+			size_t size = index.getSizeInBit();
+			bool success = readFromFile(path + pieceString + extension, size, verbose);
+			return success;
+		}
+
+		/**
+		 * Returns true, if the _bitbase is _loaded
+		 */
+		bool isLoaded() { return _loaded; }
+
+	private:
+		typedef uint8_t bbt_t;
+
 
 		/**
 		 * Reads a _bitbase from the file
 		 */
-		bool readFromFile(string fileName, size_t sizeInBit) {
+		bool readFromFile(string fileName, size_t sizeInBit, bool verbose) {
 			_sizeInBit = sizeInBit;
 			ifstream fin(fileName, ios::in | ios::binary);
 			if (!fin.is_open()) {
@@ -171,29 +192,14 @@ namespace QaplaBitbase {
 			fin.read((char*)&compressed[0], size * sizeof(bbt_t));
 			uncompress(compressed, _bitbase, sizeInBit);
 			fin.close();
-			cout << "Read: " << fileName << endl;
+			if (verbose) {
+				cout << "Read: " << fileName << endl;
+			}
 			_loaded = true;
 			return true;
 		}
 
-		/**
-		 * Reads a _bitbase from the file having a piece string
-		 */
-		bool readFromFile(string pieceString, string extension = ".btb", string path = "./") {
-			PieceList list(pieceString);
-			BitbaseIndex index(list);
-			size_t size = index.getSizeInBit();
-			bool success = readFromFile(path + pieceString + extension, size);
-			return success;
-		}
 
-		/**
-		 * Returns true, if the _bitbase is _loaded
-		 */
-		bool isLoaded() { return _loaded; }
-
-	private:
-		typedef uint8_t bbt_t;
 		void compress_test() {
 			HuffmanCode huffman(_bitbase);
 		}

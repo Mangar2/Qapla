@@ -37,7 +37,7 @@ using namespace std;
 namespace QaplaBitbase {
 
 	enum class Result {
-		Unknown, Loss, Draw, DrawOrLoss, Win
+		Unknown, Loss, Draw, DrawOrLoss, Win, IllegalIndex
 	};
 
 	class BitbaseReader
@@ -103,6 +103,9 @@ namespace QaplaBitbase {
 		 */
 		static Result getValueFromSingleBitbase(const MoveGenerator& position) {
 			PieceSignature signature = PieceSignature(position.getPiecesSignature());
+			if (!position.hasAnyMaterial<WHITE>()) {
+				return Result::DrawOrLoss;
+			}
 
 			const Bitbase* bitbase = getBitbase(signature);
 			if (bitbase != 0) {

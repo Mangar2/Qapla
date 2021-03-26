@@ -374,7 +374,7 @@
     <ClInclude Include="bitbase\generationstate.h">
       <Filter>bitbase</Filter>
     </ClInclude>
-    <ClInclude Include="bitbase\result.h">
+    <ClInclude Include="bitbase\generateresult.h">
       <Filter>bitbase</Filter>
     </ClInclude>
   </ItemGroup>

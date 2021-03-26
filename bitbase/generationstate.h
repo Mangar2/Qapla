@@ -44,7 +44,8 @@ namespace QaplaBitbase {
 			_candidates.setSize(_sizeInBit);
 			_pieceList = pieceList;
 			_illegal = 0;
-			_lossOrDraw = 0;
+			_loss = 0;
+			_draw = 0;
 			_won = 0;
 		}
 
@@ -133,12 +134,21 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Sets a position to loss or draw
+		 * Sets a position to loss
 		 */
-		void setLossOrDraw(uint64_t index) {
-			_lossOrDraw++;
+		void setLoss(uint64_t index) {
+			_loss++;
 			_computedPositions.setBit(index);
 		}
+
+		/**
+		 * Sets a position to draw
+		 */
+		void setDraw(uint64_t index) {
+			_draw++;
+			_computedPositions.setBit(index);
+		}
+
 
 		/**
 		 * Sets the position to illegal
@@ -152,18 +162,21 @@ namespace QaplaBitbase {
 		 * Prints a statistic 
 		 */
 		void printStatistic() {
-			cout << "Won: " << _won << " Loss or Draw: " << _lossOrDraw << " Illegal: " << _illegal << endl;
+			cout << "Won: " << _won << " Loss: " << _loss << " Draw: " << _draw << " Illegal: " << _illegal << endl;
 		}
 
 		/**
 		 * Stores the result (bitbase with winning positions) to a file
 		 */
-		void storeToFile(string fileName) { _wonPositions.storeToFile(fileName); }
+		void storeToFile(string fileName) { 
+			_wonPositions.storeToFile(fileName); 
+		}
 
 	private:
 		uint64_t _sizeInBit;
 		uint64_t _illegal;
-		uint64_t _lossOrDraw;
+		uint64_t _loss;
+		uint64_t _draw;
 		uint64_t _won;
 		Bitbase _wonPositions;
 		Bitbase _computedPositions;
