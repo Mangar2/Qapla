@@ -59,7 +59,7 @@ namespace QaplaBitbase {
 			clock.setStartTime();
 			PieceList list(pieceString);
 			computeBitbaseRec(list, true);
-			cout << "All Bitbases generated! Total time spent: ";
+			cout << endl << "All Bitbases generated! Total ";
 			printTimeSpent(clock);
 		}
 
@@ -303,7 +303,7 @@ namespace QaplaBitbase {
 		/**
 		 * Computes a workpackage for the initial situation calculation
 		 */
-		void computeInitialWorkpackage(vector<uint64_t> work, vector<uint64_t>& candidates, GenerationState& state);
+		void computeInitialWorkpackage(uint64_t index, uint64_t count, vector<uint64_t>& candidates, GenerationState& state);
 
 		/**
 		 * Computes a bitbase for a set of pieces described by a piece list.
