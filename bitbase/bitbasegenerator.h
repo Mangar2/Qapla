@@ -39,6 +39,8 @@ namespace QaplaBitbase {
 	public:
 		// static const uint64_t debugIndex = 85136017;
 		static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF;
+		static const int TRACE_LEVEL = 1;
+		static const int DEBUG_LEVEL = 2;
 		BitbaseGenerator() {
 		}
 
@@ -60,7 +62,7 @@ namespace QaplaBitbase {
 			PieceList list(pieceString);
 			computeBitbaseRec(list, true);
 			cout << endl << "All Bitbases generated! Total ";
-			printTimeSpent(clock);
+			printTimeSpent(clock, 0);
 		}
 
 	private:
@@ -248,19 +250,19 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Prints a progress information
-		 */
-		void printInfo(uint64_t index, uint64_t size, uint64_t bitsChanged, uint32_t step = 1) {
-			uint64_t onePercent = size / 100;
-			if (index % onePercent >= onePercent - step) {
-				cout << ".";
-			}
-		}
-
-		/**
 		 * Prints the time spent so far
 		 */
-		void printTimeSpent(ClockManager& clock);
+		void printTimeSpent(ClockManager& clock, int minTraceLevel);
+
+		/**
+		 * Prints win/loss/draw/illegal statistic
+		 */
+		void printStatistic(GenerationState& state, int minTraceLevel) {
+			if (TRACE_LEVEL < minTraceLevel) {
+				return;
+			}
+			state.printStatistic();
+		}
 
 		/**
 		 * Debugging functionality, prints the position identified by the globally set 
@@ -303,7 +305,7 @@ namespace QaplaBitbase {
 		/**
 		 * Computes a workpackage for the initial situation calculation
 		 */
-		void computeInitialWorkpackage(uint64_t index, uint64_t count, vector<uint64_t>& candidates, GenerationState& state);
+		void computeInitialWorkpackage(Workpackage& workpackage, vector<uint64_t>& candidates, GenerationState& state);
 
 		/**
 		 * Computes a bitbase for a set of pieces described by a piece list.

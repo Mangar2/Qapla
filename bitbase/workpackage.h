@@ -25,14 +25,15 @@
 #include <vector>
 #include <mutex>
 #include "bitbase.h"
+#include "generationstate.h"
 
 namespace QaplaBitbase {
 
 	class Workpackage
 	{
 	public:
-		Workpackage(const std::vector<uint64_t>& indexList) {
-			_workList = indexList;
+		Workpackage(const GenerationState& state) {
+			state.getWork(_workList);
 			_workIndex = 0;
 		}
 
@@ -43,8 +44,12 @@ namespace QaplaBitbase {
 		uint64_t getIndex(uint64_t workIndex) const { return _workList[workIndex]; }
 
 		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count) {
+			return getNextPackageToExamine(count, _workList.size());
+		}
+
+		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count, uint64_t size) {
 			const lock_guard<mutex> lock(_mtxWork);
-			auto result = make_pair(_workIndex, min(_workIndex + count, _workList.size()));
+			auto result = make_pair(_workIndex, min(_workIndex + count, size));
 			_workIndex += count;
 			return result;
 		}

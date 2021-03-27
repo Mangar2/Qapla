@@ -117,7 +117,7 @@ void BitbaseGenerator::compareBitbases(string pieceString, Bitbase& newBitbase, 
 			position.clear();
 		}
 	}
-	if (differences > 0) {
+	if (differences > 0 || TRACE_LEVEL > 0) {
 		cout << "Compare for " << pieceString << " amount of differences: " << differences << endl;
 	}
 }
@@ -125,9 +125,12 @@ void BitbaseGenerator::compareBitbases(string pieceString, Bitbase& newBitbase, 
 /**
  * Prints the time spent so far
  */
-void BitbaseGenerator::printTimeSpent(ClockManager& clock) {
+void BitbaseGenerator::printTimeSpent(ClockManager& clock, int minTraceLevel) {
+	if (TRACE_LEVEL < minTraceLevel) {
+		return;
+	}
 	uint64_t timeInMilliseconds = clock.computeTimeSpentInMilliseconds();
-	cout << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000)) 
+	cout << endl << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000)) 
 		<< ":" << ((timeInMilliseconds / (60 * 1000)) % 60) 
 		<< ":" << ((timeInMilliseconds / 1000) % 60) 
 		<< "." << timeInMilliseconds % 1000 << " ";
@@ -167,7 +170,7 @@ uint64_t BitbaseGenerator::computeCandidateIndex(bool wtm, const PieceList& list
 {
 	move.setDestination(destination);
 	uint64_t index = BoardAccess::getIndex(!wtm, list, move);
-	if (verbose) {
+	if (DEBUG_LEVEL > 0 && verbose) {
 		cout << "New candidate, index: " << index << " move " << move.getLAN() << endl;
 	}
 	return index;
@@ -271,16 +274,19 @@ void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, vector<uint6
 			uint64_t index = workpackage.getIndex(workNo);
 			BitbaseIndex bitbaseIndex(index, state.getPieceList());
 			if (!bitbaseIndex.isLegal()) {
-				cout << " Error, programming bug, should already be set in computedPositions " << endl;
-				continue;
+				cout << " Error, programming bug, should already be set in computedPositions index: " << index << endl;
+				exit(1);
 			}
 
 			position.clear();
 			addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
-			assert(index == BoardAccess::getIndex<0>(position));
+			if (DEBUG_LEVEL > 0 && index != BoardAccess::getIndex<0>(position)) {
+				cout << "Error, programming bug, index is not correct " << index << endl;
+				exit(1);
+			}
 
 			const auto success = computePosition(index, position, state);
-			if (onlyCandidates && success && !state.isCandidate(index)) {
+			if (DEBUG_LEVEL > 0 && onlyCandidates && success && !state.isCandidate(index)) {
 				cout << endl << "Error; Missing candidate flag; index: " << index << " fen: " << position.getFen() << endl;
 				computePosition(index, position, state);
 				exit(1);
@@ -308,7 +314,7 @@ void BitbaseGenerator::computeBitbase(GenerationState& state, ClockManager& cloc
 		uint64_t index = 0;
 		uint32_t threadNo = 0;
 		uint32_t threadAmount = MAX_THREADS;
-		Workpackage workpackage(state.getWork(0, state.getSizeInBit(), true));
+		Workpackage workpackage(state);
 		for (uint32_t threadNo = 0; threadNo < threadAmount; ++threadNo) {
 			_threads[threadNo] = thread([this, &workpackage, loopCount, threadNo, &state]() {
 				computeWorkpackage(workpackage, _candidates[threadNo], state, true);
@@ -386,21 +392,21 @@ bool BitbaseGenerator::setMateOrStalemate(ChessMoveGenerator::MoveGenerator& pos
 {
 	bool result = false;
 	if (!position.isWhiteToMove() && position.isInCheck()) {
-		if (index == debugIndex) {
+		if (DEBUG_LEVEL > 0 && index == debugIndex) {
 			cout << debugIndex << " , Fen: " << position.getFen() << " is win by mate (move generator) " << endl;
 		}
 		state.setWin(index);
 		result = true;
 	}
 	else if (position.isWhiteToMove() && position.isInCheck()) {
-		if (index == debugIndex) {
+		if (DEBUG_LEVEL > 0 && index == debugIndex) {
 			cout << debugIndex << " , Fen: " << position.getFen() << " is loss by mate (move generator) " << endl;
 		}
 		state.setLoss(index);
 		result = true;
 	}
 	else {
-		if (index == debugIndex) {
+		if (DEBUG_LEVEL > 0 && index == debugIndex) {
 			cout << debugIndex << " , Fen: " << position.getFen() << " is stalemate (move generator) " << endl;
 		}
 		state.setDraw(index);
@@ -416,13 +422,13 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 	MoveList moveList;
 	bool result = false;
 	bool kingInCheck = false;
-	if (index == debugIndex) {
+	if (DEBUG_LEVEL > 0 && index == debugIndex) {
 		kingInCheck = false;
 	}
 
 	// Exclude all illegal positions (king not to move is in check) from future search
 	if (!position.isLegalPosition()) {
-		if (index == debugIndex) {
+		if (DEBUG_LEVEL > 0 && index == debugIndex) {
 			cout << debugIndex << " , Fen: " << position.getFen() << " is illegal (move generator) " << endl;
 		}
 		state.setIllegal(index);
@@ -433,18 +439,18 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 	if (moveList.getTotalMoveAmount() > 0) {
 		// Compute all captures and look up the positions in other bitboards
 		Result positionValue = initialSearch(position, moveList);
-		if (index == debugIndex) {
+		if (DEBUG_LEVEL > 0 && index == debugIndex) {
 			cout << debugIndex << " " << int(positionValue) << endl;
 		}
 		if (positionValue == Result::Win) {
-			if (index == debugIndex) {
+			if (DEBUG_LEVEL > 0 && index == debugIndex) {
 				cout << debugIndex << " , Fen: " << position.getFen() << " is a win (initial search) " << endl;
 			}
 			state.setWin(index);
 			result = true;
 		}
 		else if (positionValue != Result::Unknown) {
-			if (index == debugIndex) {
+			if (DEBUG_LEVEL > 0 && index == debugIndex) {
 				cout << debugIndex << " , Fen: " << position.getFen() << " is a loss or draw (initial search) " << endl;
 			}
 			state.setDraw(index);
@@ -460,31 +466,38 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 /**
  * Computes a workpackage of initial positions for a bitbase; 
  */
-void BitbaseGenerator::computeInitialWorkpackage(vector<uint64_t> work, vector<uint64_t>& candidates, GenerationState& state) {
+void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, vector<uint64_t>& candidates, GenerationState& state) {
 	MoveGenerator position;
-	for (auto index : work) {
-		BitbaseIndex bitbaseIndex(index, state.getPieceList());
-		if (bitbaseIndex.isLegal()) {
-			position.clear();
-			addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
-			uint64_t testIndex = BoardAccess::getIndex<0>(position);
-			if (testIndex != index) {
-				cout << "Fatal error in index: " << index << " index computing has a bug " << endl;
-				cout << "Created board has index: " << testIndex << endl;
-				position.print();
-				exit(1);
+	uint64_t packageSize = min(50000ULL, (state.getSizeInBit() + 5) / 5);
+	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
+	while (package.first < package.second) {
+		for (uint64_t index = package.first; index < package.second; ++index) {
+			BitbaseIndex bitbaseIndex(index, state.getPieceList());
+			if (bitbaseIndex.isLegal()) {
+				position.clear();
+				addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
+				if (DEBUG_LEVEL > 0) {
+					uint64_t testIndex = BoardAccess::getIndex<0>(position);
+					if (testIndex != index) {
+						cout << "Fatal error in index: " << index << " index computing has a bug " << endl;
+						cout << "Created board has index: " << testIndex << endl;
+						position.print();
+						exit(1);
+					}
+				}
+				bool isDecided = initialComputePosition(index, position, state);
+				if (isDecided) {
+					computeCandidates(candidates, position, index == debugIndex);
+				}
 			}
-			bool isDecided = initialComputePosition(index, position, state);
-			if (isDecided) {
-				computeCandidates(candidates, position, index == debugIndex);
+			else {
+				if (DEBUG_LEVEL > 0 && index == debugIndex) {
+					cout << debugIndex << " Is an illegal index (bitbaseIndex) " << endl;
+				}
+				state.setIllegal(index);
 			}
 		}
-		else {
-			if (index == debugIndex) {
-				cout << debugIndex << " Is an illegal index (bitbaseIndex) " << endl;
-			}
-			state.setIllegal(index);
-		}
+		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	}
 }
 
@@ -500,39 +513,36 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 	}
 
 	const uint32_t threadAmount = MAX_THREADS;
-	cout << endl << "Computing bitbase for " << pieceString << " using " << threadAmount << " threads ...";
+	if (TRACE_LEVEL > 1) cout << endl;
+	cout << pieceString << " using " << threadAmount << " threads ";
 
 	GenerationState state(pieceList);
-	uint64_t index = 0;
 	ClockManager clock;
 	clock.setStartTime();
 
+	Workpackage workpackage(state);
 	for (uint32_t threadNo = 0; threadNo < threadAmount; ++threadNo) {
-		uint64_t package = min((state.getSizeInBit() + threadAmount) / threadAmount, state.getSizeInBit() - index);
-		vector<uint64_t> work = state.getWork(index, package, false);
-		_threads[threadNo] = thread([this, work, threadNo, &state]() {
-			computeInitialWorkpackage(work, _candidates[threadNo], state);
+		_threads[threadNo] = thread([this, &workpackage, threadNo, &state]() {
+			computeInitialWorkpackage(workpackage, _candidates[threadNo], state);
 		});
-		
-		index += package;
 	}
 	joinThreads();
 	state.clearAllCandidates();
 	for (auto& candidate : _candidates) {
 		state.setCandidates(candidate, debugIndex);
 	}
-	cout << endl;
-	printTimeSpent(clock);
-	state.printStatistic();
+	printTimeSpent(clock, 2);
+	printStatistic(state, 2);
 
 	computeBitbase(state, clock);
 
-	cout << endl;
-	printTimeSpent(clock);
-	state.printStatistic();
+	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
+	cout << "c";
 	state.storeToFile(fileName);
-	printTimeSpent(clock);
+	printTimeSpent(clock, 1);
+	printStatistic(state, 1);
+	cout << endl;
 	BitbaseReader::setBitbase(pieceString, state.getWonPositions());
 }
 
@@ -546,6 +556,9 @@ void BitbaseGenerator::computeBitbaseRec(PieceList& pieceList, bool first) {
 	string pieceString = pieceList.getPieceString();
 	if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
 		BitbaseReader::loadBitbase(pieceString);
+		if (DEBUG_LEVEL > 1) {
+			compareFiles(pieceString);
+		}
 	}
 	for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
 		PieceList newPieceList(pieceList);
@@ -559,11 +572,15 @@ void BitbaseGenerator::computeBitbaseRec(PieceList& pieceList, bool first) {
 		newPieceList.removePiece(pieceNo);
 		computeBitbaseRec(newPieceList, false);
 	}
+	
 	if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
 		computeBitbase(pieceList);
-		compareFiles(pieceString);
+		if (DEBUG_LEVEL > 1) {
+			compareFiles(pieceString);
+		}
 	} 
-	else if (first) {
+
+	if (first && DEBUG_LEVEL > 0) {
 		compareFiles(pieceString);
 	}
 }

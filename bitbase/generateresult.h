@@ -40,6 +40,7 @@ namespace QaplaBitbase {
 		void addWin(uint64_t index) { _win.push_back(index); }
 		void addLossOrDraw(uint64_t index) { _drawOrLoss.push_back(index); }
 		void addIllegal(uint64_t index) { _illegal.push_back(index); }
+		void addCandidate(uint64_t index) { _candidate.push_back(index); }
 
 		const std::vector<uint64_t>& getWins() const { return _win; }
 		const std::vector<uint64_t>& getLossOrDraw() const { return _drawOrLoss; }
@@ -50,6 +51,7 @@ namespace QaplaBitbase {
 		std::vector<uint64_t> _win;
 		std::vector<uint64_t> _drawOrLoss;
 		std::vector<uint64_t> _illegal;
+		std::vector<uint64_t> _candidate;
 	};
 
 }

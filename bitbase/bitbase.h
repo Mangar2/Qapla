@@ -124,20 +124,22 @@ namespace QaplaBitbase {
 		/**
 		 * Stores a _bitbase to a file
 		 */
-		void storeToFile(string fileName) {
+		void storeToFile(string fileName, bool test = false, bool verbose = false) {
 			vector<bbt_t> compressed;
 			vector<bbt_t> uncompressed;
-			cout << "compressing " << endl;
+			if (verbose) cout << "compressing " << endl;
 			compress(_bitbase, compressed);
-			uncompress(compressed, uncompressed, _bitbase.size());
-			if (_bitbase != uncompressed) {
-				cout << " compression error " << fileName << endl;
-				for (uint64_t index = 0; index < _bitbase.size(); index++) {
-					if (_bitbase[index] != uncompressed[index]) {
-						cout << " First error at index: " << index
-							<< " required: " << int(_bitbase[index])
-							<< " found: " << int(uncompressed[index])
-							<< endl;
+			if (test) {
+				uncompress(compressed, uncompressed, _bitbase.size());
+				if (_bitbase != uncompressed) {
+					cout << " compression error " << fileName << endl;
+					for (uint64_t index = 0; index < _bitbase.size(); index++) {
+						if (_bitbase[index] != uncompressed[index]) {
+							cout << " First error at index: " << index
+								<< " required: " << int(_bitbase[index])
+								<< " found: " << int(uncompressed[index])
+								<< endl;
+						}
 					}
 				}
 			}
@@ -160,6 +162,21 @@ namespace QaplaBitbase {
 			size_t size = index.getSizeInBit();
 			bool success = readFromFile(path + pieceString + extension, size, verbose);
 			return success;
+		}
+
+		/**
+		 * Retrieves all indexes from the bitbase as vector
+		 */
+		void getAllIndexes(const Bitbase& andNot, vector<uint64_t>& indexes) const {
+			for (uint64_t index = 0; index < _sizeInBit; index += 8) {
+				uint64_t bbIndex = index / BITS_IN_ELEMENT;
+				bbt_t value = _bitbase[bbIndex] & ~andNot._bitbase[bbIndex] ;
+				for (uint64_t sub = 0; value; sub++, value /= 2) {
+					if (value & 1) {
+						indexes.push_back(index + sub);
+					}
+				}
+			}
 		}
 
 		/**

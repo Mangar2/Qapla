@@ -52,14 +52,14 @@ namespace QaplaBitbase {
 		/**
 		 * Gets the current piece list
 		 */
-		const PieceList& getPieceList() { return _pieceList; }
+		const PieceList& getPieceList() const { return _pieceList; }
 
 		/**
 		 * Returns true, if the current position is a position to check
 		 * @param index index of the position
 		 * @param onlyCandidates if true, only candidates are provided to be checked
 		 */
-		bool isPositionToCheck(uint64_t index, bool onlyCandidates) {
+		bool isPositionToCheck(uint64_t index, bool onlyCandidates) const {
 			return !_computedPositions.getBit(index) &&
 				(!onlyCandidates || _candidates.getBit(index));
 		}
@@ -67,14 +67,8 @@ namespace QaplaBitbase {
 		/**
 		 * Retrieves a list of items to check
 		 */
-		vector<uint64_t> getWork(uint64_t index, uint64_t count, bool onlyCandidates) {
-			vector<uint64_t> result;
-			for (; count > 0; --count, ++index) {
-				if (isPositionToCheck(index, onlyCandidates)) {
-					result.push_back(index);
-				}
-			}
-			return result;
+		void getWork(vector<uint64_t>& work) const {
+			_candidates.getAllIndexes(_computedPositions, work);
 		}
 
 		/**
@@ -162,7 +156,7 @@ namespace QaplaBitbase {
 		 * Prints a statistic 
 		 */
 		void printStatistic() {
-			cout << "Won: " << _won << " Loss: " << _loss << " Draw: " << _draw << " Illegal: " << _illegal << endl;
+			cout << "Won: " << _won << " Loss: " << _loss << " Draw: " << _draw << " Illegal: " << _illegal;
 		}
 
 		/**
@@ -174,10 +168,10 @@ namespace QaplaBitbase {
 
 	private:
 		uint64_t _sizeInBit;
-		uint64_t _illegal;
-		uint64_t _loss;
-		uint64_t _draw;
-		uint64_t _won;
+		atomic_uint64_t _illegal;
+		atomic_uint64_t _loss;
+		atomic_uint64_t _draw;
+		atomic_uint64_t _won;
 		Bitbase _wonPositions;
 		Bitbase _computedPositions;
 		Bitbase _candidates;
