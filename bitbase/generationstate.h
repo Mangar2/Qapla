@@ -75,15 +75,26 @@ namespace QaplaBitbase {
 		/**
 		 * Gets the bitbase size in bits
 		 */
-		uint64_t getSizeInBit() { return _sizeInBit; }
+		uint64_t getSizeInBit() const { return _sizeInBit; }
 
-		const Bitbase& getWonPositions() { return _wonPositions; }
+		/**
+		 * Checks, if last generation loop found candidates
+		 */
+		bool hasCandidates() const {
+			return _hasCandidates;
+		}
+
+		/**
+		 * Retrieves the won positions bitbase
+		 */
+		const Bitbase& getWonPositions() const { return _wonPositions; }
 
 		/**
 		 * Sets a position to a candidate for lookup
 		 */
 		void setCandidate(uint64_t index) { 
 			_candidates.setBit(index); 
+			_hasCandidates = true;
 		}
 
 		/**
@@ -118,6 +129,7 @@ namespace QaplaBitbase {
 		 */
 		void clearAllCandidates() {
 			_candidates.clear();
+			_hasCandidates = false;
 		}
 
 		/**
@@ -181,6 +193,7 @@ namespace QaplaBitbase {
 		atomic_uint64_t _loss;
 		atomic_uint64_t _draw;
 		atomic_uint64_t _won;
+		atomic_uint64_t _hasCandidates;
 		Bitbase _wonPositions;
 		Bitbase _computedPositions;
 		Bitbase _candidates;

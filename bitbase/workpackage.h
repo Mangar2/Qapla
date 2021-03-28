@@ -35,18 +35,42 @@ namespace QaplaBitbase {
 		Workpackage(const GenerationState& state) {
 			state.getWork(_workList);
 			_workIndex = 0;
+			_size = state.getSizeInBit();
+			_lastInfo = 0;
 		}
 
-		bool isWorkRemaining() const {
-			return _workIndex < _workList.size();
+		/**
+		 * Gets the bitbase index of a work element
+		 */
+		uint64_t getIndex(uint64_t workIndex) const { 
+			return _workList[workIndex]; 
 		}
-
-		uint64_t getIndex(uint64_t workIndex) const { return _workList[workIndex]; }
 
 		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count) {
 			return getNextPackageToExamine(count, _workList.size());
 		}
 
+		/**
+		 * Prints the progress depending on the traceleve (from level 2)
+		 * @traceLevel current trace level (0..2)
+		 * @workList true, if a worklist is in use
+		 */
+		void printProgress(int traceLevel, bool workList) {
+			uint64_t size = workList ? _workList.size() : _size;
+			uint64_t onePercent = size / 100;
+			if (_workIndex - _lastInfo >= onePercent) {
+				cout << ".";
+				_lastInfo = _workIndex;
+				_lastInfo -= _lastInfo % onePercent;
+			}
+		}
+
+		/**
+		 * Gets the next working package, the function is thread safe (protected by a mutex) 
+		 * @count number of work elements in the package
+		 * @size total size of the work
+		 * @return pair of index of the first element and number of elements to work on
+		 */
 		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count, uint64_t size) {
 			const lock_guard<mutex> lock(_mtxWork);
 			auto result = make_pair(_workIndex, min(_workIndex + count, size));
@@ -58,7 +82,9 @@ namespace QaplaBitbase {
 	private:
 		std::vector<uint64_t> _workList;
 		uint64_t _workIndex;
+		uint64_t _lastInfo;
 		mutex _mtxWork;
+		uint64_t _size;
 	};
 
 }

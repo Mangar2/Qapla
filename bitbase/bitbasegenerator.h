@@ -282,11 +282,10 @@ namespace QaplaBitbase {
 
 		/**
 		 * Computes a workpackage for a compute-bitbase loop
-		 * @param work list of indexes to work on
-		 * @param candidates resulting candidates for further checks
+		 * @param workpackage work provider
+		 * @param state current generation state
 		 */
-		void computeWorkpackage(Workpackage& workpackage, 
-			vector<uint64_t>& candidates, GenerationState& state, bool onlyCandidates);
+		void computeWorkpackage(Workpackage& workpackage, GenerationState& state, bool onlyCandidates);
 
 		/**
 		 * Compute the bitbase by checking each position for an update as long as no further update is found

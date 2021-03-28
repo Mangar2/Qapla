@@ -263,10 +263,11 @@ void BitbaseGenerator::addPiecesToPosition(
  * @param work list of indexes to work on
  * @param candidates resulting candidates for further checks
  */
-void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, vector<uint64_t>& candidates, 
-	GenerationState& state, bool onlyCandidates) 
+void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, GenerationState& state, bool onlyCandidates) 
 {
 	MoveGenerator position;
+	vector<uint64_t> candidates;
+
 	static const uint64_t packageSize = 50000;
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize);
 	while (package.first < package.second) {
@@ -286,17 +287,18 @@ void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, vector<uint6
 			}
 
 			const auto success = computePosition(index, position, state);
-			if (DEBUG_LEVEL > 0 && onlyCandidates && success && !state.isCandidate(index)) {
-				cout << endl << "Error; Missing candidate flag; index: " << index << " fen: " << position.getFen() << endl;
-				computePosition(index, position, state);
-				exit(1);
-			}
+
 			if (success) {
 				computeCandidates(candidates, position, index == _debugIndex);
 			}
 		}
+		if (candidates.size() > packageSize) {
+			state.setCandidatesTreadSafe(candidates, _debugIndex);
+			candidates.clear();
+		}
 		package = workpackage.getNextPackageToExamine(packageSize);
 	}
+	state.setCandidatesTreadSafe(candidates, _debugIndex);
 }
 
 /**
@@ -314,23 +316,18 @@ void BitbaseGenerator::computeBitbase(GenerationState& state, ClockManager& cloc
 		uint64_t index = 0;
 		uint32_t threadNo = 0;
 		Workpackage workpackage(state);
+		state.clearAllCandidates();
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo) {
-			_threads[threadNo] = thread([this, &workpackage, loopCount, threadNo, &state]() {
-				computeWorkpackage(workpackage, _candidates[threadNo], state, true);
+			_threads[threadNo] = thread([this, &workpackage, loopCount, &state]() {
+				computeWorkpackage(workpackage, state, true);
 			});
 		}
 		/*
 		computeWorkpackage(work, _candidates[0], state, loopCount == 0);
 		*/
 		joinThreads();
-		uint64_t candidateCount = 0;
-		state.clearAllCandidates();
-		for (auto& candidate : _candidates) {
-			candidateCount += candidate.size();
-			state.setCandidates(candidate, _debugIndex);
-		}
 		cout << ".";
-		if (candidateCount == 0) {
+		if (!state.hasCandidates()) {
 			break;
 		}
 	}
