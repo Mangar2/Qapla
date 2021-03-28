@@ -130,6 +130,7 @@ namespace QaplaBitbase {
 			if (verbose) cout << "compressing " << endl;
 			compress(_bitbase, compressed);
 			if (test) {
+				cout << "testing compression ... " << endl;
 				uncompress(compressed, uncompressed, _bitbase.size());
 				if (_bitbase != uncompressed) {
 					cout << " compression error " << fileName << endl;
@@ -141,6 +142,9 @@ namespace QaplaBitbase {
 								<< endl;
 						}
 					}
+				}
+				else {
+					cout << "OK! Original file and uncompressed file are identical" << endl;
 				}
 			}
 			ofstream fout(fileName, ios::out | ios::binary);

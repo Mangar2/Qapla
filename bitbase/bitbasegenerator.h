@@ -37,10 +37,7 @@ using namespace ChessSearch;
 namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
-		// static const uint64_t debugIndex = 85136017;
-		static const uint64_t debugIndex = 0xFFFFFFFFFFFFFFFF;
-		static const int TRACE_LEVEL = 1;
-		static const int DEBUG_LEVEL = 2;
+		static const int DEBUG_LEVEL = 1;
 		BitbaseGenerator() {
 		}
 
@@ -56,13 +53,21 @@ namespace QaplaBitbase {
 		 * Computes a bitbase for a piece string (example KPK) and
 		 * all other bitbases needed
 		 */
-		void computeBitbaseRec(string pieceString) {
+		void computeBitbaseRec(string pieceString, uint32_t cores = 1, bool uncompressed = false,
+				int traceLevel = 0, int debugLevel = 0, uint64_t debugIndex = 64)
+		{
+			_cores = min(MAX_THREADS, cores);
+			_uncompressed = uncompressed;
+			_traceLevel = traceLevel;
+			_debugIndex = debugIndex;
+			_debugLevel = debugLevel;
 			ClockManager clock;
 			clock.setStartTime();
 			PieceList list(pieceString);
 			computeBitbaseRec(list, true);
-			cout << endl << "All Bitbases generated! Total ";
+			cout << endl << "All Bitbases generated!";
 			printTimeSpent(clock, 0);
+			cout << endl;
 		}
 
 	private:
@@ -258,7 +263,7 @@ namespace QaplaBitbase {
 		 * Prints win/loss/draw/illegal statistic
 		 */
 		void printStatistic(GenerationState& state, int minTraceLevel) {
-			if (TRACE_LEVEL < minTraceLevel) {
+			if (_traceLevel < minTraceLevel) {
 				return;
 			}
 			state.printStatistic();
@@ -305,7 +310,7 @@ namespace QaplaBitbase {
 		/**
 		 * Computes a workpackage for the initial situation calculation
 		 */
-		void computeInitialWorkpackage(Workpackage& workpackage, vector<uint64_t>& candidates, GenerationState& state);
+		void computeInitialWorkpackage(Workpackage& workpackage, GenerationState& state);
 
 		/**
 		 * Computes a bitbase for a set of pieces described by a piece list.
@@ -324,7 +329,13 @@ namespace QaplaBitbase {
 		uint64_t _numberOfDirectLoss;
 		uint64_t _numberOfDirectDraw;
 
-		static const uint32_t MAX_THREADS = 16;
+		uint32_t _cores;
+		bool _uncompressed;
+		int _traceLevel;
+		uint64_t _debugIndex;
+		int _debugLevel;
+
+		static const uint32_t MAX_THREADS = 64;
 		array<vector<uint64_t>, MAX_THREADS> _candidates;
 		array<thread, MAX_THREADS> _threads;
 	};

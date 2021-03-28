@@ -60,6 +60,46 @@ Winboard::Winboard() : _sendSearchInfo(0) {
 	_easy = true;
 };
 
+void Winboard::generateEGTB() {
+	string piecesString = getNextTokenBlocking(true);
+	if (piecesString == "\r" || piecesString == "\n") {
+		println("usage generate pieces [cores n] [uncompressed] [trace n] [debug n] [index n]");
+		return;
+	}
+	string token = getNextTokenBlocking(true);
+	uint32_t cores = 16;
+	uint32_t traceLevel = 1;
+	uint32_t debugLevel = 0;
+	uint64_t debugIndex = -1;
+	bool uncompressed = false;
+	while (token != "\n" && token != "\r") {
+		if (token == "cores") {
+			getNextTokenBlocking(true);
+			cores = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "uncompressed") {
+			uncompressed = true;
+		}
+		else if (token == "trace") {
+			getNextTokenBlocking(true);
+			traceLevel = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "debug") {
+			getNextTokenBlocking(true);
+			debugLevel = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "index") {
+			getNextTokenBlocking(true);
+			debugIndex = getCurrentTokenAsUnsignedInt();
+		}
+		else {
+			break;
+		}
+		token = getNextTokenBlocking(true);
+	}
+	_board->generateBitbases(piecesString, cores, uncompressed, traceLevel, debugLevel, debugIndex);
+}
+
 void Winboard::handleProtover() {
 	if (getNextTokenNonBlocking() != "") {
 		_protoVer = uint8_t(getCurrentTokenAsUnsignedInt());
@@ -411,7 +451,7 @@ void Winboard::handleInput() {
 	else if (token == "result") getToEOLBlocking();
 	else if (token == "cores") readCores();
 	else if (token == "memory") readMemory();
-	else if (token == "generate") _board->generateBitbases(getNextTokenBlocking());
+	else if (token == "generate") generateEGTB();
 	else if (checkClockCommands()) {}
 	else if (checkMoveCommand()) {}
 }

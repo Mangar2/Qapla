@@ -22,6 +22,7 @@
 #ifndef __GENERATIONSTATE_H
 #define __GENERATIONSTATE_H
 
+#include <mutex>
 #include "bitbase.h"
 #include "bitbaseindex.h"
 
@@ -95,6 +96,14 @@ namespace QaplaBitbase {
 					cout << endl << index << " set to candidates " << endl;
 				}
 			}
+		}
+
+		/**
+		 * Mutex protected version of set Candidates
+		 */
+		void setCandidatesTreadSafe(const vector<uint64_t>& candidates, uint64_t debugIndex) {
+			const lock_guard<mutex> lock(_mtxUpdate);
+			setCandidates(candidates, debugIndex);
 		}
 
 		/**
@@ -176,6 +185,7 @@ namespace QaplaBitbase {
 		Bitbase _computedPositions;
 		Bitbase _candidates;
 		PieceList _pieceList;
+		mutex _mtxUpdate;
 	};
 
 }

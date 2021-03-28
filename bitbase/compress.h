@@ -107,19 +107,22 @@ namespace QaplaBitbase {
 		 * Limits the amount of entries in a multimap for a key
 	 	 */
 		void limitEntries(uint64_t key, uint32_t max) {
-			auto range = _sequences.equal_range(_key);
-			uint64_t smallestIndex = range.first->second;
-			auto candidate = range.first;
-			uint32_t count = 0;
-			for (auto elem = range.first; elem != range.second; elem++) {
-				if (elem->second < smallestIndex) {
-					candidate = elem;
-					smallestIndex = elem->second;
+			auto bucket = _sequences.bucket(key);
+			if (_sequences.bucket_size(bucket) > 5 * max) {
+				auto range = _sequences.equal_range(_key);
+				uint64_t smallestIndex = range.first->second;
+				auto candidate = range.first;
+				uint32_t count = 0;
+				for (auto elem = range.first; elem != range.second; elem++) {
+					if (elem->second < smallestIndex) {
+						candidate = elem;
+						smallestIndex = elem->second;
+					}
+					count++;
 				}
-				count++;
-			}
-			if (count > max) {
-				_sequences.erase(candidate);
+				if (count > max) {
+					_sequences.erase(candidate);
+				}
 			}
 		}
 
@@ -128,6 +131,9 @@ namespace QaplaBitbase {
 		 */
 		void addValues(const vector<uint8_t>& in, uint64_t toIndex) {
 			for (; _index <= toIndex; _index++) {
+				if (_index % 0x10000 == 0) {
+					clear();
+				}
 				_key = (_key << 8) + in[_index];
 				if (_index >= sizeof(key_t)) {
 					const uint64_t realIndex = _index - sizeof(key_t) + 1;
@@ -163,6 +169,13 @@ namespace QaplaBitbase {
 				result.addMatch(index - start, length);
 			}
 			return result;
+		}
+
+		/**
+		 * Clears the memorized lookups
+		 */
+		void clear() {
+			_sequences.clear();
 		}
 
 	private:

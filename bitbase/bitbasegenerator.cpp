@@ -84,7 +84,7 @@ bool BitbaseGenerator::computeValue(MoveGenerator& position, const Bitbase& bitb
 uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator& position, GenerationState& state) {
 	uint32_t result = 0;
 	if (computeValue(position, state.getWonPositions(), false)) {
-		if (index == debugIndex) {
+		if (index == _debugIndex) {
 			computeValue(position, state.getWonPositions(), true);
 		}
 		state.setWin(index);
@@ -117,7 +117,7 @@ void BitbaseGenerator::compareBitbases(string pieceString, Bitbase& newBitbase, 
 			position.clear();
 		}
 	}
-	if (differences > 0 || TRACE_LEVEL > 0) {
+	if (differences > 0 || _traceLevel > 0) {
 		cout << "Compare for " << pieceString << " amount of differences: " << differences << endl;
 	}
 }
@@ -126,7 +126,7 @@ void BitbaseGenerator::compareBitbases(string pieceString, Bitbase& newBitbase, 
  * Prints the time spent so far
  */
 void BitbaseGenerator::printTimeSpent(ClockManager& clock, int minTraceLevel) {
-	if (TRACE_LEVEL < minTraceLevel) {
+	if (_traceLevel < minTraceLevel) {
 		return;
 	}
 	uint64_t timeInMilliseconds = clock.computeTimeSpentInMilliseconds();
@@ -292,7 +292,7 @@ void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, vector<uint6
 				exit(1);
 			}
 			if (success) {
-				computeCandidates(candidates, position, index == debugIndex);
+				computeCandidates(candidates, position, index == _debugIndex);
 			}
 		}
 		package = workpackage.getNextPackageToExamine(packageSize);
@@ -313,9 +313,8 @@ void BitbaseGenerator::computeBitbase(GenerationState& state, ClockManager& cloc
 		}
 		uint64_t index = 0;
 		uint32_t threadNo = 0;
-		uint32_t threadAmount = MAX_THREADS;
 		Workpackage workpackage(state);
-		for (uint32_t threadNo = 0; threadNo < threadAmount; ++threadNo) {
+		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo) {
 			_threads[threadNo] = thread([this, &workpackage, loopCount, threadNo, &state]() {
 				computeWorkpackage(workpackage, _candidates[threadNo], state, true);
 			});
@@ -328,7 +327,7 @@ void BitbaseGenerator::computeBitbase(GenerationState& state, ClockManager& cloc
 		state.clearAllCandidates();
 		for (auto& candidate : _candidates) {
 			candidateCount += candidate.size();
-			state.setCandidates(candidate, debugIndex);
+			state.setCandidates(candidate, _debugIndex);
 		}
 		cout << ".";
 		if (candidateCount == 0) {
@@ -392,22 +391,22 @@ bool BitbaseGenerator::setMateOrStalemate(ChessMoveGenerator::MoveGenerator& pos
 {
 	bool result = false;
 	if (!position.isWhiteToMove() && position.isInCheck()) {
-		if (DEBUG_LEVEL > 0 && index == debugIndex) {
-			cout << debugIndex << " , Fen: " << position.getFen() << " is win by mate (move generator) " << endl;
+		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+			cout << _debugIndex << " , Fen: " << position.getFen() << " is win by mate (move generator) " << endl;
 		}
 		state.setWin(index);
 		result = true;
 	}
 	else if (position.isWhiteToMove() && position.isInCheck()) {
-		if (DEBUG_LEVEL > 0 && index == debugIndex) {
-			cout << debugIndex << " , Fen: " << position.getFen() << " is loss by mate (move generator) " << endl;
+		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+			cout << _debugIndex << " , Fen: " << position.getFen() << " is loss by mate (move generator) " << endl;
 		}
 		state.setLoss(index);
 		result = true;
 	}
 	else {
-		if (DEBUG_LEVEL > 0 && index == debugIndex) {
-			cout << debugIndex << " , Fen: " << position.getFen() << " is stalemate (move generator) " << endl;
+		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+			cout << _debugIndex << " , Fen: " << position.getFen() << " is stalemate (move generator) " << endl;
 		}
 		state.setDraw(index);
 		result = true;
@@ -422,14 +421,14 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 	MoveList moveList;
 	bool result = false;
 	bool kingInCheck = false;
-	if (DEBUG_LEVEL > 0 && index == debugIndex) {
+	if (DEBUG_LEVEL > 0 && index == _debugIndex) {
 		kingInCheck = false;
 	}
 
 	// Exclude all illegal positions (king not to move is in check) from future search
 	if (!position.isLegalPosition()) {
-		if (DEBUG_LEVEL > 0 && index == debugIndex) {
-			cout << debugIndex << " , Fen: " << position.getFen() << " is illegal (move generator) " << endl;
+		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+			cout << _debugIndex << " , Fen: " << position.getFen() << " is illegal (move generator) " << endl;
 		}
 		state.setIllegal(index);
 		return false;
@@ -439,19 +438,19 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 	if (moveList.getTotalMoveAmount() > 0) {
 		// Compute all captures and look up the positions in other bitboards
 		Result positionValue = initialSearch(position, moveList);
-		if (DEBUG_LEVEL > 0 && index == debugIndex) {
-			cout << debugIndex << " " << int(positionValue) << endl;
+		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+			cout << _debugIndex << " " << int(positionValue) << endl;
 		}
 		if (positionValue == Result::Win) {
-			if (DEBUG_LEVEL > 0 && index == debugIndex) {
-				cout << debugIndex << " , Fen: " << position.getFen() << " is a win (initial search) " << endl;
+			if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+				cout << _debugIndex << " , Fen: " << position.getFen() << " is a win (initial search) " << endl;
 			}
 			state.setWin(index);
 			result = true;
 		}
 		else if (positionValue != Result::Unknown) {
-			if (DEBUG_LEVEL > 0 && index == debugIndex) {
-				cout << debugIndex << " , Fen: " << position.getFen() << " is a loss or draw (initial search) " << endl;
+			if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+				cout << _debugIndex << " , Fen: " << position.getFen() << " is a loss or draw (initial search) " << endl;
 			}
 			state.setDraw(index);
 			result = true;
@@ -466,8 +465,10 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 /**
  * Computes a workpackage of initial positions for a bitbase; 
  */
-void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, vector<uint64_t>& candidates, GenerationState& state) {
+void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, GenerationState& state) {
 	MoveGenerator position;
+	vector<uint64_t> candidates;
+
 	uint64_t packageSize = min(50000ULL, (state.getSizeInBit() + 5) / 5);
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	while (package.first < package.second) {
@@ -487,16 +488,18 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, vecto
 				}
 				bool isDecided = initialComputePosition(index, position, state);
 				if (isDecided) {
-					computeCandidates(candidates, position, index == debugIndex);
+					computeCandidates(candidates, position, index == _debugIndex);
 				}
 			}
 			else {
-				if (DEBUG_LEVEL > 0 && index == debugIndex) {
-					cout << debugIndex << " Is an illegal index (bitbaseIndex) " << endl;
+				if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+					cout << _debugIndex << " Is an illegal index (bitbaseIndex) " << endl;
 				}
 				state.setIllegal(index);
 			}
 		}
+		state.setCandidatesTreadSafe(candidates, _debugIndex);
+		candidates.clear();
 		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	}
 }
@@ -512,25 +515,21 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 		return;
 	}
 
-	const uint32_t threadAmount = MAX_THREADS;
-	if (TRACE_LEVEL > 1) cout << endl;
-	cout << pieceString << " using " << threadAmount << " threads ";
+	if (_traceLevel > 1) cout << endl;
+	cout << pieceString << " using " << _cores << " threads ";
 
 	GenerationState state(pieceList);
 	ClockManager clock;
 	clock.setStartTime();
 
 	Workpackage workpackage(state);
-	for (uint32_t threadNo = 0; threadNo < threadAmount; ++threadNo) {
-		_threads[threadNo] = thread([this, &workpackage, threadNo, &state]() {
-			computeInitialWorkpackage(workpackage, _candidates[threadNo], state);
+	state.clearAllCandidates();
+	for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo) {
+		_threads[threadNo] = thread([this, &workpackage, &state]() {
+			computeInitialWorkpackage(workpackage, state);
 		});
 	}
 	joinThreads();
-	state.clearAllCandidates();
-	for (auto& candidate : _candidates) {
-		state.setCandidates(candidate, debugIndex);
-	}
 	printTimeSpent(clock, 2);
 	printStatistic(state, 2);
 

@@ -70,6 +70,10 @@ namespace ChessInterface {
 		 */
 		virtual void runLoop();
 
+		/**
+		 * handles a generate EGTB command
+		 */
+		void generateEGTB();
 
 		/**
 		 * Sets xBoard mode 

@@ -76,9 +76,12 @@ namespace ChessSearch {
 		 * Generates bitbases for a signature and all bitbases needed
 		 * to compute this bitabase (if they cannot be loaded)
 		 */
-		virtual void generateBitbases(string signature) {
+		
+		virtual void generateBitbases(string signature, uint32_t cores = 1, bool uncompressed = false,
+				uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64)
+		{
 			QaplaBitbase::BitbaseGenerator generator;
-			generator.computeBitbaseRec(signature);
+			generator.computeBitbaseRec(signature, cores, uncompressed, traceLevel, debugLevel, debugIndex);
 		}
 
 		/**
