@@ -292,13 +292,12 @@ void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, GenerationSt
 				computeCandidates(candidates, position, index == _debugIndex);
 			}
 		}
-		if (candidates.size() > packageSize) {
-			state.setCandidatesTreadSafe(candidates, _debugIndex);
+		if (state.setCandidatesTreadSafe(candidates, false)) {
 			candidates.clear();
 		}
 		package = workpackage.getNextPackageToExamine(packageSize);
 	}
-	state.setCandidatesTreadSafe(candidates, _debugIndex);
+	state.setCandidatesTreadSafe(candidates);
 }
 
 /**
@@ -308,11 +307,7 @@ void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, GenerationSt
  */
 void BitbaseGenerator::computeBitbase(GenerationState& state, ClockManager& clock) {
 	const uint64_t bitbaseSizeInBit = state.getSizeInBit();
-
 	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++) {
-		for (auto& candidate : _candidates) {
-			candidate.clear();
-		}
 		uint64_t index = 0;
 		uint32_t threadNo = 0;
 		Workpackage workpackage(state);
@@ -322,9 +317,7 @@ void BitbaseGenerator::computeBitbase(GenerationState& state, ClockManager& cloc
 				computeWorkpackage(workpackage, state, true);
 			});
 		}
-		/*
-		computeWorkpackage(work, _candidates[0], state, loopCount == 0);
-		*/
+
 		joinThreads();
 		cout << ".";
 		if (!state.hasCandidates()) {
@@ -423,7 +416,7 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 	}
 
 	// Exclude all illegal positions (king not to move is in check) from future search
-	if (!position.isLegalPosition()) {
+	if (!position.isLegal()) {
 		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
 			cout << _debugIndex << " , Fen: " << position.getFen() << " is illegal (move generator) " << endl;
 		}
@@ -436,7 +429,7 @@ bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& pos
 		// Compute all captures and look up the positions in other bitboards
 		Result positionValue = initialSearch(position, moveList);
 		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
-			cout << _debugIndex << " " << int(positionValue) << endl;
+			cout << endl << "Inital search for " << _debugIndex << " result: " << ResultMap[int(positionValue)] << endl;
 		}
 		if (positionValue == Result::Win) {
 			if (DEBUG_LEVEL > 0 && index == _debugIndex) {
@@ -495,10 +488,12 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, Gener
 				state.setIllegal(index);
 			}
 		}
-		state.setCandidatesTreadSafe(candidates, _debugIndex);
-		candidates.clear();
+		if (state.setCandidatesTreadSafe(candidates, false)) {
+			candidates.clear();
+		}
 		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	}
+	state.setCandidatesTreadSafe(candidates);
 }
 
 /**
@@ -507,10 +502,6 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, Gener
 void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
-	if (BitbaseReader::isBitbaseAvailable(pieceString)) {
-		cout << "Bitbase " << pieceString << " already loaded" << endl;
-		return;
-	}
 
 	if (_traceLevel > 1) cout << endl;
 	cout << pieceString << " using " << _cores << " threads ";
@@ -527,9 +518,9 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 		});
 	}
 	joinThreads();
+	cout << ".";
 	printTimeSpent(clock, 2);
 	printStatistic(state, 2);
-
 	computeBitbase(state, clock);
 
 	printTimeSpent(clock, 2);
@@ -550,7 +541,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 void BitbaseGenerator::computeBitbaseRec(PieceList& pieceList, bool first) {
 	if (pieceList.getNumberOfPieces() <= 2) return;
 	string pieceString = pieceList.getPieceString();
-	if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
+	if (!first && !BitbaseReader::isBitbaseAvailable(pieceString)) {
 		BitbaseReader::loadBitbase(pieceString);
 		if (DEBUG_LEVEL > 1) {
 			compareFiles(pieceString);
@@ -569,7 +560,7 @@ void BitbaseGenerator::computeBitbaseRec(PieceList& pieceList, bool first) {
 		computeBitbaseRec(newPieceList, false);
 	}
 	
-	if (!BitbaseReader::isBitbaseAvailable(pieceString)) {
+	if (first || !BitbaseReader::isBitbaseAvailable(pieceString)) {
 		computeBitbase(pieceList);
 		if (DEBUG_LEVEL > 1) {
 			compareFiles(pieceString);

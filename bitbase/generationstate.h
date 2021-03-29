@@ -48,6 +48,7 @@ namespace QaplaBitbase {
 			_loss = 0;
 			_draw = 0;
 			_won = 0;
+			_updateRunning = false;
 		}
 
 		/**
@@ -90,31 +91,33 @@ namespace QaplaBitbase {
 		const Bitbase& getWonPositions() const { return _wonPositions; }
 
 		/**
-		 * Sets a position to a candidate for lookup
-		 */
-		void setCandidate(uint64_t index) { 
-			_candidates.setBit(index); 
-			_hasCandidates = true;
-		}
-
-		/**
 		 * Sets a list of candidates 
 		 */
-		void setCandidates(const vector<uint64_t>& candidates, uint64_t debugIndex) {
+		void setCandidates(const vector<uint64_t>& candidates) {
+			_hasCandidates = true;
 			for (auto index : candidates) {
 				setCandidate(index);
-				if (index == debugIndex) {
-					cout << endl << index << " set to candidates " << endl;
-				}
 			}
 		}
 
 		/**
 		 * Mutex protected version of set Candidates
+		 * @param candidates candidates to add
 		 */
-		void setCandidatesTreadSafe(const vector<uint64_t>& candidates, uint64_t debugIndex) {
-			const lock_guard<mutex> lock(_mtxUpdate);
-			setCandidates(candidates, debugIndex);
+		bool setCandidatesTreadSafe(const vector<uint64_t>& candidates, bool wait = true) {
+			if (candidates.empty()) {
+				return false;
+			}
+			if (wait || !_updateRunning) {
+				const lock_guard<mutex> lock(_mtxUpdate);
+				_updateRunning = true;
+				setCandidates(candidates);
+				_updateRunning = false;
+				return true;
+			} 
+			else {
+				return false;
+			}
 		}
 
 		/**
@@ -188,6 +191,15 @@ namespace QaplaBitbase {
 		}
 
 	private:
+		/**
+		 * Sets a position to a candidate for lookup
+		 */
+		void setCandidate(uint64_t index) {
+			_candidates.setBit(index);
+		}
+
+
+
 		uint64_t _sizeInBit;
 		atomic_uint64_t _illegal;
 		atomic_uint64_t _loss;
@@ -199,6 +211,7 @@ namespace QaplaBitbase {
 		Bitbase _candidates;
 		PieceList _pieceList;
 		mutex _mtxUpdate;
+		bool _updateRunning;
 	};
 
 }

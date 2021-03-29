@@ -1557,6 +1557,7 @@
     <ClInclude Include="bitbase\huffmancode.h" />
     <ClInclude Include="bitbase\piecelist.h" />
     <ClInclude Include="bitbase\generateresult.h" />
+    <ClInclude Include="bitbase\verify.h" />
     <ClInclude Include="bitbase\workpackage.h" />
     <ClInclude Include="eval\bishop.h" />
     <ClInclude Include="eval\eval.h" />

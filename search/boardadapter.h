@@ -35,6 +35,7 @@
 #include "../search/iterativedeepening.h"
 #include "movehistory.h"
 #include "../bitbase/bitbasegenerator.h"
+#include "../bitbase/verify.h"
 #include "../bitbase/bitbasereader.h"
 
 using namespace ChessMoveGenerator;
@@ -82,6 +83,12 @@ namespace ChessSearch {
 		{
 			QaplaBitbase::BitbaseGenerator generator;
 			generator.computeBitbaseRec(signature, cores, uncompressed, traceLevel, debugLevel, debugIndex);
+		}
+
+		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)
+		{
+			QaplaBitbase::Verify verify;
+			verify.verifyBitbaseRec(signature, cores, traceLevel, debugLevel);
 		}
 
 		/**

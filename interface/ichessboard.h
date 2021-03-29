@@ -185,6 +185,12 @@ namespace ChessInterface {
 			uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64) 
 		{}
 
+		/**
+		 * Verify bitbases for a signature 
+		 */
+		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)
+		{}
+
 	};
 }
 

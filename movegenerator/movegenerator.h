@@ -61,7 +61,7 @@ namespace ChessMoveGenerator {
 		/**
 		 * Checks, if the king not on move is in check
 		 */
-		bool isLegalPosition() {
+		bool isLegal() {
 			computeAttackMasksForBothColors();
 			bool hasKingOfBothColors = 
 				(bitBoardsPiece[WHITE_KING] != 0) && (bitBoardsPiece[BLACK_KING] != 0);

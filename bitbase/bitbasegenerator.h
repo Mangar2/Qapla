@@ -146,115 +146,6 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Test a position
-		 * @param position chess position without kings
-		 * @param wk square of white king
-		 * @param bk square of black king
-		 * @param wtm white to move
-		 * @param expected expected value for the position (win or non win)
-		 * @param bitbase bit base to test
-		 */
-		void testBoard(MoveGenerator& position, Square wk, Square bk, bool wtm, bool expected, Bitbase& bitbase) {
-			position.setPiece(wk, WHITE_KING);
-			position.setPiece(bk, BLACK_KING);
-			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::getIndex<0>(position);
-			if (bitbase.getBit(checkIndex) == expected) {
-				printf("Test OK\n");
-			}
-			else {
-				printf("%s, index:%lld\n", position.isWhiteToMove() ? "white" : "black", checkIndex);
-				printf("Test failed\n");
-				position.print();
-				computeValue(position, bitbase, true);
-				showDebugIndex("KRKP");
-			}
-		}
-
-		void testKQKR(Square wk, Square bk, Square q, Square r, bool wtm, bool expected, Bitbase& bitbase) {
-			MoveGenerator position;
-			position.setPiece(q, WHITE_QUEEN);
-			position.setPiece(r, BLACK_ROOK);
-			testBoard(position, wk, bk, wtm, expected, bitbase);
-		}
-
-		void testKRKQ(Square wk, Square bk, Square r, Square q, bool wtm, bool expected, Bitbase& bitbase) {
-			MoveGenerator position;
-			position.setPiece(q, BLACK_QUEEN);
-			position.setPiece(r, WHITE_ROOK);
-			testBoard(position, wk, bk, wtm, expected, bitbase);
-		}
-
-		void testAllKQKR() {
-			Bitbase bitbase;
-			bitbase.readFromFile("KQKR.btb");
-			testKQKR(B7, B1, C8, A2, false, false, bitbase);
-			testKQKR(B7, B1, D8, A2, false, true, bitbase);
-			testKQKR(B7, B1, C8, A3, false, true, bitbase);
-			testKQKR(B7, B1, C8, A2, true, true, bitbase);
-		}
-
-		void testKPK(Square wk, Square bk, Square p, bool wtm, bool expected, Bitbase& bitbase) {
-			MoveGenerator position;
-			position.setPiece(p, WHITE_PAWN);
-			testBoard(position, wk, bk, wtm, expected, bitbase);
-		}
-
-		void testAllKPK(Bitbase& bitbase) {
-			testKPK(E5, E8, E7, false, false, bitbase);
-			testKPK(D6, E8, E7, true, false, bitbase);
-			testKPK(A2, A5, E2, true, true, bitbase);
-			testKPK(A2, A5, E2, false, false, bitbase);
-			testKPK(A3, A5, E2, true, false, bitbase);
-			testKPK(A3, A5, E2, false, true, bitbase);
-		}
-
-		void testAllKPK() {
-			Bitbase bitbase;
-			bitbase.readFromFile("KPK");
-			testAllKPK(bitbase);
-		}
-
-		void testKRKP(Square wk, Square bk, Square p, Square r, bool wtm, bool expected, Bitbase& bitbase) {
-			MoveGenerator position;
-			position.setPiece(wk, WHITE_KING);
-			position.setPiece(bk, BLACK_KING);
-			position.setPiece(p, BLACK_PAWN);
-			position.setPiece(r, WHITE_ROOK);
-			position.setWhiteToMove(wtm);
-			uint64_t checkIndex = BoardAccess::getIndex<0>(position);
-			if (bitbase.getBit(checkIndex) == expected) {
-				printf("Test OK\n");
-			}
-			else {
-				position.print();
-				printf("%s, index:%lld\n", position.isWhiteToMove() ? "white" : "black", checkIndex);
-				printf("Test failed\n");
-				computeValue(position, bitbase, true);
-				showDebugIndex("KRKP");
-
-			}
-		}
-
-		void testAllKRKP() {
-			Bitbase bitbase;
-			bitbase.readFromFile("KRKP");
-			testKRKP(F2, D4, F6, F3, true, true, bitbase);
-			testKRKP(F2, D4, F6, F3, false, true, bitbase);
-			testKRKP(A7, G4, F2, B5, false, false, bitbase);
-			testKRKP(A7, G4, F2, B5, true, false, bitbase);
-			testKRKP(A7, G4, F5, B5, true, true, bitbase);
-			testKRKP(A7, G4, F5, B5, false, false, bitbase);
-			testKRKP(C3, C1, D2, A2, false, false, bitbase);
-		}
-
-		void testAllKRKQ() {
-			Bitbase bitbase;
-			bitbase.readFromFile("KRKQ");
-			testKRKQ(C3, C1, A2, D1, false, false, bitbase);
-		}
-
-		/**
 		 * Prints the time spent so far
 		 */
 		void printTimeSpent(ClockManager& clock, int minTraceLevel);
@@ -335,7 +226,6 @@ namespace QaplaBitbase {
 		int _debugLevel;
 
 		static const uint32_t MAX_THREADS = 64;
-		array<vector<uint64_t>, MAX_THREADS> _candidates;
 		array<thread, MAX_THREADS> _threads;
 	};
 

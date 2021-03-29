@@ -76,6 +76,11 @@ namespace ChessInterface {
 		void generateEGTB();
 
 		/**
+		 * handles a verify EGTB command
+		 */
+		void verifyEGTB();
+
+		/**
 		 * Sets xBoard mode 
 		 */
 		void handleXBoard() {

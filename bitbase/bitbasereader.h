@@ -40,6 +40,8 @@ namespace QaplaBitbase {
 		Unknown, Loss, Draw, DrawOrLoss, Win, IllegalIndex
 	};
 
+	static constexpr array<const char*, 6> ResultMap{ "Unknown", "Loss", "Draw", "DrawOrLoss", "Win", "IllegalIndex" };
+
 	class BitbaseReader
 	{
 	public:
@@ -65,7 +67,9 @@ namespace QaplaBitbase {
 				}
 			}
 			else {
-				loadBitbase(name);
+				if (!BitbaseReader::isBitbaseAvailable(name)) {
+					loadBitbase(name);
+				}
 			}
 		}
 
@@ -166,10 +170,14 @@ namespace QaplaBitbase {
 		static void loadBitbase(std::string pieceString) {
 			PieceSignature signature;
 			signature.set(pieceString);
+			pieceSignature_t sig = signature.getPiecesSignature();
+			if (_bitbases.find(sig) != _bitbases.end()) {
+				return;
+			}
 			Bitbase bitbase;
-			_bitbases[signature.getPiecesSignature()] = bitbase;
-			if (!_bitbases[signature.getPiecesSignature()].readFromFile(pieceString)) {
-				_bitbases.erase(signature.getPiecesSignature());
+			_bitbases[sig] = bitbase;
+			if (!_bitbases[sig].readFromFile(pieceString)) {
+				_bitbases.erase(sig);
 			}
 			ChessEval::EvalEndgame::registerBitbase(pieceString);
 		}
