@@ -464,28 +464,17 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, Gener
 	while (package.first < package.second) {
 		for (uint64_t index = package.first; index < package.second; ++index) {
 			BitbaseIndex bitbaseIndex(index, state.getPieceList());
-			if (bitbaseIndex.isLegal()) {
-				position.clear();
-				addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
-				if (DEBUG_LEVEL > 0) {
-					uint64_t testIndex = BoardAccess::getIndex<0>(position);
-					if (testIndex != index) {
-						cout << "Fatal error in index: " << index << " index computing has a bug " << endl;
-						cout << "Created board has index: " << testIndex << endl;
-						position.print();
-						exit(1);
-					}
-				}
+			position.clear();
+			addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
+			uint64_t testIndex = BoardAccess::getIndex<0>(position);
+			if (index != testIndex) {
+				state.setIllegal(index);
+			}
+			else {
 				bool isDecided = initialComputePosition(index, position, state);
 				if (isDecided) {
 					computeCandidates(candidates, position, index == _debugIndex);
 				}
-			}
-			else {
-				if (DEBUG_LEVEL > 0 && index == _debugIndex) {
-					cout << _debugIndex << " Is an illegal index (bitbaseIndex) " << endl;
-				}
-				state.setIllegal(index);
 			}
 		}
 		if (state.setCandidatesTreadSafe(candidates, false)) {

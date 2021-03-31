@@ -117,20 +117,10 @@ void BitbaseIndex::setPiecesByIndex(uint64_t index, const PieceList& pieceList) 
 	bool hasPawns = pieceList.getNumberOfPawns() > 0;
 	uint32_t piecesToAdd = pieceList.getNumberOfPiecesWithoutPawns() - KING_COUNT;
 	uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - KING_COUNT - pieceList.getNumberOfPawns();
-	bool allOnDiagonal = (!hasPawns) && isOnDiagonal(getSquare(0)) && isOnDiagonal(getSquare(1));
 	for (; piecesToAdd > 0; --piecesToAdd, --remainingPiecePositions) {
 		const Square square = computesRealSquare(_piecesBB, Square(index % remainingPiecePositions));
-		
 		index /= remainingPiecePositions;
 		_sizeInBit *= remainingPiecePositions;
-		if (!isLegalSquare(square, allOnDiagonal, pieceList)) {
-			_isLegal = false;
-			break;
-		}
-
-		if (!isOnDiagonal(square)) {
-			allOnDiagonal = false;
-		}
 		addPieceSquare(square);
 	}
 }
@@ -144,16 +134,6 @@ uint64_t BitbaseIndex::setPawnsByIndex(uint64_t index, const PieceList& pieceLis
 		index /= remainingPawnPositions;
 		_sizeInBit *= remainingPawnPositions;
 		
-		bool samePiece = pieceList.getPiece(getNumberOfPieces()) == pieceList.getPiece(getNumberOfPieces() - 1);
-		bool onSquareBelow = square < _squares[getNumberOfPieces() - 1];
-		if (samePiece && onSquareBelow) {
-			_isLegal = false;
-			break;
-		}
-		if (square >= A8 || isOccupied(square)) {
-			_isLegal = false;
-			break;
-		}
 		addPawnSquare(square);
 	}
 	return index;
@@ -170,9 +150,7 @@ void BitbaseIndex::setSquares(const PieceList& pieceList) {
 	index /= numberOfKingPositions;
 
 	index = setPawnsByIndex(index, pieceList);
-	if (_isLegal) {
-		setPiecesByIndex(index, pieceList);
-	}
+	setPiecesByIndex(index, pieceList);
 }
 
 
@@ -236,28 +214,51 @@ uint32_t BitbaseIndex::computeSquareMapType(const PieceList& pieceList) {
 		if (whiteKingSquare >= A5) {
 			mapType |= MAP_RANK;
 		}
-		for (uint32_t index = 0; index < pieceList.getNumberOfPieces(); index++) {
+
+		// Probe the two kings, return if an is not on a diagonal
+		for (uint32_t index = 0; index < 2; index++) {
 			Square mappedSquare = mapSquare(pieceList.getSquare(index), mapType);
 			if (isOnDiagonal(mappedSquare)) {
 				continue;
 			}
-			if (nextPieceIsSame(pieceList, index)) {
-				Square nextSquare = mapSquare(pieceList.getSquare(index + 1), mapType);
-				if (isOnDiagonal(nextSquare)) {
-					if (isAboveDiagonal(mappedSquare)) {
-						mapType |= MAP_TO_A1_D1_D4_TRIANGLE;
-					}
-					continue;
-				}
-				if (isSmallestAboveDiagonal(mappedSquare, nextSquare)) {
-					mapType |= MAP_TO_A1_D1_D4_TRIANGLE;
-				}
-				break;
-			}
 			if (isAboveDiagonal(mappedSquare)) {
 				mapType |= MAP_TO_A1_D1_D4_TRIANGLE;
 			}
-			break;
+			return mapType;
+		}
+
+		// It is more complicated with multiple pieces of the same kind. The following special
+		// cases must be handled
+		// 1. Ignore pieces on the diagonal
+		// 2. Ignore pieces of the same type that are arranged in mirror symmetry according the A1:H8 diagonal
+		// 3. The smalles piece of the first type decides the mapping, if not ignored
+
+		array<Square, 10> squares;
+		for (uint32_t index = 2; index < pieceList.getNumberOfPieces();) {
+			uint32_t count = getSquaresOfSameKind(pieceList, index, squares);
+			for (uint32_t sqIndex = 0; sqIndex < count; sqIndex++) {
+				squares[sqIndex] = mapSquare(squares[sqIndex], mapType);
+			}
+			bubbleSortMultiplePiece(squares, count);
+			for (uint32_t sqIndex = 0; sqIndex < count; sqIndex++) {
+				Square mappedSquare = squares[sqIndex];
+				if (isOnDiagonal(mappedSquare)) {
+					continue;
+				}
+				if (sqIndex + 1 < count) {
+					Square nextSquare = squares[sqIndex + 1];
+					bool symmetricPair = mapSquare(mappedSquare, MAP_TO_A1_D1_D4_TRIANGLE) == nextSquare;
+					if (symmetricPair) {
+						sqIndex++;
+						continue;
+					}
+				}
+				if (isAboveDiagonal(mappedSquare)) {
+					mapType |= MAP_TO_A1_D1_D4_TRIANGLE;
+				}
+				return mapType;
+			}
+			index += count;
 		}
 	}
 	return mapType;
@@ -271,9 +272,7 @@ uint32_t BitbaseIndex::popCount(bitBoard_t bitBoard) {
 	return result;
 }
 
-void BitbaseIndex::addPawnToIndex(Square pawnSquare) {
-
-	Square mappedSquare = mapSquare(pawnSquare, _mapType);
+void BitbaseIndex::addPawnToIndex(Square mappedSquare) {
 	const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _pawnsBB;
 	uint64_t indexValueBasedOnPawnSquare = uint64_t(mappedSquare - A2) - popCount(belowBB);
 
@@ -284,9 +283,7 @@ void BitbaseIndex::addPawnToIndex(Square pawnSquare) {
 }
 
 
-void BitbaseIndex::addNonPawnPieceToIndex(Square square) {
-	Square mappedSquare = mapSquare(square, _mapType);
-	
+void BitbaseIndex::addNonPawnPieceToIndex(Square mappedSquare) {
 	const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _piecesBB;
 	uint64_t indexValueBasedOnPieceSquare = uint64_t(mappedSquare) - popCount(belowBB);
 
@@ -295,16 +292,74 @@ void BitbaseIndex::addNonPawnPieceToIndex(Square square) {
 	addPieceSquare(mappedSquare);
 }
 
+void bubbleSort(array<Square, 10>& squares, uint32_t count) {
+	for (int32_t outerLoop = count - 1; outerLoop > 0; outerLoop--) {
+		for (int32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
+			if (squares[innerLoop - 1] > squares[innerLoop]) {
+				swap(squares[innerLoop - 1], squares[innerLoop]);
+			}
+		}
+	}
+}
+
+void  BitbaseIndex::bubbleSortMultiplePiece(array<Square, 10>& squares, uint32_t count) {
+	for (int32_t outerLoop = count - 1; outerLoop > 0; outerLoop--) {
+		for (int32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
+			if (doublePieceSortValue[int(squares[innerLoop - 1])] > doublePieceSortValue[int(squares[innerLoop])]) {
+				swap(squares[innerLoop - 1], squares[innerLoop]);
+			}
+		}
+	}
+}
+
 /**
  * Adds another piece to the index
  */
-void BitbaseIndex::addPieceToIndex(Square square, Piece piece) {
+void BitbaseIndex::addPiecesToIndex(array<Square, 10>& squares, uint32_t count, Piece piece)
+{
+	for (uint32_t index = 0; index < count; index++) {
+		squares[index] = mapSquare(squares[index], _mapType);
+	}
 	if (isPawn(piece)) {
-		addPawnToIndex(square);
+		if (count == 1) {
+			addPawnToIndex(squares[0]);
+		}
+		else {
+			bubbleSort(squares, count);
+			for (uint32_t index = 0; index < count; index++) {
+				addPawnToIndex(squares[index]);
+			}
+		}
 	}
 	else {
-		addNonPawnPieceToIndex(square);
+		if (count == 1) {
+			addNonPawnPieceToIndex(squares[0]);
+		}
+		else {
+			bubbleSortMultiplePiece(squares, count);
+			for (uint32_t index = 0; index < count; index++) {
+				addNonPawnPieceToIndex(squares[index]);
+			}
+		}
 	}
+}
+
+/**
+ * Gets a list of squares for pieces of the same kind
+ * @param pieceList list of pieces
+ * @param begin index to start square selection
+ * @param squares list of squares to return
+ * @returns amount of squares in the list
+ */
+uint32_t BitbaseIndex::getSquaresOfSameKind(const PieceList& pieceList, uint32_t begin, array<Square, 10>& squares) {
+	Piece piece = pieceList.getPiece(begin);
+	squares[0] = pieceList.getSquare(begin);
+	uint32_t count;
+	for (count = 1; begin + count < pieceList.getNumberOfPieces(); count++) {
+		if (pieceList.getPiece(begin + count) != piece) break;
+		squares[count] = pieceList.getSquare(begin + count);
+	}
+	return count;
 }
 
 /**
@@ -314,26 +369,11 @@ void BitbaseIndex::set(const PieceList& pieceList, bool wtm) {
 	clear();
 	initialize(pieceList, wtm);
 	uint32_t numberOfPieces = pieceList.getNumberOfPieces();
-	for (uint32_t index = 2; index < pieceList.getNumberOfPieces(); index++) {
-		Piece piece = pieceList.getPiece(index);
-		if (nextPieceIsSame(pieceList, index)) {
-			bool changeOrder = false;
-			Square square1 = mapSquare(pieceList.getSquare(index), _mapType);
-			Square square2 = mapSquare(pieceList.getSquare(index + 1), _mapType);
-			if (isPawn(piece)) {
-				changeOrder = square1 > square2;
-			}
-			else {
-				changeOrder = doublePieceSortValue[int(square1)] > doublePieceSortValue[int(square2)];
-			}
-			if (changeOrder) {
-				addPieceToIndex(pieceList.getSquare(index + 1), piece);
-				addPieceToIndex(pieceList.getSquare(index), piece);
-				index++;
-				continue;
-			}
-		}
-		addPieceToIndex(pieceList.getSquare(index), piece);
+	array<Square, 10> squares;
+	for (uint32_t index = 2; index < numberOfPieces;) {
+		uint32_t count = getSquaresOfSameKind(pieceList, index, squares);
+		addPiecesToIndex(squares, count, pieceList.getPiece(index));
+		index += count;
 	}
 }
 

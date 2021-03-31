@@ -166,6 +166,16 @@ namespace QaplaBitbase {
 			_isLegal = false;
 		}
 
+
+		/**
+		 * Gets a list of squares for pieces of the same kind
+		 * @param pieceList list of pieces
+		 * @param begin index to start square selection
+		 * @param squares list of squares to return
+		 * @returns amount of squares in the list
+		 */
+		uint32_t getSquaresOfSameKind(const PieceList& pieceList, uint32_t begin, array<Square, 10>& squares);
+
 		/**
 		 * Checks, if a square is legal
 		 */
@@ -182,6 +192,18 @@ namespace QaplaBitbase {
 		 */
 		uint64_t setPawnsByIndex(uint64_t index, const PieceList& pieceList);
 		void setPiecesByIndex(uint64_t index, const PieceList& pieceList);
+
+		/**
+		 * Calculates the index of a double pawn
+		 */
+		uint64_t doublePawnIndex(Square square1, Square square2) {
+			uint64_t index;
+			if (square2 < square1) {
+				swap(square1, square2);
+			}
+			index = ((127 - square1) * square1) /2;
+			index += square2;
+		}
 
 		/**
 		 * Computes the size of the bitbase index
@@ -212,7 +234,7 @@ namespace QaplaBitbase {
 		/**
 		 * Adds another piece to the index
 		 */
-		void addPieceToIndex(Square square, Piece piece);
+		void addPiecesToIndex(array<Square, 10>& squares, uint32_t count, Piece piece);
 
 		/**
 		 * Initializes the index calculation
@@ -255,9 +277,14 @@ namespace QaplaBitbase {
 		uint32_t computeSquareMapType(const PieceList& pieceList);
 
 		/**
-		 * Adds a pawn to the index
+		 * Sort an array of squares based on the doublePieceSortValue map 
 		 */
-		void addPawnToIndex(Square pawnSquare);
+		void  bubbleSortMultiplePiece(array<Square, 10>& squares, uint32_t count);
+
+		/**
+		 * Adds a pawn to the index, the pawn square must already be mapped!
+		 */
+		void addPawnToIndex(Square mappedSquare);
 
 		/**
 		 * Pop count for sparcely populated bitboards
@@ -266,9 +293,9 @@ namespace QaplaBitbase {
 
 		/**
 		 * Add any piece except pawn to the index. Pawns are special, because they can only
-		 * walk in one direction
+		 * walk in one direction. The square must already be mapped!
 		 */
-		void addNonPawnPieceToIndex(Square pieceSquare);
+		void addNonPawnPieceToIndex(Square mappedSquare);
 
 		/**
 		 * Adds the square of a pawn to the piece square list

@@ -241,7 +241,7 @@ namespace QaplaBitbase {
 		 * @param pieceList list of pieces in the bitbase
 		 */
 		void verifyPositions(PieceList pieceList) {
-			int work = (BOARD_SIZE / _cores) + 1;
+			int work = ((int(BOARD_SIZE) + _cores - 1)/ _cores);
 			for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo) {
 				Square first = Square(threadNo * work);
 				Square last = Square((threadNo + 1) * work - 1);
