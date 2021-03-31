@@ -37,7 +37,7 @@ using namespace ChessSearch;
 namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
-		static const int DEBUG_LEVEL = 1;
+		static const int DEBUG_LEVEL = 0;
 		BitbaseGenerator() {
 		}
 

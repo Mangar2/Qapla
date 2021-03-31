@@ -64,7 +64,7 @@ namespace QaplaBitbase {
 			clock.setStartTime();
 			_verified.clear();
 			verifyBitbaseRec(pieceString, true);
-			cout << endl << "All Bitbases verified!";
+			cout << endl << "All Bitbases verified!" << endl;
 			printTimeSpent(clock, 0);
 			cout << endl;
 		}
@@ -79,7 +79,7 @@ namespace QaplaBitbase {
 				return;
 			}
 			uint64_t timeInMilliseconds = clock.computeTimeSpentInMilliseconds();
-			cout << endl << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000))
+			cout << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000))
 				<< ":" << ((timeInMilliseconds / (60 * 1000)) % 60)
 				<< ":" << ((timeInMilliseconds / 1000) % 60)
 				<< "." << timeInMilliseconds % 1000 << " ";
@@ -267,7 +267,9 @@ namespace QaplaBitbase {
 		 * @param pieceList list of pieces in the bitbase
 		 */
 		void verifyBitbase(PieceList& pieceList) {
-			
+			ClockManager clock;
+			clock.setStartTime();
+
 			for (uint32_t pieceNo = 0; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
 				pieceList.setSquare(pieceNo, isPawn(pieceList.getPiece(pieceNo)) ? A2 : A1);
 			}
@@ -285,7 +287,10 @@ namespace QaplaBitbase {
 			_errors = 0;
 			cout << pieceString << " Verifying with " << _cores << " cores ";
 			verifyPositions(pieceList);
-			cout << " Errors: " << _errors << endl;
+			cout << " Errors: " << _errors << " ";
+			printTimeSpent(clock, 0);
+			cout << endl;
+
 		}
 
 		/**

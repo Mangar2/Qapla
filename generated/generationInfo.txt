@@ -1,0 +1,517 @@
+generate KPPKP
+KKQ using 16 threads ..c
+Time spent: 0:0:0.6 Won: 0 Loss: 46 Draw: 414 Illegal: 11151
+KQK using 16 threads ......................c
+Time spent: 0:0:0.91 Won: 43241 Loss: 0 Draw: 2896 Illegal: 11151
+KQKQ using 16 threads .....................c
+Time spent: 0:0:0.489 Won: 472305 Loss: 801 Draw: 480725 Illegal: 1256136
+KQQK using 16 threads ........c
+Time spent: 0:0:0.625 Won: 1190359 Loss: 0 Draw: 17672 Illegal: 2286537
+KQQKQ using 16 threads ..................................................c
+Time spent: 0:0:27.605 Won: 44433482 Loss: 9051 Draw: 10612207 Illegal: 153679069
+KKR using 16 threads ..c
+Time spent: 0:0:0.4 Won: 0 Loss: 27 Draw: 63 Illegal: 7273
+KQKR using 16 threads ..........................................................c
+Time spent: 0:0:2.540 Won: 1991186 Loss: 306 Draw: 408725 Illegal: 1027446
+KQQKR using 16 threads ..............................c
+Time spent: 0:0:25.440 Won: 62562298 Loss: 2447 Draw: 88866 Illegal: 146975239
+KKB using 16 threads ..c
+Time spent: 0:0:0.5 Won: 0 Loss: 0 Draw: 20 Illegal: 5054
+KQKB using 16 threads ........................c
+Time spent: 0:0:1.583 Won: 2252933 Loss: 0 Draw: 334279 Illegal: 896154
+KQQKB using 16 threads ........c
+Time spent: 0:0:24.130 Won: 66428713 Loss: 0 Draw: 22471 Illegal: 143222896
+KKN using 16 threads ..c
+Time spent: 0:0:0.5 Won: 0 Loss: 0 Draw: 7 Illegal: 3482
+KQKN using 16 threads .....................................c
+Time spent: 0:0:1.865 Won: 2373232 Loss: 0 Draw: 272254 Illegal: 808130
+KQQKN using 16 threads ..........c
+Time spent: 0:0:24.169 Won: 68892874 Loss: 0 Draw: 42100 Illegal: 140739046
+KKP using 16 threads ..c
+Time spent: 0:0:0.30 Won: 0 Loss: 0 Draw: 13588 Illegal: 2348
+KQKP using 16 threads ...................................................c
+Time spent: 0:0:2.25 Won: 7496446 Loss: 0 Draw: 969591 Illegal: 1955662
+KQQKP using 16 threads ............c
+Time spent: 0:1:12.173 Won: 220570149 Loss: 0 Draw: 1119914 Illegal: 411923088
+KRK using 16 threads ..................................c
+Time spent: 0:0:0.81 Won: 47219 Loss: 0 Draw: 2796 Illegal: 7273
+KRKQ using 16 threads ......c
+Time spent: 0:0:0.445 Won: 388455 Loss: 1374 Draw: 481427 Illegal: 1027446
+KQRK using 16 threads ..........c
+Time spent: 0:0:0.875 Won: 2554256 Loss: 0 Draw: 17684 Illegal: 922628
+KQRKQ using 16 threads ........................................................................................................................c
+Time spent: 0:0:41.640 Won: 88593412 Loss: 29287 Draw: 25991080 Illegal: 88378822
+KRKR using 16 threads .......c
+Time spent: 0:0:0.443 Won: 401517 Loss: 603 Draw: 408754 Illegal: 798756
+KQRKR using 16 threads ................................c
+Time spent: 0:0:36.855 Won: 120015209 Loss: 8898 Draw: 14146141 Illegal: 74973710
+KRKB using 16 threads ...................................c
+Time spent: 0:0:0.548 Won: 521183 Loss: 0 Draw: 334279 Illegal: 667464
+KQRKB using 16 threads ..........c
+Time spent: 0:0:34.137 Won: 131835813 Loss: 0 Draw: 10317031 Illegal: 67466476
+KRKN using 16 threads ......................................................c
+Time spent: 0:0:0.919 Won: 822164 Loss: 1 Draw: 272254 Illegal: 579440
+KQRKN using 16 threads ..........c
+Time spent: 0:0:32.435 Won: 139823975 Loss: 36 Draw: 7010863 Illegal: 62501324
+KRKP using 16 threads ........................................................................c
+Time spent: 0:0:1.937 Won: 7148889 Loss: 0 Draw: 1090767 Illegal: 1253511
+KQRKP using 16 threads ..................c
+Time spent: 0:1:37.190 Won: 466984928 Loss: 0 Draw: 5292847 Illegal: 160619623
+KBK using 16 threads ..c
+Time spent: 0:0:0.13 Won: 0 Loss: 0 Draw: 2804 Illegal: 5054
+KBKQ using 16 threads ..c
+Time spent: 0:0:0.198 Won: 0 Loss: 1692 Draw: 497531 Illegal: 896154
+KQBK using 16 threads ..............c
+Time spent: 0:0:1.109 Won: 2510080 Loss: 0 Draw: 160147 Illegal: 824341
+KQBKQ using 16 threads .............................................................c
+Time spent: 0:0:25.649 Won: 37635942 Loss: 35412 Draw: 33605622 Illegal: 82706398
+KBKR using 16 threads ..c
+Time spent: 0:0:0.189 Won: 0 Loss: 816 Draw: 409671 Illegal: 667464
+KQBKR using 16 threads .....................................c
+Time spent: 0:0:42.32 Won: 116997291 Loss: 11600 Draw: 21182082 Illegal: 69301286
+KBKB using 16 threads ...c
+Time spent: 0:0:0.241 Won: 66 Loss: 14 Draw: 334268 Illegal: 536172
+KQBKB using 16 threads ................c
+Time spent: 0:0:39.155 Won: 130114242 Loss: 167 Draw: 17274145 Illegal: 61794052
+KBKN using 16 threads ...c
+Time spent: 0:0:0.242 Won: 3 Loss: 1 Draw: 272250 Illegal: 448148
+KQBKN using 16 threads ..............c
+Time spent: 0:0:35.471 Won: 136792877 Loss: 30 Draw: 14290837 Illegal: 56828900
+KBKP using 16 threads ...c
+Time spent: 0:0:1.16 Won: 132 Loss: 4 Draw: 1276616 Illegal: 845379
+KQBKP using 16 threads ........................................c
+Time spent: 0:1:50.416 Won: 443281912 Loss: 119 Draw: 46596023 Illegal: 142961725
+KNK using 16 threads ..c
+Time spent: 0:0:0.10 Won: 0 Loss: 0 Draw: 2792 Illegal: 3482
+KNKQ using 16 threads ..c
+Time spent: 0:0:0.175 Won: 0 Loss: 2096 Draw: 498537 Illegal: 808130
+KQNK using 16 threads ................c
+Time spent: 0:0:1.142 Won: 2574024 Loss: 0 Draw: 164666 Illegal: 755878
+KQNKQ using 16 threads .......................................................................c
+Time spent: 0:0:25.490 Won: 34350768 Loss: 40654 Draw: 34902905 Illegal: 78784500
+KNKR using 16 threads ...c
+Time spent: 0:0:0.215 Won: 5 Loss: 1166 Draw: 409626 Illegal: 579440
+KQNKR using 16 threads ............................................c
+Time spent: 0:0:43.816 Won: 119214032 Loss: 15174 Draw: 22317583 Illegal: 65379388
+KNKB using 16 threads ...c
+Time spent: 0:0:0.216 Won: 6 Loss: 1 Draw: 334268 Illegal: 448148
+KQNKB using 16 threads .................c
+Time spent: 0:0:40.194 Won: 133043659 Loss: 28 Draw: 18276653 Illegal: 57872154
+KNKN using 16 threads ...c
+Time spent: 0:0:0.202 Won: 6 Loss: 1 Draw: 272247 Illegal: 360124
+KQNKN using 16 threads .................c
+Time spent: 0:0:36.323 Won: 139636630 Loss: 31 Draw: 15018246 Illegal: 52907002
+KNKP using 16 threads ...............c
+Time spent: 0:0:0.967 Won: 243 Loss: 2 Draw: 1282998 Illegal: 578060
+KQNKP using 16 threads ..........................................c
+Time spent: 0:1:52.237 Won: 449535666 Loss: 56 Draw: 51606682 Illegal: 131007348
+KPK using 16 threads .......................................c
+Time spent: 0:0:0.100 Won: 113903 Loss: 0 Draw: 9109 Illegal: 2348
+KPKQ using 16 threads ....c
+Time spent: 0:0:0.923 Won: 393137 Loss: 8336 Draw: 1550857 Illegal: 1956016
+KQPK using 16 threads ...............c
+Time spent: 0:0:1.780 Won: 8502818 Loss: 0 Draw: 152186 Illegal: 1909705
+KQPKQ using 16 threads ..............................................................................................................................................................................................................................c
+Time spent: 0:1:51.894 Won: 168191847 Loss: 161218 Draw: 107231978 Illegal: 217325578
+KPKR using 16 threads ......................c
+Time spent: 0:0:0.961 Won: 834029 Loss: 4778 Draw: 1281061 Illegal: 1253871
+KQPKR using 16 threads ........................................c
+Time spent: 0:2:23.619 Won: 391050393 Loss: 63176 Draw: 61175938 Illegal: 176131921
+KPKB using 16 threads ............c
+Time spent: 0:0:1.0 Won: 1431386 Loss: 28 Draw: 1094341 Illegal: 845373
+KQPKB using 16 threads ....................c
+Time spent: 0:2:13.887 Won: 434564335 Loss: 332 Draw: 45911813 Illegal: 152800552
+KPKN using 16 threads ..........................c
+Time spent: 0:0:1.196 Won: 2291534 Loss: 4 Draw: 910305 Illegal: 578172
+KQPKN using 16 threads .............................c
+Time spent: 0:2:0.442 Won: 459423429 Loss: 138 Draw: 33328312 Illegal: 137703535
+KPKP using 16 threads ............................c
+Time spent: 0:0:0.964 Won: 2595313 Loss: 2 Draw: 1081895 Illegal: 220712
+KQPKP using 16 threads ............................c
+Time spent: 0:1:3.185 Won: 370100421 Loss: 59 Draw: 25196890 Illegal: 92193600
+KRRK using 16 threads ............c
+Time spent: 0:0:0.664 Won: 1372472 Loss: 0 Draw: 2468 Illegal: 2119628
+KRRKQ using 16 threads ..............................c
+Time spent: 0:0:20.307 Won: 22243481 Loss: 23595 Draw: 14870431 Illegal: 143791599
+KRRKR using 16 threads ...................................................c
+Time spent: 0:0:30.62 Won: 58554407 Loss: 7904 Draw: 13392544 Illegal: 137087769
+KRRKB using 16 threads ..................c
+Time spent: 0:0:27.436 Won: 66131993 Loss: 0 Draw: 9677478 Illegal: 133335426
+KRRKN using 16 threads ...............c
+Time spent: 0:0:25.765 Won: 71695914 Loss: 45 Draw: 6681618 Illegal: 130851576
+KRRKP using 16 threads ............................c
+Time spent: 0:1:14.785 Won: 242007127 Loss: 0 Draw: 10274217 Illegal: 381480393
+KRBK using 16 threads ..........................c
+Time spent: 0:0:1.390 Won: 2728645 Loss: 0 Draw: 150238 Illegal: 615685
+KRBKQ using 16 threads .............c
+Time spent: 0:0:24.139 Won: 29695298 Loss: 58079 Draw: 36867251 Illegal: 70458682
+KRBKR using 16 threads .....................................................................................................................c
+Time spent: 0:0:28.836 Won: 33431300 Loss: 21489 Draw: 33172983 Illegal: 57053570
+KRBKB using 16 threads ................................................c
+Time spent: 0:0:45.509 Won: 131121709 Loss: 253 Draw: 26176151 Illegal: 49546336
+KRBKN using 16 threads ........................................c
+Time spent: 0:0:44.65 Won: 141733918 Loss: 105 Draw: 20530627 Illegal: 44581184
+KRBKP using 16 threads .......................................................................................c
+Time spent: 0:2:1.233 Won: 463345480 Loss: 165 Draw: 56575472 Illegal: 105312872
+KRNK using 16 threads ..........................c
+Time spent: 0:0:1.286 Won: 2789545 Loss: 0 Draw: 156789 Illegal: 548234
+KRNKQ using 16 threads ..................c
+Time spent: 0:0:24.211 Won: 27985439 Loss: 66397 Draw: 37814220 Illegal: 66616166
+KRNKR using 16 threads ...................................................................c
+Time spent: 0:0:26.302 Won: 30086780 Loss: 27883 Draw: 34164333 Illegal: 53211054
+KRNKB using 16 threads ...............................................c
+Time spent: 0:0:44.935 Won: 133438503 Loss: 41 Draw: 26870269 Illegal: 45703820
+KRNKN using 16 threads ..............................................c
+Time spent: 0:0:44.325 Won: 145010182 Loss: 101 Draw: 21091151 Illegal: 40738668
+KRNKP using 16 threads ...........................................................................................................c
+Time spent: 0:2:5.607 Won: 467095597 Loss: 82 Draw: 60786330 Illegal: 93609665
+KRPK using 16 threads ......................c
+Time spent: 0:0:1.860 Won: 9215252 Loss: 0 Draw: 131349 Illegal: 1221717
+KRPKQ using 16 threads .................c
+Time spent: 0:1:13.325 Won: 96429462 Loss: 266053 Draw: 117168461 Illegal: 176965958
+KRPKR using 16 threads .........................................................................................................................c
+Time spent: 0:1:46.951 Won: 224996989 Loss: 116413 Draw: 98877253 Illegal: 135772301
+KRPKB using 16 threads .................................................................................................................................c
+Time spent: 0:2:29.98 Won: 423432517 Loss: 504 Draw: 75527085 Illegal: 112440932
+KRPKN using 16 threads ..........................................................................................c
+Time spent: 0:2:22.970 Won: 459530214 Loss: 390 Draw: 55140033 Illegal: 97343915
+KRPKP using 16 threads ................................c
+Time spent: 0:1:2.865 Won: 386318542 Loss: 82 Draw: 37362734 Illegal: 61343599
+KBBK using 16 threads ........................................c
+Time spent: 0:0:0.988 Won: 664706 Loss: 0 Draw: 140893 Illegal: 2004780
+KBBKQ using 16 threads ........c
+Time spent: 0:0:19.606 Won: 6090592 Loss: 33659 Draw: 21397224 Illegal: 137201419
+KBBKR using 16 threads ............c
+Time spent: 0:0:20.180 Won: 6953448 Loss: 13099 Draw: 19148351 Illegal: 130497589
+KBBKB using 16 threads .............c
+Time spent: 0:0:19.399 Won: 6613627 Loss: 646 Draw: 16019120 Illegal: 126745246
+KBBKN using 16 threads ..............................................................................................................................c
+Time spent: 0:0:30.416 Won: 34450031 Loss: 44 Draw: 13373814 Illegal: 124261396
+KBBKP using 16 threads ..................................................c
+Time spent: 0:1:16.245 Won: 109033071 Loss: 194 Draw: 44974233 Illegal: 360996075
+KBNK using 16 threads ....................................................................c
+Time spent: 0:0:1.837 Won: 2751654 Loss: 0 Draw: 292971 Illegal: 427102
+KBNKQ using 16 threads ..........c
+Time spent: 0:0:23.415 Won: 20920280 Loss: 79698 Draw: 42952231 Illegal: 59688552
+KBNKR using 16 threads ............c
+Time spent: 0:0:24.400 Won: 22573615 Loss: 36125 Draw: 38834347 Illegal: 46283440
+KBNKB using 16 threads ...........................c
+Time spent: 0:0:23.697 Won: 22015135 Loss: 581 Draw: 32773267 Illegal: 38776206
+KBNKN using 16 threads .......................................................................................................................................................c
+Time spent: 0:0:30.51 Won: 29906658 Loss: 104 Draw: 27376661 Illegal: 33811054
+KBNKP using 16 threads .................................................c
+Time spent: 0:2:5.995 Won: 418868486 Loss: 296 Draw: 90572410 Illegal: 72081283
+KBPK using 16 threads .........................................c
+Time spent: 0:0:1.910 Won: 8697427 Loss: 0 Draw: 585485 Illegal: 831216
+KBPKQ using 16 threads ........c
+Time spent: 0:1:8.101 Won: 58030949 Loss: 315330 Draw: 134051362 Illegal: 154671983
+KBPKR using 16 threads ..........................c
+Time spent: 0:1:11.420 Won: 91577225 Loss: 147593 Draw: 114589676 Illegal: 113478326
+KBPKB using 16 threads ..............................................................................c
+Time spent: 0:1:18.521 Won: 146877223 Loss: 3889 Draw: 94733006 Illegal: 90146957
+KBPKN using 16 threads .....................................................................................c
+Time spent: 0:1:31.900 Won: 232686391 Loss: 392 Draw: 75436888 Illegal: 75049940
+KBPKP using 16 threads ........................................................................................................c
+Time spent: 0:1:4.605 Won: 317149051 Loss: 285 Draw: 65547934 Illegal: 44092721
+KNNK using 16 threads ...c
+Time spent: 0:0:0.242 Won: 92 Loss: 0 Draw: 148524 Illegal: 1921200
+KNNKQ using 16 threads ...c
+Time spent: 0:0:20.272 Won: 2852 Loss: 47707 Draw: 22093989 Illegal: 132479883
+KNNKR using 16 threads .......c
+Time spent: 0:0:20.269 Won: 4731 Loss: 24834 Draw: 19571336 Illegal: 125776053
+KNNKB using 16 threads .........c
+Time spent: 0:0:19.949 Won: 10558 Loss: 51 Draw: 16595654 Illegal: 122023710
+KNNKN using 16 threads ...............c
+Time spent: 0:0:19.775 Won: 39229 Loss: 56 Draw: 13804478 Illegal: 119539860
+KNNKP using 16 threads .....................................................................................................................................................................................................................................c
+Time spent: 0:1:27.184 Won: 60806977 Loss: 102 Draw: 48601395 Illegal: 346630547
+KNPK using 16 threads .................................................c
+Time spent: 0:0:2.71 Won: 8886306 Loss: 0 Draw: 613248 Illegal: 564373
+KNPKQ using 16 threads .........c
+Time spent: 0:1:8.93 Won: 51762242 Loss: 378809 Draw: 135679272 Illegal: 139581063
+KNPKR using 16 threads ....................................c
+Time spent: 0:1:8.569 Won: 80864824 Loss: 203665 Draw: 116156551 Illegal: 98387406
+KNPKB using 16 threads ............................................................c
+Time spent: 0:1:17.587 Won: 144156970 Loss: 1252 Draw: 97102088 Illegal: 75056037
+KNPKN using 16 threads ...............................................................................................c
+Time spent: 0:1:25.849 Won: 206598299 Loss: 414 Draw: 77282573 Illegal: 59959020
+KNPKP using 16 threads ...........................................................................c
+Time spent: 0:0:59.601 Won: 290555426 Loss: 196 Draw: 68616572 Illegal: 32676155
+KPPK using 16 threads ................................c
+Time spent: 0:0:1.295 Won: 3737192 Loss: 0 Draw: 106010 Illegal: 4183693
+KPPKQ using 16 threads ............c
+Time spent: 0:0:43.801 Won: 18269337 Loss: 188908 Draw: 52286547 Illegal: 291540719
+KPPKR using 16 threads ..................................................c
+Time spent: 0:0:47.16 Won: 46193539 Loss: 104083 Draw: 41724171 Illegal: 275796327
+KPPKB using 16 threads ....................................c
+Time spent: 0:0:45.934 Won: 87682393 Loss: 1149 Draw: 34477004 Illegal: 266765972
+KPPKN using 16 threads ..........................................................c
+Time spent: 0:0:48.225 Won: 115353208 Loss: 193 Draw: 25769785 Illegal: 261059276
+KPPKP using 16 threads .........................................................c
+Time spent: 0:0:41.375 Won: 114632793 Loss: 96 Draw: 24269461 Illegal: 194988066
+
+All Bitbases generated!
+Time spent: 1:11:48.130
+verify K**K*
+KQQKQ Verifying with 16 cores ................................................................ Errors: 0
+KQQKR Verifying with 16 cores ................................................................ Errors: 0
+KQQKB Verifying with 16 cores ................................................................ Errors: 0
+KQQKN Verifying with 16 cores ................................................................ Errors: 0
+KQQKP Verifying with 16 cores ................................................................ Errors: 0
+KQRKQ Verifying with 16 cores ................................................................ Errors: 0
+KQRKR Verifying with 16 cores ................................................................ Errors: 0
+KQRKB Verifying with 16 cores ................................................................ Errors: 0
+KQRKN Verifying with 16 cores ................................................................ Errors: 0
+KQRKP Verifying with 16 cores ................................................................ Errors: 0
+KQBKQ Verifying with 16 cores ................................................................ Errors: 0
+KQBKR Verifying with 16 cores ................................................................ Errors: 0
+KQBKB Verifying with 16 cores ................................................................ Errors: 0
+KQBKN Verifying with 16 cores ................................................................ Errors: 0
+KQBKP Verifying with 16 cores ................................................................ Errors: 0
+KQNKQ Verifying with 16 cores ................................................................ Errors: 0
+KQNKR Verifying with 16 cores ................................................................ Errors: 0
+KQNKB Verifying with 16 cores ................................................................ Errors: 0
+KQNKN Verifying with 16 cores ................................................................ Errors: 0
+KQNKP Verifying with 16 cores ................................................................ Errors: 0
+KQPKQ Verifying with 16 cores ................................................................ Errors: 0
+KQPKR Verifying with 16 cores ................................................................ Errors: 0
+KQPKB Verifying with 16 cores ................................................................ Errors: 0
+KQPKN Verifying with 16 cores ................................................................ Errors: 0
+KQPKP Verifying with 16 cores ................................................................ Errors: 0
+KRRKQ Verifying with 16 cores ................................................................ Errors: 0
+KRRKR Verifying with 16 cores ................................................................ Errors: 0
+KRRKB Verifying with 16 cores ................................................................ Errors: 0
+KRRKN Verifying with 16 cores ................................................................ Errors: 0
+KRRKP Verifying with 16 cores ................................................................ Errors: 0
+KRBKQ Verifying with 16 cores ................................................................ Errors: 0
+KRBKR Verifying with 16 cores ................................................................ Errors: 0
+KRBKB Verifying with 16 cores ................................................................ Errors: 0
+KRBKN Verifying with 16 cores ................................................................ Errors: 0
+KRBKP Verifying with 16 cores ................................................................ Errors: 0
+KRNKQ Verifying with 16 cores ................................................................ Errors: 0
+KRNKR Verifying with 16 cores ................................................................ Errors: 0
+KRNKB Verifying with 16 cores ................................................................ Errors: 0
+KRNKN Verifying with 16 cores ................................................................ Errors: 0
+KRNKP Verifying with 16 cores ................................................................ Errors: 0
+KRPKQ Verifying with 16 cores ................................................................ Errors: 0
+KRPKR Verifying with 16 cores ................................................................ Errors: 0
+KRPKB Verifying with 16 cores ................................................................ Errors: 0
+KRPKN Verifying with 16 cores ................................................................ Errors: 0
+KRPKP Verifying with 16 cores ................................................................ Errors: 0
+KBBKQ Verifying with 16 cores ................................................................ Errors: 0
+KBBKR Verifying with 16 cores ................................................................ Errors: 0
+KBBKB Verifying with 16 cores ................................................................ Errors: 0
+KBBKN Verifying with 16 cores ................................................................ Errors: 0
+KBBKP Verifying with 16 cores ................................................................ Errors: 0
+KBNKQ Verifying with 16 cores ................................................................ Errors: 0
+KBNKR Verifying with 16 cores ................................................................ Errors: 0
+KBNKB Verifying with 16 cores ................................................................ Errors: 0
+KBNKN Verifying with 16 cores ................................................................ Errors: 0
+KBNKP Verifying with 16 cores ................................................................ Errors: 0
+KBPKQ Verifying with 16 cores ................................................................ Errors: 0
+KBPKR Verifying with 16 cores ................................................................ Errors: 0
+KBPKB Verifying with 16 cores ................................................................ Errors: 0
+KBPKN Verifying with 16 cores ................................................................ Errors: 0
+KBPKP Verifying with 16 cores ................................................................ Errors: 0
+KNNKQ Verifying with 16 cores ................................................................ Errors: 0
+KNNKR Verifying with 16 cores ................................................................ Errors: 0
+KNNKB Verifying with 16 cores ................................................................ Errors: 0
+KNNKN Verifying with 16 cores ................................................................ Errors: 0
+KNNKP Verifying with 16 cores ................................................................ Errors: 0
+KNPKQ Verifying with 16 cores ................................................................ Errors: 0
+KNPKR Verifying with 16 cores ................................................................ Errors: 0
+KNPKB Verifying with 16 cores ................................................................ Errors: 0
+KNPKN Verifying with 16 cores ................................................................ Errors: 0
+KNPKP Verifying with 16 cores ................................................................ Errors: 0
+KPPKQ Verifying with 16 cores ................................................................ Errors: 0
+KPPKR Verifying with 16 cores ................................................................ Errors: 0
+KPPKB Verifying with 16 cores ................................................................ Errors: 0
+KPPKN Verifying with 16 cores ................................................................ Errors: 0
+KPPKP Verifying with 16 cores ................................................................ Errors: 0
+
+All Bitbases verified!
+Time spent: 1:41:41.381
+generate KPKPP
+KKQQ using 16 threads ..c
+Time spent: 0:0:0.118 Won: 0 Loss: 31523 Draw: 50010 Illegal: 2286537
+KQKQQ using 16 threads ...............c
+Time spent: 0:0:20.911 Won: 221206 Loss: 815022 Draw: 15539033 Illegal: 153679069
+KKQR using 16 threads ..c
+Time spent: 0:0:0.112 Won: 0 Loss: 28454 Draw: 61192 Illegal: 922628
+KQKQR using 16 threads .................c
+Time spent: 0:0:23.905 Won: 16771992 Loss: 595701 Draw: 30189066 Illegal: 88378822
+KKQB using 16 threads ..c
+Time spent: 0:0:0.109 Won: 0 Loss: 8228 Draw: 45235 Illegal: 824341
+KQKQB using 16 threads ...................................c
+Time spent: 0:0:24.207 Won: 20981977 Loss: 184332 Draw: 29794398 Illegal: 82706398
+KKQN using 16 threads ..c
+Time spent: 0:0:0.105 Won: 0 Loss: 4750 Draw: 34436 Illegal: 755878
+KQKQN using 16 threads .............................c
+Time spent: 0:0:23.820 Won: 23015437 Loss: 108666 Draw: 29340490 Illegal: 78784500
+KKQP using 16 threads ..c
+Time spent: 0:0:0.273 Won: 0 Loss: 10537 Draw: 622117 Illegal: 1910059
+KQKQP using 16 threads .................................c
+Time spent: 0:1:12.722 Won: 74414614 Loss: 222130 Draw: 101881879 Illegal: 217325578
+KKRR using 16 threads ..c
+Time spent: 0:0:0.95 Won: 0 Loss: 9052 Draw: 13802 Illegal: 2119628
+KQKRR using 16 threads .........................................c
+Time spent: 0:0:20.937 Won: 19346625 Loss: 134401 Draw: 14766850 Illegal: 143791599
+KKRB using 16 threads ..c
+Time spent: 0:0:0.93 Won: 0 Loss: 2042 Draw: 11339 Illegal: 615685
+KQKRB using 16 threads ...................................................................................c
+Time spent: 0:0:31.289 Won: 58011918 Loss: 38306 Draw: 27830329 Illegal: 70458682
+KKRN using 16 threads ..c
+Time spent: 0:0:0.88 Won: 0 Loss: 1835 Draw: 8505 Illegal: 548234
+KQKRN using 16 threads ............................................................................................c
+Time spent: 0:0:33.493 Won: 70833332 Loss: 28386 Draw: 26518034 Illegal: 66616166
+KKRP using 16 threads ..c
+Time spent: 0:0:0.261 Won: 0 Loss: 5202 Draw: 655579 Illegal: 1222077
+KQKRP using 16 threads ...........................................................................................................................................................................................................c
+Time spent: 0:2:23.344 Won: 312166476 Loss: 72173 Draw: 90893805 Illegal: 176965758
+KKBB using 16 threads ..c
+Time spent: 0:0:0.82 Won: 0 Loss: 194 Draw: 2383 Illegal: 2004780
+KQKBB using 16 threads ...........................................................................................................................................c
+Time spent: 0:0:39.349 Won: 57664795 Loss: 2493 Draw: 12862935 Illegal: 137201419
+KKBN using 16 threads ..c
+Time spent: 0:0:0.80 Won: 0 Loss: 58 Draw: 2732 Illegal: 427102
+KQKBN using 16 threads ..................................................................................c
+Time spent: 0:0:45.829 Won: 122630730 Loss: 1137 Draw: 23434193 Illegal: 59688552
+KKBP using 16 threads ..c
+Time spent: 0:0:0.251 Won: 0 Loss: 117 Draw: 708878 Illegal: 831210
+KQKBP using 16 threads .....................................................................................c
+Time spent: 0:2:10.490 Won: 379720742 Loss: 2251 Draw: 81166754 Illegal: 154651152
+KKNN using 16 threads ..c
+Time spent: 0:0:0.74 Won: 0 Loss: 15 Draw: 716 Illegal: 1921200
+KQKNN using 16 threads ............................................................................................................................c
+Time spent: 0:0:31.183 Won: 56693599 Loss: 465 Draw: 10455338 Illegal: 132479883
+KKNP using 16 threads ..c
+Time spent: 0:0:0.248 Won: 0 Loss: 26 Draw: 748847 Illegal: 564485
+KQKNP using 16 threads .....................................................................................c
+Time spent: 0:2:0.864 Won: 399298255 Loss: 812 Draw: 73162945 Illegal: 139566752
+KKPP using 16 threads ..c
+Time spent: 0:0:0.210 Won: 0 Loss: 12 Draw: 576581 Illegal: 4183693
+KQKPP using 16 threads .......................................................................c
+Time spent: 0:0:55.397 Won: 158733885 Loss: 376 Draw: 31573058 Illegal: 291524530
+KRKQQ using 16 threads ....c
+Time spent: 0:0:19.993 Won: 54713 Loss: 1153526 Draw: 15766488 Illegal: 146975239
+KRKQR using 16 threads ....c
+Time spent: 0:0:22.562 Won: 223455 Loss: 934838 Draw: 31543513 Illegal: 74973710
+KRKQB using 16 threads ....c
+Time spent: 0:0:22.783 Won: 579172 Loss: 272570 Draw: 31061811 Illegal: 69301286
+KRKQN using 16 threads ......c
+Time spent: 0:0:22.784 Won: 2451599 Loss: 169999 Draw: 30281505 Illegal: 65379388
+KRKQP using 16 threads ......c
+Time spent: 0:1:9.153 Won: 49593678 Loss: 351390 Draw: 104515941 Illegal: 176132121
+KRKRR using 16 threads ....c
+Time spent: 0:0:19.703 Won: 184038 Loss: 243885 Draw: 15075308 Illegal: 137087769
+KRKRB using 16 threads ........c
+Time spent: 0:0:23.68 Won: 726220 Loss: 61592 Draw: 27909805 Illegal: 57053570
+KRKRN using 16 threads .........c
+Time spent: 0:0:23.154 Won: 2634883 Loss: 50899 Draw: 26598242 Illegal: 53211054
+KRKRP using 16 threads ..............c
+Time spent: 0:1:10.177 Won: 51207973 Loss: 130588 Draw: 98371728 Illegal: 135772301
+KRKBB using 16 threads .................c
+Time spent: 0:0:20.133 Won: 545873 Loss: 4014 Draw: 12878500 Illegal: 130497589
+KRKBN using 16 threads ........................c
+Time spent: 0:0:24.637 Won: 3197102 Loss: 1839 Draw: 23438561 Illegal: 46283440
+KRKBP using 16 threads .........................................c
+Time spent: 0:1:19.405 Won: 63311041 Loss: 3300 Draw: 91211230 Illegal: 113457695
+KRKNN using 16 threads .....................c
+Time spent: 0:0:19.919 Won: 2709892 Loss: 778 Draw: 10455711 Illegal: 125776053
+KRKNP using 16 threads .....................................................................................c
+Time spent: 0:1:19.178 Won: 84255030 Loss: 1364 Draw: 84159771 Illegal: 98373295
+KRKPP using 16 threads ..................................................c
+Time spent: 0:0:49.797 Won: 121886719 Loss: 503 Draw: 36957861 Illegal: 275780391
+KBKQQ using 16 threads ..c
+Time spent: 0:0:7.857 Won: 0 Loss: 1339030 Draw: 15876890 Illegal: 143222896
+KBKQR using 16 threads ..c
+Time spent: 0:0:10.666 Won: 0 Loss: 1072517 Draw: 31693611 Illegal: 67466476
+KBKQB using 16 threads ....c
+Time spent: 0:0:22.85 Won: 1717 Loss: 352159 Draw: 31189405 Illegal: 61794052
+KBKQN using 16 threads ...c
+Time spent: 0:0:22.113 Won: 92 Loss: 199802 Draw: 30437112 Illegal: 57872154
+KBKQP using 16 threads ....c
+Time spent: 0:1:7.398 Won: 3432 Loss: 419851 Draw: 108579793 Illegal: 152821383
+KBKRR using 16 threads ..c
+Time spent: 0:0:7.748 Won: 0 Loss: 290378 Draw: 15095219 Illegal: 133335426
+KBKRB using 16 threads ....c
+Time spent: 0:0:22.460 Won: 2420 Loss: 77239 Draw: 27915078 Illegal: 49546336
+KBKRN using 16 threads ...c
+Time spent: 0:0:22.446 Won: 130 Loss: 61801 Draw: 26605442 Illegal: 45703820
+KBKRP using 16 threads ....c
+Time spent: 0:1:6.838 Won: 4838 Loss: 164370 Draw: 100854756 Illegal: 112461563
+KBKBB using 16 threads ....c
+Time spent: 0:0:19.333 Won: 3707 Loss: 9628 Draw: 12886601 Illegal: 126745246
+KBKBN using 16 threads ....c
+Time spent: 0:0:21.976 Won: 3279 Loss: 3993 Draw: 23439957 Illegal: 38776206
+KBKBP using 16 threads .......c
+Time spent: 0:1:5.450 Won: 24958 Loss: 8277 Draw: 93419770 Illegal: 90146957
+KBKNN using 16 threads ...c
+Time spent: 0:0:19.11 Won: 160 Loss: 860 Draw: 10455764 Illegal: 122023710
+KBKNP using 16 threads .................c
+Time spent: 0:1:4.692 Won: 14266 Loss: 1687 Draw: 87273740 Illegal: 75062557
+KBKPP using 16 threads ........c
+Time spent: 0:0:44.164 Won: 12316 Loss: 774 Draw: 43183400 Illegal: 266765719
+KNKQQ using 16 threads ..c
+Time spent: 0:0:7.605 Won: 0 Loss: 1493820 Draw: 15957252 Illegal: 140739046
+KNKQR using 16 threads ...c
+Time spent: 0:0:21.686 Won: 185 Loss: 1290683 Draw: 31774832 Illegal: 62501324
+KNKQB using 16 threads ...c
+Time spent: 0:0:21.454 Won: 183 Loss: 379608 Draw: 31282170 Illegal: 56828900
+KNKQN using 16 threads ...c
+Time spent: 0:0:21.549 Won: 197 Loss: 229504 Draw: 30501369 Illegal: 52907002
+KNKQP using 16 threads ....c
+Time spent: 0:1:4.828 Won: 1112 Loss: 488097 Draw: 109076305 Illegal: 137717846
+KNKRR using 16 threads ...c
+Time spent: 0:0:18.951 Won: 229 Loss: 383640 Draw: 15103874 Illegal: 130851576
+KNKRB using 16 threads ...c
+Time spent: 0:0:21.613 Won: 581 Loss: 93330 Draw: 27914372 Illegal: 44581184
+KNKRN using 16 threads ...c
+Time spent: 0:0:21.289 Won: 569 Loss: 82025 Draw: 26603108 Illegal: 40738668
+KNKRP using 16 threads ....c
+Time spent: 0:1:4.560 Won: 2418 Loss: 223366 Draw: 100997225 Illegal: 97358026
+KNKBB using 16 threads ...c
+Time spent: 0:0:18.754 Won: 266 Loss: 7958 Draw: 12887878 Illegal: 124261396
+KNKBN using 16 threads ...c
+Time spent: 0:0:21.129 Won: 637 Loss: 2740 Draw: 23439335 Illegal: 33811054
+KNKBP using 16 threads .........c
+Time spent: 0:1:3.943 Won: 5089 Loss: 5425 Draw: 93832687 Illegal: 75043420
+KNKNN using 16 threads ...c
+Time spent: 0:0:18.587 Won: 349 Loss: 959 Draw: 10455349 Illegal: 119539860
+KNKNP using 16 threads .........c
+Time spent: 0:1:2.619 Won: 8387 Loss: 1659 Draw: 87425136 Illegal: 59959020
+KNKPP using 16 threads .............................c
+Time spent: 0:0:43.978 Won: 23131 Loss: 700 Draw: 43347663 Illegal: 261053990
+KPKQQ using 16 threads ....c
+Time spent: 0:0:56.355 Won: 16939 Loss: 5454482 Draw: 50874300 Illegal: 411937400
+KPKQR using 16 threads ....c
+Time spent: 0:1:0.87 Won: 909051 Loss: 4889447 Draw: 100675602 Illegal: 160651510
+KPKQB using 16 threads ....c
+Time spent: 0:0:59.682 Won: 2982761 Loss: 1472457 Draw: 99952195 Illegal: 142979493
+KPKQN using 16 threads ....c
+Time spent: 0:0:59.105 Won: 5823885 Loss: 883062 Draw: 97476494 Illegal: 131031257
+KPKQP using 16 threads ......c
+Time spent: 0:0:45.104 Won: 7630649 Loss: 480903 Draw: 87092530 Illegal: 92225161
+KPKRR using 16 threads ....c
+Time spent: 0:0:54.540 Won: 1529521 Loss: 1493884 Draw: 47245488 Illegal: 381497433
+KPKRB using 16 threads ..........c
+Time spent: 0:0:55.923 Won: 7391323 Loss: 382187 Draw: 88864148 Illegal: 105331510
+KPKRN using 16 threads ......................c
+Time spent: 0:0:56.239 Won: 13693628 Loss: 333889 Draw: 84866029 Illegal: 93634408
+KPKRP using 16 threads ......................c
+Time spent: 0:0:44.203 Won: 23410142 Loss: 228765 Draw: 81366879 Illegal: 61374875
+KPKBB using 16 threads ..................c
+Time spent: 0:0:54.444 Won: 19358190 Loss: 36678 Draw: 42106093 Illegal: 360995740
+KPKBN using 16 threads ..................c
+Time spent: 0:0:58.737 Won: 52486405 Loss: 13754 Draw: 77510144 Illegal: 72087169
+KPKBP using 16 threads ....................c
+Time spent: 0:0:43.928 Won: 46790497 Loss: 6805 Draw: 78390142 Illegal: 44093006
+KPKNN using 16 threads ..........................c
+Time spent: 0:0:53.950 Won: 22566988 Loss: 3432 Draw: 35147635 Illegal: 346636710
+KPKNP using 16 threads ............................c
+Time spent: 0:0:44.991 Won: 67773070 Loss: 1563 Draw: 74022205 Illegal: 32686503
+KPKPP using 16 threads ........................c
+Time spent: 0:0:33.917 Won: 35097854 Loss: 649 Draw: 36663658 Illegal: 194988066
+
+All Bitbases generated!
+Time spent: 0:52:27.779

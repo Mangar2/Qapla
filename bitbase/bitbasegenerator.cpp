@@ -491,7 +491,9 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, Gener
 void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
-
+	if (pieceString.substr(0, 2) == "KK") {
+		return;
+	}
 	if (_traceLevel > 1) cout << endl;
 	cout << pieceString << " using " << _cores << " threads ";
 

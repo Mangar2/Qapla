@@ -180,7 +180,12 @@ namespace QaplaBitbase {
 		 * Prints a statistic 
 		 */
 		void printStatistic() {
-			cout << "Won: " << _won << " Loss: " << _loss << " Draw: " << _draw << " Illegal: " << _illegal;
+			uint64_t drawOrLoss = _sizeInBit - _won - _illegal;
+			cout 
+				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%)"
+				<< " Draw or Loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
+				<< " Mated: " << _loss << " Initial draw: " << _draw 
+				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)";
 		}
 
 		/**
