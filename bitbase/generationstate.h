@@ -191,8 +191,8 @@ namespace QaplaBitbase {
 		/**
 		 * Stores the result (bitbase with winning positions) to a file
 		 */
-		void storeToFile(string fileName) { 
-			_wonPositions.storeToFile(fileName); 
+		void storeToFile(string fileName, bool test = false, bool verbose = false) { 
+			_wonPositions.storeToFile(fileName, test, verbose); 
 		}
 
 	private:

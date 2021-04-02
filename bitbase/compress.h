@@ -41,6 +41,7 @@
 #include <array>
 #include <vector>
 #include <unordered_map>
+#include "try.h"
 
 using namespace std;
 
@@ -68,6 +69,13 @@ namespace QaplaBitbase {
 				_gain = newGain;
 				_length = length;
 				_delta = delta;
+			}
+		}
+
+		void limitLength(uint64_t maxLen) {
+			if (_length > maxLen) {
+				_gain -= _length - maxLen;
+				_length = maxLen;
 			}
 		}
 
@@ -104,69 +112,17 @@ namespace QaplaBitbase {
 		Sequences() : _key(0), _index(0) {}
 
 		/**
-		 * Limits the amount of entries in a multimap for a key
-	 	 */
-		void limitEntries(uint64_t key, uint32_t max) {
-			auto bucket = _sequences.bucket(key);
-			if (_sequences.bucket_size(bucket) > 5 * max) {
-				auto range = _sequences.equal_range(_key);
-				uint64_t smallestIndex = range.first->second;
-				auto candidate = range.first;
-				uint32_t count = 0;
-				for (auto elem = range.first; elem != range.second; elem++) {
-					if (elem->second < smallestIndex) {
-						candidate = elem;
-						smallestIndex = elem->second;
-					}
-					count++;
-				}
-				if (count > max) {
-					_sequences.erase(candidate);
-				}
-			}
-		}
-
-		/**
-		 * Informs about new values
-		 */
-		void addValues(const vector<uint8_t>& in, uint64_t toIndex) {
-			for (; _index <= toIndex; _index++) {
-				if (_index % 0x10000 == 0) {
-					clear();
-				}
-				_key = (_key << 8) + in[_index];
-				if (_index >= sizeof(key_t)) {
-					const uint64_t realIndex = _index - sizeof(key_t) + 1;
-					pair<key_t, uint64_t> elem(_key, realIndex);
-					_sequences.insert(elem);
-					limitEntries(_key, 20);
-				}
-			}
-		}
-
-		/**
 		 * Gets the longest matching index
 		 */
 		SequenceResult longestMatch(const vector<uint8_t>& in, uint64_t index) {
 			SequenceResult result;
-			if (in.size() - index < sizeof(key_t)) {
-				return result;
+			for (; _index < index; _index++) {
+				_sequenceTry.add(in, uint32_t(_index));
 			}
-			key_t key = 0;
-
-			for (int i = 0; i < sizeof(key); ++i) {
-				key = (key << 8) + in[index + i];
-			}
-			auto range = _sequences.equal_range(key);
-			for (auto elem = range.first; elem != range.second; elem++) {
-				uint64_t start = elem->second;
-				uint64_t length = sizeof(key_t);
-				for (; index + length < in.size(); ++length) {
-					if (in[start + length] != in[index + length]) {
-						break;
-					}
-				}
-				result.addMatch(index - start, length);
+			auto newLongestMatch = _sequenceTry.searchAndAdd(in, uint32_t(index));
+			if (newLongestMatch.second > 5) {
+				uint64_t delta = index - newLongestMatch.first;
+				result.addMatch(delta, newLongestMatch.second);
 			}
 			return result;
 		}
@@ -175,14 +131,18 @@ namespace QaplaBitbase {
 		 * Clears the memorized lookups
 		 */
 		void clear() {
-			_sequences.clear();
+			_sequenceTry.clear();
+		}
+
+		void print() {
+			_sequenceTry.print();
 		}
 
 	private:
 		key_t _key;
 		uint64_t _index;
-		// unordered_map<key_t, uint64_t> _sequences;
 		unordered_multimap<key_t, uint64_t> _sequences;
+		Try<uint32_t> _sequenceTry;
 	};
 
 	/**
@@ -262,14 +222,24 @@ namespace QaplaBitbase {
 	 * Compressed a vector
 	 */
 	static void compress(const vector<uint8_t>& in, vector<uint8_t>& out) {
+		static const uint64_t PACKET_SIZE = 0x10000;
 		uint64_t uncompressed = 0;
 		uint64_t index = 0;
 		uint64_t last4Bytes = 0;
+		uint64_t curMax = PACKET_SIZE;
+
 		Sequences sequences;
 		
 		while (index < in.size()) {
-			sequences.addValues(in, index);
-			const SequenceResult seqResult = sequences.longestMatch(in, index);
+			if (index >= curMax) {
+				addUncompressedValues(out, uncompressed, in, index);
+				uncompressed = 0;
+				sequences.clear();
+				curMax = min(in.size(), curMax + PACKET_SIZE);
+			}
+			SequenceResult seqResult = sequences.longestMatch(in, index);
+			seqResult.limitLength(curMax - index);
+			
 			if (seqResult._gain > 1) {
 				addUncompressedValues(out, uncompressed, in, index);
 				uncompressed = 0;
