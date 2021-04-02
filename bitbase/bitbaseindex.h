@@ -83,14 +83,6 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Checks, if the next piece is the same piece
-		 */
-		bool nextPieceIsSame(const PieceList& pieceList, uint32_t index) {
-			return (index + 1 < pieceList.getNumberOfPieces() &&
-				pieceList.getPiece(index) == pieceList.getPiece(index + 1));
-		}
-
-		/**
 		 * Sets the bitbase index from a piece List
 		 */
 		void set(const PieceList& pieceList, bool wtm);
@@ -134,11 +126,6 @@ namespace QaplaBitbase {
 			return _wtm;
 		}
 
-		/**
-		 * @returns true, if the index is a legal index
-		 */
-		bool isLegal() const { return _isLegal; }
-
 	private:
 
 		/**
@@ -151,9 +138,7 @@ namespace QaplaBitbase {
 			_pawnsBB = 0;
 			_pieceCount = 0;
 			_pawnCount = 0;
-			_isLegal = false;
 		}
-
 
 		/**
 		 * Gets a list of squares for pieces of the same kind
@@ -163,23 +148,6 @@ namespace QaplaBitbase {
 		 * @returns amount of squares in the list
 		 */
 		uint32_t getSquaresOfSameKind(const PieceList& pieceList, uint32_t begin, array<Square, 10>& squares);
-
-		/**
-		 * Checks, if a square is legal
-		 */
-		bool isLegalSquare(Square square, bool allOnDiagonal, const PieceList& pieceList);
-
-		/**
-		 * Sets all squares by an index
-		 */
-		void setSquares(const PieceList& pieceList);
-
-		/**
-		 * Sets all pawns based on the remaining index after setting the Kings
-		 * @retunrns remaining index after setting the pawns
-		 */
-		uint64_t setPawnsByIndex(uint64_t index, const PieceList& pieceList);
-		void setPiecesByIndex(uint64_t index, const PieceList& pieceList);
 
 		/**
 		 * Calculates the index of a double pawn
@@ -230,11 +198,6 @@ namespace QaplaBitbase {
 		void initialize(const PieceList& pieceList, bool wtm);
 
 		/**
-		 * Set the Squares of kings by having an index
-		 */
-		uint64_t setKingSquaresByIndex(uint64_t index, bool hasPawn);
-
-		/**
 		 * Computes the next possible king position for positions with pawns
 		 */
 		static Square computeNextKingSquareForPositionsWithPawn(Square currentSquare);
@@ -243,12 +206,6 @@ namespace QaplaBitbase {
   		 * Checks, if two squares are adjacent
 		 */
 		static bool isAdjacent(Square pos1, Square pos2);
-
-		/**
-		 * Computes the real square of a piece from a index-square ("raw") by adding one 
-		 * for every piece on a "lower" square
-		 */
-		Square computesRealSquare(bitBoard_t checkPieces, Square rawSquare);
 
 		/**
 		 * Maps a Square to a symetric square. 
@@ -294,11 +251,6 @@ namespace QaplaBitbase {
 		 * Adds the square of a piece to the piece square list
 		 */
 		void addPieceSquare(Square square);
-
-		/**
-		 * Changes the square of a piece
-		 */
-		void changePieceSquare(uint32_t pieceNo, Square newSquare);
 
 		/**
 		 * Initializes static lookup maps
@@ -352,8 +304,6 @@ namespace QaplaBitbase {
 
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithPawn;
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithoutPawn;
-		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN> mapIndexToKingSquaresWithPawn;
-		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> mapIndexToKingSquaresWithoutPawn;
 
 		static constexpr array<int, BOARD_SIZE> doublePieceSortValue {
 			 1,  9, 23, 35, 45, 53, 59, 63,
@@ -375,7 +325,6 @@ namespace QaplaBitbase {
 		uint64_t _index;
 		uint64_t _sizeInBit;
 		uint8_t _mapType;
-		bool _isLegal;
 		bool _wtm;
 
 	};

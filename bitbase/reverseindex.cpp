@@ -21,8 +21,6 @@
 
 using namespace QaplaBitbase;
 
-array<uint32_t, BOARD_SIZE* BOARD_SIZE> ReverseIndex::mapTwoKingsToIndexWithPawn;
-array<uint32_t, BOARD_SIZE* BOARD_SIZE> ReverseIndex::mapTwoKingsToIndexWithoutPawn;
 array<uint32_t, ReverseIndex::NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN> ReverseIndex::mapIndexToKingSquaresWithPawn;
 array<uint32_t, ReverseIndex::NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> ReverseIndex::mapIndexToKingSquaresWithoutPawn;
 ReverseIndex::InitStatic ReverseIndex::_staticConstructor;
@@ -47,7 +45,6 @@ ReverseIndex::InitStatic::InitStatic() {
 		for (Square blackKingSquare = A1; blackKingSquare <= H8; ++blackKingSquare) {
 			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
 			assert(lookupIndex < uint32_t(BOARD_SIZE * BOARD_SIZE));
-			mapTwoKingsToIndexWithPawn[lookupIndex] = index;
 			mapIndexToKingSquaresWithPawn[index] = lookupIndex;
 			if (!isAdjacent(whiteKingSquare, blackKingSquare)) {
 				index++;
@@ -66,7 +63,6 @@ ReverseIndex::InitStatic::InitStatic() {
 			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
 			assert(lookupIndex < uint32_t(BOARD_SIZE* BOARD_SIZE));
 			assert(index < NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN);
-			mapTwoKingsToIndexWithoutPawn[lookupIndex] = index;
 			mapIndexToKingSquaresWithoutPawn[index] = lookupIndex;
 			if (!isAdjacent(whiteKingSquare, blackKingSquare)) {
 				index++;
