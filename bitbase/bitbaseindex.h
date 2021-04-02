@@ -83,18 +83,6 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Creates a bitbase index, sets the piece counts from a piece list 
-		 * and the piece squares from an index
-		 * @param index index having the coded squares information
-		 * @param pieceList list of pieces to be used in the bitbase index
-		 */
-		BitbaseIndex(uint64_t index, const PieceList& pieceList) {
-			clear();
-			_index = index;
-			setSquares(pieceList);
-		}
-
-		/**
 		 * Checks, if the next piece is the same piece
 		 */
 		bool nextPieceIsSame(const PieceList& pieceList, uint32_t index) {

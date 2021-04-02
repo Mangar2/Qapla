@@ -24,6 +24,7 @@
 #define __BITBASEGENERATOR_H
 
 #include <iostream>
+#include "reverseindex.h"
 #include "bitbase.h"
 #include "boardaccess.h"
 #include "workpackage.h"
@@ -161,15 +162,9 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Debugging functionality, prints the position identified by the globally set 
-		 * debug index
-		 */
-		void showDebugIndex(string pieceString);
-
-		/**
 		 * Populates a position from a bitbase index for the squares and a piece list for the piece types
 		 */
-		void addPiecesToPosition(MoveGenerator& position, const BitbaseIndex& bitbaseIndex, const PieceList& pieceList);
+		void addPiecesToPosition(MoveGenerator& position, const ReverseIndex& reverseIndex, const PieceList& pieceList);
 
 		/**
 		 * Computes a workpackage for a compute-bitbase loop

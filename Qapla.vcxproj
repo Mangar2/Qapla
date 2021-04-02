@@ -1513,6 +1513,7 @@
     <ClCompile Include="bitbase\bitbasegenerator.cpp" />
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
     <ClCompile Include="bitbase\bitbasereader.cpp" />
+    <ClCompile Include="bitbase\reverseindex.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\pawn.cpp" />
@@ -1557,6 +1558,7 @@
     <ClInclude Include="bitbase\huffmancode.h" />
     <ClInclude Include="bitbase\piecelist.h" />
     <ClInclude Include="bitbase\generateresult.h" />
+    <ClInclude Include="bitbase\reverseindex.h" />
     <ClInclude Include="bitbase\try.h" />
     <ClInclude Include="bitbase\verify.h" />
     <ClInclude Include="bitbase\workpackage.h" />

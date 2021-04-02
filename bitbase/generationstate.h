@@ -191,8 +191,13 @@ namespace QaplaBitbase {
 		/**
 		 * Stores the result (bitbase with winning positions) to a file
 		 */
-		void storeToFile(string fileName, bool test = false, bool verbose = false) { 
-			_wonPositions.storeToFile(fileName, test, verbose); 
+		void storeToFile(string fileName, bool uncompressed, bool test = false, bool verbose = false) { 
+			if (uncompressed) {
+				_wonPositions.storeUncompressed(fileName);
+			}
+			else {
+				_wonPositions.storeToFile(fileName, test, verbose);
+			}
 		}
 
 	private:
@@ -202,8 +207,6 @@ namespace QaplaBitbase {
 		void setCandidate(uint64_t index) {
 			_candidates.setBit(index);
 		}
-
-
 
 		uint64_t _sizeInBit;
 		atomic_uint64_t _illegal;

@@ -106,8 +106,8 @@ void BitbaseGenerator::compareBitbases(string pieceString, Bitbase& newBitbase, 
 		bool newResult = newBitbase.getBit(index);
 		bool oldResult = oldBitbase.getBit(index);
 		if (newResult != oldResult) {
-			BitbaseIndex bitbaseIndex(index, pieceList);
-			addPiecesToPosition(position, bitbaseIndex, pieceList);
+			ReverseIndex reverseIndex(index, pieceList);
+			addPiecesToPosition(position, reverseIndex, pieceList);
 			differences++;
 			if (differences < 10) {
 				printf("new: %s, old: %s\n", newResult ? "won" : "not won", oldResult ? "won" : "not won");
@@ -134,32 +134,6 @@ void BitbaseGenerator::printTimeSpent(ClockManager& clock, int minTraceLevel) {
 		<< ":" << ((timeInMilliseconds / (60 * 1000)) % 60) 
 		<< ":" << ((timeInMilliseconds / 1000) % 60) 
 		<< "." << timeInMilliseconds % 1000 << " ";
-}
-
-/**
- * Debugging, shows the position identified by the globally defined debug index
- */
-void BitbaseGenerator::showDebugIndex(string pieceString) {
-	MoveGenerator position;
-	Bitbase bitbase;
-	bitbase.readFromFile(pieceString);
-	PieceList pieceList(pieceString);
-	uint64_t index;
-	while (true) {
-		cin >> index;
-		printf("%lld\n", index);
-		BitbaseIndex bitbaseIndex(index, pieceList);
-		if (bitbaseIndex.isLegal()) {
-			position.clear();
-			addPiecesToPosition(position, bitbaseIndex, pieceList);
-			printf("index:%lld, result for white %s\n", index, bitbase.getBit(index) ? "win" : "draw");
-
-			computeValue(position, bitbase, true);
-		}
-		else {
-			break;
-		}
-	}
 }
 
 /**
@@ -246,16 +220,16 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t>& candidates, MoveGener
  * Populates a position from a bitbase index for the squares and a piece list for the piece types
  */
 void BitbaseGenerator::addPiecesToPosition(
-	MoveGenerator& position, const BitbaseIndex& bitbaseIndex, const PieceList& pieceList)
+	MoveGenerator& position, const ReverseIndex& reverseIndex, const PieceList& pieceList)
 {
-	position.unsafeSetPiece(bitbaseIndex.getSquare(0), WHITE_KING);
-	position.unsafeSetPiece(bitbaseIndex.getSquare(1), BLACK_KING);
+	position.unsafeSetPiece(reverseIndex.getSquare(0), WHITE_KING);
+	position.unsafeSetPiece(reverseIndex.getSquare(1), BLACK_KING);
 	const uint32_t kingAmount = 2;
 	for (uint32_t pieceNo = kingAmount; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
-		position.unsafeSetPiece(bitbaseIndex.getSquare(pieceNo), pieceList.getPiece(pieceNo));
+		position.unsafeSetPiece(reverseIndex.getSquare(pieceNo), pieceList.getPiece(pieceNo));
 	}
 	position.computeAttackMasksForBothColors();
-	position.setWhiteToMove(bitbaseIndex.isWhiteToMove());
+	position.setWhiteToMove(reverseIndex.isWhiteToMove());
 }
 
 /**
@@ -273,14 +247,10 @@ void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, GenerationSt
 	while (package.first < package.second) {
 		for (uint64_t workNo = package.first; workNo < package.second; ++workNo) {
 			uint64_t index = workpackage.getIndex(workNo);
-			BitbaseIndex bitbaseIndex(index, state.getPieceList());
-			if (!bitbaseIndex.isLegal()) {
-				cout << " Error, programming bug, should already be set in computedPositions index: " << index << endl;
-				exit(1);
-			}
+			ReverseIndex reverseIndex(index, state.getPieceList());
 
 			position.clear();
-			addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
+			addPiecesToPosition(position, reverseIndex, state.getPieceList());
 			if (DEBUG_LEVEL > 0 && index != BoardAccess::getIndex<0>(position)) {
 				cout << "Error, programming bug, index is not correct " << index << endl;
 				exit(1);
@@ -463,9 +433,9 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, Gener
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	while (package.first < package.second) {
 		for (uint64_t index = package.first; index < package.second; ++index) {
-			BitbaseIndex bitbaseIndex(index, state.getPieceList());
+			ReverseIndex reverseIndex(index, state.getPieceList());
 			position.clear();
-			addPiecesToPosition(position, bitbaseIndex, state.getPieceList());
+			addPiecesToPosition(position, reverseIndex, state.getPieceList());
 			uint64_t testIndex = BoardAccess::getIndex<0>(position);
 			if (index != testIndex) {
 				state.setIllegal(index);
@@ -517,7 +487,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
 	cout << "c";
-	state.storeToFile(fileName, _debugLevel > 1, _traceLevel >= 1);
+	state.storeToFile(fileName, _uncompressed, _debugLevel > 1, _traceLevel >= 1);
 	printTimeSpent(clock, 1);
 	printStatistic(state, 1);
 	cout << endl;

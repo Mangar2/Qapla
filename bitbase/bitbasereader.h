@@ -75,7 +75,6 @@ namespace QaplaBitbase {
 
 		static void loadRelevant3StoneBitbase() {
 			loadBitbase("KPK");
-			loadBitbase("KQK");
 		}
 
 		static void loadRelevant4StoneBitbase() {

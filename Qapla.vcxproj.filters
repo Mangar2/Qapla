@@ -123,6 +123,9 @@
     <ClCompile Include="bitbase\bitbasegenerator.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
+    <ClCompile Include="bitbase\reverseindex.cpp">
+      <Filter>bitbase</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\movelist.h">
@@ -381,6 +384,9 @@
       <Filter>bitbase</Filter>
     </ClInclude>
     <ClInclude Include="bitbase\try.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\reverseindex.h">
       <Filter>bitbase</Filter>
     </ClInclude>
   </ItemGroup>

@@ -122,6 +122,19 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Stores a bitbase uncompressed to a file
+		 */
+		void storeUncompressed(string fileName) {
+			ofstream fout(fileName, ios::out | ios::binary);
+			uint64_t size = _bitbase.size();
+			uint32_t version = 0;
+			fout.write((char*)&size, sizeof(size));
+			fout.write((char*)&version, sizeof(version));
+			fout.write((char*)&_bitbase[0], size * sizeof(bbt_t));
+			fout.close();
+		}
+
+		/**
 		 * Stores a _bitbase to a file
 		 */
 		void storeToFile(string fileName, bool test = false, bool verbose = false) {
