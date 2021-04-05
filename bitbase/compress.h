@@ -54,6 +54,12 @@ namespace QaplaBitbase {
 		REFERENCE = 2
 	};
 
+	enum class Compression {
+		uncompresed = 0,
+		inflated = 1,
+		huffman = 2,
+	};
+
 	static const uint8_t CONTINUE = 0x80;
 
 	struct SequenceResult {
@@ -261,9 +267,24 @@ namespace QaplaBitbase {
 		vector<bbt_t> tmp;
 		tmp.reserve(in.size());
 		inflate(in, tmp);
-		HuffmanCode huffman(tmp);
-		huffman.storeCode(out);
-		huffman.compress(tmp.begin(), out, in.size());
+		if (tmp.size() < 2048) {
+			// This is too small for huffman
+			out.push_back(bbt_t(Compression::inflated));
+			out.insert(out.end(), tmp.begin(), tmp.end());
+		}
+		else {
+			HuffmanCode huffman(tmp);
+			uint64_t expectedSize = 256 + (huffman.computeSizeInBit() / (sizeof(bbt_t) * 8));
+			if (expectedSize > tmp.size()) {
+				out.push_back(bbt_t(Compression::inflated));
+				out.insert(out.end(), tmp.begin(), tmp.end());
+			} 
+			else {
+				out.push_back(bbt_t(Compression::huffman));
+				huffman.storeCode(out);
+				huffman.compress(tmp.begin(), out, uint32_t(tmp.size()));
+			}
+		}
 	}
 
 	/**
@@ -360,11 +381,18 @@ namespace QaplaBitbase {
 	 * Uncompresses a vector
 	 */
 	static void uncompress(const vector<bbt_t>& in, vector<bbt_t>& out, uint64_t outSize) {
-		vector<bbt_t> tmp;
-		tmp.reserve(outSize);
-		HuffmanCode huffman;
-		huffman.uncompress(in, tmp, outSize);
-		deflate(tmp, out, outSize);
+		Compression compression = Compression(in[0]);
+		if (compression == Compression::huffman) {
+			vector<bbt_t> tmp;
+			tmp.reserve(outSize);
+			HuffmanCode huffman;
+			uint32_t codeSize = huffman.retrieveCode(in.begin() + 1);
+			huffman.uncompress(in.begin() + codeSize + 1, tmp);
+			deflate(tmp, out, outSize);
+		}
+		else {
+			deflate(in, out, outSize);
+		}
 	}
 
 }
