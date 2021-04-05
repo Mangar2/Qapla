@@ -100,29 +100,38 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Use the calculated huffman code to compress the data
+		 * Stores the huffman code
+		 * @param out vector the code is pushed to
+		 * @returns amount of "bbt_t" elements used to store the code
 		 */
-		void compress(const vector<bbt_t>& in, vector<bbt_t>& out) {
+		uint32_t storeCode(vector<bbt_t>& out) {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
 			uint64_t indexInBit = storeCode(out, forrest.top(), 0);
-			uint32_t bitsLeft = sizeInBit - (indexInBit % sizeInBit);
-			uint64_t outIndex = indexInBit / sizeInBit;
+			uint32_t codeSizeInElements = uint32_t(indexInBit / sizeInBit + 1 - indexInBit % sizeInBit);
+			return codeSizeInElements;
+		}
+
+		/**
+		 * Use the calculated huffman code to compress the data
+		 */
+		void compress(vector<bbt_t>::iterator in, vector<bbt_t>& out, uint32_t size) {
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
+			// stores the amount of elements compressed
+			setValue(out, size * sizeInBit, size);
+			uint32_t bitsLeft = sizeInBit;
 			out.push_back(0);
-			
-			for (uint64_t inIndex = 0; inIndex < in.size(); ++inIndex) {
+
+			for (uint64_t inIndex = 0; inIndex < size; ++inIndex) {
 				uint64_t code = codeMap[in[inIndex]];
 				uint32_t codeLength = codeLengthMap[in[inIndex]];
 				while (bitsLeft <= codeLength) {
-					if (out.size() <= outIndex) {
-						out.push_back(0);
-					}
-					out[outIndex] |= code >> (codeLength - bitsLeft);
+					out.back() |= code >> (codeLength - bitsLeft);
 					codeLength -= bitsLeft;
-					outIndex++;
 					bitsLeft = sizeInBit;
+					out.push_back(0);
 				}
 				bitsLeft -= codeLength;
-				out[outIndex] |= code << bitsLeft;
+				out.back() |= code << bitsLeft;
 			}
 		}
 
@@ -130,15 +139,18 @@ namespace QaplaBitbase {
 		 * Uncompresses code from the 
 		 */
 		void uncompress(const vector<bbt_t>& in, vector<bbt_t>& out, size_t targetSizeInBit) {
-			constexpr size_t elementSizeInBit = sizeof(bbt_t) * 8;
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
 			size_t outIndex = 0;
 			size_t inIndex = 0;
 			bbt_t uncompressedElement = 0;
+			inIndex = retrieveCode(in, 0, 0, 0);
+			inIndex += sizeInBit - (inIndex % sizeInBit);
+			printCode();
 			while (outIndex < targetSizeInBit) {
 				const bbt_t nextElement = uncompressNext(in, inIndex);
 				inIndex += codeLengthMap[nextElement];
 				outIndex += sizeof(uint8_t);
-				const bbt_t bitsLeft = elementSizeInBit - outIndex % elementSizeInBit;
+				const bbt_t bitsLeft = sizeInBit - outIndex % sizeInBit;
 				uncompressedElement |= nextElement << bitsLeft;
 				if (bitsLeft == 0) {
 					out.push_back(uncompressedElement);
@@ -166,13 +178,14 @@ namespace QaplaBitbase {
 		 * Prints the computed huffman coding
 		 */
 		void printCode() {
+			cout << endl;
 			for (uint32_t index = 0; index < WORD_SIZE; index++) {
 				if (codeLengthMap[index] > 0) {
-					printf("%3ld ", index);
+					cout << index << " (" << codeMap[index] << ")";
 					for (int16_t bitAmount = codeLengthMap[index] - 1; bitAmount >= 0; bitAmount--) {
-						printf("%d", (codeMap[index] >> bitAmount) & 1);
+						cout << " " << ((codeMap[index] >> bitAmount) & 1);
 					}
-					printf("\n");
+					cout << endl;
 				}
 			}
 		}
@@ -224,7 +237,7 @@ namespace QaplaBitbase {
 		 * @param bitIndex index to the output vector
 		 * @returns new index position
 		 */
-		uint64_t retrieveCode(vector<bbt_t>& in, uint32_t codeLength, uint64_t code, uint64_t bitIndex) {
+		uint64_t retrieveCode(const vector<bbt_t>& in, uint32_t codeLength, uint64_t code, uint64_t bitIndex) {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
 			uint64_t bbtIndex = bitIndex / sizeInBit;
 			bool isLeafNode = getBit(in, bitIndex);
@@ -236,7 +249,7 @@ namespace QaplaBitbase {
 				bitIndex += sizeInBit;
 			}
 			else {
-				code << 1;
+				code <<= 1;
 				bitIndex = retrieveCode(in, codeLength + 1, code, bitIndex);
 				bitIndex = retrieveCode(in, codeLength + 1, code + 1, bitIndex);
 			}
@@ -262,7 +275,7 @@ namespace QaplaBitbase {
 		/**
 		 * Gets a single bit from the _bitbase
 		 */
-		bool getBit(vector<bbt_t>& out, uint64_t index) const {
+		bool getBit(const vector<bbt_t>& out, uint64_t index) const {
 			uint64_t bbtIndex = index / (sizeof(bbt_t) * 8);
 			return (out[bbtIndex] & (bbt_t(1) << (index % (sizeof(bbt_t) * 8)))) != 0;
 		}
@@ -283,12 +296,27 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Sets a value to the output vector
+		 * @param out vector to set the value to
+		 * @param indexInBit index where to set the value to
+		 * @param value value to set
+		 */
+		void setValue(vector<bbt_t>& out, uint64_t indexInBit, uint32_t value) {
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
+			bbt_t* valuePtr = (bbt_t*)&value;
+			int count = sizeof(uint32_t) / sizeof(bbt_t);
+			for (; count > 0; count--, indexInBit += sizeInBit, valuePtr++) {
+				setValue(out, indexInBit, *valuePtr);
+			}
+		}
+
+		/**
 		 * Sets a value to the input vector
 		 * @param in vector to get the value from
 		 * @param indexInBit index where to get the value from
 		 * @returns value read
 		 */
-		bbt_t getValue(vector<bbt_t>& in, uint64_t indexInBit) const {
+		bbt_t getValue(const vector<bbt_t>& in, uint64_t indexInBit) const {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
 			auto bitsLeft = sizeInBit - (indexInBit % sizeInBit);
 			auto index = indexInBit / sizeInBit;

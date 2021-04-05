@@ -42,6 +42,7 @@
 #include <vector>
 #include <unordered_map>
 #include "try.h"
+#include "huffmancode.h"
 
 using namespace std;
 
@@ -219,9 +220,9 @@ namespace QaplaBitbase {
 	}
 
 	/**
-	 * Compressed a vector
+	 * Compressed a vector by inflating
 	 */
-	static void compress(const vector<uint8_t>& in, vector<uint8_t>& out) {
+	static void inflate(const vector<bbt_t>& in, vector<bbt_t>& out) {
 		static const uint64_t PACKET_SIZE = 0x10000;
 		uint64_t uncompressed = 0;
 		uint64_t index = 0;
@@ -251,6 +252,18 @@ namespace QaplaBitbase {
 			}
 		}
 		addUncompressedValues(out, uncompressed, in, index);
+	}
+
+	/**
+	 * Compressed a vector
+	 */
+	static void compress(const vector<bbt_t>& in, vector<bbt_t>& out) {
+		vector<bbt_t> tmp;
+		tmp.reserve(in.size());
+		inflate(in, tmp);
+		HuffmanCode huffman(tmp);
+		huffman.storeCode(out);
+		huffman.compress(tmp.begin(), out, in.size());
 	}
 
 	/**
@@ -310,11 +323,10 @@ namespace QaplaBitbase {
 		return newIndex - index;
 	}
 
-
 	/**
-	 * Uncompresses a vector
+	 * Uncompresses a vector by deflating
 	 */
-	static void uncompress(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t outSize) {
+	static void deflate(const vector<uint8_t>& in, vector<uint8_t>& out, uint64_t outSize) {
 		uint64_t outIndex = 0;
 		out.resize(outSize);
 		for (uint64_t index = 0; index < in.size();) {
@@ -344,6 +356,16 @@ namespace QaplaBitbase {
 		}
 	}
 
+	/**
+	 * Uncompresses a vector
+	 */
+	static void uncompress(const vector<bbt_t>& in, vector<bbt_t>& out, uint64_t outSize) {
+		vector<bbt_t> tmp;
+		tmp.reserve(outSize);
+		HuffmanCode huffman;
+		huffman.uncompress(in, tmp, outSize);
+		deflate(tmp, out, outSize);
+	}
 
 }
 
