@@ -70,7 +70,7 @@ namespace QaplaBitbase {
 			clear();
 			_pieceCount = pieceList.getNumberOfPieces();
 			_pawnCount = pieceList.getNumberOfPawns();
-			computeSize();
+			computeSize(pieceList);
 		}
 
 		/**
@@ -135,19 +135,9 @@ namespace QaplaBitbase {
 			_index = 0;
 			_mapType = 0;
 			_piecesBB = 0;
-			_pawnsBB = 0;
 			_pieceCount = 0;
 			_pawnCount = 0;
 		}
-
-		/**
-		 * Gets a list of squares for pieces of the same kind
-		 * @param pieceList list of pieces
-		 * @param begin index to start square selection
-		 * @param squares list of squares to return
-		 * @returns amount of squares in the list
-		 */
-		uint32_t getSquaresOfSameKind(const PieceList& pieceList, uint32_t begin, array<Square, 10>& squares);
 
 		/**
 		 * Calculates the index of a double pawn
@@ -164,21 +154,22 @@ namespace QaplaBitbase {
 		/**
 		 * Computes the size of the bitbase index
 		 */
-		void computeSize() {
+		void computeSize(const PieceList& pieceList) {
 			_sizeInBit = _pawnCount == 0 ?
 				NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN * COLOR_COUNT :
 				NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN * COLOR_COUNT;
-			uint32_t remainingPawnPositions = NUMBER_OF_PAWN_POSITIONS;
-			for (uint32_t pawns = _pawnCount; pawns > 0; pawns--, remainingPawnPositions--) {
-				_sizeInBit *= remainingPawnPositions;
+			uint32_t pieceNo = 2;
+			while (isPawn(pieceList.getPiece(pieceNo))) {
+				const uint32_t count = pieceList.getNumberOfSamePieces(pieceNo);
+				_sizeInBit *= pawnIndexSize[count][pieceNo - 2];
+				pieceNo += count;
 			}
-			uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - KING_COUNT - _pawnCount;
-			for (uint32_t pieces = _pieceCount - KING_COUNT - _pawnCount; pieces > 0; pieces--) {
-				_sizeInBit *= remainingPiecePositions;
-				remainingPiecePositions--;
+			for (; pieceList.getNumberOfPieces() > pieceNo;) {
+				const uint32_t count = pieceList.getNumberOfSamePieces(pieceNo);
+				_sizeInBit *= pieceIndexSize[count][pieceNo - 2];
+				pieceNo += count;
 			}
 		}
-
 
 		/**
 		 * Returns true, if a field is already occupied
@@ -188,9 +179,19 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Adds another piece to the index
+		 * Adds multiple pieces of the same type to the index
 		 */
-		void addPiecesToIndex(array<Square, 10>& squares, uint32_t count, Piece piece);
+		void addPiecesToIndex(const PieceList& pieceList, uint32_t begin, uint32_t count);
+
+		/**
+		 * Adds a single piece to the index
+		 */
+		void addSinglePieceToIndex(const PieceList& pieceList, uint32_t index);
+
+		/**
+		 * Adds two pieces of the same type to the index
+		 */
+		void addTwoPiecesToIndex(const PieceList& pieceList, uint32_t index);
 
 		/**
 		 * Initializes the index calculation
@@ -222,6 +223,12 @@ namespace QaplaBitbase {
 		uint32_t computeSquareMapType(const PieceList& pieceList);
 
 		/**
+		 * Computes the index of a square, reducing the square number by pieces
+		 * before the current piece.
+		 */
+		uint32_t computeSquareIndex(Square mappedSquare) const;
+
+		/**
 		 * Sort an array of squares based on the doublePieceSortValue map 
 		 */
 		void  bubbleSortMultiplePiece(array<Square, 10>& squares, uint32_t count);
@@ -234,7 +241,7 @@ namespace QaplaBitbase {
 		/**
 		 * Pop count for sparcely populated bitboards
 		 */
-		uint32_t popCount(bitBoard_t bitBoard);
+		uint32_t popCount(bitBoard_t bitBoard) const;
 
 		/**
 		 * Add any piece except pawn to the index. Pawns are special, because they can only
@@ -258,6 +265,16 @@ namespace QaplaBitbase {
 		static struct InitStatic {
 			InitStatic();
 		} _staticConstructor;
+
+		/**
+		 * Initializes the lookup table to map two pawns to an index
+		 */
+		static void computeTwoPawnIndexLookup();
+
+		/**
+		 * Initializes the lookup table to map two pawns to an index
+		 */
+		static void computeTwoPieceIndexLookup();
 
 		/**
 		 * Computes the index for two kings and moving right
@@ -298,12 +315,41 @@ namespace QaplaBitbase {
 		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN = 1806;
 		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN = 462;
 		static const uint64_t NUMBER_OF_PAWN_POSITIONS = BOARD_SIZE - 2 * NORTH;
+		static const uint64_t NUMBER_OF_DOUBLE_PAWN_POSITIONS = 1128;
+		static const uint64_t NUMBER_OF_DOUBLE_PIECE_POSITIONS = 1892;
 		static const uint64_t NUMBER_OF_PIECE_POSITIONS = BOARD_SIZE;
 		static const uint64_t COLOR_COUNT = 2;
-		static const uint64_t KING_COUNT = 2;
+		static const uint64_t NUMBER_OF_KINGS = 2;
 
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithPawn;
 		static array<uint32_t, BOARD_SIZE* BOARD_SIZE> mapTwoKingsToIndexWithoutPawn;
+
+		static array<uint16_t, NUMBER_OF_PAWN_POSITIONS * NUMBER_OF_PAWN_POSITIONS>
+			mapTwoPawnsToIndex;
+
+		static const uint32_t REMAINING_PIECE_POSITIONS = NUMBER_OF_PIECE_POSITIONS - NUMBER_OF_KINGS;
+		static const uint32_t MAP_TWO_PIECES_SIZE = REMAINING_PIECE_POSITIONS * REMAINING_PIECE_POSITIONS;
+		static array<uint16_t, MAP_TWO_PIECES_SIZE> mapTwoPiecesToIndex;
+
+		static constexpr uint64_t pawnIndexSize[7][7] {
+			{ 1, 1, 1, 1, 1, 1, 1 },
+			{ 48, 47, 46, 45, 44, 43, 42 },
+			{ 1128, 1128, 1128, 1128, 1128, 1128, 1128 },
+			{ 48 * 47 * 46, 47 * 46 * 45, 46 * 45 * 44, 45 * 44 * 43, 1, 1 },
+			{ 48 * 47 * 46 * 45, 47 * 46 * 45 * 44, 46 * 45 * 44 * 43, 1, 1, 1 },
+			{ 48 * 47 * 46 * 45 * 44,  47 * 46 * 45 * 44 * 43, 1, 1, 1, 1 },
+			{ 48ULL * 47ULL * 46ULL * 45ULL * 44ULL * 43ULL,  1, 1, 1, 1, 1 }
+		};
+
+		static constexpr uint64_t pieceIndexSize[7][7]{
+			{ 1, 1, 1, 1, 1, 1 },
+			{ 62, 61, 60, 59, 58, 57 },
+			{ 1892, 1892, 1892, 1892, 1892, 1892 },
+			{ 62 * 61 * 60, 61 * 60 * 59, 60 * 59 * 58, 59 * 58 * 57, 1, 1 },
+			{ 62 * 61 * 60 * 59, 61 * 60 * 59 * 58, 60 * 59 * 58 * 57, 1, 1, 1 },
+			{ 62 * 61 * 60 * 59 * 58,  61 * 60 * 59 * 58 * 57, 1, 1, 1, 1 },
+			{ 62ULL * 61ULL * 60ULL * 59ULL * 58ULL * 57ULL,  1, 1, 1, 1 }
+		};
 
 		static constexpr array<int, BOARD_SIZE> doublePieceSortValue {
 			 1,  9, 23, 35, 45, 53, 59, 63,
@@ -321,7 +367,6 @@ namespace QaplaBitbase {
 		uint32_t _pawnCount;
 		array<Square, MAX_PIECES_COUNT> _squares;
 		bitBoard_t _piecesBB;
-		bitBoard_t _pawnsBB;
 		uint64_t _index;
 		uint64_t _sizeInBit;
 		uint8_t _mapType;

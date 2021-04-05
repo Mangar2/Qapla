@@ -187,14 +187,26 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Gets the amount of pawns
+		 * Gets the number of pawns
 		 */
 		uint32_t getNumberOfPawns() const { return _numberOfPawns; }
 
 		/**
-		 * Gets the amount of pieces (including pawns)
+		 * Gets the number of pieces (including pawns)
 		 */
 		uint32_t getNumberOfPieces() const { return _numberOfPieces; }
+
+		/** 
+		 * Gets the number of identical pieces (i.e. white queens) starting at the given position
+		 */
+		uint32_t getNumberOfSamePieces(uint32_t pieceNo) const { 
+			Piece piece = getPiece(pieceNo);
+			uint32_t samePieceCount = 1;
+			for (pieceNo++; pieceNo < _numberOfPieces && piece == getPiece(pieceNo); pieceNo++) {
+				samePieceCount++;
+			}
+			return samePieceCount; 
+		}
 
 		/**
 		 * Gets the number of pieces without pawns

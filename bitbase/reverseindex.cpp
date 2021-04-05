@@ -23,6 +23,9 @@ using namespace QaplaBitbase;
 
 array<uint32_t, ReverseIndex::NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN> ReverseIndex::mapIndexToKingSquaresWithPawn;
 array<uint32_t, ReverseIndex::NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> ReverseIndex::mapIndexToKingSquaresWithoutPawn;
+array<uint16_t, ReverseIndex::NUMBER_OF_DOUBLE_PAWN_POSITIONS> ReverseIndex::mapIndexToTwoPawnSquares;
+array<uint16_t, ReverseIndex::NUMBER_OF_DOUBLE_PIECE_POSITIONS> ReverseIndex::mapIndexToTwoPieceSquares;
+
 ReverseIndex::InitStatic ReverseIndex::_staticConstructor;
 
 
@@ -39,8 +42,32 @@ bool ReverseIndex::isAdjacent(Square pos1, Square pos2) {
 	return result;
 }
 
+void ReverseIndex::computeTwoPawnIndexLookup() {
+	uint32_t index = 0;
+	for (uint16_t pawn1 = 0; pawn1 < NUMBER_OF_PAWN_POSITIONS - 1; ++pawn1) {
+		for (uint16_t pawn2 = pawn1 + 1; pawn2 < NUMBER_OF_PAWN_POSITIONS; ++pawn2) {
+			mapIndexToTwoPawnSquares[index] = 
+				pawn1 * uint16_t(NUMBER_OF_PAWN_POSITIONS) + pawn2;
+			index++;
+		}
+	}
+}
+
+void ReverseIndex::computeTwoPieceIndexLookup() {
+	uint32_t index = 0;
+	for (uint16_t piece1 = 0; piece1 < REMAINING_PIECE_POSITIONS - 1; ++piece1) {
+		for (uint16_t piece2 = piece1 + 1; piece2 < REMAINING_PIECE_POSITIONS; ++piece2) {
+			mapIndexToTwoPieceSquares[index] =
+				uint16_t(piece1) * uint16_t(REMAINING_PIECE_POSITIONS) + piece2;
+			index++;
+		}
+	}
+}
+
 ReverseIndex::InitStatic::InitStatic() {
 	uint32_t index = 0;
+	computeTwoPawnIndexLookup();
+	computeTwoPieceIndexLookup();
 	for (Square whiteKingSquare = A1; whiteKingSquare <= H8; whiteKingSquare = computeNextKingSquareForPositionsWithPawn(whiteKingSquare)) {
 		for (Square blackKingSquare = A1; blackKingSquare <= H8; ++blackKingSquare) {
 			uint32_t lookupIndex = whiteKingSquare + blackKingSquare * BOARD_SIZE;
@@ -89,24 +116,54 @@ uint64_t ReverseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
 }
 
 void ReverseIndex::setPiecesByIndex(uint64_t index, const PieceList& pieceList) {
-	bool hasPawns = pieceList.getNumberOfPawns() > 0;
-	uint32_t piecesToAdd = pieceList.getNumberOfPiecesWithoutPawns() - KING_COUNT;
-	uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - KING_COUNT - pieceList.getNumberOfPawns();
-	for (; piecesToAdd > 0; --piecesToAdd, --remainingPiecePositions) {
-		const Square square = computesRealSquare(_piecesBB, Square(index % remainingPiecePositions));
-		index /= remainingPiecePositions;
-		addPieceSquare(square);
+	uint32_t piecesToAdd = pieceList.getNumberOfPiecesWithoutPawns() - NUMBER_OF_KINGS;
+	uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - NUMBER_OF_KINGS - pieceList.getNumberOfPawns();
+	while (pieceList.getNumberOfPieces() > _pieceCount) {
+		const uint32_t count = pieceList.getNumberOfSamePieces(_pieceCount);
+		if (count == 2) {
+			uint16_t doublePosition = mapIndexToTwoPieceSquares[index % NUMBER_OF_DOUBLE_PIECE_POSITIONS];
+			index /= NUMBER_OF_DOUBLE_PIECE_POSITIONS;
+			Square square1 = computeRealSquare(_piecesBB, Square(doublePosition / REMAINING_PIECE_POSITIONS));
+			Square square2 = computeRealSquare(_piecesBB, Square(doublePosition % REMAINING_PIECE_POSITIONS));
+			remainingPiecePositions -= count;
+			addPieceSquare(square1);
+			addPieceSquare(square2);
+		}
+		else {
+			for (uint32_t piece = 0; piece < count; ++piece, --remainingPiecePositions) {
+				const Square square = computeRealSquare(_piecesBB, Square(index % remainingPiecePositions));
+				index /= remainingPiecePositions;
+				_isLegal = _isLegal && !(square > H8);
+				addPieceSquare(square);
+			}
+		}
 	}
 }
 
 uint64_t ReverseIndex::setPawnsByIndex(uint64_t index, const PieceList& pieceList) {
-	const bool hasPawns = pieceList.getNumberOfPawns() > 0;
+	uint32_t numberOfPawns = pieceList.getNumberOfPawns();
+	if (numberOfPawns == 0) {
+		return index;
+	}
 	uint64_t remainingPawnPositions = NUMBER_OF_PAWN_POSITIONS;
-	for (uint32_t pawn = 0; pawn < pieceList.getNumberOfPawns(); ++pawn, --remainingPawnPositions) {
-		const Square square = computesRealSquare(_pawnsBB, A2 + Square(index % remainingPawnPositions));
-
-		index /= remainingPawnPositions;
-		addPawnSquare(square);
+	while (isPawn(pieceList.getPiece(_pieceCount))) {
+		const uint32_t count = pieceList.getNumberOfSamePieces(_pieceCount);
+		if (count == 2) {
+			uint16_t doublePosition = mapIndexToTwoPawnSquares[index % NUMBER_OF_DOUBLE_PAWN_POSITIONS];
+			index /= NUMBER_OF_DOUBLE_PAWN_POSITIONS;
+			addPieceSquare(Square(doublePosition / NUMBER_OF_PAWN_POSITIONS) + A2);
+			addPieceSquare(Square(doublePosition % NUMBER_OF_PAWN_POSITIONS) + A2);
+			remainingPawnPositions -= count;
+		}
+		else {
+			for (uint32_t pawn = 0; pawn < count; ++pawn, --remainingPawnPositions) {
+				bitBoard_t pawnsBB = _piecesBB & 0x00FFFFFFFFFFFF00;
+				const Square square = computeRealSquare(pawnsBB, A2 + Square(index % remainingPawnPositions));
+				index /= remainingPawnPositions;
+				_isLegal = _isLegal && !(square > H7);
+				addPieceSquare(square);
+			}
+		}
 	}
 	return index;
 }
@@ -128,7 +185,7 @@ Square ReverseIndex::computeNextKingSquareForPositionsWithPawn(Square currentSqu
 	return nextSquare;
 }
 
-Square ReverseIndex::computesRealSquare(bitBoard_t checkPieces, Square rawSquare) {
+Square ReverseIndex::computeRealSquare(bitBoard_t checkPieces, Square rawSquare) {
 	Square realSquare = rawSquare;
 	while (true) {
 		bitBoard_t mapOfAllFieldBeforeAndIncludingCurrentField = (1ULL << realSquare);
@@ -152,15 +209,11 @@ uint32_t ReverseIndex::popCount(bitBoard_t bitBoard) {
 	return result;
 }
 
-void ReverseIndex::addPawnSquare(Square square) {
-	_pawnCount++;
-	_pawnsBB |= 1ULL << square;
-	addPieceSquare(square);
-}
-
 void ReverseIndex::addPieceSquare(Square square) {
 	_squares[_pieceCount] = square;
 	_pieceCount++;
-	_piecesBB |= 1ULL << square;
+	bitBoard_t squareBB = 1ULL << square;
+	_isLegal = _isLegal && (_piecesBB & squareBB) == 0;
+	_piecesBB |= squareBB;
 }
 

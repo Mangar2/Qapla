@@ -66,7 +66,7 @@ namespace QaplaBitbase {
 		/**
 		 * True, if the node is a leaf
 		 */
-		bool isLeaf() { return left == NULL; }
+		bool isLeaf() const { return left == NULL; }
 
 		uint32_t frequency;
 		HuffmanNode* left;
@@ -79,46 +79,51 @@ namespace QaplaBitbase {
 		/**
 		 * Builds a huffman code from a data vector
 		 */
-		HuffmanCode(const vector<bbt_t>& data) {
+		HuffmanCode() {
 			clear();
-			count(data);
+		}
+		HuffmanCode(const vector<bbt_t>& in) {
+			builtCode(in);
+		}
+
+		/**
+		 * Build the huffman code to compress
+		 */
+		void builtCode(const vector<bbt_t>& in) {
+			clear();
+			count(in);
 			builtInitialForrest();
 			while (forrest.size() > 1) {
 				optimize();
 			}
 			buildCode(forrest.top(), 0, 0);
-			/*
-			cout << "original size: " << data.size() * sizeof(bbt_)
-				<< " compressed size: " << (computeSizeInBit() / 8)
-				<< " comressed to: " << (computeSizeInBit() * 100) / (8 * data.size() * sizeof(bbt_t)) << "%"
-				<< endl;
-			*/
-			// printCode();
 		}
 
 		/**
 		 * Use the calculated huffman code to compress the data
 		 */
 		void compress(const vector<bbt_t>& in, vector<bbt_t>& out) {
-			bbt_t current = 0;
-			uint32_t bitsLeft = sizeof(current) * 8;
-			uint64_t byteSize = in.size() * sizeof(bbt_t);
-			const uint8_t* data = (uint8_t*) &in[0];
-			for (uint64_t i = 0; i < byteSize; ++i) {
-				uint8_t code = codeMap[data[i]];
-				uint8_t codeLength = codeLengthMap[data[i]];
-				if (bitsLeft >= codeLength) {
-					current |= code << (bitsLeft - codeLength);
-					bitsLeft -= codeLength;
-				} 
-				else {
-					current |= code >> (codeLength - bitsLeft);
-					out.push_back(current);
-					bitsLeft = sizeof(current) * 8 + bitsLeft - codeLength;
-					current = code << bitsLeft;
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
+			uint64_t indexInBit = storeCode(out, forrest.top(), 0);
+			uint32_t bitsLeft = sizeInBit - (indexInBit % sizeInBit);
+			uint64_t outIndex = indexInBit / sizeInBit;
+			out.push_back(0);
+			
+			for (uint64_t inIndex = 0; inIndex < in.size(); ++inIndex) {
+				uint64_t code = codeMap[in[inIndex]];
+				uint32_t codeLength = codeLengthMap[in[inIndex]];
+				while (bitsLeft <= codeLength) {
+					if (out.size() <= outIndex) {
+						out.push_back(0);
+					}
+					out[outIndex] |= code >> (codeLength - bitsLeft);
+					codeLength -= bitsLeft;
+					outIndex++;
+					bitsLeft = sizeInBit;
 				}
+				bitsLeft -= codeLength;
+				out[outIndex] |= code << bitsLeft;
 			}
-			out.push_back(current);
 		}
 
 		/**
@@ -158,21 +163,6 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Stores the huffman code to a byte vector
-		 */
-		void storeCode(vector<uint8_t>& out, HuffmanNode* node, uint32_t bitIndex) {
-			if (bitIndex == 0) {
-				out.push_back(0);
-			}
-			uint8_t byte = out[out.size() - 1];
-			if (node->isLeaf()) {
-
-			}
-			else {
-			}
-		}
-
-		/**
 		 * Prints the computed huffman coding
 		 */
 		void printCode() {
@@ -199,6 +189,116 @@ namespace QaplaBitbase {
 		}
 
 	private:
+
+		/**
+		 * Stores the huffman tree to a byte vector (recursively)
+		 * @param out output storage
+		 * @param node huffman tree node to store
+		 * @param bitIndex index to the output vector
+		 * @returns new index position
+		 */
+		uint64_t storeCode(vector<bbt_t>& out, const HuffmanNode* node, uint64_t bitIndex) {
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
+			uint64_t bbtIndex = bitIndex / sizeInBit;
+			// Add enough space to store leaf data
+			while (out.size() <= bbtIndex + 2) {
+				out.push_back(0);
+			}
+			if (node->isLeaf()) {
+				setBit(out, bitIndex);
+				setValue(out, bitIndex + 1, node->leafData);
+				bitIndex += 1 + sizeInBit;
+			}
+			else {
+				clearBit(out, bitIndex);
+				bitIndex = storeCode(out, node->left, bitIndex + 1);
+				bitIndex = storeCode(out, node->right, bitIndex + 1);
+			}
+			return bitIndex;
+		}
+
+		/**
+		 * Retrieves the huffman tree from a byte vector (recursively)
+		 * @param in input data
+		 * @param node huffman tree node created
+		 * @param bitIndex index to the output vector
+		 * @returns new index position
+		 */
+		uint64_t retrieveCode(vector<bbt_t>& in, uint32_t codeLength, uint64_t code, uint64_t bitIndex) {
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
+			uint64_t bbtIndex = bitIndex / sizeInBit;
+			bool isLeafNode = getBit(in, bitIndex);
+			bitIndex++;
+			if (isLeafNode) {
+				const bbt_t value = getValue(in, bitIndex);
+				codeMap[value] = code;
+				codeLengthMap[value] = codeLength;
+				bitIndex += sizeInBit;
+			}
+			else {
+				code << 1;
+				bitIndex = retrieveCode(in, codeLength + 1, code, bitIndex);
+				bitIndex = retrieveCode(in, codeLength + 1, code + 1, bitIndex);
+			}
+			return bitIndex;
+		}
+
+		/**
+		 * Sets a single bit in the _bitbase
+		 */
+		void setBit(vector<bbt_t>& out, uint64_t index) {
+			uint64_t bbtIndex = index / (sizeof(bbt_t) * 8);
+			out[bbtIndex] |= bbt_t(1) << (index % (sizeof(bbt_t) * 8));
+		}
+
+		/**
+		 * Clears a single bit in the _bitbase
+		 */
+		void clearBit(vector<bbt_t>& out, uint64_t index) {
+			uint64_t bbtIndex = index / (sizeof(bbt_t) * 8);
+			out[bbtIndex] &= ~(bbt_t(1) << (index % (sizeof(bbt_t) * 8)));
+		}
+
+		/**
+		 * Gets a single bit from the _bitbase
+		 */
+		bool getBit(vector<bbt_t>& out, uint64_t index) const {
+			uint64_t bbtIndex = index / (sizeof(bbt_t) * 8);
+			return (out[bbtIndex] & (bbt_t(1) << (index % (sizeof(bbt_t) * 8)))) != 0;
+		}
+
+		/**
+		 * Sets a value to the output vector
+		 * @param out vector to set the value to
+		 * @param indexInBit index where to set the value to
+		 * @param value value to set
+		 */
+		void setValue(vector<bbt_t>& out, uint64_t indexInBit, bbt_t value) {
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
+			auto bitsLeft = sizeInBit - (indexInBit % sizeInBit);
+			auto index = indexInBit / sizeInBit;
+			out[index] |= value >> (sizeInBit - bitsLeft);
+			index++;
+			out[index] |= value << bitsLeft;
+		}
+
+		/**
+		 * Sets a value to the input vector
+		 * @param in vector to get the value from
+		 * @param indexInBit index where to get the value from
+		 * @returns value read
+		 */
+		bbt_t getValue(vector<bbt_t>& in, uint64_t indexInBit) const {
+			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
+			auto bitsLeft = sizeInBit - (indexInBit % sizeInBit);
+			auto index = indexInBit / sizeInBit;
+			bbt_t result = 0;
+			result |= in[index] << (sizeInBit - bitsLeft);
+			index++;
+			result |= in[index] >> bitsLeft;
+			return result;
+		}
+
 		/** 
 		 * Uncompresses the next element from the compressed data
 		 */
@@ -252,7 +352,6 @@ namespace QaplaBitbase {
 			}
 		}
 
-	private:
 		/**
 		 * Clears the huffman forrest
 		 */
@@ -293,7 +392,7 @@ namespace QaplaBitbase {
 		static const uint32_t WORD_SIZE = 256;
 		array<uint32_t, WORD_SIZE> frequency;
 		array<uint32_t, WORD_SIZE> codeLengthMap;
-		array<uint32_t, WORD_SIZE> codeMap;
+		array<uint64_t, WORD_SIZE> codeMap;
 		priority_queue<HuffmanNode*, std::vector<HuffmanNode*>, compare> forrest;
 	};
 }

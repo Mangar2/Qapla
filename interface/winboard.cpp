@@ -77,7 +77,7 @@ void Winboard::generateEGTB() {
 			getNextTokenBlocking(true);
 			cores = uint32_t(getCurrentTokenAsUnsignedInt());
 		}
-		else if (token == "uncompressed") {
+		else if (token == "uncompressed" || token == "uc") {
 			uncompressed = true;
 		}
 		else if (token == "trace") {

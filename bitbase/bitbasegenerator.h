@@ -38,16 +38,8 @@ using namespace ChessSearch;
 namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
-		static const int DEBUG_LEVEL = 0;
+		static const bool DO_DEBUG = true;
 		BitbaseGenerator() {
-		}
-
-		/**
-		 * Computes a bitbase for a piece string (example KPK)
-		 */
-		void computeBitbase(string pieceString) {
-			PieceList list(pieceString);
-			computeBitbase(list);
 		}
 
 		/**
@@ -64,14 +56,38 @@ namespace QaplaBitbase {
 			_debugLevel = debugLevel;
 			ClockManager clock;
 			clock.setStartTime();
-			PieceList list(pieceString);
-			computeBitbaseRec(list, true);
+			computeBitbase(pieceString);
 			cout << endl << "All Bitbases generated!";
 			printTimeSpent(clock, 0);
 			cout << endl;
 		}
 
+
 	private:
+
+		void computeBitbase(string pieceString) {
+			if (pieceString == "3") {
+				computeBitbase("KPK");
+			} 
+			else if (pieceString == "4") {
+				computeBitbase("KPPK");
+				computeBitbase("KPKP");
+			}
+			else if (pieceString == "5") {
+				computeBitbase("KPPKP");
+				computeBitbase("KPKPP");
+				computeBitbase("KPPPK");
+			}
+			else if (pieceString == "6") {
+				computeBitbase("KPPKPP");
+				computeBitbase("KPKPPP");
+				computeBitbase("KPPPKP");
+				computeBitbase("KPPPPK");
+			}
+			PieceList list(pieceString);
+			computeBitbaseRec(list, true);
+		}
+
 
 		/**
 		 * Join all running threads
@@ -93,6 +109,21 @@ namespace QaplaBitbase {
 		 * Marks one candidate identified by a partially filled move and a destination square
 		 */
 		uint64_t computeCandidateIndex(bool wtm, const PieceList& list, Move move, Square destination, bool verbose);
+
+		/**
+		 * Switches the sides, if the moving piece is a black piece
+		 */
+		template <Piece COLOR>
+		constexpr Square switchSide(Square square) {
+			return COLOR == WHITE ? square : ChessBasics::switchSide(square);
+		}
+
+		/**
+		 * Reverse-Generate pawn moves - moving back to possible start positions of the pawn
+		 */
+		template <Piece COLOR>
+		void reverseGeneratePawnMoves(vector<uint64_t>& candidates, 
+			const MoveGenerator& position, const PieceList& list, Move move, bool verbose);
 
 		/**
 		 * Computes a list of candidates and pushes them to the candidates vector
@@ -140,16 +171,23 @@ namespace QaplaBitbase {
 			Bitbase bitbase1;
 			Bitbase bitbase2;
 			bool found1 = bitbase1.readFromFile(pieceString, ".btb", "./", false);
+			if (found1 == false) {
+				cout << "Missing file ./" << pieceString << ".btb compare not possible " << endl;
+			}
 			bool found2 = bitbase2.readFromFile(pieceString, ".btb", "./generated/", false);
+			if (found2 == false) {
+				cout << "Missing file ./generated/" << pieceString << ".btb compare not possible " << endl;
+			}
 			if (found1 && found2) {
 				compareBitbases(pieceString, bitbase1, bitbase2);
 			}
+			
 		}
 
 		/**
 		 * Prints the time spent so far
 		 */
-		void printTimeSpent(ClockManager& clock, int minTraceLevel);
+		void printTimeSpent(ClockManager& clock, int minTraceLevel, bool sameLine = false);
 
 		/**
 		 * Prints win/loss/draw/illegal statistic
@@ -162,6 +200,15 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Prints an information about the actual position for debugging
+		 */
+		void printDebugInfo(const MoveGenerator& position, uint64_t index = -1) {
+			if (index != -1) cout << "Cur: " << index;
+			cout << " calculated: " << BoardAccess::getIndex<0>(position) << endl;
+			position.print();
+		}
+
+		/**
 		 * Populates a position from a bitbase index for the squares and a piece list for the piece types
 		 */
 		void addPiecesToPosition(MoveGenerator& position, const ReverseIndex& reverseIndex, const PieceList& pieceList);
@@ -171,7 +218,7 @@ namespace QaplaBitbase {
 		 * @param workpackage work provider
 		 * @param state current generation state
 		 */
-		void computeWorkpackage(Workpackage& workpackage, GenerationState& state, bool onlyCandidates);
+		void computeWorkpackage(Workpackage& workpackage, GenerationState& state);
 
 		/**
 		 * Compute the bitbase by checking each position for an update as long as no further update is found
@@ -184,13 +231,13 @@ namespace QaplaBitbase {
 		/**
 		 * Sets a situation to mate or stalemate 
 		 */
-		bool setMateOrStalemate(ChessMoveGenerator::MoveGenerator& position, const uint64_t index,
+		Result setMateOrStalemate(ChessMoveGenerator::MoveGenerator& position, const uint64_t index,
 			QaplaBitbase::GenerationState& state);
 
 		/**
 		 * Initially probe alle positions for a mate- draw or capture situation
 		 */
-		bool initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+		Result initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
 		 * Computes a workpackage for the initial situation calculation

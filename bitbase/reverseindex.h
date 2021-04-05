@@ -78,16 +78,19 @@ namespace QaplaBitbase {
 			return _wtm;
 		}
 
+		bool isLegal() const {
+			return _isLegal;
+		}
+
 	private:
 
 		/**
 		 * Clears the index
 		 */
 		void clear() {
+			_isLegal = true;
 			_piecesBB = 0;
-			_pawnsBB = 0;
 			_pieceCount = 0;
-			_pawnCount = 0;
 		}
 
 		/**
@@ -101,18 +104,6 @@ namespace QaplaBitbase {
 		 */
 		uint64_t setPawnsByIndex(uint64_t index, const PieceList& pieceList);
 		void setPiecesByIndex(uint64_t index, const PieceList& pieceList);
-
-		/**
-		 * Calculates the index of a double pawn
-		 */
-		uint64_t doublePawnIndex(Square square1, Square square2) {
-			uint64_t index;
-			if (square2 < square1) {
-				swap(square1, square2);
-			}
-			index = ((127 - square1) * square1) /2;
-			index += square2;
-		}
 
 		/**
 		 * Set the Squares of kings by having an index
@@ -133,17 +124,12 @@ namespace QaplaBitbase {
 		 * Computes the real square of a piece from a index-square ("raw") by adding one 
 		 * for every piece on a "lower" square
 		 */
-		Square computesRealSquare(bitBoard_t checkPieces, Square rawSquare);
+		Square computeRealSquare(bitBoard_t checkPieces, Square rawSquare);
 
 		/**
 		 * Pop count for sparcely populated bitboards
 		 */
 		uint32_t popCount(bitBoard_t bitBoard);
-
-		/**
-		 * Adds the square of a pawn to the piece square list
-		 */
-		void addPawnSquare(Square square);
 
 		/**
 		 * Adds the square of a piece to the piece square list
@@ -157,23 +143,38 @@ namespace QaplaBitbase {
 			InitStatic();
 		} _staticConstructor;
 
+		/**
+		 * Initializes the lookup table to map an index to two pawns
+		 */
+		static void computeTwoPawnIndexLookup();
+
+		/**
+		 * Initializes the lookup table to map an index to two pieces
+		 * of same kind
+		 */
+		static void computeTwoPieceIndexLookup();
 
 		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN = 1806;
 		static const uint32_t NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN = 462;
 		static const uint64_t NUMBER_OF_PAWN_POSITIONS = BOARD_SIZE - 2 * NORTH;
 		static const uint64_t NUMBER_OF_PIECE_POSITIONS = BOARD_SIZE;
+		static const uint64_t NUMBER_OF_DOUBLE_PAWN_POSITIONS = 1128;
+		static const uint64_t NUMBER_OF_DOUBLE_PIECE_POSITIONS = 1892;
 		static const uint64_t COLOR_COUNT = 2;
-		static const uint64_t KING_COUNT = 2;
+		static const uint64_t NUMBER_OF_KINGS = 2;
+		static const uint32_t REMAINING_PIECE_POSITIONS = NUMBER_OF_PIECE_POSITIONS - NUMBER_OF_KINGS;
 
 		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN> mapIndexToKingSquaresWithPawn;
 		static array<uint32_t, NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN> mapIndexToKingSquaresWithoutPawn;
 
+		static array<uint16_t, NUMBER_OF_DOUBLE_PAWN_POSITIONS> mapIndexToTwoPawnSquares;
+		static array<uint16_t, NUMBER_OF_DOUBLE_PIECE_POSITIONS> mapIndexToTwoPieceSquares;
+
 		static const uint32_t MAX_PIECES_COUNT = 10;
 		bitBoard_t _piecesBB;
-		bitBoard_t _pawnsBB;
 		uint32_t _pieceCount;
-		uint32_t _pawnCount;
 		array<Square, MAX_PIECES_COUNT> _squares;
+		bool _isLegal;
 		bool _wtm;
 
 	};

@@ -197,6 +197,19 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Retrieves the amount of won positions in the bitbase
+		 */
+		uint64_t computeWonPositions(uint64_t begin = 0, uint64_t end = -1) const {
+			uint64_t result = 0;
+			for (uint64_t index = begin; index < _bitbase.size(); index ++) {
+				for (uint8_t content = _bitbase[index]; content != 0; content &= content - 1) {
+					result++;
+				}
+			}
+			return result;
+		}
+
+		/**
 		 * Returns true, if the _bitbase is _loaded
 		 */
 		bool isLoaded() { return _loaded; }

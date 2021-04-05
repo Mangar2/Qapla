@@ -182,9 +182,9 @@ namespace QaplaBitbase {
 		void printStatistic() {
 			uint64_t drawOrLoss = _sizeInBit - _won - _illegal;
 			cout 
-				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%)"
-				<< " Draw or Loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
-				<< " Mated: " << _loss << " Initial draw: " << _draw 
+				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%) " << _wonPositions.computeWonPositions()
+				<< " Not Won: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
+				<< " Mated: " << _loss 
 				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)";
 		}
 

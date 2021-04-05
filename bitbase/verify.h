@@ -63,7 +63,36 @@ namespace QaplaBitbase {
 			ClockManager clock;
 			clock.setStartTime();
 			_verified.clear();
-			verifyBitbaseRec(pieceString, true);
+			if (pieceString == "3") {
+				verifyBitbaseRec("K*K", true);
+			} else if (pieceString == "4") {
+				verifyBitbaseRec("K*K", true);
+				verifyBitbaseRec("K*K*", true);
+				verifyBitbaseRec("K**K", true);
+			}
+			else if (pieceString == "5") {
+				verifyBitbaseRec("K*K", true);
+				verifyBitbaseRec("K*K*", true);
+				verifyBitbaseRec("K**K", true);
+				verifyBitbaseRec("K**K*", true);
+				verifyBitbaseRec("K*K**", true);
+				verifyBitbaseRec("K***K", true);
+			}
+			else if (pieceString == "6") {
+				verifyBitbaseRec("K*K", true);
+				verifyBitbaseRec("K*K*", true);
+				verifyBitbaseRec("K**K", true);
+				verifyBitbaseRec("K**K*", true);
+				verifyBitbaseRec("K*K**", true);
+				verifyBitbaseRec("K***K", true);
+				verifyBitbaseRec("K**K**", true);
+				verifyBitbaseRec("K***K*", true);
+				verifyBitbaseRec("K*K***", true);
+				verifyBitbaseRec("K****K", true);
+			}
+			else {
+				verifyBitbaseRec(pieceString, true);
+			}
 			cout << endl << "All Bitbases verified!" << endl;
 			printTimeSpent(clock, 0);
 			cout << endl;
@@ -276,13 +305,13 @@ namespace QaplaBitbase {
 			string pieceString = pieceList.getPieceString();
 			string loadString = pieceString;
 			replace(loadString.begin(), loadString.end(), 'P', '*');
-			BitbaseReader::loadBitbaseRec(loadString);
+			BitbaseReader::loadBitbaseRec(loadString, true);
 			for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
 				PieceList loadList(pieceList);
 				loadList.removePiece(pieceNo);
 				string loadString = loadList.getPieceString();
 				replace(loadString.begin(), loadString.end(), 'P', '*');
-				BitbaseReader::loadBitbaseRec(loadString);
+				BitbaseReader::loadBitbaseRec(loadString, true);
 			}
 			_errors = 0;
 			cout << pieceString << " Verifying with " << _cores << " cores ";

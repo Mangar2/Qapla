@@ -57,17 +57,17 @@ namespace QaplaBitbase {
 			cout << "Time spent " << clock.computeTimeSpentInMilliseconds() << endl;
 		}
 
-		static void loadBitbaseRec(string name) {
+		static void loadBitbaseRec(string name, bool force = false) {
 			auto pos = name.find('*');
 			if (pos != string::npos) {
 				for (auto ch : string("QRBNP")) {
 					string next = name;
 					next[pos] = ch;
-					loadBitbaseRec(next);
+					loadBitbaseRec(next, force);
 				}
 			}
 			else {
-				if (!BitbaseReader::isBitbaseAvailable(name)) {
+				if (force || !BitbaseReader::isBitbaseAvailable(name)) {
 					loadBitbase(name);
 				}
 			}

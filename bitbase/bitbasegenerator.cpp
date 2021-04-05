@@ -49,9 +49,7 @@ bool BitbaseGenerator::computeValue(MoveGenerator& position, const Bitbase& bitb
 	PieceList pieceList(position);
 
 	if (verbose) {
-		cout << endl << "index: " << BoardAccess::getIndex<0>(position) << endl;
-		position.print();
-		printf("%s\n", position.isWhiteToMove() ? "white" : "black");
+		printDebugInfo(position, index);
 	}
 
 	position.genMovesOfMovingColor(moveList);
@@ -74,6 +72,9 @@ bool BitbaseGenerator::computeValue(MoveGenerator& position, const Bitbase& bitb
 		}
 
 	}
+	if (DO_DEBUG && _debugLevel > 1 &&  whiteToMove && !result) {
+		printDebugInfo(position);
+	}
 	return result;
 }
 
@@ -83,7 +84,7 @@ bool BitbaseGenerator::computeValue(MoveGenerator& position, const Bitbase& bitb
  */
 uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator& position, GenerationState& state) {
 	uint32_t result = 0;
-	if (computeValue(position, state.getWonPositions(), false)) {
+	if (position.isWhiteToMove() || computeValue(position, state.getWonPositions(), false)) {
 		if (index == _debugIndex) {
 			computeValue(position, state.getWonPositions(), true);
 		}
@@ -111,8 +112,7 @@ void BitbaseGenerator::compareBitbases(string pieceString, Bitbase& newBitbase, 
 			differences++;
 			if (differences < 10) {
 				printf("new: %s, old: %s\n", newResult ? "won" : "not won", oldResult ? "won" : "not won");
-				printf("index: %lld\n", index);
-				position.print();
+				printDebugInfo(position, index);
 			}
 			position.clear();
 		}
@@ -125,12 +125,14 @@ void BitbaseGenerator::compareBitbases(string pieceString, Bitbase& newBitbase, 
 /**
  * Prints the time spent so far
  */
-void BitbaseGenerator::printTimeSpent(ClockManager& clock, int minTraceLevel) {
+void BitbaseGenerator::printTimeSpent(ClockManager& clock, int minTraceLevel, bool sameLine) {
 	if (_traceLevel < minTraceLevel) {
 		return;
 	}
 	uint64_t timeInMilliseconds = clock.computeTimeSpentInMilliseconds();
-	cout << endl << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000)) 
+	if (!sameLine) cout << endl;
+	else cout << " ";
+	cout << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000)) 
 		<< ":" << ((timeInMilliseconds / (60 * 1000)) % 60) 
 		<< ":" << ((timeInMilliseconds / 1000) % 60) 
 		<< "." << timeInMilliseconds % 1000 << " ";
@@ -144,10 +146,31 @@ uint64_t BitbaseGenerator::computeCandidateIndex(bool wtm, const PieceList& list
 {
 	move.setDestination(destination);
 	uint64_t index = BoardAccess::getIndex(!wtm, list, move);
-	if (DEBUG_LEVEL > 0 && verbose) {
+	if (DO_DEBUG && _debugLevel > 0 && (verbose || index == _debugIndex)) {
 		cout << "New candidate, index: " << index << " move " << move.getLAN() << endl;
 	}
 	return index;
+}
+
+template <Piece COLOR>
+void BitbaseGenerator::reverseGeneratePawnMoves(vector<uint64_t>& candidates, 
+	const MoveGenerator& position, const PieceList& list, Move move, bool verbose)
+{
+	const bool wtm = position.isWhiteToMove();
+	const Square departure = move.getDeparture();
+	const Square testDeparture = switchSide<COLOR>(departure);
+	const Square direction = COLOR == WHITE ? SOUTH : NORTH;
+	const Square oneRankDestination = departure + direction;
+	const bool isMyPawn = move.getMovingPiece() == COLOR + PAWN;
+	if (isMyPawn && testDeparture >= A3 && position[oneRankDestination] == NO_PIECE) {
+		candidates.push_back(
+			computeCandidateIndex(wtm, list, move, oneRankDestination, verbose));
+		const Square twoRankDestination = oneRankDestination + direction;
+		if (getRank(testDeparture) == Rank::R4 && position[twoRankDestination] == NO_PIECE) {
+			candidates.push_back(
+				computeCandidateIndex(wtm, list, move, twoRankDestination, verbose));
+		}
+	}
 }
 
 /**
@@ -164,22 +187,8 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t>& candidates, const Mov
 	if (move.getMovingPiece() == BLACK_KING) {
 		attackBB &= ~position.pieceAttackMask[position.getKingSquare<WHITE>()];
 	}
-	if (move.getMovingPiece() == WHITE_PAWN && move.getDeparture() >= A3) {
-		candidates.push_back(
-			computeCandidateIndex(wtm, list, move, move.getDeparture() - NORTH, verbose));
-		if (getRank(move.getDeparture()) == Rank::R4) {
-			candidates.push_back(
-				computeCandidateIndex(wtm, list, move, move.getDeparture() - 2 * NORTH, verbose));
-		}
-	}
-	if (move.getMovingPiece() == BLACK_PAWN && move.getDeparture() <= H6) {
-		candidates.push_back(
-			computeCandidateIndex(wtm, list, move, move.getDeparture() + NORTH, verbose));
-		if (getRank(move.getDeparture()) == Rank::R5) {
-			candidates.push_back(
-				computeCandidateIndex(wtm, list, move, move.getDeparture() + 2 * NORTH, verbose));
-		}
-	}
+	reverseGeneratePawnMoves<WHITE>(candidates, position, list, move, verbose);
+	reverseGeneratePawnMoves<BLACK>(candidates, position, list, move, verbose);
 	if (getPieceType(move.getMovingPiece()) != PAWN) {
 		for (; attackBB; attackBB &= attackBB - 1) {
 			const Square destination = lsb(attackBB);
@@ -237,7 +246,7 @@ void BitbaseGenerator::addPiecesToPosition(
  * @param work list of indexes to work on
  * @param candidates resulting candidates for further checks
  */
-void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, GenerationState& state, bool onlyCandidates) 
+void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, GenerationState& state) 
 {
 	MoveGenerator position;
 	vector<uint64_t> candidates;
@@ -251,7 +260,7 @@ void BitbaseGenerator::computeWorkpackage(Workpackage& workpackage, GenerationSt
 
 			position.clear();
 			addPiecesToPosition(position, reverseIndex, state.getPieceList());
-			if (DEBUG_LEVEL > 0 && index != BoardAccess::getIndex<0>(position)) {
+			if (DO_DEBUG && _debugLevel > 0 && index != BoardAccess::getIndex<0>(position)) {
 				cout << "Error, programming bug, index is not correct " << index << endl;
 				exit(1);
 			}
@@ -284,12 +293,13 @@ void BitbaseGenerator::computeBitbase(GenerationState& state, ClockManager& cloc
 		state.clearAllCandidates();
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo) {
 			_threads[threadNo] = thread([this, &workpackage, loopCount, &state]() {
-				computeWorkpackage(workpackage, state, true);
+				computeWorkpackage(workpackage, state);
 			});
 		}
 
 		joinThreads();
 		cout << ".";
+		printTimeSpent(clock, 3);
 		if (!state.hasCandidates()) {
 			break;
 		}
@@ -346,30 +356,30 @@ Result BitbaseGenerator::initialSearch(MoveGenerator& position, MoveList& moveLi
 /**
  * Sets a situation to mate or stalemate
  */
-bool BitbaseGenerator::setMateOrStalemate(ChessMoveGenerator::MoveGenerator& position, const uint64_t index, 
+Result BitbaseGenerator::setMateOrStalemate(ChessMoveGenerator::MoveGenerator& position, const uint64_t index, 
 	QaplaBitbase::GenerationState& state)
 {
-	bool result = false;
+	Result result = Result::Unknown;
 	if (!position.isWhiteToMove() && position.isInCheck()) {
-		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+		if (DO_DEBUG && index == _debugIndex) {
 			cout << _debugIndex << " , Fen: " << position.getFen() << " is win by mate (move generator) " << endl;
 		}
 		state.setWin(index);
-		result = true;
+		result = Result::Win;
 	}
 	else if (position.isWhiteToMove() && position.isInCheck()) {
-		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+		if (DO_DEBUG && index == _debugIndex) {
 			cout << _debugIndex << " , Fen: " << position.getFen() << " is loss by mate (move generator) " << endl;
 		}
 		state.setLoss(index);
-		result = true;
+		result = Result::Loss;
 	}
 	else {
-		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+		if (DO_DEBUG && index == _debugIndex) {
 			cout << _debugIndex << " , Fen: " << position.getFen() << " is stalemate (move generator) " << endl;
 		}
 		state.setDraw(index);
-		result = true;
+		result = Result::Draw;
 	}
 	return result;
 }
@@ -377,43 +387,43 @@ bool BitbaseGenerator::setMateOrStalemate(ChessMoveGenerator::MoveGenerator& pos
 /**
  * Initially probe alle positions for a mate- draw or capture situation
  */
-bool BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state) {
+Result BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state) {
 	MoveList moveList;
-	bool result = false;
+	Result result = Result::Unknown;
 	bool kingInCheck = false;
-	if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+	if (DO_DEBUG && index == _debugIndex) {
 		kingInCheck = false;
 	}
 
 	// Exclude all illegal positions (king not to move is in check) from future search
 	if (!position.isLegal()) {
-		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+		if (DO_DEBUG && index == _debugIndex) {
 			cout << _debugIndex << " , Fen: " << position.getFen() << " is illegal (move generator) " << endl;
 		}
 		state.setIllegal(index);
-		return false;
+		return Result::IllegalIndex;
 	}
 
 	position.genMovesOfMovingColor(moveList);
 	if (moveList.getTotalMoveAmount() > 0) {
 		// Compute all captures and look up the positions in other bitboards
 		Result positionValue = initialSearch(position, moveList);
-		if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+		if (DO_DEBUG && index == _debugIndex) {
 			cout << endl << "Inital search for " << _debugIndex << " result: " << ResultMap[int(positionValue)] << endl;
 		}
 		if (positionValue == Result::Win) {
-			if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+			if (DO_DEBUG && index == _debugIndex) {
 				cout << _debugIndex << " , Fen: " << position.getFen() << " is a win (initial search) " << endl;
 			}
 			state.setWin(index);
-			result = true;
+			result = positionValue;
 		}
 		else if (positionValue != Result::Unknown) {
-			if (DEBUG_LEVEL > 0 && index == _debugIndex) {
+			if (DO_DEBUG && index == _debugIndex) {
 				cout << _debugIndex << " , Fen: " << position.getFen() << " is a loss or draw (initial search) " << endl;
 			}
 			state.setDraw(index);
-			result = true;
+			result = positionValue;
 		}
 	}
 	else {
@@ -434,6 +444,10 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, Gener
 	while (package.first < package.second) {
 		for (uint64_t index = package.first; index < package.second; ++index) {
 			ReverseIndex reverseIndex(index, state.getPieceList());
+			if (!reverseIndex.isLegal()) {
+				state.setIllegal(index);
+				continue;
+			}
 			position.clear();
 			addPiecesToPosition(position, reverseIndex, state.getPieceList());
 			uint64_t testIndex = BoardAccess::getIndex<0>(position);
@@ -441,8 +455,8 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage& workpackage, Gener
 				state.setIllegal(index);
 			}
 			else {
-				bool isDecided = initialComputePosition(index, position, state);
-				if (isDecided) {
+				Result result = initialComputePosition(index, position, state);
+				if (result == Result::Win) {
 					computeCandidates(candidates, position, index == _debugIndex);
 				}
 			}
@@ -487,8 +501,8 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList) {
 	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
 	cout << "c";
-	state.storeToFile(fileName, _uncompressed, _debugLevel > 1, _traceLevel >= 1);
-	printTimeSpent(clock, 1);
+	state.storeToFile(fileName, _uncompressed, _debugLevel > 1, _traceLevel > 1);
+	printTimeSpent(clock, 0, _traceLevel == 0);
 	printStatistic(state, 1);
 	cout << endl;
 	BitbaseReader::setBitbase(pieceString, state.getWonPositions());
@@ -504,7 +518,7 @@ void BitbaseGenerator::computeBitbaseRec(PieceList& pieceList, bool first) {
 	string pieceString = pieceList.getPieceString();
 	if (!first && !BitbaseReader::isBitbaseAvailable(pieceString)) {
 		BitbaseReader::loadBitbase(pieceString);
-		if (DEBUG_LEVEL > 1) {
+		if (_debugLevel > 1) {
 			compareFiles(pieceString);
 		}
 	}
@@ -523,12 +537,12 @@ void BitbaseGenerator::computeBitbaseRec(PieceList& pieceList, bool first) {
 	
 	if (first || !BitbaseReader::isBitbaseAvailable(pieceString)) {
 		computeBitbase(pieceList);
-		if (DEBUG_LEVEL > 1) {
+		if (_debugLevel > 1) {
 			compareFiles(pieceString);
 		}
 	} 
 
-	if (first && DEBUG_LEVEL > 0) {
+	if (first && DO_DEBUG) {
 		compareFiles(pieceString);
 	}
 }
