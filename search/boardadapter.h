@@ -60,8 +60,9 @@ namespace ChessSearch {
 		 */
 		virtual map<string, string> getEngineInfo() { 
 			return map<string, string>{
-				{ "name", "Qapla 0.1.01" },
-				{ "author", "Volker Böhm"}
+				{ "name", "Qapla 0.2.00" },
+				{ "author", "Volker Böhm"},
+				{ "engine-about", "Qapla by Volker Böhm, see github.com/Mangar2/Quabla"}
 			};
 		}
 

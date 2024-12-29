@@ -30,7 +30,6 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "bitbaseindex.h"
-#include "huffmancode.h"
 #include "compress.h"
 
 namespace QaplaBitbase {
@@ -141,10 +140,10 @@ namespace QaplaBitbase {
 			vector<bbt_t> compressed;
 			vector<bbt_t> uncompressed;
 			if (verbose) cout << "compressing " << endl;
-			compress(_bitbase, compressed);
+			QaplaCompress::compress(_bitbase, compressed);
 			if (test) {
 				cout << "testing compression ... " << endl;
-				uncompress(compressed, uncompressed, _bitbase.size());
+				QaplaCompress::uncompress(compressed, uncompressed, _bitbase.size());
 				if (_bitbase != uncompressed) {
 					cout << " compression error " << fileName << endl;
 					for (uint64_t index = 0; index < _bitbase.size(); index++) {
@@ -237,18 +236,13 @@ namespace QaplaBitbase {
 			_bitbase.clear();
 			compressed.resize(size);
 			fin.read((char*)&compressed[0], size * sizeof(bbt_t));
-			uncompress(compressed, _bitbase, sizeInBit);
+			QaplaCompress::uncompress(compressed, _bitbase, sizeInBit);
 			fin.close();
 			if (verbose) {
 				cout << "Read: " << fileName << endl;
 			}
 			_loaded = true;
 			return true;
-		}
-
-
-		void compress_test() {
-			HuffmanCode huffman(_bitbase);
 		}
 
 		uint32_t computeVectorSize() {

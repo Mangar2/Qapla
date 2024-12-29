@@ -81,15 +81,19 @@ namespace ChessEval {
 		 */
 		static void print(MoveGenerator& position, EvalResults& results) {
 			eval(position, results);
-			printf("King attack\n");
-			printf("White pawn shield      : %ld%%\n", 
+			cout << "King attack" << endl;
+			cout << "White pawn shield:" << std::right << std::setw(18) << 
 				KingAttackValues::pawnIndexFactor[
-					computePawnShieldIndex<WHITE>(position.getKingSquare<WHITE>(), position.getPieceBB(WHITE_PAWN))]);
-			printf("Black pawn shield      : %ld%%\n",
+					computePawnShieldIndex<WHITE>(position.getKingSquare<WHITE>(), position.getPieceBB(WHITE_PAWN))] 
+				<< endl;
+			cout << "Black pawn shield:" << std::right << std::setw(18) <<
 				KingAttackValues::pawnIndexFactor[
-					computePawnShieldIndex<BLACK>(position.getKingSquare<BLACK>(), position.getPieceBB(BLACK_PAWN))]);
-			printf("White (pressure %1ld)  : %ld\n", results.kingPressureCount[WHITE], results.kingAttackValue[WHITE]);
-			printf("Black (pressure %1ld)  : %ld\n", results.kingPressureCount[BLACK], -results.kingAttackValue[BLACK]);
+					computePawnShieldIndex<BLACK>(position.getKingSquare<BLACK>(), position.getPieceBB(BLACK_PAWN))]
+				<< endl;
+			cout << "White (pressure " << results.kingPressureCount[WHITE] << "):" << std::right << std::setw(17) << 
+				results.kingAttackValue[WHITE] << endl;
+			cout << "Black (pressure " << results.kingPressureCount[BLACK] << "):" << std::right << std::setw(17) <<
+				results.kingAttackValue[BLACK] << endl;
 		}
 
 	private:
@@ -168,7 +172,7 @@ namespace ChessEval {
 				results.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
 			}
 			value_t attackValue =
-				(KingAttackValues::attackWeight[results.kingPressureCount[COLOR]] * results.midgameInPercent) / 100;
+				(KingAttackValues::attackWeight[results.kingPressureCount[COLOR]] * results.midgameInPercentV2) / 100;
 			results.kingAttackValue[COLOR] = attackValue;
 			return results.kingAttackValue[COLOR];
 		}

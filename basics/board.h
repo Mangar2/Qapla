@@ -234,6 +234,13 @@ namespace ChessBasics {
 		}
 
 		/**
+		 * Get the piece square table bonus
+		 */
+		inline auto getPstBonus() const {
+			return _pstBonus;
+		}
+
+		/**
 		 * Gets the material balance value of the board
 		 * Positive, if the player to move has a better position
 		 */
@@ -300,6 +307,11 @@ namespace ChessBasics {
 		 * Prints the board to std-out
 		 */
 		void print() const;
+
+		/**
+		 * Prints the pst values of the current board
+		 */
+		void printPst() const;
 
 	protected:
 		array<Square, COLOR_COUNT> kingSquares;
@@ -371,6 +383,8 @@ namespace ChessBasics {
 		 */
 		void doMoveSpecialities(Move move);
 		void undoMoveSpecialities(Move move);
+
+		void printPst(Piece piece) const;
 
 		EvalValue _pstBonus;
 

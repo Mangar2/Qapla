@@ -94,7 +94,7 @@ namespace ChessEval {
 
 			if (PRINT) cout << colorToString(COLOR)
 				<< " queen (" << squareToString(square) << ") mobility: "
-				<< std::right << std::setw(7) << value;
+				<< std::right << std::setw(9) << value;
 			return value;
 		}
 

@@ -22,10 +22,16 @@ void WhatIf::init(const Board& board, const ComputingInfo& computingInfo, value_
 	hashFoundPly = -1;
 }
 
-void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {
+void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, 
+	Move currentMove, ply_t depth, ply_t ply) {
 	printMoves(stack, currentMove, ply);
-	WhatIfVariables variables(computingInfo, stack, ply);
+	WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, "");
 	variables.printAll();
+}
+
+void WhatIf::printInfo(const WhatIfVariables& wiVariables) {
+	wiVariables.printMoves();
+	wiVariables.printAll();
 }
 
 void WhatIf::moveSelected(const Board& board, const ComputingInfo& computingInfo, Move currentMove, ply_t ply, bool inQsearch) {
@@ -43,8 +49,9 @@ void WhatIf::moveSelected(const Board& board, const ComputingInfo& computingInfo
 		return;
 	}
 	moveSelected(board, computingInfo, currentMove, ply, false);
-	if (hashFoundPly != -1) {
-		moveSearched(board, computingInfo, stack, currentMove, ply - 1);
+	if (( ply - 1 ) == hashFoundPly && -1 != hashFoundPly) {
+		WhatIfVariables variables(computingInfo, stack, currentMove, stack[ply].getRemainingDepth(), ply - 1, "");
+		variables.printSelected();
 	}
 }
 
@@ -56,12 +63,14 @@ void WhatIf::startSearch(const Board& board, const ComputingInfo& computingInfo,
 }
 
 
-void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {
+void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, 
+	Move currentMove, ply_t depth, ply_t ply, const string searchType) {
 	if (searchDepth == -1 || ply < 0) {
 		return;
 	}
 	if (ply == hashFoundPly) {
-		printInfo(board, computingInfo, stack, currentMove, ply);
+		WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, searchType);
+		printInfo(variables);
 		count++;
 	}
 }

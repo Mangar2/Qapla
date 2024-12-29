@@ -51,12 +51,13 @@ namespace ChessEval {
 			results.rookAttack[COLOR] = 0;
 			bitBoard_t rooks = position.getPieceBB(ROOK + COLOR);
 			if (rooks == 0) return EvalValue(0, 0);
-			
+
 			bitBoard_t passThrough = results.queensBB | rooks;
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
 			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThrough) &
 				~position.pawnAttack[OPPONENT];
 			occupiedBB &= ~passThrough;
+			value += rooksOnRow7<COLOR, PRINT>(rooks, position.getPieceBB(QUEEN + COLOR));
 
 			while (rooks)
 			{
@@ -65,7 +66,7 @@ namespace ChessEval {
 				value += calcMobility<COLOR, PRINT>(results, rookSquare, occupiedBB, removeMask);
 				value += calcPropertyValue<COLOR, PRINT>(position, results, rookSquare);
 			}
-			if (PRINT) cout << colorToString(COLOR) << " rooks: " 
+			if (PRINT) cout << colorToString(COLOR) << " rooks: "
 				<< std::right << std::setw(20) << value << endl;
 			return value;
 		}
@@ -111,8 +112,8 @@ namespace ChessEval {
 
 			attackBB &= removeBB;
 			const EvalValue value = ROOK_MOBILITY_MAP[popCount(attackBB)];
-			if (PRINT) cout << colorToString(COLOR) 
-				<< " rook (" << squareToString(square) << ") mobility: " 
+			if (PRINT) cout << colorToString(COLOR)
+				<< " rook (" << squareToString(square) << ") mobility: "
 				<< std::right << std::setw(7) << value;
 			return value;
 		}
@@ -149,14 +150,14 @@ namespace ChessEval {
 		static inline bool isOnHalfOpenFile(bitBoard_t ourPawnBB, bitBoard_t moveRay) {
 			return (moveRay & ourPawnBB) == 0;
 		}
-		
+
 		/**
 		 * Returns true, if the rook protects a passed pawn from behind
 		 */
 		template <Piece COLOR>
 		static inline bool protectsPassedPawnFromBehind(bitBoard_t passedPawns, Square rookSquare, bitBoard_t moveRay) {
 			bitBoard_t protectBB = (moveRay & passedPawns);
-			return COLOR == WHITE ? 
+			return COLOR == WHITE ?
 				((1ULL << rookSquare) < protectBB) :
 				(protectBB != 0 && (1ULL << rookSquare) > protectBB);
 		}
@@ -174,6 +175,18 @@ namespace ChessEval {
 			bool trappedKingSide = (kingSquare < rookSquare) && (kingSideBB == rookAndKingBB);
 			bool trappedQueenSide = (kingSquare > rookSquare) && (queenSideBB == rookAndKingBB);
 			return trappedKingSide || trappedQueenSide;
+		}
+
+		template <Piece COLOR, bool PRINT>
+		static inline EvalValue rooksOnRow7(bitBoard_t rookBB, bitBoard_t queenBB) {
+			const auto rooksRow7BB = (rookBB | queenBB) & ROW_7[COLOR];
+			const auto amountOnRow7 = popCountBrianKernighan(rooksRow7BB);
+			const EvalValue valueForRow7 =  ROOK_ROW_7_MAP[amountOnRow7];
+			if (PRINT && amountOnRow7 > 0) cout << colorToString(COLOR)
+				<< " rook row 7:"
+				<< std::right << std::setw(16) << valueForRow7
+				<< endl;
+			return valueForRow7;
 		}
 
 		/**
@@ -198,6 +211,8 @@ namespace ChessEval {
 			InitStatics();
 		} _staticConstructor;
 
+		static constexpr bitBoard_t ROW_7[COLOR_COUNT] = { 0x00FF000000000000, 0x000000000000FF00 };
+
 		static const uint32_t INDEX_SIZE = 32;
 		static const uint32_t TRAPPED = 1;
 		static const uint32_t OPEN_FILE = 2;
@@ -210,12 +225,19 @@ namespace ChessEval {
 		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
 		static constexpr value_t _protectsPP[2] = { 20, 0 };
 		static constexpr value_t _pinned[2] = { 0, 0 };
-		// 20:20 50.30; 40:0 51.45
+		
+		// Lookup table to get an evaluation for all topics in one access via. bitmask. Saves lots of if/else
 		static array<value_t, INDEX_SIZE * 2> _indexToValue;
-		// Mobility Map for rooks
-		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = { 
-			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 10, 10 }, { 15, 15 }, { 20, 20 },
-			{ 25, 25 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 }, { 30, 30 } };
+
+		// Row 7 map
+		static constexpr value_t ROOK_ROW_7_MAP[8][2] = {
+			{ 0, 0 }, { 10, 0 }, { 20, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }
+		};
+
+		// Mobility Map
+		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = {
+			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
+			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } };
 	};
 }
 

@@ -192,7 +192,7 @@ namespace ChessSearch {
 			bool isInWindow = false;
 			_window.newDepth(searchDepth);
 			do {
-				stack.initSearch(position, _window.getAlpha(), _window.getBeta(), searchDepth);
+				stack.initSearchAtRoot(position, _window.getAlpha(), _window.getBeta(), searchDepth);
 				if (searchDepth != 0) {
 					stack.setPV(computingInfo.getPV());
 				}

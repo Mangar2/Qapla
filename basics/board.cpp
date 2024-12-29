@@ -17,6 +17,8 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  */
 
+#include <iomanip>
+#include "bits.h"
 #include "board.h"
 #include "pst.h"
 
@@ -254,31 +256,41 @@ string Board::getFen() const {
 	}
 
 	result += isWhiteToMove()? " w" : " b";
-	/*
-	if (IsWKCastleAllowed()) printf("K");
-	if (IsWQCastleAllowed()) printf("Q");
-	if (IsBKCastleAllowed()) printf("k");
-	if (IsBQCastleAllowed()) printf("q");
 
-	if (!IsWKCastleAllowed() && !IsWQCastleAllowed() &&
-	!IsBKCastleAllowed() && !IsBQCastleAllowed())
-	printf("-");
-
-	if (mEP == cNoPos)
-	{
-	printf(" -");
-	}
-	else
-	{
-	aRes = aRes + " " + char('a' + char(Col(mEP)));
-	printf(" %c",
-	if (mWtm) aRes = aRes + '6';
-	else aRes = aRes + '3';
-	}
-	aRes = aRes + " " + mNonPermChangeAmount + " " +
-	(mHalfmovesAmount / 2 + 1);
-	*/
 	return result;
+}
+
+void Board::printPst(Piece piece) const {
+	auto pieceBB = getPieceBB(piece);
+	if (!pieceBB) return;
+
+	std::cout << " " << colorToString(getPieceColor(piece)) 
+		<< " " << pieceToChar(piece) << " PST: " 
+		<< std::right << std::setw(19);
+
+	EvalValue total;
+
+	for (auto bb = pieceBB; bb; bb &= bb - 1)
+	{
+		const auto square = lsb(bb);
+		total += PST::getValue(square, piece);
+	}
+	cout << total << " (";
+
+	for (auto bb = pieceBB; bb; bb &= bb - 1)
+	{
+		const auto square = lsb(bb);
+		const auto value = PST::getValue(square, piece);
+		cout << squareToString(square) << value << " ";
+	}
+	cout << ")" << endl;
+}
+
+
+void Board::printPst() const {
+	for (Piece piece = MIN_PIECE; piece <= BLACK_KING; ++piece) {
+		printPst(piece);
+	}
 }
 
 

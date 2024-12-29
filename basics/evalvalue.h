@@ -77,8 +77,8 @@ namespace ChessBasics {
 	};
 
 	static ostream& operator<<(ostream& o, const EvalValue& v) {
-		o << "[" << std::right << std::setw(2) << v._midgame << ", " 
-			<< std::right << std::setw(2) << v._endgame << "]";
+		o << "[" << std::right << std::setw(3) << v._midgame << ", " 
+			<< std::right << std::setw(3) << v._endgame << "]";
 		return o;
 	}
 

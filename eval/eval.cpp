@@ -41,12 +41,20 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 
 	evalResults.midgameInPercent = computeMidgameInPercent(board);
 	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(board);
-	if (PRINT) printf("Midgame factor      : %ld%%\n", evalResults.midgameInPercentV2);
+	if (PRINT) cout << "Midgame factor:" << std::right << std::setw(20) << evalResults.midgameInPercentV2 << endl;
 	
 	// Add material to the evaluation
 	value_t material = board.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
 	result += material;
-	if (PRINT) printf("Marerial            : %ld\n", material);
+
+	if (PRINT) cout << "Marerial:" << std::right 
+		<< std::setw(24) << board.getMaterialValue().getValue(evalResults.midgameInPercentV2) 
+		<< " " << board.getMaterialValue() << endl;
+
+	if (PRINT) board.printPst();
+	if (PRINT) cout << "PST:" << std::right 
+		<< std::setw(29) << board.getPstBonus().getValue(evalResults.midgameInPercentV2)
+		<< " " << board.getPstBonus() << endl;
 
 	// Add paw value to the evaluation
 	result += Pawn::eval<PRINT>(board, evalResults);
@@ -123,7 +131,7 @@ void Eval::printEval(MoveGenerator& board) {
 			KingAttack::print(board, evalResults);
 		}
 	}
-	printf("Total               : %ld\n", evalValue);
+	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }
 
 

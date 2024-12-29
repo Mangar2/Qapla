@@ -80,7 +80,7 @@ namespace ChessEval {
 				return value;
 			}
 
-			colorBB_t moveRay;
+			colorBB_t moveRay{};
 			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
 			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
 
@@ -97,7 +97,7 @@ namespace ChessEval {
 		 * piece on the position
 		 */
 		static value_t computePawnValueNoPiece(MoveGenerator& position, EvalResults& results) {
-			colorBB_t moveRay;
+			colorBB_t moveRay{};
 			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
 			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
 
@@ -174,6 +174,16 @@ namespace ChessEval {
 		}
 
 		/**
+		 * Prints a pawn value information
+		 */
+		template <bool PRINT, Piece COLOR>
+		inline static value_t printValue(const char* topic, value_t value) {
+			if (PRINT) cout << colorToString(COLOR) << " " << topic << ":" << std::right
+				<< std::setw(29 - strlen(topic)) << value << endl;
+			return value;
+		}
+
+		/**
 		 * Evaluates pawns per color
 		 */
 		template <bool PRINT, Piece COLOR>
@@ -182,13 +192,12 @@ namespace ChessEval {
 			bitBoard_t pawnBB = position.getPieceBB(PAWN + COLOR);
 			results.passedPawns[COLOR] = 0;
 			if (pawnBB != 0) {
-				value += computeIsolatedPawnValue<COLOR>(moveRay[COLOR]);
-				value += computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]);
-				value += computePassedPawnValue<COLOR>(position, results, moveRay);
-				value += computeConnectedPawnValue<COLOR>(position);
+				value += printValue<PRINT, COLOR>("isolated", computeIsolatedPawnValue<COLOR>(moveRay[COLOR]));
+				value += printValue<PRINT, COLOR>("double", computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]));
+				value += printValue<PRINT, COLOR>("passed", computePassedPawnValue<COLOR>(position, results, moveRay));
+				value += printValue<PRINT, COLOR>("connected", computeConnectedPawnValue<COLOR>(position));
 			}
-			if (PRINT) cout << colorToString(COLOR) << " pawns: "
-					<< std::right << std::setw(20) << value << endl;
+			printValue<PRINT, COLOR>("pawn total", value);
 			return value;
 		}
 

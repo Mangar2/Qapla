@@ -119,6 +119,7 @@ namespace ChessSearch {
 		 * Checks, if it is time to send the next information to the gui
 		 */
 		bool isTimeToSendNextInfo() {
+			if (isSearchStopped()) return false;
 			int64_t timeBetweenInfoInMilliseconds = _clockSetting.getTimeBetweenInfoInMilliseconds();
 			bool sendInfo = timeBetweenInfoInMilliseconds > 0 && 
 				getSystemTimeInMilliseconds() > _nextInfoTime;

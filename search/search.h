@@ -73,8 +73,8 @@ namespace ChessSearch {
 
 	private:
 
-		enum class SearchFinding {
-			PV, NORMAL, PV_LAST_PLY, LAST_PLY
+		enum class SearchRegion {
+			INNER, NEAR_LEAF
 		};
 
 		/**
@@ -85,70 +85,58 @@ namespace ChessSearch {
 		/**
 		 * Check for cutoffs
 		 */
-		template <SearchFinding TYPE>
-		bool hasCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& curPly, ply_t ply) {
+		template <SearchRegion TYPE>
+		bool hasCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t ply) {
 			if (ply < 1) return false;
-			if (curPly.alpha > MAX_VALUE - value_t(ply)) {
-				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
+			if (node.alpha > MAX_VALUE - value_t(ply)) {
+				node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
 			}
-			else if (curPly.beta < -MAX_VALUE + value_t(ply)) {
-				curPly.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
+			else if (node.beta < -MAX_VALUE + value_t(ply)) {
+				node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 			}
-			else if (ply >= 3 && position.drawDueToMissingMaterial()) {
-				curPly.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
+			else if (TYPE == SearchRegion::INNER && hasBitbaseCutoff(position, node)) {
+				node.setCutoff(Cutoff::BITBASE);
+			} else if (TYPE == SearchRegion::INNER && ply >= 3 && position.drawDueToMissingMaterial()) {
+				// TODO: remove ply >= 3, kept for backward compatibility
+				node.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
 			}
 			else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
-				curPly.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
+				node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
 			}
-			else if (curPly.probeTT(position, ply)) {
-				curPly.setCutoff(Cutoff::HASH);
+			else if (node.probeTT(position, ply)) {
+				node.setCutoff(Cutoff::HASH);
 			}
 			else if (position.isInCheck()) {
 				return false;
 			}
-			else if (curPly.futility(position)) {
-				curPly.setCutoff(Cutoff::FUTILITY);
+			else if (node.futility(position)) {
+				node.setCutoff(Cutoff::FUTILITY);
 			} 
-			else if (TYPE == SearchFinding::NORMAL && isNullmoveCutoff(position, stack, ply)) {
-				curPly.setCutoff(Cutoff::NULL_MOVE);
+			else if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, ply)) {
+				node.setCutoff(Cutoff::NULL_MOVE);
 			}
-			WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, curPly.cutoff);
-			return curPly.cutoff != Cutoff::NONE;
+			WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
+			return node.cutoff != Cutoff::NONE;
 		}
 
 		/**
-		 * Compute internal iterative deepening
+		 * Returns true, if we should do internal iterative deepening
 		 */
-		void iid(MoveGenerator& position, SearchStack& stack, ply_t ply) {
-			SearchVariables& searchInfo = stack[ply];
+		inline bool isIIDReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t ply) {
+
+			if (!SearchParameter::DO_IID) return false;
+
 			bool isPV = searchInfo.isPVSearch();
+			if (searchInfo.remainingDepth <= SearchParameter::getIIDMinDepth(isPV)) return false;
 
-			if (!SearchParameter::DO_IID) return;
-			if (searchInfo.remainingDepth <= SearchParameter::getIIDMinDepth(isPV)) return;
-			if (!searchInfo.getTTMove().isEmpty()) return;
-			if (!isPV && (!SearchParameter::DO_IID_FOR_CUT_NODES || !searchInfo.isCutNode())) return;
-			if (!isPV && position.isInCheck()) return;
+			if (!searchInfo.getTTMove().isEmpty()) return false;
+			if (!isPV && (!SearchParameter::DO_IID_FOR_CUT_NODES || !searchInfo.isCutNode())) return false;
+			if (!isPV && position.isInCheck()) return false;
 
-			static uint32_t iidCount[2] = { 0, 0 };
-			static uint32_t iidSuccess[2] = { 0, 0 };
- 			iidCount[isPV]++;
-
-			ply_t formerDepth = searchInfo.getRemainingDepth();
-			searchInfo.setRemainingDepthAtPlyStart(
-				formerDepth - SearchParameter::getIIDReduction(formerDepth, isPV));
-
-			value_t searchValue = negaMax(position, stack, ply);
-			if (!searchInfo.bestMove.isEmpty()) {
-				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);
-				iidSuccess[isPV]++;
-			}
-			
-			if (false) cout << "IDD rate; PV count: " << iidCount[1] << " PV success: " << iidSuccess[1]
-				<< " Non PV count: " << iidCount[0] << " Non PV success: " << iidSuccess[0]
-				<< endl; 
-
-			searchInfo.setForResearch(position, formerDepth);
+			return true;
 		}
+
+		ply_t computeLMR(SearchVariables& node, ply_t ply, Move move);
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
@@ -161,14 +149,10 @@ namespace ChessSearch {
 		bool isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint32_t ply);
 
 		/**
-		 * Negamax algorithm for the last plies of the search
-		 */
-		value_t negaMaxLastPlys(MoveGenerator& position, SearchStack& stack, ply_t ply);
-
-		/**
 		 * Do a full search using the negaMax algorithm
 		 */
-		value_t negaMax(MoveGenerator& position, SearchStack& stack, ply_t ply);
+		template <SearchRegion TYPE>
+		value_t negaMax(MoveGenerator& position, Move previousPlyMove, SearchStack& stack, ply_t depth, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves
@@ -181,7 +165,6 @@ namespace ChessSearch {
 		Eval eval;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
-		pieceSignature_t _rootSignature;
 		RootMoves _rootMoves;
 	};
 }

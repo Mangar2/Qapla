@@ -19,14 +19,16 @@
  * Implements a string try for compression
  */
 
-#ifndef _QAPLA_BITBASES_TRY_H
-#define _QAPLA_BITBASES_TRY_H
+#ifndef _QAPLA_COMPRESS_TRY_H
+#define _QAPLA_COMPRESS_TRY_H
 
+#include <assert.h>
 #include <vector>
 
 using namespace std;
 
-namespace QaplaBitbase {
+namespace QaplaCompress {
+
 	enum class NodeType {
 		Empty, Index, Bucket, List
 	};
@@ -183,10 +185,11 @@ namespace QaplaBitbase {
 	template <class T>
 	class Try {
 	public:
-		Try() {
+		Try(uint32_t maxDepth = 16) {
 			_buckets.reserve(BUCKETS_GROWTH);
 			_freeLists.reserve(MAX_LISTS);
 			_lists.reserve(MAX_LISTS);
+			_maxDepth = maxDepth;
 			for (uint32_t i = MAX_LISTS; i > 0; --i) {
 				_lists.emplace_back();
 				_freeLists.push_back(i - 1);
@@ -386,7 +389,7 @@ namespace QaplaBitbase {
 				}
 			} 
 			else if (nodeType == NodeType::Index) {
-				if (depth >= MAX_DEPTH || _freeLists.size() == 0) {
+				if (depth >= _maxDepth || _freeLists.size() == 0) {
 					result = Reference<T>(NodeType::Index, index);
 				}
 				else {
@@ -404,10 +407,10 @@ namespace QaplaBitbase {
 			return result;
 		}
 
-		static const uint32_t MAX_DEPTH = 16;
 		static const uint32_t MAX_LISTS = 0x20000;
 		static const uint32_t MAX_SINGELTONS = 8192;
 		static const uint32_t BUCKETS_GROWTH = 8192;
+		uint32_t _maxDepth;
 		RefBucket<T> _root;
 		vector<uint32_t> _freeLists;
 		vector<RefBucket<T>> _buckets;
@@ -418,4 +421,4 @@ namespace QaplaBitbase {
 }
 
 
-#endif		// _QAPLA_BITBASES_TRY_H
+#endif		// _QAPLA_COMPRESS_TRY_H

@@ -39,9 +39,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="basics\hashconstants.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="search\perft.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
@@ -126,6 +123,12 @@
     <ClCompile Include="bitbase\reverseindex.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
+    <ClCompile Include="bitbase\compress.cpp">
+      <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\hashconstants.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\movelist.h">
@@ -138,9 +141,6 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\perft.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="basics\hashconstants.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="search\searchdef.h">
@@ -389,9 +389,16 @@
     <ClInclude Include="bitbase\reverseindex.h">
       <Filter>bitbase</Filter>
     </ClInclude>
+    <ClInclude Include="bitbase\deflate.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\hashconstants.h">
+      <Filter>basics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
     <None Include="CHANGELOG.md" />
+    <None Include="version.md" />
   </ItemGroup>
 </Project>

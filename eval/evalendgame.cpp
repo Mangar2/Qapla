@@ -45,6 +45,7 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KQR*B*N*P*KB", ForceToCornerWithBonus);
 	REGISTER("KQR*B*N*P*KN", ForceToCornerWithBonus);
 	REGISTER("KQKR", KQKR);
+	REGISTER("KQNKQ", forceToAnyCornerButDraw);
 	REGISTER("KQP+KRP+", KQPsKRPs);
 	REGISTER("KQNKRR", forceToAnyCornerButDraw);
 

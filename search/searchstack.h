@@ -56,8 +56,8 @@ namespace ChessSearch {
 		inline  SearchVariables& operator[](uint32_t index) { return *searchVariablePtr[index]; }
 		TT* getTT() const { return ttPtr; }
 
-		void initSearch(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
-			_stack[0].init(board, alpha, beta, searchDepth);
+		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
+			_stack[0].initSearchAtRoot(board, alpha, beta, searchDepth);
 		}
 
 		Move getMoveFromPVMovesStore(SearchVariables::pvIndex_t ply) {
@@ -133,8 +133,9 @@ namespace ChessSearch {
 
 	private:
 		TT* ttPtr;
-		array<SearchVariables*, SearchParameter::MAX_SEARCH_DEPTH> searchVariablePtr;
-		array<SearchVariables, SearchParameter::MAX_SEARCH_DEPTH> _stack;
+		// We sometimes access the next ply thus we need to have one spare to write data in 
+		array<SearchVariables*, SearchParameter::MAX_SEARCH_DEPTH + 1> searchVariablePtr;
+		array<SearchVariables, SearchParameter::MAX_SEARCH_DEPTH + 1> _stack;
 		uint32_t referenceCount;
 	};
 

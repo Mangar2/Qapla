@@ -103,16 +103,16 @@ namespace ChessBasics {
 			return _materialValue;
 		}
 
-		const static value_t PAWN_VALUE_MG = 50;
-		const static value_t PAWN_VALUE_EG = 70;
-		const static value_t KNIGHT_VALUE_MG = 325;
+		const static value_t PAWN_VALUE_MG = 80;
+		const static value_t PAWN_VALUE_EG = 95;
+		const static value_t KNIGHT_VALUE_MG = 360;
 		const static value_t KNIGHT_VALUE_EG = 325;
-		const static value_t BISHOP_VALUE_MG = 325;
-		const static value_t BISHOP_VALUE_EG = 325;
-		const static value_t ROOK_VALUE_MG = 500;
-		const static value_t ROOK_VALUE_EG = 500;
+		const static value_t BISHOP_VALUE_MG = 360;
+		const static value_t BISHOP_VALUE_EG = 330;
+		const static value_t ROOK_VALUE_MG = 550;
+		const static value_t ROOK_VALUE_EG = 550;
 		const static value_t QUEEN_VALUE_MG = 975;
-		const static value_t QUEEN_VALUE_EG = 975;
+		const static value_t QUEEN_VALUE_EG = 1025;
 
 	
 	private:

@@ -19,8 +19,8 @@
  * Implements huffman compression for bitbases
  */
 
-#ifndef __HUFFMANCODE_H
-#define __HUFFMANCODE_H
+#ifndef _QAPLA_COMPRESS_HUFFMANCODE_H
+#define _QAPLA_COMPRESS_HUFFMANCODE_H
 
 #include <queue>
 #include <array>
@@ -28,7 +28,8 @@
 
 using namespace std;
 
-namespace QaplaBitbase {
+namespace QaplaCompress {
+
 	typedef uint8_t bbt_t;
 
 	struct HuffmanNode {
@@ -104,20 +105,17 @@ namespace QaplaBitbase {
 		 * @param out vector the code is pushed to
 		 * @returns amount of "bbt_t" elements used to store the code
 		 */
-		uint32_t storeCode(vector<bbt_t>& out) {
-			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
-			uint64_t indexInBit = storeTree(out, 0, forrest.top());
-			uint32_t codeSizeInElements = uint32_t((indexInBit + sizeInBit - 1) / sizeInBit);
-			return codeSizeInElements;
+		void storeCode(vector<bbt_t>& out) {
+			storeTree(out, 0, forrest.top());
 		}
 
 		/**
 		 * Use the calculated huffman code to compress the data
 		 */
-		void compress(vector<bbt_t>::iterator in, vector<bbt_t>& out, uint32_t size) {
+		void compress(vector<bbt_t>::const_iterator in, vector<bbt_t>& out, uint32_t size) {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
 			// stores the amount of elements compressed
-			pushBackValue(out, size);
+			addValue(out, size);
 			uint32_t bitsLeft = sizeInBit;
 			out.push_back(0);
 
@@ -215,25 +213,25 @@ namespace QaplaBitbase {
 		 * @param node huffman tree node to store
 		 * @returns new index position
 		 */
-		uint64_t storeTree(vector<bbt_t>& out, uint64_t bitIndex, const HuffmanNode* node) {
+		uint32_t storeTree(vector<bbt_t>& out, uint32_t bitsLeft, const HuffmanNode* node) {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
-			uint64_t bbtIndex = bitIndex / sizeInBit;
 			// Add enough space to store leaf data
-			if (out.size() <= bbtIndex) {
+			if (bitsLeft == 0) {
 				out.push_back(0);
+				bitsLeft = sizeInBit;
 			}
 			if (node->isLeaf()) {
-				setBit(out, bitIndex);
-				out.push_back(0);
-				setValue(out, bitIndex + 1, node->leafData);
-				bitIndex += 1 + sizeInBit;
+				setBit(out.back(), bitsLeft);
+				bitsLeft--;
+				addValue(out, bitsLeft, node->leafData);
 			}
 			else {
-				clearBit(out, bitIndex);
-				bitIndex = storeTree(out, bitIndex + 1, node->left);
-				bitIndex = storeTree(out, bitIndex, node->right);
+				clearBit(out.back(), bitsLeft);
+				bitsLeft--;
+				bitsLeft = storeTree(out, bitsLeft, node->left);
+				bitsLeft = storeTree(out, bitsLeft, node->right);
 			}
-			return bitIndex;
+			return bitsLeft;
 		}
 
 		/**
@@ -266,20 +264,19 @@ namespace QaplaBitbase {
 		/**
 		 * Sets a single bit in the _bitbase
 		 */
-		void setBit(vector<bbt_t>& out, uint64_t index) {
+		void setBit(bbt_t& elem, uint32_t bitsLeft) {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
-			uint64_t bbtIndex = index / sizeInBit;
-			out[bbtIndex] |= bbt_t(1) << (sizeInBit - index % sizeInBit - 1);
+			elem |= bbt_t(1) << (bitsLeft - 1);
 		}
 
 		/**
 		 * Clears a single bit in the _bitbase
 		 */
-		void clearBit(vector<bbt_t>& out, uint64_t index) {
+		void clearBit(bbt_t& elem, uint32_t bitsLeft) {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
-			uint64_t bbtIndex = index / sizeInBit;
-			out[bbtIndex] &= ~(bbt_t(1) << (sizeInBit - index % sizeInBit - 1));
+			elem &= ~(bbt_t(1) << (bitsLeft - 1));
 		}
+
 
 		/**
 		 * Gets a single bit from the _bitbase
@@ -291,22 +288,19 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Sets a value to the output vector
+		 * Sets a value to the back of an output vector
 		 * @param out vector to set the value to
-		 * @param indexInBit index where to set the value to
+		 * @param bitsLeft amount of bits left in the last element
 		 * @param value value to set
 		 */
-		void setValue(vector<bbt_t>& out, uint64_t indexInBit, bbt_t value) {
+		void addValue(vector<bbt_t>& out, uint32_t bitsLeft, bbt_t value) {
 			constexpr auto sizeInBit = sizeof(bbt_t) * 8;
-			auto bitsLeft = sizeInBit - (indexInBit % sizeInBit);
-			auto index = indexInBit / sizeInBit;
 			if (bitsLeft == sizeInBit) {
-				out[index] = value;
+				out.push_back(value);
 			}
 			else {
-				out[index] |= value >> (sizeInBit - bitsLeft);
-				index++;
-				out[index] |= value << bitsLeft;
+				out.back() |= value >> (sizeInBit - bitsLeft);
+				out.push_back(value << bitsLeft);
 			}
 		}
 
@@ -315,7 +309,7 @@ namespace QaplaBitbase {
 		 * @param out vector to set the value to
 		 * @param value value to set
 		 */
-		void pushBackValue(vector<bbt_t>& out,uint32_t value) {
+		void addValue(vector<bbt_t>& out,uint32_t value) {
 			bbt_t* valuePtr = (bbt_t*)&value;
 			int count = sizeof(uint32_t) / sizeof(bbt_t);
 			for (; count > 0; count--, valuePtr++) {
@@ -448,4 +442,4 @@ namespace QaplaBitbase {
 	};
 }
 
-#endif		// __HUFFMANCODE_H
+#endif		// _QAPLA_COMPRESS_HUFFMANCODE_H

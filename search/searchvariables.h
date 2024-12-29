@@ -48,6 +48,11 @@ enum class Cutoff {
 namespace ChessSearch {
 	struct SearchVariables {
 
+		enum class SearchFinding {
+			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID,
+			AMOUNT
+		};
+
 		typedef uint32_t pvIndex_t;
 
 		SearchVariables() {
@@ -68,58 +73,49 @@ namespace ChessSearch {
 		 */
 		inline bool isPVSearch() const { return _searchState == SearchFinding::PV; }
 		inline bool isNullWindowSearch() const { return _searchState == SearchFinding::NULL_WINDOW; }
-		inline bool isNormalSearch() const { return _searchState == SearchFinding::NORMAL; }
-
-		/**
-		 * Selectes the first search state (IID, PV, NORMAL)
-		 */
-		void selectFirstSearchState() {
-			if (beta > alpha + 1) {
-				_searchState = SearchFinding::PV;
-			}
-			else {
-				_searchState = SearchFinding::NORMAL;
-			}
-		}
+		inline auto getSearchState() const { return _searchState; }
+		inline bool isWindowZero() const { return alpha + 1 == beta;  }
+		inline bool isPVNode() const { return alphaAtPlyStart + 1 < betaAtPlyStart;  }
 
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setFromPreviousPly(MoveGenerator& position, const SearchVariables& previousPlySearchInfo) {
+		void setFromPreviousPly(MoveGenerator& position, const SearchVariables& previousPly, ply_t depth) {
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
-			selectFirstSearchState();
-			noNullmove = previousPlySearchInfo.previousMove.isNullMove() || previousMove.isNullMove();
-			moveProvider.init();
 			cutoff = Cutoff::NONE;
 			lateMoveReduction = 0;
 			ttValueLessThanAlpha = false;
 			eval = NO_VALUE;
-		}
-
-		/**
-		 * Sets all variables from previous ply
-		 */
-		void setForResearch(MoveGenerator& position, ply_t depth) {
-			alpha = alphaAtPlyStart;
-			beta = betaAtPlyStart;
-			setRemainingDepthAtPlyStart(depth);
-			pvMovesStore.setEmpty(ply);
-			pvMovesStore.setEmpty(ply + 1);
-			bestMove.setEmpty();
-			bestValue = -MAX_VALUE;
-			selectFirstSearchState();
-			cutoff = Cutoff::NONE;
-			position.computeAttackMasksForBothColors();
+			positionHashSignature = position.computeBoardHash();
+			remainingDepth = depth;
+			remainingDepthAtPlyStart = depth;
+			beta = -previousPly.alpha;
+			alpha = -previousPly.beta;
+			alphaAtPlyStart = alpha;
+			betaAtPlyStart = beta;
+			moveNumber = 0;
+			_nodeType = _nodeTypeMap[int(previousPly._nodeType)];
+			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
+			noNullmove = previousPly.previousMove.isNullMove() || previousMove.isNullMove();
+			if (previousMove.isNullMove()) {
+				_searchState = SearchFinding::NORMAL;
+				_nodeType = NodeType::CUT;
+				// For safety, shouldnt be required as we do not nullmove in pv nodes.
+				alpha = beta - 1;
+				alphaAtPlyStart = alpha;
+			}
+			moveProvider.init();
 		}
 
 		/**
 		 * Initializes all variables to start search
 		 */
-		void init(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, int32_t searchDepth) {
+		void initSearchAtRoot(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, ply_t searchDepth) {
 			remainingDepth = searchDepth;
+			moveNumber = 0;
 			alpha = initialAlpha;
 			beta = initialBeta;
 			alphaAtPlyStart = alpha;
@@ -130,28 +126,20 @@ namespace ChessSearch {
 			noNullmove = true;
 			cutoff = Cutoff::NONE;
 			positionHashSignature = position.computeBoardHash();
-			moveProvider.init();
 			lateMoveReduction = 0;
 			ttValueLessThanAlpha = false;
 			eval = NO_VALUE;
+			moveProvider.init();
 		}
 
 		/**
 		 * Applies a move
 		 */
-		void doMove(MoveGenerator& position, const SearchVariables& previousPly, Move previousPlyMove) {
+		void doMove(MoveGenerator& position, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			boardState = position.getBoardState();
 			position.doMove(previousMove);
 			sideToMoveIsInCheck = position.isInCheck();
-			positionHashSignature = position.computeBoardHash();
-			remainingDepth = previousPly.remainingDepth - 1;
-			remainingDepthAtPlyStart = remainingDepth;
-			beta = -previousPly.alpha;
-			alpha = -previousPly.beta;
-			alphaAtPlyStart = alpha;
-			betaAtPlyStart = beta;
-			_nodeType = _nodeTypeMap[int(previousPly._nodeType)];
 		}
 
 		/**
@@ -218,16 +206,20 @@ namespace ChessSearch {
 		}
 
 		inline bool isFailHigh() { 
-			return bestValue >= betaAtPlyStart && _searchState != SearchFinding::NULL_WINDOW; 
+			return bestValue >= betaAtPlyStart; 
 		}
 
+		inline bool isNullWindowFailHigh() {
+			return bestValue >= beta;
+		}
 
 		/**
 		 * Extend the current search
 		 */
-		void extendSearch(MoveGenerator& position) {
+		auto extendSearch(MoveGenerator& position) {
 			searchDepthExtension = Extension::calculateExtension(position, previousMove, remainingDepth);
 			remainingDepth += searchDepthExtension;
+			return remainingDepth;
 		}
 
 		/**
@@ -263,8 +255,6 @@ namespace ChessSearch {
 		void setNullmove() {
 			_searchState = SearchFinding::NULLMOVE;
 			setNodeType(NodeType::CUT);
-			setRemainingDepthAtPlyStart(remainingDepth - 
-				SearchParameter::getNullmoveReduction(ply, remainingDepth));
 			alpha = beta - 1;
 		}
 
@@ -290,7 +280,7 @@ namespace ChessSearch {
 		/**
 		 * Sets the search to a null window search
 		 */
-		void setNullWindowSearch() {
+		void setNullWindow() {
 			beta = alpha + 1;
 			_searchState = SearchFinding::NULL_WINDOW;
 			setNodeType(NodeType::ALL);
@@ -299,7 +289,7 @@ namespace ChessSearch {
 		/**
 		 * Sets the search to PV (open window) search
 		 */
-		void setResearchWithPVWindow() {
+		void setPVWindow() {
 			// Needed to ensure that the research will be > bestValue and set the PV
 			bestValue = alpha;
 			beta = betaAtPlyStart;
@@ -307,29 +297,17 @@ namespace ChessSearch {
 			setNodeType(NodeType::PV);
 		}
 
-		/**
-		 * Selects the next move to try
-		 */
-		inline bool updateSearchType(uint32_t moveNo) {
-			if (_searchState == SearchFinding::NULL_WINDOW && currentValue >= beta) {
-				setResearchWithPVWindow();
-				return true;
-			}
-			if (isPVSearch() && (moveNo > 0) && remainingDepth >= 2) {
-				setNullWindowSearch();
-			}
-			return false;
-		}
+
 
 		/**
 		 * Selects the next move to try
 		 */
 		inline Move selectNextMove(MoveGenerator& position) {
-			bool research = updateSearchType(moveProvider.getTriedMovesAmount());
-			Move result = research ? moveProvider.getCurrentMove() : moveProvider.selectNextMove(position);
+			Move result = moveProvider.selectNextMove(position);
 			if (!isPVSearch() && moveProvider.isAllSearch()) {
 				setNodeType(NodeType::ALL);
 			}
+			moveNumber++;
 			return result;
 		}
 
@@ -396,7 +374,7 @@ namespace ChessSearch {
 		/**
 		 * terminates the search-ply
 		 */
-		void terminatePly(MoveGenerator& position) {
+		void updateTTandKiller(MoveGenerator& position) {
 			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
 				if (!bestMove.isEmpty()) {
 					moveProvider.setKillerMove(bestMove);
@@ -415,10 +393,14 @@ namespace ChessSearch {
 		Move getTTMove() const { return moveProvider.getTTMove(); }
 		void setPly(ply_t curPly) { ply = curPly; }
 
-		string getSearchStateName() const {
-			return searchStateNames[int32_t(_searchState)];
+		string getSearchStateName(SearchFinding searchState) const {
+			return searchStateNames[int32_t(searchState)];
 		}
-
+		
+		string getSearchStateName() const {
+			return getSearchStateName(_searchState);
+		}
+		
 		/**
 		 * Sets the transposition tables
 		 */
@@ -463,10 +445,7 @@ namespace ChessSearch {
 			return ttPtr->isTTValueBelowBeta(positionHashSignature, beta, ply);
 		}
 
-		enum class SearchFinding {
-			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID,
-			AMOUNT
-		};
+
 
 		enum class NodeType {
 			PV, CUT, ALL, COUNT
@@ -505,6 +484,7 @@ namespace ChessSearch {
 		value_t eval;
 		Move bestMove;
 		Move previousMove;
+		int32_t moveNumber;
 		ply_t remainingDepth;
 		ply_t remainingDepthAtPlyStart;
 		ply_t ply;
