@@ -7,6 +7,8 @@ setboard 2b5/2p3k1/p1p2pp1/2N4p/P1P5/4P2P/1rr2PP1/3R1RK1 w - - 2 22
 
 // Schlecht bewertete Endgame-Stellung
 setboard 8/5ppk/4p3/P1Q1Pn2/7p/7P/r5PK/8 b - - 7 41
+sd 15
+go
 
 setboard 4r1k1/1p3pp1/p4b2/5P2/8/5BQ1/PnP4P/6K1 b - - 3 27
 
