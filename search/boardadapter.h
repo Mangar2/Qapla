@@ -38,11 +38,11 @@
 #include "../bitbase/verify.h"
 #include "../bitbase/bitbasereader.h"
 
-using namespace ChessMoveGenerator;
-using namespace ChessInterface;
+using namespace QaplaMoveGenerator;
+using namespace QaplaInterface;
 using namespace ChessEval;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class BoardAdapter : public IChessBoard {
 	public:
@@ -247,7 +247,7 @@ namespace ChessSearch {
 		 */
 		virtual uint64_t perft(uint16_t depth, bool verbose = true, uint32_t maxTheadCount = 1) {
 			uint32_t additionalWorkerCount = maxTheadCount == 0 ? 0 : maxTheadCount - 1;
-			uint64_t res = ChessSearch::doPerftRec(position, depth, additionalWorkerCount, true, verbose);
+			uint64_t res = QaplaSearch::doPerftRec(position, depth, additionalWorkerCount, true, verbose);
 			return res;
 		}
 

@@ -37,7 +37,7 @@
 
 using namespace ChessBasics;
 
-namespace ChessMoveGenerator {
+namespace QaplaMoveGenerator {
 
 	class MoveGenerator : public Board
 	{

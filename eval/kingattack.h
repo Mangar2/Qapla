@@ -36,7 +36,7 @@
 #include "evalendgame.h"
 
 using namespace std;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 

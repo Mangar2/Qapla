@@ -33,7 +33,7 @@
 
 using namespace std;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 	class TT
 	{
 	public:

@@ -25,11 +25,12 @@
 #include "see.h"
 
 
-using namespace ChessInterface;
+using namespace QaplaInterface;
 using namespace ChessEval;
-using namespace ChessSearch;
+using namespace QaplaSearch;
 
 TT* Quiescence::_tt;
+
 
 /**
  * Computes the maximal value a capture move can gain + safety margin
@@ -71,6 +72,7 @@ value_t Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta
 	return bestValue;
 }
 
+
 /**
  * Performs the quiescense search
  */
@@ -78,7 +80,18 @@ value_t Quiescence::search(
 	MoveGenerator& position, ComputingInfo& computingInfo, Move lastMove,
 	value_t alpha, value_t beta, ply_t ply)
 {
-
+	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
+		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, ply);
+	}
+	if (alpha > MAX_VALUE - ply) {
+		return MAX_VALUE - ply;
+	}	
+	if (beta < -MAX_VALUE + ply) {
+		return -MAX_VALUE + ply;
+	}
+#ifdef USE_STOCKFISH_EVAL
+	Stockfish::StateInfo si;
+#endif
 	MoveProvider moveProvider;
 	Move move;
 	computingInfo._nodesSearched++;
@@ -87,18 +100,27 @@ value_t Quiescence::search(
 		value_t ttValue = probeTT(position, alpha, beta, ply);
 		if (ttValue != NO_VALUE) return ttValue;
 	}
-	value_t standPatValue = Eval::eval(position, ply, alpha);
+	//if (position.computeBoardHash() == -6935370772522267216ULL) {
+		// position.print();
+		// std::cout << Stockfish::Engine::trace();
+	//}
+	const auto evadesCheck = SearchParameter::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
+	value_t bestValue, standPatValue;
+	bestValue = standPatValue = evadesCheck ? -MAX_VALUE + ply : Eval::eval(position, ply, alpha);
+
 	// Eval::assertSymetry(position, standPatValue);
-	value_t bestValue;
 	value_t valueOfNextPlySearch;
 
-	bestValue = standPatValue;
 	if (standPatValue < beta) {
 		if (standPatValue > alpha) {
 			alpha = standPatValue;
 		}
-		moveProvider.computeCaptures(position, lastMove);
-		while (!(move = moveProvider.selectNextCapture(position)).isEmpty()) {
+		if (evadesCheck) {
+			moveProvider.computeEvades(position, lastMove);
+		} else {
+			moveProvider.computeCaptures(position, lastMove);
+		}
+		while (!(move = moveProvider.selectNextCaptureOrEvade(position, evadesCheck)).isEmpty()) {
 			valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, move);
 			if (valueOfNextPlySearch < alpha) {
 				if (valueOfNextPlySearch > bestValue) {
@@ -112,8 +134,14 @@ value_t Quiescence::search(
 
 			BoardState positionState = position.getBoardState();
 			position.doMove(move);
+#ifdef USE_STOCKFISH_EVAL
+			Stockfish::Engine::doMove(move, si);
+#endif
 			valueOfNextPlySearch = -search(position, computingInfo, move, -beta, -alpha, ply + 1);
 			position.undoMove(move, positionState);
+#ifdef USE_STOCKFISH_EVAL
+			Stockfish::Engine::undoMove(move);
+#endif
 
 			if (valueOfNextPlySearch > bestValue) {
 				bestValue = valueOfNextPlySearch;
@@ -127,7 +155,7 @@ value_t Quiescence::search(
 		}
 	}
 
-	WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, ply);
+	WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, standPatValue, ply);
 	return bestValue;
 }
 

@@ -21,7 +21,7 @@
 #include <sys/timeb.h>
 #include "stdtimecontrol.h"
 
-using namespace ChessInterface;
+using namespace QaplaInterface;
 
 StdTimeControl::StdTimeControl()
 {

@@ -32,8 +32,9 @@
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
+#include "../nnue/engine.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 
@@ -61,6 +62,9 @@ namespace ChessEval {
 		 * Calculates an evaluation for the current board position
 		 */
 		static value_t eval(MoveGenerator& board, value_t ply = 0, value_t alpha = -MAX_VALUE) {
+#ifdef USE_STOCKFISH_EVAL
+			return Stockfish::Engine::evaluate();
+#else
 			static const value_t tempo = 8;
 			EvalResults evalResults;
 			value_t positionValue = lazyEval<false>(board, evalResults, ply);
@@ -73,6 +77,7 @@ namespace ChessEval {
 			// or move count without pawn move or capture == 50
 			if (positionValue == 0) positionValue = 1;
 			return positionValue;
+#endif
 		}
 
 		/**
@@ -117,6 +122,8 @@ namespace ChessEval {
 		 */
 		template <bool PRINT>
 		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply);
+
+	
 
 		/**
 		 * Initializes some fields of eval results

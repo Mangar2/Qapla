@@ -25,7 +25,7 @@
 #ifndef __IWHATIF_H
 #define __IWHATIF_H
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	class IWhatIf {
 	public:

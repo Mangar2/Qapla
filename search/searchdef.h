@@ -25,7 +25,7 @@
 #include <assert.h>
 #include "../basics/types.h"
 
-namespace ChessSearch {
+namespace QaplaSearch {
 	typedef int32_t ply_t;
 
 	const ply_t ONE_PLY = 1;

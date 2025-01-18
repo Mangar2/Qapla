@@ -30,7 +30,7 @@
 
 using namespace ChessBasics;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 	class AspirationWindow {
 	private:
 		enum class State {

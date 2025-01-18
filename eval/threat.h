@@ -30,7 +30,7 @@
 #include "evalresults.h"
 
 using namespace ChessBasics;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 

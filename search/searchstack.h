@@ -26,7 +26,7 @@
 #include "tt.h"
 // #include "HistoryTable.h"
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class SearchStack {
 	public:

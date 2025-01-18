@@ -23,9 +23,9 @@
 #include "../movegenerator/movegenerator.h"
 #include "SearchParameter.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 	class Extension {
 	public:
 

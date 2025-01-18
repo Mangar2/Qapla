@@ -31,7 +31,7 @@
 #include "piecelist.h"
 #include "boardaccess.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 using namespace std;
 
 namespace QaplaBitbase {
@@ -47,7 +47,7 @@ namespace QaplaBitbase {
 	public:
 		static void loadBitbase() {
 			return;
-			ChessSearch::ClockManager clock;
+			QaplaSearch::ClockManager clock;
 			clock.setStartTime();
 			loadBitbaseRec("K*K");
 			loadBitbaseRec("KK*");

@@ -24,7 +24,7 @@
 
 using namespace std;
 
-using namespace ChessInterface;
+using namespace QaplaInterface;
 
 bool Winboard::handleMove(string move) {
 	move = move == "" ? getCurrentToken() : move;

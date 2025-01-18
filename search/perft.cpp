@@ -21,7 +21,7 @@
 #include <thread>
 #include <mutex>
 
-using namespace ChessSearch;
+using namespace QaplaSearch;
 using namespace std;
 
 array<PerftSearch::TTEntry, PerftSearch::TT_SIZE> PerftSearch::tt;

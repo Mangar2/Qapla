@@ -22,7 +22,7 @@
 #include "quiescence.h"
 #include "../bitbase/bitbasereader.h"
 
-using namespace ChessSearch;
+using namespace QaplaSearch;
 
 bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& node) {
 	return false;
@@ -109,11 +109,13 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	auto depth = node.remainingDepth;
 	depth -= SearchParameter::getNullmoveReduction(ply, depth);
 
+	stack[ply + 1].doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth > 2 ?
-		-negaMax<SearchRegion::INNER>(position, Move::NULL_MOVE, stack, depth - 1, ply + 1):
-		-negaMax<SearchRegion::NEAR_LEAF>(position, Move::NULL_MOVE, stack, depth - 1, ply + 1);
+		-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1):
+		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);
 
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - 1, ply, "null");
+	stack[ply + 1].undoMove(position);
 
 	const bool isCutoff = node.bestValue >= node.beta;
 	if (!isCutoff) {
@@ -139,10 +141,10 @@ ply_t Search::computeLMR(SearchVariables& node, ply_t ply,  Move move)
 
 
 /**
- * Negamax algorithm for plys 1..n-2
+ * Negamax algorithm for plys 1..n
  */
 template <Search::SearchRegion TYPE>
-value_t Search::negaMax(MoveGenerator& position, Move previousPlyMove, SearchStack& stack, ply_t depth, ply_t ply) {
+value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
 	
 	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position, ply);
 	if (TYPE == SearchRegion::INNER && stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(ply)) return -MAX_VALUE;
@@ -152,12 +154,9 @@ value_t Search::negaMax(MoveGenerator& position, Move previousPlyMove, SearchSta
 	bool cutoff = false;
 	Move curMove;
 
-	node.doMove(position, previousPlyMove);
-
 	if (depth + node.sideToMoveIsInCheck < 0) {
 		result = Quiescence::search(position, _computingInfo, node.previousMove,
 			-stack[ply - 1].beta, -stack[ply - 1].alpha, ply);
-		node.undoMove(position);
 		return result;
 	}
 
@@ -168,11 +167,9 @@ value_t Search::negaMax(MoveGenerator& position, Move previousPlyMove, SearchSta
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
 	cutoff = hasCutoff<TYPE>(position, stack, node, ply);
+	if (cutoff) return node.bestValue;
 
-	if (cutoff) {
-		node.undoMove(position);
-		return node.bestValue;
-	}
+	// if (TYPE == SearchRegion::INNER) iid(position, stack, ply);
 
 	node.computeMoves(position);
 	depth = node.extendSearch(position);
@@ -181,42 +178,50 @@ value_t Search::negaMax(MoveGenerator& position, Move previousPlyMove, SearchSta
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 		
 		const auto lmr = depth > 0 ? computeLMR(node, ply, curMove) : 0;
+		stack[ply + 1].doMove(position, curMove);
 
 		if (lmr > 0) {
 			result = TYPE == SearchRegion::INNER && depth - lmr > 2 ?
-				-negaMax<SearchRegion::INNER>(position, curMove, stack, depth - 1 - lmr, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, curMove, stack, depth - 1 - lmr, ply + 1);
+				-negaMax<SearchRegion::INNER>(position, stack, depth - 1 - lmr, ply + 1) :
+				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1 - lmr, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1 - lmr, ply, "LMR");
-			if (result < node.alpha) continue;
+			if (result < node.alpha) {
+				stack[ply + 1].undoMove(position);
+				continue;
+			}
+			// searching modifies the attack masks. But they are required for the next move generation
+			position.computeAttackMasksForBothColors();
 		}
 		
 		result = TYPE == SearchRegion::INNER && depth > 2 ?
-			-negaMax<SearchRegion::INNER>(position, curMove, stack, depth - 1, ply + 1) :
-			-negaMax<SearchRegion::NEAR_LEAF>(position, curMove, stack, depth - 1, ply + 1);
+			-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1) :
+			-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);
 
 		node.setSearchResult(result, stack[ply + 1], curMove);
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply);
-		if (node.isFailHigh()) break;
 
-		if (node.isNullWindowFailHigh()) {
+		if (node.isNullWindowFailHigh() && !node.isFailHigh()) {
 			// If we fail high against the null-window beta but not against the beta at node start, we are in a PV Node with
 			// null window search and the null window failed high. 
+			position.computeAttackMasksForBothColors();
 			node.setPVWindow();
 			result = TYPE == SearchRegion::INNER && depth > 2 ?
-				-negaMax<SearchRegion::INNER>(position, curMove, stack, depth - 1, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, curMove, stack, depth - 1, ply + 1);
+				-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1) :
+				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);
 
 			node.setSearchResult(result, stack[ply + 1], curMove);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, "PV");
-			if (node.isFailHigh()) break;
 		}
+
+		stack[ply + 1].undoMove(position);
+		if (node.isFailHigh()) break;
+
 		if (depth >= 2 && node.isPVSearch()) {
 			node.setNullWindow();
 		}
 	} 
 	// If search is aborted, bestValue and bestMove may be wrong, dont store them in the transposition table or killers  
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position);
-	node.undoMove(position);
 	if (TYPE == SearchRegion::INNER) {
 		_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
@@ -230,7 +235,6 @@ value_t Search::negaMax(MoveGenerator& position, Move previousPlyMove, SearchSta
 ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager) {
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
-	
 	SearchVariables& node = stack[0];
 	value_t result;
 	ply_t depth = node.remainingDepth;
@@ -240,6 +244,7 @@ ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, C
 	node.computeMoves(position);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
+	Stockfish::Engine::set_position(position.getFen());
 
 	for (size_t triedMoves = 0; triedMoves < _rootMoves.getMoves().size();) {
 
@@ -250,9 +255,10 @@ ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, C
 		_computingInfo.setCurrentMove(curMove);
 
 		while (true) {
+			stack[1].doMove(position, curMove);
 			result = depth > 2 ?
-				-negaMax<SearchRegion::INNER>(position, curMove, stack, depth - 1, 1):
-				-negaMax<SearchRegion::NEAR_LEAF>(position, curMove, stack, depth - 1, 1);
+				-negaMax<SearchRegion::INNER>(position, stack, depth - 1, 1):
+				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, 1);
 
 			// AbortSearch must be checked first. If it is true, we do not have a valid search result
 			if (node.remainingDepth > 1 && _clockManager->mustAbortSearch(0)) break;
@@ -262,6 +268,7 @@ ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, C
 			rootMove->set(result, stack);
 			node.setSearchResult(result, stack[1], curMove);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, 0);
+			stack[1].undoMove(position);
 
 			// If we failed high against the null window without failing high at the initial search window, we need to research 
 			// with the full search window to get an accurate position value.

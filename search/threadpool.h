@@ -31,7 +31,7 @@
 
 using namespace std;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class WorkPackage {
 	public:

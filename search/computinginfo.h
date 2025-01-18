@@ -36,9 +36,9 @@
 #include "searchparameter.h"
 #include "searchstack.h"
 
-using namespace ChessInterface;
+using namespace QaplaInterface;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 	class ComputingInfo {
 	public:
 		ComputingInfo() : _sendSearchInfo(0) {

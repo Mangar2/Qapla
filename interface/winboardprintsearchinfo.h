@@ -25,7 +25,7 @@
 #include "ISendSearchInfo.h"
 #include "IInputOutput.h"
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	class WinboardPrintSearchInfo : public ISendSearchInfo {
 	public:

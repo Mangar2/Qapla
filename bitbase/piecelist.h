@@ -29,7 +29,7 @@
 #include <string>
 
 using namespace std;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace QaplaBitbase {
 

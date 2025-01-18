@@ -19,7 +19,7 @@
 
 #include "bitboardmasks.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 // map from pawn-target position to adjacent bits on ep row
 bitBoard_t BitBoardMasks::mEPMask[BOARD_SIZE];

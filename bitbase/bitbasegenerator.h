@@ -32,8 +32,8 @@
 #include "bitbasereader.h"
 
 using namespace std;
-using namespace ChessMoveGenerator;
-using namespace ChessSearch;
+using namespace QaplaMoveGenerator;
+using namespace QaplaSearch;
 
 namespace QaplaBitbase {
 	class BitbaseGenerator {
@@ -231,7 +231,7 @@ namespace QaplaBitbase {
 		/**
 		 * Sets a situation to mate or stalemate 
 		 */
-		Result setMateOrStalemate(ChessMoveGenerator::MoveGenerator& position, const uint64_t index,
+		Result setMateOrStalemate(QaplaMoveGenerator::MoveGenerator& position, const uint64_t index,
 			QaplaBitbase::GenerationState& state);
 
 		/**

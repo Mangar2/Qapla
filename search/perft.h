@@ -32,9 +32,9 @@
 #include "threadpool.h"
 
 using namespace std;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	struct Stack {
 	public:

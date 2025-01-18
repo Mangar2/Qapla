@@ -37,6 +37,9 @@
     <Filter Include="basics">
       <UniqueIdentifier>{b170a292-c337-4ed6-b164-88032488fb47}</UniqueIdentifier>
     </Filter>
+    <Filter Include="nnue">
+      <UniqueIdentifier>{ac4400ea-9b03-4962-b270-fd2c4fa4b157}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="search\perft.cpp">
@@ -128,6 +131,42 @@
     </ClCompile>
     <ClCompile Include="basics\hashconstants.cpp">
       <Filter>basics</Filter>
+    </ClCompile>
+    <ClCompile Include="eval\eval-helper.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\memory.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\misc.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\nnue_misc.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\features\half_ka_v2_hm.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\bitboard.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\position.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\uci.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\evaluate.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\network.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\engine.cpp">
+      <Filter>nnue</Filter>
+    </ClCompile>
+    <ClCompile Include="nnue\load-ressources.cpp">
+      <Filter>nnue</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -395,10 +434,90 @@
     <ClInclude Include="basics\hashconstants.h">
       <Filter>basics</Filter>
     </ClInclude>
+    <ClInclude Include="eval\print-eval.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\eval-helper.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\network.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\nnue_accumulator.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\nnue_architecture.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\nnue_common.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\nnue_feature_transformer.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\nnue_misc.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\features\half_ka_v2_hm.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\layers\affine_transform.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\layers\affine_transform_sparse_input.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\layers\clipped_relu.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\layers\simd.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\layers\sqr_clipped_relu.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\evaluate.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\memory.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\misc.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\types.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\bitboard.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\position.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\uci.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\incbin.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\engine.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue\load-ressources.h">
+      <Filter>nnue</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
     <None Include="CHANGELOG.md" />
     <None Include="version.md" />
+    <None Include="nnue\UNLICENCE">
+      <Filter>nnue</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="nnue\nnue-files.rc">
+      <Filter>nnue</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

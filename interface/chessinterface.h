@@ -35,7 +35,7 @@
 
 using namespace std;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	class ChessInterface {
 

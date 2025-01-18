@@ -27,7 +27,7 @@
 
 using namespace std;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	class IInputOutput {
 	public:

@@ -5,7 +5,7 @@
 #include "whatif.h"
 #include "boardadapter.h"
 
-using namespace ChessSearch;
+using namespace QaplaSearch;
 
 WhatIf WhatIf::whatIf;
 
@@ -75,12 +75,12 @@ void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo
 	}
 }
 
-void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, ply_t ply) {
+void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, value_t standPatValue, ply_t ply) {
 	if (hashFoundPly != -1 && qsearch) {
 		for (ply_t i = 0; i <= ply; i++) {
 			printf(".");
 		}
-		printf("%s [w:%6ld,%6ld][v:%6ld]\n", currentMove.getLAN().c_str(), beta, alpha, bestValue);
+		printf("%s [w:%6ld,%6ld][v:%6ld][eval:%6ld][hash:%16lld]\n", currentMove.getLAN().c_str(), beta, alpha, bestValue, standPatValue, board.computeBoardHash());
 	}
 }
 

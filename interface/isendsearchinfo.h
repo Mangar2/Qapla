@@ -32,7 +32,7 @@
 using namespace std;
 using namespace ChessBasics;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	typedef vector<string> MoveStringList;
 

@@ -25,6 +25,8 @@
 // #include <bit>
 #include <assert.h>
 #include "types.h"
+#include <__msvc_bit_utils.hpp>
+
 
 #if (defined(__INTEL_COMPILER) || defined(_MSC_VER))
 #  include <nmmintrin.h> // Intel and Microsoft header for _mm_popcnt_u64()
@@ -132,12 +134,12 @@ namespace ChessBasics {
 #if (defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)) || defined(__INTEL_COMPILER)
 
 	inline static int32_t popCount(bitBoard_t bitBoard) {
-		const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
+		//const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
 		return (int)_mm_popcnt_u64(bitBoard);
 	}
 
 	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
-		const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
+		//const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
 		return popCount(bitBoard);
 	}
 

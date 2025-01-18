@@ -42,7 +42,7 @@
 
 using namespace ChessBasics;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class TTEntry {
 	public:

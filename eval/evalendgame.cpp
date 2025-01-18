@@ -368,6 +368,9 @@ inline bool EvalEndgame::isSquareInBB(Square square, bitBoard_t mask) {
 	return (mask & positionMask) != 0;
 }
 
+/**
+ * Computes the "distance" = file + rank distance between two squares 
+ */
 value_t EvalEndgame::computeDistance(Square square1, Square square2) {
 	value_t fileDistance = abs(value_t(getFile(square1)) - value_t(getFile(square2)));
 	value_t rankDistance = abs(value_t(getRank(square1)) - value_t(getRank(square2)));

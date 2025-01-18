@@ -32,7 +32,7 @@
 
 using namespace std;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	class ComputingInfoExchange {
 	public:

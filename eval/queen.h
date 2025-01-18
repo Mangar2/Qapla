@@ -26,7 +26,7 @@
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 

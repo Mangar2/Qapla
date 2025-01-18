@@ -20,7 +20,7 @@
 #include "movegenerator.h"
 #include "bitboardmasks.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 MoveGenerator::MoveGenerator(void)
 {

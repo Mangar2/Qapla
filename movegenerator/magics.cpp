@@ -21,7 +21,7 @@
 #include "BitBoardMasks.h"
 #include <assert.h>
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 using namespace ChessBasics;
 
 bitBoard_t Magics::_attackMap[ATTACK_MAP_SIZE];

@@ -23,7 +23,7 @@
 #include "../movegenerator/movegenerator.h"
 #include "../movegenerator/bitboardmasks.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 

@@ -33,9 +33,9 @@
 #include "../movegenerator/movegenerator.h"
 
 using namespace ChessBasics;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	enum class MoveType {
 		CAPTURE_KILLER, 
@@ -239,6 +239,15 @@ namespace ChessSearch {
 			}
 
 			return move;
+		}
+
+		Move selectNextCaptureOrEvade(const MoveGenerator& board, bool isCheck) {
+			if (isCheck) {
+				return selectNextMove(board);
+			}
+			else {
+				return selectNextCapture(board);
+			}
 		}
 
 		uint32_t getTotalMoveAmount() const { return moveList.getTotalMoveAmount(); }

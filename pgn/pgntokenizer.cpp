@@ -67,7 +67,7 @@ void PGNTokenizer::skipSpaces()
 	}
 }
 
-// -------------------------- FindChar ----------------------------------------
+// -------------------------- findChar ----------------------------------------
 void PGNTokenizer::findChar(char ch, bool skipEOL)
 {
 	while ((_pgnString[_pos] != ch) && (_pgnString[_pos] != 0))
@@ -77,7 +77,7 @@ void PGNTokenizer::findChar(char ch, bool skipEOL)
 	}
 }
 
-// -------------------------- SkipAnnotation ----------------------------------
+// -------------------------- skipAnnotation ----------------------------------
 void PGNTokenizer::skipAnnotation()
 {
 	int aBracketAmount = 1; // First char is '('
@@ -90,14 +90,14 @@ void PGNTokenizer::skipAnnotation()
 	}
 }
 
-// -------------------------- SkipDigits --------------------------------------
+// -------------------------- skipDigits --------------------------------------
 void PGNTokenizer::skipDigits()
 {
 	while ((_pgnString[_pos] >= '0') && (_pgnString[_pos] <= '9'))
 		nextChar();
 }
 
-// -------------------------- IsSymboContinuation -----------------------------
+// -------------------------- isSymboContinuation -----------------------------
 bool PGNTokenizer::isSymbolContinuation(char ch)
 {
 	return 
@@ -110,7 +110,7 @@ bool PGNTokenizer::isSymbolContinuation(char ch)
 }
 
 
-// -------------------------- SkipSymbolContinuation --------------------------
+// -------------------------- skipSymbolContinuation --------------------------
 void PGNTokenizer::skipSymbolContinuation()
 {
 	for (;;nextChar())
@@ -120,7 +120,7 @@ void PGNTokenizer::skipSymbolContinuation()
 	}
 }
 
-// -------------------------- GetNextToken ------------------------------------
+// -------------------------- getNextToken ------------------------------------
 const string& PGNTokenizer::getNextToken()
 {
 	// Spaces does not belong to tokens, skip them

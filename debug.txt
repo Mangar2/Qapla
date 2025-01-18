@@ -1,0 +1,56 @@
+whatif 11 d2d4 b7b6 e2e3
+
+1. d2d4 b7b6 2. null [w:    26,    27][bv:-30000][d: 4][nt:CUT][        ][      ][        ][bm:    ][         ][n:  633187]
+1. d2d4 b7b6 2. null [w:    26,    27][bv:    23][d: 4][nt:CUT][v:    23][c:NONE][ttm:    ][bm:    ][st:  null][n:  633713]
+1. d2d4 b7b6 2. null [w:    26,    27][bv:-30000][d: 0][nt:CUT][        ][      ][        ][bm:    ][         ][n:  633715]
+1. d2d4 b7b6 2. null [w:    26,    27][bv:    23][d: 0][nt:CUT][v:    23][c:HASH][ttm:g8f6][bm:    ][st:  null][n:  633715]
+1. d2d4 b7b6 2. d4d5 [w:    26,    27][bv:-30000][d: 3][nt:CUT][        ][      ][        ][bm:    ][         ][n:  633716]
+1. d2d4 b7b6 2. d4d5 [w:    26,    27][bv:    35][d: 3][nt:CUT][v:    35][c:NONE][ttm:    ][bm:d4d5][st:Normal][n:  634161]
+1. d2d4 b7b6 2. d4d5 [w:    26,    27][bv:-30000][d: 3][nt:CUT][        ][      ][        ][bm:d4d5][         ][n:  634162]
+1. d2d4 b7b6 2. d4d5 [w:    26,    27][bv:    35][d: 3][nt:CUT][v:    35][c:HASH][ttm:    ][bm:d4d5][st:Normal][n:  634162]
+1. d2d4 b7b6 2. null [w:    41,    42][bv:-30000][d: 4][nt:CUT][        ][      ][        ][bm:d4d5][         ][n:  701381]
+1. d2d4 b7b6 2. null [w:    41,    42][bv:    23][d: 4][nt:CUT][v:    23][c:HASH][ttm:g8f6][bm:d4d5][st:  null][n:  701381]
+1. d2d4 b7b6 2. d4d5 [w:    41,    42][bv:-30000][d: 7][nt:CUT][        ][      ][        ][bm:d4d5][         ][n:  701382]
+1. d2d4 b7b6 2. d4d5 [w:    41,    42][bv:    41][d: 7][nt:CUT][v:    41][c:NONE][ttm:    ][bm:d4d5][st:Normal][n:  721874]
+1. d2d4 b7b6 2. a2a3 [w:    41,    42][bv:    41][d: 7][nt:ALL][        ][      ][        ][bm:d4d5][         ][n:  721875]
+1. d2d4 b7b6 2. a2a3 [w:    41,    42][bv:    41][d: 3][nt:ALL][        ][      ][        ][bm:d4d5][         ][n:  722030]
+1. d2d4 b7b6 2. a2a3 [w:    41,    42][bv:    41][d: 7][nt:ALL][v:    29][c:NONE][ttm:b8c6][bm:d4d5][st:Normal][n:  722508]
+1. d2d4 b7b6 2. b2b3 [w:    41,    42][bv:    41][d: 7][nt:ALL][        ][      ][        ][bm:d4d5][         ][n:  722509]
+1. d2d4 b7b6 2. b2b3 [w:    41,    42][bv:    41][d: 7][nt:ALL][v:    34][c:NULL][ttm:    ][bm:d4d5][st:Normal][n:  722845]
+1. d2d4 b7b6 2. c2c3 [w:    41,    42][bv:    41][d: 7][nt:ALL][        ][      ][        ][bm:d4d5][         ][n:  722846]
+1. d2d4 b7b6 2. c2c3 [w:    41,    42][bv:    41][d: 7][nt:ALL][v:    41][c:NULL][ttm:    ][bm:d4d5][st:Normal][n:  723285]
+1. d2d4 b7b6 2. e2e3 [w:    41,    42][bv:    41][d: 7][nt:ALL][        ][      ][        ][bm:d4d5][         ][n:  723286]
+1. d2d4 b7b6 2. e2e3 [w:    41,    42][bv:    41][d: 3][nt:ALL][        ][      ][        ][bm:d4d5][         ][n:  723379]
+1. d2d4 b7b6 2. e2e3 [w:    41,    42][bv: 30000][d: 7][nt:ALL][v: 30000][c:NONE][ttm:    ][bm:e2e3][st:Normal][n:  723715]
+Assertion failed: positionValue <= MAX_VALUE, file C:\Development\Qapla2\search\ttentry.h, line 278
+
+15 21 1283 31446839 e2e4 b8c6 d2d4 e7e6 b1c3 f8b4 g1e2 d7d5 e4d5 e6d5 a2a3 b4c3 e2c3 d8e7 c1e3 g8f6 f1b5
+
+15 33 21083 35994514 g1f3 g8f6 d2d4 d7d5 c1f4 e7e6 e2e3 f8d6 f1d3 d6f4 e3f4 e8g8 e1g1 d8d6 f3e5
+15 33 18736 35952967 g1f3 g8f6 d2d4 d7d5 c1f4 e7e6 e2e3 f8d6 f1d3 d6f4 e3f4 e8g8 e1g1 d8d6 f3e5
+15 97 36541 24994609 e2e4 c7c5 g1f3 b8c6 c2c3 d7d5 e4d5 d8d5 b1a3 g8f6 f1c4 d5d8 e1g1 e7e6 f1e1 ca. 68.478
+15 33 17192 32680121 e2e4 e7e5 g1f3 b8c6 b1c3 g8f6 f1b5 f8d6 e1g1 e8g8 d2d4 e5d4 f3d4 c6d4 d1d4 ca. 200, sollte aber 800 haben
+15 65 3184 26018185 e2e4 c7c5 g1f3 b8c6 f1b5 g7g6 e1g1 f8g7 b5c6 d7c6 h2h3 e7e5 d2d3 g8e7 c1e3 ca. 840K Nodes
+
+4 47 17 2354 e2e4 e7e5 g1f3 b8c6
+5 80 49 14012 e2e4 e7e5 g1f3 b8c6 f1c4
+6 62 86 27482 e2e4 e7e5 g1f3 b8c6 f1c4 g8f6
+
+whatif 5 d2d4 d7d5 e2e3 a7a6 c2c4
+
+
+5 83 48 12598 e2e4 e7e5 g1f3 b8c6 f1c4
+6 64 83 25612 e2e4 e7e5 g1f3 b8c6 f1c4 g8f6
+7 67 16 58043 e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 b1c3
+8 78 23 111655 e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 d2d3 a7a6
+9 73 646 235142 e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 d2d3 f8c5 e1g1
+10 96 77 546168 e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 d2d3 c6d4 f3d4 e5d4
+11 81 149 1068790 e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 d2d3 f8d6 c2c3 a7a6 b5a4
+12 77 264 2072985 e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 d2d3 f8d6 c1g5 a7a6 b5a4 b7b5
+13 93 687 5440927 e2e4 c7c5 g1f3 b8c6 f1b5 g7g6 e1g1 f8g7 b5c6 d7c6 d2d3 e7e5 c1e3
+14 98 1232 10011329 e2e4 e7e5 g1f3 g8f6 d2d4 f6e4 d4e5 d7d5 e5d6 e4d6 f1d3 f8e7 e1g1 e8g8
+15 107 2183 17864954 e2e4 e7e5 g1f3 b8c6 d2d4 e5d4 f3d4 g8f6 b1c3 f8c5 d4c6 d7c6 d1d8 e8d8 c1g5 d8e8
+
+setboard b2qknnr/1pp1p1p1/p2p1p1b/1r5p/4P2P/2NP4/PPP2PP1/RB1QKBNR w KQk - 2 4
+whatif 2 c3b5 a6b5
+

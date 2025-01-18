@@ -25,7 +25,7 @@
 #include "../basics/types.h"
 #include <sys/timeb.h>
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	enum class ClockMode {
 		search, analyze, ponder, stopped

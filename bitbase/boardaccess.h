@@ -31,7 +31,7 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace QaplaBitbase {
 

@@ -30,7 +30,7 @@
 #include "isendsearchinfo.h"
 
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	enum class GameResult {
 		NOT_ENDED,

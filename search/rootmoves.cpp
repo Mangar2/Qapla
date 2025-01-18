@@ -20,7 +20,7 @@
 #include "rootmoves.h"
 #include "moveprovider.h"
 
-using namespace ChessSearch;
+using namespace QaplaSearch;
 
 void RootMove::init() {
 	_valueOfLastSearch = -MAX_VALUE;

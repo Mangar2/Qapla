@@ -35,11 +35,13 @@
 #include "bitbase/bitbasegenerator.h"
 #include "bitbase/bitbasereader.h"
 
-using namespace ChessInterface;
+#include "nnue/engine.h"
 
-ChessSearch::BoardAdapter adapter;
+using namespace QaplaInterface;
 
-namespace ChessSearch {
+QaplaSearch::BoardAdapter adapter;
+
+namespace QaplaSearch {
 	class ChessEnvironment {
 	public:
 		ChessEnvironment() {
@@ -198,7 +200,7 @@ void runTests() {
 }
 
 void createStatistic() {
-	ChessSearch::ChessEnvironment environment;
+	QaplaSearch::ChessEnvironment environment;
 	ChessPGN::PGNFileTokenizer fileTokenizer("quabla_all.pgn");
 	ChessPGN::PGNGame game;
 	array<value_t, 30> win;
@@ -272,8 +274,17 @@ int main()
 	// adapter.setWorkerAmount(1);
 	// runPerftTests(fenTests, 10000000000);
 	// std::this_thread::sleep_for(std::chrono::seconds(20));
-
-	ChessSearch::ChessEnvironment environment;
+	//Stockfish::Engine::load_network("./nnue/nn-1111cefa1111.nnue", "./nnue/nn-37f18f62d772.nnue");
+#ifdef USE_STOCKFISH_EVAL
+	Stockfish::Engine::initialize();
+	Stockfish::Engine::load_network("NNUE1", "NNUE2");
+#endif
+	//Stockfish::Engine::set_position("5k2/5p2/4p3/3bP2P/n2P1PP1/4K3/1p6/1R6 b - - 1 42");
+	//const auto eval = Stockfish::Engine::evaluate();
+	//std::cout << "Evaluation: " << eval << std::endl;
+	//std::cout << Stockfish::Engine::trace() << std::endl;
+	std::cout << "Qapla (C) 2025 Volker Böhm" << std::endl;
+	QaplaSearch::ChessEnvironment environment;
 	environment.run();
 	// createStatistic();
 	// runTests();

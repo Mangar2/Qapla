@@ -31,8 +31,8 @@
 #include "bitbasereader.h"
 
 using namespace std;
-using namespace ChessMoveGenerator;
-using namespace ChessSearch;
+using namespace QaplaMoveGenerator;
+using namespace QaplaSearch;
 
 namespace QaplaBitbase {
 	class Verify {

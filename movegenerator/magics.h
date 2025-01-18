@@ -27,7 +27,7 @@
 
 using namespace ChessBasics;
 
-namespace ChessMoveGenerator {
+namespace QaplaMoveGenerator {
 
 	class Magics
 	{

@@ -26,7 +26,7 @@
 
 using namespace std;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	class UCI : public ChessInterface {
 	public:

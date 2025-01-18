@@ -26,7 +26,7 @@
 
 using namespace std;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	static bool isPieceChar(char pieceChar) {
 		return string("NnBbRrQqKk").find(pieceChar) != string::npos;

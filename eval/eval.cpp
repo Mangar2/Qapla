@@ -26,6 +26,7 @@
 #include "knight.h"
 #include "kingattack.h"
 #include "threat.h"
+#include "print-eval.h"
 
 using namespace ChessEval;
 
@@ -46,18 +47,16 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 	// Add material to the evaluation
 	value_t material = board.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
 	result += material;
-
-	if (PRINT) cout << "Marerial:" << std::right 
-		<< std::setw(24) << board.getMaterialValue().getValue(evalResults.midgameInPercentV2) 
-		<< " " << board.getMaterialValue() << endl;
+	printEvalStep<PRINT>("Material", board.getMaterialValue().getValue(evalResults.midgameInPercentV2), 
+		board.getMaterialValue(), evalResults.midgameInPercentV2);
 
 	if (PRINT) board.printPst();
-	if (PRINT) cout << "PST:" << std::right 
-		<< std::setw(29) << board.getPstBonus().getValue(evalResults.midgameInPercentV2)
-		<< " " << board.getPstBonus() << endl;
+	printEvalStep<PRINT>("PST", result, board.getPstBonus(), evalResults.midgameInPercentV2);
 
 	// Add paw value to the evaluation
-	result += Pawn::eval<PRINT>(board, evalResults);
+	const auto pawnEval = Pawn::eval<PRINT>(board, evalResults);
+	result = sumEvalStep<PRINT>("Pawns", result, pawnEval);
+	
 	endGameResult = EvalEndgame::eval(board, result);
 
 	if (endGameResult != result) {
@@ -78,6 +77,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		evalValue += Threat::eval<PRINT>(board, evalResults);
 		evalValue += Pawn::evalPassedPawnThreats<PRINT>(board, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
+		printEvalStep<PRINT>("Pieces", result, evalValue, evalResults.midgameInPercentV2);
 
 		if (evalResults.midgameInPercent > 0) {
 			result += KingAttack::eval(board, evalResults);

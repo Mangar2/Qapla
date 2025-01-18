@@ -27,7 +27,7 @@
 
 using namespace std;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	/**
 	 * Processes any input coming from the console

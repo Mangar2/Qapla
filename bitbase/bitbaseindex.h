@@ -51,7 +51,7 @@
 #include "../movegenerator/movegenerator.h"
 
 using namespace ChessBasics;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace QaplaBitbase {
 

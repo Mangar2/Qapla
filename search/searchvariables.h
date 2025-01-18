@@ -34,9 +34,10 @@
 #include "searchparameter.h"
 #include "extension.h"
 #include "../eval/eval.h"
+#include "../nnue/engine.h"
 
 using namespace std;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 using namespace ChessEval;
 
 enum class Cutoff {
@@ -45,7 +46,7 @@ enum class Cutoff {
 	COUNT
 };
 
-namespace ChessSearch {
+namespace QaplaSearch {
 	struct SearchVariables {
 
 		enum class SearchFinding {
@@ -103,9 +104,6 @@ namespace ChessSearch {
 			if (previousMove.isNullMove()) {
 				_searchState = SearchFinding::NORMAL;
 				_nodeType = NodeType::CUT;
-				// For safety, shouldnt be required as we do not nullmove in pv nodes.
-				alpha = beta - 1;
-				alphaAtPlyStart = alpha;
 			}
 			moveProvider.init();
 		}
@@ -140,6 +138,9 @@ namespace ChessSearch {
 			boardState = position.getBoardState();
 			position.doMove(previousMove);
 			sideToMoveIsInCheck = position.isInCheck();
+#ifdef USE_STOCKFISH_EVAL
+			Stockfish::Engine::doMove(previousMove, si);
+#endif
 		}
 
 		/**
@@ -150,6 +151,7 @@ namespace ChessSearch {
 				return;
 			}
 			position.undoMove(previousMove, boardState);
+			Stockfish::Engine::undoMove(previousMove);
 		}
 
 		/**
@@ -507,6 +509,10 @@ namespace ChessSearch {
 		TT* ttPtr;
 
 		static constexpr array<NodeType, 3> _nodeTypeMap = { NodeType::PV, NodeType::ALL, NodeType::CUT };
+#ifdef USE_STOCKFISH_EVAL
+		Stockfish::StateInfo si;
+#endif
+
 	};
 
 }

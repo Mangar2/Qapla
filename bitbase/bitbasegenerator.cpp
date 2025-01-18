@@ -32,8 +32,8 @@
 
 
 using namespace std;
-using namespace ChessMoveGenerator;
-using namespace ChessSearch;
+using namespace QaplaMoveGenerator;
+using namespace QaplaSearch;
 using namespace QaplaBitbase;
 
 /**
@@ -356,7 +356,7 @@ Result BitbaseGenerator::initialSearch(MoveGenerator& position, MoveList& moveLi
 /**
  * Sets a situation to mate or stalemate
  */
-Result BitbaseGenerator::setMateOrStalemate(ChessMoveGenerator::MoveGenerator& position, const uint64_t index, 
+Result BitbaseGenerator::setMateOrStalemate(QaplaMoveGenerator::MoveGenerator& position, const uint64_t index, 
 	QaplaBitbase::GenerationState& state)
 {
 	Result result = Result::Unknown;

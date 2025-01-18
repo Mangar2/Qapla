@@ -13,6 +13,8 @@ setboard 4r1k1/1p3pp1/p4b2/5P2/8/5BQ1/PnP4P/6K1 b - - 3 27
 // problematic game state
 setboard 2k5/8/8/8/1PK5/8/8/8 w - - 1 25
 
+// pp endgame
+setboard 5k2/3n1p2/4p3/3bP2P/3P4/1p3P2/5KP1/1R6 b - - 5 39
 
 
 uci

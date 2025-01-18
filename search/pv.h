@@ -31,7 +31,7 @@
 using namespace std;
 using namespace ChessBasics;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 	class PV
 	{
 

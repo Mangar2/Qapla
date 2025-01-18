@@ -29,7 +29,7 @@
 #include "../movegenerator/movegenerator.h"
 
 using namespace std;
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 
@@ -68,7 +68,6 @@ namespace ChessEval {
 			registerFunction(pieces, getFromBitbase, false);
 			registerFunction(pieces, getFromBitbase, true);
 		}
-
 
 	private:
 		/**

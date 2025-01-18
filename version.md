@@ -1,7 +1,21 @@
 # Quabla Test Versions
 
+## 0.2.013 2025-01-18
+
+- Raiting 49,57
+- No IID, IID implemented right
+- Compute evades in quiescence search
+- 
+
+## 0.2.011 2024-12-29
+
+- Rating 52,96
+- IID, 
+
 ## 0.2.010 2024-12-28
 
+- NEW Raiting 52,71
+- Opponents: Ruffian 1.5, Smarthink 0.17a, Ktulu 7.5, Glaurung 1.21, Abrok 5.0, Quark 2.35, Spike09a, 10a, gaia 3.5, Qapla 0.1.1, Fruit 2.0, Aristach 4.5, SOS-51 Arena
 - Nearly 009, but with a completely different set of opponent - stronger.
 - Only hindering the engine to use killer/tt-move on root for situation in which search stopped.
 

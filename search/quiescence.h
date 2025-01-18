@@ -28,10 +28,33 @@
 #include "computinginfo.h"
 #include "../search/tt.h"
 #include "../movegenerator/movegenerator.h"
+#include "../nnue/engine.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
-namespace ChessSearch {
+struct Signatures {
+	Signatures(Signatures* lastSignature, Board& position) 
+		: lastPly(lastSignature), hashSignature(position.computeBoardHash()) {}
+	ChessBasics::hash_t hashSignature;
+	Signatures* lastPly;
+
+	bool isDrawByRepetitionInSearchTree(const Board& position) {
+		bool drawByRepetition = false;
+		auto hm = position.getHalfmovesWithoutPawnMoveOrCapture();
+		if (hm < 4) return false;
+		Signatures* curPly = lastPly;
+		for (QaplaSearch::ply_t checkPly = 0; checkPly < hm && curPly != 0; checkPly++, curPly = curPly->lastPly) {
+			if (curPly->hashSignature == hashSignature) {
+				drawByRepetition = true;
+				break;
+			}
+		}
+		return drawByRepetition;
+	}
+};
+
+
+namespace QaplaSearch {
 
 	class Quiescence {
 
@@ -66,7 +89,7 @@ namespace ChessSearch {
 		 * @returns hash value or -MAX_VALUE, if no value found
 		 */
 		static value_t probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
-
+				
 	public:
 
 		static TT* _tt;

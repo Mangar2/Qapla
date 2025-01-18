@@ -30,7 +30,7 @@
 using namespace ChessBasics;
 using namespace std;
 
-namespace ChessInterface {
+namespace QaplaInterface {
 	class FenScanner {
 	public:
 		FenScanner() {

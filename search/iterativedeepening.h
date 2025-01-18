@@ -35,7 +35,7 @@
 #include "aspirationwindow.h"
 #include "searchstate.h"
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class IterativeDeepening {
 

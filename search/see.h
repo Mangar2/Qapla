@@ -49,9 +49,9 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 
-using namespace ChessMoveGenerator;
+using namespace QaplaMoveGenerator;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class SEE {
 	public:

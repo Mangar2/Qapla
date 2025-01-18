@@ -30,9 +30,9 @@
 #include "searchstate.h"
 
 using namespace std;
-using namespace ChessInterface;
+using namespace QaplaInterface;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class ClockManager {
 	public:

@@ -26,7 +26,7 @@
 #include "IInputOutput.h"
 #include <cmath>
 
-namespace ChessInterface {
+namespace QaplaInterface {
 
 	class UCIPrintSearchInfo : public ISendSearchInfo {
 	public:

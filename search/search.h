@@ -32,13 +32,14 @@
 #include "clockmanager.h"
 #include "tt.h"
 #include "whatif.h"
+#include "../nnue/engine.h"
  // #include "razoring.h"
 
 using namespace std;
-using namespace ChessMoveGenerator;
-using namespace ChessInterface;
+using namespace QaplaMoveGenerator;
+using namespace QaplaInterface;
 
-namespace ChessSearch {
+namespace QaplaSearch {
 
 	class Search {
 	public:
@@ -74,7 +75,7 @@ namespace ChessSearch {
 	private:
 
 		enum class SearchRegion {
-			INNER, NEAR_LEAF
+			INNER, NEAR_LEAF, QUIESCENCE
 		};
 
 		/**
@@ -126,7 +127,7 @@ namespace ChessSearch {
 
 			if (!SearchParameter::DO_IID) return false;
 
-			bool isPV = searchInfo.isPVSearch();
+			bool isPV = searchInfo.isPVNode();
 			if (searchInfo.remainingDepth <= SearchParameter::getIIDMinDepth(isPV)) return false;
 
 			if (!searchInfo.getTTMove().isEmpty()) return false;
@@ -134,6 +135,29 @@ namespace ChessSearch {
 			if (!isPV && position.isInCheck()) return false;
 
 			return true;
+		}
+
+		/**
+		 * Compute internal iterative deepening
+		 */
+		void iid(MoveGenerator& position, SearchStack& stack, ply_t ply) {
+			// This iid implementation has a bug. It searches on "ply" modifying variables for the current search especially "depth".
+			// This leads to a reduced depth in search after iid - but not the full search required. Additionally it sets the move counter
+			// which leads to a prompt lmr.
+			SearchVariables& searchInfo = stack[ply];
+			if (!isIIDReasonable(position, searchInfo, ply)) {
+				return;
+			}
+
+			ply_t depth = searchInfo.getRemainingDepth();
+			ply_t iidR = SearchParameter::getIIDReduction(depth, searchInfo.isPVNode());
+			negaMax<SearchRegion::INNER>(position, stack, depth - iidR, ply);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, "IID");
+			position.computeAttackMasksForBothColors();
+			if (!searchInfo.bestMove.isEmpty()) {
+				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);
+			}
+
 		}
 
 		ply_t computeLMR(SearchVariables& node, ply_t ply, Move move);
@@ -152,7 +176,7 @@ namespace ChessSearch {
 		 * Do a full search using the negaMax algorithm
 		 */
 		template <SearchRegion TYPE>
-		value_t negaMax(MoveGenerator& position, Move previousPlyMove, SearchStack& stack, ply_t depth, ply_t ply);
+		value_t negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves

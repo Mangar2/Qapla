@@ -26,7 +26,7 @@
 #include "../eval/evalresults.h"
 
 using namespace ChessEval;
-using namespace ChessSearch;
+using namespace QaplaSearch;
 
 namespace ChessTest {
 
