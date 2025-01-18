@@ -40,11 +40,8 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 
 	struct EvalPawnValues {
-		using RankArray_t = array<value_t, uint32_t(Rank::COUNT)>;
-		using RankValueArray_t = value_t[uint32_t(Rank::COUNT)][2];
-		using FileValueArray_t = value_t[uint32_t(File::COUNT)][2];
-
-		using FileArray_t = array<value_t, uint32_t(File::COUNT)>;
+		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
+		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
 		/**
 		 * For rank 2 to 6, ignored for rank 7
@@ -57,19 +54,14 @@ namespace ChessEval {
 		const static value_t DOUBLE_PAWN_PENALTY = -20;
 
 		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   0,  0,  0,  0, 0 };
-		static constexpr RankValueArray_t PASSED_PAWN_VALUE = { { 0, 0 }, { 10, 10 }, { 20, 20 }, { 30, 30 }, { 40, 40 }, { 50, 50 }, { 60, 60 }, { 0, 0 } };
-		static constexpr FileValueArray_t PROTECTED_PASSED_PAWN_VALUE = { {0, 0}, {10, 10}, {20, 20}, {30, 30}, {40, 40}, {50, 50}, {60, 60}, {0, 0} };
-		// static constexpr FileValueArray_t PASSED_PAWN_THREAT_VALUE = { {0, 0}, {0, 0}, {0, 0}, {10, 10}, {20, 20}, {40, 40}, {80, 80}, {0, 0} };
+		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  20,  30,  40,  50, 60, 0 };
+		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
 		static constexpr FileArray_t PASSED_PAWN_THREAT_VALUE = { 0, 0,  0,  10, 20, 40, 80, 0 };
-		static constexpr FileValueArray_t CONNECTED_PASSED_PAWN_VALUE = { {0, 0}, {10, 10}, {20, 20}, {30, 30}, {40, 40}, {50, 50}, {60, 60}, {0, 0} };
-		static constexpr RankValueArray_t DISTANT_PASSED_PAWN_VALUE = { { 0, 0 }, { 25, 25 }, { 50, 50 }, { 60, 60 }, { 80, 80 }, { 100, 100 }, { 150, 150 }, { 0, 0 } };
+		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
+		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
 
 		// Bonus for supported pawns multiplied by 2 to 4 depending on the support and if it has an opponent
 		static constexpr RankArray_t PAWN_SUPPORT = { 0, 5, 6, 10, 20, 30, 30, 0 };
-
-		// Values to modify the value of a passer based on the distance of the king. These values will be multiplied with the king distance.
-		static constexpr FileArray_t PASSER_OPP_KING = { 0, 0, 0,  2, 12,  21,  33,  33 };
-		static constexpr FileArray_t PASSER_OWN_KING = { 0, 0, 0, -2, -8, -12, -20, -20 };
 	};
 
 	class Pawn {
@@ -135,8 +127,7 @@ namespace ChessEval {
 
 		template <Piece COLOR, bool PRINT>
 		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
-			value_t valueSum = 0;
-			value_t valueEgBonus = 0;
+			value_t value = 0;
 			const Piece OPPONENT = switchColor(COLOR);
 			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
 			bitBoard_t pp = results.passedPawns[COLOR];
@@ -148,7 +139,6 @@ namespace ChessEval {
 			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
 				Square square = lsb(pp);
 				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
-				value_t ppValue = 0;
 				bool isAttacked = (position.attackMask[OPPONENT] & (1ULL << square)) != 0;
 				if (threatValue == 0) continue;
 				threatValue /= (1 + isAttacked);
@@ -157,18 +147,15 @@ namespace ChessEval {
 					bitBoard_t pawn = 1ULL << square;
 					if (stopped & pawn) break;
 					bool isSupported = (supported & pawn) != 0;
-					ppValue += threatValue * (2 + isSupported) / divisor;
+					value += threatValue * (2 + isSupported) / divisor;
 					divisor++;
 					if (COLOR == WHITE && square > Square::H7) break;
 					if (COLOR == BLACK && square < Square::A2) break;
 				}
-				const auto ownKingDistance = EvalHelper::computeDistance(position.getKingSquare<COLOR>(), square);
-				const auto oppKingDistance = EvalHelper::computeDistance(position.getKingSquare<OPPONENT>(), square);
-				valueEgBonus = ownKingDistance * EvalPawnValues::PASSER_OWN_KING[int(getRank<COLOR>(square))] +
-					oppKingDistance * EvalPawnValues::PASSER_OPP_KING[int(getRank<COLOR>(square))];
-				valueSum = sumEvalStep<COLOR, PRINT>("pp threat", valueSum, ppValue, square);
 			}
-			return valueSum;
+			if (PRINT) cout << colorToString(COLOR) << " passed pawn threat: "
+				<< std::right << std::setw(10) << value << endl;
+			return value;
 		}
 
 	private:
@@ -216,7 +203,7 @@ namespace ChessEval {
 			if (pawnBB != 0) {
 				value += printValue<COLOR, PRINT>("isolated", computeIsolatedPawnValue<COLOR>(moveRay[COLOR]));
 				value += printValue<COLOR, PRINT>("double", computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]));
-				value += printValue<COLOR, PRINT>("passed", computePassedPawnValue<COLOR, PRINT>(position, results, moveRay));
+				value += printValue<COLOR, PRINT>("passed", computePassedPawnValue<COLOR>(position, results, moveRay));
 				value += printValue<COLOR, PRINT>("connected", computeConnectedPawnValue<COLOR>(position));
 			}
 			printValue<COLOR, PRINT>("pawn total", value);
@@ -234,8 +221,7 @@ namespace ChessEval {
 
 			value_t pawnValue = computePawnValueForSparcelyPolulatedBitboards<COLOR>(pawns & 
 				~passedPawns, EvalPawnValues::ADVANCED_PAWN_VALUE);
-			pawnValue += computePassedPawnValue<COLOR, false>(position, passedPawns, NO_PIECES_BUT_PAWNS_ON_BOARD).
-				getValue(results.midgameInPercentV2);
+			pawnValue += computePassedPawnValue<COLOR>(position, passedPawns, NO_PIECES_BUT_PAWNS_ON_BOARD);
 			results.passedPawns[COLOR] = passedPawns;
 			return pawnValue;
 		}
@@ -291,25 +277,25 @@ namespace ChessEval {
 		/**
 		 * Computes the value for passed pawn
 		 */
-		template <Piece COLOR, bool PRINT>
-		static EvalValue computePassedPawnValue(MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
-			EvalValue result = 0;
+		template <Piece COLOR>
+		static value_t computePassedPawnValue(MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
+			value_t result = 0;
 			for (bitBoard_t pawns = passedPawns; pawns != 0; pawns &= pawns - 1) {
 				Square pawnPos = lsb(pawns);
 				uint32_t rank = uint32_t(getRank<COLOR>(pawnPos));
 				if (isConnectedPassedPawn(pawnPos, passedPawns)) {
-					result = sumEvalStep<PRINT>("  connected pp", result, EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank], pawnPos);
+					result += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
 				}
 				else if (noPieces && isDistantPassedPawn(pawnPos, position.getPieceBB(PAWN + COLOR), 
 						position.getPieceBB(PAWN + switchColor(COLOR))))
 				{
-					result = sumEvalStep<PRINT>("  distant pp", result, EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank], pawnPos);
+					result += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
 				}
 				else if (isProtectedPassedPawn(pawnPos, position.pawnAttack[COLOR])) {
-					result = sumEvalStep<PRINT>("  protected pp", result, EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank], pawnPos);
+					result += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
 				}
 				else {
-					result = sumEvalStep<PRINT>("  pp", result, EvalPawnValues::PASSED_PAWN_VALUE[rank], pawnPos);
+					result += EvalPawnValues::PASSED_PAWN_VALUE[rank];
 				}
 			}
 			return result;
@@ -344,11 +330,11 @@ namespace ChessEval {
 		/**
 		 * Compute the passed pawn vaues using precomputed bitboards stored in this class
 		 */
-		template <Piece COLOR, bool PRINT>
+		template <Piece COLOR>
 		static value_t computePassedPawnValue(MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			bitBoard_t passedPawnBB = computePassedPawns<COLOR>(pawns, moveRay[switchColor(COLOR)]);
-			value_t result = computePassedPawnValue<COLOR, PRINT>(position, passedPawnBB).getValue(results.midgameInPercent);
+			value_t result = computePassedPawnValue<COLOR>(position, passedPawnBB);
 			results.passedPawns[COLOR] = passedPawnBB;
 			return result;
 		}
