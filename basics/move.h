@@ -127,7 +127,7 @@ public:
 	 */
 	constexpr auto isCastleMove() const {
 		const auto action = getActionAndMovingPiece();
-		return action == KING_CASTLES_KING_SIDE || action == KING_CASTLES_QUEEN_SIDE;
+		return action == WHITE_CASTLES_KING_SIDE || action == WHITE_CASTLES_QUEEN_SIDE || action == BLACK_CASTLES_KING_SIDE || action == BLACK_CASTLES_QUEEN_SIDE;
 	}
 
 	/**
