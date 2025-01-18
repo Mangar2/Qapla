@@ -45,29 +45,29 @@ namespace ChessBasics {
 class Move
 {
 public:
-	Move(uint32_t move) : _move(move) {}
-	Move(const Move& move) : _move(move._move) {}
-	Move() : _move(EMPTY_MOVE) {}
-	bool operator==(const Move& moveToCompare) { return moveToCompare._move == _move;  }
-	bool operator!=(const Move& moveToCompare) { return moveToCompare._move != _move; }
+	constexpr Move(uint32_t move) : _move(move) {}
+	constexpr Move(const Move& move) : _move(move._move) {}
+	constexpr Move() : _move(EMPTY_MOVE) {}
+	constexpr bool operator==(const Move& moveToCompare) { return moveToCompare._move == _move;  }
+	constexpr bool operator!=(const Move& moveToCompare) { return moveToCompare._move != _move; }
 
 	/**
 	 * Creates a silent move
 	 */
-	Move(Square departure, Square destination, uint32_t movingPiece) {
-		_move = uint32_t(departure) + (destination << DESTINATION_SHIFT) +
-			(movingPiece << MOVING_PIECE_SHIFT);
-	}
+	constexpr Move(Square departure, Square destination, uint32_t movingPiece) 
+		: _move(uint32_t(departure) + (destination << DESTINATION_SHIFT) +
+			(movingPiece << MOVING_PIECE_SHIFT))
+	{}
 
 	/**
 	 * Creates a capture move
 	 */
-	Move(Square departure, Square destination, uint32_t movingPiece, Piece capture) {
-		_move = uint32_t(departure) +
+	constexpr Move(Square departure, Square destination, uint32_t movingPiece, Piece capture):
+		_move(uint32_t(departure) +
 			(destination << DESTINATION_SHIFT) +
 			(movingPiece << MOVING_PIECE_SHIFT) +
-			(capture << CAPTURE_SHIFT);
-	}
+			(capture << CAPTURE_SHIFT))
+	{}
 
 	enum shifts : uint32_t {
 		DESTINATION_SHIFT = 8,
@@ -108,52 +108,54 @@ public:
 	static const uint32_t WHITE_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + WHITE_KING_SHIFT;
 	static const uint32_t BLACK_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + BLACK_KING_SHIFT;
 
-	Square getDeparture() const { return Square(_move & 0x0000003F); }
-	Square getDestination() const { return Square((_move & 0x00003F00) >> DESTINATION_SHIFT); }
-	Piece getMovingPiece() const { return Piece((_move & 0x000F0000) >> MOVING_PIECE_SHIFT); }
-	auto getAction() const { return (_move & 0x00300000); }
-	auto getActionAndMovingPiece() const { return (_move & 0x003F0000); }
-	auto getCaptureFlag() const { return (_move & 0x00400000); }
-	Piece getCapture() const { return Piece((_move & 0x0F000000) >> CAPTURE_SHIFT); }
-	Piece getPromotion() const { return Piece((_move & 0xF0000000) >> PROMOTION_SHIFT); }
+	constexpr Square getDeparture() const { return Square(_move & 0x0000003F); }
+	constexpr Square getDestination() const { return Square((_move & 0x00003F00) >> DESTINATION_SHIFT); }
+	constexpr Piece getMovingPiece() const { return Piece((_move & 0x000F0000) >> MOVING_PIECE_SHIFT); }
+	constexpr auto getAction() const { return (_move & 0x00300000); }
+	constexpr auto getActionAndMovingPiece() const { return (_move & 0x003F0000); }
+	constexpr auto getCaptureFlag() const { return (_move & 0x00400000); }
+	constexpr Piece getCapture() const { return Piece((_move & 0x0F000000) >> CAPTURE_SHIFT); }
+	constexpr Piece getPromotion() const { return Piece((_move & 0xF0000000) >> PROMOTION_SHIFT); }
 
-	auto isEmpty() const { return _move == EMPTY_MOVE; }
-	void setEmpty() { _move = EMPTY_MOVE;  }
+	constexpr auto isEmpty() const { return _move == EMPTY_MOVE; }
+	constexpr void setEmpty() { _move = EMPTY_MOVE;  }
 
-	auto isNullMove() const { return _move == NULL_MOVE; }
+	constexpr auto isNullMove() const { return _move == NULL_MOVE; }
 
 	/**
 	 * True, if the move is a castle move
 	 */
-	auto isCastleMove() const {
-		return (getAction() != 0) && (getMovingPiece() >= WHITE_KING);
+	constexpr auto isCastleMove() const {
+		const auto action = getActionAndMovingPiece();
+		return action == KING_CASTLES_KING_SIDE || action == KING_CASTLES_QUEEN_SIDE;
 	}
 
 	/**
 	 * True, if the move is an en passant move
 	 */
-	auto isEPMove() const {
-		return getAction() == EP_CODE;
+	constexpr auto isEPMove() const {
+		const auto action = getActionAndMovingPiece();
+		return action == WHITE_EP || action == BLACK_EP;
 	}
 
 	/**
 	 * Checks, if a move is a Capture
 	 */
-	auto isCapture() const {
+	constexpr auto isCapture() const {
 		return getCapture() != 0;
 	}
 
 	/**
 	 * Checks, if a move is a Capture, but not an EP move
 	 */
-	auto isCaptureMoveButNotEP() const {
+	constexpr auto isCaptureMoveButNotEP() const {
 		return getCapture() != 0 && !isEPMove();
 	}
 
 	/**
 	 * Checks, if a move is promoting a pawn
 	 */
-	auto isPromote() const
+	constexpr auto isPromote() const
 	{
 		return (_move & 0xF0000000) != 0;
 	}
@@ -161,36 +163,37 @@ public:
 	/**
      * Checks, if a move is a Capture or a promote move
      */
-	auto isCaptureOrPromote() const
+	constexpr auto isCaptureOrPromote() const
 	{
 		return (_move & 0xFF000000) != 0;
 	}
 
-	inline Move& setDeparture(square_t square) {
+	constexpr inline Move& setDeparture(square_t square) {
 		_move |= square;
 		return *this;
 	}
 
-	inline Move& setDestination(square_t square) {
+	constexpr inline Move& setDestination(square_t square) {
 		_move |= square << DESTINATION_SHIFT;
 		return *this;
 	}
 
-	inline Move& setMovingPiece(Piece piece) {
+	constexpr inline Move& setMovingPiece(Piece piece) {
 		_move |= piece << MOVING_PIECE_SHIFT;
 		return *this;
 	}
 
-	inline Move& setAction(uint32_t action) {
+	constexpr inline Move& setAction(uint32_t action) {
 		_move |= action << 20;
+		return *this;
 	}
 
-	inline Move& setCapture(Piece capture) {
+	constexpr inline Move& setCapture(Piece capture) {
 		_move |= (capture << CAPTURE_SHIFT) + 0x00400000;
 		return *this;
 	}
 
-	inline Move& setPromotion(Piece promotion) {
+	constexpr inline Move& setPromotion(Piece promotion) {
 		_move |= promotion << PROMOTION_SHIFT;
 		return *this;
 	}
