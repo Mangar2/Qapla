@@ -148,6 +148,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	
 	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position, ply);
 	if (TYPE == SearchRegion::INNER && stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(ply)) return -MAX_VALUE;
+	if (TYPE == SearchRegion::INNER) iid(position, stack, depth, ply);
 
 	SearchVariables& node = stack[ply];
 	value_t result;
@@ -168,8 +169,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
 	cutoff = hasCutoff<TYPE>(position, stack, node, ply);
 	if (cutoff) return node.bestValue;
-
-	// if (TYPE == SearchRegion::INNER) iid(position, stack, ply);
 
 	node.computeMoves(position);
 	depth = node.extendSearch(position);

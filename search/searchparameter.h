@@ -22,6 +22,7 @@
 #ifndef __SEARCHPARAMETER_H
 #define __SEARCHPARAMETER_H
 
+#include <algorithm>
 #include "../basics/piecesignature.h"
 #include "searchdef.h"
 
@@ -87,7 +88,7 @@ namespace QaplaSearch {
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 2;
 
-		static const bool DO_IID = true;
+		static const bool DO_IID = false;
 		static const bool DO_IID_FOR_CUT_NODES = true; 
 
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
@@ -101,8 +102,11 @@ namespace QaplaSearch {
 		static const bool DO_CHECK_EXTENSIONS = true;
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
-		static const ply_t DO_FUTILITY_DEPTH = 3;
-		constexpr static value_t futilityMargin(ply_t depth) { return 200 * (depth + 1); }
+		static const ply_t DO_FUTILITY_DEPTH = 10;
+		static value_t cmdLineParam[10];
+		constexpr static value_t futilityMargin(ply_t depth) {
+			return 100 * (depth + 1);
+		}
 
 		static const bool DO_RAZORING = false;
 		static const ply_t RAZORING_DEPTH = 3;

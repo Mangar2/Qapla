@@ -27,6 +27,7 @@
 #include "interface/winboard.h"
 #include "interface/winboardprintsearchinfo.h"
 #include "interface/selectinterface.h"
+#include "search/searchparameter.h"
 
 #include "search/search.h"
 #include "pgn/pgnfiletokenizer.h"
@@ -41,7 +42,10 @@ using namespace QaplaInterface;
 
 QaplaSearch::BoardAdapter adapter;
 
+
 namespace QaplaSearch {
+	value_t SearchParameter::cmdLineParam[10];
+
 	class ChessEnvironment {
 	public:
 		ChessEnvironment() {
@@ -251,7 +255,7 @@ void createStatistic() {
 	}
 }
 
-int main()
+int main(int argc, char* argv[])
 {
 	
 	// checkThreadPoolSpeed();
@@ -284,6 +288,12 @@ int main()
 	//std::cout << "Evaluation: " << eval << std::endl;
 	//std::cout << Stockfish::Engine::trace() << std::endl;
 	std::cout << "Qapla (C) 2025 Volker Böhm" << std::endl;
+	for (int i = 0; i < 10; i++) {
+		SearchParameter::cmdLineParam[i] = 0;
+	}
+	for (int i = 0; i < std::min(10, argc - 1); i++) {
+		SearchParameter::cmdLineParam[i] = std::stoi(argv[i + 1]);
+	}
 	QaplaSearch::ChessEnvironment environment;
 	environment.run();
 	// createStatistic();

@@ -111,6 +111,7 @@ namespace QaplaSearch {
 				return false;
 			}
 			else if (node.futility(position)) {
+				// Must be after node.probeTT, because futility uses the information from TT
 				node.setCutoff(Cutoff::FUTILITY);
 			} 
 			else if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, ply)) {
@@ -123,12 +124,12 @@ namespace QaplaSearch {
 		/**
 		 * Returns true, if we should do internal iterative deepening
 		 */
-		inline bool isIIDReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t ply) {
+		inline bool isIIDReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t depth, ply_t ply) {
 
 			if (!SearchParameter::DO_IID) return false;
 
 			bool isPV = searchInfo.isPVNode();
-			if (searchInfo.remainingDepth <= SearchParameter::getIIDMinDepth(isPV)) return false;
+			if (depth <= SearchParameter::getIIDMinDepth(isPV)) return false;
 
 			if (!searchInfo.getTTMove().isEmpty()) return false;
 			if (!isPV && (!SearchParameter::DO_IID_FOR_CUT_NODES || !searchInfo.isCutNode())) return false;
@@ -139,17 +140,15 @@ namespace QaplaSearch {
 
 		/**
 		 * Compute internal iterative deepening
+		 * IID modifies variables from stack[ply] (like move counter, search depth, ...)
+		 * Thus it must be called before setting the stack in negamax (setFromPreviousPly). 
 		 */
-		void iid(MoveGenerator& position, SearchStack& stack, ply_t ply) {
-			// This iid implementation has a bug. It searches on "ply" modifying variables for the current search especially "depth".
-			// This leads to a reduced depth in search after iid - but not the full search required. Additionally it sets the move counter
-			// which leads to a prompt lmr.
+		void iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
 			SearchVariables& searchInfo = stack[ply];
-			if (!isIIDReasonable(position, searchInfo, ply)) {
+			if (!isIIDReasonable(position, searchInfo, depth, ply)) {
 				return;
 			}
 
-			ply_t depth = searchInfo.getRemainingDepth();
 			ply_t iidR = SearchParameter::getIIDReduction(depth, searchInfo.isPVNode());
 			negaMax<SearchRegion::INNER>(position, stack, depth - iidR, ply);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, "IID");

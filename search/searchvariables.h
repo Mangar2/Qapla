@@ -229,14 +229,19 @@ namespace QaplaSearch {
 		 */
 		inline bool futility(MoveGenerator& position) {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
+			// We do not prune in PV nodes. 
 			if (isPVSearch()) return false;
+			// We do not prune, if we have a TT move, because TT moves are only available, if they have been in the search window before.
+			if (!getTTMove().isEmpty()) return false; 
 			if (ttValueLessThanAlpha) return false;
 			if (eval == NO_VALUE) {
 				eval = Eval::eval(position);
 			}
-
+			// We do not prune on potentional mate values
 			if (eval > WINNING_BONUS) return false;
-			bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
+			// We prune, if eval + margin is >= beta. This term prevents pruning below beta on negative futility margins.
+			if (eval < beta) return false;
+			const bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
 			if (doFutility) {
 				bestValue = eval;
 			}

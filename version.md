@@ -1,5 +1,24 @@
 # Quabla Test Versions
 
+## 0.2.018 2025-01-20
+
+- IID out again
+- Futility pruning (reversed) now with depth to 10 and with d * 100.
+- No futility pruning, if we have a hash move.
+- Not implemented: "improving" rule to prune improving moves stronger.
+
+## 0.2.017 2025-01-18
+
+- raiting 52
+- IID, seems to be not working for Quabla
+
+## 0.2.016 2025-01-18
+
+- Raiting 53,46 (Classic Eval)
+- Undid changes in pawn evaluation creating big slowdown
+- Have evades in quiescence search again
+- 
+
 ## 0.2.013 2025-01-18
 
 - Raiting 49,57

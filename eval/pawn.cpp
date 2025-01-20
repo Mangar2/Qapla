@@ -110,3 +110,31 @@ void Pawn::computeIsolatedPawnLookupTable() {
 	}
 }
 
+template <Piece COLOR>
+value_t Pawn::computeKingSupport(const Board& position) {
+	const auto OPPONENT_COLOR = switchColor(COLOR);
+	const auto kingPos = position.getKingSquare<COLOR>();
+	const auto opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
+	const auto pawnBB = position.getPieceBB(PAWN + COLOR);
+	const auto opponentPawnBB = position.getPieceBB(PAWN + OPPONENT_COLOR);
+	const value_t result = 0;
+
+	while (pawnBB) {
+		const auto pawnPos = lsb(pawnBB);
+		const auto kingDistance = computeDistance(kingPos, pawnPos);
+		const auto opponentKingDistance = computeDistance(opponentKingPos, pawnPos);
+		const auto rank = getRank<COLOR>(pawnPos);
+		result += EvalPawnValues::KING_SUPPORT_VALUE[rank][kingDistance] - EvalPawnValues::KING_SUPPORT_VALUE[rank][opponentKingDistance];
+		pawnBB &= pawnBB - 1;
+	}
+
+	while (opponentPawnBB) {
+		const auto pawnPos = lsb(opponentPawnBB);
+		const auto kingDistance = computeDistance(kingPos, pawnPos);
+		const auto opponentKingDistance = computeDistance(opponentKingPos, pawnPos);
+		const auto rank = getRank<OPPONENT_COLOR>(pawnPos);
+		result += EvalPawnValues::KING_SUPPORT_VALUE[rank][kingDistance] - EvalPawnValues::KING_SUPPORT_VALUE[rank][opponentKingDistance];
+		opponentPawnBB &= opponentPawnBB - 1;
+	}
+
+}

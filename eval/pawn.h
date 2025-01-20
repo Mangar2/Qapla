@@ -62,6 +62,17 @@ namespace ChessEval {
 
 		// Bonus for supported pawns multiplied by 2 to 4 depending on the support and if it has an opponent
 		static constexpr RankArray_t PAWN_SUPPORT = { 0, 5, 6, 10, 20, 30, 30, 0 };
+		static constexpr value_t KING_SUPPORT_VALUE[uint32_t(Rank::COUNT)][uint32_t(File::COUNT)] =
+		{
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0 }
+		};
 	};
 
 	class Pawn {
@@ -161,11 +172,14 @@ namespace ChessEval {
 	private:
 
 		template <Piece COLOR>
-		static value_t getKingDistance(const Board& position, Square square) {
+		static value_t getKingDistance(const Board& position, Square square, Square kingPos) {
 			const Piece OPPONENT_COLOR = switchColor(COLOR);
 			Square opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
 			Square myKingPos = position.getKingSquare<COLOR>;
 		}
+
+		template <Piece COLOR>
+		static value_t computeKingSupport(const Board& position);
 
 		/**
 		 * Tries to get the pawn evaluation from a transposition table
