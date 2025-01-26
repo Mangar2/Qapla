@@ -1,7 +1,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-//#define USE_STOCKFISH_EVAL
+// #define USE_STOCKFISH_EVAL
 
 #include <string>
 #include "evaluate.h"

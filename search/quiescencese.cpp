@@ -53,23 +53,19 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 
 /**
  * Gets an entry from the transposition table
- * @returns hash value or -MAX_VALUE, if no value found
+ * @returns hash value and hash move or -MAX_VALUE, if no value found
  */
-value_t Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
+std::tuple<value_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
 	bool cutoff = false;
-	value_t bestValue = NO_VALUE;
 	uint32_t ttIndex = _tt->getTTEntryIndex(position.computeBoardHash());
-	static uint64_t count, found, good = 0;
-	count++;
 
 	if (ttIndex != TT::INVALID_INDEX) {
-		found++;
 		TTEntry entry = _tt->getEntry(ttIndex);
-		bestValue = entry.getValue(alpha, beta, 0, ply);
-		if (bestValue != NO_VALUE) good++;
+		const auto bestValue = entry.getValue(alpha, beta, 0, ply);
+		const auto move = entry.getMove();
+		return std::make_tuple(bestValue, move);
 	}
-	// if (count % 10000 == 0) { cout << "count: " << count << " found: " << found << " good: " << good << endl; }
-	return bestValue;
+	return std::make_tuple(NO_VALUE, Move::EMPTY_MOVE);
 }
 
 
@@ -97,7 +93,8 @@ value_t Quiescence::search(
 	computingInfo._nodesSearched++;
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
 	if (SearchParameter::USE_HASH_IN_QUIESCENSE) {
-		value_t ttValue = probeTT(position, alpha, beta, ply);
+		auto [ttValue, ttMove] = probeTT(position, alpha, beta, ply);
+		moveProvider.setTTMove(ttMove);
 		if (ttValue != NO_VALUE) return ttValue;
 	}
 	//if (position.computeBoardHash() == -6935370772522267216ULL) {

@@ -68,6 +68,7 @@ namespace ChessBasics {
 	inline Square& operator++(Square& square) { return square = Square(square + 1); }
 	inline Square& operator--(Square& square) { return square = Square(square - 1); }
 	inline Square& operator+=(Square& a, int32_t b) { return a = Square(a + b); }
+	constexpr bitBoard_t posToBB(Square square) { return 1ULL << square; }
 
 	/**
 	 * Names of chess board files

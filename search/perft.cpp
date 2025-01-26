@@ -81,11 +81,25 @@ uint64_t PerftSearch::perftRec(
 		result = splitPoint.getMovesFound();
 	}
 	else {
+		// Checking move test
+		const auto checkingBitmaps = board.computeCheckBitmapsForMovingColor();
 		for (uint32_t index = 0; index < moveList.getTotalMoveAmount(); ++index) {
 			const Move move = moveList[index];
+			const auto isCheckingMove = board.isCheckMove(move, checkingBitmaps);
 			if (move.isEmpty()) break;
 			const BoardState boardState = board.getBoardState();
 			board.doMove(move);
+			
+			const auto isCheck = board.isInCheck();
+			if (isCheck != isCheckingMove) {
+				cout << "Error: isCheck: " << isCheck << " isCheckMove: " << isCheckingMove << endl;
+				board.print();
+				cout << move.getLAN() << endl;
+				cout << std::hex << checkingBitmaps[0] << endl;
+				const auto isCheckingMove = board.isCheckMove(move, checkingBitmaps);
+				exit(1);
+			}
+			
 			uint64_t movesFound = perftRec(board, maxDepth, curDepth + 1, scipLastPly);
 			result += movesFound;
 			board.undoMove(move, boardState);

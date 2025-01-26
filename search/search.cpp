@@ -125,7 +125,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	return isCutoff;
 }
 
-ply_t Search::computeLMR(SearchVariables& node, ply_t ply,  Move move)
+ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t ply,  Move move)
 {
 
 	// Ability to disable history for a ply
@@ -134,6 +134,7 @@ ply_t Search::computeLMR(SearchVariables& node, ply_t ply,  Move move)
 	if (ply <= 2) return 0;
 	if (move.isCapture()) return 0;
 	if (node.moveNumber <= 3) return 0;
+	if (node.isCheckMove(position, move)) return 0;
 	if (node.moveNumber <= 7) return 1;
 	if (node.isPVNode()) return 1;
 	return 2;
@@ -176,7 +177,11 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	// The first move will be searched with PV window - the remaining with null window
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 		
-		const auto lmr = depth > 0 ? computeLMR(node, ply, curMove) : 0;
+		const auto lmr = computeLMR(node, position, ply, curMove);
+		
+		// Move count pruning
+		if (lmr > 0 && depth - lmr < 0) continue;
+
 		stack[ply + 1].doMove(position, curMove);
 
 		if (lmr > 0) {

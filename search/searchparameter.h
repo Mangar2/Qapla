@@ -92,7 +92,7 @@ namespace QaplaSearch {
 		static const bool DO_IID_FOR_CUT_NODES = true; 
 
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
-		static const bool USE_HASH_IN_QUIESCENSE = false;
+		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
 		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50;
 

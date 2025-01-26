@@ -33,8 +33,6 @@ namespace QaplaSearch {
 		 * Computes extensions
 		 */
 		static ply_t calculateExtension(MoveGenerator& board, Move move, int32_t remainingSearchDepth) {
-			// Evades in quiescense leads to remainingSearchDepth < 0. We do not want to extend in quiescense
-			if (remainingSearchDepth < 0) return 0;
 			ply_t extension = 0;
 			if (SearchParameter::DO_CHECK_EXTENSIONS && board.isInCheck()) {
 				extension = 1;

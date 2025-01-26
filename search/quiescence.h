@@ -24,6 +24,7 @@
 #ifndef __QUIESCENCESEARCH_H
 #define __QUIESCENCESEARCH_H
 
+#include <tuple>
 #include "../basics/evalvalue.h"
 #include "computinginfo.h"
 #include "../search/tt.h"
@@ -88,7 +89,7 @@ namespace QaplaSearch {
 		 * Gets an entry from the transposition table
 		 * @returns hash value or -MAX_VALUE, if no value found
 		 */
-		static value_t probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
+		static std::tuple<value_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
 				
 	public:
 

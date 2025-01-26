@@ -1953,6 +1953,7 @@
     <ClInclude Include="movegenerator\bitboardmasks.h" />
     <ClInclude Include="movegenerator\magics.h" />
     <ClInclude Include="movegenerator\movegenerator.h" />
+    <ClInclude Include="nnue768\InputLayer.h" />
     <ClInclude Include="nnue\bitboard.h" />
     <ClInclude Include="nnue\engine.h" />
     <ClInclude Include="nnue\evaluate.h" />

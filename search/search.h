@@ -159,7 +159,7 @@ namespace QaplaSearch {
 
 		}
 
-		ply_t computeLMR(SearchVariables& node, ply_t ply, Move move);
+		ply_t computeLMR(SearchVariables& node, MoveGenerator& position, ply_t ply, Move move);
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search

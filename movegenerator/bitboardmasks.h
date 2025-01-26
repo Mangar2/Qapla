@@ -104,7 +104,7 @@ namespace QaplaMoveGenerator {
 		//static bitBoard_t mBPawnCaptures[BOARD_SIZE];
 		// map from pawn-target position to adjacent bits on ep file
 		static bitBoard_t mEPMask[BOARD_SIZE];
-		// map holding rays from a king position to a bishop, rook or queen
+		// map holding rays from a king position to a bishop, rook or queen not including the king position, but including the piece position
 		// Index ist by KingPos + PiecePos * 64;
 		static bitBoard_t mRay[BOARD_SIZE * BOARD_SIZE];
 		// map holding a full size ray with two pieces on it

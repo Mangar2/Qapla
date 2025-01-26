@@ -143,6 +143,14 @@ namespace QaplaSearch {
 #endif
 		}
 
+		bool givesCheck(MoveGenerator& position, Move move) {
+			const auto destination = move.getDestination();
+			const auto piece = move.getMovingPiece();
+			const auto opponentKingPos = getPieceColor(piece) == WHITE ? position.getKingSquare<BLACK>() : position.getKingSquare<WHITE>();
+			if (piece == KNIGHT + getPieceColor(piece)) {
+			}
+		}
+
 		/**
 		 * Take back the previously applied move
 		 */
@@ -252,8 +260,14 @@ namespace QaplaSearch {
 		 * Generates all moves in the current position
 		 */
 		void computeMoves(MoveGenerator& position) {
+			position.isWhiteToMove();
+			checkingBitmaps = position.computeCheckBitmapsForMovingColor();
 			moveProvider.computeMoves(position, previousMove);
 			bestValue = moveProvider.checkForGameEnd(position, ply);
+		}
+
+		bool isCheckMove(MoveGenerator& position, Move move) {
+			return position.isCheckMove(move, checkingBitmaps);
 		}
 
 		/**
@@ -507,6 +521,8 @@ namespace QaplaSearch {
 		mutex mtxSearchResult;
 		MoveProvider moveProvider;
 		PV pvMovesStore;
+		// Bitmaps to identify checking moves faster
+		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> checkingBitmaps;
 
 	private:
 		SearchFinding _searchState;

@@ -123,6 +123,15 @@ namespace QaplaMoveGenerator {
 		// ---------------------- Move generation ---------------------------------
 		// ------------------------------------------------------------------------
 
+		/*
+		* Returns an array of bitboards holding all squares, where pieces can check the king
+		*/
+
+
+		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> computeCheckBitmapsForMovingColor() const;
+
+		bool isCheckMove(Move move, const std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2>& checkingBitmaps);
+
 		/**
 		 * Generates all check evade moves (silent and non silent) of the color to move
 		 */
@@ -163,6 +172,10 @@ namespace QaplaMoveGenerator {
 		 */
 		template <Piece COLOR>
 		void computePinnedMask();
+
+		// ------------------------------------------------------------------------
+		// ---------------------- Gives check -------------------------------------
+		// ------------------------------------------------------------------------
 
 	private:
 		enum moveGenType_t { SILENT, NON_SILENT, ALL };
@@ -236,6 +249,9 @@ namespace QaplaMoveGenerator {
 
 		template <Piece COLOR>
 		void computeCastlingMasksForMoveGeneration();
+
+		template <Piece COLOR>
+		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> computeCheckBitmaps() const;
 
 		static const int32_t ONE_COLUMN = 1;
 

@@ -1,7 +1,25 @@
 # Quabla Test Versions
 
+## 0.2.021 2025-01-25
+
+- Raiting 56,18
+- No lmr or move count pruning, for checking moves
+
+## 0.2.020 2025-01-21
+
+- Raiting 55,18 
+- Kept the hash of version 0.2.019, even, if rating is lower.
+- Move count pruning, if depth - lmr < 0, we prune the move
+
+## 0.2.019 2025-01-20
+
+- Raiting 53,50
+- Activated hash in quiescence search
+- Including using hash move for evades, if available
+
 ## 0.2.018 2025-01-20
 
+- Raiting 54,39
 - IID out again
 - Futility pruning (reversed) now with depth to 10 and with d * 100.
 - No futility pruning, if we have a hash move.
