@@ -25,7 +25,7 @@
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 
-namespace ChessBasics {
+namespace QaplaBasics {
 	class PST
 	{
 	public:

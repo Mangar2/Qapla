@@ -30,7 +30,7 @@
 #include <vector>
 
 using namespace std;
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaInterface {
 

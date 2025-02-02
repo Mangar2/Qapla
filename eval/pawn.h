@@ -34,7 +34,7 @@
 #include "eval-helper.h"
 
 using namespace std;
-using namespace ChessBasics;
+using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {

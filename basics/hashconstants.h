@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include "types.h"
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	typedef uint64_t hash_t;
 

@@ -31,7 +31,7 @@
 #include "evalvalue.h"
 #include "Move.h"
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	class MoveList
 	{

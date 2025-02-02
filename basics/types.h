@@ -29,7 +29,7 @@
 
 using namespace std;
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	typedef int32_t square_t;
 	typedef uint64_t bitBoard_t;

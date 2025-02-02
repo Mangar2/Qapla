@@ -37,7 +37,7 @@
 #  define IS_64BIT
 #endif
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	const int32_t index64[64] = {
 		0, 47,  1, 56, 48, 27,  2, 60,

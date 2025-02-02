@@ -22,7 +22,7 @@
 #include <assert.h>
 
 using namespace QaplaMoveGenerator;
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 bitBoard_t Magics::_attackMap[ATTACK_MAP_SIZE];
 Magics::tMagicEntry Magics::_rookTable[BOARD_SIZE];

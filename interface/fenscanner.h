@@ -27,7 +27,7 @@
 #include <string>
 #include <array>
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 using namespace std;
 
 namespace QaplaInterface {

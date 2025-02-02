@@ -26,7 +26,7 @@
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 template <uint32_t size, uint32_t buckets>
 class alignas(8) EvalMap {

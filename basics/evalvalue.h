@@ -28,7 +28,7 @@
 
 using namespace std;
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	typedef int32_t value_t;
 

@@ -26,7 +26,7 @@
 #include "../basics/piecesignature.h"
 #include "searchdef.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaSearch {
 	class SearchParameter {
@@ -104,7 +104,7 @@ namespace QaplaSearch {
 
 		static const bool DO_SE_EXTENSION = true;
 		constexpr static value_t singularExtensionMargin(ply_t depth) {
-			return 70;
+			return 30 + depth * 4;
 		}
 
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;

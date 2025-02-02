@@ -64,7 +64,7 @@ namespace Stockfish {
 
     // Turns a Value to an integer centipawn number,
     // without treatment of mate and similar special scores.
-    ChessBasics::value_t Engine::to_cp(Value v) {
+    QaplaBasics::value_t Engine::to_cp(Value v) {
 
         // In general, the score can be defined via the WDL as
         // (log(1/L - 1) - log(1/W - 1)) / (log(1/L - 1) + log(1/W - 1)).

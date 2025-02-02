@@ -36,7 +36,7 @@ using namespace QaplaMoveGenerator;
 struct Signatures {
 	Signatures(Signatures* lastSignature, Board& position) 
 		: lastPly(lastSignature), hashSignature(position.computeBoardHash()) {}
-	ChessBasics::hash_t hashSignature;
+	QaplaBasics::hash_t hashSignature;
 	Signatures* lastPly;
 
 	bool isDrawByRepetitionInSearchTree(const Board& position) {

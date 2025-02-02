@@ -28,7 +28,7 @@
 #include <math.h>
 #include "../basics/types.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaSearch {
 	class AspirationWindow {

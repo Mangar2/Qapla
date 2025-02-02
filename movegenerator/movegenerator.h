@@ -35,7 +35,7 @@
 // Implements move generator
 // ----------------------------------------------------------------------------
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaMoveGenerator {
 

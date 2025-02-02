@@ -28,7 +28,7 @@
 #include <array>
 #include <assert.h>
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 class BasicBoard
 {

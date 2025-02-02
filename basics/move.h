@@ -40,7 +40,7 @@
 
 using namespace std;
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 class Move
 {
@@ -111,6 +111,7 @@ public:
 	constexpr Square getDeparture() const { return Square(_move & 0x0000003F); }
 	constexpr Square getDestination() const { return Square((_move & 0x00003F00) >> DESTINATION_SHIFT); }
 	constexpr Piece getMovingPiece() const { return Piece((_move & 0x000F0000) >> MOVING_PIECE_SHIFT); }
+	constexpr uint32_t getPiceAndDestination() const { return (_move & 0x000F3F00) >> DESTINATION_SHIFT; }
 	constexpr auto getAction() const { return (_move & 0x00300000); }
 	constexpr auto getActionAndMovingPiece() const { return (_move & 0x003F0000); }
 	constexpr auto getCaptureFlag() const { return (_move & 0x00400000); }

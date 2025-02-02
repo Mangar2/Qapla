@@ -1,7 +1,13 @@
 # Quabla Test Versions
 
+## 0.2.026 2025-02-02
+
+- Raiting 63.61
+- se margin 30 + depth * 4
+
 ## 0.2.025 2025-02-02
 
+- Raiting 60.46
 - se margin 70
 - se only, if ttdepth >= seDepth
 - dont se if tt shows mate value

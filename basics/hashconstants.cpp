@@ -19,7 +19,7 @@
 
 #include "HashConstants.h"
 
-using namespace ChessBasics; 
+using namespace QaplaBasics; 
 
 const hash_t HashConstants::cHashBoardRandoms[BOARD_SIZE][PIECE_AMOUNT] =
 {

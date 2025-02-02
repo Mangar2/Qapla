@@ -23,7 +23,7 @@
 #include <cassert>
 #include "../basics/types.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 class InputLayer {
 public:

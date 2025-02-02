@@ -37,7 +37,7 @@
 #include "types.h"
 #include "hashconstants.h"
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	class BoardState {
 	public:

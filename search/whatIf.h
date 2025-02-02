@@ -31,7 +31,7 @@
 #include "../interface/iwhatIf.h"
 #include "tt.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 using namespace QaplaInterface;
 

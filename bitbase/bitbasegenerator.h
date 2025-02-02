@@ -115,7 +115,7 @@ namespace QaplaBitbase {
 		 */
 		template <Piece COLOR>
 		constexpr Square switchSide(Square square) {
-			return COLOR == WHITE ? square : ChessBasics::switchSide(square);
+			return COLOR == WHITE ? square : QaplaBasics::switchSide(square);
 		}
 
 		/**

@@ -22,7 +22,7 @@
 #include "board.h"
 #include "pst.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 Board::Board() {
 	clear();

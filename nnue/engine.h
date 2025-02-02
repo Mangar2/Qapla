@@ -23,7 +23,7 @@ namespace Stockfish {
         // Setzt die aktuelle Position anhand eines FEN-Strings
         static void set_position(const std::string& fen);
 
-		static Stockfish::Move makeStockfishMove(ChessBasics::Move m) {
+		static Stockfish::Move makeStockfishMove(QaplaBasics::Move m) {
             if (m.isEmpty()) return Stockfish::Move::none();
 			if (m.isNullMove()) return Stockfish::Move::null();
 			if (m.isPromote()) return Stockfish::Move::make<Stockfish::PROMOTION>(Stockfish::Square(m.getDeparture()), Stockfish::Square(m.getDestination()), Stockfish::PieceType(m.getPromotion() >> 1));
@@ -31,9 +31,9 @@ namespace Stockfish {
             if (m.isCastleMove()) {
                 const auto action = m.getActionAndMovingPiece();
                 auto pos = 
-                    action == ChessBasics::Move::WHITE_CASTLES_KING_SIDE ? ChessBasics::H1 :
-                    action == ChessBasics::Move::WHITE_CASTLES_QUEEN_SIDE ? ChessBasics::A1 :
-                    action == ChessBasics::Move::BLACK_CASTLES_KING_SIDE ? ChessBasics::H8 : ChessBasics::A8;
+                    action == QaplaBasics::Move::WHITE_CASTLES_KING_SIDE ? QaplaBasics::H1 :
+                    action == QaplaBasics::Move::WHITE_CASTLES_QUEEN_SIDE ? QaplaBasics::A1 :
+                    action == QaplaBasics::Move::BLACK_CASTLES_KING_SIDE ? QaplaBasics::H8 : QaplaBasics::A8;
                 return Stockfish::Move::make<Stockfish::CASTLING>(
                     Stockfish::Square(m.getDeparture()),
                     Stockfish::Square(pos));
@@ -41,11 +41,11 @@ namespace Stockfish {
             return Stockfish::Move(Stockfish::Square(m.getDeparture()), Stockfish::Square(m.getDestination()));
 		}
 #ifdef USE_STOCKFISH_EVAL
-        static void doMove(ChessBasics::Move m, Stockfish::StateInfo& newSt) { m.isNullMove() ? pos.do_null_move(newSt) : pos.do_move(makeStockfishMove(m), newSt); }
-        static void undoMove(ChessBasics::Move m) {  m.isNullMove() ? pos.undo_null_move() : pos.undo_move(makeStockfishMove(m)); }
+        static void doMove(QaplaBasics::Move m, Stockfish::StateInfo& newSt) { m.isNullMove() ? pos.do_null_move(newSt) : pos.do_move(makeStockfishMove(m), newSt); }
+        static void undoMove(QaplaBasics::Move m) {  m.isNullMove() ? pos.undo_null_move() : pos.undo_move(makeStockfishMove(m)); }
 #else 
-        static void doMove(ChessBasics::Move m, Stockfish::StateInfo& newSt) { }
-        static void undoMove(ChessBasics::Move m) {}
+        static void doMove(QaplaBasics::Move m, Stockfish::StateInfo& newSt) { }
+        static void undoMove(QaplaBasics::Move m) {}
 #endif
         // Bewertet die aktuelle Position
         static Value evaluate();
@@ -54,7 +54,7 @@ namespace Stockfish {
 			return Eval::trace(pos, *networks);
         }
 
-        static ChessBasics::value_t to_cp(Value v);
+        static QaplaBasics::value_t to_cp(Value v);
 
     private:
         static Position pos;

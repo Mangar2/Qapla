@@ -29,7 +29,7 @@
 #include "../basics/move.h"
 #include "../basics/bits.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaMoveGenerator {
 

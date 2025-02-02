@@ -29,7 +29,7 @@
 
 using namespace std;
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	class MaterialBalance {
 

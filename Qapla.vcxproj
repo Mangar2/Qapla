@@ -1987,6 +1987,7 @@
     <ClInclude Include="pgn\pgntokenizer.h" />
     <ClInclude Include="search\aspirationwindow.h" />
     <ClInclude Include="search\boardadapter.h" />
+    <ClInclude Include="search\butterfly-boards.h" />
     <ClInclude Include="search\clockmanager.h" />
     <ClInclude Include="search\searchstate.h" />
     <ClInclude Include="search\computinginfo.h" />

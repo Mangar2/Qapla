@@ -40,7 +40,7 @@
 #include "../basics/move.h"
 #include "searchdef.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaSearch {
 

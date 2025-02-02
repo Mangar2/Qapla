@@ -28,7 +28,7 @@
 
 using namespace std;
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	typedef uint32_t pieceSignature_t;
 

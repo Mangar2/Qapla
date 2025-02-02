@@ -29,7 +29,7 @@
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace ChessEval {
 

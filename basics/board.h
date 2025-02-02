@@ -31,7 +31,7 @@
 #include "piecesignature.h"
 #include "materialbalance.h"
 
-namespace ChessBasics {
+namespace QaplaBasics {
 
 	class Board {
 	public:

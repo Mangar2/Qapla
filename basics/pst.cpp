@@ -19,7 +19,7 @@
 
 #include "pst.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 EvalValue PST::_pst[PIECE_AMOUNT][BOARD_SIZE];
 PST::InitStatics PST::_staticConstructor;

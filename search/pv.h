@@ -29,7 +29,7 @@
 #include "../basics/move.h"
 
 using namespace std;
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaSearch {
 	class PV

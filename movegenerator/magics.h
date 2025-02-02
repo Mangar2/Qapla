@@ -25,7 +25,7 @@
 #include "../basics/types.h"
 #include "../basics/move.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 namespace QaplaMoveGenerator {
 

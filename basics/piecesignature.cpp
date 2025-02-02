@@ -19,7 +19,7 @@
 
 #include "piecesignature.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 array<pieceSignature_t, PIECE_AMOUNT> PieceSignature::mapPieceToSignature;
 array<pieceSignature_t, size_t(SignatureMask::ALL)> PieceSignature::futilityOnCaptureMap;

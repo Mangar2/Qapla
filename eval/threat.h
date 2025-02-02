@@ -29,7 +29,7 @@
 
 #include "evalresults.h"
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {

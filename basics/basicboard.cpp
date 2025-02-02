@@ -20,7 +20,7 @@
 #include "basicboard.h"
 #include <assert.h>
 
-using namespace ChessBasics;
+using namespace QaplaBasics;
 
 void BasicBoard::clear() {
 	kingStartSquare = { E1, E8 };
