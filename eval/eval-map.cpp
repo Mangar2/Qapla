@@ -14,14 +14,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @copyright Copyright (c) 2024 Volker Böhm
+ * @Overview
+ * Implements helper functions for eval
  */
 
-#include "rook.h"
-
-
-
-
-
-
+#include "eval-map.h"
 

@@ -78,6 +78,11 @@ namespace QaplaSearch {
 		inline bool isWindowZero() const { return alpha + 1 == beta;  }
 		inline bool isPVNode() const { return alphaAtPlyStart + 1 < betaAtPlyStart;  }
 
+		void setWindowAtPlyStart(value_t newAlpha, value_t newBeta) {
+			alphaAtPlyStart = alpha = newAlpha;
+			betaAtPlyStart = beta = newBeta;
+		}	
+
 		/**
 		 * Sets all variables from previous ply
 		 */
@@ -93,10 +98,7 @@ namespace QaplaSearch {
 			positionHashSignature = position.computeBoardHash();
 			remainingDepth = depth;
 			remainingDepthAtPlyStart = depth;
-			beta = -previousPly.alpha;
-			alpha = -previousPly.beta;
-			alphaAtPlyStart = alpha;
-			betaAtPlyStart = beta;
+			setWindowAtPlyStart(-previousPly.beta, -previousPly.alpha);
 			moveNumber = 0;
 			_nodeType = _nodeTypeMap[int(previousPly._nodeType)];
 			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
@@ -186,13 +188,15 @@ namespace QaplaSearch {
 				eval = entry.getPositionValue(ply);
 			}
 
-			value_t ttValue = entry.getValue(alpha, beta, remainingDepth, ply);
-			bool isWinningValue = ttValue <= -WINNING_BONUS || ttValue >= WINNING_BONUS;
+			ttValue = entry.getValue(ply);
+			ttDepth = entry.getComputedDepth();
+			const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, remainingDepth, ply);
+			bool isWinningValue = cutoffValue <= -WINNING_BONUS || cutoffValue >= WINNING_BONUS;
 			if (!isPVSearch() || isWinningValue) {
 				// keeps the best move for a tt entry, if the search does stay <= alpha
 				bestMove = move;
-				if (ttValue != NO_VALUE) {
-					bestValue = ttValue;
+				if (cutoffValue != NO_VALUE) {
+					bestValue = cutoffValue;
 					return true;
 				}
 			}
@@ -226,8 +230,8 @@ namespace QaplaSearch {
 		/**
 		 * Extend the current search
 		 */
-		auto extendSearch(MoveGenerator& position) {
-			searchDepthExtension = Extension::calculateExtension(position, previousMove, remainingDepth);
+		auto extendSearch(MoveGenerator& position, ply_t seExtension) {
+			searchDepthExtension = Extension::calculateExtension(position, previousMove, remainingDepth, seExtension);
 			remainingDepth += searchDepthExtension;
 			return remainingDepth;
 		}
@@ -247,7 +251,9 @@ namespace QaplaSearch {
 			}
 			// We do not prune on potentional mate values
 			if (eval > WINNING_BONUS) return false;
-			// We prune, if eval + margin is >= beta. This term prevents pruning below beta on negative futility margins.
+			// Do not prune on window indicating mate values
+			if (alpha > WINNING_BONUS || beta < -WINNING_BONUS) return false;
+			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
 			if (eval < beta) return false;
 			const bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
 			if (doFutility) {
@@ -408,10 +414,12 @@ namespace QaplaSearch {
 
 		Move getMoveFromPVMovesStore(ply_t ply) const { return pvMovesStore.getMove(ply); }
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
+
 		/**
 		 * Gets the move proposed by the tt
 		 */
 		Move getTTMove() const { return moveProvider.getTTMove(); }
+
 		void setPly(ply_t curPly) { ply = curPly; }
 
 		string getSearchStateName(SearchFinding searchState) const {
@@ -516,6 +524,8 @@ namespace QaplaSearch {
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
 		bool ttValueLessThanAlpha;
+		value_t ttValue;
+		ply_t ttDepth;
 
 		Cutoff cutoff;
 		mutex mtxSearchResult;

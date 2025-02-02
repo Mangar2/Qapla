@@ -1,5 +1,32 @@
 # Quabla Test Versions
 
+## 0.2.025 2025-02-02
+
+- se margin 70
+- se only, if ttdepth >= seDepth
+- dont se if tt shows mate value
+
+## 0.2.024 2025-02-01
+
+- Raiting 58.79
+- Singular Extension
+- se margin 10 + depth
+
+## 0.2.023 2025-02-01
+
+- Raiting 58,04 -> T1
+- Using move count * 3, even, if it performed littel worse in the test set.
+- lmr from move number 1, T0, Stopped, very bad
+- lmr move count depth * 3, T1
+- lmr pv move /2 only, if lmr >= 2, T2, definitely less good.
+- All together, T3, Stopped, very bad
+
+## 0.2.022 2025-01-26
+
+- 58,50
+- Small speed improvements due to better usage of print templates
+- More agressive move count pruning and lmr.
+
 ## 0.2.021 2025-01-25
 
 - Raiting 56,18

@@ -42,4 +42,7 @@ perft 5
 setboard r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
 perft 6
 
+setboard 3r1r1k/1b4pp/ppn1p3/4Pp1R/Pn5P/3P4/4QP2/1qB1NKR1 w - -
+whatif 15 h5h7 h8h7 e2h5 h7g8 g1g7 g8g7 c1h6 g7h7 h6g5 h7g7
+whatif 15 h5h7 h8h7 e2h5 h7g8 g1g7 g8g7 c1h6 g7h7 h6g5 h7g7 h5h6 g7f7 h6f6 f7g8 f6g6 g8h8 g5f6 f8f6 e5f6 b1e1 f1e1 b4c2 e1f1 c2e3 f2e3 d8d7 g6e8 h8h7
 

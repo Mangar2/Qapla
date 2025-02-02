@@ -3,10 +3,56 @@
 
 #include "../basics/types.h"
 
-template <bool PRINT>
-inline static void printEvalStep(string topic, value_t sum, EvalValue cur, value_t midgame) {
+static void printValueSys(EvalValue cur, EvalValue sum, size_t valueTab) {
+	cout
+		<< ":"
+		<< std::right
+		<< std::setw(valueTab)
+		<< cur
+		<< " sum:"
+		<< std::setw(12)
+		<< cur
+		<< endl;
+}
+
+static void printValueSys(EvalValue cur, size_t valueTab) {
+	cout
+		<< ":"
+		<< std::right
+		<< std::setw(valueTab)
+		<< cur
+		<< endl;
+}
+
+static void printValue(std::string topic, Piece color, EvalValue cur) {
+	const size_t valueTab = 33;
+	cout << colorToString(color) + " " + topic;
+	printValueSys(cur, valueTab - topic.length() - 7);
+}
+
+static void printValue(std::string topic, Piece color, EvalValue cur, Square square) {
+	const size_t valueTab = 33;
+	cout << colorToString(color) + " " + topic + " (" + squareToString(square) + ")";
+	printValueSys(cur, valueTab - topic.length() - 12);
+}
+
+static void printValue(std::string topic, value_t sum, value_t cur) {
+	const size_t valueTab = 33;
+	cout
+		<< topic
+		<< ":"
+		<< std::right
+		<< std::setw(valueTab - topic.length() - 1)
+		<< cur
+		<< " sum:"
+		<< std::setw(6)
+		<< sum
+		<< endl;
+}
+
+static void printEvalStep(string topic, value_t sum, EvalValue cur, value_t midgame) {
 	const int32_t valueTab = 33;
-	if (PRINT) cout
+	cout
 		<< topic
 		<< ":"
 		<< std::right
@@ -19,48 +65,5 @@ inline static void printEvalStep(string topic, value_t sum, EvalValue cur, value
 		<< cur
 		<< endl;
 }
-
-template <bool PRINT>
-inline static value_t sumEvalStep(string topic, value_t sum, value_t cur) {
-	const int32_t valueTab = 33;
-	if (PRINT) cout
-		<< topic
-		<< ":"
-		<< std::right
-		<< std::setw(valueTab - topic.length() - 1)
-		<< cur
-		<< " sum:"
-		<< std::setw(6)
-		<< ( sum + cur )
-		<< endl;
-	return sum + cur;
-}
-
-template <Piece COLOR, bool PRINT>
-inline static value_t sumEvalStep(string topic, value_t sum, value_t cur, Square square) {
-	return sumEvalStep<PRINT>(colorToString(COLOR) + " " + topic + " (" + squareToString(square) + ")", sum, cur);
-}
-
-template <Piece COLOR, bool PRINT>
-inline static void printEvalStep(string topic, value_t sum, value_t cur, Square square) {
-	sumEvalStep<COLOR, PRINT>(topic, sum, cur, square);
-}
-
-template <bool PRINT>
-inline static EvalValue sumEvalStep(string topic, EvalValue sum, EvalValue cur, Square square) {
-	const int32_t valueTab = 33;
-	if (PRINT) cout
-		<< topic
-		<< " (" << squareToString(square) << ")"
-		<< std::right
-		<< std::setw(valueTab - topic.length() - 5)
-		<< cur
-		<< " sum:"
-		<< std::setw(12)
-		<< (sum + cur)
-		<< endl;
-	return sum + cur;
-}
-
 
 #endif

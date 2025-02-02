@@ -125,19 +125,85 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	return isCutoff;
 }
 
-ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t ply,  Move move)
+ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move)
 {
 
 	// Ability to disable history for a ply
 	// if (node->mDisableHist) return 0;
+	const auto moveNo = node.moveNumber;
 
 	if (ply <= 2) return 0;
 	if (move.isCapture()) return 0;
-	if (node.moveNumber <= 3) return 0;
+	if (moveNo <= 3) return 0;
 	if (node.isCheckMove(position, move)) return 0;
-	if (node.moveNumber <= 7) return 1;
-	if (node.isPVNode()) return 1;
-	return 2;
+	ply_t moveCountLmr = std::clamp(moveNo <= 7 ? 16 + (moveNo - 3) * 16 / 4 : 32 + (moveNo - 7) / 2, 16, 3 * 16);
+	ply_t moveCountDepth = std::clamp(16 + (depth - 3) * 2, 16, 3 * 16);
+	ply_t lmr = moveCountLmr * moveCountDepth / 256;
+	if (node.isPVNode()) lmr /= 2;
+	return lmr;
+}
+
+ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+	return 0;
+	if (!SearchParameter::DO_SE_EXTENSION) return 0;
+	SearchVariables& node = stack[ply];
+	SearchVariables& childNode = stack[ply + 1];
+
+	// Do not double extend check moves
+	if (SearchParameter::DO_CHECK_EXTENSIONS && node.sideToMoveIsInCheck) return 0;
+
+	// We need a certain search depth left to efficiently calculate a singular extension
+	if (depth < 4) return 0;
+
+	// Limit maximal extension depth
+	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchParameter::MAX_SEARCH_DEPTH))) return 0;
+
+
+	node.setFromPreviousPly(position, stack[ply - 1], depth);
+	
+	// Must be after setFromPreviousPly
+	node.probeTT(position, ply);
+
+	// Singular extension based on tt move. Only, if the search found a value > alpha it found a "best move" in the position and is able to store it to
+	// the transposition table
+	auto ttMove = node.getTTMove();
+	const auto seDepth = depth / 2;
+	if (ttMove.isEmpty()) return 0;
+	// We require a certain search depth for the tt move to be considered for a singular extension
+	if (node.ttDepth < seDepth) return 0;
+	// No se, if the tt already shows a mate or equivalent value
+	if (node.ttValue < -WINNING_BONUS || node.ttValue > WINNING_BONUS) return 0;
+
+	const auto seBeta = node.ttValue - SearchParameter::singularExtensionMargin(depth);
+	node.setWindowAtPlyStart(seBeta - 1, seBeta);
+
+	_computingInfo._nodesSearched++;
+
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
+	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
+	if (hasCutoff<SearchRegion::NEAR_LEAF>(position, stack, node, ply)) return 0;
+
+	node.computeMoves(position);
+	Move curMove;
+	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
+		if (curMove == ttMove) continue;
+
+		childNode.doMove(position, curMove);
+		const auto result = -negaMax<SearchRegion::INNER>(position, stack, seDepth - 1, ply + 1);
+		node.setSearchResult(result, childNode, curMove);
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, seDepth - 1, ply, "SE");
+		childNode.undoMove(position);
+
+		if (node.isFailHigh()) break;
+	}
+
+	// Attack masks are lazily computed. We need to make sure to recompute them, if we like to search twice in the same position
+	position.computeAttackMasksForBothColors();
+	if (!node.isFailHigh()) {
+		position.print();
+	}
+	
+	return node.isFailHigh() ? 0: 1;
 }
 
 
@@ -150,6 +216,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position, ply);
 	if (TYPE == SearchRegion::INNER && stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(ply)) return -MAX_VALUE;
 	if (TYPE == SearchRegion::INNER) iid(position, stack, depth, ply);
+	const auto seExtension = se(position, stack, depth, ply);
 
 	SearchVariables& node = stack[ply];
 	value_t result;
@@ -172,12 +239,12 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	if (cutoff) return node.bestValue;
 
 	node.computeMoves(position);
-	depth = node.extendSearch(position);
+	depth = node.extendSearch(position, seExtension);
 
 	// The first move will be searched with PV window - the remaining with null window
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 		
-		const auto lmr = computeLMR(node, position, ply, curMove);
+		const auto lmr = computeLMR(node, position, depth, ply, curMove);
 		
 		// Move count pruning
 		if (lmr > 0 && depth - lmr < 0) continue;

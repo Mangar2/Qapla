@@ -61,7 +61,7 @@ std::tuple<value_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t a
 
 	if (ttIndex != TT::INVALID_INDEX) {
 		TTEntry entry = _tt->getEntry(ttIndex);
-		const auto bestValue = entry.getValue(alpha, beta, 0, ply);
+		const auto bestValue = entry.getTTCutoffValue(alpha, beta, 0, ply);
 		const auto move = entry.getMove();
 		return std::make_tuple(bestValue, move);
 	}

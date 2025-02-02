@@ -27,6 +27,8 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "../basics/evalvalue.h"
+#include "print-eval.h"
+#include "eval-map.h"
 #include "evalresults.h"
 
 using namespace ChessBasics;
@@ -63,11 +65,16 @@ namespace ChessEval {
 			{
 				const Square rookSquare = lsb(rooks);
 				rooks &= rooks - 1;
-				value += calcMobility<COLOR, PRINT>(results, rookSquare, occupiedBB, removeMask);
-				value += calcPropertyValue<COLOR, PRINT>(position, results, rookSquare);
+				int32_t rookIndex = 
+					calcPropertyValue<COLOR, PRINT>(position, results, rookSquare) +
+					calcMobility<COLOR, PRINT>(results, rookSquare, occupiedBB, removeMask) * 32;
+
+				// if (PRINT) printIndex(rookSquare, rookIndex);
+				const EvalValue rookValue = evalMap.getValue(rookIndex);
+				if (PRINT) printValue("rook", COLOR, rookValue, rookSquare);
+				value += rookValue;
 			}
-			if (PRINT) cout << colorToString(COLOR) << " rooks: "
-				<< std::right << std::setw(20) << value << endl;
+			if (PRINT) printValue("rooks", COLOR, value);
 			return value;
 		}
 
@@ -79,10 +86,10 @@ namespace ChessEval {
 		 * Is trapped by king
 		 */
 		template<Piece COLOR, bool PRINT>
-		static inline EvalValue calcPropertyValue(const MoveGenerator& position, EvalResults& results,
+		static inline uint32_t calcPropertyValue(const MoveGenerator& position, EvalResults& results,
 			Square rookSquare)
 		{
-			uint16_t rookIndex = 0;
+			uint32_t rookIndex = 0;
 			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			const bitBoard_t ourPawnBB = position.getPieceBB(PAWN + COLOR);
 			const bitBoard_t theirPawnBB = position.getPieceBB(PAWN + OPPONENT);
@@ -94,15 +101,14 @@ namespace ChessEval {
 			rookIndex +=
 				protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
 			rookIndex += isPinned(position.pinnedMask[COLOR], rookSquare) * PINNED;
-			if (PRINT) printIndex(rookSquare, rookIndex);
-			return getFromIndexMap(rookIndex);
+			return rookIndex;
 		}
 
 		/**
 		 * Calculates the results of a rook
 		 */
 		template<Piece COLOR, bool PRINT>
-		static EvalValue calcMobility(
+		static uint32_t calcMobility(
 			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
 			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
@@ -111,23 +117,20 @@ namespace ChessEval {
 			results.piecesAttack[COLOR] |= attackBB;
 
 			attackBB &= removeBB;
-			const EvalValue value = ROOK_MOBILITY_MAP[popCount(attackBB)];
-			if (PRINT) cout << colorToString(COLOR)
-				<< " rook (" << squareToString(square) << ") mobility: "
-				<< std::right << std::setw(7) << value;
-			return value;
+			return popCount(attackBB);
 		}
 
 		/**
 		 * Prints a rook index
 		 */
-		static void printIndex(Square square, uint16_t rookIndex) {
-			if ((rookIndex & OPEN_FILE) != 0) { cout << " <of>"; }
-			if ((rookIndex & HALF_OPEN_FILE) != 0) { cout << " <hof>"; }
-			if ((rookIndex & TRAPPED) != 0) { cout << " <tbk>"; }
-			if ((rookIndex & PROTECTS_PP) != 0) { cout << " <ppp>"; }
-			if ((rookIndex & PINNED) != 0) { cout << " <pin>"; }
-			cout << endl;
+		static string getIndexStr(Square square, uint16_t rookIndex) {
+			string result = "Mob: " + (rookIndex / 32);
+			if ((rookIndex & OPEN_FILE) != 0) { result += " <of>"; }
+			if ((rookIndex & HALF_OPEN_FILE) != 0) { result += " <hof>"; }
+			if ((rookIndex & TRAPPED) != 0) { result += "<tbk>"; }
+			if ((rookIndex & PROTECTS_PP) != 0) { result += " <ppp>"; }
+			if ((rookIndex & PINNED) != 0) { result += " <pin>"; }
+			return result;
 		}
 
 		/**
@@ -182,62 +185,56 @@ namespace ChessEval {
 			const auto rooksRow7BB = (rookBB | queenBB) & ROW_7[COLOR];
 			const auto amountOnRow7 = popCountBrianKernighan(rooksRow7BB);
 			const EvalValue valueForRow7 =  ROOK_ROW_7_MAP[amountOnRow7];
-			if (PRINT && amountOnRow7 > 0) cout << colorToString(COLOR)
-				<< " rook row 7:"
-				<< std::right << std::setw(16) << valueForRow7
-				<< endl;
+			if (PRINT && amountOnRow7 > 0) {
+				cout << colorToString(COLOR)
+					<< " rook row 7:"
+					<< std::right << std::setw(16) << valueForRow7
+					<< endl;
+			}
 			return valueForRow7;
 		}
 
-		/**
-		 * Adds a value pair to the index map
-		 */
-		static void addToIndexMap(uint32_t index, const value_t data[2]) {
-			_indexToValue[index * 2] += data[0];
-			_indexToValue[index * 2 + 1] += data[1];
-		}
-
-		/**
-		 * Gets a value pair from the index map
-		 */
-		static inline EvalValue getFromIndexMap(uint32_t index) {
-			return EvalValue(_indexToValue[index * 2], _indexToValue[index * 2 + 1]);
-		}
-
-		/**
-		 * Initializes the index map on program start
-		 */
-		static struct InitStatics {
-			InitStatics();
-		} _staticConstructor;
 
 		static constexpr bitBoard_t ROW_7[COLOR_COUNT] = { 0x00FF000000000000, 0x000000000000FF00 };
+		// Row 7 map
+		static constexpr value_t ROOK_ROW_7_MAP[8][2] = {
+			{ 0, 0 }, { 10, 0 }, { 20, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }
+		};
 
-		static const uint32_t INDEX_SIZE = 32;
+		static const uint32_t INDEX_SIZE = 32 * 16;
 		static const uint32_t TRAPPED = 1;
 		static const uint32_t OPEN_FILE = 2;
 		static const uint32_t HALF_OPEN_FILE = 4;
 		static const uint32_t PROTECTS_PP = 8;
 		static const uint32_t PINNED = 16;
 		
-		static constexpr value_t _trapped[2] = { -50, 0 }; 
-		static constexpr value_t _openFile[2] = { 10, 0 };
-		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
-		static constexpr value_t _protectsPP[2] = { 20, 0 };
-		static constexpr value_t _pinned[2] = { 0, 0 };
-		
-		// Lookup table to get an evaluation for all topics in one access via. bitmask. Saves lots of if/else
-		static array<value_t, INDEX_SIZE * 2> _indexToValue;
+		inline static EvalMap<INDEX_SIZE, 2> evalMap = [] {
+			const value_t _trapped[2] = { -50, 0 };
+			const value_t _openFile[2] = { 10, 0 };
+			const value_t _halfOpenFile[2] = { 10, 0 };
+			const value_t _protectsPP[2] = { 20, 0 };
+			const value_t _pinned[2] = { 0, 0 };
 
-		// Row 7 map
-		static constexpr value_t ROOK_ROW_7_MAP[8][2] = {
-			{ 0, 0 }, { 10, 0 }, { 20, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }, { 40, 0 }
-		};
+			// Mobility Map
+			const value_t ROOK_MOBILITY_MAP[15][2] = {
+				{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
+				{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } };
 
-		// Mobility Map
-		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = {
-			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
-			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } };
+			EvalMap<INDEX_SIZE, 2> map;
+			for (uint32_t mobility = 0; mobility < 16; ++mobility) {
+				for (uint32_t bitmask = 0; bitmask < 32; ++bitmask) {
+					EvalValue value;
+					if (bitmask & TRAPPED) { value += _trapped; }
+					if (bitmask & OPEN_FILE) { value += _openFile; }
+					if (bitmask & HALF_OPEN_FILE) { value += _halfOpenFile; }
+					if (bitmask & PROTECTS_PP) { value += _protectsPP; }
+					if (bitmask & PINNED) { value += _pinned; }
+					value += ROOK_MOBILITY_MAP[mobility];
+					map.setValue(mobility * 32 + bitmask, value.getValue());
+				}
+			}
+			return map;
+		} ();
 	};
 }
 

@@ -32,8 +32,8 @@ namespace QaplaSearch {
 		/**
 		 * Computes extensions
 		 */
-		static ply_t calculateExtension(MoveGenerator& board, Move move, int32_t remainingSearchDepth) {
-			ply_t extension = 0;
+		static ply_t calculateExtension(MoveGenerator& board, Move move, int32_t remainingSearchDepth, ply_t seExtension) {
+			ply_t extension = seExtension;
 			if (SearchParameter::DO_CHECK_EXTENSIONS && board.isInCheck()) {
 				extension = 1;
 			}

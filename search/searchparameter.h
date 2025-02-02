@@ -35,21 +35,21 @@ namespace QaplaSearch {
 		/**
 		 * Calculates the reduction by nullmove
 		 */
-		static uint32_t getNullmoveReduction(ply_t ply, int32_t remainingSearchDepth) {
+		constexpr static uint32_t getNullmoveReduction(ply_t ply, int32_t remainingSearchDepth) {
 			return remainingSearchDepth >= 4 ? 3 : 2;
 		}
 
 		/**
 		 * Calculates the depth for nullmove verification searches
 		 */
-		static uint32_t getNullmoveVerificationDepthReduction(ply_t ply, int32_t remainingSearchDepth) {
+		constexpr static uint32_t getNullmoveVerificationDepthReduction(ply_t ply, int32_t remainingSearchDepth) {
 			return 5;
 		}
 
 		/**
 		 * Calculates the reduction for internal iterative deepening
 		 */
-		static inline ply_t getIIDReduction(int32_t remainingSearchDepth, bool isPV)
+		constexpr static ply_t getIIDReduction(int32_t remainingSearchDepth, bool isPV)
 		{
 			return isPV ? 2 : 4;
 		}
@@ -57,15 +57,16 @@ namespace QaplaSearch {
 		/**
 		 * Calculates the minimal depth for internal iterative deepening
 		 */
-		static inline ply_t getIIDMinDepth(bool isPV)
+		constexpr static ply_t getIIDMinDepth(bool isPV)
 		{
 			return isPV ? 4 : 6;
 		}
 
+
 		/**
 		 * Calculates the late move reduction
 		 */
-		static ply_t getLateMoveReduction(bool pv, ply_t ply, uint32_t moveNo) {
+		constexpr static ply_t getLateMoveReduction(bool pv, ply_t ply, uint32_t moveNo) {
 			return 0;
 			ply_t res = 0;
 			if (ply >= 3) {
@@ -100,6 +101,12 @@ namespace QaplaSearch {
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
 
 		static const bool DO_CHECK_EXTENSIONS = true;
+
+		static const bool DO_SE_EXTENSION = true;
+		constexpr static value_t singularExtensionMargin(ply_t depth) {
+			return 70;
+		}
+
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
 		static const ply_t DO_FUTILITY_DEPTH = 10;

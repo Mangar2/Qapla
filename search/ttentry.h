@@ -107,7 +107,7 @@ namespace QaplaSearch {
 		 * @param ply current calculation ply
 		 * @returns true, if the value of the hash causes a Hash cutoff
 		 */
-		value_t getValue(value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply) const
+		value_t getTTCutoffValue(value_t alpha, value_t beta, ply_t remainingDepth, ply_t ply) const
 		{
 			value_t positionValue = NO_VALUE;
 
@@ -129,6 +129,8 @@ namespace QaplaSearch {
 
 			return positionValue;
 		}
+
+		value_t getValue(value_t ply) const { return getPositionValue(ply); }
 
 		/**
 		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
@@ -155,7 +157,7 @@ namespace QaplaSearch {
 		 * Checks, if the stored hash value is below a beta value
 		 */
 		bool isTTValueBelowBeta(value_t probeBeta, ply_t ply) const {
-			value_t ttValue = getValue(probeBeta-1, probeBeta, 0, ply);
+			value_t ttValue = getTTCutoffValue(probeBeta-1, probeBeta, 0, ply);
 			bool result = ttValue != NO_VALUE && (ttValue < probeBeta);
 			return result;
 		}

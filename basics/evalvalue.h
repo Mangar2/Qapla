@@ -42,33 +42,39 @@ namespace ChessBasics {
 
 	class EvalValue {
 	public:
-		EvalValue() : _midgame(0), _endgame(0) {}
-		EvalValue(value_t value) : _midgame(value), _endgame(value) {}
-		EvalValue(value_t midgame, value_t endgame) : _midgame(midgame), _endgame(endgame) {}
-		EvalValue(const value_t value[2]) : _midgame(value[0]), _endgame(value[1]) {}
+		constexpr EvalValue() : _midgame(0), _endgame(0) {}
+		constexpr EvalValue(value_t value) : _midgame(value), _endgame(value) {}
+		constexpr EvalValue(value_t midgame, value_t endgame) : _midgame(midgame), _endgame(endgame) {}
+		constexpr EvalValue(const value_t value[2]) : _midgame(value[0]), _endgame(value[1]) {}
+		constexpr EvalValue(const array<value_t, 2> value) : _midgame(value[0]), _endgame(value[1]) {}
 
 		/**
 		 * Returns the evaluation value based on the game state
 		 * @param midgameInPercent weight for the midgame, endgame weight is 100-midgameInPercent
 		 */
-		value_t getValue(value_t midgameInPercent) const {
+		constexpr value_t getValue(value_t midgameInPercent) const {
 			return (value_t(_midgame) * midgameInPercent + value_t(_endgame) * (100 - midgameInPercent)) / 100;
+		}
+
+		constexpr array<value_t, 2> getValue() const {
+			const array<value_t, 2> result = { _midgame, _endgame };
+			return result;
 		}
 
 		constexpr value_t midgame() const { return _midgame; }
 		constexpr value_t endgame() const { return _endgame; }
 
-		inline EvalValue& operator+=(EvalValue add) { _midgame += add._midgame; _endgame += add._endgame; return *this; }
-		inline EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
-		inline EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
-		inline EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
-		inline EvalValue operator*(value_t mul) { _midgame *= mul; _endgame *= mul; }
+		constexpr  EvalValue& operator+=(EvalValue add) { _midgame += add._midgame; _endgame += add._endgame; return *this; }
+		constexpr  EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
+		constexpr  EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
+		constexpr  EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
+		EvalValue operator*(value_t mul) { _midgame *= mul; _endgame *= mul; }
 
-		friend EvalValue operator+(EvalValue a, EvalValue b);
-		friend EvalValue operator-(EvalValue a, EvalValue b);
-		friend EvalValue operator-(EvalValue a);
-		friend EvalValue operator*(EvalValue a, EvalValue b);
-		friend EvalValue operator/(EvalValue a, EvalValue b);
+		constexpr friend EvalValue operator+(EvalValue a, EvalValue b);
+		constexpr friend EvalValue operator-(EvalValue a, EvalValue b);
+		constexpr friend EvalValue operator-(EvalValue a);
+		constexpr friend EvalValue operator*(EvalValue a, EvalValue b);
+		constexpr friend EvalValue operator/(EvalValue a, EvalValue b);
 		//This method handles all the outputs.    
 		friend ostream& operator<<(ostream&, const EvalValue&);
 	private:
@@ -82,23 +88,23 @@ namespace ChessBasics {
 		return o;
 	}
 
-	static EvalValue operator+(EvalValue a, EvalValue b) {
+	constexpr static EvalValue operator+(EvalValue a, EvalValue b) {
 		return EvalValue(value_t(a._midgame + b._midgame), value_t(a._endgame + b._endgame));
 	}
 
-	static EvalValue operator-(EvalValue a, EvalValue b) {
+	constexpr static EvalValue operator-(EvalValue a, EvalValue b) {
 		return EvalValue(value_t(a._midgame - b._midgame), value_t(a._endgame - b._endgame));
 	}
 
-	static EvalValue operator-(EvalValue a) {
+	constexpr static EvalValue operator-(EvalValue a) {
 		return EvalValue(-a._midgame, -a._endgame);
 	}
 
-	static EvalValue operator*(EvalValue a, EvalValue b) {
+	constexpr static EvalValue operator*(EvalValue a, EvalValue b) {
 		return EvalValue(value_t(a._midgame * b._midgame), value_t(a._endgame * b._endgame));
 	}
 
-	static EvalValue operator/(EvalValue a, EvalValue b) {
+	constexpr static EvalValue operator/(EvalValue a, EvalValue b) {
 		return EvalValue(value_t(a._midgame / b._midgame), value_t(a._endgame / b._endgame));
 	}
 
