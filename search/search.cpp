@@ -144,7 +144,6 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 }
 
 ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
-	return 0;
 	if (!SearchParameter::DO_SE_EXTENSION) return 0;
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
@@ -199,9 +198,6 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 
 	// Attack masks are lazily computed. We need to make sure to recompute them, if we like to search twice in the same position
 	position.computeAttackMasksForBothColors();
-	if (!node.isFailHigh()) {
-		position.print();
-	}
 	
 	return node.isFailHigh() ? 0: 1;
 }
