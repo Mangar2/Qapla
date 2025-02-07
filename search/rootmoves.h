@@ -126,7 +126,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets all moves
 		 */
-		void setMoves(MoveGenerator& position);
+		void setMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard);
 
 		/**
 		 * Stable sort algorithm sorting all moves from first to last
@@ -148,6 +148,8 @@ namespace QaplaSearch {
 		 * Print the root moves (used for debugging)
 		 */
 		void print();
+
+		void clear() { _moves.clear(); }
 	private:
 		vector<RootMove> _moves;
 	};

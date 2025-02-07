@@ -29,16 +29,57 @@ namespace QaplaSearch {
 
 	using statistic_t = int32_t;
 
-	class ButterFlyBoard {
+	class ButterflyBoard {
 	public:
 
-		static void clear() {
+		void clear() {
 			_board.fill(0);
 		}
-
-		static void addToValue(QaplaBasics::Move move, ply_t depth) {
+		
+		void newBestMove(QaplaBasics::Move move, ply_t depth, const Move* moves, uint32_t triedMoves) {
+			if (move.isCapture() || move.isEmpty()) {
+				return;
+			}
+			const auto change = computeChange(depth + 1);
+			if (change == 0) {
+				return;
+			}
+			addToValue(move, change);
+			const auto reduceCount = std::min(triedMoves, 7U);
+			for (uint32_t i = 0; i < reduceCount; i++) {
+				const auto move = moves[i];
+				if (!move.isCapture()) {
+					subFromValue(move, change);
+				}
+			}
+		}
+	
+		statistic_t getValue(QaplaBasics::Move move) {
 			uint32_t index = computeIndex(move);
-			statistic_t value = computeChange(depth);
+			return _board[index];
+		}
+
+		void newSearch() {
+			reduce();
+		}
+
+		void count() {
+			uint32_t positive = 0;
+			uint32_t negative = 0;
+			for (uint32_t i = 0; i < ButterflyBoard::SIZE; i++) {
+				if (_board[i] > 0) {
+					positive++;
+				}
+				if (_board[i] < 0) {
+					negative++;
+				}
+			}
+			std::cout << "Positive: " << positive << " Negative: " << negative << std::endl;
+		}
+	private:
+
+		void addToValue(QaplaBasics::Move move, statistic_t value) {
+			uint32_t index = computeIndex(move);
 			if (_board[index] < 0) {
 				_board[index] /= 2;
 			}
@@ -48,9 +89,8 @@ namespace QaplaSearch {
 			}
 		}
 
-		static void subFromValue(QaplaBasics::Move move, ply_t depth) {
+		void subFromValue(QaplaBasics::Move move, statistic_t value) {
 			uint32_t index = computeIndex(move);
-			statistic_t value = computeChange(depth);
 			if (_board[index] > 0) {
 				_board[index] /= 2;
 			}
@@ -60,25 +100,15 @@ namespace QaplaSearch {
 			}
 		}
 
-		static statistic_t getValue(QaplaBasics::Move move) {
-			uint32_t index = computeIndex(move);
-			return _board[index];
-		}
-
-		static void newSearch() {
-			reduce();
-		}
-
-	private:
-		static constexpr uint32_t computeIndex(QaplaBasics::Move move) {
+		constexpr uint32_t computeIndex(QaplaBasics::Move move) {
 			return move.getPiceAndDestination();
 		}
 
-		static constexpr statistic_t computeChange(ply_t depth) {
+		constexpr statistic_t computeChange(ply_t depth) {
 			return depth * depth / 16;
 		}
 
-		static void reduce() {
+		void reduce() {
 			for (uint32_t i = 0; i < SIZE; i++) {
 				_board[i] /= 2;
 			}
@@ -86,7 +116,7 @@ namespace QaplaSearch {
 
 		static const statistic_t MAX_HIST = 0x70000000;
 		static const uint32_t SIZE = 0x1000;
-		static std::array<statistic_t, SIZE> _board;
+		std::array<statistic_t, SIZE> _board;
 
 	};
 };

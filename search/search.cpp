@@ -182,7 +182,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
 	if (hasCutoff<SearchRegion::NEAR_LEAF>(position, stack, node, ply)) return 0;
 
-	node.computeMoves(position);
+	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 		if (curMove == ttMove) continue;
@@ -234,7 +234,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	cutoff = hasCutoff<TYPE>(position, stack, node, ply);
 	if (cutoff) return node.bestValue;
 
-	node.computeMoves(position);
+	node.computeMoves(position, _butterflyBoard);
 	depth = node.extendSearch(position, seExtension);
 
 	// The first move will be searched with PV window - the remaining with null window
@@ -288,7 +288,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 		}
 	} 
 	// If search is aborted, bestValue and bestMove may be wrong, dont store them in the transposition table or killers  
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position);
+	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, depth);
 	if (TYPE == SearchRegion::INNER) {
 		_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
@@ -308,7 +308,7 @@ ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, C
 	RootMove* rootMove = &_rootMoves.getMove(0);
 	stack.setPV(rootMove->getPV());
 
-	node.computeMoves(position);
+	node.computeMoves(position, _butterflyBoard);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
 	Stockfish::Engine::set_position(position.getFen());
@@ -356,7 +356,7 @@ ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, C
 		if (node.isFailHigh()) break;
 	}
 
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position);
+	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, depth);
 	_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
 	_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	_rootMoves.bubbleSort(0);

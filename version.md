@@ -1,5 +1,9 @@
 # Quabla Test Versions
 
+## 0.2.027 2025-02-07
+
+- Butterfly boards
+
 ## 0.2.026 2025-02-02
 
 - Raiting 63.61

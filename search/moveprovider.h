@@ -30,6 +30,7 @@
 #include "killermove.h"
 #include "see.h"
 #include "SearchParameter.h"
+#include "butterfly-boards.h"
 #include "../movegenerator/movegenerator.h"
 
 using namespace QaplaBasics;
@@ -50,7 +51,7 @@ namespace QaplaSearch {
 	public:
 
 
-		MoveProvider() : curMoveNo(0) {
+		MoveProvider() : curMoveNo(0), _butterflyBoard(0) {
 			selectStage = MoveType::PV + 1;
 			currentStage = selectStage;
 			pvMove;
@@ -113,7 +114,8 @@ namespace QaplaSearch {
 		/**
 		 * Initializes the move provider to provide all moves in a sorted order
 		 */
-		inline void computeMoves(MoveGenerator& board, Move previousPlyMove) {
+		inline void computeMoves(MoveGenerator& board, ButterflyBoard& butterflyBoard, Move previousPlyMove) {
+			_butterflyBoard = &butterflyBoard;
 			previousMove = previousPlyMove;
 			board.genMovesOfMovingColor(moveList);
 			selectStage = MoveType::PV;
@@ -265,6 +267,9 @@ namespace QaplaSearch {
 			assert(moveNo < triedMovesAmount);
 			return triedMoves[moveNo];
 		}
+		const Move* getTriedMoves() const {
+			return triedMoves;
+		}
 
 	private:
 
@@ -379,12 +384,13 @@ namespace QaplaSearch {
 		}
 
 		void sortNonCaptures() {
-			/*
-			for (uint8_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
-				moveList.setWeight(moveNo, HistoryTable::getWeight(moveList.getMove(moveNo)));
+			if (_butterflyBoard == 0) {
+				return;
 			}
-			moveList.sortFirstNonCaptureMoves(SearchParameter::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
-			*/
+			for (uint8_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
+				moveList.setWeight(moveNo, _butterflyBoard->getValue(moveList.getMove(moveNo)));
+			}
+			moveList.sortFirstSilentMoves(SearchParameter::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
 		}
 
 		static const uint32_t TRIED_MOVES_STORE_SIZE = 200;
@@ -401,6 +407,7 @@ namespace QaplaSearch {
 		Move triedMoves[TRIED_MOVES_STORE_SIZE];
 		uint32_t triedMovesAmount;
 		SEE sEE;
+		ButterflyBoard* _butterflyBoard;
 
 	};
 

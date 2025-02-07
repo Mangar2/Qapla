@@ -111,7 +111,7 @@ namespace QaplaSearch {
 		 * Sets the 
 		 */
 		virtual void newGame() {
-			iterativeDeepening.clearTT();
+			iterativeDeepening.startNewGame();
 		}
 
 		/**
@@ -153,7 +153,7 @@ namespace QaplaSearch {
 			if (playedMovesInGame > 0) {
 				playedMovesInGame--;
 			}
-			iterativeDeepening.clearTT();
+			iterativeDeepening.startNewGame();
 		}
 
 		/**

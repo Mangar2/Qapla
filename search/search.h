@@ -31,6 +31,7 @@
 #include "../eval/eval.h"
 #include "clockmanager.h"
 #include "tt.h"
+#include "butterfly-boards.h"
 #include "whatif.h"
 #include "../nnue/engine.h"
  // #include "razoring.h"
@@ -46,11 +47,24 @@ namespace QaplaSearch {
 		Search() : _clockManager(0) {}
 
 		/**
+		 * Starts a new game or sets a new position e.g. by fen
+		 */
+		void startNewGame() {
+			_butterflyBoard.clear();
+			_rootMoves.clear();
+		}
+
+		void clearMemories() {
+			_butterflyBoard.clear();
+		}
+
+		/**
 		 * Starts a new search
 		 */
 		void startNewSearch(MoveGenerator& position) {
 			_computingInfo.initSearch();
-			_rootMoves.setMoves(position);
+			_rootMoves.setMoves(position, _butterflyBoard);
+			_butterflyBoard.newSearch();
 		}
 
 		/**
@@ -191,6 +205,7 @@ namespace QaplaSearch {
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
 		RootMoves _rootMoves;
+		ButterflyBoard _butterflyBoard;
 	};
 }
 

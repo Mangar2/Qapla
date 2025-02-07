@@ -105,10 +105,10 @@ RootMove& RootMoves::findMove(Move move) {
 	return _moves[result];
 }
 
-void RootMoves::setMoves(MoveGenerator& position) {
+void RootMoves::setMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
 	MoveProvider moveProvider;
 	position.computeAttackMasksForBothColors();
-	moveProvider.computeMoves(position, Move::EMPTY_MOVE);
+	moveProvider.computeMoves(position, butterflyBoard, Move::EMPTY_MOVE);
 	_moves.clear();
 	Move move;
 	while (!(move = moveProvider.selectNextMove(position)).isEmpty()) {

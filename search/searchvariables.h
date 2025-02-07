@@ -31,6 +31,7 @@
 #include "pv.h"
 #include "moveprovider.h"
 #include "tt.h"
+#include "butterfly-boards.h"
 #include "searchparameter.h"
 #include "extension.h"
 #include "../eval/eval.h"
@@ -265,10 +266,10 @@ namespace QaplaSearch {
 		/**
 		 * Generates all moves in the current position
 		 */
-		void computeMoves(MoveGenerator& position) {
+		void computeMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
 			position.isWhiteToMove();
 			checkingBitmaps = position.computeCheckBitmapsForMovingColor();
-			moveProvider.computeMoves(position, previousMove);
+			moveProvider.computeMoves(position, butterflyBoard, previousMove);
 			bestValue = moveProvider.checkForGameEnd(position, ply);
 		}
 
@@ -401,10 +402,11 @@ namespace QaplaSearch {
 		/**
 		 * terminates the search-ply
 		 */
-		void updateTTandKiller(MoveGenerator& position) {
+		void updateTTandKiller(MoveGenerator& position, ButterflyBoard& butterflyBoard, ply_t depth) {
 			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
 				if (!bestMove.isEmpty()) {
 					moveProvider.setKillerMove(bestMove);
+					butterflyBoard.newBestMove(bestMove, depth, moveProvider.getTriedMoves(), moveProvider.getTriedMovesAmount());
 				}
 				if (!isPVFailLow()) {
 					setTTEntry(position.computeBoardHash());

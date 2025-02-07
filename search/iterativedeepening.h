@@ -50,10 +50,26 @@ namespace QaplaSearch {
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
 
 		/**
+		 * Starts a new game or sets a new position e.g. by fen
+		 */
+		void startNewGame() {
+			_tt.clear();
+			_search.startNewGame();
+		}
+
+		/**
 		 * Clears the hash for example on a new game
 		 */
 		void clearTT() {
 			_tt.clear();
+		}
+
+		/**
+		 * Clears all memories like cache, butterflyboards, ...
+		 */
+		void clearMemories() {
+			_tt.clear();
+			_search.clearMemories();
 		}
 
 		/**
@@ -83,6 +99,12 @@ namespace QaplaSearch {
 
 			MoveGenerator searchBoard = position;
 			ComputingInfo computingInfo;
+			if (_clockManager.isAnalyzeMode()) {
+				clearMemories();
+			}
+			else {
+				_tt.setNextSearch();
+			}
 			_window.initSearch();
 			_search.startNewSearch(searchBoard);
 			_clockManager.setNewMove();
@@ -94,13 +116,7 @@ namespace QaplaSearch {
 			}
 
 			Move result;
-			// HistoryTable::clear();
-			if (_clockManager.isAnalyzeMode()) {
-				_tt.clear();
-			}
-			else {
-				_tt.setNextSearch();
-			}
+
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, _tt);
 

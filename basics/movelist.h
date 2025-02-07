@@ -118,10 +118,9 @@ namespace QaplaBasics {
 		 * Sorting is done by a kind of insertion sort (search the next best move and swaps it to the front).
 		 */
 		void sortFirstSilentMoves(uint32_t amount) {
-			for (uint32_t sortIndex = nonSilentMoveAmount; sortIndex < totalMoveAmount && amount > 0; sortIndex++) {
+			for (uint32_t sortIndex = nonSilentMoveAmount; sortIndex < totalMoveAmount && amount > 0; sortIndex++, amount--) {
 				value_t moveWeight = 0;
 				uint32_t bestIndex = sortIndex;
-				amount--;
 				for (uint32_t searchBestIndex = sortIndex; searchBestIndex < totalMoveAmount; searchBestIndex++) {
 					if (getWeight(searchBestIndex) > moveWeight) {
 						bestIndex = searchBestIndex;
