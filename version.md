@@ -1,7 +1,14 @@
 # Quabla Test Versions
 
+
+
+## 0.2.028 2025-02-08
+- Raiting (old): 68.7
+- Butterfly board fix, moves behind best moves are no longer decreased in pv nodes
+
 ## 0.2.027 2025-02-07
 
+- Raiting 63.86
 - Butterfly boards
 
 ## 0.2.026 2025-02-02

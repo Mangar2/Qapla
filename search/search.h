@@ -205,6 +205,7 @@ namespace QaplaSearch {
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
 		RootMoves _rootMoves;
+	public:
 		ButterflyBoard _butterflyBoard;
 	};
 }

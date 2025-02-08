@@ -47,9 +47,12 @@ namespace QaplaSearch {
 			addToValue(move, change);
 			const auto reduceCount = std::min(triedMoves, 7U);
 			for (uint32_t i = 0; i < reduceCount; i++) {
-				const auto move = moves[i];
-				if (!move.isCapture()) {
-					subFromValue(move, change);
+				const auto subMove = moves[i];
+				if (subMove == move) {
+					break;
+				}
+				if (!subMove.isCapture()) {
+					subFromValue(subMove, change);
 				}
 			}
 		}
@@ -62,6 +65,37 @@ namespace QaplaSearch {
 		void newSearch() {
 			reduce();
 		}
+
+		void print() {
+			constexpr int cellWidth = 10; // Breite der einzelnen Felder
+			constexpr int valueWidth = 5; // Breite für die rechtsbündige Werteanzeige
+
+			std::cout << "       A         B         C         D         E         F         G         H\n";
+			std::cout << "  +---------+---------+---------+---------+---------+---------+---------+---------+\n";
+
+			for (Rank r = Rank::R8; r >= Rank::R1; --r) {
+				for (Piece p = WHITE_PAWN; p <= BLACK_KING; ++p) {
+					if (p == WHITE_ROOK) {
+						std::cout << uint32_t(r) + 1 << " |";
+					}
+					else {
+						std::cout << "  |";
+					}
+
+					for (File f = File::A; f <= File::H; ++f) {
+						const auto pch = QaplaBasics::pieceToChar(p);
+						const auto move = Move(NO_SQUARE, computeSquare(f, r), p);
+						const auto value = getValue(move);
+
+						std::cout << " " << pch << ":" << std::setw(valueWidth) << value << " |";
+					}
+					std::cout << "\n";
+				}
+
+				std::cout << "  +---------+---------+---------+---------+---------+---------+---------+---------+\n";
+			}
+		}
+
 
 		void count() {
 			uint32_t positive = 0;
