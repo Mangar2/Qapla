@@ -22,6 +22,7 @@
 #ifndef __SEARCHPARAMETER_H
 #define __SEARCHPARAMETER_H
 
+#include <map>
 #include <algorithm>
 #include "../basics/piecesignature.h"
 #include "searchdef.h"
@@ -35,9 +36,18 @@ namespace QaplaSearch {
 		/**
 		 * Calculates the reduction by nullmove
 		 */
-		constexpr static uint32_t getNullmoveReduction(ply_t ply, int32_t remainingSearchDepth) {
-			return remainingSearchDepth >= 4 ? 3 : 2;
+#ifdef _OPTIMIZE
+		static uint32_t getNullmoveReduction(ply_t ply, int32_t depth, value_t beta, value_t staticEval) {
+			const uint32_t reduction = getParameter("rnm", 3);
+			const uint32_t depthRed = getParameter("dnm", 0);
+			return reduction + (depthRed > 0 ? depth / depthRed : 0);
 		}
+#else
+		constexpr static uint32_t getNullmoveReduction(ply_t ply, int32_t depth, value_t beta, value_t staticEval) {
+			return 4;
+		}
+#endif
+
 
 		/**
 		 * Calculates the depth for nullmove verification searches
@@ -83,6 +93,27 @@ namespace QaplaSearch {
 			return res;
 		}
 
+		static void parseCommandLine(int argc, char* argv[]) {
+			for (int i = 1; i < argc - 1; i += 2) {
+				std::string key = argv[i];
+				try {
+					int32_t value = std::stoi(argv[i + 1]);
+					parameters[key] = value;
+				}
+				catch (const std::exception&) {
+					// Intentionally do nothing
+				}
+			}
+		}
+
+		static int32_t getParameter(const std::string& key, int32_t defaultValue) {
+			auto it = parameters.find(key);
+			if (it == parameters.end()) {
+				return defaultValue;
+			}
+			return it->second;
+		}
+
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 
@@ -121,6 +152,9 @@ namespace QaplaSearch {
 
 		static const Rank PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK = Rank::R7;
 		static const Rank PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK = Rank::R2;
+
+		inline static std::map<std::string, int32_t> parameters;
+
 	};
 }
 

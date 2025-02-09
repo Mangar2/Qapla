@@ -107,7 +107,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	assert(!position.isInCheck());
 	
 	auto depth = node.remainingDepth;
-	depth -= SearchParameter::getNullmoveReduction(ply, depth);
+	depth -= SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
 
 	stack[ply + 1].doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth > 2 ?
@@ -158,7 +158,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchParameter::MAX_SEARCH_DEPTH))) return 0;
 
 
-	node.setFromPreviousPly(position, stack[ply - 1], depth);
+	node.setFromParentNode(position, stack[ply - 1], depth);
 	
 	// Must be after setFromPreviousPly
 	node.probeTT(position, ply);
@@ -225,7 +225,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 		return result;
 	}
 
-	node.setFromPreviousPly(position, stack[ply - 1], depth);
+	node.setFromParentNode(position, stack[ply - 1], depth);
 	_computingInfo._nodesSearched++;
 
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);

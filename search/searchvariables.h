@@ -87,7 +87,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setFromPreviousPly(MoveGenerator& position, const SearchVariables& previousPly, ply_t depth) {
+		void setFromParentNode(MoveGenerator& position, const SearchVariables& parentNode, ply_t depth) {
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
 			bestMove.setEmpty();
@@ -99,11 +99,12 @@ namespace QaplaSearch {
 			positionHashSignature = position.computeBoardHash();
 			remainingDepth = depth;
 			remainingDepthAtPlyStart = depth;
-			setWindowAtPlyStart(-previousPly.beta, -previousPly.alpha);
+			setWindowAtPlyStart(-parentNode.beta, -parentNode.alpha);
 			moveNumber = 0;
-			_nodeType = _nodeTypeMap[int(previousPly._nodeType)];
+			_nodeType = _nodeTypeMap[int(parentNode._nodeType)];
 			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
-			noNullmove = previousPly.previousMove.isNullMove() || previousMove.isNullMove();
+			isVerifyingNullmove = parentNode.isVerifyingNullmove;
+			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
 			if (previousMove.isNullMove()) {
 				_searchState = SearchFinding::NORMAL;
 				_nodeType = NodeType::CUT;
@@ -124,6 +125,7 @@ namespace QaplaSearch {
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			_searchState = SearchFinding::PV;
+			isVerifyingNullmove = false;
 			noNullmove = true;
 			cutoff = Cutoff::NONE;
 			positionHashSignature = position.computeBoardHash();
@@ -526,6 +528,7 @@ namespace QaplaSearch {
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
 		bool ttValueLessThanAlpha;
+		bool isVerifyingNullmove;
 		value_t ttValue;
 		ply_t ttDepth;
 

@@ -288,12 +288,7 @@ int main(int argc, char* argv[])
 	//std::cout << "Evaluation: " << eval << std::endl;
 	//std::cout << Stockfish::Engine::trace() << std::endl;
 	std::cout << "Qapla (C) 2025 Volker Böhm" << std::endl;
-	for (int i = 0; i < 10; i++) {
-		SearchParameter::cmdLineParam[i] = 0;
-	}
-	for (int i = 0; i < std::min(10, argc - 1); i++) {
-		SearchParameter::cmdLineParam[i] = std::stoi(argv[i + 1]);
-	}
+	SearchParameter::parseCommandLine(argc, argv);
 	QaplaSearch::ChessEnvironment environment;
 	environment.run();
 	// createStatistic();

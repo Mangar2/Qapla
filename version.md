@@ -1,8 +1,14 @@
 # Quabla Test Versions
 
+## 0.2.029 2025-02-09
 
+- Raiting: 50.86
+- Nullmove R: 4 (constant)
+- Tested: 4 + depth/3 (49.11); 5 (48.07); 3 + depth/3; 5 + depth/2; 5 + depth /3; Last three stopped due to bad performance.
 
 ## 0.2.028 2025-02-08
+
+- Raiting (new): 48.5
 - Raiting (old): 68.7
 - Butterfly board fix, moves behind best moves are no longer decreased in pv nodes
 
