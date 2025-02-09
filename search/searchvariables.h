@@ -125,6 +125,7 @@ namespace QaplaSearch {
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			_searchState = SearchFinding::PV;
+			_nodeType = NodeType::PV;
 			isVerifyingNullmove = false;
 			noNullmove = true;
 			cutoff = Cutoff::NONE;
@@ -260,7 +261,7 @@ namespace QaplaSearch {
 			if (eval < beta) return false;
 			const bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
 			if (doFutility) {
-				bestValue = eval;
+				bestValue = beta + (eval - beta) / 10;
 			}
 			return doFutility;
 		}

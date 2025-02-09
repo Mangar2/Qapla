@@ -1,5 +1,16 @@
 # Quabla Test Versions
 
+## 0.2.031 2025-02-09
+
+- Raiting: 50.93
+- returns beta + (eval - beta) / 10. Not quite clear, but returning exactly beta increases the node count by multiples.
+- 
+
+## 0.2.030 2025-02-09
+
+- Stopped, very bad performance (about 40)
+- Bugfix, foreward futility pruning now returns beta instead of eval
+
 ## 0.2.029 2025-02-09
 
 - Raiting: 50.86

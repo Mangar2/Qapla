@@ -105,19 +105,27 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 		return false;
 	}
 	assert(!position.isInCheck());
-	
+
 	auto depth = node.remainingDepth;
 	depth -= SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
 
 	stack[ply + 1].doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth > 2 ?
-		-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1):
+		-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1) :
 		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);
 
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - 1, ply, "null");
 	stack[ply + 1].undoMove(position);
-
-	const bool isCutoff = node.bestValue >= node.beta;
+	bool isCutoff = node.bestValue >= node.beta;
+	/*
+	if (isCutoff) {
+		position.computeAttackMasksForBothColors();
+		node.isVerifyingNullmove = true;
+		const auto verify = negaMaxPreSearch(position, stack, depth - 1, ply);
+		node.isVerifyingNullmove = false;
+		isCutoff = verify >= node.beta;
+	}
+	*/
 	if (!isCutoff) {
 		position.computeAttackMasksForBothColors();
 	}
@@ -141,6 +149,29 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	ply_t lmr = moveCountLmr * moveCountDepth / 256;
 	if (node.isPVNode()) lmr /= 2;
 	return lmr;
+}
+
+value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+	SearchVariables& node = stack[ply];
+	SearchVariables& childNode = stack[ply + 1];
+	node.setFromParentNode(position, stack[ply - 1], depth);
+	// Must be after setFromPreviousPly
+	node.probeTT(position, ply);
+	node.computeMoves(position, _butterflyBoard);
+	Move curMove;
+	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
+
+		childNode.doMove(position, curMove);
+		const auto result = -negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1);
+		node.setSearchResult(result, childNode, curMove);
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, "PRE");
+		childNode.undoMove(position);
+
+		if (node.isFailHigh()) break;
+	}
+
+	// Attack masks are lazily computed. Dont forget to recreate them, if you search again
+	return node.bestValue;
 }
 
 ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
@@ -178,7 +209,6 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 
 	_computingInfo._nodesSearched++;
 
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
 	if (hasCutoff<SearchRegion::NEAR_LEAF>(position, stack, node, ply)) return 0;
 
