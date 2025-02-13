@@ -101,38 +101,52 @@ namespace QaplaSearch {
 		 * Check for cutoffs
 		 */
 		template <SearchRegion TYPE>
-		bool hasCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t ply) {
+		bool checkCutoffAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t ply) {
 			if (ply < 1) return false;
 			if (node.alpha > MAX_VALUE - value_t(ply)) {
 				node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
+				return true;
 			}
-			else if (node.beta < -MAX_VALUE + value_t(ply)) {
+			if (node.beta < -MAX_VALUE + value_t(ply)) {
 				node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
+				return true;
 			}
-			else if (TYPE == SearchRegion::INNER && hasBitbaseCutoff(position, node)) {
+			if (TYPE == SearchRegion::INNER && hasBitbaseCutoff(position, node)) {
 				node.setCutoff(Cutoff::BITBASE);
-			} else if (TYPE == SearchRegion::INNER && ply >= 3 && position.drawDueToMissingMaterial()) {
+				return true;
+			} 
+			if (TYPE == SearchRegion::INNER && ply >= 3 && position.drawDueToMissingMaterial()) {
 				// TODO: remove ply >= 3, kept for backward compatibility
 				node.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
+				return true;
 			}
-			else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
+			if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
 				node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
+				return true;
 			}
-			else if (node.probeTT(position, ply)) {
+			if (node.probeTT(position, ply)) {
 				node.setCutoff(Cutoff::HASH);
+				return true;
 			}
-			else if (position.isInCheck()) {
+			const auto evalBefore = ply > 1 ? stack[ply - 2].eval : NO_VALUE;
+			if (position.isInCheck()) {
+				node.eval = evalBefore;
 				return false;
 			}
-			else if (node.futility(position)) {
-				// Must be after node.probeTT, because futility uses the information from TT
-				node.setCutoff(Cutoff::FUTILITY);
-			} 
-			else if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, ply)) {
-				node.setCutoff(Cutoff::NULL_MOVE);
+			if (node.eval == NO_VALUE) {
+				node.eval = Eval::eval(position);
+				node.isImproving = node.eval > evalBefore && evalBefore != NO_VALUE;
 			}
-			WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
-			return node.cutoff != Cutoff::NONE;
+			// Must be after node.probeTT, because futility uses the information from TT
+			if (node.futility(position)) {
+				node.setCutoff(Cutoff::FUTILITY);
+				return true;
+			} 
+			if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, ply)) {
+				node.setCutoff(Cutoff::NULL_MOVE);
+				return true;
+			}
+			return false;
 		}
 
 		/**

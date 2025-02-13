@@ -129,13 +129,16 @@ namespace QaplaSearch {
 		 * Sets the window position-value and size
 		 */
 		void setWindow(value_t value, value_t windowSize = 2 * MAX_VALUE) {
-			_beta = value + windowSize;
-			_alpha = value - windowSize;
 			if (_state == State::Rising) {
-				_alpha = value - 1 - windowSize / 10;
+				_alpha = _alpha > value - windowSize ? _alpha : value - 1 - windowSize / 10;
+				_beta = value + windowSize;
 			}
 			else if (_state == State::Dropping) {
-				_beta = value + 1 + windowSize / 10;
+				_alpha = value - windowSize;
+				_beta = _beta < value + windowSize ? _beta :  value + 1 + windowSize / 10;
+			} else {
+				_alpha = value - windowSize;
+				_beta = value + windowSize;
 			}
 			if (_beta > MAX_VALUE) {
 				_beta = MAX_VALUE;

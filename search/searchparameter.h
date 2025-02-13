@@ -48,7 +48,6 @@ namespace QaplaSearch {
 		}
 #endif
 
-
 		/**
 		 * Calculates the depth for nullmove verification searches
 		 */
@@ -131,7 +130,7 @@ namespace QaplaSearch {
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
 
-		static const bool DO_CHECK_EXTENSIONS = true;
+		static const bool DO_CHECK_EXTENSIONS = false;
 
 		static const bool DO_SE_EXTENSION = true;
 		constexpr static value_t singularExtensionMargin(ply_t depth) {
@@ -142,8 +141,10 @@ namespace QaplaSearch {
 
 		static const ply_t DO_FUTILITY_DEPTH = 10;
 		static value_t cmdLineParam[10];
-		constexpr static value_t futilityMargin(ply_t depth) {
-			return 100 * (depth + 1);
+		static value_t futilityMargin(ply_t depth, bool isImproving) {
+			const auto improvingReduction = getParameter("rf", 0);
+
+			return 100 * (depth + 1) - improvingReduction * isImproving;
 		}
 
 		static const bool DO_RAZORING = false;

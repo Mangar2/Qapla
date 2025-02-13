@@ -117,7 +117,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - 1, ply, "null");
 	stack[ply + 1].undoMove(position);
 	bool isCutoff = node.bestValue >= node.beta;
-	/*
+	
 	if (isCutoff) {
 		position.computeAttackMasksForBothColors();
 		node.isVerifyingNullmove = true;
@@ -125,7 +125,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 		node.isVerifyingNullmove = false;
 		isCutoff = verify >= node.beta;
 	}
-	*/
+	
 	if (!isCutoff) {
 		position.computeAttackMasksForBothColors();
 	}
@@ -140,7 +140,7 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	// if (node->mDisableHist) return 0;
 	const auto moveNo = node.moveNumber;
 
-	if (ply <= 2) return 0;
+	if (ply <= 1) return 0;
 	if (move.isCapture()) return 0;
 	if (moveNo <= 3) return 0;
 	if (node.isCheckMove(position, move)) return 0;
@@ -155,7 +155,7 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, pl
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
 	node.setFromParentNode(position, stack[ply - 1], depth);
-	// Must be after setFromPreviousPly
+	// Must be after setFromParentNode
 	node.probeTT(position, ply);
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
@@ -210,7 +210,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
-	if (hasCutoff<SearchRegion::NEAR_LEAF>(position, stack, node, ply)) return 0;
+	if (checkCutoffAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, ply)) return 0;
 
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
@@ -249,7 +249,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	bool cutoff = false;
 	Move curMove;
 
-	if (depth + node.sideToMoveIsInCheck < 0) {
+	if (depth + (node.sideToMoveIsInCheck && SearchParameter::DO_CHECK_EXTENSIONS) < 0) {
 		result = Quiescence::search(position, _computingInfo, node.previousMove,
 			-stack[ply - 1].beta, -stack[ply - 1].alpha, ply);
 		return result;
@@ -261,8 +261,11 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
-	cutoff = hasCutoff<TYPE>(position, stack, node, ply);
-	if (cutoff) return node.bestValue;
+	cutoff = checkCutoffAndSetEval<TYPE>(position, stack, node, ply);
+	if (cutoff) {
+		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
+		return node.bestValue;
+	}
 
 	node.computeMoves(position, _butterflyBoard);
 	depth = node.extendSearch(position, seExtension);

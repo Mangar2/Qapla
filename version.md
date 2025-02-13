@@ -1,5 +1,45 @@
 # Quabla Test Versions
 
+## 0.2.038 2025-02-13
+
+-
+
+## 0.2.037 2025-02-12
+
+- Raiting: 51.82 ()
+- Futility pruning activated for tt-cut moves
+- Changed code to calucate isImproving flag
+
+## 0.2.036 2025-02-10
+
+- Raiting: 52.02
+- LMR from first ply (removed ply <= 2 exit for lmr)
+
+## 0.2.036 2025-02-10
+
+- Rating: 53.50
+- LMR from second ply (ply <= 1 exit)
+
+## 0.2.035 2025-02-10
+
+- Raiting: 51.14
+- Window Size for growing constant on alpha, for dropping, constant on beta.
+
+## 0.2.034 2025-02-10
+
+- Early stop at 48.00, 400 games
+- Window Size for research for rizing/dropping /2 instead of /10. 
+
+## 0.2.033 2025-02-09
+
+- Raiting: 50.86
+- No Check extensions
+
+## 0.2.032 2025-02-09
+
+- Raigin: 50.23
+- Verify
+
 ## 0.2.031 2025-02-09
 
 - Raiting: 50.93

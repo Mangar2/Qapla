@@ -96,6 +96,7 @@ namespace QaplaSearch {
 			lateMoveReduction = 0;
 			ttValueLessThanAlpha = false;
 			eval = NO_VALUE;
+			isImproving = false;
 			positionHashSignature = position.computeBoardHash();
 			remainingDepth = depth;
 			remainingDepthAtPlyStart = depth;
@@ -132,7 +133,8 @@ namespace QaplaSearch {
 			positionHashSignature = position.computeBoardHash();
 			lateMoveReduction = 0;
 			ttValueLessThanAlpha = false;
-			eval = NO_VALUE;
+			eval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position);
+			isImproving = false;
 			moveProvider.init();
 		}
 
@@ -245,21 +247,19 @@ namespace QaplaSearch {
 		 */
 		inline bool futility(MoveGenerator& position) {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
+			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
+			if (eval < beta) return false;
 			// We do not prune in PV nodes. 
 			if (isPVSearch()) return false;
-			// We do not prune, if we have a TT move, because TT moves are only available, if they have been in the search window before.
-			if (!getTTMove().isEmpty()) return false; 
+			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
+			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
 			if (ttValueLessThanAlpha) return false;
-			if (eval == NO_VALUE) {
-				eval = Eval::eval(position);
-			}
 			// We do not prune on potentional mate values
 			if (eval > WINNING_BONUS) return false;
 			// Do not prune on window indicating mate values
 			if (alpha > WINNING_BONUS || beta < -WINNING_BONUS) return false;
-			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
-			if (eval < beta) return false;
-			const bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth) >= beta;
+
+			const bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth, isImproving) >= beta;
 			if (doFutility) {
 				bestValue = beta + (eval - beta) / 10;
 			}
@@ -530,6 +530,7 @@ namespace QaplaSearch {
 		bool sideToMoveIsInCheck;
 		bool ttValueLessThanAlpha;
 		bool isVerifyingNullmove;
+		bool isImproving;
 		value_t ttValue;
 		ply_t ttDepth;
 
