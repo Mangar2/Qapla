@@ -133,8 +133,11 @@ namespace QaplaSearch {
 		static const bool DO_CHECK_EXTENSIONS = false;
 
 		static const bool DO_SE_EXTENSION = true;
-		constexpr static value_t singularExtensionMargin(ply_t depth) {
-			return 30 + depth * 4;
+		static value_t singularExtensionMargin(ply_t depth) {
+			const auto marginC = getParameter("semc", 30);
+			const auto marginF = getParameter("semf", 4);
+			return marginC + marginF * depth;
+			//return 30 + depth * 4;
 		}
 
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
@@ -142,9 +145,8 @@ namespace QaplaSearch {
 		static const ply_t DO_FUTILITY_DEPTH = 10;
 		static value_t cmdLineParam[10];
 		static value_t futilityMargin(ply_t depth, bool isImproving) {
-			const auto improvingReduction = getParameter("rf", 0);
-
-			return 100 * (depth + 1) - improvingReduction * isImproving;
+			// const auto improvingReduction = getParameter("rf", 0);
+			return 100 * (depth + 1) - 100 * isImproving;
 		}
 
 		static const bool DO_RAZORING = false;

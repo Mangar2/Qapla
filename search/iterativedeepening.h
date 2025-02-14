@@ -79,6 +79,10 @@ namespace QaplaSearch {
 			_tt.setSizeInKilobytes(size);
 		}
 
+		void setMultiPV(int32_t count) {
+			_search.setMultiPV(count);
+		}
+
 		/**
 		 * true, if the search found a mate
 		 */

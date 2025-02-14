@@ -168,26 +168,11 @@
     <ClCompile Include="nnue\load-ressources.cpp">
       <Filter>nnue</Filter>
     </ClCompile>
+    <ClCompile Include="eval\eval-map.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="basics\movelist.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\boardadapter.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\movehistory.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\perft.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\searchdef.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="search\threadpool.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="tests\evalpawntest.h">
       <Filter>Tests</Filter>
     </ClInclude>
@@ -505,6 +490,33 @@
     </ClInclude>
     <ClInclude Include="nnue\load-ressources.h">
       <Filter>nnue</Filter>
+    </ClInclude>
+    <ClInclude Include="nnue768\InputLayer.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="search\butterfly-boards.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\boardadapter.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\movelist.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\eval-map.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="search\movehistory.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\searchdef.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\perft.h">
+      <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="search\threadpool.h">
+      <Filter>search</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

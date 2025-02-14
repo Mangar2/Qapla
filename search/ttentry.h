@@ -142,7 +142,7 @@ namespace QaplaSearch {
 		/**
 		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
 		 */
-		bool isValueGreaterOrEqual() const {
+		bool isValueUpperBound() const {
 			return getComputedPrecision() == GREATER_OR_EQUAL;
 		}
 

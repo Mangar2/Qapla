@@ -194,6 +194,9 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// Must be after setFromPreviousPly
 	node.probeTT(position, ply);
 
+	// No se, if tt does not have a good move value (> alpha)
+	if (node.ttValueIsUpperBound) return 0;
+
 	// Singular extension based on tt move. Only, if the search found a value > alpha it found a "best move" in the position and is able to store it to
 	// the transposition table
 	auto ttMove = node.getTTMove();

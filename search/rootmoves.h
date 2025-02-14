@@ -150,8 +150,14 @@ namespace QaplaSearch {
 		void print();
 
 		void clear() { _moves.clear(); }
+
+		/**
+		 * Sets the amount of moves to be searched
+		 */
+		void setMultiPV(uint32_t count) { _multiPV = count; }
 	private:
 		vector<RootMove> _moves;
+		uint32_t _multiPV = 1;
 	};
 
 

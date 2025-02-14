@@ -58,6 +58,10 @@ namespace QaplaSearch {
 			_butterflyBoard.clear();
 		}
 
+		void setMultiPV(int32_t count) {
+			_rootMoves.setMultiPV(count);
+		}
+
 		/**
 		 * Starts a new search
 		 */
@@ -85,6 +89,8 @@ namespace QaplaSearch {
 		}
 
 		ComputingInfo negaMaxRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager);
+
+
 
 	private:
 
@@ -215,6 +221,8 @@ namespace QaplaSearch {
 		const RootMoves& getRootMoves() const {
 			return _rootMoves;
 		}
+
+
 
 	private:
 		Eval eval;

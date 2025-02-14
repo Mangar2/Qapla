@@ -94,7 +94,9 @@ namespace QaplaInterface {
 			println("id name " + _board->getEngineInfo()["name"]);
 			println("id author " + _board->getEngineInfo()["author"]);
 			println("option name Hash type spin default 32 min 1 max 16000");
-			println("option name UCI_EngineAmount" + _board->getEngineInfo()["engine-about"]);
+			println("option name ponder type check");
+			println("option name MultiPV type spin default 1 min 1 max 40");
+			println("option name UCI_EngineAbout" + _board->getEngineInfo()["engine-about"]);
 			_board->initialize();
 			println("uciok");
 		}

@@ -72,6 +72,7 @@ namespace QaplaSearch {
 		virtual void setOption(string name, string value) {
 			int32_t intValue = std::stoi(value);
 			if (name == "Hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
+			if (name == "MultiPV") iterativeDeepening.setMultiPV(intValue);
 		}
 
 		/**

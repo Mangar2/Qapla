@@ -94,7 +94,7 @@ namespace QaplaSearch {
 			bestValue = -MAX_VALUE;
 			cutoff = Cutoff::NONE;
 			lateMoveReduction = 0;
-			ttValueLessThanAlpha = false;
+			ttValueIsUpperBound = false;
 			eval = NO_VALUE;
 			isImproving = false;
 			positionHashSignature = position.computeBoardHash();
@@ -132,7 +132,7 @@ namespace QaplaSearch {
 			cutoff = Cutoff::NONE;
 			positionHashSignature = position.computeBoardHash();
 			lateMoveReduction = 0;
-			ttValueLessThanAlpha = false;
+			ttValueIsUpperBound = false;
 			eval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position);
 			isImproving = false;
 			moveProvider.init();
@@ -189,7 +189,7 @@ namespace QaplaSearch {
 				return true;
 			}
 
-			ttValueLessThanAlpha = entry.isValueGreaterOrEqual();
+			ttValueIsUpperBound = entry.isValueUpperBound();
 			if (entry.isValueExact()) {
 				eval = entry.getPositionValue(ply);
 			}
@@ -253,7 +253,7 @@ namespace QaplaSearch {
 			if (isPVSearch()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
-			if (ttValueLessThanAlpha) return false;
+			if (ttValueIsUpperBound) return false;
 			// We do not prune on potentional mate values
 			if (eval > WINNING_BONUS) return false;
 			// Do not prune on window indicating mate values
@@ -528,7 +528,7 @@ namespace QaplaSearch {
 		hash_t positionHashSignature;
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
-		bool ttValueLessThanAlpha;
+		bool ttValueIsUpperBound;
 		bool isVerifyingNullmove;
 		bool isImproving;
 		value_t ttValue;

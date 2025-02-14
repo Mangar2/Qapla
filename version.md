@@ -1,16 +1,25 @@
 # Quabla Test Versions
 
-## 0.2.038 2025-02-13
+## 0.2.042 2025-02-14
 
--
+- check for value upper-bound or exact in singular extension
 
-## 0.2.037 2025-02-12
+## 0.2.041 2025-02-14
+
+- Checking singluar extension values
+
+## 0.2.040 2025-02-13
+
+- Raiting: 52.18 (Unclear, of this is an improved version, still keeping it)
+- Used improving flag to reduce move count pruning by 100
+
+## 0.2.038 2025-02-12
 
 - Raiting: 51.82 ()
 - Futility pruning activated for tt-cut moves
 - Changed code to calucate isImproving flag
 
-## 0.2.036 2025-02-10
+## 0.2.037 2025-02-10
 
 - Raiting: 52.02
 - LMR from first ply (removed ply <= 2 exit for lmr)
