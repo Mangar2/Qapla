@@ -1,5 +1,12 @@
 # Quabla Test Versions
 
+## 0.2.043 2025-02-21
+
+- Multi-PV implementation
+- Bug detected in verify nullmove. Current "node" is polluted by verify
+- To try: nullmove even, if only two plies to go
+- To try: nullmove only, if above beta + margin (note Spike has negative margin, stockfish depending on search depth)
+
 ## 0.2.042 2025-02-14
 
 - Raiting 55.29

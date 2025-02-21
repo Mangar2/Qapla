@@ -107,27 +107,28 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	assert(!position.isInCheck());
 
 	auto depth = node.remainingDepth;
-	depth -= SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
+	auto R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
 
 	stack[ply + 1].doMove(position, Move::NULL_MOVE);
-	node.bestValue = depth > 2 ?
-		-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1) :
-		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);
+	node.bestValue = depth - R > 2 ?
+		-negaMax<SearchRegion::INNER>(position, stack, depth - R - 1, ply + 1) :
+		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - R - 1, ply + 1);
 
-	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - 1, ply, "null");
+	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - R - 1, ply, "null");
 	stack[ply + 1].undoMove(position);
 	bool isCutoff = node.bestValue >= node.beta;
 	
 	if (isCutoff) {
 		position.computeAttackMasksForBothColors();
 		node.isVerifyingNullmove = true;
-		const auto verify = negaMaxPreSearch(position, stack, depth - 1, ply);
+		const auto verify = negaMaxPreSearch(position, stack, depth - R - 1, ply);
 		node.isVerifyingNullmove = false;
 		isCutoff = verify >= node.beta;
 	}
 	
 	if (!isCutoff) {
 		position.computeAttackMasksForBothColors();
+		node.setFromParentNode(position, stack[ply - 1], depth);
 	}
 	// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
 	return isCutoff;
