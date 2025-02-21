@@ -40,7 +40,8 @@ namespace QaplaInterface {
 			uint64_t timeSpendInMilliseconds,
 			uint64_t nodesSearched,
 			uint64_t tbHits,
-			vector<string> primaryVariant
+			MoveStringList primaryVariant,
+			uint32_t multiPV
 		)
 		{
 			string info = "info";
@@ -58,6 +59,7 @@ namespace QaplaInterface {
 			else {
 				info += " score cp " + to_string(positionValue) + bound;
 			}
+			info += " multipv " + to_string(multiPV);
 			info += " pv";
 			for (auto& move : primaryVariant) {
 				info += " " + move;

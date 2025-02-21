@@ -28,11 +28,13 @@
 #ifndef __COMPUTINGINFO_H
 #define __COMPUTINGINFO_H
 
+#include <array>
 #include "../basics/move.h"
 #include "../interface/stdtimecontrol.h"
 #include "pv.h"
 #include "../interface/isendsearchinfo.h"
 #include "../interface/computinginfoexchange.h"
+#include "rootmoves.h"
 #include "searchparameter.h"
 #include "searchstack.h"
 
@@ -41,7 +43,7 @@ using namespace QaplaInterface;
 namespace QaplaSearch {
 	class ComputingInfo {
 	public:
-		ComputingInfo() : _sendSearchInfo(0) {
+		ComputingInfo() : _sendSearchInfo(0), _multiPV(1) {
 			clear();
 		}
 
@@ -59,6 +61,15 @@ namespace QaplaSearch {
 			_hashFullInPermill = hashFull;
 		}
 
+		uint32_t getMultiPV() const {
+			return _multiPV;
+		}
+
+		void setMultiPV(uint32_t multiPV) {
+			_multiPV = multiPV;
+		}
+
+
 		/**
 		 * Initializes the members
 		 */
@@ -72,13 +83,14 @@ namespace QaplaSearch {
 			_positionValueInCentiPawn = 0;
 			_printRequest = false;
 			_timeControl.storeStartTime();
+			_lastMultiPVInfo = 0;
 		}
 
 		/**
 		 * initializes data before starting to search
 		 */
-		void initSearch() {
-			_pvMovesStore.clear();
+		void initNewSearch(MoveGenerator& position, ButterflyBoard butterflyBoard) {
+			_rootMoves.setMoves(position, butterflyBoard);
 			_nodesSearched = 0;
 			_tbHits = 0;
 			_timeControl.storeStartTime();
@@ -88,7 +100,6 @@ namespace QaplaSearch {
 		 * Starts searching the next iteration
 		 */
 		void nextIteration(const SearchVariables& searchInfo) {
-			setWindow(searchInfo.alphaAtPlyStart, searchInfo.betaAtPlyStart);
 			_totalAmountOfMovesToConcider = searchInfo.moveProvider.getTotalMoveAmount();
 			_currentConcideredMove.setEmpty();
 			_currentMoveNoSearched = 0;
@@ -123,11 +134,11 @@ namespace QaplaSearch {
 		/**
 		 * Prints the information about the result of a search
 		 */
-		void printSearchResult() const
+		void printSearchResult(const PV& pv, value_t bestValue, value_t alpha, value_t beta, ply_t depth, uint32_t pvNo = 1) const
 		{
 			MoveStringList primaryVariant;
-			for (uint8_t ply = 0; ply < _pvMovesStore.MAX_PV_LENGTH; ply++) {
-				Move move = _pvMovesStore.getMove(ply);
+			for (uint8_t ply = 0; ply < pv.MAX_PV_LENGTH; ply++) {
+				Move move = pv.getMove(ply);
 				if (move == Move::EMPTY_MOVE) {
 					break;
 				}
@@ -135,39 +146,38 @@ namespace QaplaSearch {
 			}
 			if (_verbose && _sendSearchInfo != 0) {
 				_sendSearchInfo->informAboutFinishedSearchAtCurrentDepth(
-					_searchDepth,
-					_positionValueInCentiPawn,
-					_positionValueInCentiPawn >= _beta,
-					_positionValueInCentiPawn <= _alpha,
+					depth,
+					bestValue,
+					bestValue >= beta,
+					bestValue <= alpha,
 					_timeControl.getTimeSpentInMilliseconds(),
 					_nodesSearched,
 					_tbHits,
-					primaryVariant);
+					primaryVariant,
+					pvNo);
 			}
 		}
-
-		/** 
-		 * Updates the primary variant
-		 */
-		void updatePV(PV& pv) {
-			if (pv != _pvMovesStore && !pv.getMove(0).isEmpty()) {
-				_pvMovesStore = pv;
-				printSearchResult();
-			}
+		void printSearchResult(uint32_t moveNo, uint32_t multiPVNo = 1) const {
+			const auto& rootMove = _rootMoves.getMove(moveNo);
+			printSearchResult(rootMove.getPV(), rootMove.getValue(), rootMove.getAlpha(), rootMove.getBeta(), rootMove.getDepth(), multiPVNo);
 		}
 
 		/**
-		 * Gets the current primary variant
+		 * Prints all variants in multi-pv
 		 */
-		const PV& getPV() const {
-			return _pvMovesStore;
-		}
-
-		/**
-		 * Clears the primary variant, leaving the first move
-		 */
-		void clearPV() {
-			_pvMovesStore.setMove(1, Move::EMPTY_MOVE);
+		void printSearchResult() {
+			if (_multiPV == 1) {
+				printSearchResult(0);
+			} else {
+				const auto& timeSinceLastInfo = _timeControl.getTimeSpentInMilliseconds() - _lastMultiPVInfo;
+				const auto& pvCount = _rootMoves.countPVSearchedMovesInWindow(_searchDepth);
+				if (pvCount >= _multiPV) {
+					_lastMultiPVInfo = _timeControl.getTimeSpentInMilliseconds();
+					for (uint32_t moveNo = 0; moveNo < _multiPV; moveNo++) {
+						printSearchResult(moveNo, moveNo + 1);
+					}
+				}
+			}
 		}
 
 		/**
@@ -189,14 +199,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sets the current search window
-		 */
-		void setWindow(value_t alpha, value_t beta) {
-			_alpha = alpha;
-			_beta = beta;
-		}
-
-		/**
 		 * Sets the current concidered move
 		 */
 		void setCurrentMove(Move move) {
@@ -206,12 +208,18 @@ namespace QaplaSearch {
 		/**
 		 * Update status information on ply 0
 		 */
-		void rootMoveSearched(SearchStack& stack) {
-			_currentMoveNoSearched++;
-			_positionValueInCentiPawn = stack[0].bestValue;
-			if (!stack[0].bestMove.isEmpty()) {
-				updatePV(stack[0].pvMovesStore);
+		void printNewPV(uint32_t moveNo, const SearchVariables& node) {
+			_currentMoveNoSearched = moveNo;
+			if (moveNo == 0 || node.bestValue > _positionValueInCentiPawn) {
+				_positionValueInCentiPawn = node.bestValue;
+				if (_multiPV == 1) {
+					printSearchResult(moveNo);
+				}
 			}
+		}
+
+		const PV& getPV() const {
+			return _rootMoves.getMove(0).getPV();
 		}
 
 
@@ -220,8 +228,9 @@ namespace QaplaSearch {
 	     */
 		ComputingInfoExchange getExchangeStructure() const {
 			ComputingInfoExchange exchange;
-			exchange.currentConsideredMove = getPV().getMove(0).getLAN();
-			exchange.ponderMove = getPV().getMove(1).getLAN();
+			const PV& pv = getPV();
+			exchange.currentConsideredMove = pv.getMove(0).getLAN();
+			exchange.ponderMove = pv.getMove(1).getLAN();
 			if (exchange.ponderMove == "empty" || exchange.ponderMove == "null") {
 				exchange.ponderMove = "";
 			}
@@ -236,27 +245,37 @@ namespace QaplaSearch {
 		/**
 		 * Gets the current position value
 		 */
-		value_t getPositionValueInCentiPawn() const {
-			return _positionValueInCentiPawn;
+		value_t getPositionValueInCentiPawn(uint32_t moveNo) const {
+			const auto value = _rootMoves.getMove(moveNo).getValue();
+			assert(moveNo > 0 || value == _positionValueInCentiPawn);
+			return value;
+		}
+
+		RootMoves& getRootMoves() {
+			return _rootMoves;
+		}
+
+		const RootMoves& getRootMoves() const {
+			return _rootMoves;
 		}
 
 		uint64_t _nodesSearched;
 		uint64_t _tbHits;
 
 	private:
-
+		RootMoves _rootMoves;
+		static const uint32_t MAX_PV = 40;
 		ISendSearchInfo* _sendSearchInfo;
 		StdTimeControl _timeControl;
+		int64_t _lastMultiPVInfo;
 		value_t _positionValueInCentiPawn;
-		value_t _alpha;
-		value_t _beta;
 		uint32_t _totalAmountOfMovesToConcider;
 		uint32_t _hashFullInPermill;
 		Move _currentConcideredMove;
 		uint32_t _currentMoveNoSearched;
 		uint32_t _searchDepth;
 		volatile bool _printRequest;
-		PV _pvMovesStore;
+		uint32_t _multiPV;
 		bool _debug;
 		bool _verbose;
 	};

@@ -31,18 +31,25 @@
 using namespace QaplaBasics;
 
 namespace QaplaSearch {
+
+
+
 	class AspirationWindow {
 	private:
 		enum class State {
 			Search, Dropping, Rising, Alternating
 		};
 	public:
+
+		AspirationWindow() : _state(State::Search), _retryCount(0), _alpha(-MAX_VALUE), _beta(MAX_VALUE), _positionValue(0), _searchDepth(0), _multiPV(1) {}
+
 		void initSearch() {
 			_alpha = -MAX_VALUE;
 			_beta = MAX_VALUE;
 			_state = State::Search;
 			_retryCount = 0;
 			_positionValue = 0;
+			_bestMovesFound = 0;
 		}
 
 		/**
@@ -108,6 +115,14 @@ namespace QaplaSearch {
 			return names[int(_state)];
 		}
 
+		void setMultiPV(uint32_t count) {
+			_multiPV = count;
+		}
+
+		uint32_t getMultiPV() const {
+			return _multiPV;
+		}	
+
 	private:
 
 		/**
@@ -140,6 +155,7 @@ namespace QaplaSearch {
 				_alpha = value - windowSize;
 				_beta = value + windowSize;
 			}
+			_alpha -= windowSize / 3 * (_multiPV - 1);
 			if (_beta > MAX_VALUE) {
 				_beta = MAX_VALUE;
 			}
@@ -154,6 +170,8 @@ namespace QaplaSearch {
 		value_t _beta;
 		value_t _positionValue;
 		value_t _searchDepth;
+		uint32_t _multiPV;
+		uint32_t _bestMovesFound;
 
 		static const ply_t STABLE_DEPTH = 8;
 	};

@@ -67,26 +67,6 @@ namespace QaplaInterface {
 		}
 
 		/**
-		 * Processes a set option command; 
-		 */
-		void setoption(string name, string value) {
-			_board->setOption(name, value);
-		}
-
-		/**
-		 * Processes a set option command
-		 */
-		void setoption() {
-			if (getCurrentToken() == "setOption" && getNextTokenBlocking() == "name") {
-				const string name = getNextTokenBlocking();
-				if (getNextTokenBlocking() == "value") {
-					const string value = getNextTokenBlocking();
-					setoption(name, value);
-				}
-			}
-		}
-
-		/**
 		 * Reply on an "UCI" command
 		 */
 		void uciCommand() {
@@ -96,7 +76,7 @@ namespace QaplaInterface {
 			println("option name Hash type spin default 32 min 1 max 16000");
 			println("option name ponder type check");
 			println("option name MultiPV type spin default 1 min 1 max 40");
-			println("option name UCI_EngineAbout" + _board->getEngineInfo()["engine-about"]);
+			println("option name UCI_EngineAbout type string default " + _board->getEngineInfo()["engine-about"]);
 			_board->initialize();
 			println("uciok");
 		}

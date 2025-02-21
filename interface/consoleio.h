@@ -135,9 +135,9 @@ namespace QaplaInterface {
 		/**
 		 * Prints a line to std-out
 		 */
-		virtual void println(const string& strintToPrint)
+		virtual void println(const string& stringToPrint)
 		{
-			fprintf(stdout, "%s\n", strintToPrint.c_str());
+			fprintf(stdout, "%s\n", stringToPrint.c_str());
 			fflush(stdout);
 		};
 

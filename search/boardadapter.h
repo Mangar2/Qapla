@@ -23,6 +23,7 @@
 #define __BOARDADAPTER_H
 
 #include <thread>
+#include <charconv>
 #include "../interface/isendsearchinfo.h"
 #include "../interface/ichessboard.h"
 #include "../interface/iinputoutput.h"
@@ -70,9 +71,21 @@ namespace QaplaSearch {
 		 * Sets an option of the engine
 		 */
 		virtual void setOption(string name, string value) {
-			int32_t intValue = std::stoi(value);
-			if (name == "Hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
-			if (name == "MultiPV") iterativeDeepening.setMultiPV(intValue);
+			int32_t intValue = 0;
+			if (value == "false") {
+				intValue = 0;
+			}
+			else if (value == "true") {
+				intValue = 1;
+			}
+			else {
+				auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
+				if (ec != std::errc()) {
+					return;
+				}
+				if (name == "Hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
+				if (name == "MultiPV") iterativeDeepening.setMultiPV(std::clamp(intValue, 1, 40));
+			}
 		}
 
 		/**

@@ -259,6 +259,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	}
 
 	node.setFromParentNode(position, stack[ply - 1], depth);
+	const auto nodesSearched = _computingInfo._nodesSearched;
+	if (nodesSearched == 3220762) {
+		position.print();
+	}
 	_computingInfo._nodesSearched++;
 
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
@@ -335,28 +339,30 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 /**
  * Negamax algorithm for the first ply
  */
-ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager) {
+void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t skipMoves, ClockManager& clockManager) {
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
 	SearchVariables& node = stack[0];
 	value_t result;
-	ply_t depth = node.remainingDepth;
-	RootMove* rootMove = &_rootMoves.getMove(0);
-	stack.setPV(rootMove->getPV());
 
+	ply_t depth = node.remainingDepth;
+	RootMove* rootMove = &_computingInfo.getRootMoves().getMove(0);
+
+	stack.setPV(rootMove->getPV());
+	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
 	node.computeMoves(position, _butterflyBoard);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
 	Stockfish::Engine::set_position(position.getFen());
 
-	for (size_t triedMoves = 0; triedMoves < _rootMoves.getMoves().size();) {
+	for (uint32_t triedMoves = skipMoves; triedMoves < _computingInfo.getRootMoves().getMoves().size(); ++triedMoves) {
 
-		rootMove = &_rootMoves.getMove(triedMoves);
-		triedMoves++;
+		rootMove = &_computingInfo.getRootMoves().getMove(triedMoves);
 	
 		const Move curMove = rootMove->getMove();
 		_computingInfo.setCurrentMove(curMove);
 
+		// Move research loop, if we failed high against the null window
 		while (true) {
 			stack[1].doMove(position, curMove);
 			result = depth > 2 ?
@@ -388,16 +394,15 @@ ComputingInfo Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, C
 		if (node.remainingDepth > 1 && _clockManager->mustAbortSearch(0)) break;
 		_clockManager->setSearchedRootMove(node.isPVFailLow(), node.bestValue);
 
-		_computingInfo.rootMoveSearched(stack); 
+		_computingInfo.printNewPV(triedMoves, node);
 		if (node.isFailHigh()) break;
 	}
 
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, depth);
+	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
 	_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
-	_rootMoves.bubbleSort(0);
-	return _computingInfo;
-
+	_computingInfo.printSearchResult();
 }
 
 

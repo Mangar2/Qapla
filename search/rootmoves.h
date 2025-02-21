@@ -73,6 +73,12 @@ namespace QaplaSearch {
 		bool isFailLow() const { return _valueOfLastSearch <= _alphaOfLastSearch; }
 		bool isFailHigh() const { return _valueOfLastSearch >= _betaOfLastSearch; }
 
+		bool isPVSearchedInWindow(ply_t depth) const { 
+			return isPVSearched(depth) && !isFailLow() && !isFailHigh();
+		}
+
+		bool isPVSearched(ply_t depth) const { return _isPVSearched && (_depthOfLastSearch >= depth); }
+
 		/**
 		 * Sets results after the search of a move is finished
 		 */
@@ -91,6 +97,11 @@ namespace QaplaSearch {
 		 * Print the move (used for debugging)
 	     */
 		void print() const;
+
+		value_t getValue() const { return _valueOfLastSearch; }
+		ply_t getDepth() const { return _depthOfLastSearch;  }
+		value_t getAlpha() const { return _alphaOfLastSearch;  }
+		value_t getBeta() const { return _betaOfLastSearch; }
 	private:
 		Move _move;
 
@@ -117,6 +128,7 @@ namespace QaplaSearch {
 
 	class RootMoves {
 	public:
+		RootMoves() { clear(); }
 		/**
 		 * Searches for a move in the root move list
 		 * @returns -1, if not found, else the position of the move
@@ -143,6 +155,23 @@ namespace QaplaSearch {
 		 * Gets a reference to the move
 		 */
 		RootMove& getMove(size_t index) { return _moves[index]; }
+		const RootMove& getMove(size_t index) const { return _moves[index]; }
+
+		/**
+		 * Retunrs the amount of moves with full pv search of current depth and a value in the search window 
+		 * at the start of the move list. 
+		 */
+		uint32_t countPVSearchedMovesInWindow(ply_t depth) const {
+			uint32_t count = 0;
+			for (const RootMove& rootMove : _moves) {
+				if (rootMove.isPVSearchedInWindow(depth)) {
+					count++;
+				} else {
+					break;
+				}
+			}
+			return count;
+		}
 
 		/**
 		 * Print the root moves (used for debugging)
@@ -151,13 +180,8 @@ namespace QaplaSearch {
 
 		void clear() { _moves.clear(); }
 
-		/**
-		 * Sets the amount of moves to be searched
-		 */
-		void setMultiPV(uint32_t count) { _multiPV = count; }
 	private:
 		vector<RootMove> _moves;
-		uint32_t _multiPV = 1;
 	};
 
 

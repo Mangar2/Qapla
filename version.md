@@ -2,11 +2,15 @@
 
 ## 0.2.042 2025-02-14
 
-- check for value upper-bound or exact in singular extension
+- Raiting 55.29
+- Search with full window in root move until a bestmove is found.
+- This feature will be removed, checking it later again.
 
 ## 0.2.041 2025-02-14
 
-- Checking singluar extension values
+- Raiting 54.50 with margin 1 + depth * 4 (this will be in the new version)
+- Raiting 53.79 with singular extension margin 10 + depth * 4
+- Check for value upper-bound or exact in singular extension
 
 ## 0.2.040 2025-02-13
 

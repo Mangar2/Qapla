@@ -134,7 +134,7 @@ namespace QaplaSearch {
 
 		static const bool DO_SE_EXTENSION = true;
 		static value_t singularExtensionMargin(ply_t depth) {
-			const auto marginC = getParameter("semc", 30);
+			const auto marginC = getParameter("semc", 1);
 			const auto marginF = getParameter("semf", 4);
 			return marginC + marginF * depth;
 			//return 30 + depth * 4;

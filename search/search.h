@@ -30,6 +30,7 @@
 #include "rootmoves.h"
 #include "../eval/eval.h"
 #include "clockmanager.h"
+#include "aspirationwindow.h"
 #include "tt.h"
 #include "butterfly-boards.h"
 #include "whatif.h"
@@ -51,23 +52,17 @@ namespace QaplaSearch {
 		 */
 		void startNewGame() {
 			_butterflyBoard.clear();
-			_rootMoves.clear();
 		}
 
 		void clearMemories() {
 			_butterflyBoard.clear();
 		}
 
-		void setMultiPV(int32_t count) {
-			_rootMoves.setMultiPV(count);
-		}
-
 		/**
 		 * Starts a new search
 		 */
 		void startNewSearch(MoveGenerator& position) {
-			_computingInfo.initSearch();
-			_rootMoves.setMoves(position, _butterflyBoard);
+			_computingInfo.initNewSearch(position, _butterflyBoard);
 			_butterflyBoard.newSearch();
 		}
 
@@ -88,9 +83,19 @@ namespace QaplaSearch {
 			_computingInfo.requestPrintSearchInfo();
 		}
 
-		ComputingInfo negaMaxRoot(MoveGenerator& position, SearchStack& stack, ClockManager& clockManager);
+		void negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t skipMoves, ClockManager& clockManager);
 
+		const ComputingInfo& getComputingInfo() const {
+			return _computingInfo;
+		}
 
+		uint32_t getMultiPV() const {
+			return _computingInfo.getMultiPV();
+		}
+
+		void setMultiPV(uint32_t multiPV) {
+			_computingInfo.setMultiPV(multiPV);
+		}
 
 	private:
 
@@ -219,7 +224,7 @@ namespace QaplaSearch {
 		 * Returns the information about the root moves
 		 */
 		const RootMoves& getRootMoves() const {
-			return _rootMoves;
+			return _computingInfo.getRootMoves();
 		}
 
 
@@ -228,7 +233,8 @@ namespace QaplaSearch {
 		Eval eval;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
-		RootMoves _rootMoves;
+
+		// RootMoves _rootMoves;
 	public:
 		ButterflyBoard _butterflyBoard;
 	};

@@ -33,7 +33,6 @@ using namespace std;
 using namespace QaplaBasics;
 
 namespace QaplaInterface {
-
 	typedef vector<string> MoveStringList;
 
 	class ISendSearchInfo {
@@ -51,6 +50,7 @@ namespace QaplaInterface {
 		 * @param nodesSearched amount of nodes (usually calls to "set move") searched so far
 		 * @param tbHits amount of positions found in table bases or bit bases.
 		 * @param primaryVariant List of expected moves in a chess notation (like e4 e5 NF3 Nc6)
+		 * @param multiPV number of principal variations 
 		 */
 		virtual void informAboutFinishedSearchAtCurrentDepth(
 			uint32_t searchDepth,
@@ -60,7 +60,8 @@ namespace QaplaInterface {
 			uint64_t timeSpendInMilliseconds,
 			uint64_t nodesSearched,
 			uint64_t tbHits,
-			MoveStringList primaryVariant) = 0;
+			MoveStringList primaryVariant,
+			uint32_t multiPV) = 0;
 
 		/**
 		 * Informs that the primary variant has changed. 

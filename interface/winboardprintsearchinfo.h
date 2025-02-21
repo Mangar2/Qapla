@@ -39,7 +39,8 @@ namespace QaplaInterface {
 			uint64_t timeSpendInMilliseconds,
 			uint64_t nodesSearched,
 			uint64_t tbHits,
-			vector<string> primaryVariant
+			MoveStringList primaryVariant,
+			uint32_t multiPV
 		)
 		{
 			const auto BUF_SIZE = 256;

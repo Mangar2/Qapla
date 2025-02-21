@@ -89,7 +89,7 @@ namespace QaplaSearch {
 		bool hasMateFound(const ComputingInfo& computingInfo) {
 			const value_t SECURITY_BUFFER = 2;
 			bool result = false;
-			if (abs(computingInfo.getPositionValueInCentiPawn()) > MAX_VALUE - (value_t)computingInfo.getSearchDepht() + SECURITY_BUFFER) {
+			if (abs(computingInfo.getPositionValueInCentiPawn(0)) > MAX_VALUE - (value_t)computingInfo.getSearchDepht() + SECURITY_BUFFER) {
 				result = true;
 			}
 			return result;
@@ -102,14 +102,15 @@ namespace QaplaSearch {
 		{
 
 			MoveGenerator searchBoard = position;
-			ComputingInfo computingInfo;
 			if (_clockManager.isAnalyzeMode()) {
 				clearMemories();
 			}
 			else {
 				_tt.setNextSearch();
 			}
-			_window.initSearch();
+			for (auto& window : _window) {
+				window.initSearch();
+			}	
 			_search.startNewSearch(searchBoard);
 			_clockManager.setNewMove();
 
@@ -126,12 +127,17 @@ namespace QaplaSearch {
 
 			static const uint8_t DEPTH_BUFFER = 0;
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
-				computingInfo = searchOneIteration(searchBoard, curDepth);
-				_clockManager.setSearchResult(curDepth, computingInfo.getPositionValueInCentiPawn());
+				for (uint32_t multiPV = 0; multiPV < _search.getMultiPV(); multiPV++) {
+					searchOneIteration(searchBoard, curDepth, multiPV);
+					if (_clockManager.mustAbortSearch(0)) {
+						break;
+					}
+				}
+				_clockManager.setSearchResult(curDepth, _search.getComputingInfo().getPositionValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth()) {
 					break;
 				}
-				if (hasMateFound(computingInfo) && _clockManager.stopSearchOnMateFound()) {
+				if (hasMateFound(_search.getComputingInfo()) && _clockManager.stopSearchOnMateFound()) {
 					break;
 				}
 			}
@@ -141,8 +147,7 @@ namespace QaplaSearch {
 			moveHistory.removeDrawPositionsFromHash(_tt);
 			//static int i = 0;
 			// tt.writeToFile("tt" + to_string(i) + ".bin"); i++;
-			// computingInfo.statisticForMoveOrdering.print();
-			return computingInfo;
+			return _search.getComputingInfo();
 		}
 
 		/**
@@ -205,35 +210,33 @@ namespace QaplaSearch {
 		/**
 		 * Searches one iteration - at constant search depth using an aspiration window
 		 */
-		ComputingInfo searchOneIteration(MoveGenerator& position, uint32_t searchDepth)
+		void searchOneIteration(MoveGenerator& position, uint32_t searchDepth, uint32_t multiPV = 0)
 		{
 			SearchStack stack(&_tt);
-			ComputingInfo computingInfo;
 			bool isInWindow = false;
-			_window.newDepth(searchDepth);
+			_window[multiPV].newDepth(searchDepth);
 			do {
-				stack.initSearchAtRoot(position, _window.getAlpha(), _window.getBeta(), searchDepth);
+				stack.initSearchAtRoot(position, _window[multiPV].getAlpha(), _window[multiPV].getBeta(), searchDepth);
 				if (searchDepth != 0) {
-					stack.setPV(computingInfo.getPV());
+					stack.setPV(_search.getComputingInfo().getPV());
 				}
 
-				computingInfo = _search.negaMaxRoot(position, stack, _clockManager);
-				computingInfo.printSearchResult();
-				const value_t positionValue = computingInfo.getPositionValueInCentiPawn();
-				_clockManager.setIterationResult(_window.getAlpha(), _window.getBeta(), positionValue);
-				isInWindow = _window.isInside(positionValue);
-				_window.setSearchResult(positionValue);
+				_search.negaMaxRoot(position, stack, multiPV, _clockManager);
+				const value_t positionValue = _search.getComputingInfo().getPositionValueInCentiPawn(multiPV);
+				_clockManager.setIterationResult(_window[multiPV].getAlpha(), _window[multiPV].getBeta(), positionValue);
+				isInWindow = _window[multiPV].isInside(positionValue);
+				_window[multiPV].setSearchResult(positionValue);
 
 			} while (!_clockManager.mustAbortSearch(0) && !isInWindow);
-			
-			return computingInfo;
+
 		}
 
+		static const uint32_t MAX_PV = 40;
 		ClockSetting _clockSetting;
 		ClockManager _clockManager;
 		TT _tt;
 		Search _search;
-		AspirationWindow _window;
+		array<AspirationWindow, MAX_PV> _window;
 	};
 
 }

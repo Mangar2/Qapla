@@ -47,11 +47,12 @@ void RootMove::set(value_t searchResult, const SearchStack& stack)
 	_betaOfLastSearch = stack[0].beta;
 	_isPVSearched = stack[0].isPVSearch();
 	_depthOfLastSearch = stack[0].remainingDepth;
-	_pvLine.setMove(1, Move::EMPTY_MOVE);
+	_pvLine.setMove(0, Move::EMPTY_MOVE);
 	if (_isPVSearched) {
+		// We cannot directly set stack[0].pvMovesStore, because stack[0] is not yet updated
+		_pvLine.setMove(0, _move);
 		_pvLine.copyFromPV(stack[1].pvMovesStore, 1);
 	}
-	_pvLine.setMove(0, _move);
 }
 
 bool RootMove::doSearch(const SearchVariables& variables) const {
