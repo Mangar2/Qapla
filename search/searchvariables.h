@@ -93,7 +93,6 @@ namespace QaplaSearch {
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			cutoff = Cutoff::NONE;
-			lateMoveReduction = 0;
 			ttValueIsUpperBound = false;
 			eval = NO_VALUE;
 			isImproving = false;
@@ -111,6 +110,22 @@ namespace QaplaSearch {
 				_nodeType = NodeType::CUT;
 			}
 			moveProvider.init();
+		}
+
+		void setToPlyStart() {
+			pvMovesStore.setEmpty(ply);
+			pvMovesStore.setEmpty(ply + 1);
+			bestMove.setEmpty();
+			bestValue = -MAX_VALUE;
+			remainingDepth = remainingDepthAtPlyStart;
+			alpha = alphaAtPlyStart;
+			beta = betaAtPlyStart;
+			moveNumber = 0;
+			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
+			if (previousMove.isNullMove()) {
+				_searchState = SearchFinding::NORMAL;
+				_nodeType = NodeType::CUT;
+			}
 		}
 
 		/**
@@ -131,7 +146,6 @@ namespace QaplaSearch {
 			noNullmove = true;
 			cutoff = Cutoff::NONE;
 			positionHashSignature = position.computeBoardHash();
-			lateMoveReduction = 0;
 			ttValueIsUpperBound = false;
 			eval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position);
 			isImproving = false;
@@ -522,7 +536,6 @@ namespace QaplaSearch {
 		ply_t remainingDepth;
 		ply_t remainingDepthAtPlyStart;
 		ply_t ply;
-		ply_t lateMoveReduction;
 		ply_t searchDepthExtension;
 		BoardState boardState;
 		hash_t positionHashSignature;

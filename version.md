@@ -1,5 +1,9 @@
 # Quabla Test Versions
 
+## 0.2.044 2025-02-21
+
+- verify bugfix
+
 ## 0.2.043 2025-02-21
 
 - Multi-PV implementation

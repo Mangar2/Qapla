@@ -128,7 +128,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	
 	if (!isCutoff) {
 		position.computeAttackMasksForBothColors();
-		node.setFromParentNode(position, stack[ply - 1], depth);
+		node.setToPlyStart();
 	}
 	// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
 	return isCutoff;
@@ -260,10 +260,14 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	}
 
 	node.setFromParentNode(position, stack[ply - 1], depth);
+	
+	/*
 	const auto nodesSearched = _computingInfo._nodesSearched;
-	if (nodesSearched == 3220762) {
+	if (nodesSearched == 2011) {
 		position.print();
 	}
+	*/
+	
 	_computingInfo._nodesSearched++;
 
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
