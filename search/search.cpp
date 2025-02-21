@@ -263,7 +263,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	
 	/*
 	const auto nodesSearched = _computingInfo._nodesSearched;
-	if (nodesSearched == 2011) {
+	if (nodesSearched == 858) {
 		position.print();
 	}
 	*/

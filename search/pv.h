@@ -122,6 +122,14 @@ namespace QaplaSearch {
 			}
 		}
 
+		bool isEmpty(uint32_t ply) const
+		{
+			if (ply < MAX_PV_LENGTH) {
+				return movesStore[ply].isEmpty();
+			}
+			return true;
+		}
+
 		/**
 		 * Gets the PV as string
 		 */

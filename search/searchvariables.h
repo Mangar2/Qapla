@@ -115,7 +115,6 @@ namespace QaplaSearch {
 		void setToPlyStart() {
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
-			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			remainingDepth = remainingDepthAtPlyStart;
 			alpha = alphaAtPlyStart;
