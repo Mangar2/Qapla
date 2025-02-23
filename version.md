@@ -1,10 +1,12 @@
 # Qapla Test Versions
 
+## 0.2.047 2025-02-23
+
 ## 0.2.046 2025-02-22
 
-- T3: only for cut nodes
-- T2: remaining depth = 0
-- T1: root case, no verify
+- T3: only for cut nodes, 50.34
+- T2: remaining depth = 0, 53.18
+- T1: root case, no verify, 52.25
 
 ## 0.2.045 2025-02-21
 

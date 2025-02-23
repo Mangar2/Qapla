@@ -130,7 +130,7 @@ namespace QaplaSearch {
 		 * Initializes all variables to start search
 		 */
 		void initSearchAtRoot(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, ply_t searchDepth) {
-			remainingDepth = searchDepth;
+			remainingDepthAtPlyStart = remainingDepth = searchDepth;
 			moveNumber = 0;
 			alpha = initialAlpha;
 			beta = initialBeta;

@@ -45,7 +45,8 @@ namespace QaplaSearch {
 		 * Computes the time spent so far
 		 */
 		int64_t computeTimeSpentInMilliseconds() const {
-			return getSystemTimeInMilliseconds() - _startTime;
+			int64_t systemTime = getSystemTimeInMilliseconds();
+			return systemTime - _startTime;
 		}
 
 		/**
@@ -64,6 +65,7 @@ namespace QaplaSearch {
 		{
 			setStartTime();
 			_clockSetting = clockSetting;
+			_nextInfoTime = getSystemTimeInMilliseconds() + clockSetting.getTimeBetweenInfoInMilliseconds();
 			_maxTimePerMove = computeMaxTime();
 			_mode = clockSetting.getMode();
 			// must be last!
@@ -73,46 +75,45 @@ namespace QaplaSearch {
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool mustAbortSearch(int32_t ply) {
+		bool mustAbortSearch(ply_t depth, ply_t ply) {
 			int64_t timeSpent = computeTimeSpentInMilliseconds();
-			bool abort = false;
+			if (depth <= MIN_DEPTH) {
+				return false;
+			}
 			if (_mode == ClockMode::stopped) {
-				abort = true;
+				return true;
 			}
-			else if (_mode != ClockMode::search) {
-				abort = false;
+			if (_mode != ClockMode::search) {
+				return false;
 			}
-			else if (timeSpent > _maxTimePerMove) {
-				abort = true;
+			if (timeSpent > _maxTimePerMove) {
 				stopSearch();
+				return true;
 			}
-			else if (ply == 0) {
-				if (timeSpent > (_averageTimePerMove / 10) * 8) {
-					abort = true;
-					stopSearch();
-				}
+			if (ply == 0 && timeSpent > (_averageTimePerMove / 10) * 8) {
+				stopSearch();
+				return true;
 			}
-			// Ensure that the information to stop the search is stable
-			return abort;
+			return false;
 		}
 
 		/**
 		 * Checks if there is suitable to start the calculation of the next depth
 		 * @returns true, if calculation of next depth is ok
 		 */
-		bool mayComputeNextDepth() const {
-			bool result;
+		bool mayComputeNextDepth(ply_t depth) const {
+			if (depth <= MIN_DEPTH) {
+				return true;
+			}
 			if (_mode == ClockMode::stopped) {
-				result = false;
+				return false;
 			}
-			else if (_mode != ClockMode::search) {
-				result = true;
+			if (_mode != ClockMode::search) {
+				return true;
 			}
-			else {
-				int64_t time = min(_maxTimePerMove, (_averageTimePerMove / 10) * 7);
-				result = computeTimeSpentInMilliseconds() < time;
-			}
-			return result;
+
+			int64_t time = min(_maxTimePerMove, (_averageTimePerMove / 10) * 7);
+			return computeTimeSpentInMilliseconds() < time;
 		}
 
 		/**
@@ -121,6 +122,7 @@ namespace QaplaSearch {
 		bool isTimeToSendNextInfo() {
 			if (isSearchStopped()) return false;
 			int64_t timeBetweenInfoInMilliseconds = _clockSetting.getTimeBetweenInfoInMilliseconds();
+
 			bool sendInfo = timeBetweenInfoInMilliseconds > 0 && 
 				getSystemTimeInMilliseconds() > _nextInfoTime;
 
@@ -299,8 +301,8 @@ namespace QaplaSearch {
 				maxTime = min(maxTime, timeLeft - 2000);
 				// Not less than the fair share
 				maxTime = max(maxTime, timeLeft / (movesToGo + 1));
-				// Safety, not less than zero
-				maxTime = max(maxTime, 0LL);
+				// Safety, not less than 20 milliseconds
+				maxTime = max(maxTime, 20LL);
 			}
 
 			return maxTime;
@@ -332,6 +334,7 @@ namespace QaplaSearch {
 
 		static const int32_t KEEP_TIME_FOR_MOVES = 35;
 		static const int32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
+		static const ply_t MIN_DEPTH = 5;
 	};
 }
 

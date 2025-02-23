@@ -129,12 +129,12 @@ namespace QaplaSearch {
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
 				for (uint32_t multiPV = 0; multiPV < _search.getMultiPV(); multiPV++) {
 					searchOneIteration(searchBoard, curDepth, multiPV);
-					if (_clockManager.mustAbortSearch(0)) {
+					if (_clockManager.mustAbortSearch(curDepth, 0)) {
 						break;
 					}
 				}
 				_clockManager.setSearchResult(curDepth, _search.getComputingInfo().getPositionValueInCentiPawn(0));
-				if (!_clockManager.mayComputeNextDepth()) {
+				if (!_clockManager.mayComputeNextDepth(curDepth)) {
 					break;
 				}
 				if (hasMateFound(_search.getComputingInfo()) && _clockManager.stopSearchOnMateFound()) {
@@ -227,7 +227,7 @@ namespace QaplaSearch {
 				isInWindow = _window[multiPV].isInside(positionValue);
 				_window[multiPV].setSearchResult(positionValue);
 
-			} while (!_clockManager.mustAbortSearch(0) && !isInWindow);
+			} while (!_clockManager.mustAbortSearch(searchDepth, 0) && !isInWindow);
 
 		}
 

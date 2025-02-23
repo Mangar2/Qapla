@@ -212,7 +212,7 @@ namespace QaplaSearch {
 			_currentMoveNoSearched = moveNo;
 			if (moveNo == 0 || node.bestValue > _positionValueInCentiPawn) {
 				_positionValueInCentiPawn = node.bestValue;
-				if (_multiPV == 1) {
+				if (_multiPV == 1 && _searchDepth > 10) {
 					printSearchResult(moveNo);
 				}
 			}

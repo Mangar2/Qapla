@@ -244,7 +244,7 @@ template <Search::SearchRegion TYPE>
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
 	
 	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position, ply);
-	if (TYPE == SearchRegion::INNER && stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(ply)) return -MAX_VALUE;
+	if (TYPE == SearchRegion::INNER && stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(stack[0].remainingDepth, ply)) return -MAX_VALUE;
 	if (TYPE == SearchRegion::INNER) iid(position, stack, depth, ply);
 	const auto seExtension = se(position, stack, depth, ply);
 
@@ -375,7 +375,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, 1);
 
 			// AbortSearch must be checked first. If it is true, we do not have a valid search result
-			if (node.remainingDepth > 1 && _clockManager->mustAbortSearch(0)) break;
+			if (node.remainingDepth > 1 && _clockManager->mustAbortSearch(depth, 0)) break;
 			
 			// We need to set the result to the root move before we update the node variables. 
 			// The root move will check for a fail low and thus needs the alpha value not updated
@@ -396,7 +396,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 			break;
 		};
 
-		if (node.remainingDepth > 1 && _clockManager->mustAbortSearch(0)) break;
+		if (_clockManager->mustAbortSearch(depth, 0)) break;
 		_clockManager->setSearchedRootMove(node.isPVFailLow(), node.bestValue);
 
 		_computingInfo.printNewPV(triedMoves, node);
