@@ -1,7 +1,19 @@
-# Quabla Test Versions
+# Qapla Test Versions
+
+## 0.2.046 2025-02-22
+
+- T3: only for cut nodes
+- T2: remaining depth = 0
+- T1: root case, no verify
+
+## 0.2.045 2025-02-21
+
+- Raiting 53.54
+- verify only if depth >= 0
 
 ## 0.2.044 2025-02-21
 
+- Raiting 52.86
 - verify bugfix
 
 ## 0.2.043 2025-02-21

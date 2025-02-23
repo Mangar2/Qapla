@@ -117,7 +117,7 @@ namespace QaplaSearch {
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 
 		static const bool DO_NULLMOVE = true;
-		static const ply_t NULLMOVE_REMAINING_DEPTH = 2;
+		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
 
 		static const bool DO_IID = false;
 		static const bool DO_IID_FOR_CUT_NODES = true; 

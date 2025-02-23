@@ -106,8 +106,8 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	}
 	assert(!position.isInCheck());
 
-	auto depth = node.remainingDepth;
-	auto R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
+	ply_t depth = node.remainingDepth;
+	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
 
 	stack[ply + 1].doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth - R > 2 ?
@@ -118,7 +118,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint3
 	stack[ply + 1].undoMove(position);
 	bool isCutoff = node.bestValue >= node.beta;
 	
-	if (isCutoff) {
+	if (isCutoff && depth - R - 1 >= 0) {
 		position.computeAttackMasksForBothColors();
 		node.isVerifyingNullmove = true;
 		const auto verify = negaMaxPreSearch(position, stack, depth - R - 1, ply);

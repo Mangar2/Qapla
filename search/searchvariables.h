@@ -75,7 +75,6 @@ namespace QaplaSearch {
 		 */
 		inline bool isPVSearch() const { return _searchState == SearchFinding::PV; }
 		inline bool isNullWindowSearch() const { return _searchState == SearchFinding::NULL_WINDOW; }
-		inline auto getSearchState() const { return _searchState; }
 		inline bool isWindowZero() const { return alpha + 1 == beta;  }
 		inline bool isPVNode() const { return alphaAtPlyStart + 1 < betaAtPlyStart;  }
 
@@ -294,15 +293,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Set the search variables to a nullmove search
-		 */
-		void setNullmove() {
-			_searchState = SearchFinding::NULLMOVE;
-			setNodeType(NodeType::CUT);
-			alpha = beta - 1;
-		}
-
-		/**
 		 * Search depth remaining
 		 */
 		void setRemainingDepthAtPlyStart(ply_t newDepth) {
@@ -348,9 +338,6 @@ namespace QaplaSearch {
 		 */
 		inline Move selectNextMove(MoveGenerator& position) {
 			Move result = moveProvider.selectNextMove(position);
-			if (!isPVSearch() && moveProvider.isAllSearch()) {
-				setNodeType(NodeType::ALL);
-			}
 			moveNumber++;
 			return result;
 		}
@@ -491,7 +478,6 @@ namespace QaplaSearch {
 		inline bool isTTValueBelowBeta(const Board& position, ply_t ply) {
 			return ttPtr->isTTValueBelowBeta(positionHashSignature, beta, ply);
 		}
-
 
 
 		enum class NodeType {
