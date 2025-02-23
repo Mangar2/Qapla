@@ -112,7 +112,7 @@ namespace QaplaSearch {
 		 * Check for cutoffs
 		 */
 		template <SearchRegion TYPE>
-		bool checkCutoffAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t ply) {
+		bool checkCutoffAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
 			if (ply < 1) return false;
 			if (node.alpha > MAX_VALUE - value_t(ply)) {
 				node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
@@ -153,7 +153,7 @@ namespace QaplaSearch {
 				node.setCutoff(Cutoff::FUTILITY);
 				return true;
 			} 
-			if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, ply)) {
+			if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, depth, ply)) {
 				node.setCutoff(Cutoff::NULL_MOVE);
 				return true;
 			}
@@ -205,12 +205,12 @@ namespace QaplaSearch {
 		/**
 		 * Check, if it is reasonable to do a nullmove search
 		 */
-		bool isNullmoveReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t ply);
+		bool isNullmoveReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t depth, ply_t ply);
 
 		/**
 		 * Check for a nullmove cutoff
 		 */
-		bool isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, uint32_t ply);
+		bool isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
 
 		/**
 		 * Do a full search using the negaMax algorithm
