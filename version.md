@@ -1,9 +1,16 @@
 # Qapla Test Versions
 
+## 0.2.048 2025-02-23
+
+- Raiting 52.18
+- Improvement in thread management
+- Reducing the output amount on low ply to 1
+
 ## 0.2.047 2025-02-23
 
 - Raiting 52.61
-- 
+- Removed nullmove check having more material 
+- Added nullmove check having enough eval with margin reduced by search depth
 
 ## 0.2.046 2025-02-22
 
