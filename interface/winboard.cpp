@@ -172,7 +172,7 @@ void Winboard::analyzeMove() {
 		_clock.setAnalyseMode();
 		setInfiniteSearch(true);
 		_board->setClock(_clock);
-		_computeThread = std::thread([this]() {
+		_computeThread.startTask([this]() {
 			_board->computeMove();
 			waitIfInfiniteSearchFinishedEarly();
 		});
@@ -207,7 +207,7 @@ void Winboard::computeMove() {
 		_clock.setSearchMode();
 		setInfiniteSearch(false);
 		_board->setClock(_clock);
-		_computeThread = std::thread([this]() {
+		_computeThread.startTask([this]() {
 			_board->computeMove();
 			_mode = Mode::WAIT;
 			ComputingInfoExchange computingInfo = _board->getComputingInfo();

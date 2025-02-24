@@ -54,7 +54,7 @@ namespace QaplaInterface {
 			_clock.storeCalculationStartTime();
 			_board->setClock(_clock);
 			setInfiniteSearch(_clock.isAnalyseMode() || _clock.isPonderMode());
-			_computeThread = thread([this]() {
+			_computeThread.startTask([this]() {
 				_board->computeMove();
 				ComputingInfoExchange computingInfo = _board->getComputingInfo();
 				waitIfInfiniteSearchFinishedEarly();

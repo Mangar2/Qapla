@@ -29,6 +29,7 @@
 #include "stdtimecontrol.h"
 #include "movescanner.h"
 #include "fenscanner.h"
+#include <functional>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -37,94 +38,81 @@ using namespace std;
 
 namespace QaplaInterface {
 
+
 	class WorkerThread {
-	private:
-		std::thread _worker;
-		std::mutex _protectWorkerAccess;
-
-		std::condition_variable _workCondition;   // Wartet auf neue Arbeit
-		std::condition_variable _finishCondition; // Wartet darauf, dass das Ergebnis ausgegeben werden darf
-
-		bool _running = true;
-		bool _newTask = false;
-		bool _stopRequested = false;
-		bool _waitingForFinish = false;
-
-		void threadLoop() {
-			while (true) {
-				{
-					std::unique_lock<std::mutex> lock(_protectWorkerAccess);
-					_workCondition.wait(lock, [this]() { return _newTask || !_running; });
-
-					if (!_running) return;
-
-					_newTask = false;
-					_stopRequested = false;
-				}
-
-				executeTask();  // Virtuelle Methode für die eigentliche Arbeit
-
-				{
-					std::unique_lock<std::mutex> lock(_protectWorkerAccess);
-					if (_waitingForFinish) {
-						_finishCondition.wait(lock, [this]() { return _stopRequested; });
-					}
-				}
-			}
-		}
-
-	protected:
-		/**
-		 * Diese Methode wird in abgeleiteten Klassen überschrieben und enthält die eigentliche Arbeit.
-		 */
-		virtual void executeTask() = 0;
-
-
 	public:
-		WorkerThread() {
-			_worker = std::thread(&WorkerThread::threadLoop, this);
+		WorkerThread() : stop_thread(false), task_running(false) {
+			worker = std::thread(&WorkerThread::run, this);
 		}
 
-		virtual ~WorkerThread() {
+		~WorkerThread() {
+			shutdown();
+		}
+
+		// Start a new task in the thread
+		void startTask(std::function<void()> task) {
 			{
-				std::lock_guard<std::mutex> lock(_protectWorkerAccess);
-				_running = false;
+				std::unique_lock<std::mutex> lock(mutex);
+				this->task = task;
+				task_running = true;
 			}
-			_workCondition.notify_one();
-			_worker.join();
+			cv.notify_one();
 		}
 
-		/**
-		 * Startet eine neue Arbeit.
-		 */
-		void startTask() {
+		// Wait for the current task to finish
+		void waitForTaskCompletion() {
+			std::unique_lock<std::mutex> lock(mutex);
+			cv_task_done.wait(lock, [this] { return !task_running; });
+		}
+
+		// Shut down the thread safely
+		void shutdown() {
 			{
-				std::lock_guard<std::mutex> lock(_protectWorkerAccess);
-				_newTask = true;
-				_stopRequested = false;
+				std::unique_lock<std::mutex> lock(mutex);
+				stop_thread = true;
 			}
-			_workCondition.notify_one();
-		}
-
-		/**
-		 * Fordert eine freundliche Beendigung der aktuellen Arbeit an.
-		 */
-		void requestStop() {
-			{
-				std::lock_guard<std::mutex> lock(_protectWorkerAccess);
-				_stopRequested = true;
+			cv.notify_one();
+			if (worker.joinable()) {
+				worker.join();
 			}
-			_finishCondition.notify_one();
 		}
 
-		/**
-		 * Signalisiert, dass das Ergebnis erst ausgegeben werden darf, wenn ein externes Signal kommt.
-		 */
-		void setWaitForFinish(bool waitForFinish) {
-			_waitingForFinish = waitForFinish;
-		}
+	private:
+		std::thread worker;
+		std::function<void()> task;
+		std::mutex mutex;
+		std::condition_variable cv;
+		std::condition_variable cv_task_done;
+		std::atomic<bool> stop_thread;
+		std::atomic<bool> task_running;
 
+		// Main loop for the worker thread
+		void run() {
+			while (true) {
+				std::function<void()> local_task;
+				{
+					std::unique_lock<std::mutex> lock(mutex);
+					cv.wait(lock, [this] { return task_running || stop_thread; });
+
+					if (stop_thread && !task_running) {
+						break;
+					}
+
+					local_task = std::move(task);
+				}
+
+				if (local_task) {
+					local_task();
+					{
+						std::unique_lock<std::mutex> lock(mutex);
+						task_running = false;
+					}
+					cv_task_done.notify_all();
+				}
+			}
+		}
 	};
+
 
 
 	class ChessInterface {
@@ -204,7 +192,7 @@ namespace QaplaInterface {
 		 */
 		void waitIfInfiniteSearchFinishedEarly() {
 			unique_lock<mutex> lock = unique_lock<mutex>(_protectWorkerAccess);
-			_waitCondition.wait(lock, [this] {
+			_protectSearchTermination.wait(lock, [this] {
 					return !_isInfiniteSearch;
 			});
 		}
@@ -213,9 +201,7 @@ namespace QaplaInterface {
 		 * Wait for the computing thread to end and joins the thread.
 		 */
 		void waitForComputingThreadToEnd() {
-			if (_computeThread.joinable()) {
-				_computeThread.join();
-			}
+			_computeThread.waitForTaskCompletion();
 		}
 
 		/**
@@ -226,7 +212,7 @@ namespace QaplaInterface {
 				const lock_guard<mutex> lock(_protectWorkerAccess);
 				_isInfiniteSearch = false;
 				_board->moveNow();
-				_waitCondition.notify_one();
+				_protectSearchTermination.notify_one();
 			}
 			waitForComputingThreadToEnd();
 			
@@ -247,7 +233,7 @@ namespace QaplaInterface {
 			_isInfiniteSearch = false;
 			_board->ponderHit();
 			_clock.setSearchMode();
-			_waitCondition.notify_one();
+			_protectSearchTermination.notify_one();
 		}
 
 	protected:
@@ -262,11 +248,11 @@ namespace QaplaInterface {
 		IChessBoard* _board;
 		IInputOutput* _ioHandler;
 		ClockSetting _clock;
-		condition_variable _waitCondition;
+		condition_variable _protectSearchTermination;
 		mutex _protectWorkerAccess;
 		bool _isInfiniteSearch;
 		bool _stopRequested;
-		thread _computeThread;
+		WorkerThread _computeThread;
 		uint32_t _maxTheadCount; 
 		uint32_t _maxMemory;
 		string _egtPath;
