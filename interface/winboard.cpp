@@ -174,7 +174,7 @@ void Winboard::analyzeMove() {
 		_board->setClock(_clock);
 		_computeThread = std::thread([this]() {
 			_board->computeMove();
-			waitOnInfiniteSearch();
+			waitIfInfiniteSearchFinishedEarly();
 		});
 	}
 }
@@ -187,7 +187,7 @@ void Winboard::ponder(string move) {
 	setInfiniteSearch(true);
 	_board->setClock(_clock);
 	_board->computeMove();
-	waitOnInfiniteSearch();
+	waitIfInfiniteSearchFinishedEarly();
 }
 
 /**

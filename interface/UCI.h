@@ -57,7 +57,7 @@ namespace QaplaInterface {
 			_computeThread = thread([this]() {
 				_board->computeMove();
 				ComputingInfoExchange computingInfo = _board->getComputingInfo();
-				waitOnInfiniteSearch();
+				waitIfInfiniteSearchFinishedEarly();
 				print("bestmove " + computingInfo.currentConsideredMove);
 				if (computingInfo.ponderMove != "") {
 					print(" ponder " + computingInfo.ponderMove);

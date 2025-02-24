@@ -37,6 +37,96 @@ using namespace std;
 
 namespace QaplaInterface {
 
+	class WorkerThread {
+	private:
+		std::thread _worker;
+		std::mutex _protectWorkerAccess;
+
+		std::condition_variable _workCondition;   // Wartet auf neue Arbeit
+		std::condition_variable _finishCondition; // Wartet darauf, dass das Ergebnis ausgegeben werden darf
+
+		bool _running = true;
+		bool _newTask = false;
+		bool _stopRequested = false;
+		bool _waitingForFinish = false;
+
+		void threadLoop() {
+			while (true) {
+				{
+					std::unique_lock<std::mutex> lock(_protectWorkerAccess);
+					_workCondition.wait(lock, [this]() { return _newTask || !_running; });
+
+					if (!_running) return;
+
+					_newTask = false;
+					_stopRequested = false;
+				}
+
+				executeTask();  // Virtuelle Methode für die eigentliche Arbeit
+
+				{
+					std::unique_lock<std::mutex> lock(_protectWorkerAccess);
+					if (_waitingForFinish) {
+						_finishCondition.wait(lock, [this]() { return _stopRequested; });
+					}
+				}
+			}
+		}
+
+	protected:
+		/**
+		 * Diese Methode wird in abgeleiteten Klassen überschrieben und enthält die eigentliche Arbeit.
+		 */
+		virtual void executeTask() = 0;
+
+
+	public:
+		WorkerThread() {
+			_worker = std::thread(&WorkerThread::threadLoop, this);
+		}
+
+		virtual ~WorkerThread() {
+			{
+				std::lock_guard<std::mutex> lock(_protectWorkerAccess);
+				_running = false;
+			}
+			_workCondition.notify_one();
+			_worker.join();
+		}
+
+		/**
+		 * Startet eine neue Arbeit.
+		 */
+		void startTask() {
+			{
+				std::lock_guard<std::mutex> lock(_protectWorkerAccess);
+				_newTask = true;
+				_stopRequested = false;
+			}
+			_workCondition.notify_one();
+		}
+
+		/**
+		 * Fordert eine freundliche Beendigung der aktuellen Arbeit an.
+		 */
+		void requestStop() {
+			{
+				std::lock_guard<std::mutex> lock(_protectWorkerAccess);
+				_stopRequested = true;
+			}
+			_finishCondition.notify_one();
+		}
+
+		/**
+		 * Signalisiert, dass das Ergebnis erst ausgegeben werden darf, wenn ein externes Signal kommt.
+		 */
+		void setWaitForFinish(bool waitForFinish) {
+			_waitingForFinish = waitForFinish;
+		}
+
+	};
+
+
 	class ChessInterface {
 
 	public:
@@ -112,8 +202,8 @@ namespace QaplaInterface {
 		/**
 		 * Wait for stopCompute
 		 */
-		void waitOnInfiniteSearch() {
-			unique_lock<mutex> lock = unique_lock<mutex>(_waitProtect);
+		void waitIfInfiniteSearchFinishedEarly() {
+			unique_lock<mutex> lock = unique_lock<mutex>(_protectWorkerAccess);
 			_waitCondition.wait(lock, [this] {
 					return !_isInfiniteSearch;
 			});
@@ -133,7 +223,7 @@ namespace QaplaInterface {
 		 */
 		void stopCompute() {
 			{
-				const lock_guard<mutex> lock(_waitProtect);
+				const lock_guard<mutex> lock(_protectWorkerAccess);
 				_isInfiniteSearch = false;
 				_board->moveNow();
 				_waitCondition.notify_one();
@@ -153,7 +243,7 @@ namespace QaplaInterface {
 		 * Handles a ponder - hit
 		 */
 		void ponderHit() {
-			const lock_guard<mutex> lock(_waitProtect);
+			const lock_guard<mutex> lock(_protectWorkerAccess);
 			_isInfiniteSearch = false;
 			_board->ponderHit();
 			_clock.setSearchMode();
@@ -173,8 +263,9 @@ namespace QaplaInterface {
 		IInputOutput* _ioHandler;
 		ClockSetting _clock;
 		condition_variable _waitCondition;
-		mutex _waitProtect;
+		mutex _protectWorkerAccess;
 		bool _isInfiniteSearch;
+		bool _stopRequested;
 		thread _computeThread;
 		uint32_t _maxTheadCount; 
 		uint32_t _maxMemory;
