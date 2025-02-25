@@ -89,7 +89,7 @@ namespace QaplaSearch {
 		bool hasMateFound(const ComputingInfo& computingInfo) {
 			const value_t SECURITY_BUFFER = 2;
 			bool result = false;
-			if (abs(computingInfo.getPositionValueInCentiPawn(0)) > MAX_VALUE - (value_t)computingInfo.getSearchDepht() + SECURITY_BUFFER) {
+			if (abs(computingInfo.getPVMoveValueInCentiPawn(0)) > MAX_VALUE - (value_t)computingInfo.getSearchDepht() + SECURITY_BUFFER) {
 				result = true;
 			}
 			return result;
@@ -133,7 +133,7 @@ namespace QaplaSearch {
 						break;
 					}
 				}
-				_clockManager.setSearchResult(curDepth, _search.getComputingInfo().getPositionValueInCentiPawn(0));
+				_clockManager.setSearchResult(curDepth, _search.getComputingInfo().getPVMoveValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth(curDepth)) {
 					break;
 				}
@@ -222,7 +222,7 @@ namespace QaplaSearch {
 				}
 
 				_search.negaMaxRoot(position, stack, multiPV, _clockManager);
-				const value_t positionValue = _search.getComputingInfo().getPositionValueInCentiPawn(multiPV);
+				const value_t positionValue = _search.getComputingInfo().getPVMoveValueInCentiPawn(multiPV);
 				_clockManager.setIterationResult(_window[multiPV].getAlpha(), _window[multiPV].getBeta(), positionValue);
 				isInWindow = _window[multiPV].isInside(positionValue);
 				_window[multiPV].setSearchResult(positionValue);

@@ -404,7 +404,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		if (_clockManager->mustAbortSearch(depth, 0)) break;
 		_clockManager->setSearchedRootMove(node.isPVFailLow(), node.bestValue);
 
-		_computingInfo.printNewPV(triedMoves, node);
+		_computingInfo.printNewPV(triedMoves);
 		if (node.isFailHigh()) break;
 	}
 

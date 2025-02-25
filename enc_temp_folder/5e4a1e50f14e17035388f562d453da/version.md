@@ -2,7 +2,6 @@
 
 ## 0.2.049 2025-02-24
 
-- Raiting: 54.07
 - Identical to 48, T5.
 - New tournament with little time increase to prevent loss on time. This distracts test results.
 

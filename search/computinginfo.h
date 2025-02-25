@@ -103,6 +103,7 @@ namespace QaplaSearch {
 			_totalAmountOfMovesToConcider = searchInfo.moveProvider.getTotalMoveAmount();
 			_currentConcideredMove.setEmpty();
 			_currentMoveNoSearched = 0;
+			_positionValueInCentiPawn = -MAX_VALUE;
 			_searchDepth = searchInfo.remainingDepth;
 		}
 
@@ -208,10 +209,11 @@ namespace QaplaSearch {
 		/**
 		 * Update status information on ply 0
 		 */
-		void printNewPV(uint32_t moveNo, const SearchVariables& node) {
+		void printNewPV(uint32_t moveNo) {
 			_currentMoveNoSearched = moveNo;
-			if (moveNo == 0 || node.bestValue > _positionValueInCentiPawn) {
-				_positionValueInCentiPawn = node.bestValue;
+			const auto rootMove = _rootMoves.getMove(moveNo);
+			if (rootMove.isPVSearched() && rootMove.getValue() > _positionValueInCentiPawn) {
+				_positionValueInCentiPawn = rootMove.getValue();
 				if (_multiPV == 1 && _searchDepth > 10) {
 					printSearchResult(moveNo);
 				}
@@ -245,7 +247,7 @@ namespace QaplaSearch {
 		/**
 		 * Gets the current position value
 		 */
-		value_t getPositionValueInCentiPawn(uint32_t moveNo) const {
+		value_t getPVMoveValueInCentiPawn(uint32_t moveNo) const {
 			const auto value = _rootMoves.getMove(moveNo).getValue();
 			assert(moveNo > 0 || value == _positionValueInCentiPawn);
 			return value;
