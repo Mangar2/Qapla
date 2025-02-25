@@ -248,10 +248,10 @@ namespace QaplaSearch {
 		/**
 		 * Extend the current search
 		 */
-		auto extendSearch(MoveGenerator& position, ply_t seExtension) {
+		auto extendSearch(MoveGenerator& position, ply_t depthAtRoot, ply_t seExtension) {
 			searchDepthExtension = Extension::calculateExtension(position, previousMove, remainingDepth, seExtension);
 			remainingDepth += searchDepthExtension;
-			return remainingDepth;
+			return std::min(remainingDepth, depthAtRoot * 2);
 		}
 
 		/**
@@ -331,7 +331,11 @@ namespace QaplaSearch {
 			setNodeType(NodeType::PV);
 		}
 
-
+		void setSE(value_t margin) {
+			const auto seBeta = ttValue - margin;
+			setWindowAtPlyStart(seBeta - 1, seBeta);
+			setNodeType(NodeType::ALL);
+		}
 
 		/**
 		 * Selects the next move to try

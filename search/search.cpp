@@ -213,9 +213,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// No se, if the tt already shows a mate or equivalent value
 	if (node.ttValue < -WINNING_BONUS || node.ttValue > WINNING_BONUS) return 0;
 
-	const auto seBeta = node.ttValue - SearchParameter::singularExtensionMargin(depth);
-	node.setWindowAtPlyStart(seBeta - 1, seBeta);
-
+	node.setSE(SearchParameter::singularExtensionMargin(depth));
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
@@ -285,7 +283,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	}
 
 	node.computeMoves(position, _butterflyBoard);
-	depth = node.extendSearch(position, seExtension);
+	depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
 
 	// The first move will be searched with PV window - the remaining with null window
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {

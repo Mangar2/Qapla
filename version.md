@@ -1,5 +1,10 @@
 # Qapla Test Versions
 
+## 0.2.050 2025-02-24
+
+- SE fix node type to all 
+- Changed window to prevent toggeling
+
 ## 0.2.049 2025-02-24
 
 - Raiting: 54.07
