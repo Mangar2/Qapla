@@ -119,8 +119,8 @@ namespace QaplaSearch {
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
 
-		static const bool DO_IID = false;
-		static const bool DO_IID_FOR_CUT_NODES = true; 
+		static const bool DO_IID = true;
+		static const bool DO_IID_FOR_CUT_NODES = false; 
 
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
 		static const bool USE_HASH_IN_QUIESCENSE = true;

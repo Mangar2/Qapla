@@ -1,10 +1,18 @@
 # Qapla Test Versions
 
+## 0.2.049 2025-02-24
+
+- Identical to 48, T5.
+
 ## 0.2.048 2025-02-23
 
 - Raiting 52.18
 - Improvement in thread management
 - Reducing the output amount on low ply to 1
+- T1: Added the check having enough material on nullmove again. 51.54
+- T2: Removed the check for eval on nullmove, only material is checked. 53.00
+- T3: Nullmove remaining depth is now 2 (was 0) 51.11
+- T5: T2 mit IID only in PV, 53.93
 
 ## 0.2.047 2025-02-23
 

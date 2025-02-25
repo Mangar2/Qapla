@@ -58,12 +58,17 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
 	if (!SearchParameter::DO_NULLMOVE) {
 		result = false;
 	}
+	/*
 	else if (node.eval - 100 + 10 * depth < node.beta) {
 		result = false;
 	}
+	*/
 	else if (node.eval < node.beta) {
 		return false;
 	} 
+	else if (position.getMaterialValue(position.isWhiteToMove()).midgame() + MaterialBalance::PAWN_VALUE_MG < node.beta) {
+		result = false;
+	}
 	else if (node.remainingDepth <= SearchParameter::NULLMOVE_REMAINING_DEPTH) {
 		result = false;
 	}
