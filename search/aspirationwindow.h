@@ -145,23 +145,29 @@ namespace QaplaSearch {
 		 */
 		void setWindow(value_t value, value_t windowSize = 2 * MAX_VALUE) {
 			if (_state == State::Rising) {
-				//_alpha = _alpha > value - windowSize ? _alpha : value - 1 - windowSize / 10;
+				_alpha = _alpha > value - windowSize ? _alpha : value - 1 - windowSize / 10;
 				_beta = value + windowSize;
 			}
 			else if (_state == State::Dropping) {
 				_alpha = value - windowSize;
-				// _beta = _beta < value + windowSize ? _beta :  value + 1 + windowSize / 10;
+				_beta = _beta < value + windowSize ? _beta :  value + 1 + windowSize / 10;
 			} else {
 				_alpha = value - windowSize;
 				_beta = value + windowSize;
 			}
-			// _alpha -= windowSize / 3 * (_multiPV - 1);
-			if (_beta > WINNING_BONUS) {
-				_beta = MAX_VALUE;
-			}
-			if (_alpha < -WINNING_BONUS) {
+			if (_alpha < -MIN_MATE_VALUE) {
 				_alpha = -MAX_VALUE;
 			}
+			if (_beta > MIN_MATE_VALUE) {
+				_beta = MAX_VALUE;
+			}
+		}
+
+		void printWindow() {
+			cout
+				<< "[" << getAlpha() << ", " << getBeta() << "]"
+				<< " [" << getState() << "]"
+				<< " [r" << getRetryCount() << "]" << endl;
 		}
 
 		State _state;

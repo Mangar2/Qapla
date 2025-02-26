@@ -69,6 +69,10 @@ namespace QaplaSearch {
 			_multiPV = multiPV;
 		}
 
+		size_t getMovesAmount() const {
+			return _rootMoves.getMoves().size();
+		}
+
 
 		/**
 		 * Initializes the members

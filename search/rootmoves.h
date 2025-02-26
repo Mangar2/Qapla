@@ -150,6 +150,7 @@ namespace QaplaSearch {
 		 * Gets an iterator to iterate through the moves
 		 */
 		vector<RootMove>& getMoves() { return _moves; }
+		const vector<RootMove>& getMoves() const { return _moves; }
 
 		/**
 		 * Gets a reference to the move

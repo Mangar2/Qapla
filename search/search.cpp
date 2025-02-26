@@ -211,7 +211,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// We require a certain search depth for the tt move to be considered for a singular extension
 	if (node.ttDepth < seDepth) return 0;
 	// No se, if the tt already shows a mate or equivalent value
-	if (node.ttValue < -WINNING_BONUS || node.ttValue > WINNING_BONUS) return 0;
+	if (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE) return 0;
 
 	node.setSE(SearchParameter::singularExtensionMargin(depth));
 	_computingInfo._nodesSearched++;
@@ -291,7 +291,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 		const auto lmr = computeLMR(node, position, depth, ply, curMove);
 		
 		// Move count pruning
-		if (lmr > 0 && depth - lmr < 0) continue;
+		if (lmr > 0 && depth - lmr < 0 && node.bestValue > -MIN_MATE_VALUE) continue;
 
 		stack[ply + 1].doMove(position, curMove);
 
@@ -302,6 +302,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1 - lmr, ply, "LMR");
 			if (result < node.alpha) {
 				stack[ply + 1].undoMove(position);
+				// We improve value on lmr result. Especially important to not get false mate values due to skipped escape moves
+				if (result > node.bestValue) {
+					node.bestValue = result;
+				}
 				continue;
 			}
 			// searching modifies the attack masks. But they are required for the next move generation
@@ -348,26 +352,27 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
  * Negamax algorithm for the first ply
  */
 void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t skipMoves, ClockManager& clockManager) {
+	if (skipMoves >= _computingInfo.getMovesAmount()) return;
+
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
 	SearchVariables& node = stack[0];
 	value_t result;
 
 	ply_t depth = node.remainingDepth;
-	RootMove* rootMove = &_computingInfo.getRootMoves().getMove(0);
 
-	stack.setPV(rootMove->getPV());
 	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
 	node.computeMoves(position, _butterflyBoard);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
 	Stockfish::Engine::set_position(position.getFen());
 
-	for (uint32_t triedMoves = skipMoves; triedMoves < _computingInfo.getRootMoves().getMoves().size(); ++triedMoves) {
+	for (uint32_t triedMoves = skipMoves; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
 
-		rootMove = &_computingInfo.getRootMoves().getMove(triedMoves);
+		RootMove& rootMove = _computingInfo.getRootMoves().getMove(triedMoves);
+		stack.setPV(rootMove.getPV());
 	
-		const Move curMove = rootMove->getMove();
+		const Move curMove = rootMove.getMove();
 		_computingInfo.setCurrentMove(curMove);
 
 		// Move research loop, if we failed high against the null window
@@ -382,7 +387,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 			
 			// We need to set the result to the root move before we update the node variables. 
 			// The root move will check for a fail low and thus needs the alpha value not updated
-			rootMove->set(result, stack);
+			rootMove.set(result, stack);
 			node.setSearchResult(result, stack[1], curMove);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, 0);
 			stack[1].undoMove(position);

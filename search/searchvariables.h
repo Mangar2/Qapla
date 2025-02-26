@@ -393,6 +393,9 @@ namespace QaplaSearch {
 		void setTTEntry(hash_t hashKey) {
 			bool drawByRepetetivePositionValue = (bestValue == 0);
 			if (!drawByRepetetivePositionValue) {
+				if (hashKey == 15935820236142907333ULL) {
+					cout << "Hashkey: " << hashKey << " bestValue: " << bestValue << endl;
+				}
 				ply_t depth = max(remainingDepthAtPlyStart, 0);
 				ttPtr->setEntry(hashKey, depth, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 				// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);

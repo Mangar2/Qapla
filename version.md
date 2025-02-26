@@ -1,7 +1,14 @@
 # Qapla Test Versions
 
+## 0.2.051 2025-02-24
+
+- Set PV of all moves to stack in root move loop
+- Promptly return from negaMaxRoot, if skipMoves is larger than available moves
+- Readapted Window algorithm
+
 ## 0.2.050 2025-02-24
 
+- Raiting: 52.75
 - SE fix node type to all 
 - Changed window to prevent toggeling
 
