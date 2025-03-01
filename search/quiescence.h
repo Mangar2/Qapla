@@ -73,6 +73,7 @@ namespace QaplaSearch {
 	     * Performs the quiescense search
 	     */
 		static value_t search(
+			bool isPvNode,
 			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove,
 			value_t alpha, value_t beta, ply_t ply);
 

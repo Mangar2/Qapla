@@ -23,9 +23,9 @@ void WhatIf::init(const Board& board, const ComputingInfo& computingInfo, value_
 }
 
 void WhatIf::printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, 
-	Move currentMove, ply_t depth, ply_t ply) {
+	Move currentMove, ply_t depth, ply_t ply, value_t result) {
 	printMoves(stack, currentMove, ply);
-	WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, "");
+	WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, result, "");
 	variables.printAll();
 }
 
@@ -50,7 +50,7 @@ void WhatIf::moveSelected(const Board& board, const ComputingInfo& computingInfo
 	}
 	moveSelected(board, computingInfo, currentMove, ply, false);
 	if (( ply - 1 ) == hashFoundPly && -1 != hashFoundPly) {
-		WhatIfVariables variables(computingInfo, stack, currentMove, stack[ply].getRemainingDepth(), ply - 1, "");
+		WhatIfVariables variables(computingInfo, stack, currentMove, stack[ply].getRemainingDepth(), ply - 1, NO_VALUE, "");
 		variables.printSelected();
 	}
 }
@@ -64,12 +64,12 @@ void WhatIf::startSearch(const Board& board, const ComputingInfo& computingInfo,
 
 
 void WhatIf::moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, 
-	Move currentMove, ply_t depth, ply_t ply, const string searchType) {
+	Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType) {
 	if (searchDepth == -1 || ply < 0) {
 		return;
 	}
 	if (ply == hashFoundPly) {
-		WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, searchType);
+		WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, curValue, searchType);
 		printInfo(variables);
 		count++;
 	}

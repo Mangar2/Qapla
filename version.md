@@ -1,10 +1,23 @@
 # Qapla Test Versions
 
+## 0.2.051 2025-02-25
+
+- aspiration window: max-window on alternating twice
+- Always reasearch, in pv nodes, if null-window search results in value above alpha - no fail high anymore (in root and normal search)
+- Dont use hash values in pv - also in quiescence search
+- Store hash even for "0" values (idicating a repetetive draw) but we do not cut search on it
+- Print first pv update on nodes > 2M
+- Send current position value to whatif
+
+
 ## 0.2.051 2025-02-24
 
+- Raiting: 52.21
+- no lmr cutoff if bestValue < - MIN_MATE_VALUE
+- lmr result increases bestValue, if < alpha
+- aspiration window increases/decreases on mate value/-mate value
 - Set PV of all moves to stack in root move loop
 - Promptly return from negaMaxRoot, if skipMoves is larger than available moves
-- Readapted Window algorithm
 
 ## 0.2.050 2025-02-24
 

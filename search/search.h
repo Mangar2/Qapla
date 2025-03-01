@@ -189,8 +189,8 @@ namespace QaplaSearch {
 			}
 
 			ply_t iidR = SearchParameter::getIIDReduction(depth, searchInfo.isPVNode());
-			negaMax<SearchRegion::INNER>(position, stack, depth - iidR, ply);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, "IID");
+			const value_t curValue = negaMax<SearchRegion::INNER>(position, stack, depth - iidR, ply);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
 			position.computeAttackMasksForBothColors();
 			if (!searchInfo.bestMove.isEmpty()) {
 				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);

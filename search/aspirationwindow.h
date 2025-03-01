@@ -65,6 +65,7 @@ namespace QaplaSearch {
 		void newDepth(ply_t searchDepth) {
 			_searchDepth = searchDepth;
 			_state = State::Search;
+			_alternateCount = 0;
 			_retryCount /= 2;
 			value_t windowSize = calculateWindowSize(searchDepth, _positionValue, 0);
 			setWindow(_positionValue, windowSize);
@@ -74,25 +75,31 @@ namespace QaplaSearch {
 		 * Retries the search with an updated window
 		 */
 		void setSearchResult(value_t positionValue) {
-			const value_t delta = std::abs(_positionValue - positionValue);
 			_positionValue = positionValue;
 			if (!isInside(positionValue)) {
+
 				switch (_state) {
 				case State::Search:
 					if (positionValue >= _beta) _state = State::Rising;
 					if (positionValue <= _alpha) _state = State::Dropping;
 					break;
 				case State::Rising:
-					if (positionValue <= _alpha) _state = State::Alternating;
+					if (positionValue <= _alpha) {
+						_state = State::Alternating;
+						_alternateCount++;
+					}
 					break;
 				case State::Dropping:
-					if (positionValue >= _beta) _state = State::Alternating;
+					if (positionValue >= _beta) {
+						_state = State::Alternating;
+						_alternateCount++;
+					}
 					break;
 				}
 				_retryCount++;
 			}
 
-			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, delta);
+			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, _positionValue - positionValue);
 			setWindow(_positionValue, windowSize);
 		}
 
@@ -123,6 +130,7 @@ namespace QaplaSearch {
 			return _multiPV;
 		}	
 
+
 	private:
 
 		/**
@@ -133,8 +141,8 @@ namespace QaplaSearch {
 		 */
 		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue, value_t positionValueDelta) {
 			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth) * 10;
-			const value_t deltaRelatedSize = positionValueDelta;
-			const value_t valueRelatedSize = abs(positionValue) / 20;
+			const value_t deltaRelatedSize = std::abs(positionValueDelta);
+			const value_t valueRelatedSize = std::abs(positionValue) / 20;
 			const value_t retryRelatedSize = _retryCount * 30;
 			const value_t minSize = 15;
 			return minSize + deltaRelatedSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
@@ -146,14 +154,20 @@ namespace QaplaSearch {
 		void setWindow(value_t value, value_t windowSize = 2 * MAX_VALUE) {
 			if (_state == State::Rising) {
 				_alpha = _alpha > value - windowSize ? _alpha : value - 1 - windowSize / 10;
+				//_alpha = value - windowSize;
 				_beta = value + windowSize;
 			}
 			else if (_state == State::Dropping) {
 				_alpha = value - windowSize;
+				// _beta = _alpha + windowSize / 2;
 				_beta = _beta < value + windowSize ? _beta :  value + 1 + windowSize / 10;
 			} else {
 				_alpha = value - windowSize;
 				_beta = value + windowSize;
+			}
+			if (_alternateCount >= 2) {
+				_alpha = -MAX_VALUE;
+				_beta = MAX_VALUE;
 			}
 			if (_alpha < -MIN_MATE_VALUE) {
 				_alpha = -MAX_VALUE;
@@ -178,6 +192,7 @@ namespace QaplaSearch {
 		value_t _searchDepth;
 		uint32_t _multiPV;
 		uint32_t _bestMovesFound;
+		uint32_t _alternateCount = 0;
 
 		static const ply_t STABLE_DEPTH = 8;
 	};

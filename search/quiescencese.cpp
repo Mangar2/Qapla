@@ -72,7 +72,7 @@ std::tuple<value_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t a
 /**
  * Performs the quiescense search
  */
-value_t Quiescence::search(
+value_t Quiescence::search(bool isPvNode,
 	MoveGenerator& position, ComputingInfo& computingInfo, Move lastMove,
 	value_t alpha, value_t beta, ply_t ply)
 {
@@ -95,12 +95,8 @@ value_t Quiescence::search(
 	if (SearchParameter::USE_HASH_IN_QUIESCENSE) {
 		auto [ttValue, ttMove] = probeTT(position, alpha, beta, ply);
 		moveProvider.setTTMove(ttMove);
-		if (ttValue != NO_VALUE) return ttValue;
+		if (!isPvNode && ttValue != NO_VALUE) return ttValue;
 	}
-	//if (position.computeBoardHash() == -6935370772522267216ULL) {
-		// position.print();
-		// std::cout << Stockfish::Engine::trace();
-	//}
 	const auto evadesCheck = SearchParameter::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
 	value_t bestValue, standPatValue;
 	bestValue = standPatValue = evadesCheck ? -MAX_VALUE + ply : Eval::eval(position, ply, alpha);
@@ -134,7 +130,7 @@ value_t Quiescence::search(
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::doMove(move, si);
 #endif
-			valueOfNextPlySearch = -search(position, computingInfo, move, -beta, -alpha, ply + 1);
+			valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
 			position.undoMove(move, positionState);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(move);

@@ -48,7 +48,7 @@ namespace QaplaSearch {
 
 	struct WhatIfVariables {
 
-		WhatIfVariables(const ComputingInfo& info, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply, const string searchType)
+		WhatIfVariables(const ComputingInfo& info, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType)
 			:_stack(stack)
 		{
 			_ttMove = "";
@@ -69,9 +69,8 @@ namespace QaplaSearch {
 			
 			_nodesSearched = info._nodesSearched;
 			_pv = node.isPVSearch() ? node.pvMovesStore.toString() : "";
-
+			_curValue = curValue;
 			if (_remainingDepth >= 0) {
-				_curValue = -stack[ply + 1].bestValue;
 				if (!stack[ply + 1].getTTMove().isEmpty()) {
 					_ttMove = stack[ply + 1].getTTMove().getLAN();
 				}
@@ -172,7 +171,7 @@ namespace QaplaSearch {
 	public:
 		WhatIf() {};
 		void init(const Board& board, const ComputingInfo& computingInfo, value_t alpha, value_t beta) {};
-		void printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply) {};
+		void printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply, value_t result) {};
 		void printInfo(const WhatIfVariables& wiVariables);
 		void startSearch(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply) {};
 
@@ -180,7 +179,7 @@ namespace QaplaSearch {
 		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {};
 
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack,
-			Move currentMove, ply_t depth, ply_t ply, const string searchType = "") {};
+			Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType = "") {};
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, 
 			Move currentMove, value_t alpha, value_t beta, value_t bestValue, value_t standPatValue, ply_t ply) {};
 
@@ -202,7 +201,7 @@ namespace QaplaSearch {
 
 		void init(const Board& board, const ComputingInfo& computingInfo, value_t alpha, value_t beta);
 
-		void printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply);
+		void printInfo(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply, value_t result);
 		void printInfo(const WhatIfVariables& wiVariables);
 
 		void startSearch(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply);
@@ -211,7 +210,7 @@ namespace QaplaSearch {
 		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply);
 
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, 
-			Move currentMove, ply_t depth, ply_t ply, const string searchType = "");
+			Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType = "");
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, 
 			Move currentMove, value_t alpha, value_t beta, value_t bestValue, value_t standPatValue, ply_t ply);
 

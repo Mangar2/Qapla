@@ -218,7 +218,7 @@ namespace QaplaSearch {
 			const auto rootMove = _rootMoves.getMove(moveNo);
 			if (rootMove.isPVSearched() && rootMove.getValue() > _positionValueInCentiPawn) {
 				_positionValueInCentiPawn = rootMove.getValue();
-				if (_multiPV == 1 && _searchDepth > 10) {
+				if (_multiPV == 1 && _nodesSearched > 2000000) {
 					printSearchResult(moveNo);
 				}
 			}

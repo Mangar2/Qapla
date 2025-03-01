@@ -208,12 +208,11 @@ namespace QaplaSearch {
 
 			ttValue = entry.getValue(ply);
 			ttDepth = entry.getComputedDepth();
-			const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, remainingDepth, ply);
-			bool isWinningValue = cutoffValue <= -WINNING_BONUS || cutoffValue >= WINNING_BONUS;
-			if (!isPVSearch() || isWinningValue) {
-				// keeps the best move for a tt entry, if the search does stay <= alpha
-				bestMove = move;
-				if (cutoffValue != NO_VALUE) {
+			// We do not need to keep bestmove, as the tt will not overwrite a move with an empty move
+			if (!isPVSearch()) {
+				const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, remainingDepth, ply);
+				// We ignore ttValue of 0 indicating repetetive draw
+				if (cutoffValue != NO_VALUE && cutoffValue != 0) {
 					bestValue = cutoffValue;
 					return true;
 				}
@@ -315,6 +314,9 @@ namespace QaplaSearch {
 		 * Sets the search to a null window search
 		 */
 		void setNullWindow() {
+			if (_searchState != SearchFinding::PV) {
+				return;
+			}
 			beta = alpha + 1;
 			_searchState = SearchFinding::NULL_WINDOW;
 			setNodeType(NodeType::ALL);
@@ -324,8 +326,6 @@ namespace QaplaSearch {
 		 * Sets the search to PV (open window) search
 		 */
 		void setPVWindow() {
-			// Needed to ensure that the research will be > bestValue and set the PV
-			bestValue = alpha;
 			beta = betaAtPlyStart;
 			_searchState = SearchFinding::PV;
 			setNodeType(NodeType::PV);
@@ -358,6 +358,7 @@ namespace QaplaSearch {
 		 * applies the search result to the status
 		 */
 		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
+			assert(abs(searchResult) < MIN_MATE_VALUE || abs(searchResult) > MAX_VALUE - 50);
 			currentValue = searchResult;
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
@@ -391,15 +392,9 @@ namespace QaplaSearch {
 		 * Sets the hash entry
 		 */
 		void setTTEntry(hash_t hashKey) {
-			bool drawByRepetetivePositionValue = (bestValue == 0);
-			if (!drawByRepetetivePositionValue) {
-				if (hashKey == 15935820236142907333ULL) {
-					cout << "Hashkey: " << hashKey << " bestValue: " << bestValue << endl;
-				}
-				ply_t depth = max(remainingDepthAtPlyStart, 0);
-				ttPtr->setEntry(hashKey, depth, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
-				// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
-			}
+			ply_t depth = max(remainingDepthAtPlyStart, 0);
+			ttPtr->setEntry(hashKey, depth, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+			// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 		}
 
 		/**
