@@ -76,7 +76,8 @@ namespace QaplaSearch {
 		inline bool isPVSearch() const { return _searchState == SearchFinding::PV; }
 		inline bool isNullWindowSearch() const { return _searchState == SearchFinding::NULL_WINDOW; }
 		inline bool isWindowZero() const { return alpha + 1 == beta;  }
-		inline bool isPVNode() const { return alphaAtPlyStart + 1 < betaAtPlyStart;  }
+		inline bool isPVNode() const { return _nodeType == NodeType::PV;  }
+		inline bool isOldPVNode() const { return alphaAtPlyStart + 1 < betaAtPlyStart; }
 
 		void setWindowAtPlyStart(value_t newAlpha, value_t newBeta) {
 			alphaAtPlyStart = alpha = newAlpha;
@@ -86,7 +87,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setFromParentNode(MoveGenerator& position, const SearchVariables& parentNode, ply_t depth) {
+		void setFromParentNode(MoveGenerator& position, const SearchVariables& parentNode, ply_t depth, bool isPVNode) {
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
 			bestMove.setEmpty();
@@ -100,7 +101,7 @@ namespace QaplaSearch {
 			remainingDepthAtPlyStart = depth;
 			setWindowAtPlyStart(-parentNode.beta, -parentNode.alpha);
 			moveNumber = 0;
-			_nodeType = _nodeTypeMap[int(parentNode._nodeType)];
+			_nodeType = isPVNode? NodeType::PV : parentNode._nodeType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
 			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
@@ -320,7 +321,6 @@ namespace QaplaSearch {
 			}
 			beta = alpha + 1;
 			_searchState = SearchFinding::NULL_WINDOW;
-			setNodeType(NodeType::ALL);
 		}
 
 		/**
@@ -329,13 +329,11 @@ namespace QaplaSearch {
 		void setPVWindow() {
 			beta = betaAtPlyStart;
 			_searchState = SearchFinding::PV;
-			setNodeType(NodeType::PV);
 		}
 
 		void setSE(value_t margin) {
 			const auto seBeta = ttValue - margin;
 			setWindowAtPlyStart(seBeta - 1, seBeta);
-			setNodeType(NodeType::ALL);
 			// _searchState = SearchFinding::SE;
 		}
 
@@ -488,12 +486,6 @@ namespace QaplaSearch {
 			PV, CUT, ALL, COUNT
 		};
 
-		/**
-		 * Sets the type of the node
-		 */
-		void setNodeType(NodeType type) {
-			_nodeType = type;
-		}
 
 		/**
 		 * Returns true, if the current node is a cut node

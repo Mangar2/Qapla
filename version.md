@@ -1,5 +1,13 @@
 # Qapla Test Versions
 
+## 0.2.054 2025-03-03
+
+- Refactored PV - detect in Search, fixed bugs
+	- First lmr search no longer has PV window
+	- Fixed not searching PV if window gets null-size by chance
+	- LMR fail low no longer researched if result = alpha
+
+
 ## 0.2.053 2025-03-03
 
 - Eval Endgame no longer produces prospecitve mate values

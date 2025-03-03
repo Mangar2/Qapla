@@ -100,7 +100,7 @@ namespace QaplaSearch {
 	private:
 
 		enum class SearchRegion {
-			INNER, NEAR_LEAF, QUIESCENCE
+			INNER, NEAR_LEAF, PV
 		};
 
 		/**
@@ -167,7 +167,7 @@ namespace QaplaSearch {
 
 			if (!SearchParameter::DO_IID) return false;
 
-			bool isPV = searchInfo.isPVNode();
+			bool isPV = searchInfo.isOldPVNode();
 			if (depth <= SearchParameter::getIIDMinDepth(isPV)) return false;
 
 			if (!searchInfo.getTTMove().isEmpty()) return false;
