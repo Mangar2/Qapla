@@ -264,16 +264,16 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
  * Checks for a cutoff not requiering search or eval
  */
 template <Search::SearchRegion TYPE>
-bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
+bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	assert(ply >= 1);
 
 	node.cutoff = Cutoff::NONE;
 	node.setHashSignature(position);
 
-	if (node.alpha > MAX_VALUE - value_t(ply)) {
+	if (alpha > MAX_VALUE - value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
 	}
-	else if (node.beta < -MAX_VALUE + value_t(ply)) {
+	else if (beta < -MAX_VALUE + value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 	}
 	else if (position.drawDueToMissingMaterial()) {
@@ -307,7 +307,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	value_t beta = -stack[ply - 1].alpha;
 	// 1. Detect direct cutoffs without requiring search or eval
 	// This includes checking the hash and setting the hash information like ttMove
-	if (nonSearchingCutoff<TYPE>(position, stack, node, depth, ply)) return node.bestValue;
+	if (nonSearchingCutoff<TYPE>(position, stack, node, alpha, beta, depth, ply)) return node.bestValue;
 
 	// 2. Quiescense search
 	if (depth < 0) {

@@ -109,7 +109,7 @@ namespace QaplaSearch {
 		bool hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& curPly);
 
 		template <SearchRegion TYPE>
-		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply);
+		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
 		 * Check for cutoffs

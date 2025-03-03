@@ -1,5 +1,9 @@
 # Qapla Test Versions
 
+## 0.2.055 2025-03-03
+
+- IID fixed
+
 ## 0.2.054 2025-03-03
 
 - Refactored PV - detect in Search, fixed bugs
