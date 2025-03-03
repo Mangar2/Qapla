@@ -55,7 +55,7 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
  * Gets an entry from the transposition table
  * @returns hash value and hash move or -MAX_VALUE, if no value found
  */
-std::tuple<value_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
+std::tuple<value_t, uint32_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
 	bool cutoff = false;
 	uint32_t ttIndex = _tt->getTTEntryIndex(position.computeBoardHash());
 
@@ -63,9 +63,10 @@ std::tuple<value_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t a
 		TTEntry entry = _tt->getEntry(ttIndex);
 		const auto bestValue = entry.getTTCutoffValue(alpha, beta, 0, ply);
 		const auto move = entry.getMove();
-		return std::make_tuple(bestValue, move);
+		const auto precision = entry.getComputedPrecision();
+		return std::make_tuple(bestValue, precision, move);
 	}
-	return std::make_tuple(NO_VALUE, Move::EMPTY_MOVE);
+	return std::make_tuple(NO_VALUE, TTEntry::INVALID, Move::EMPTY_MOVE);
 }
 
 
@@ -92,15 +93,24 @@ value_t Quiescence::search(bool isPvNode,
 	Move move;
 	computingInfo._nodesSearched++;
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
-	if (SearchParameter::USE_HASH_IN_QUIESCENSE) {
-		auto [ttValue, ttMove] = probeTT(position, alpha, beta, ply);
-		moveProvider.setTTMove(ttMove);
-		if (!isPvNode && ttValue != NO_VALUE) return ttValue;
-	}
+
+	auto [ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
+	moveProvider.setTTMove(ttMove);
+	if (/*alpha + 1 == beta && */ ttValue != NO_VALUE) return ttValue;
+
 	const auto evadesCheck = SearchParameter::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
 	value_t bestValue, standPatValue;
-	bestValue = standPatValue = evadesCheck ? -MAX_VALUE + ply : Eval::eval(position, ply, alpha);
-
+	if (evadesCheck) {
+		bestValue = standPatValue = -MAX_VALUE + ply;
+	}
+	else {
+		bestValue = standPatValue = Eval::eval(position, ply, alpha);
+		if (std::abs(ttValue) < MIN_MATE_VALUE && (ttPrecision == TTEntry::EXACT || 
+			(ttPrecision == (standPatValue < ttValue ? TTEntry::GREATER_OR_EQUAL : TTEntry::LESSER_OR_EQUAL))))
+		{
+			bestValue = standPatValue = ttValue;
+		}
+	}
 	// Eval::assertSymetry(position, standPatValue);
 	value_t valueOfNextPlySearch;
 

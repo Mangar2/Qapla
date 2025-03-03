@@ -1,6 +1,12 @@
 # Qapla Test Versions
 
-## 0.2.051 2025-02-25
+## 0.2.053 2025-03-03
+
+- Eval Endgame no longer produces prospecitve mate values
+- Aspiration window adaption, keeping alpha on raising, fast change to -max/+max windows on alterating
+- Not go to q-search, if in pv and a tt move is left
+
+## 0.2.052 2025-02-25
 
 - aspiration window: max-window on alternating twice
 - Always reasearch, in pv nodes, if null-window search results in value above alpha - no fail high anymore (in root and normal search)

@@ -253,7 +253,7 @@ namespace QaplaSearch {
 		 */
 		value_t getPVMoveValueInCentiPawn(uint32_t moveNo) const {
 			const auto value = _rootMoves.getMove(moveNo).getValue();
-			assert(moveNo > 0 || value == _positionValueInCentiPawn);
+			// assert(moveNo > 0 || value == _positionValueInCentiPawn);
 			return value;
 		}
 

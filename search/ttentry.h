@@ -293,7 +293,7 @@ namespace QaplaSearch {
 		static const uint16_t PRECISION_MASK = 0x00000003ULL << PRECISION_SHIFT;
 		static const uint16_t ENTRY_AGE_INDICATOR_SHIFT = 12ULL;
 		static const uint16_t ENTRY_AGE_INDICATOR_MASK = 0x0000000FULL << ENTRY_AGE_INDICATOR_SHIFT;
-
+	public:
 		static const uint16_t INVALID = 0;
 		static const uint16_t EXACT = 1;
 		static const uint16_t LESSER_OR_EQUAL = 2;

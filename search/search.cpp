@@ -257,7 +257,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	Move curMove;
 
 	if (depth + (node.sideToMoveIsInCheck && SearchParameter::DO_CHECK_EXTENSIONS) < 0) {
-		result = Quiescence::search(node.isPVNode(), position, _computingInfo, node.previousMove,
+		result = Quiescence::search(stack[ply - 1].isPVSearch(), position, _computingInfo, node.previousMove,
 			-stack[ply - 1].beta, -stack[ply - 1].alpha, ply);
 		return result;
 	}
@@ -265,12 +265,13 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	node.setFromParentNode(position, stack[ply - 1], depth);
 	
 	const auto nodesSearched = _computingInfo._nodesSearched;
+
 	/*
-	if (nodesSearched == 1082) {
+	if (nodesSearched == 5420215) {
 		position.print();
 	}
 	*/
-		
+	
 	_computingInfo._nodesSearched++;
 
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
@@ -311,10 +312,11 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 			// searching modifies the attack masks. But they are required for the next move generation
 			position.computeAttackMasksForBothColors();
 		}
-		
-		result = TYPE == SearchRegion::INNER && depth > 2 ?
-			-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1) :
-			-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);
+
+		const ply_t adjustedDepth = depth <= 0 && curMove == node.getTTMove() && node.isPVSearch() && ply < stack[0].remainingDepth * 2 ? 1 : depth;
+		result = TYPE == SearchRegion::INNER && adjustedDepth > 2 ?
+			-negaMax<SearchRegion::INNER>(position, stack, adjustedDepth - 1, ply + 1) :
+			-negaMax<SearchRegion::NEAR_LEAF>(position, stack, adjustedDepth - 1, ply + 1);
 
 		if (result > node.alpha && node.isNullWindowSearch()) {
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, result);
@@ -323,7 +325,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 			// null window search and the null window failed high. 
 			position.computeAttackMasksForBothColors();
 			node.setPVWindow();
-			const ply_t adjustedDepth = depth == 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : depth;
+
 			result = TYPE == SearchRegion::INNER && depth > 2 ?
 				-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1) :
 				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);

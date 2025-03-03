@@ -207,7 +207,7 @@ value_t EvalEndgame::KBNK(MoveGenerator& position, value_t value) {
 	Square usKnightSquare = lsb(position.getPieceBB(KNIGHT + COLOR));
 	value_t cornerValue = forceToCorrectCorner<COLOR>(position, 0, usBishops & WHITE_FIELDS) * 5;
 	value_t knightDistance = computeDistance(themKingSquare, usKnightSquare) * 2;
-	value = COLOR == WHITE ? MAX_VALUE + cornerValue - knightDistance : -MAX_VALUE + cornerValue + knightDistance;
+	value = COLOR == WHITE ? MIN_MATE_VALUE + cornerValue - knightDistance : -MIN_MATE_VALUE + cornerValue + knightDistance;
 	return value;
 }
 
@@ -310,7 +310,7 @@ value_t EvalEndgame::forceToAnyCornerToMate(MoveGenerator& position, value_t val
 		distanceValue -= (themKingDistanceToCorner - usKingDinstanceToCorner) * 16;
 	}
 
-	value = COLOR == WHITE ? MAX_VALUE + distanceValue : -MAX_VALUE - distanceValue;
+	value = COLOR == WHITE ? MIN_MATE_VALUE + distanceValue : -MIN_MATE_VALUE - distanceValue;
 	return value;
 }
 

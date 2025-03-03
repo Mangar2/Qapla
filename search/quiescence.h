@@ -90,7 +90,7 @@ namespace QaplaSearch {
 		 * Gets an entry from the transposition table
 		 * @returns hash value or -MAX_VALUE, if no value found
 		 */
-		static std::tuple<value_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
+		static std::tuple<value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
 				
 	public:
 

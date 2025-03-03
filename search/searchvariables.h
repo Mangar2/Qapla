@@ -51,7 +51,7 @@ namespace QaplaSearch {
 	struct SearchVariables {
 
 		enum class SearchFinding {
-			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID,
+			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID, SE,
 			AMOUNT
 		};
 
@@ -209,6 +209,7 @@ namespace QaplaSearch {
 			ttValue = entry.getValue(ply);
 			ttDepth = entry.getComputedDepth();
 			// We do not need to keep bestmove, as the tt will not overwrite a move with an empty move
+			// bestMove = move;
 			if (!isPVSearch()) {
 				const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, remainingDepth, ply);
 				// We ignore ttValue of 0 indicating repetetive draw
@@ -335,6 +336,7 @@ namespace QaplaSearch {
 			const auto seBeta = ttValue - margin;
 			setWindowAtPlyStart(seBeta - 1, seBeta);
 			setNodeType(NodeType::ALL);
+			// _searchState = SearchFinding::SE;
 		}
 
 		/**
@@ -508,7 +510,7 @@ namespace QaplaSearch {
 		static constexpr array<const char*, int(NodeType::COUNT)> nodeTypeName = { "PV", "CUT", "ALL" };
 
 		static constexpr array<const char*, int(SearchFinding::AMOUNT)> searchStateNames =
-			{ "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID" };
+			{ "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID", "SE"};
 
 		value_t alpha;
 		value_t alphaAtPlyStart;

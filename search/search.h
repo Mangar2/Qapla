@@ -183,17 +183,17 @@ namespace QaplaSearch {
 		 * Thus it must be called before setting the stack in negamax (setFromPreviousPly). 
 		 */
 		void iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
-			SearchVariables& searchInfo = stack[ply];
-			if (!isIIDReasonable(position, searchInfo, depth, ply)) {
+			SearchVariables& node = stack[ply];
+			if (!isIIDReasonable(position, node, depth, ply)) {
 				return;
 			}
 
-			ply_t iidR = SearchParameter::getIIDReduction(depth, searchInfo.isPVNode());
+			ply_t iidR = SearchParameter::getIIDReduction(depth, node.isPVNode());
 			const value_t curValue = negaMax<SearchRegion::INNER>(position, stack, depth - iidR, ply);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
 			position.computeAttackMasksForBothColors();
-			if (!searchInfo.bestMove.isEmpty()) {
-				searchInfo.moveProvider.setTTMove(searchInfo.bestMove);
+			if (!node.bestMove.isEmpty()) {
+				node.moveProvider.setTTMove(node.bestMove);
 			}
 
 		}

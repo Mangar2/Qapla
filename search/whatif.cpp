@@ -168,8 +168,11 @@ void WhatIf::setMove(MoveGenerator& board, uint32_t moveNo, Move move) {
 			board.doMove(move);
 		}
 		hash = board.computeBoardHash();
+		std::cout << "Move " << moveNo << ": " << move.getLAN() << " hash: " << hash << endl;
+		/*
 		ChessEval::Eval eval;
 		eval.printEval(board);
+		*/
 	}
 }
 

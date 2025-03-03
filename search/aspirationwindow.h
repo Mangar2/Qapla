@@ -75,30 +75,24 @@ namespace QaplaSearch {
 		 * Retries the search with an updated window
 		 */
 		void setSearchResult(value_t positionValue) {
-			_positionValue = positionValue;
 			if (!isInside(positionValue)) {
-
 				switch (_state) {
 				case State::Search:
-					if (positionValue >= _beta) _state = State::Rising;
-					if (positionValue <= _alpha) _state = State::Dropping;
+					_state = (positionValue > _positionValue) ? State::Rising : State::Dropping;
 					break;
 				case State::Rising:
-					if (positionValue <= _alpha) {
-						_state = State::Alternating;
-						_alternateCount++;
-					}
+					_state = (positionValue > _positionValue) ? State::Rising : State::Alternating;
 					break;
 				case State::Dropping:
-					if (positionValue >= _beta) {
-						_state = State::Alternating;
-						_alternateCount++;
-					}
+					_state = (positionValue < _positionValue) ? State::Dropping : State::Alternating;
 					break;
 				}
 				_retryCount++;
 			}
-
+			if (_state == State::Alternating) {
+				_alternateCount++;
+			}
+			_positionValue = positionValue;
 			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, _positionValue - positionValue);
 			setWindow(_positionValue, windowSize);
 		}
@@ -141,7 +135,7 @@ namespace QaplaSearch {
 		 */
 		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue, value_t positionValueDelta) {
 			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth) * 10;
-			const value_t deltaRelatedSize = std::abs(positionValueDelta);
+			const value_t deltaRelatedSize = _state == State::Rising ? std::abs(positionValueDelta) : std::abs(positionValueDelta) / 10;
 			const value_t valueRelatedSize = std::abs(positionValue) / 20;
 			const value_t retryRelatedSize = _retryCount * 30;
 			const value_t minSize = 15;
@@ -153,14 +147,18 @@ namespace QaplaSearch {
 		 */
 		void setWindow(value_t value, value_t windowSize = 2 * MAX_VALUE) {
 			if (_state == State::Rising) {
-				_alpha = _alpha > value - windowSize ? _alpha : value - 1 - windowSize / 10;
+				//_alpha = _alpha > value - windowSize ? _alpha : value - 1 - windowSize / 10;
 				//_alpha = value - windowSize;
 				_beta = value + windowSize;
+				if (value > 1000) {
+					_beta = MAX_VALUE;
+				}
 			}
 			else if (_state == State::Dropping) {
 				_alpha = value - windowSize;
+				_beta = value + windowSize;
 				// _beta = _alpha + windowSize / 2;
-				_beta = _beta < value + windowSize ? _beta :  value + 1 + windowSize / 10;
+				//_beta = _beta < value + windowSize ? _beta :  value + 1 + windowSize / 10;
 			} else {
 				_alpha = value - windowSize;
 				_beta = value + windowSize;
@@ -172,7 +170,7 @@ namespace QaplaSearch {
 			if (_alpha < -MIN_MATE_VALUE) {
 				_alpha = -MAX_VALUE;
 			}
-			if (_beta > MIN_MATE_VALUE) {
+			if (_beta > 2000) {
 				_beta = MAX_VALUE;
 			}
 		}
@@ -181,7 +179,8 @@ namespace QaplaSearch {
 			cout
 				<< "[" << getAlpha() << ", " << getBeta() << "]"
 				<< " [" << getState() << "]"
-				<< " [r" << getRetryCount() << "]" << endl;
+				<< " [r" << getRetryCount() << "]"
+				<< " [a" << _alternateCount << "]" << endl;
 		}
 
 		State _state;
