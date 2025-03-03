@@ -137,43 +137,8 @@ namespace QaplaSearch {
 			return false;
 		}
 
-		/**
-		 * Returns true, if we should do internal iterative deepening
-		 */
-		inline bool isIIDReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t depth, ply_t ply) {
 
-			if (!SearchParameter::DO_IID) return false;
-
-			bool isPV = searchInfo.isOldPVNode();
-			if (depth <= SearchParameter::getIIDMinDepth(isPV)) return false;
-
-			if (!searchInfo.getTTMove().isEmpty()) return false;
-			if (!isPV && (!SearchParameter::DO_IID_FOR_CUT_NODES || !searchInfo.isCutNode())) return false;
-			if (!isPV && position.isInCheck()) return false;
-
-			return true;
-		}
-
-		/**
-		 * Compute internal iterative deepening
-		 * IID modifies variables from stack[ply] (like move counter, search depth, ...)
-		 * Thus it must be called before setting the stack in negamax (setFromPreviousPly). 
-		 */
-		void iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
-			SearchVariables& node = stack[ply];
-			if (!isIIDReasonable(position, node, depth, ply)) {
-				return;
-			}
-
-			ply_t iidR = SearchParameter::getIIDReduction(depth, node.isPVNode());
-			const value_t curValue = negaMax<SearchRegion::INNER>(position, stack, depth - iidR, ply);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
-			position.computeAttackMasksForBothColors();
-			if (!node.bestMove.isEmpty()) {
-				node.moveProvider.setTTMove(node.bestMove);
-			}
-
-		}
+		void iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
 
 		ply_t se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
 
@@ -182,7 +147,7 @@ namespace QaplaSearch {
 		/**
 		 * Check, if it is reasonable to do a nullmove search
 		 */
-		bool isNullmoveReasonable(MoveGenerator& position, SearchVariables& searchInfo, ply_t depth, ply_t ply);
+		bool isNullmoveReasonable(MoveGenerator& position, SearchVariables& node, ply_t depth, ply_t ply);
 
 		/**
 		 * Check for a nullmove cutoff

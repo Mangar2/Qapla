@@ -180,6 +180,28 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, pl
 	return node.bestValue;
 }
 
+/**
+ * Compute internal iterative deepening
+ * IID modifies variables from stack[ply] (like move counter, search depth, ...)
+ * Thus it must be called before setting the stack in negamax (setFromPreviousPly).
+ */
+void Search::iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+	SearchVariables& node = stack[ply];
+
+	if (!SearchParameter::DO_IID) return;
+	if (depth <= SearchParameter::getIIDMinDepth()) return;
+	if (!node.getTTMove().isEmpty()) return;
+
+	ply_t iidR = SearchParameter::getIIDReduction(depth);
+	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, depth - iidR, ply);
+	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
+	position.computeAttackMasksForBothColors();
+	if (!node.bestMove.isEmpty()) {
+		node.setTTMove(node.bestMove);
+	}
+
+}
+
 ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
 	if (!SearchParameter::DO_SE_EXTENSION) return 0;
 	SearchVariables& node = stack[ply];
@@ -293,11 +315,11 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	}
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
-	/*
-	if (nodesSearched == 650) {
+	
+	if (nodesSearched == 15963) {
 		position.print();
 	}
-	*/
+	
 	_computingInfo._nodesSearched++;
 
 
@@ -308,7 +330,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 		return node.bestValue;
 	}
 
-	if (TYPE != SearchRegion::NEAR_LEAF) iid(position, stack, depth, ply);
+	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
+	if (TYPE == SearchRegion::PV) iid(position, stack, depth, ply);
+
+	// 5. Singular extension
 	const auto seExtension = se(position, stack, depth, ply);
 
 	value_t result;

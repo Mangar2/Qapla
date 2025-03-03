@@ -425,10 +425,8 @@ namespace QaplaSearch {
 		Move getMoveFromPVMovesStore(ply_t ply) const { return pvMovesStore.getMove(ply); }
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
 
-		/**
-		 * Gets the move proposed by the tt
-		 */
 		Move getTTMove() const { return ttMove; }
+		void setTTMove(Move move) { ttMove = move; }
 
 		void setPly(ply_t curPly) { ply = curPly; }
 

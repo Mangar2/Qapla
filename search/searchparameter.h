@@ -58,17 +58,17 @@ namespace QaplaSearch {
 		/**
 		 * Calculates the reduction for internal iterative deepening
 		 */
-		constexpr static ply_t getIIDReduction(int32_t remainingSearchDepth, bool isPV)
+		constexpr static ply_t getIIDReduction(int32_t remainingSearchDepth)
 		{
-			return isPV ? 2 : 4;
+			return 2;
 		}
 
 		/**
 		 * Calculates the minimal depth for internal iterative deepening
 		 */
-		constexpr static ply_t getIIDMinDepth(bool isPV)
+		constexpr static ply_t getIIDMinDepth()
 		{
-			return isPV ? 4 : 6;
+			return 4;
 		}
 
 
@@ -120,7 +120,6 @@ namespace QaplaSearch {
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
 
 		static const bool DO_IID = true;
-		static const bool DO_IID_FOR_CUT_NODES = false; 
 
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
 		static const bool USE_HASH_IN_QUIESCENSE = true;
