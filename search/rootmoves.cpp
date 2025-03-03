@@ -109,7 +109,7 @@ RootMove& RootMoves::findMove(Move move) {
 void RootMoves::setMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
 	MoveProvider moveProvider;
 	position.computeAttackMasksForBothColors();
-	moveProvider.computeMoves(position, butterflyBoard, Move::EMPTY_MOVE);
+	moveProvider.computeMoves(position, butterflyBoard, Move::EMPTY_MOVE, Move::EMPTY_MOVE);
 	_moves.clear();
 	Move move;
 	while (!(move = moveProvider.selectNextMove(position)).isEmpty()) {

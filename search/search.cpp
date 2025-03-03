@@ -162,7 +162,7 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, pl
 	SearchVariables& childNode = stack[ply + 1];
 	node.setFromParentNode(position, stack[ply - 1], depth, false);
 	// Must be after setFromParentNode
-	node.probeTT(position, ply);
+	node.probeTT(false, node.alpha, node.beta, depth, ply);
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
@@ -196,8 +196,8 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 
 	node.setFromParentNode(position, stack[ply - 1], depth, false);
 	
-	// Must be after setFromPreviousPly
-	node.probeTT(position, ply);
+	// Must be after setFromParentNode
+	node.probeTT(false, node.alpha, node.beta, depth, ply);
 
 	// No se, if tt does not have a good move value (> alpha)
 	if (node.ttValueIsUpperBound) return 0;
@@ -239,45 +239,88 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 }
 
 /**
+ * Checks for a cutoff not requiering search or eval
+ */
+template <Search::SearchRegion TYPE>
+bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
+	assert(ply >= 1);
+
+	node.cutoff = Cutoff::NONE;
+	node.setHashSignature(position);
+
+	if (node.alpha > MAX_VALUE - value_t(ply)) {
+		node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
+	}
+	else if (node.beta < -MAX_VALUE + value_t(ply)) {
+		node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
+	}
+	else if (position.drawDueToMissingMaterial()) {
+		node.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
+	}
+	else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
+		node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
+	}
+	else if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
+		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, ply));
+	}
+	else if (TYPE != SearchRegion::NEAR_LEAF && hasBitbaseCutoff(position, node)) {
+		node.setCutoff(Cutoff::BITBASE);
+	}
+	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(stack[0].remainingDepth, ply)) {
+		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
+	}
+
+	WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
+	return node.cutoff != Cutoff::NONE;
+}
+
+/**
  * Negamax algorithm for plys 1..n
  */
 template <Search::SearchRegion TYPE>
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
-	
-	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) return Eval::eval(position, ply);
-	if (TYPE != SearchRegion::NEAR_LEAF&& stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(stack[0].remainingDepth, ply)) return -MAX_VALUE;
-	if (TYPE != SearchRegion::NEAR_LEAF) iid(position, stack, depth, ply);
-	const auto seExtension = se(position, stack, depth, ply);
 
 	SearchVariables& node = stack[ply];
-	value_t result;
-	bool cutoff = false;
-	Move curMove;
+	value_t alpha = -stack[ply - 1].beta;
+	value_t beta = -stack[ply - 1].alpha;
+	// 1. Detect direct cutoffs without requiring search or eval
+	// This includes checking the hash and setting the hash information like ttMove
+	if (nonSearchingCutoff<TYPE>(position, stack, node, depth, ply)) return node.bestValue;
 
-	if (depth + (node.sideToMoveIsInCheck && SearchParameter::DO_CHECK_EXTENSIONS) < 0) {
-		result = Quiescence::search(TYPE == SearchRegion::PV, position, _computingInfo, node.previousMove,
-			-stack[ply - 1].beta, -stack[ply - 1].alpha, ply);
-		return result;
+	// 2. Quiescense search
+	if (depth < 0) {
+		return Quiescence::search(TYPE == SearchRegion::PV, position, _computingInfo, node.previousMove, alpha, beta, ply);
 	}
 
-	node.setFromParentNode(position, stack[ply - 1], depth, TYPE == SearchRegion::PV);
-	
 	const auto nodesSearched = _computingInfo._nodesSearched;
-
 	/*
-	if (nodesSearched == 5420215) {
+	if (nodesSearched == 650) {
 		position.print();
 	}
 	*/
-	
 	_computingInfo._nodesSearched++;
 
+
+	// 3. Probe the hash table. This will set the hash information to the node.
+	// The required hash signature is set in nonSearchingCutoff
+	if (node.probeTT(TYPE == SearchRegion::PV, alpha, beta, depth, ply)) {
+		node.setCutoff(Cutoff::HASH);
+		return node.bestValue;
+	}
+
+	if (TYPE != SearchRegion::NEAR_LEAF) iid(position, stack, depth, ply);
+	const auto seExtension = se(position, stack, depth, ply);
+
+	value_t result;
+	Move curMove;
+
+	node.setFromParentNode(position, stack[ply - 1], depth, TYPE == SearchRegion::PV);
+	
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 
 	// Check all kind of early cutoffs including futility, nullmove, bitbase and others 
 	// Additionally set eval. This is done as late as possible, as it is very time consuming. Some cutoff checks needs eval.
-	cutoff = checkCutoffAndSetEval<TYPE>(position, stack, node, depth, ply);
-	if (cutoff) {
+	if (checkCutoffAndSetEval<TYPE>(position, stack, node, depth, ply)) {
 		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
 		return node.bestValue;
 	}

@@ -43,7 +43,7 @@ using namespace ChessEval;
 
 enum class Cutoff {
 	NONE, DRAW_BY_REPETITION, HASH, FASTER_MATE_FOUND, RAZORING, NOT_ENOUGH_MATERIAL, 
-	NULL_MOVE, FUTILITY, BITBASE, LOST_WINNING_BONUS,
+	NULL_MOVE, FUTILITY, BITBASE, LOST_WINNING_BONUS, MAX_SEARCH_DEPTH, ABORT,
 	COUNT
 };
 
@@ -96,7 +96,6 @@ namespace QaplaSearch {
 			ttValueIsUpperBound = false;
 			eval = NO_VALUE;
 			isImproving = false;
-			positionHashSignature = position.computeBoardHash();
 			remainingDepth = depth;
 			remainingDepthAtPlyStart = depth;
 			setWindowAtPlyStart(-parentNode.beta, -parentNode.alpha);
@@ -186,15 +185,15 @@ namespace QaplaSearch {
 		/**
 		 * Gets an entry from the transposition table
 		 */
-		bool probeTT(MoveGenerator& position, ply_t ply) {
-			static const ply_t PLY = 8;
-
+		bool probeTT(bool isPVNode, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
+			assert(positionHashSignature != 0);
+			
 			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
+			ttMove = Move::EMPTY_MOVE;
 			if (ttIndex == TT::INVALID_INDEX) return false;
 
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
-			const Move move = entry.getMove();
-			moveProvider.setTTMove(move);
+			ttMove = entry.getMove();
 			
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
@@ -211,8 +210,8 @@ namespace QaplaSearch {
 			ttDepth = entry.getComputedDepth();
 			// We do not need to keep bestmove, as the tt will not overwrite a move with an empty move
 			// bestMove = move;
-			if (!isPVSearch()) {
-				const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, remainingDepth, ply);
+			if (!isPVNode) {
+				const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, depth, ply);
 				// We ignore ttValue of 0 indicating repetetive draw
 				if (cutoffValue != NO_VALUE && cutoffValue != 0) {
 					bestValue = cutoffValue;
@@ -221,6 +220,10 @@ namespace QaplaSearch {
 			}
 
 			return false;
+		}
+
+		void setHashSignature(const MoveGenerator& position) {
+			positionHashSignature = position.computeBoardHash();
 		}
 
 		/**
@@ -285,7 +288,7 @@ namespace QaplaSearch {
 		void computeMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
 			position.isWhiteToMove();
 			checkingBitmaps = position.computeCheckBitmapsForMovingColor();
-			moveProvider.computeMoves(position, butterflyBoard, previousMove);
+			moveProvider.computeMoves(position, butterflyBoard, previousMove, ttMove);
 			bestValue = moveProvider.checkForGameEnd(position, ply);
 		}
 
@@ -425,7 +428,7 @@ namespace QaplaSearch {
 		/**
 		 * Gets the move proposed by the tt
 		 */
-		Move getTTMove() const { return moveProvider.getTTMove(); }
+		Move getTTMove() const { return ttMove; }
 
 		void setPly(ply_t curPly) { ply = curPly; }
 
@@ -478,7 +481,7 @@ namespace QaplaSearch {
 		}
 
 		inline bool isTTValueBelowBeta(const Board& position, ply_t ply) {
-			return ttPtr->isTTValueBelowBeta(positionHashSignature, beta, ply);
+			return ttValue < beta;
 		}
 
 
@@ -527,6 +530,7 @@ namespace QaplaSearch {
 		bool isImproving;
 		value_t ttValue;
 		ply_t ttDepth;
+		Move ttMove;
 
 		Cutoff cutoff;
 		mutex mtxSearchResult;

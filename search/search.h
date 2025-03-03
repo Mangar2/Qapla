@@ -108,37 +108,14 @@ namespace QaplaSearch {
 		 */
 		bool hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& curPly);
 
+		template <SearchRegion TYPE>
+		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply);
+
 		/**
 		 * Check for cutoffs
 		 */
 		template <SearchRegion TYPE>
 		bool checkCutoffAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
-			if (ply < 1) return false;
-			if (node.alpha > MAX_VALUE - value_t(ply)) {
-				node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
-				return true;
-			}
-			if (node.beta < -MAX_VALUE + value_t(ply)) {
-				node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
-				return true;
-			}
-			if (TYPE == SearchRegion::INNER && hasBitbaseCutoff(position, node)) {
-				node.setCutoff(Cutoff::BITBASE);
-				return true;
-			} 
-			if (TYPE == SearchRegion::INNER && ply >= 3 && position.drawDueToMissingMaterial()) {
-				// TODO: remove ply >= 3, kept for backward compatibility
-				node.setCutoff(Cutoff::NOT_ENOUGH_MATERIAL, 0);
-				return true;
-			}
-			if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
-				node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
-				return true;
-			}
-			if (node.probeTT(position, ply)) {
-				node.setCutoff(Cutoff::HASH);
-				return true;
-			}
 			const auto evalBefore = ply > 1 ? stack[ply - 2].eval : NO_VALUE;
 			if (position.isInCheck()) {
 				node.eval = evalBefore;

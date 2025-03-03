@@ -55,7 +55,7 @@ namespace QaplaSearch {
 			selectStage = MoveType::PV + 1;
 			currentStage = selectStage;
 			pvMove;
-			hashMove;
+			_ttMove;
 			previousMove;
 		};
 
@@ -70,7 +70,7 @@ namespace QaplaSearch {
 		 * Initializes the move provider
 		 */
 		void init() {
-			hashMove.setEmpty();
+			_ttMove.setEmpty();
 		}
 
 		/**
@@ -101,7 +101,7 @@ namespace QaplaSearch {
 		 * Sets the best move coming from the tt
 		 */
 		void setTTMove(Move move) {
-			hashMove = move;
+			_ttMove = move;
 		}
 
 		/**
@@ -114,16 +114,17 @@ namespace QaplaSearch {
 		/**
 		 * Initializes the move provider to provide all moves in a sorted order
 		 */
-		inline void computeMoves(MoveGenerator& board, ButterflyBoard& butterflyBoard, Move previousPlyMove) {
+		inline void computeMoves(MoveGenerator& board, ButterflyBoard& butterflyBoard, Move previousPlyMove, Move ttMove) {
 			_butterflyBoard = &butterflyBoard;
 			previousMove = previousPlyMove;
 			board.genMovesOfMovingColor(moveList);
 			selectStage = MoveType::PV;
 			curMoveNo = 0;
 			triedMovesAmount = 0;
-			if (pvMove.isEmpty() && hashMove.isEmpty()) {
+			if (pvMove.isEmpty() && ttMove.isEmpty()) {
 				++selectStage;
 			}
+			_ttMove = ttMove;
 		}
 
 		/**
@@ -172,7 +173,7 @@ namespace QaplaSearch {
 				currentStage = selectStage;
 				switch (selectStage) {
 				case MoveType::PV:
-					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? hashMove : pvMove, moveList);
+					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove, moveList);
 					pvMove.setEmpty();
 					++selectStage;
 					break;
@@ -256,9 +257,6 @@ namespace QaplaSearch {
 		uint32_t getNonSilentMoveAmount() const { return moveList.getNonSilentMoveAmount(); }
 		uint32_t getNumberOfMoveProvidedLast() const { return curMoveNo; }
 		MoveType getSelectTypeOfLastProvidedMove() const { return currentStage; }
-		Move getTTMove() const {
-			return hashMove;
-		}
 
 		uint32_t getTriedMovesAmount() const {
 			return triedMovesAmount;
@@ -400,7 +398,7 @@ namespace QaplaSearch {
 		MoveType currentStage;
 		uint32_t curMoveNo;
 		Move pvMove;
-		Move hashMove;
+		Move _ttMove;
 		Move previousMove;
 		KillerMove killerMove;
 		MoveList moveList;
