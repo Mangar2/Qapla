@@ -303,6 +303,8 @@ template <Search::SearchRegion TYPE>
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
 
 	SearchVariables& node = stack[ply];
+	node.pvMovesStore[ply] = Move::EMPTY_MOVE;
+
 	value_t alpha = -stack[ply - 1].beta;
 	value_t beta = -stack[ply - 1].alpha;
 	// 1. Detect direct cutoffs without requiring search or eval
@@ -316,8 +318,12 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
 	
-	if (nodesSearched == 15963) {
+	
+	if (nodesSearched == 27677402) {
 		position.print();
+		for (int i = 0; i < ply; i++) {
+			stack[i].printTTEntry();
+		}
 	}
 	
 	_computingInfo._nodesSearched++;
@@ -410,7 +416,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 		if (node.isFailHigh()) break;
 	}
 	// 5. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, depth);
+	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, TYPE == SearchRegion::PV, depth);
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF) {
 		_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
@@ -482,7 +488,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		if (node.isFailHigh()) break;
 	}
 
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, depth);
+	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
 	_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());

@@ -65,7 +65,7 @@ namespace QaplaSearch {
 		/**
 		 * Position evaluation
 		 */
-		inline void setEval(value_t eval) { _eval = eval; }
+		inline void setEval(value_t eval) { _eval = int16_t(eval); }
 		inline value_t getEval() const { return _eval;  }
 
 		/**
@@ -185,6 +185,9 @@ namespace QaplaSearch {
 			return (_info & PRECISION_MASK) >> PRECISION_SHIFT; 
 		}
 
+		bool isPV() const { return _pv != 0; }
+		void setPV(bool isPV) { _pv = isPV; }
+
 		inline bool hasExactValue() const {
 			return getComputedPrecision() == EXACT;
 		}
@@ -227,8 +230,8 @@ namespace QaplaSearch {
 			else if (positionValue < -MIN_MATE_VALUE) {
 				positionValue += ply;
 			}
-			assert(positionValue < MAX_VALUE);
-			assert(positionValue > -MAX_VALUE);
+			assert(positionValue <= MAX_VALUE);
+			assert(positionValue >= -MAX_VALUE);
 			return positionValue;
 		}
 
@@ -285,14 +288,14 @@ namespace QaplaSearch {
 		static const uint16_t MAX_DEPTH = 0x01FF;
 
 	private:
-		static const uint16_t DEPTH_SHIFT = 0ULL;
+		static const uint16_t DEPTH_SHIFT = 0U;
 		static const uint16_t DEPTH_MASK = MAX_DEPTH << DEPTH_SHIFT;
-		static const uint16_t NULLMOVE_THREAT_MASK = 0x00000001ULL;
-		static const uint16_t NULLMOVE_THREAT_SHIFT = 9ULL;
-		static const uint16_t PRECISION_SHIFT = 10ULL;
-		static const uint16_t PRECISION_MASK = 0x00000003ULL << PRECISION_SHIFT;
-		static const uint16_t ENTRY_AGE_INDICATOR_SHIFT = 12ULL;
-		static const uint16_t ENTRY_AGE_INDICATOR_MASK = 0x0000000FULL << ENTRY_AGE_INDICATOR_SHIFT;
+		static const uint16_t NULLMOVE_THREAT_MASK = 0x00000001U;
+		static const uint16_t NULLMOVE_THREAT_SHIFT = 9U;
+		static const uint16_t PRECISION_SHIFT = 10U;
+		static const uint16_t PRECISION_MASK = 0x00000003U << PRECISION_SHIFT;
+		static const uint16_t ENTRY_AGE_INDICATOR_SHIFT = 12U;
+		static const uint16_t ENTRY_AGE_INDICATOR_MASK = 0x0000000FU << ENTRY_AGE_INDICATOR_SHIFT;
 	public:
 		static const uint16_t INVALID = 0;
 		static const uint16_t EXACT = 1;
@@ -302,8 +305,9 @@ namespace QaplaSearch {
 	private:
 		Move _move;
 		int16_t _value;
+		int16_t _eval;
 		uint16_t _info;
-		int32_t _eval;
+		uint16_t _pv;
 		uint32_t _hash;
 	};
 

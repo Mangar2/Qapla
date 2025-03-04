@@ -3,6 +3,9 @@
 ## 0.2.055 2025-03-03
 
 - IID fixed
+- Hash replacement strategy changed. Now better conserving PV values
+- Fixed problem skipping pv collection on depth = 0
+- 
 
 ## 0.2.054 2025-03-03
 

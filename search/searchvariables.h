@@ -226,6 +226,10 @@ namespace QaplaSearch {
 			positionHashSignature = position.computeBoardHash();
 		}
 
+		void printTTEntry() {
+			ttPtr->printHash(positionHashSignature);
+		}
+
 		/**
 		 * Cutoff the current search
 		 */
@@ -369,9 +373,8 @@ namespace QaplaSearch {
 					if (!isNullWindowSearch()) {
 						bestMove = currentMove;
 						if (isPVSearch()) {
-							if (remainingDepth > 0) {
-								pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
-							}
+							// PV line may be extended, thus always copy from pv
+							pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
 							pvMovesStore.setMove(ply, bestMove);
 						}
 					}
@@ -394,9 +397,9 @@ namespace QaplaSearch {
 		/**
 		 * Sets the hash entry
 		 */
-		void setTTEntry(hash_t hashKey) {
+		void setTTEntry(hash_t hashKey, bool isPV) {
 			ply_t depth = max(remainingDepthAtPlyStart, 0);
-			ttPtr->setEntry(hashKey, depth, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+			ttPtr->setEntry(hashKey, isPV, depth, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 			// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 		}
 
@@ -410,14 +413,14 @@ namespace QaplaSearch {
 		/**
 		 * terminates the search-ply
 		 */
-		void updateTTandKiller(MoveGenerator& position, ButterflyBoard& butterflyBoard, ply_t depth) {
+		void updateTTandKiller(MoveGenerator& position, ButterflyBoard& butterflyBoard, bool isPV, ply_t depth) {
 			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
 				if (!bestMove.isEmpty()) {
 					moveProvider.setKillerMove(bestMove);
 					butterflyBoard.newBestMove(bestMove, depth, moveProvider.getTriedMoves(), moveProvider.getTriedMovesAmount());
 				}
 				if (!isPVFailLow()) {
-					setTTEntry(position.computeBoardHash());
+					setTTEntry(position.computeBoardHash(), isPV);
 				}
 			}
 		}

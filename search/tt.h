@@ -68,10 +68,15 @@ namespace QaplaSearch {
 		 * checks if the new entry is more valuable to store than the current entry
 		 * Tested, but not good: overwrite less, if no hash move is provided
 		 */
-		bool isNewEntryMoreValuable(uint32_t index, ply_t computedDepth, Move move) const {
-			bool result = isEntryFromFormerSearch(_tt[index]) ||
-				computedDepth >= _tt[index].getComputedDepth();
-			return result;
+		bool isNewEntryMoreValuable(uint32_t index, ply_t computedDepth, Move move, bool isPV) const {
+			if (isEntryFromFormerSearch(_tt[index])) return true;
+			// We always overwrite on PV
+			if (isPV) return true;
+			auto entry = getEntry(index);
+			if (entry.isPV()) return false;
+			int16_t newWeight = computedDepth + !move.isEmpty() * 2;
+			int16_t oldWeight = entry.getComputedDepth() + !entry.getMove().isEmpty() * 2;
+			return newWeight >= oldWeight;
 		}
 
 		/**
@@ -102,7 +107,7 @@ namespace QaplaSearch {
 		 * the secondary always replace entry
 		 */
 		uint32_t setEntry(
-			hash_t hashKey, int32_t computedDepth, ply_t ply, Move move, 
+			hash_t hashKey, bool isPV, int32_t computedDepth, ply_t ply, Move move,
 			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
@@ -110,23 +115,25 @@ namespace QaplaSearch {
 			if (_tt[index].isEmpty())
 			{
 				_entries++;
-				set(index, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+				set(index, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+				return index;
 			}
-			else if (isNewEntryMoreValuable(index, computedDepth, move))
+
+			bool hashIsDifferent = !_tt[index].hasHash(hashKey);
+			if (!(hashIsDifferent && !_tt[index].isPV()) || isNewEntryMoreValuable(index, computedDepth, move, isPV))
 			{
-				bool hashIsDifferent = !_tt[index].hasHash(hashKey);
 				if (hashIsDifferent && _tt[index + 1].doOverwriteAlwaysReplaceEntry(
 					positionValue, alpha, beta, computedDepth)) 
 				{
 					if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
 					_tt[index + 1] = _tt[index];
 				}
-				set(index, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+				set(index, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
 			}
 			else if (_tt[index + 1].doOverwriteAlwaysReplaceEntry(positionValue, alpha, beta, computedDepth))
 			{
 				if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
-				set(index + 1, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+				set(index + 1, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
 			}
 
 			return index;
@@ -137,7 +144,7 @@ namespace QaplaSearch {
 		 * the primary entry, if it is empty
 		 */
 		void setOverwriteAlwaysHashEntry(
-			int32_t hashKey, int32_t computedDepth, ply_t ply, Move move, 
+			int32_t hashKey, bool isPV, int32_t computedDepth, ply_t ply, Move move, 
 			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
@@ -149,19 +156,19 @@ namespace QaplaSearch {
 				++index;
 				if (isEntryFromFormerSearch(_tt[index])) _entries++;
 			}
-			set(index, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+			set(index, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
 		}
 
 		/**
 		 * Sets the primary hash entry (largest search depth entry)
 		 */
 		void setPrimaryHashEntry(
-			int32_t hashKey, int32_t computedDepth, ply_t ply, Move move, 
+			int32_t hashKey, bool isPV, int32_t computedDepth, ply_t ply, Move move, 
 			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
 			if (isEntryFromFormerSearch(_tt[index])) _entries++;
-			set(index, hashKey, computedDepth, ply, move, 
+			set(index, isPV, hashKey, computedDepth, ply, move, 
 				positionValue, alpha, beta, nullmoveThreat);
 		}
 
@@ -349,13 +356,14 @@ namespace QaplaSearch {
 		 * Sets the values of a single entry
 		 */
 		void set(
-			uint32_t index, hash_t hashKey, 
+			uint32_t index, bool isPV, hash_t hashKey, 
 			uint32_t computedDepth, ply_t ply, Move move, 
 			value_t positionValue, value_t alpha, value_t beta, uint32_t nullmoveThreat)
 		{
 			auto& entry = _tt[index];
 			entry.setInfo(computedDepth, _ageIndicator, nullmoveThreat);
 			entry.setValue(positionValue, alpha, beta, ply);
+			entry.setPV(isPV);
 			// Keep the hash move, if the hash keys are identical and the new entry does not provide a move
 			if (!move.isEmpty() || !entry.hasHash(hashKey)) {
 				entry.setMove(move);

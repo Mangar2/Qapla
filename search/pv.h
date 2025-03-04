@@ -104,6 +104,7 @@ namespace QaplaSearch {
 			}
 			return pvMove;
 		}
+		Move operator[](uint32_t ply) const { return getMove(ply); }
 
 		/**
 		 * Sets a move to the PV, if ply is in the storange range
@@ -114,6 +115,7 @@ namespace QaplaSearch {
 				movesStore[ply] = move;
 			}
 		}
+		void operator()(uint32_t ply, Move move) { setMove(ply, move); }
 
 		void setEmpty(uint32_t ply)
 		{

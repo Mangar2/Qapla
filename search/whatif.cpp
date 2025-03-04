@@ -112,7 +112,7 @@ void WhatIf::cutoff(const Board& board, const ComputingInfo& computingInfo, cons
 void WhatIf::setTT(TT* ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move move, value_t bestValue, value_t alpha, value_t beta, bool nullMoveTrhead) {
 	if (hashKey == hash) {
 		auto ttIndex = ttPtr->getTTEntryIndex(hashKey);
-		if (ttPtr->isNewEntryMoreValuable(ttIndex, depth, move)) {
+		if (ttPtr->isNewEntryMoreValuable(ttIndex, depth, move, true)) {
 			printf("set hash [w%6ld %6ld][d:%2ld][v:%6ld][m:%5s]\n", alpha, beta, depth, bestValue, move.getLAN().c_str());
 			ttPtr->printHash(hashKey);
 		}
