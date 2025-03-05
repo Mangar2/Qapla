@@ -318,14 +318,14 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
 	
-	
+	/*
 	if (nodesSearched == 27677402) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();
 		}
 	}
-	
+	*/
 	_computingInfo._nodesSearched++;
 
 

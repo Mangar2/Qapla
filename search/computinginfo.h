@@ -73,6 +73,10 @@ namespace QaplaSearch {
 			return _rootMoves.getMoves().size();
 		}
 
+		uint32_t countPVSearchedMovesInWindow(ply_t depth) const {
+			return _rootMoves.countPVSearchedMovesInWindow(depth);
+		}
+
 
 		/**
 		 * Initializes the members

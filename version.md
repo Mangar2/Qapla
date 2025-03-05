@@ -5,7 +5,7 @@
 - IID fixed
 - Hash replacement strategy changed. Now better conserving PV values
 - Fixed problem skipping pv collection on depth = 0
-- 
+- Fixed bug on direct mate detection, if remaining search depth not sufficient (alpha/beta window was not set correctly)
 
 ## 0.2.054 2025-03-03
 
@@ -13,7 +13,6 @@
 	- First lmr search no longer has PV window
 	- Fixed not searching PV if window gets null-size by chance
 	- LMR fail low no longer researched if result = alpha
-
 
 ## 0.2.053 2025-03-03
 

@@ -127,12 +127,7 @@ namespace QaplaSearch {
 
 			static const uint8_t DEPTH_BUFFER = 0;
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
-				for (uint32_t multiPV = 0; multiPV < _search.getMultiPV(); multiPV++) {
-					searchOneIteration(searchBoard, curDepth, multiPV);
-					if (_clockManager.mustAbortSearch(curDepth, 0)) {
-						break;
-					}
-				}
+				searchOneIteration(searchBoard, curDepth);
 				_clockManager.setSearchResult(curDepth, _search.getComputingInfo().getPVMoveValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth(curDepth)) {
 					break;
@@ -210,24 +205,27 @@ namespace QaplaSearch {
 		/**
 		 * Searches one iteration - at constant search depth using an aspiration window
 		 */
-		void searchOneIteration(MoveGenerator& position, uint32_t searchDepth, uint32_t multiPV = 0)
+		void searchOneIteration(MoveGenerator& position, uint32_t searchDepth)
 		{
 			SearchStack stack(&_tt);
 			bool isInWindow = false;
-			_window[multiPV].newDepth(searchDepth);
+			const auto multiPV = _search.getMultiPV();
+			for (uint32_t i = 0; i < multiPV; ++i) {
+				_window[i].newDepth(searchDepth);
+			}
+			uint32_t numberOfPVSearchedMoves = 0;
 			do {
-				stack.initSearchAtRoot(position, _window[multiPV].getAlpha(), _window[multiPV].getBeta(), searchDepth);
-				if (searchDepth != 0) {
-					stack.setPV(_search.getComputingInfo().getPV());
-				}
-
+				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha(), _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
 				_search.negaMaxRoot(position, stack, multiPV, _clockManager);
-				const value_t positionValue = _search.getComputingInfo().getPVMoveValueInCentiPawn(multiPV);
-				_clockManager.setIterationResult(_window[multiPV].getAlpha(), _window[multiPV].getBeta(), positionValue);
-				isInWindow = _window[multiPV].isInside(positionValue);
-				_window[multiPV].setSearchResult(positionValue);
+				const auto& computingInfo = _search.getComputingInfo();
+				numberOfPVSearchedMoves = computingInfo.countPVSearchedMovesInWindow(searchDepth);
+				const auto multiPVPos = std::min(numberOfPVSearchedMoves, multiPV - 1);
+				const value_t positionValue = computingInfo.getPVMoveValueInCentiPawn(multiPVPos);
+				_clockManager.setIterationResult(_window[multiPVPos].getAlpha(), _window[multiPVPos].getBeta(), positionValue);
+				isInWindow = _window[multiPVPos].isInside(positionValue);
+				_window[multiPVPos].setSearchResult(positionValue);
 
-			} while (!_clockManager.mustAbortSearch(searchDepth, 0) && !isInWindow);
+			} while (!_clockManager.mustAbortSearch(searchDepth, 0) && numberOfPVSearchedMoves < multiPV);
 
 		}
 
