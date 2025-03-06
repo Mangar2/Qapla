@@ -2,7 +2,7 @@
 
 Qapla chess engine
 
-The current version 0.1.1 - a first pre-release.
+The current version 0.2 - the second pre-release version
 
 ## What is a chess engine?
 
@@ -22,23 +22,24 @@ Qapla's version numbers have three digits:
 
 ## How do I test
 
-A typical test is made with 20 seconds +1 second per move and 1200 games agains 12 engines of about equal playing strength. A minor version additionally gets test with the same 1200 games but a 5 minute clock setting.
-The version 0.1 is tested against:
+A typical test is made with 60 seconds +0.01 second per move and 1400 games agains 14 engines of about equal playing strength. Current test set:
 
 - Ruffian 1.05
-- Abrok 5.0
-- Nejmet 3.0.7
-- Bumblebee 1.0
-- Quark 2.35
-- Spike 0.8
+- Glaurung 1.21
+- Fruit 2.3.1
+- Critter 0.52
+- WildCat 8
+- Aristarch 4.50
 - Spike 0.9a
-- EveAnn 1.71
-- tjchess 1.3
-- gaia 3.5
-- Napoleon 1.8
-- Qapla 0.0.14
+- Spike 1.2 Turin
+- Midnight 5
+- Amoeba 2.1
+- Marvin 3.0
+- Laser 1.0
+- viridithas 2.7.0
+- Leorik 2.3
 
-A big thank you to the engine developers to have and keep their engines freely available. These engines are selected because they play with similar playing strength (with expection of Spike 0.9a and ruffian 1.05 which are significantly stronger) and because the run very stable and supports short time controls.
+A big thank you to the engine developers to have and keep their engines and also older versions freely available. These engines are selected because they play in average with similar playing strength and because the run very stable and supports short time controls. The current version is plays slightly above the average of these engines.
 
 I use the "Spike GUI" that is not public available for the tests. It is able to play up to 10 games in parallel and has the ability to switch off all view windows to use very little CPU (about 1% of a single core when handling 10 games in parallel). Sadly, I do not provide the latest source code any more and I need tricks to install it on windows 10. It is developed with MFC ...
 
@@ -51,12 +52,12 @@ The following features are already supported in UCI
 - Play games
 - Analyze
 - Pondering
+- MultiPV (needs some improvements here :-) )
 - Time per move, time per game, moves to go, fixed search depth
 
 Still missing
 
 - Exact node count
-- Multi-PV
 - Exclude moves in search
 
 The following "features" are only supported in winboard
@@ -70,45 +71,63 @@ Perft and divide has multi cpu support and accepts the cores N command for perft
 
 ## Playing strength
 
-Qapla never played in "official tournaments". I only have some raiting according my own test with short time control. I expect it to have abount 2400 "CCRL-ELo" or 2200 "CEGT-Elo". CCRL and CEGT are very popular chess engine raiting lists.
+Qapla never played in "official tournaments". I only have some raiting according my own test with short time control. I expect it to have abount 2700 "CCRL-ELo" or 2500 "CEGT-Elo". CCRL and CEGT are very popular chess engine raiting lists.
+
+## Improvements on Qapla 0.2 (to 1.1)
+
+- Minor changes in eval, mostly rooks and queen on #7 rank
+- Implemented late move reduction
+- Implemented kind of butterfly history boards (but with piece/target square instead of source/target square)
+- Singular extension (removed check extensions)
+- IID
+- Verify on Null moves
+- More consistend aspiration window
+- Better primary variant line due to always extend the last ply on PV node search, if a transposition table entry is found
+- Refactoring many code lines left due to the first non-recursive approach
+- Bug fixing
 
 ## What to expect from Qapla?
 
 My current plan is
 
-- Better pawn evaluation handling (I do not rate backward pawn and Qapla often gets a bad pawn structure)
-- Better evaluation for passed pawns including the ability to push it
-- Better king security - depending on the type of pieces attacking and defending the king
-- Better end game especially pawn handling and king protecting pawns
-- Try to implement NNUE based evaluation
-- Improve implementation and integration of my own bitbases, maybe extend them to bitbase/tablebase
-
-There are still many things to do in search - especially improve the search depth by late move reduction. I plan to do that only after having a suitable eval.
+- Refactoring eval to calculate an index per piece and then retrieve the pice value from a table. This shall improve the ability to automatically improve eval weights
+- Further improve search and implement more of the "classic" functionality that is still missing (futility pruning, razoring, ...)
+- The new features (eval-refinement history, continuation history, ...) will be implemented later
+- Try to generate nnue training data with my engine and implement a nnue network and train it myself.
 
 ## More info on the chess engine
 
 The chess engine is based on a bitboard move generator, which generates only legal moves.
 
+### Bitbases
+
+I have build bitbase support, but it is not yet included
+
 ### Table bases
 
-Not yet, but a first version of own made (uncompressed) bitbases for KPK is already supported and included
-It supports already generating bitbases, but they are not yet usable
+Not yet
+
+### Multi-Threading
+
+Not yet
 
 ### Search
 
 Qapla has a classic recursive negamax search including the basic search features
 
 - Move ordering (PV, good captures, killer1, killer2, non-captures, bad-captures)
-- Null-window search on PV nodes after one best move has been found
+- Null-window search on PV nodes after one best move has been found with verification search
 - Iterative deepening with aspiration window
-- Check extensions
+- Singular extension
 - Tansposition table (fixed size: 32MB) - due to not yet implemented parameter to change it. Note changing the size of the TT has little effect on the playing strength
-- Quiescense search with a check-evades for the first ply and a simple foreward pruning
-- Conservative futility pruning
+- Quiescense search with a check-evades for all plies
+- Late move reduction with piece/position history
+- Late move pruning
+- Reverse futility pruning (thus futility pruning after making the move)
 
 ### Time management
 
-Since 0.1.1, Qapla has an improved time management and will take lot more time in critical situations.
+Using longer time for critical situation
 
 ### Eval
 
@@ -124,6 +143,7 @@ Qapla already has several eval terms
 - Knight outpost
 - Rook trapped by king penalty
 - Rook on half and full open files
+- Rooks on 7th rank
 
 ### Endgame eval terms
 
