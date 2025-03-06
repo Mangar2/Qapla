@@ -1,5 +1,9 @@
 # Qapla Test Versions
 
+## 0.2.056 2025-03-06
+
+- Improvements and fixes for MultiPV
+
 ## 0.2.055 2025-03-03
 
 - IID fixed

@@ -444,16 +444,19 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
 	Stockfish::Engine::set_position(position.getFen());
 
-	for (uint32_t triedMoves = skipMoves; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
+	for (uint32_t triedMoves = 0; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
 
 		RootMove& rootMove = _computingInfo.getRootMoves().getMove(triedMoves);
+		if (rootMove.isPVSearchedInWindow(depth) && triedMoves < skipMoves) {
+			continue;
+		}
 		stack.setPV(rootMove.getPV());
 	
 		const Move curMove = rootMove.getMove();
-		_computingInfo.setCurrentMove(curMove);
+		_computingInfo.setCurrentMove(triedMoves, curMove);
 
 		stack[1].doMove(position, curMove);
-		result = triedMoves == skipMoves || depth <= 1 ?
+		result = triedMoves <= skipMoves || depth <= 1 ?
 			-negaMax<SearchRegion::PV>(position, stack, depth - 1, 1):
 			-negaMax<SearchRegion::INNER>(position, stack, depth - 1, 1);
 		stack[1].undoMove(position);
@@ -491,7 +494,6 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
-	_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	_computingInfo.printSearchResult();
 }
 

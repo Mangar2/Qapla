@@ -131,7 +131,7 @@ namespace QaplaSearch {
 					_timeControl.getTimeSpentInMilliseconds(),
 					_nodesSearched,
 					_tbHits,
-					_totalAmountOfMovesToConcider - _currentMoveNoSearched,
+					_totalAmountOfMovesToConcider - _currentMoveNoSearched - 1,
 					_totalAmountOfMovesToConcider,
 					_currentConcideredMove.getLAN(),
 					_hashFullInPermill
@@ -210,7 +210,8 @@ namespace QaplaSearch {
 		/**
 		 * Sets the current concidered move
 		 */
-		void setCurrentMove(Move move) {
+		void setCurrentMove(uint32_t moveNo, Move move) {
+			_currentMoveNoSearched = moveNo;
 			_currentConcideredMove = move;
 		}
 
@@ -218,7 +219,6 @@ namespace QaplaSearch {
 		 * Update status information on ply 0
 		 */
 		void printNewPV(uint32_t moveNo) {
-			_currentMoveNoSearched = moveNo;
 			const auto rootMove = _rootMoves.getMove(moveNo);
 			if (rootMove.isPVSearched() && rootMove.getValue() > _positionValueInCentiPawn) {
 				_positionValueInCentiPawn = rootMove.getValue();
@@ -248,7 +248,7 @@ namespace QaplaSearch {
 			exchange.searchDepth = _searchDepth;
 			exchange.elapsedTimeInMilliseconds = _timeControl.getTimeSpentInMilliseconds();
 			exchange.totalAmountOfMovesToConcider = _totalAmountOfMovesToConcider;
-			exchange.movesLeftToConcider = _totalAmountOfMovesToConcider - _currentMoveNoSearched;
+			exchange.movesLeftToConcider = _totalAmountOfMovesToConcider - _currentMoveNoSearched - 1;
 			return exchange;
 		}
 

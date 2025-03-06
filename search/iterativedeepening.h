@@ -215,8 +215,9 @@ namespace QaplaSearch {
 			}
 			uint32_t numberOfPVSearchedMoves = 0;
 			do {
-				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha(), _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
-				_search.negaMaxRoot(position, stack, multiPV, _clockManager);
+				const auto alphaRed = std::max(0, int32_t(multiPV) - int32_t(numberOfPVSearchedMoves) - 1) * 5;
+				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
+				_search.negaMaxRoot(position, stack, multiPV - 1, _clockManager);
 				const auto& computingInfo = _search.getComputingInfo();
 				numberOfPVSearchedMoves = computingInfo.countPVSearchedMovesInWindow(searchDepth);
 				const auto multiPVPos = std::min(numberOfPVSearchedMoves, multiPV - 1);
