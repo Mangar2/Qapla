@@ -153,9 +153,6 @@
     <ClCompile Include="nnue\position.cpp">
       <Filter>nnue</Filter>
     </ClCompile>
-    <ClCompile Include="nnue\uci.cpp">
-      <Filter>nnue</Filter>
-    </ClCompile>
     <ClCompile Include="nnue\evaluate.cpp">
       <Filter>nnue</Filter>
     </ClCompile>

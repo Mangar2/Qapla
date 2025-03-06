@@ -1886,7 +1886,6 @@
     <ClCompile Include="nnue\network.cpp" />
     <ClCompile Include="nnue\nnue_misc.cpp" />
     <ClCompile Include="nnue\position.cpp" />
-    <ClCompile Include="nnue\uci.cpp" />
     <ClCompile Include="pgn\pgngame.cpp" />
     <ClCompile Include="pgn\pgntokenizer.cpp" />
     <ClCompile Include="Qapla.cpp" />
