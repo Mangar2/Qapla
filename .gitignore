@@ -12,6 +12,7 @@
 *.sln.docstates
 *.pgn
 *.btb
+*.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
