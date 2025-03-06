@@ -442,7 +442,9 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	node.computeMoves(position, _butterflyBoard);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
+#ifdef USE_STOCKFISH_EVAL
 	Stockfish::Engine::set_position(position.getFen());
+#endif
 
 	for (uint32_t triedMoves = 0; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
 

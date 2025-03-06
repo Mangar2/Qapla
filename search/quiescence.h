@@ -29,7 +29,9 @@
 #include "computinginfo.h"
 #include "../search/tt.h"
 #include "../movegenerator/movegenerator.h"
+#ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
+#endif
 
 using namespace QaplaMoveGenerator;
 

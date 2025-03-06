@@ -36,7 +36,9 @@
 #include "bitbase/bitbasegenerator.h"
 #include "bitbase/bitbasereader.h"
 
+#ifdef USE_STOCKFISH_EVAL
 #include "nnue/engine.h"
+#endif
 
 using namespace QaplaInterface;
 

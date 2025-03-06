@@ -34,7 +34,9 @@
 #include "tt.h"
 #include "butterfly-boards.h"
 #include "whatif.h"
+#ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
+#endif
  // #include "razoring.h"
 
 using namespace std;

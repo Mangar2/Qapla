@@ -35,7 +35,9 @@
 #include "searchparameter.h"
 #include "extension.h"
 #include "../eval/eval.h"
+#ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
+#endif
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -179,7 +181,9 @@ namespace QaplaSearch {
 				return;
 			}
 			position.undoMove(previousMove, boardState);
+#ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(previousMove);
+#endif
 		}
 
 		/**

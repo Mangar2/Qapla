@@ -32,7 +32,6 @@
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
-#include "../nnue/engine.h"
 
 using namespace QaplaMoveGenerator;
 
