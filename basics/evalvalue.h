@@ -69,7 +69,7 @@ namespace QaplaBasics {
 		constexpr  EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
 		constexpr  EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
 		constexpr  EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
-		EvalValue operator*(value_t mul) { _midgame *= mul; _endgame *= mul; }
+		// EvalValue operator*(value_t mul) { _midgame *= mul; _endgame *= mul; return *this; }
 
 		constexpr friend EvalValue operator+(EvalValue a, EvalValue b);
 		constexpr friend EvalValue operator-(EvalValue a, EvalValue b);
@@ -77,13 +77,13 @@ namespace QaplaBasics {
 		constexpr friend EvalValue operator*(EvalValue a, EvalValue b);
 		constexpr friend EvalValue operator/(EvalValue a, EvalValue b);
 		//This method handles all the outputs.    
-		static friend ostream& operator<<(ostream&, const EvalValue&);
+		friend ostream& operator<<(ostream&, const EvalValue&);
 	private:
 		int16_t _midgame;
 		int16_t _endgame;
 	};
 
-	ostream& operator<<(ostream& o, const EvalValue& v) {
+	inline ostream& operator<<(ostream& o, const EvalValue& v) {
 		o << "[" << std::right << std::setw(3) << v._midgame << ", " 
 			<< std::right << std::setw(3) << v._endgame << "]";
 		return o;
