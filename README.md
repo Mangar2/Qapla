@@ -73,7 +73,7 @@ Perft and divide has multi cpu support and accepts the cores N command for perft
 
 Qapla never played in "official tournaments". I only have some raiting according my own test with short time control. I expect it to have abount 2700 "CCRL-ELo" or 2500 "CEGT-Elo". CCRL and CEGT are very popular chess engine raiting lists.
 
-## Improvements on Qapla 0.2 (to 1.1)
+## Improvements on Qapla 0.2 (to 0.1.1)
 
 - Minor changes in eval, mostly rooks and queen on #7 rank
 - Implemented late move reduction
