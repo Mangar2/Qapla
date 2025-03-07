@@ -128,7 +128,6 @@ namespace QaplaSearch {
 					std::cout << currentMove.getLAN() << " ";
 				}
 			}
-			std::cout << std::endl;  // Damit die Ausgabe sauber abschließt
 		}
 
 	private:

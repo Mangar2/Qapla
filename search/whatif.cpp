@@ -20,7 +20,7 @@ void WhatIf::init(const Board &board, const ComputingInfo &computingInfo, value_
 {
 	if (computingInfo.getSearchDepht() == searchDepth)
 	{
-		std::cout << "New search [w:" << std::setw(6) << beta << "," << std::setw(6) << alpha << "]\n";
+		std::cout << "New search [w:" << std::setw(6) << beta << "," << std::setw(6) << alpha << "]" << std::endl;
 	}
 	hashFoundPly = -1;
 }
@@ -98,13 +98,13 @@ void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo
 		{
 			std::cout << ".";
 		}
+		std::cout << currentMove.getLAN()
+				<< " [w:" << std::setw(6) << beta << ","
+				<< std::setw(6) << alpha
+				<< "][v:" << std::setw(6) << bestValue
+				<< "][eval:" << std::setw(6) << standPatValue
+				<< "][hash:" << std::setw(16) << board.computeBoardHash() << "]" << std::endl;
 	}
-	std::cout << currentMove.getLAN()
-			  << " [w:" << std::setw(6) << beta << ","
-			  << std::setw(6) << alpha
-			  << "][v:" << std::setw(6) << bestValue
-			  << "][eval:" << std::setw(6) << standPatValue
-			  << "][hash:" << std::setw(16) << board.computeBoardHash() << "]" << std::endl;
 }
 
 /**
