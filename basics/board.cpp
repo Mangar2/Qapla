@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  */
 
 #include <iomanip>
@@ -302,11 +302,11 @@ void Board::print() const {
 	for (Rank rank = Rank::R8; rank >= Rank::R1; --rank) {
 		for (File file = File::A; file <= File::H; ++file) {
 			Piece piece = operator[](computeSquare(file, rank));
-			printf(" %c ", pieceToChar(piece));
+			std::cout << " " << pieceToChar(piece) << " ";
 		}
-		printf("\n");
+		std::cout << std::endl;
 	}
-	printf("hash: %llu\n", computeBoardHash());
+	std::cout << "hash: " << computeBoardHash() << std::endl;
 	printFen();
 	//printf("White King: %ld, Black King: %ld\n", kingPos[WHITE], kingPos[BLACK]);
 }

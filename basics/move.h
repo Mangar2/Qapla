@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Defines a chess move coded in a single 32 bit integer
  * The bit code of the move is
@@ -76,37 +76,37 @@ public:
 		PROMOTION_SHIFT = 28
 	};
 
-	static const uint32_t WHITE_PAWN_SHIFT = WHITE_PAWN << MOVING_PIECE_SHIFT;
-	static const uint32_t BLACK_PAWN_SHIFT = BLACK_PAWN << MOVING_PIECE_SHIFT;
-	static const uint32_t WHITE_KING_SHIFT = WHITE_KING << MOVING_PIECE_SHIFT;
-	static const uint32_t BLACK_KING_SHIFT = BLACK_KING << MOVING_PIECE_SHIFT;
+	static constexpr uint32_t WHITE_PAWN_SHIFT = WHITE_PAWN << MOVING_PIECE_SHIFT;
+	static constexpr uint32_t BLACK_PAWN_SHIFT = BLACK_PAWN << MOVING_PIECE_SHIFT;
+	static constexpr uint32_t WHITE_KING_SHIFT = WHITE_KING << MOVING_PIECE_SHIFT;
+	static constexpr uint32_t BLACK_KING_SHIFT = BLACK_KING << MOVING_PIECE_SHIFT;
 
-	static const uint32_t EMPTY_MOVE = 0;
-	static const uint32_t NULL_MOVE = 1;
+	static constexpr uint32_t EMPTY_MOVE = 0;
+	static constexpr uint32_t NULL_MOVE = 1;
 	// Action Promotion
-	static const uint32_t PROMOTE = 0x00100000;
-	static const uint32_t PROMOTE_UNSHIFTED = 0x00000010;
-	static const uint32_t WHITE_PROMOTE = PROMOTE + WHITE_PAWN_SHIFT;
-	static const uint32_t BLACK_PROMOTE = PROMOTE + BLACK_PAWN_SHIFT;
+	static constexpr uint32_t PROMOTE = 0x00100000;
+	static constexpr uint32_t PROMOTE_UNSHIFTED = 0x00000010;
+	static constexpr uint32_t WHITE_PROMOTE = PROMOTE + WHITE_PAWN_SHIFT;
+	static constexpr uint32_t BLACK_PROMOTE = PROMOTE + BLACK_PAWN_SHIFT;
 	// En passant
-	static const uint32_t EP_CODE_UNSHIFTED = 0x00000020;
-	static const uint32_t EP_CODE = 0x00200000;
-	static const uint32_t WHITE_EP = EP_CODE + WHITE_PAWN_SHIFT;
-	static const uint32_t BLACK_EP = EP_CODE + BLACK_PAWN_SHIFT;
+	static constexpr uint32_t EP_CODE_UNSHIFTED = 0x00000020;
+	static constexpr uint32_t EP_CODE = 0x00200000;
+	static constexpr uint32_t WHITE_EP = EP_CODE + WHITE_PAWN_SHIFT;
+	static constexpr uint32_t BLACK_EP = EP_CODE + BLACK_PAWN_SHIFT;
 	
 	// pawn moved by two
-	static const uint32_t PAWN_MOVED_TWO_ROWS = 0x00300000;
-	static const uint32_t WHITE_PAWN_MOVED_TWO_ROWS = PAWN_MOVED_TWO_ROWS + WHITE_PAWN_SHIFT;
-	static const uint32_t BLACK_PAWN_MOVED_TWO_ROWS = PAWN_MOVED_TWO_ROWS + BLACK_PAWN_SHIFT;
+	static constexpr uint32_t PAWN_MOVED_TWO_ROWS = 0x00300000;
+	static constexpr uint32_t WHITE_PAWN_MOVED_TWO_ROWS = PAWN_MOVED_TWO_ROWS + WHITE_PAWN_SHIFT;
+	static constexpr uint32_t BLACK_PAWN_MOVED_TWO_ROWS = PAWN_MOVED_TWO_ROWS + BLACK_PAWN_SHIFT;
 	// casteling 
-	static const uint32_t KING_CASTLES_KING_SIDE = 0x00000010 + KING;
-	static const uint32_t KING_CASTLES_QUEEN_SIDE = 0x00000020 + KING;
-	static const uint32_t CASTLES_KING_SIDE = 0x00100000;
-	static const uint32_t CASTLES_QUEEN_SIDE = 0x00200000;
-	static const uint32_t WHITE_CASTLES_KING_SIDE = CASTLES_KING_SIDE + WHITE_KING_SHIFT;
-	static const uint32_t BLACK_CASTLES_KING_SIDE = CASTLES_KING_SIDE + BLACK_KING_SHIFT;
-	static const uint32_t WHITE_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + WHITE_KING_SHIFT;
-	static const uint32_t BLACK_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + BLACK_KING_SHIFT;
+	static constexpr uint32_t KING_CASTLES_KING_SIDE = 0x00000010 + KING;
+	static constexpr uint32_t KING_CASTLES_QUEEN_SIDE = 0x00000020 + KING;
+	static constexpr uint32_t CASTLES_KING_SIDE = 0x00100000;
+	static constexpr uint32_t CASTLES_QUEEN_SIDE = 0x00200000;
+	static constexpr uint32_t WHITE_CASTLES_KING_SIDE = CASTLES_KING_SIDE + WHITE_KING_SHIFT;
+	static constexpr uint32_t BLACK_CASTLES_KING_SIDE = CASTLES_KING_SIDE + BLACK_KING_SHIFT;
+	static constexpr uint32_t WHITE_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + WHITE_KING_SHIFT;
+	static constexpr uint32_t BLACK_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + BLACK_KING_SHIFT;
 
 	constexpr Square getDeparture() const { return Square(_move & 0x0000003F); }
 	constexpr Square getDestination() const { return Square((_move & 0x00003F00) >> DESTINATION_SHIFT); }

@@ -285,22 +285,22 @@ namespace QaplaSearch {
 		}
 
 	public:
-		static const uint16_t MAX_DEPTH = 0x01FF;
+		static constexpr uint16_t MAX_DEPTH = 0x01FF;
 
 	private:
-		static const uint16_t DEPTH_SHIFT = 0U;
-		static const uint16_t DEPTH_MASK = MAX_DEPTH << DEPTH_SHIFT;
-		static const uint16_t NULLMOVE_THREAT_MASK = 0x00000001U;
-		static const uint16_t NULLMOVE_THREAT_SHIFT = 9U;
-		static const uint16_t PRECISION_SHIFT = 10U;
-		static const uint16_t PRECISION_MASK = 0x00000003U << PRECISION_SHIFT;
-		static const uint16_t ENTRY_AGE_INDICATOR_SHIFT = 12U;
-		static const uint16_t ENTRY_AGE_INDICATOR_MASK = 0x0000000FU << ENTRY_AGE_INDICATOR_SHIFT;
+		static constexpr uint16_t DEPTH_SHIFT = 0U;
+		static constexpr uint16_t DEPTH_MASK = MAX_DEPTH << DEPTH_SHIFT;
+		static constexpr uint16_t NULLMOVE_THREAT_MASK = 0x00000001U;
+		static constexpr uint16_t NULLMOVE_THREAT_SHIFT = 9U;
+		static constexpr uint16_t PRECISION_SHIFT = 10U;
+		static constexpr uint16_t PRECISION_MASK = 0x00000003U << PRECISION_SHIFT;
+		static constexpr uint16_t ENTRY_AGE_INDICATOR_SHIFT = 12U;
+		static constexpr uint16_t ENTRY_AGE_INDICATOR_MASK = 0x0000000FU << ENTRY_AGE_INDICATOR_SHIFT;
 	public:
-		static const uint16_t INVALID = 0;
-		static const uint16_t EXACT = 1;
-		static const uint16_t LESSER_OR_EQUAL = 2;
-		static const uint16_t GREATER_OR_EQUAL = 3;
+		static constexpr uint16_t INVALID = 0;
+		static constexpr uint16_t EXACT = 1;
+		static constexpr uint16_t LESSER_OR_EQUAL = 2;
+		static constexpr uint16_t GREATER_OR_EQUAL = 3;
 
 	private:
 		Move _move;

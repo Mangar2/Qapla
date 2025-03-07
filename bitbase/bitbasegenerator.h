@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Tool to generate bitbases
  */
@@ -49,7 +49,7 @@ namespace QaplaBitbase {
 		void computeBitbaseRec(string pieceString, uint32_t cores = 1, bool uncompressed = false,
 				int traceLevel = 0, int debugLevel = 0, uint64_t debugIndex = 64)
 		{
-			_cores = min(MAX_THREADS, cores);
+			_cores = std::min(MAX_THREADS, cores);
 			_uncompressed = uncompressed;
 			_traceLevel = traceLevel;
 			_debugIndex = debugIndex;
@@ -267,7 +267,7 @@ namespace QaplaBitbase {
 		uint64_t _debugIndex;
 		int _debugLevel;
 
-		static const uint32_t MAX_THREADS = 64;
+		static constexpr uint32_t MAX_THREADS = 64;
 		array<thread, MAX_THREADS> _threads;
 	};
 
