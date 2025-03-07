@@ -41,7 +41,7 @@ int64_t StdTimeControl::getCPUTimeInMilliseconds() const
    return ((int64_t)(clock()) * 1000) / (int64_t)(CLOCKS_PER_SEC); 
 }
 
-int64_t StdTimeControl::getSystemTimeInMilliseconds() const
+int64_t StdTimeControl::getSystemTimeInMilliseconds()
 {
 	#pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wdeprecated-declarations"

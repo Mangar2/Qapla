@@ -23,7 +23,7 @@
 #define __CLOCKSETTING_H
 
 #include "../basics/types.h"
-#include <sys/timeb.h>
+#include "stdtimecontrol.h"
 
 namespace QaplaInterface {
 
@@ -244,17 +244,7 @@ namespace QaplaInterface {
 
 		uint64_t getSystemTimeInMilliseconds() const
 		{
-			#pragma GCC diagnostic push
-			#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-		
-			timeb aCurrentTime;
-			ftime(&aCurrentTime); 
-		
-			#pragma GCC diagnostic pop
-			return ((int64_t)(aCurrentTime.time) * 1000 + 
-				(int64_t)(aCurrentTime.millitm));
-			return ((uint64_t)(aCurrentTime.time) * 1000 +
-				(uint64_t)(aCurrentTime.millitm));
+			return StdTimeControl::getSystemTimeInMilliseconds();
 		}
 
 

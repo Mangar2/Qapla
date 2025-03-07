@@ -318,18 +318,7 @@ namespace QaplaSearch {
 		 */
 		int64_t getSystemTimeInMilliseconds() const
 		{
-			
-			#pragma GCC diagnostic push
-			#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-		
-			timeb aCurrentTime;
-			ftime(&aCurrentTime); 
-		
-			#pragma GCC diagnostic pop
-			return ((int64_t)(aCurrentTime.time) * 1000 + 
-				(int64_t)(aCurrentTime.millitm));
-			return ((int64_t)(aCurrentTime.time) * 1000 +
-				(int64_t)(aCurrentTime.millitm));
+			return StdTimeControl::getSystemTimeInMilliseconds();
 		}
 
 		int64_t _startTime;

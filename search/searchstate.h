@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a state controller recoding the search criticalness
  * The more critical a search finding is (fail low on PV for example)
@@ -26,7 +26,6 @@
 
 #include <time.h>
 #include <algorithm>
-#include <sys/timeb.h>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 #include "../interface/clocksetting.h"

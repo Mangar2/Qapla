@@ -438,6 +438,9 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 			genMovesSinglePiece(piece, departure, destination & bitBoardAllPieces, moveList);
 			genMovesSinglePiece(piece, departure, destination & ~bitBoardAllPieces, moveList);
 			break;
+		default:
+			// Intentionally left blank
+			break;
 		}
 	}
 }
@@ -495,7 +498,7 @@ void MoveGenerator::genEvadesByBlocking(MoveList& moveList,
 {
 	Square      departure;
 	bitBoard_t destination = bitBoardsPiece[PIECE] & removePinnedPiecesMask;
-	for (destination ; destination; destination &= destination - 1)
+	for (; destination; destination &= destination - 1)
 	{
 		departure = lsb(destination);
 		genMovesSinglePiece(PIECE, departure, pieceAttackMask[departure] & blockingPositions, moveList);
