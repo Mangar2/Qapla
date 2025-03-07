@@ -76,7 +76,29 @@ namespace QaplaSearch {
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool mustAbortSearch(ply_t depth, ply_t ply) {
+		bool emergencyAbort(ply_t depth, ply_t ply) {
+			int64_t timeSpent = computeTimeSpentInMilliseconds();
+			if (depth + ply <= MIN_DEPTH) {
+				return false;
+			}
+			if (_mode == ClockMode::stopped) {
+				return true;
+			}
+			if (_mode != ClockMode::search) {
+				return false;
+			}
+			if (timeSpent > _maxTimePerMove) {
+				cout << "max time per move exceeded" << endl;
+				stopSearch();
+				return true;
+			}
+			return false;
+		}
+
+		/**
+		 * Checks, if calculation must be aborded due to time constrains
+		 */
+		bool shouldAbort(ply_t depth) {
 			int64_t timeSpent = computeTimeSpentInMilliseconds();
 			if (depth <= MIN_DEPTH) {
 				return false;
@@ -87,16 +109,13 @@ namespace QaplaSearch {
 			if (_mode != ClockMode::search) {
 				return false;
 			}
-			if (timeSpent > _maxTimePerMove) {
-				stopSearch();
-				return true;
-			}
-			if (ply == 0 && timeSpent > (_averageTimePerMove / 10) * 8) {
+			if (timeSpent > (_averageTimePerMove / 10) * 8) {
 				stopSearch();
 				return true;
 			}
 			return false;
 		}
+
 
 		/**
 		 * Checks if there is suitable to start the calculation of the next depth

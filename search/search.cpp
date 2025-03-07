@@ -288,7 +288,7 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (TYPE != SearchRegion::NEAR_LEAF && hasBitbaseCutoff(position, node)) {
 		node.setCutoff(Cutoff::BITBASE);
 	}
-	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->mustAbortSearch(stack[0].remainingDepth, ply)) {
+	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort(stack[0].remainingDepth, ply)) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
 
@@ -464,7 +464,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		stack[1].undoMove(position);
 
 		// AbortSearch must be checked first. If it is true, we do not have a valid search result
-		if (node.remainingDepth > 1 && _clockManager->mustAbortSearch(depth, 0)) break;
+		if (_clockManager->isSearchStopped()) break;
 
 		if (result > node.alpha && node.isNullWindowSearch()) {
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, 0, result);
@@ -475,7 +475,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		}
 
 		// AbortSearch must be checked first. If it is true, we do not have a valid search result
-		if (node.remainingDepth > 1 && _clockManager->mustAbortSearch(depth, 0)) break;
+		if (_clockManager->isSearchStopped()) break;
 			
 		// We need to set the result to the root move before we update the node variables. 
 		// The root move will check for a fail low and thus needs the alpha value not updated
@@ -488,7 +488,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		}
 
 		_clockManager->setSearchedRootMove(node.isPVFailLow(), node.bestValue);
-
+		if (_clockManager->shouldAbort(node.remainingDepth)) break;
 		_computingInfo.printNewPV(triedMoves);
 		if (node.isFailHigh()) break;
 	}

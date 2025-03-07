@@ -43,7 +43,13 @@ namespace QaplaSearch {
 		void setStartPosition(const MoveGenerator& aBoard) {
 			startPosition = aBoard;
 			_history.resize(0);
+		}
 
+		/**
+		 * removes all moves from the move history
+		 */
+		void clearMoves() {
+			_history.resize(0);
 		}
 
 		/**

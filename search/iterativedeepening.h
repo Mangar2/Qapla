@@ -226,7 +226,7 @@ namespace QaplaSearch {
 				isInWindow = _window[multiPVPos].isInside(positionValue);
 				_window[multiPVPos].setSearchResult(positionValue);
 
-			} while (!_clockManager.mustAbortSearch(searchDepth, 0) && numberOfPVSearchedMoves < multiPV);
+			} while (!_clockManager.shouldAbort(searchDepth) && numberOfPVSearchedMoves < multiPV);
 
 		}
 

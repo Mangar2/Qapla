@@ -177,6 +177,7 @@ namespace QaplaSearch {
 			position.clear();
 			positionModified = true;
 			playedMovesInGame = 0;
+			moveHistory.clearMoves();
 		}
 
 		/**
