@@ -343,7 +343,7 @@ namespace QaplaSearch {
 		SearchState _searchState;
 		bool _verbose;
 
-		static const int32_t KEEP_TIME_FOR_MOVES = 35;
+		static constexpr int32_t KEEP_TIME_FOR_MOVES = 35;
 		static const int32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
 		static const ply_t MIN_DEPTH = 5;
 	};
