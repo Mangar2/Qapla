@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a static class to evaluate rooks 
  */
@@ -124,7 +124,7 @@ namespace ChessEval {
 		 * Prints a rook index
 		 */
 		static string getIndexStr(Square square, uint16_t rookIndex) {
-			string result = "Mob: " + (rookIndex / 32);
+			string result = "Mob: " + std::to_string(rookIndex / 32);
 			if ((rookIndex & OPEN_FILE) != 0) { result += " <of>"; }
 			if ((rookIndex & HALF_OPEN_FILE) != 0) { result += " <hof>"; }
 			if ((rookIndex & TRAPPED) != 0) { result += "<tbk>"; }

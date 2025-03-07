@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Functions and Masks to work with bitboards for chess
  */
@@ -155,9 +155,9 @@ namespace QaplaMoveGenerator {
 		constexpr static bitBoard_t shift(bitBoard_t bitBoard) {
 			switch (DIRECTION) {
 			case NORTH: return bitBoard << NORTH;
-			case NORTH * 2: return bitBoard << (NORTH * 2);
+			case NORTH_2: return bitBoard << (NORTH * 2);
 			case SOUTH: return bitBoard >> -SOUTH;
-			case SOUTH * 2: return bitBoard >> (-SOUTH * 2);
+			case SOUTH_2: return bitBoard >> (-SOUTH * 2);
 			case EAST: return (bitBoard & ~FILE_H_BITMASK) << EAST;
 			case WEST: return (bitBoard & ~FILE_A_BITMASK) >> -WEST;
 			case NW: return (bitBoard & ~FILE_A_BITMASK) << NW;

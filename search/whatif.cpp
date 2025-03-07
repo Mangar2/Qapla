@@ -2,7 +2,7 @@
 #include "../eval/eval.h"
 #include "searchstack.h"
 #include "tt.h"
-#include "whatif.h"
+#include "whatIf.h"
 #include "boardadapter.h"
 
 using namespace QaplaSearch;

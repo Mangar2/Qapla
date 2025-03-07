@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a stack for chess search
  */
@@ -120,15 +120,15 @@ namespace QaplaSearch {
 		void printMoves(Move currentMove, ply_t ply) const {
 			for (ply_t index = 1; index <= ply + 1; index++) {
 				if ((index - 1) % 2 == 0) {
-					printf("%ld. ", (index / 2 + 1));
+					std::cout << (index / 2 + 1) << ". ";
 				}
 				if (index <= ply) {
-					printf("%s ", _stack[index].previousMove.getLAN().c_str());
-				}
-				else if (currentMove != Move::EMPTY_MOVE) {
-					printf("%s ", currentMove.getLAN().c_str());
+					std::cout << _stack[index].previousMove.getLAN() << " ";
+				} else if (currentMove != Move::EMPTY_MOVE) {
+					std::cout << currentMove.getLAN() << " ";
 				}
 			}
+			std::cout << std::endl;  // Damit die Ausgabe sauber abschlieÃŸt
 		}
 
 	private:

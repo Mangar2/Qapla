@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a move provider for search providing moves in the right order
  */
@@ -29,7 +29,7 @@
 //#include "EvalBoard.h"
 #include "killermove.h"
 #include "see.h"
-#include "SearchParameter.h"
+#include "searchparameter.h"
 #include "butterfly-boards.h"
 #include "../movegenerator/movegenerator.h"
 
@@ -54,9 +54,9 @@ namespace QaplaSearch {
 		MoveProvider() : curMoveNo(0), _butterflyBoard(0) {
 			selectStage = MoveType::PV + 1;
 			currentStage = selectStage;
-			pvMove;
-			_ttMove;
-			previousMove;
+			pvMove = Move::EMPTY_MOVE;
+			_ttMove = Move::EMPTY_MOVE;
+			previousMove = Move::EMPTY_MOVE;
 		};
 
 		/**

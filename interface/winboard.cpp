@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  */
 
 
@@ -47,6 +47,7 @@ void Winboard::printGameResult(GameResult result) {
 	case GameResult::DRAW_BY_NOT_ENOUGHT_MATERIAL: println("1/2-1/2 {Not enough material to win}"); break;
 	case GameResult::BLACK_WINS_BY_MATE: println("0-1 {Black mates}"); break;
 	case GameResult::WHITE_WINS_BY_MATE: println("1-0 {White mates}"); break;
+	case GameResult::NOT_ENDED: break; // do nothing
 	}
 }
 
@@ -158,7 +159,10 @@ void Winboard::runPerft(bool showMoves) {
 		timeControl.storeStartTime();
 		uint64_t res = _board->perft((uint16_t)getCurrentTokenAsUnsignedInt(), showMoves, _maxTheadCount);
 		float durationInMs = (float)timeControl.getTimeSpentInMilliseconds();
-		printf("nodes: %lld, time: %5.4fs, nps: %10.0f \n", res, durationInMs / 1000, res * 1000.0 / durationInMs);
+		std::cout << "nodes: " << res
+          << ", time: " << std::fixed << std::setprecision(4) << (durationInMs / 1000.0)
+          << "s, nps: " << std::fixed << std::setprecision(0) << (res * 1000.0 / durationInMs)
+          << std::endl;
 	}
 }
 

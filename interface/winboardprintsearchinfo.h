@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Prints the search information for the winboard interface
  */
@@ -22,8 +22,9 @@
 #ifndef __WINBOARDPRINTSEARCHINFO_H
 #define __WINBOARDPRINTSEARCHINFO_H
 
-#include "ISendSearchInfo.h"
-#include "IInputOutput.h"
+#include <sstream>
+#include "isendsearchinfo.h"
+#include "iinputoutput.h"
 
 namespace QaplaInterface {
 
@@ -41,22 +42,22 @@ namespace QaplaInterface {
 			uint64_t tbHits,
 			MoveStringList primaryVariant,
 			uint32_t multiPV
-		)
-		{
-			const auto BUF_SIZE = 256;
-			char resultBuf[BUF_SIZE];
-			sprintf_s<BUF_SIZE>(resultBuf, "%d %d %lld %lld",
-				searchDepth + 1,
-				convertPositionValueToWinboardFormat(positionValue),
-				timeSpendInMilliseconds / 10,
-				nodesSearched);
-			ioHandler->print(resultBuf);
-
-			for (uint8_t ply = 0; ply < primaryVariant.size(); ply++) {
+		) {
+			std::ostringstream resultStream;
+		
+			resultStream << (searchDepth + 1) << " "
+						 << convertPositionValueToWinboardFormat(positionValue) << " "
+						 << (timeSpendInMilliseconds / 10) << " "
+						 << nodesSearched;
+		
+			ioHandler->print(resultStream.str());  // Direkt den String ausgeben
+		
+			// Varianten hinzufÃ¼gen
+			for (const auto& move : primaryVariant) {
 				ioHandler->print(" ");
-				ioHandler->print(primaryVariant[ply].c_str());
+				ioHandler->print(move);
 			}
-
+		
 			ioHandler->println("");
 		}
 
@@ -84,22 +85,21 @@ namespace QaplaInterface {
 			uint64_t tbHits,
 			uint32_t movesLeftToConsider,
 			uint32_t totalAmountOfMovesToConsider,
-			const string& currentConsideredMove,
+			const std::string& currentConsideredMove,
 			uint32_t hashFullInPercent
-		)
-		{
-			const auto BUF_SIZE = 256;
-			char resultBuf[BUF_SIZE];
-			sprintf_s<BUF_SIZE>(resultBuf, "stat01: %lld %lld %ld %ld %ld",
-				timeSpendInMilliseconds / 10,
-				nodesSearched,
-				searchDepth + 1,
-				movesLeftToConsider,
-				totalAmountOfMovesToConsider);
-
-			ioHandler->print(resultBuf);
+		) {
+			std::ostringstream resultStream;
+		
+			resultStream << "stat01: " 
+						 << (timeSpendInMilliseconds / 10) << " "
+						 << nodesSearched << " "
+						 << (searchDepth + 1) << " "
+						 << movesLeftToConsider << " "
+						 << totalAmountOfMovesToConsider;
+		
+			ioHandler->print(resultStream.str());  // String direkt an print() Ã¼bergeben
 			ioHandler->print(" ");
-			ioHandler->println(currentConsideredMove.c_str());
+			ioHandler->println(currentConsideredMove);
 		}
 
 		value_t convertPositionValueToWinboardFormat(value_t positionValue) {

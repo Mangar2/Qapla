@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * State of the generation for a single piece combination
  */
@@ -23,6 +23,7 @@
 #define __GENERATIONSTATE_H
 
 #include <mutex>
+#include <atomic>
 #include "bitbase.h"
 #include "bitbaseindex.h"
 
@@ -209,11 +210,11 @@ namespace QaplaBitbase {
 		}
 
 		uint64_t _sizeInBit;
-		atomic_uint64_t _illegal;
-		atomic_uint64_t _loss;
-		atomic_uint64_t _draw;
-		atomic_uint64_t _won;
-		atomic_uint64_t _hasCandidates;
+		std::atomic<uint64_t> _illegal;
+		std::atomic<uint64_t> _loss;
+		std::atomic<uint64_t> _draw;
+		std::atomic<uint64_t>  _won;
+		std::atomic<uint64_t>  _hasCandidates;
 		Bitbase _wonPositions;
 		Bitbase _computedPositions;
 		Bitbase _candidates;

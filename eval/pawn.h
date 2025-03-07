@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Provides functions to evaluate the pawn structure
  */
@@ -23,6 +23,7 @@
 #define __PAWN_H
 
 #include <map>
+#include <cstring>
 #include "../basics/types.h"
 #include "../basics/move.h"
 #include "../movegenerator/bitboardmasks.h"
@@ -175,7 +176,7 @@ namespace ChessEval {
 		static value_t getKingDistance(const Board& position, Square square, Square kingPos) {
 			const Piece OPPONENT_COLOR = switchColor(COLOR);
 			Square opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
-			Square myKingPos = position.getKingSquare<COLOR>;
+			Square myKingPos = position.getKingSquare<COLOR>();
 		}
 
 		template <Piece COLOR>
@@ -246,10 +247,10 @@ namespace ChessEval {
 		template<Piece COLOR>
 		static value_t computeRunnerPace(Board& position, bitBoard_t passedPawns) {
 			const Piece OPPONENT_COLOR = switchColor(COLOR);
-			const Square CHANGE_SIDE = COLOR == WHITE ? 0 : 0x38;
+			const Square CHANGE_SIDE = Square(COLOR == WHITE ? 0 : 0x38);
 
 			Square opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
-			Square myKingPos = position.getKingSquare<COLOR>;
+			Square myKingPos = position.getKingSquare<COLOR>();
 			Piece colorAtMove = position.isWhiteToMove() ? WHITE : BLACK;
 
 			bitBoard_t kingSupport = kingSupportPawnTable[COLOR][myKingPos];
@@ -259,11 +260,11 @@ namespace ChessEval {
 			value_t smallestDistance = value_t(Rank::COUNT);
 
 			for (; runner != 0; runner &= runner - 1) {
-				Square pawnPos = BitBoardMasks::lsb(runner) ^ CHANGE_SIDE;
-				Square curDistance = 7 - getRow(pawnPos);
+				Square pawnPos = switchSide(lsb(runner));
+				value_t curDistance = value_t(getOppositRank(pawnPos));
 				bool ownKingBlocksPawn = myKingPos > pawnPos && getFile(myKingPos) == getFile(pawnPos);
 				if (ownKingBlocksPawn) {
-					curDistance++;
+					++curDistance;
 				}
 				if (curDistance < smallestDistance) {
 					smallestDistance = curDistance;

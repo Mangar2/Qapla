@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a UCI - Interface
  */
@@ -32,6 +32,7 @@
 #include <functional>
 #include <thread>
 #include <mutex>
+#include <atomic>
 #include <condition_variable>
 
 using namespace std;

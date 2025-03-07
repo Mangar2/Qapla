@@ -165,14 +165,6 @@ namespace QaplaSearch {
 #endif
 		}
 
-		bool givesCheck(MoveGenerator& position, Move move) {
-			const auto destination = move.getDestination();
-			const auto piece = move.getMovingPiece();
-			const auto opponentKingPos = getPieceColor(piece) == WHITE ? position.getKingSquare<BLACK>() : position.getKingSquare<WHITE>();
-			if (piece == KNIGHT + getPieceColor(piece)) {
-			}
-		}
-
 		/**
 		 * Take back the previously applied move
 		 */
@@ -470,19 +462,21 @@ namespace QaplaSearch {
 		 * prints the information 
 		 */
 		void print() {
-			printf("[w:%6ld,%6ld]", alphaAtPlyStart, betaAtPlyStart);
-			printf("[d:%ld]", remainingDepth);
-			printf("[v:%6ld]", bestValue);
-			printf("[hm:%5s]", getTTMove().getLAN().c_str());
-			printf("[bm:%5s]", bestMove.getLAN().c_str());
-			printf("[st:%8s]", getSearchStateName().c_str());
-			printf("[nt:%4s]", getNodeTypeName().c_str());
+			std::cout << "[w:" << std::setw(6) << alphaAtPlyStart << "," << std::setw(6) << betaAtPlyStart << "]";
+			std::cout << "[d:" << remainingDepth << "]";
+			std::cout << "[v:" << std::setw(6) << bestValue << "]";
+			std::cout << "[hm:" << std::setw(5) << getTTMove().getLAN() << "]";
+			std::cout << "[bm:" << std::setw(5) << bestMove.getLAN() << "]";
+			std::cout << "[st:" << std::setw(8) << getSearchStateName() << "]";
+			std::cout << "[nt:" << std::setw(4) << getNodeTypeName() << "]";
+		
 			if (isPVSearch()) {
-				printf(" [PV:");
+				std::cout << " [PV: ";
 				pvMovesStore.print(ply);
-				printf(" ]");
+				std::cout << " ]";
 			}
-			printf("\n");
+		
+			std::cout << std::endl;
 		}
 
 		inline bool isTTValueBelowBeta(const Board& position, ply_t ply) {

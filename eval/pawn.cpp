@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  */
 
 #include "pawn.h"
@@ -115,8 +115,8 @@ value_t Pawn::computeKingSupport(const Board& position) {
 	const auto OPPONENT_COLOR = switchColor(COLOR);
 	const auto kingPos = position.getKingSquare<COLOR>();
 	const auto opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
-	const auto pawnBB = position.getPieceBB(PAWN + COLOR);
-	const auto opponentPawnBB = position.getPieceBB(PAWN + OPPONENT_COLOR);
+	auto pawnBB = position.getPieceBB(PAWN + COLOR);
+	auto opponentPawnBB = position.getPieceBB(PAWN + OPPONENT_COLOR);
 	const value_t result = 0;
 
 	while (pawnBB) {

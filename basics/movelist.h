@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a list holding moves of a chess position
  * Moves are stored in one list - but different for "silent moves" and "non silent moves". Silent moves are moves 
@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <array>
 #include "evalvalue.h"
-#include "Move.h"
+#include "move.h"
 
 namespace QaplaBasics {
 

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  */
 
 #include "movegenerator.h"
@@ -477,6 +477,9 @@ void MoveGenerator::genPinnedCapturesForAllPieces(MoveList& moveList, Square epP
 			destination = pieceAttackMask[departure] & allowedRayMask;
 			genMovesSinglePiece(piece, departure, destination & bitBoardAllPieces, moveList);
 			break;
+		default:
+			// Nothing to do for other pieces.
+			break;
 		}
 	}
 }
@@ -530,7 +533,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 	rangeAttack |= Magics::genRookAttackMask(kingSquares[COLOR], bitBoardAllPieces) &
 		(bitBoardsPiece[ROOK + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
 
-	// Check if more than one piece is attacking the king. If yes we can´t 
+	// Check if more than one piece is attacking the king. If yes we canï¿½t 
 	// do anything else than moving the king
 	possibleTargetPositions = directAttack | rangeAttack;
 	// Must have any attack, else king would not be in check
@@ -779,3 +782,8 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 
 	return false;
 }
+
+template void MoveGenerator::genMoves<WHITE>(MoveList&);
+template void MoveGenerator::genMoves<BLACK>(MoveList&);
+template void MoveGenerator::genPinnedMovesForAllPieces<WHITE>(MoveList&, Square);
+template void MoveGenerator::genPinnedMovesForAllPieces<BLACK>(MoveList&, Square);

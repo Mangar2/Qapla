@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements the main search functions (recursive search)
  */
@@ -33,7 +33,7 @@
 #include "aspirationwindow.h"
 #include "tt.h"
 #include "butterfly-boards.h"
-#include "whatif.h"
+#include "whatIf.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif

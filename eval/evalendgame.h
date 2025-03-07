@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements chess board evaluation for end games. 
  * Returns +100, if white is one pawn up
@@ -56,7 +56,7 @@ namespace ChessEval {
 		static value_t print(MoveGenerator& board, value_t currentValue) {
 			value_t newValue = eval(board, currentValue);
 			if (currentValue != newValue) {
-				printf("Eval endgame mod    : %ld => %ld\n", currentValue, newValue);
+				std::cout << "Eval endgame mod    : " << currentValue << " => " << newValue << std::endl;
 			}
 			return newValue;
 		}

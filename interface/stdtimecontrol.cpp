@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  */
 
 #include <time.h>
@@ -43,8 +43,13 @@ int64_t StdTimeControl::getCPUTimeInMilliseconds() const
 
 int64_t StdTimeControl::getSystemTimeInMilliseconds() const
 {
-	timeb aCurrentTime;
-	ftime(&aCurrentTime); 
+	#pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+    timeb aCurrentTime;
+    ftime(&aCurrentTime); 
+
+    #pragma GCC diagnostic pop
 	return ((int64_t)(aCurrentTime.time) * 1000 + 
 		(int64_t)(aCurrentTime.millitm));
 }

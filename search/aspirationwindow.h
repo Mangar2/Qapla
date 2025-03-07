@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements an aspiration window for iterative deepening search algorithm
  * The aspiration window defines the estimation bounds for the next search
@@ -85,6 +85,9 @@ namespace QaplaSearch {
 					break;
 				case State::Dropping:
 					_state = (positionValue < _positionValue) ? State::Dropping : State::Alternating;
+					break;
+				case State::Alternating:
+				    _state = State::Alternating;
 					break;
 				}
 				_retryCount++;

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Defines basic types for a chess engine like piece and move
  */
@@ -56,7 +56,9 @@ namespace QaplaBasics {
 		NE = NORTH + EAST,
 		NW = NORTH + WEST,
 		SE = SOUTH + EAST,
-		SW = SOUTH + WEST
+		SW = SOUTH + WEST,
+		SOUTH_2 = SOUTH * 2,
+		NORTH_2 = NORTH * 2
 	};
 
 	constexpr Square operator*(Square a, int32_t b) { return Square(int32_t(a) * b); }
@@ -347,4 +349,4 @@ namespace QaplaBasics {
 
 }
 
-#endif __TYPES_H
+#endif //__TYPES_H

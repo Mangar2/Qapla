@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  */
 
@@ -22,7 +22,7 @@
 #define __BUTTERFLY_BOARDS_H
 
 #include <array>
-#include "searchDef.h"
+#include "searchdef.h"
 #include "../basics/move.h"
 
 namespace QaplaSearch {
@@ -68,7 +68,7 @@ namespace QaplaSearch {
 
 		void print() {
 			constexpr int cellWidth = 10; // Breite der einzelnen Felder
-			constexpr int valueWidth = 5; // Breite für die rechtsbündige Werteanzeige
+			constexpr int valueWidth = 5; // Breite fï¿½r die rechtsbï¿½ndige Werteanzeige
 
 			std::cout << "       A         B         C         D         E         F         G         H\n";
 			std::cout << "  +---------+---------+---------+---------+---------+---------+---------+---------+\n";

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a transposition table for chess
  * Each entry consists of two elements:
@@ -267,7 +267,7 @@ namespace QaplaSearch {
 		void loadHashFromFile(char* fileName)
 		{
 			FileClass file;
-			// Öffnet eine Datei im Binärmodus zum lesen
+			// ï¿½ffnet eine Datei im Binï¿½rmodus zum lesen
 			file.open(fileName, "br");
 
 			if (!file.isOpen())
@@ -298,17 +298,16 @@ namespace QaplaSearch {
 		 */
 		void printHashEntry(uint32_t index) const {
 			auto& entry = _tt[index];
-			if (entry.isEmpty())
-			{
-				printf("<Empty>\n");
-			} else
-			{
-				printf("[key:%llx]", entry.getHash());
-				printf("[idx:%ld]", index);
-				printf("[dpt:%ld]", entry.getComputedDepth());
-				printf("[val:%ld]", entry.getPositionValue(0));
-				printf("[pre:%ld]", entry.getComputedPrecision());
-				printf("[mov:%s]\n", entry.getMove().getLAN().c_str());
+		
+			if (entry.isEmpty()) {
+				std::cout << "<Empty>\n";
+			} else {
+				std::cout << "[key:" << std::hex << entry.getHash() << std::dec << "]"
+						  << "[idx:" << index << "]"
+						  << "[dpt:" << entry.getComputedDepth() << "]"
+						  << "[val:" << entry.getPositionValue(0) << "]"
+						  << "[pre:" << entry.getComputedPrecision() << "]"
+						  << "[mov:" << entry.getMove().getLAN() << "]\n";
 			}
 		}
 
@@ -322,8 +321,8 @@ namespace QaplaSearch {
 		/**
 		 * Writes the tt to a file
 		 */
-		bool writeToFile(string fileName) {
-			ofstream oFile(fileName, ios::binary + ios::trunc);
+		bool writeToFile(std::string fileName) {
+			ofstream oFile(fileName, ios::binary | ios::trunc);
 			if (!oFile.is_open()) {
 				return false;
 			}

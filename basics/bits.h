@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements bit handling routines
  */
@@ -25,7 +25,7 @@
 // #include <bit>
 #include <assert.h>
 #include "types.h"
-#include <__msvc_bit_utils.hpp>
+
 
 
 #if (defined(__INTEL_COMPILER) || defined(_MSC_VER))
@@ -33,8 +33,9 @@
 #endif
 
 #if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
-#  include <intrin.h> // Microsoft header for _BitScanForward64()
-#  define IS_64BIT
+#include <__msvc_bit_utils.hpp>
+#include <intrin.h> // Microsoft header for _BitScanForward64()
+#define IS_64BIT
 #endif
 
 namespace QaplaBasics {
@@ -57,7 +58,7 @@ namespace QaplaBasics {
 	 * @precondition bb != 0
 	 * @return index (0..63) of least significant one bit
 	 */
-	_NODISCARD constexpr int32_t bitScanForward(bitBoard_t bb) noexcept {
+	[[nodiscard]] constexpr int32_t bitScanForward(bitBoard_t bb) noexcept {
 		const bitBoard_t debruijn64 = bitBoard_t(0x03f79d71b4cb0a89);
 		assert(bb != 0);
 		return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
@@ -118,7 +119,7 @@ namespace QaplaBasics {
 	 /**
 	  * SWAR Mask version of popcount by Donald Knuth
 	  */
-	_NODISCARD constexpr int32_t SWARPopcount(bitBoard_t bitBoard) noexcept {
+	[[nodiscard]] constexpr int32_t SWARPopcount(bitBoard_t bitBoard) noexcept {
 		const bitBoard_t k1 = 0x5555555555555555ull;
 		const bitBoard_t k2 = 0x3333333333333333ull;
 		const bitBoard_t k4 = 0x0F0F0F0F0F0F0F0Full;

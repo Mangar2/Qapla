@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a storage for primary variants of the search
  * An empty move in the PV line indicates the end of the PV line
@@ -151,12 +151,11 @@ namespace QaplaSearch {
 		void print(uint32_t startPly) const {
 			for (ply_t ply = startPly; ply < MAX_PV_LENGTH && !movesStore[ply].isEmpty(); ply++) {
 				if (ply % 2 == 0) {
-					printf("%ld.", ply / 2 + 1);
+					std::cout << (ply / 2 + 1) << ".";
+				} else if (ply == startPly) {
+					std::cout << (ply / 2 + 1) << "...... ";
 				}
-				else if (ply == startPly) {
-					printf("%ld...... ", ply / 2 + 1);
-				}
-				printf("%5s ", movesStore[ply].getLAN().c_str());
+				std::cout << std::setw(5) << movesStore[ply].getLAN() << " ";
 			}
 		}
 	private:

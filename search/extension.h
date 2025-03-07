@@ -13,15 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements functions to calculate the search extensions
  */
 
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
-#include "SearchParameter.h"
+#include "searchparameter.h"
 
 using namespace QaplaMoveGenerator;
 
@@ -39,7 +39,9 @@ namespace QaplaSearch {
 			}
 			else if (SearchParameter::DO_PASSED_PAWN_EXTENSIONS && isChallengingPassedPawnMove(board, move)) {
 				static uint32_t passedPawnExtensions = 0;
-				passedPawnExtensions++; if (passedPawnExtensions % 1000 == 0) { printf("%ld\n", passedPawnExtensions); }
+				passedPawnExtensions++; if (passedPawnExtensions % 1000 == 0) { 
+					std::cout << passedPawnExtensions << std::endl;
+				}
 				extension = 1;
 			}
 			return extension;

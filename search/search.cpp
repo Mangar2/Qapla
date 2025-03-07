@@ -18,7 +18,7 @@
  */
 
 #include "search.h"
-#include "whatif.h"
+#include "whatIf.h"
 #include "quiescence.h"
 #include "../bitbase/bitbasereader.h"
 

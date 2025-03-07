@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a manager for computing time of a chess search
  */
@@ -24,6 +24,7 @@
 
 #include <time.h>
 #include <algorithm>
+#include <limits>
 #include <sys/timeb.h>
 #include "../basics/types.h"
 #include "../interface/clocksetting.h"
@@ -228,9 +229,9 @@ namespace QaplaSearch {
 			int32_t movesToGo = _clockSetting.getMoveAmountForClock();
 			const int32_t movesPlayed = _clockSetting.getPlayedMovesInGame();
 			if (movesToGo == 0) {
-				movesToGo = max(AVERAGE_MOVE_COUNT_PER_GAME - (movesPlayed / 2), KEEP_TIME_FOR_MOVES);
+				movesToGo = std::max(AVERAGE_MOVE_COUNT_PER_GAME - (movesPlayed / 2), KEEP_TIME_FOR_MOVES);
 			}
-			movesToGo = max(1, movesToGo);
+			movesToGo = std::max(1, movesToGo);
 			return movesToGo;
 		}
 
@@ -268,7 +269,9 @@ namespace QaplaSearch {
 				{
 					if ((timeLeft < 10000) && (_clockSetting.getTimeIncrementPerMoveInMilliseconds() <= 1))
 						averageTime /= 2;
-					averageTime *= min(2000LL, max(1000LL, int64_t((6810000 + timeLeft) / (6810 + 300))));
+					averageTime *= min(
+						static_cast<int64_t>(2000LL), 
+						max(static_cast<int64_t>(1000LL), int64_t((6810000 + timeLeft) / (6810 + 300))));
 					averageTime /= 1000;
 				}
 				averageTime = _searchState.modifyTimeBySearchFinding(averageTime);
@@ -298,11 +301,11 @@ namespace QaplaSearch {
 				maxTime = timeLeft / 3;
 
 				// Keep at least two seconds
-				maxTime = min(maxTime, timeLeft - 2000);
+				maxTime = std::min(maxTime, timeLeft - 2000);
 				// Not less than the fair share
-				maxTime = max(maxTime, timeLeft / (movesToGo + 1));
+				maxTime = std::max(maxTime, timeLeft / (movesToGo + 1));
 				// Safety, not less than 20 milliseconds
-				maxTime = max(maxTime, 20LL);
+				maxTime = std::max(maxTime, static_cast<int64_t>(20));
 			}
 
 			return maxTime;
@@ -315,8 +318,16 @@ namespace QaplaSearch {
 		 */
 		int64_t getSystemTimeInMilliseconds() const
 		{
+			
+			#pragma GCC diagnostic push
+			#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+		
 			timeb aCurrentTime;
-			ftime(&aCurrentTime);
+			ftime(&aCurrentTime); 
+		
+			#pragma GCC diagnostic pop
+			return ((int64_t)(aCurrentTime.time) * 1000 + 
+				(int64_t)(aCurrentTime.millitm));
 			return ((int64_t)(aCurrentTime.time) * 1000 +
 				(int64_t)(aCurrentTime.millitm));
 		}

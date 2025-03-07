@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements the IChessBoard interface to connect a frontend with the chess engine
  */
@@ -62,8 +62,8 @@ namespace QaplaSearch {
 		virtual map<string, string> getEngineInfo() { 
 			return map<string, string>{
 				{ "name", "Qapla 0.2.00" },
-				{ "author", "Volker Böhm"},
-				{ "engine-about", "Qapla by Volker Böhm, see github.com/Mangar2/Quabla"}
+				{ "author", "Volker B<F6>hm"},
+				{ "engine-about", "Qapla by Volker B<F6>hm, see github.com/Mangar2/Quabla"}
 			};
 		}
 
