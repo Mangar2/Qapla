@@ -129,7 +129,7 @@ namespace QaplaSearch {
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
 
-		static const bool DO_CHECK_EXTENSIONS = false;
+		static const bool DO_CHECK_EXTENSIONS = true;
 
 		static const bool DO_SE_EXTENSION = true;
 		static value_t singularExtensionMargin(ply_t depth) {
