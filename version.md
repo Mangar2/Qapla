@@ -16,6 +16,7 @@
 
 ## 0.2.055 2025-03-03
 
+- Raiting: 58.29
 - IID fixed
 - Hash replacement strategy changed. Now better conserving PV values
 - Fixed problem skipping pv collection on depth = 0

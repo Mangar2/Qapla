@@ -10,7 +10,42 @@ A chess engine is a console application playing chess. It has no graphical user 
 
 ## Hardware requirement
 
-Qapla is currently only available for 64 bit windows. Qapla uses hardware support for some strongly used routines in modern computer chess (popCount, bitScanForeward). They are supported by intel processors since more than 10 years. If you have older processors, use the OLD_HW version. It is about 20% less fast than the version using hardware and it has (whyever) double size.
+Qapla is available for 64 bit windows and 64 bit linux. Qapla uses hardware support for some strongly used routines in modern computer chess (popCount, bitScanForeward). They are supported by intel processors since more than 10 years. If you have older processors, use the OLD_HW version. It is about 20% less fast than the version using hardware and it has (whyever) double size.
+
+## Compiling it yourself
+
+- I deliver a visual studio project that can be used to compile it. Compile the "release" version.
+- You can also compile it with nmake. The make file is generated with chat-gpt but it still works :-)
+- There is a CMakeLists.txt to compile it with cmake for linux.
+
+To compile it with linux: 
+1. Install cmake and clang++ (or g++)
+2. Create a build directory with release subdirectory
+3. Change to the release directory
+4. Run `cmake ../..`
+5. Run `make -j$(nproc)`
+
+or you can add the following to the tasks.json in the .vscode directory, if you use Visual Studio Code:
+```json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Release",
+            "type": "shell",
+            "command": "cmake -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ && cmake --build ${workspaceFolder}/build/release",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}
+```
 
 ## Version numbering
 
