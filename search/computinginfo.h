@@ -240,10 +240,8 @@ namespace QaplaSearch {
 			ComputingInfoExchange exchange;
 			const PV& pv = getPV();
 			exchange.currentConsideredMove = pv.getMove(0).getLAN();
-			exchange.ponderMove = pv.getMove(1).getLAN();
-			if (exchange.ponderMove == "empty" || exchange.ponderMove == "null") {
-				exchange.ponderMove = "";
-			}
+			Move ponderMove = pv.getMove(1);
+			exchange.ponderMove = ponderMove.isEmpty() ? "" : ponderMove.getLAN();
 			exchange.nodesSearched = _nodesSearched;
 			exchange.searchDepth = _searchDepth;
 			exchange.elapsedTimeInMilliseconds = _timeControl.getTimeSpentInMilliseconds();

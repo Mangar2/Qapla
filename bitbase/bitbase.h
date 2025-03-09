@@ -26,6 +26,7 @@
 #include <vector>
 #include <fstream>
 #include <cerrno>
+
 #include "../basics/move.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"

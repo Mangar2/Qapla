@@ -37,6 +37,7 @@
 #ifndef _QAPLA_COMPRESS_INFLATE_H
 #define _QAPLA_COMPRESS_INFLATE_H
 
+#include <algorithm>
 #include <queue>
 #include <array>
 #include <vector>

@@ -55,12 +55,12 @@ The following features are already supported in UCI
 - MultiPV (needs some improvements here :-) )
 - Time per move, time per game, moves to go, fixed search depth
 
-Still missing
+### Not yet supported in UCI
 
 - Exact node count
 - Exclude moves in search
 
-The following "features" are only supported in winboard
+### The following "features" are only supported in winboard
 
 - perft
 - divide
@@ -68,6 +68,10 @@ The following "features" are only supported in winboard
 - whatif (switched off by compiler flag in release builds). Whatif is a debugging feature to debug the search. It supports to print the variables in dedicated nodes of the search tree
 
 Perft and divide has multi cpu support and accepts the cores N command for perft. It has been tested with 32 threads in parallel on a 16 core hyperthreading machine
+
+### Pondering in Winboard
+
+Pondering is only rudimentary supported in Winboard. Instead of continuing on ponder-hit, Qapla will stop the search and start a new search profiting from the transposition table. This is not the best way to do it, but it is the easiest way to implement it. I will improve it later.
 
 ## Playing strength
 

@@ -109,7 +109,7 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sets all positions already played to hash to identify draw in the search
+		 * Removes all positions formally set to draw from hash 
 		 */
 		void removeDrawPositionsFromHash(TT& tt) {
 			for (auto drawHash : _drawHashes) {

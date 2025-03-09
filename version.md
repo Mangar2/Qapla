@@ -1,8 +1,18 @@
 # Qapla Test Versions
 
+## 0.2.056 2025-03-09
+
+- Hopefully last version for 0.2
+- Fixing pondering for uci
+- Implemented rudimentary pondering for xboard
+- Slightly changed max-time per move on very short time controls. The last version still had two losses on time.
+- Changed the way minimal depth for a move is calcuated on short time control. Should work fine now.
+
 ## 0.2.056 2025-03-06
 
+- Raiting: 59.32
 - Improvements and fixes for MultiPV
+- Activated check extension. It does not harm and improves mate searching
 
 ## 0.2.055 2025-03-03
 

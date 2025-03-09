@@ -288,7 +288,7 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (TYPE != SearchRegion::NEAR_LEAF && hasBitbaseCutoff(position, node)) {
 		node.setCutoff(Cutoff::BITBASE);
 	}
-	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort(stack[0].remainingDepth, ply)) {
+	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
 
@@ -488,7 +488,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		}
 
 		_clockManager->setSearchedRootMove(node.isPVFailLow(), node.bestValue);
-		if (_clockManager->shouldAbort(node.remainingDepth)) break;
+		if (_clockManager->shouldAbort()) break;
 		_computingInfo.printNewPV(triedMoves);
 		if (node.isFailHigh()) break;
 	}

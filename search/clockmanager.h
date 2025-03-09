@@ -73,22 +73,25 @@ namespace QaplaSearch {
 			setNewMove();
 		}
 
+		void setCalculationDepth(ply_t depth) {
+			_depth = depth;
+		}
+
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool emergencyAbort(ply_t depth, ply_t ply) {
+		bool emergencyAbort() {
 			int64_t timeSpent = computeTimeSpentInMilliseconds();
-			if (depth + ply <= MIN_DEPTH) {
-				return false;
-			}
-			if (_mode == ClockMode::stopped) {
+			if (_mode == ClockMode::stopped && _depth >= 1) {
 				return true;
+			}
+			if (_depth <= MIN_DEPTH) {
+				return false;
 			}
 			if (_mode != ClockMode::search) {
 				return false;
 			}
 			if (timeSpent > _maxTimePerMove) {
-				cout << "max time per move exceeded" << endl;
 				stopSearch();
 				return true;
 			}
@@ -98,13 +101,13 @@ namespace QaplaSearch {
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
-		bool shouldAbort(ply_t depth) {
+		bool shouldAbort() {
 			int64_t timeSpent = computeTimeSpentInMilliseconds();
-			if (depth <= MIN_DEPTH) {
-				return false;
-			}
-			if (_mode == ClockMode::stopped) {
+			if (_mode == ClockMode::stopped && _depth >= 1) {
 				return true;
+			}
+			if (_depth <= MIN_DEPTH) {
+				return false;
 			}
 			if (_mode != ClockMode::search) {
 				return false;
@@ -122,11 +125,11 @@ namespace QaplaSearch {
 		 * @returns true, if calculation of next depth is ok
 		 */
 		bool mayComputeNextDepth(ply_t depth) const {
+			if (_mode == ClockMode::stopped && depth >= 1) {
+				return false;
+			}
 			if (depth <= MIN_DEPTH) {
 				return true;
-			}
-			if (_mode == ClockMode::stopped) {
-				return false;
 			}
 			if (_mode != ClockMode::search) {
 				return true;
@@ -256,10 +259,10 @@ namespace QaplaSearch {
 
 		/**
 		 * Returns true, if the search is infinite
+		 * Note: ponder is not infinite. It will set search time but not use it as long as no ponder hit has been sent.
 		 */
 		bool isInfiniteSearch() {
 			return _clockSetting.isAnalyseMode() || 
-				_clockSetting.isPonderMode() ||
 				_clockSetting.getSearchDepthLimit() > 0 || 
 				_clockSetting.getNodeCount() > 0;
 		}
@@ -319,12 +322,14 @@ namespace QaplaSearch {
 				const int32_t movesToGo = computeMovesToGo();
 				maxTime = timeLeft / 3;
 
-				// Keep at least two seconds
-				maxTime = std::min(maxTime, timeLeft - 2000);
 				// Not less than the fair share
 				maxTime = std::max(maxTime, timeLeft / (movesToGo + 1));
-				// Safety, not less than 20 milliseconds
-				maxTime = std::max(maxTime, static_cast<int64_t>(20));
+				// Keep at least two seconds
+				maxTime = std::min(maxTime, timeLeft - 2000);
+				// Safety, not less than 1 milliseconds. Note: we have a min-depth check
+				maxTime = std::max(maxTime, static_cast<int64_t>(1));
+				// Not less than the time increment - 10 ms
+				maxTime = std::max(maxTime, timeIncrement - 10);
 			}
 
 			return maxTime;
@@ -340,6 +345,7 @@ namespace QaplaSearch {
 			return StdTimeControl::getSystemTimeInMilliseconds();
 		}
 
+		ply_t _depth;
 		int64_t _startTime;
 		int64_t _averageTimePerMove;
 		int64_t _maxTimePerMove;

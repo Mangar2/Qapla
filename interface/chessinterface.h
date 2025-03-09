@@ -150,6 +150,8 @@ namespace QaplaInterface {
 			return success;
 		}
 
+		bool isLegalMove(string move) {}
+
 		/**
 		 * Gets a move to the board
 		 */
@@ -238,7 +240,7 @@ namespace QaplaInterface {
 		}
 
 	protected:
-		enum class Mode { WAIT, COMPUTE, ANALYZE, EDIT };
+		enum class Mode { WAIT, COMPUTE, ANALYZE, EDIT, PONDER };
 		void println(const string& output) { _ioHandler->println(output); }
 		void print(const string& output) { _ioHandler->print(output); }
 		string getCurrentToken() { return _ioHandler->getCurrentToken(); }

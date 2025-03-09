@@ -171,6 +171,11 @@ namespace QaplaInterface {
 		void handleInputWhiteInEditMode();
 
 		/**
+		 * Processes any input while in ponder mode
+		 */
+		void handleInputWhileInPonderMode();
+
+		/**
 		 * Handles input while in "wait for user action" mode
 		 */
 		void handleInput();

@@ -218,7 +218,9 @@ namespace QaplaInterface {
 		/**
 		 * Sets the ponder mode to true -> the position will be pondered (endless search)
 		 */
-		void setPonderMode() { _mode = ClockMode::ponder; }
+		void setPonderMode() { 
+			_mode = ClockMode::ponder; 
+		}
 
 		/**
 		 * @returns true, if the engine is currently pondering (calculating while not at move)

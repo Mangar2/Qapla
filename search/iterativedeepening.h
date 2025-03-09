@@ -217,6 +217,7 @@ namespace QaplaSearch {
 			do {
 				const auto alphaRed = std::max(0, int32_t(multiPV) - int32_t(numberOfPVSearchedMoves) - 1) * 5;
 				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
+				_clockManager.setCalculationDepth(searchDepth);
 				_search.negaMaxRoot(position, stack, multiPV - 1, _clockManager);
 				const auto& computingInfo = _search.getComputingInfo();
 				numberOfPVSearchedMoves = computingInfo.countPVSearchedMovesInWindow(searchDepth);
@@ -226,7 +227,7 @@ namespace QaplaSearch {
 				isInWindow = _window[multiPVPos].isInside(positionValue);
 				_window[multiPVPos].setSearchResult(positionValue);
 
-			} while (!_clockManager.shouldAbort(searchDepth) && numberOfPVSearchedMoves < multiPV);
+			} while (!_clockManager.shouldAbort() && numberOfPVSearchedMoves < multiPV);
 
 		}
 

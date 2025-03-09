@@ -186,6 +186,7 @@ void Winboard::analyzeMove() {
 void Winboard::ponder(string move) {
 	if (_easy) return;
 	if (!setMove(move)) return;
+	_mode = Mode::PONDER;
 	_clock.storeCalculationStartTime();
 	_clock.setPonderMode();
 	setInfiniteSearch(true);
@@ -219,7 +220,7 @@ void Winboard::computeMove() {
 			ponderMove = computingInfo.ponderMove;
 			handleMove(computingInfo.currentConsideredMove);
 			_clock.storeTimeSpent();
-			// ponder(ponderMove);
+			ponder(ponderMove);
 		});
 	}
 }
@@ -383,7 +384,9 @@ void Winboard::undoMove() {
 	}
 	else if (_mode == Mode::COMPUTE) {
 		stopCompute();
+		// undoes the move that is automatically set due to stopCompute resulting in a move
 		_board->undoMove();
+		// undoes the move before -> this is the move the user asked us to undo
 		_board->undoMove();
 	}
 	else {
@@ -404,6 +407,7 @@ void Winboard::runLoop() {
 		case Mode::ANALYZE: handleInputWhileInAnalyzeMode(); break;
 		case Mode::COMPUTE: handleInputWhileComputingMove(); break;
 		case Mode::EDIT: handleInputWhiteInEditMode(); break;
+		case Mode::PONDER: handleInputWhileInPonderMode(); break;
 		default: 
 		{
 				waitForComputingThreadToEnd();
@@ -456,6 +460,23 @@ void Winboard::handleInputWhiteInEditMode() {
 			piece += 'a' - 'A';
 		}
 		_board->setPiece(col, row, piece);
+	}
+}
+
+void Winboard::handleInputWhileInPonderMode() {
+	const string token = getCurrentToken();
+	if (token == ".") _board->requestPrintSearchInfo();
+	if (checkMoveCommand()) {}
+	else {
+		// We stop pondering for any command but a "." or a move command
+		_mode = Mode::WAIT;
+		stopCompute();
+		// Undoes the move we pondered for
+		// Here we would need to implement "real" pondering. 
+		// Current challenge -> we need to implement a method to check, if the move of the user is the move we pondered for.
+		// As we only deal with strings here and we cannot simply compare move-strings, this is not as simple. 
+		_board->undoMove();
+		handleInput();
 	}
 }
 
