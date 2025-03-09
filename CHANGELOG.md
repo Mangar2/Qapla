@@ -1,18 +1,41 @@
 # Quabla Change log
 Quabla chess engine
 
-## 0.1.? next to come ... soon
+## 0.2.0 2025-05-09
 
-- Playing strength: ???
-- Bugfix
-	- Serious bugfix in transposition table replacement strategy + 10 - 20 ELO (depends on the time control and the tt size)
-- Search
-	- Internal iterative deepening + 10 ELO (after several bugfixes). Do it in PV situations as well as in CUT nodes where king is not in check
-	- Added node type detection due to iid (of no big interrest now, but needed for parallelisation)
+- Playing strength: About 2700 ELO
 - Eval
-	- Added a term for pawn phalanxx and pawn chains + 2 - 5 ELO (have expected more, still kept it and the pawn hash now has a function :-) )
-- Refactoring
-	- I first started with an iterative search (instead of a recursive one). This leads to several debts left making it hard to implement iid. This has been changed/corrected
+	- Minor changes in eval, mostly rooks and queen on #7 rank
+- Search 
+	- Exclude moves in search
+	- Exact node count
+	- Implemented late move reduction
+	- Implemented kind of butterfly history boards (but with piece/target square instead of source/target square)
+	- Singular extension
+	- IID
+	- Verify on Null moves
+	- More consistend aspiration window
+	- Better primary variant line due to always extend the last ply on PV node search, if a transposition table entry is found
+	- Refactoring many code lines left due to the first non-recursive approach
+	- Bug fixing- Implemented late move reduction
+	- Implemented kind of butterfly history boards (but with piece/target square instead of source/target square)
+	- Singular extension + check extension
+	- IID
+	- Verify on Null moves
+	- More consistend aspiration window
+	- Better primary variant line due to always extend the last ply on PV node search, if a transposition table entry is found
+	- Refactoring many code lines left due to the first non-recursive approach
+- UCI
+	- MultiPV
+	- Pondering bug fixed
+- XBoard
+	- Simple pondering for XBoard (using tt to remember pondering result)
+- Other 
+	- Thread caching for computation thread (no longer creating a new thread whenever a new move is played)
+	- Nore consistently preventing loss on time for very short time controls
+- Supported OS
+	- Windows version MSVC
+	- Linux version (clang++ compiled) availabe. The linux version is about 10% faster than the windows version
 
 ## 0.1.1 2021-02-27
 
