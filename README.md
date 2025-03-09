@@ -117,7 +117,7 @@ Qapla never played in "official tournaments". I only have some raiting according
 - Minor changes in eval, mostly rooks and queen on #7 rank
 - Implemented late move reduction
 - Implemented kind of butterfly history boards (but with piece/target square instead of source/target square)
-- Singular extension (removed check extensions)
+- Singular extension
 - IID
 - Verify on Null moves
 - More consistend aspiration window
