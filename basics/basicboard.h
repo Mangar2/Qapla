@@ -25,7 +25,6 @@
 #include "types.h"
 #include "move.h"
 #include "boardstate.h"
-#include <array>
 #include <assert.h>
 
 namespace QaplaBasics {

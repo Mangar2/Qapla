@@ -37,6 +37,7 @@
 #ifndef _QAPLA_COMPRESS_COMPRESS_H
 #define _QAPLA_COMPRESS_COMPRESS_H
 
+#include <cstdint>
 #include <vector>
 
 namespace QaplaCompress {

@@ -87,7 +87,7 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
 	else if (node.beta <= -MAX_VALUE + value_t(ply)) {
 		result = false;
 	}
-	else if (node.isTTValueBelowBeta(position, ply)) {
+	else if (node.ttValue != NO_VALUE && node.isTTValueBelowBeta(position, ply)) {
 		result = false;
 	}
 	else if (ply + depth < 3) {
@@ -223,6 +223,8 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 
 	// No se, if tt does not have a good move value (> alpha)
 	if (node.ttValueIsUpperBound) return 0;
+	// We need a ttValue to have something to search for
+	if (node.ttValue == NO_VALUE) return 0;
 
 	// Singular extension based on tt move. Only, if the search found a value > alpha it found a "best move" in the position and is able to store it to
 	// the transposition table
@@ -232,7 +234,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// We require a certain search depth for the tt move to be considered for a singular extension
 	if (node.ttDepth < seDepth) return 0;
 	// No se, if the tt already shows a mate or equivalent value
-	if (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE) return 0;
+	if (node.ttValue != NO_VALUE && (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE)) return 0;
 
 	node.setSE(SearchParameter::singularExtensionMargin(depth));
 	_computingInfo._nodesSearched++;
@@ -317,9 +319,8 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	}
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
-	
 	/*
-	if (nodesSearched == 27677402) {
+	if (nodesSearched == 11755406 - 2) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();

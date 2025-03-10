@@ -135,6 +135,8 @@ void Eval::printEval(MoveGenerator& board) {
 	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }
 
+template map<string, value_t> Eval::getEvalFactors<WHITE>(MoveGenerator& board);
+template map<string, value_t> Eval::getEvalFactors<BLACK>(MoveGenerator& board);
 
 
 

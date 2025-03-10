@@ -22,7 +22,7 @@
 #ifndef __HASHCONSTANTS_H
 #define __HASHCONSTANTS_H
 
-#include <stdint.h>
+#include <cstdint>
 #include "types.h"
 
 namespace QaplaBasics {

@@ -49,12 +49,14 @@ namespace QaplaBitbase {
 			return;
 			QaplaSearch::ClockManager clock;
 			clock.setStartTime();
-			loadBitbaseRec("K*K");
-			loadBitbaseRec("KK*");
-			loadBitbaseRec("K*K*");
-			loadBitbaseRec("K**K");
-			loadBitbaseRec("K**K*");
-			cout << "Time spent " << clock.computeTimeSpentInMilliseconds() << endl;
+			//loadBitbaseRec("K*K");
+			loadBitbaseRec("KPK");
+
+			//loadBitbaseRec("KK*");
+			//loadBitbaseRec("K*K*");
+			//loadBitbaseRec("K**K");
+			//loadBitbaseRec("K**K*");
+			cout << "Time spent to load bitbases: " << clock.computeTimeSpentInMilliseconds() << " Milliseconds " << endl;
 		}
 
 		static void loadBitbaseRec(string name, bool force = false) {

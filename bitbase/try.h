@@ -22,6 +22,7 @@
 #ifndef _QAPLA_COMPRESS_TRY_H
 #define _QAPLA_COMPRESS_TRY_H
 
+#include <cstdint>
 #include <assert.h>
 #include <vector>
 

@@ -18,7 +18,7 @@
  */
 
 #include "basicboard.h"
-#include <assert.h>
+
 
 using namespace QaplaBasics;
 

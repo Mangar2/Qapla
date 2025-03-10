@@ -22,7 +22,7 @@
 #ifndef __STDTIMECONTROL
 #define __STDTIMECONTROL
 
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 
 using namespace std;

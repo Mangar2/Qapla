@@ -22,6 +22,7 @@
 #ifndef __TYPES_H
 #define __TYPES_H
 
+#include <cstdint>
 #include <array>
 #include <string>
 #include <iostream>
@@ -61,7 +62,6 @@ namespace QaplaBasics {
 		NORTH_2 = NORTH * 2
 	};
 
-	constexpr Square operator*(Square a, int32_t b) { return Square(int32_t(a) * b); }
 	constexpr Square operator+(Square a, int32_t b) { return Square(int32_t(a) + b); }
 	constexpr Square operator-(Square a, int32_t b) { return Square(int32_t(a) - b); }
 	constexpr Square operator-(Square square) { return Square(-int32_t(square)); }

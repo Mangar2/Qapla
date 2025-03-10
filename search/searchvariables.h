@@ -186,6 +186,7 @@ namespace QaplaSearch {
 			
 			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 			ttMove = Move::EMPTY_MOVE;
+			ttValue = NO_VALUE;
 			if (ttIndex == TT::INVALID_INDEX) return false;
 
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
