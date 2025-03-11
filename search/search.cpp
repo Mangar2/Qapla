@@ -302,13 +302,11 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
  * Negamax algorithm for plys 1..n
  */
 template <Search::SearchRegion TYPE>
-value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 
 	SearchVariables& node = stack[ply];
 	node.pvMovesStore[ply] = Move::EMPTY_MOVE;
 
-	value_t alpha = -stack[ply - 1].beta;
-	value_t beta = -stack[ply - 1].alpha;
 	// 1. Detect direct cutoffs without requiring search or eval
 	// This includes checking the hash and setting the hash information like ttMove
 	if (nonSearchingCutoff<TYPE>(position, stack, node, alpha, beta, depth, ply)) return node.bestValue;
