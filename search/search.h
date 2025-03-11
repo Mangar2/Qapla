@@ -162,7 +162,7 @@ namespace QaplaSearch {
 		template <SearchRegion TYPE>
 		value_t negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
-		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
+		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves

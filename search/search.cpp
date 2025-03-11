@@ -127,7 +127,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	if (isCutoff && depth - R - 1 >= 0) {
 		position.computeAttackMasksForBothColors();
 		node.isVerifyingNullmove = true;
-		const auto verify = negaMaxPreSearch(position, stack, depth - R - 1, ply);
+		const auto verify = negaMaxPreSearch(position, stack, node.alpha, node.beta, depth - R - 1, ply);
 		node.isVerifyingNullmove = false;
 		isCutoff = verify >= node.beta;
 	}
@@ -158,12 +158,12 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	return lmr;
 }
 
-value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
-	node.setFromParentNode(position, stack[ply - 1], -stack[ply - 1].beta, -stack[ply - 1].alpha, depth, false);
+	node.setFromParentNode(position, stack[ply - 1], alpha, beta, depth, false);
 	// Must be after setFromParentNode
-	node.probeTT(false, node.alpha, node.beta, depth, ply);
+	node.probeTT(false, alpha, beta, depth, ply);
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
