@@ -382,7 +382,7 @@ namespace QaplaSearch {
 		 * Indicates that the PV failed low
 		 */
 		bool isFailLow() {
-			return bestValue <= alphaAtPlyStart;
+			return isPVNode() && bestValue <= alphaAtPlyStart && alpha + 1 < beta;
 		}
 
 		/**
@@ -390,12 +390,14 @@ namespace QaplaSearch {
 		 */
 		void updateTTandKiller(MoveGenerator& position, ButterflyBoard& butterflyBoard, bool isPV, ply_t depth) {
 			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
-				if (isFailLow() && isPVNode() && alpha + 1 < beta) return;
 				if (!bestMove.isEmpty()) {
 					moveProvider.setKillerMove(bestMove);
 					butterflyBoard.newBestMove(bestMove, depth, moveProvider.getTriedMoves(), moveProvider.getTriedMovesAmount());
 				}
-				setTTEntry(position.computeBoardHash(), isPV);
+				
+				if (!isFailLow()) {
+					setTTEntry(position.computeBoardHash(), isPV);
+				}
 			}
 		}
 
