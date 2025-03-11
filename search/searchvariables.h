@@ -60,8 +60,6 @@ namespace QaplaSearch {
 		typedef uint32_t pvIndex_t;
 
 		SearchVariables() {
-			_searchState = SearchFinding::PV;
-
 			cutoff = Cutoff::NONE;
 		};
 
@@ -75,8 +73,6 @@ namespace QaplaSearch {
 		/**
 		 * @returns true, if the current search is a PV search
 		 */
-		inline bool isPVSearch() const { return _searchState == SearchFinding::PV; }
-		inline bool isNullWindowSearch() const { return _searchState == SearchFinding::NULL_WINDOW; }
 		inline bool isWindowZero() const { return alpha + 1 == beta;  }
 		inline bool isPVNode() const { return _nodeType == NodeType::PV;  }
 		inline bool isOldPVNode() const { return alphaAtPlyStart + 1 < betaAtPlyStart; }
@@ -103,13 +99,8 @@ namespace QaplaSearch {
 			setWindowAtPlyStart(alpha, beta);
 			moveNumber = 0;
 			_nodeType = isPVNode? NodeType::PV : parentNode._nodeType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
-			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
-			if (previousMove.isNullMove()) {
-				_searchState = SearchFinding::NORMAL;
-				_nodeType = NodeType::CUT;
-			}
 			moveProvider.init();
 		}
 
@@ -121,11 +112,6 @@ namespace QaplaSearch {
 			alpha = alphaAtPlyStart;
 			beta = betaAtPlyStart;
 			moveNumber = 0;
-			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
-			if (previousMove.isNullMove()) {
-				_searchState = SearchFinding::NORMAL;
-				_nodeType = NodeType::CUT;
-			}
 		}
 
 		/**
@@ -140,7 +126,6 @@ namespace QaplaSearch {
 			betaAtPlyStart = beta;
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
-			_searchState = SearchFinding::PV;
 			_nodeType = NodeType::PV;
 			isVerifyingNullmove = false;
 			noNullmove = true;
@@ -267,7 +252,7 @@ namespace QaplaSearch {
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
 			if (eval < beta) return false;
 			// We do not prune in PV nodes. 
-			if (isPVSearch()) return false;
+			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
 			if (ttValueIsUpperBound) return false;
@@ -320,11 +305,7 @@ namespace QaplaSearch {
 		 * Sets the search to a null window search
 		 */
 		void setNullWindow() {
-			if (_searchState != SearchFinding::PV) {
-				return;
-			}
 			beta = alpha + 1;
-			_searchState = SearchFinding::NULL_WINDOW;
 		}
 
 		/**
@@ -332,7 +313,6 @@ namespace QaplaSearch {
 		 */
 		void setPVWindow() {
 			beta = betaAtPlyStart;
-			_searchState = SearchFinding::PV;
 		}
 
 		void setSE(value_t margin) {
@@ -367,13 +347,11 @@ namespace QaplaSearch {
 			if (searchResult > bestValue) {
 				bestValue = searchResult;
 				if (searchResult > alpha) {
-					if (!isNullWindowSearch()) {
-						bestMove = currentMove;
-						if (isPVSearch()) {
-							// PV line may be extended, thus always copy from pv
-							pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
-							pvMovesStore.setMove(ply, bestMove);
-						}
+					bestMove = currentMove;
+					if (isPVNode()) {
+						// PV line may be extended, thus always copy from pv
+						pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
+						pvMovesStore.setMove(ply, bestMove);
 					}
 					if (searchResult < beta) {
 						// Never set alpha > beta, it will harm the PVS algorithm
@@ -404,7 +382,7 @@ namespace QaplaSearch {
 		 * Indicates that the PV failed low
 		 */
 		bool isPVFailLow() {
-			return isPVSearch() && bestValue <= alphaAtPlyStart;
+			return isPVNode() && bestValue <= alphaAtPlyStart;
 		}
 
 		/**
@@ -430,13 +408,6 @@ namespace QaplaSearch {
 
 		void setPly(ply_t curPly) { ply = curPly; }
 
-		string getSearchStateName(SearchFinding searchState) const {
-			return searchStateNames[int32_t(searchState)];
-		}
-		
-		string getSearchStateName() const {
-			return getSearchStateName(_searchState);
-		}
 		
 		/**
 		 * Sets the transposition tables
@@ -468,10 +439,9 @@ namespace QaplaSearch {
 			std::cout << "[v:" << std::setw(6) << bestValue << "]";
 			std::cout << "[hm:" << std::setw(5) << getTTMove().getLAN() << "]";
 			std::cout << "[bm:" << std::setw(5) << bestMove.getLAN() << "]";
-			std::cout << "[st:" << std::setw(8) << getSearchStateName() << "]";
 			std::cout << "[nt:" << std::setw(4) << getNodeTypeName() << "]";
 		
-			if (isPVSearch()) {
+			if (isPVNode()) {
 				std::cout << " [PV: ";
 				pvMovesStore.print(ply);
 				std::cout << " ]";
@@ -540,7 +510,6 @@ namespace QaplaSearch {
 		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> checkingBitmaps;
 
 	private:
-		SearchFinding _searchState;
 		NodeType _nodeType;
 		TT* ttPtr;
 

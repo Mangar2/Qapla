@@ -82,7 +82,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets results after the search of a move is finished
 		 */
-		void set(value_t searchResult, const SearchStack& stack);
+		void set(value_t searchResult, const SearchStack& stack, bool isPVSearched);
 
 		/**
  		 * Checks, if we need to research this root move.

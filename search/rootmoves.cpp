@@ -40,12 +40,12 @@ void RootMove::init() {
 	_isExcluded = false;
 }
 
-void RootMove::set(value_t searchResult, const SearchStack& stack)
+void RootMove::set(value_t searchResult, const SearchStack& stack, bool isPVSearched)
 {
 	_valueOfLastSearch = searchResult;
 	_alphaOfLastSearch = stack[0].alpha;
 	_betaOfLastSearch = stack[0].beta;
-	_isPVSearched = stack[0].isPVSearch();
+	_isPVSearched = isPVSearched;
 	_depthOfLastSearch = stack[0].remainingDepth;
 	_pvLine.setMove(0, Move::EMPTY_MOVE);
 	if (_isPVSearched) {

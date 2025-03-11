@@ -68,7 +68,7 @@ namespace QaplaSearch {
 			_searchType = computeSearchType(searchType, node);
 			
 			_nodesSearched = info._nodesSearched;
-			_pv = node.isPVSearch() ? node.pvMovesStore.toString() : "";
+			_pv = node.isPVNode() && (_alpha + 1 < _beta) ? node.pvMovesStore.toString() : "";
 			_curValue = curValue;
 			if (_remainingDepth >= 0) {
 				if (!stack[ply + 1].getTTMove().isEmpty()) {

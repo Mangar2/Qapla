@@ -93,7 +93,7 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
 	else if (ply + depth < 3) {
 		result = false;
 	}
-	else if (node.isPVSearch()) {
+	else if (node.isPVNode()) {
 		result = false;
 	}
 
@@ -320,14 +320,14 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
-	/*
-	if (nodesSearched == 11755406 - 2) {
+	
+	if (nodesSearched == 3925) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();
 		}
 	}
-	*/
+	
 	_computingInfo._nodesSearched++;
 
 
@@ -374,7 +374,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// 2. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
-			if (TYPE == SearchRegion::PV) node.setNullWindow();
 			result = TYPE != SearchRegion::NEAR_LEAF && depth - lmr > 2 ?
 				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1) :
 				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1);
@@ -395,7 +394,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// We do not return fail high from a null window search in PV node
 		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.moveNumber == 1 || depth <= 1);
 		if (!isDirectPVWindowSearch) {
-			if (TYPE == SearchRegion::PV) node.setNullWindow();
 			result = TYPE != SearchRegion::NEAR_LEAF && depth > 2 ?
 				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1) :
 				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1);
@@ -407,7 +405,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 			if (!isDirectPVWindowSearch) {
 				position.computeAttackMasksForBothColors();
 			}
-			node.setPVWindow();
 			result = -negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, adjustedDepth - 1, ply, result, "PV");
 		}
@@ -460,7 +457,8 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		_computingInfo.setCurrentMove(triedMoves, curMove);
 
 		stack[1].doMove(position, curMove);
-		result = triedMoves <= skipMoves || depth <= 1 ?
+		auto pvSearch = depth <= 1 || triedMoves <= skipMoves;
+		result = pvSearch ?
 			-negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, depth - 1, 1):
 			-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, 1);
 		stack[1].undoMove(position);
@@ -468,8 +466,9 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		// AbortSearch must be checked first. If it is true, we do not have a valid search result
 		if (_clockManager->isSearchStopped()) break;
 
-		if (result > node.alpha && node.isNullWindowSearch()) {
+		if (result > node.alpha && !pvSearch) {
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, 0, result);
+			pvSearch = true;
 			node.setPVWindow();
 			stack[1].doMove(position, curMove);
 			result = -negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, depth - 1, 1);
@@ -481,7 +480,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 			
 		// We need to set the result to the root move before we update the node variables. 
 		// The root move will check for a fail low and thus needs the alpha value not updated
-		rootMove.set(result, stack);
+		rootMove.set(result, stack, pvSearch);
 		node.setSearchResult(result, stack[1], curMove);
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, 0, result);
 
