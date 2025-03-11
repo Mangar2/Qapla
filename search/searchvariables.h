@@ -89,7 +89,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setFromParentNode(MoveGenerator& position, const SearchVariables& parentNode, ply_t depth, bool isPVNode) {
+		void setFromParentNode(MoveGenerator& position, const SearchVariables& parentNode, value_t alpha, value_t beta, ply_t depth, bool isPVNode) {
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
 			bestMove.setEmpty();
@@ -100,7 +100,7 @@ namespace QaplaSearch {
 			isImproving = false;
 			remainingDepth = depth;
 			remainingDepthAtPlyStart = depth;
-			setWindowAtPlyStart(-parentNode.beta, -parentNode.alpha);
+			setWindowAtPlyStart(alpha, beta);
 			moveNumber = 0;
 			_nodeType = isPVNode? NodeType::PV : parentNode._nodeType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
 			_searchState = beta > alpha + 1 ? SearchFinding::PV : SearchFinding::NORMAL;
