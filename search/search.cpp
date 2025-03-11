@@ -186,16 +186,15 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, pl
  * IID modifies variables from stack[ply] (like move counter, search depth, ...)
  * Thus it must be called before setting the stack in negamax (setFromPreviousPly).
  */
-void Search::iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	SearchVariables& node = stack[ply];
-	SearchVariables& parentNode = stack[ply - 1];
 
 	if (!SearchParameter::DO_IID) return;
 	if (depth <= SearchParameter::getIIDMinDepth()) return;
 	if (!node.getTTMove().isEmpty()) return;
 
 	ply_t iidR = SearchParameter::getIIDReduction(depth);
-	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, -parentNode.beta, -parentNode.alpha, depth - iidR, ply);
+	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, alpha, beta, depth - iidR, ply);
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
 	position.computeAttackMasksForBothColors();
 	if (!node.bestMove.isEmpty()) {
@@ -204,7 +203,7 @@ void Search::iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 
 }
 
-ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	if (!SearchParameter::DO_SE_EXTENSION) return 0;
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
@@ -219,10 +218,10 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// Limit maximal extension depth
 	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchParameter::MAX_SEARCH_DEPTH))) return 0;
 
-	node.setFromParentNode(position, parentNode, -parentNode.beta, -parentNode.alpha, depth, false);
+	node.setFromParentNode(position, parentNode, alpha, beta, depth, false);
 	
 	// Must be after setFromParentNode
-	node.probeTT(false, node.alpha, node.beta, depth, ply);
+	node.probeTT(false, alpha, beta, depth, ply);
 
 	// No se, if tt does not have a good move value (> alpha)
 	if (node.ttValueIsUpperBound) return 0;
@@ -340,10 +339,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
-	if (TYPE == SearchRegion::PV) iid(position, stack, depth, ply);
+	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
 
 	// 5. Singular extension
-	const auto seExtension = se(position, stack, depth, ply);
+	const auto seExtension = se(position, stack, alpha, beta, depth, ply);
 
 	value_t result;
 	Move curMove;
