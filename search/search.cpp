@@ -321,7 +321,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
 	
-	if (nodesSearched == 3925) {
+	if (nodesSearched == 5647) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();
@@ -488,7 +488,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 			node.setNullWindow();
 		}
 
-		_clockManager->setSearchedRootMove(node.isPVFailLow(), node.bestValue);
+		_clockManager->setSearchedRootMove(node.isFailLow(), node.bestValue);
 		if (_clockManager->shouldAbort()) break;
 		_computingInfo.printNewPV(triedMoves);
 		if (node.isFailHigh()) break;
