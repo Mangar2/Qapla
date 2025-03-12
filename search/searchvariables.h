@@ -179,7 +179,6 @@ namespace QaplaSearch {
 			
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
-				eval = bestValue;
 				return true;
 			}
 

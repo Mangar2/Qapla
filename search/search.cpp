@@ -117,8 +117,8 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 
 	childNode.doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth - R > 2 ?
-		-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - R - 1, ply + 1) :
-		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - R - 1, ply + 1);
+		-negaMax<SearchRegion::INNER>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1) :
+		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1);
 
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - R - 1, ply, node.bestValue, "null");
 	childNode.undoMove(position);
@@ -313,6 +313,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// This includes checking the hash and setting the hash information like ttMove
 	if (nonSearchingCutoff<TYPE>(position, stack, node, alpha, beta, depth, ply)) return node.bestValue;
 	SearchVariables& childNode = stack[ply + 1];
+	SearchVariables& parentNode = stack[ply - 1];
 
 	// 2. Quiescense search
 	if (depth < 0) {
@@ -347,7 +348,9 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	value_t result;
 	Move curMove;
 
-	node.setFromParentNode(position, stack[ply - 1], alpha, beta, depth, TYPE == SearchRegion::PV);
+	// 6. Setting node values from parent node, must be after seExtensions
+	// We need only stable information from parent node; the node type and the previous move.
+	node.setFromParentNode(position, parentNode, alpha, beta, depth, TYPE == SearchRegion::PV);
 	
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 
