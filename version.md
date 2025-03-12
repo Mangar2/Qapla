@@ -1,5 +1,18 @@
 # Qapla Test Versions
 
+## 0.3.001 2025-03-12
+
+- Stores and retrieves eval from tt.
+
+## 0.3.000 2025-03-10
+
+- Raiting: 60.00
+- Some minor bug fixes
+- fixed, parameter for alpha/beta on nullmove search - but without effect for non PV moves and nullmove only runs on non PV moves.
+- fixed, that root move did not detect fail low correctly in rare caseses
+- fixed, that pv search result was not stored in hash for pv nodes in rare cases
+- fixed, that ttValue was not initialized on tt miss in search
+
 ## 0.2.056 2025-03-09
 
 - Hopefully last version for 0.2

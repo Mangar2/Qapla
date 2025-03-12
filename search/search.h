@@ -118,14 +118,17 @@ namespace QaplaSearch {
 		 */
 		template <SearchRegion TYPE>
 		bool checkCutoffAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
-			const auto evalBefore = ply > 1 ? stack[ply - 2].eval : NO_VALUE;
+			const auto evalBefore = ply > 1 ? stack[ply - 2].adjustedEval : NO_VALUE;
 			if (position.isInCheck()) {
-				node.eval = evalBefore;
+				node.adjustedEval = evalBefore;
 				return false;
 			}
-			if (node.eval == NO_VALUE) {
-				node.eval = Eval::eval(position);
-				node.isImproving = node.eval > evalBefore && evalBefore != NO_VALUE;
+			if (node.adjustedEval == NO_VALUE) {
+				if (node.eval == NO_VALUE) {
+					node.eval = Eval::eval(position);
+				}
+				node.adjustedEval = node.eval;
+				node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
 			}
 			// Must be after node.probeTT, because futility uses the information from TT
 			if (node.futility(position)) {

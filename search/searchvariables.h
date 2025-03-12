@@ -92,7 +92,7 @@ namespace QaplaSearch {
 			bestValue = -MAX_VALUE;
 			cutoff = Cutoff::NONE;
 			ttValueIsUpperBound = false;
-			eval = NO_VALUE;
+			adjustedEval = NO_VALUE;
 			isImproving = false;
 			remainingDepth = depth;
 			remainingDepthAtPlyStart = depth;
@@ -132,7 +132,7 @@ namespace QaplaSearch {
 			cutoff = Cutoff::NONE;
 			positionHashSignature = position.computeBoardHash();
 			ttValueIsUpperBound = false;
-			eval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position);
+			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position); 
 			isImproving = false;
 			moveProvider.init();
 		}
@@ -168,15 +168,15 @@ namespace QaplaSearch {
 		 */
 		bool probeTT(bool isPVNode, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 			assert(positionHashSignature != 0);
-			
 			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
 			ttMove = Move::EMPTY_MOVE;
 			ttValue = NO_VALUE;
+			eval = NO_VALUE;
 			if (ttIndex == TT::INVALID_INDEX) return false;
 
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
 			ttMove = entry.getMove();
-			
+			eval = entry.getEval();
 			if (entry.alwaysUseValue()) {
 				bestValue = entry.getPositionValue(ply);
 				return true;
@@ -184,7 +184,7 @@ namespace QaplaSearch {
 
 			ttValueIsUpperBound = entry.isValueUpperBound();
 			if (entry.isValueExact()) {
-				eval = entry.getPositionValue(ply);
+				adjustedEval = entry.getPositionValue(ply);
 			}
 
 			ttValue = entry.getValue(ply);
@@ -249,20 +249,20 @@ namespace QaplaSearch {
 		inline bool futility(MoveGenerator& position) {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
-			if (eval < beta) return false;
+			if (adjustedEval < beta) return false;
 			// We do not prune in PV nodes. 
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
 			if (ttValueIsUpperBound) return false;
 			// We do not prune on potentional mate values
-			if (eval > WINNING_BONUS) return false;
+			if (adjustedEval > WINNING_BONUS) return false;
 			// Do not prune on window indicating mate values
 			if (alpha > WINNING_BONUS || beta < -WINNING_BONUS) return false;
 
-			const bool doFutility = eval - SearchParameter::futilityMargin(remainingDepth, isImproving) >= beta;
+			const bool doFutility = adjustedEval - SearchParameter::futilityMargin(remainingDepth, isImproving) >= beta;
 			if (doFutility) {
-				bestValue = beta + (eval - beta) / 10;
+				bestValue = beta + (adjustedEval - beta) / 10;
 			}
 			return doFutility;
 		}
@@ -481,6 +481,7 @@ namespace QaplaSearch {
 		value_t betaAtPlyStart;
 		value_t bestValue;
 		value_t currentValue;
+		value_t adjustedEval;
 		value_t eval;
 		Move bestMove;
 		Move previousMove;

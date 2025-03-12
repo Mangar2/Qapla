@@ -63,7 +63,7 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
 		result = false;
 	}
 	*/
-	else if (node.eval < node.beta) {
+	else if (node.adjustedEval < node.beta) {
 		return false;
 	} 
 	else if (position.getMaterialValue(position.isWhiteToMove()).midgame() + MaterialBalance::PAWN_VALUE_MG < node.beta) {
@@ -113,7 +113,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	assert(!position.isInCheck());
 	SearchVariables& childNode = stack[ply + 1];
 
-	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
+	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.adjustedEval);
 
 	childNode.doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth - R > 2 ?
