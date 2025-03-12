@@ -373,7 +373,7 @@ namespace QaplaSearch {
 		 */
 		void setTTEntry(hash_t hashKey, bool isPV) {
 			ply_t depth = max(remainingDepthAtPlyStart, 0);
-			ttPtr->setEntry(hashKey, isPV, depth, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+			ttPtr->setEntry(hashKey, isPV, depth, ply, bestMove, eval, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 			// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 		}
 

@@ -103,7 +103,7 @@ namespace QaplaSearch {
 			auto iterator = _drawHashes.rbegin();
 			for (; iterator != _drawHashes.rend(); ++iterator) {
 				tt.setEntry(*iterator, true, TTEntry::MAX_DEPTH, 0,
-					Move::EMPTY_MOVE, drawPositionValue, -MAX_VALUE, MAX_VALUE, 0);
+					Move::EMPTY_MOVE, drawPositionValue, drawPositionValue, -MAX_VALUE, MAX_VALUE, 0);
 				drawPositionValue = -drawPositionValue;
 			}
 		}
