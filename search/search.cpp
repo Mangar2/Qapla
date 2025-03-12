@@ -320,14 +320,14 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
-	
+	/*
 	if (nodesSearched == 5647) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();
 		}
 	}
-	
+	*/
 	_computingInfo._nodesSearched++;
 
 
@@ -360,7 +360,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 	node.computeMoves(position, _butterflyBoard);
 	depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
-
+	bool isNullWindow = false;
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
@@ -444,7 +444,6 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::Engine::set_position(position.getFen());
 #endif
-
 	for (uint32_t triedMoves = 0; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
 
 		RootMove& rootMove = _computingInfo.getRootMoves().getMove(triedMoves);

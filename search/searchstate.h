@@ -172,9 +172,6 @@ namespace QaplaSearch {
 				}
 			}
 		}
-
-
-
 		
 		ply_t _depth;
 		bool _hasBookMove;
