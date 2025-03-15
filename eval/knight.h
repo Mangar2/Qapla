@@ -158,8 +158,8 @@ namespace ChessEval {
 			{ 0, 0 }, { _outpost[0], _outpost[1] }, { _pinned[0], _pinned[1] }, { _outpost[0] + _pinned[0], _outpost[1] + _pinned[1]} 
 		};
 
-		static inline std::string KNIGHT_PROPERTY_INFO[8] = {
-			"", "", "<otp>", "<otp>", "<pin>", "<pin>", "<pin><otp>", "<pin><otp>"
+		static inline std::string KNIGHT_PROPERTY_INFO[4] = {
+			"", "<otp>", "<pin>", "<pin><otp>"
 		};
 
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };

@@ -74,7 +74,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 	else {
 		// Do not change ordering of the following calls. King attack needs result from Mobility
 		EvalValue evalValue = Rook::eval<PRINT>(board, evalResults);
-		evalValue += Bishop::eval<PRINT>(board, evalResults);
+		evalValue += Bishop::eval(board, evalResults);
 		evalValue += Knight::eval(board, evalResults);
 		evalValue += Queen::eval<PRINT>(board, evalResults);
 		evalValue += Threat::eval<PRINT>(board, evalResults);
@@ -89,6 +89,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 	if constexpr (PRINT) {
 		std::vector<PieceInfo> details;
 		Knight::evalWithDetails(board, evalResults, details);
+		Bishop::evalWithDetails(board, evalResults, details);
 		printEvalBoard(details, evalResults.midgameInPercentV2);
 	}
 	return result;

@@ -27,6 +27,7 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "../basics/evalvalue.h"
+#include "../basics/pst.h"
 #include "evalresults.h"
 
 using namespace QaplaBasics;
@@ -35,19 +36,21 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 	class Bishop {
 	public:
-		template <bool PRINT>
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
-			return evalColor<WHITE>(position, results) - evalColor<BLACK>(position, results);
+			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
+		}
+
+		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
 		}
 	private:
 
 		/**
 		 * Evaluates Bishops
 		 */
-		template<Piece COLOR>
-		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results) {
+		template<Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			EvalValue value;
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t bishops = position.getPieceBB(BISHOP + COLOR);
 			results.bishopAttack[COLOR] = 0;
 			if (bishops == 0) {
@@ -56,23 +59,41 @@ namespace ChessEval {
 
 			uint32_t allBishopsIndex = hasDoubleBishop(bishops);
 
-			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + OPPONENT);
+			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + opponentColor<COLOR>());
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
 			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThroughBB)
-				& ~position.pawnAttack[OPPONENT];
+				& ~position.pawnAttack[opponentColor<COLOR>()];
 			occupiedBB &= ~passThroughBB;
 
 			while (bishops)
 			{
 				const Square bishopSquare = popLSB(bishops);
 				const auto mobilityIndex = calcMobilityIndex<COLOR>(results, bishopSquare, occupiedBB, removeMask);
-				const auto mobilityValue = BISHOP_MOBILITY_MAP[mobilityIndex];
+				const auto mobilityValue = EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]);
 
-				const auto bishopIndex = allBishopsIndex | (isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
-				const auto propertyValue = EvalValue(BISHOP_INDEX_MAP[bishopIndex]);
+				const auto propertyIndex = allBishopsIndex | (isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
+				const auto propertyValue = EvalValue(BISHOP_INDEX_MAP[propertyIndex]);
 
 				const auto totalValue = mobilityValue + propertyValue;
 				value += totalValue;
+
+				if constexpr (STORE_DETAILS) {
+					const auto materialValue = position.getPieceValue(BISHOP + COLOR);
+					const auto pstValue = PST::getValue(bishopSquare, BISHOP + COLOR);
+					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
+					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+					details->push_back({
+						BISHOP + COLOR,
+						bishopSquare,
+						mobilityIndex,
+						propertyIndex,
+						BISHOP_PROPERTY_INFO[propertyIndex],
+						mobility,
+						property,
+						materialValue,
+						pstValue,
+						mobility + property + materialValue + pstValue });
+				}
 				
 			}
 
@@ -123,6 +144,9 @@ namespace ChessEval {
 		static constexpr value_t BISHOP_INDEX_MAP[4][2] = {
 			{ 0, 0 }, {_doubleBishop[0], _doubleBishop[1]}, {_pinned[0], _pinned[1]},
 			{_doubleBishop[0] + _pinned[0], _doubleBishop[1] + _pinned[1]}
+		};
+		static inline std::string BISHOP_PROPERTY_INFO[4] = {
+			"", "<par>", "<pin>", "<pin><par>"
 		};
 
 		/**
