@@ -17,6 +17,8 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  */
 
+#include <string>
+#include <iomanip>
 #include "eval.h"
 #include "evalendgame.h"
 #include "pawn.h"
@@ -84,7 +86,81 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 			result += KingAttack::eval(board, evalResults);
 		}
 	}
+	if constexpr (PRINT) {
+		std::vector<PieceInfo> details;
+		Knight::evalWithDetails(board, evalResults, details);
+		printEvalBoard(details, evalResults.midgameInPercentV2);
+	}
 	return result;
+}
+
+void Eval::printEvalBoard(const std::vector<PieceInfo>& details, value_t midgameInPercent) {
+	// Überschrift
+	constexpr auto width = 11;
+	std::cout 
+		<< "        A           B           C           D           E           F           G           H" 
+		<< std::endl
+		<< "  +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+" 
+		<< std::endl;
+
+	for (Rank rank = Rank::R8; rank >= Rank::R1; --rank) {
+		for (int row = 0; row < 6; ++row) {
+			if (row == 3) {
+				std::cout << int(rank) + 1 << " |"; 
+			}
+			else {
+				std::cout << "  |";
+			}
+
+			for (File file = File::A; file <= File::H; ++file) {
+				const PieceInfo* pieceInfo = getPiece(details, computeSquare(file, rank));
+				if (pieceInfo) {
+					printPieceRow(row, *pieceInfo, midgameInPercent);
+				}
+				else {
+					std::cout << std::setw(width) << " " << "|";
+				}
+			}
+			std::cout << std::endl;
+		}
+		std::cout 
+			<< "  +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+"
+			<< std::endl;
+
+	}
+}
+
+const PieceInfo* Eval::getPiece(const std::vector<PieceInfo>& details, Square square) {
+	for (const auto& piece : details) {
+		if (piece.square == square) {
+			return &piece;
+		}
+	}
+	return nullptr;
+}
+
+void  Eval::printPieceRow(int row, const PieceInfo& pieceInfo, value_t midgameInPercent) {
+	std::string content;
+	constexpr auto width = 11;
+	switch (row) {
+	case 1: 
+		content = pieceToChar(pieceInfo.piece);
+		break;
+	case 2: // Eval mid- and endgame
+		content = pieceInfo.totalValue.toString();
+		break;
+	case 3: // Eval 
+		content = std::to_string(pieceInfo.totalValue.getValue(midgameInPercent));
+		break;
+	case 4: // Properties-Zeile
+		content = pieceInfo.propertyInfo;
+		break;
+	default: 
+		content = "";
+		break;
+	}
+	int padding = (width - int(content.length())) / 2;
+	std::cout << std::setw(padding + content.length()) << content << std::setw(width + 1 - padding - content.length()) << "|";
 }
 
 void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {

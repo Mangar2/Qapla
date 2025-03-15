@@ -33,6 +33,19 @@ using namespace QaplaBasics;
 
 namespace ChessEval {
 
+	struct PieceInfo {
+		Piece piece;
+		Square square;
+		uint32_t mobilityIndex;
+		uint32_t propertyIndex;
+		std::string propertyInfo;
+		EvalValue mobilityValue;
+		EvalValue propertyValue;
+		EvalValue materialValue;
+		EvalValue pstValue;
+		EvalValue totalValue;
+	};
+
 	struct EvalResults {
 		template <Piece COLOR>
 		inline void clearAttacksBB() {

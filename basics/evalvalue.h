@@ -76,6 +76,11 @@ namespace QaplaBasics {
 		constexpr friend EvalValue operator-(EvalValue a);
 		constexpr friend EvalValue operator*(EvalValue a, EvalValue b);
 		constexpr friend EvalValue operator/(EvalValue a, EvalValue b);
+
+		inline std::string toString() const {
+			return std::to_string(_midgame) + ", " + std::to_string(_endgame);
+		}
+
 		//This method handles all the outputs.    
 		friend ostream& operator<<(ostream&, const EvalValue&);
 	private:

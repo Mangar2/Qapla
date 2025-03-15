@@ -94,6 +94,10 @@ namespace ChessEval {
 	
 	private:
 
+		static void printEvalBoard(const std::vector<PieceInfo>& details, value_t midgameInPercent);
+		static const PieceInfo* getPiece(const std::vector<PieceInfo>& details, Square square);
+		static void printPieceRow(int row, const PieceInfo& pieceInfo, value_t midgameInPercent);
+
 		/**
 		 * Calculates the midgame factor in percent
 		 */

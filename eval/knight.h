@@ -27,35 +27,32 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "../basics/evalvalue.h"
+#include "../basics/pst.h"
 #include "evalresults.h"
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
-	struct PieceInfo {
-		Piece piece;
-		Square square;
-		uint32_t mobilityIndex;
-		uint32_t propertyIndex;
-		EvalValue mobilityValue;
-		EvalValue propertyValue;
-		EvalValue totalValue;
-	};
+
 
 	class Knight {
 	public:
 
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
-			return eval<WHITE>(position, results) - eval<BLACK>(position, results);
+			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
+		}
+
+		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
 		}
 	private:
 
 		/**
 		 * Evaluates Knights
 		 */
-		template<Piece COLOR>
-		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
+		template<Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			EvalValue value;
 			results.knightAttack[COLOR] = 0;
 
@@ -65,8 +62,33 @@ namespace ChessEval {
 			while (knights)
 			{
 				const Square knightSquare = popLSB(knights);
-				value += EvalValue(KNIGHT_MOBILITY_MAP[calcMobilityIndex<COLOR>(results, knightSquare, removeBB)]);
-				value += EvalValue(KNIGHT_PROPERTY_MAP[calcKnightProperties<COLOR>(position, knightSquare)]);
+				uint32_t mobilityIndex = calcMobilityIndex<COLOR>(results, knightSquare, removeBB);
+				uint32_t propertyIndex = calcKnightProperties<COLOR>(position, knightSquare);
+
+				EvalValue mobilityValue = EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]);
+				EvalValue propertyValue = EvalValue(KNIGHT_PROPERTY_MAP[propertyIndex]);
+
+				value += mobilityValue;
+				value += propertyValue;
+
+				if constexpr (STORE_DETAILS) {
+					const auto materialValue = position.getPieceValue(KNIGHT + COLOR);
+					const auto pstValue = PST::getValue(knightSquare, KNIGHT + COLOR);
+					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
+					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+					details->push_back({ 
+						KNIGHT + COLOR, 
+						knightSquare, 
+						mobilityIndex, 
+						propertyIndex, 
+						KNIGHT_PROPERTY_INFO[propertyIndex],
+						mobility,
+						property,
+						materialValue,
+						pstValue,
+						mobility + property + materialValue + pstValue });
+				}
+
 			}
 			return value;
 		}
@@ -81,7 +103,7 @@ namespace ChessEval {
 			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
 			results.piecesAttack[COLOR] |= attackBB;
 			attackBB &= removeBB;
-			return popCountForSparcelyPopulatedBitBoards(attackBB);
+			return popCount(attackBB);
 		}
 
 		/**
@@ -136,7 +158,7 @@ namespace ChessEval {
 			{ 0, 0 }, { _outpost[0], _outpost[1] }, { _pinned[0], _pinned[1] }, { _outpost[0] + _pinned[0], _outpost[1] + _pinned[1]} 
 		};
 
-		static inline std::string _indexToInfoString[8] = {
+		static inline std::string KNIGHT_PROPERTY_INFO[8] = {
 			"", "", "<otp>", "<otp>", "<pin>", "<pin>", "<pin><otp>", "<pin><otp>"
 		};
 
