@@ -73,7 +73,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		// Do not change ordering of the following calls. King attack needs result from Mobility
 		EvalValue evalValue = Rook::eval<PRINT>(board, evalResults);
 		evalValue += Bishop::eval<PRINT>(board, evalResults);
-		evalValue += Knight::eval<PRINT>(board, evalResults);
+		evalValue += Knight::eval(board, evalResults);
 		evalValue += Queen::eval<PRINT>(board, evalResults);
 		evalValue += Threat::eval<PRINT>(board, evalResults);
 		evalValue += Pawn::evalPassedPawnThreats<PRINT>(board, evalResults);

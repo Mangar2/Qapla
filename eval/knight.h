@@ -33,115 +33,98 @@ using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
+	struct PieceInfo {
+		Piece piece;
+		Square square;
+		uint32_t mobilityIndex;
+		uint32_t propertyIndex;
+		EvalValue mobilityValue;
+		EvalValue propertyValue;
+		EvalValue totalValue;
+	};
+
 	class Knight {
 	public:
-		template <bool PRINT>
+
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
-			return eval<WHITE, PRINT>(position, results) - eval<BLACK, PRINT>(position, results);
+			return eval<WHITE>(position, results) - eval<BLACK>(position, results);
 		}
 	private:
 
 		/**
 		 * Evaluates Knights
 		 */
-		template<Piece COLOR, bool PRINT>
+		template<Piece COLOR>
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			EvalValue value;
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			results.knightAttack[COLOR] = 0;
+
 			bitBoard_t knights = position.getPieceBB(KNIGHT + COLOR);
-			bitBoard_t removeBB = ~position.getPiecesOfOneColorBB<COLOR>() & ~position.pawnAttack[OPPONENT];
+			bitBoard_t removeBB = ~position.getPiecesOfOneColorBB<COLOR>() & ~position.pawnAttack[opponentColor<COLOR>()];
 
 			while (knights)
 			{
-
-				const Square knightSquare = lsb(knights);
-				knights &= knights - 1;
-				value += calcMobility<COLOR, PRINT>(results, knightSquare, removeBB);
-				value += calcPropertyValue<COLOR, PRINT>(position, knightSquare);
-				if (PRINT) cout << endl;
+				const Square knightSquare = popLSB(knights);
+				value += EvalValue(KNIGHT_MOBILITY_MAP[calcMobilityIndex<COLOR>(results, knightSquare, removeBB)]);
+				value += EvalValue(KNIGHT_PROPERTY_MAP[calcKnightProperties<COLOR>(position, knightSquare)]);
 			}
-
-			if (PRINT) cout  
-				<< colorToString(COLOR) << " knights: " 
-				<< std::right << std::setw(18) << value << endl;
 			return value;
 		}
 
 		/**
-		 * Calculates the mobility of a knight
+		 * Calculates the mobility index of a knight and adds the attacks of the knight to the attack bitboards in results
 		 */
-		template<Piece COLOR, bool PRINT>
-		static EvalValue calcMobility(
-			EvalResults& results, Square square, bitBoard_t removeBB)
-		{
+		template<Piece COLOR>
+		static inline uint32_t calcMobilityIndex(EvalResults& results, Square square, bitBoard_t removeBB) {
 			bitBoard_t attackBB = BitBoardMasks::knightMoves[square];
 			results.knightAttack[COLOR] |= attackBB;
 			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
 			results.piecesAttack[COLOR] |= attackBB;
-
 			attackBB &= removeBB;
-			const EvalValue value = KNIGHT_MOBILITY_MAP[popCountForSparcelyPopulatedBitBoards(attackBB)];
-			if (PRINT) cout << colorToString(COLOR)
-				<< " knight (" << squareToString(square) << ") mobility: "
-				<< std::right << std::setw(5) << value;
-			return value;
+			return popCountForSparcelyPopulatedBitBoards(attackBB);
 		}
 
 		/**
 		 * Checks, if a knight is an outpost - i.e. a Knight in the enemy teretory protected by a pawn
 		 * and not attackable by a pawn
 		 */
-		template<Piece COLOR, bool PRINT>
-		static inline bool isOutpost(Square square, bitBoard_t opponentPawnsBB, const MoveGenerator& position) {
+		template<Piece COLOR>
+		static constexpr uint32_t isOutpost(Square square, bitBoard_t opponentPawnsBB, bitBoard_t pawnAttackBB) {
 			bool result = false;
-			bitBoard_t knightBB = 1ULL << square;
+			bitBoard_t knightBB = squareToBB(square);
 			bool isProtectedByPawnAndInOpponentArea =
-				(knightBB & OUTPOST_BB[COLOR] & position.pawnAttack[COLOR]) != 0;
+				(knightBB & OUTPOST_BB[COLOR] & pawnAttackBB) != 0;
 			if (isProtectedByPawnAndInOpponentArea) {
 				bitBoard_t shift = COLOR == WHITE ? (square + NW) : (square + SOUTH + SW);
 				bitBoard_t opponentPawnCheckBB = 0x505ULL << shift;
 				result = (opponentPawnCheckBB & opponentPawnsBB) == 0;
 			}
-			if (PRINT && result) cout << "<otp>";
 			return result;
 		}
 
 		/**
 		 * Returns true, if the knight is pinned
 		 */
-		template<bool PRINT>
-		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
-			bool result = (pinnedBB & (1ULL << square)) != 0;
-			if (PRINT && result) cout << "<pin>";
-			return result;
+		static constexpr uint32_t isPinned(bitBoard_t pinnedBB, Square square) {
+			return (pinnedBB & squareToBB(square)) != 0;
 		}
 
 		/**
 		 * Calculates properties and their Values for Knights
 		 */
-		template<Piece COLOR, bool PRINT>
-		static inline EvalValue calcPropertyValue(const MoveGenerator& position, Square knightSquare)
+		template<Piece COLOR>
+		static inline uint32_t calcKnightProperties(const MoveGenerator& position, Square knightSquare)
 		{
-			uint16_t knightIndex = 0;
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
-			const bitBoard_t opponentPawnBB = position.getPieceBB(PAWN + OPPONENT);
-			knightIndex += isOutpost<COLOR, PRINT>(knightSquare, opponentPawnBB, position) * OUTPOST;
-			knightIndex += isPinned<PRINT>(position.pinnedMask[COLOR], knightSquare) * PINNED;
-			return getFromIndexMap(knightIndex);
-		}
-
-		/**
-		 * Gets a value pair from the index map
-		 */
-		static inline EvalValue getFromIndexMap(uint32_t index) {
-			return EvalValue(_indexToValue[index * 2], _indexToValue[index * 2 + 1]);
+			const bitBoard_t opponentPawnBB = position.getPieceBB(PAWN + opponentColor<COLOR>());
+			uint32_t knightIndex = isOutpost<COLOR>(knightSquare, opponentPawnBB, position.pawnAttack[COLOR]) * OUTPOST;
+			knightIndex += isPinned(position.pinnedMask[COLOR], knightSquare) * PINNED;
+			return knightIndex;
 		}
 
 		// Mobility Map for knights
 		static constexpr value_t KNIGHT_MOBILITY_MAP[9][2] = { 
-			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 }, { 20, 20 }, 
-			{ 25, 25 }, { 25, 25 }, { 25, 25 }
+			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 }, 
+			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		};
 
 		static const uint32_t OUTPOST = 1;
@@ -149,11 +132,12 @@ namespace ChessEval {
 		
 		static constexpr value_t _outpost[2] = { 20, 0 };
 		static constexpr value_t _pinned[2] = { 0, 0 };
-		static constexpr value_t _indexToValue[8] = { 
-			0, 0, 
-			_outpost[0], _outpost[1],
-			_pinned[0], _pinned[1], 
-			_pinned[0] + _outpost[0], _pinned[1] + _outpost[1]
+		static constexpr value_t KNIGHT_PROPERTY_MAP[4][2] = {
+			{ 0, 0 }, { _outpost[0], _outpost[1] }, { _pinned[0], _pinned[1] }, { _outpost[0] + _pinned[0], _outpost[1] + _pinned[1]} 
+		};
+
+		static inline std::string _indexToInfoString[8] = {
+			"", "", "<otp>", "<otp>", "<pin>", "<pin>", "<pin><otp>", "<pin><otp>"
 		};
 
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };

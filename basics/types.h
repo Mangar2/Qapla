@@ -70,7 +70,7 @@ namespace QaplaBasics {
 	inline Square& operator++(Square& square) { return square = Square(square + 1); }
 	inline Square& operator--(Square& square) { return square = Square(square - 1); }
 	inline Square& operator+=(Square& a, int32_t b) { return a = Square(a + b); }
-	constexpr bitBoard_t posToBB(Square square) { return 1ULL << square; }
+	constexpr bitBoard_t squareToBB(Square square) { return 1ULL << square; }
 
 	/**
 	 * Names of chess board files
@@ -106,8 +106,6 @@ namespace QaplaBasics {
 	constexpr Rank getRank(Square square) {
 		return Rank(square / NORTH);
 	}
-
-
 
 	/**
 	 * Gets the opposit rank of a square
@@ -206,6 +204,10 @@ namespace QaplaBasics {
 	inline Piece& operator++(Piece& piece) { return piece = Piece(piece + 1); }
 	inline Piece& operator+=(Piece& a, int32_t b) { return a = Piece(a + b); }
 	inline Piece& operator-=(Piece& a, int32_t b) { return a = Piece(a - b); }
+
+	template <Piece COLOR> constexpr Piece opponentColor() {
+		return COLOR == WHITE ? BLACK : WHITE;
+	}
 
 	/**
 	 * Checks, if a piece is a pawn
