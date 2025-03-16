@@ -136,14 +136,14 @@ namespace ChessEval {
 		/**
 		 * Returns true, if the rook is pinned
 		 */
-		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & (1ULL << square)) != 0;
+		constexpr bool isPinned(bitBoard_t pinnedBB, Square square) {
+			return (pinnedBB & squareToBB(square)) != 0;
 		}
 
 		/**
 		 * Returns true, if the rook is on an open file
 		 */
-		static inline bool isOnOpenFile(bitBoard_t pawnsBB, bitBoard_t moveRay) {
+		constexpr bool isOnOpenFile(bitBoard_t pawnsBB, bitBoard_t moveRay) {
 			return (moveRay & pawnsBB) == 0;
 		}
 

@@ -76,7 +76,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		EvalValue evalValue = Rook::eval<PRINT>(board, evalResults);
 		evalValue += Bishop::eval(board, evalResults);
 		evalValue += Knight::eval(board, evalResults);
-		evalValue += Queen::eval<PRINT>(board, evalResults);
+		evalValue += Queen::eval(board, evalResults);
 		evalValue += Threat::eval<PRINT>(board, evalResults);
 		evalValue += Pawn::evalPassedPawnThreats<PRINT>(board, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
@@ -90,6 +90,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		std::vector<PieceInfo> details;
 		Knight::evalWithDetails(board, evalResults, details);
 		Bishop::evalWithDetails(board, evalResults, details);
+		Queen::evalWithDetails(board, evalResults, details);
 		printEvalBoard(details, evalResults.midgameInPercentV2);
 	}
 	return result;
