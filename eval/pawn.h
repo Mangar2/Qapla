@@ -25,6 +25,7 @@
 #include <map>
 #include <cstring>
 #include <vector>
+#include <tuple>
 #include "../basics/types.h"
 #include "../basics/move.h"
 #include "../basics/pst.h"
@@ -216,19 +217,23 @@ namespace ChessEval {
 			results.passedPawns[COLOR] = 0;
 			if (pawns == 0) return 0;
 
-			bitBoard_t doubleBB = pawns & moveRay[COLOR];
+			const bitBoard_t doubleBB = pawns & moveRay[COLOR];
+			const auto [singleConnect, doubleConnect] = computeConnectedPawnIndex<COLOR>(position);
 
 			uint32_t isolatedPawnAmount = computeIsolatedPawnAmount<COLOR>(moveRay[COLOR]);
 			value += isolatedPawnAmount * EvalPawnValues::ISOLATED_PAWN_PENALTY;
 
 			value += computePassedPawnValue<COLOR>(position, results, moveRay);
-			value += computeConnectedPawnValue<COLOR>(position);
 
 			while (pawns)
 			{
 				const Square pawnSquare = popLSB(pawns);
+				const uint32_t pawnRank = uint32_t(getRank<COLOR>(pawnSquare));
 				const bitBoard_t pawnBB = squareToBB(pawnSquare);
 				uint32_t propertyIndex = (pawnBB & doubleBB) != 0;
+				propertyIndex += ((pawnBB & singleConnect) != 0) * SINGLE_CONNECT_INDEX * pawnRank;
+				propertyIndex += ((pawnBB & doubleConnect) != 0) * DOUBLE_CONNECT_INDEX * pawnRank;
+
 				value_t propertyValue = evalMap[propertyIndex];
 
 				value += propertyValue;
@@ -259,7 +264,8 @@ namespace ChessEval {
 		static string propertyIndexToString(uint16_t pawnIndex) {
 			string result = "";
 			if (pawnIndex & DOUBLE_PAWN_INDEX) { result += "dp,"; }
-
+			if ((pawnIndex / SINGLE_CONNECT_INDEX) & RANK_MASK) { result += "sc,"; }
+			if ((pawnIndex / DOUBLE_CONNECT_INDEX) & RANK_MASK) { result += "dc,"; }
 			if (!result.empty() && result.back() == ',') result.pop_back();
 			return result;
 		}
@@ -368,15 +374,40 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Computes bonus value for connected and phalanx (adjacent) pawns
+		 * Computes bonus index for connected and phalanx (adjacent) pawns
 		 */
 		template <Piece COLOR>
-		static value_t computeConnectedPawnValue(const MoveGenerator& position) {
+		static inline std::tuple<bitBoard_t, bitBoard_t> computeConnectedPawnIndex(const MoveGenerator& position) {
 			value_t result = 0;
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
 			bitBoard_t connectWest = BitBoardMasks::shiftColor<COLOR, WEST>(pawnsNorth) & pawns;
 			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) & pawns;
+			bitBoard_t doubleConnect = connectWest & connectEast;
+			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
+			return std::make_tuple(singleConnect, doubleConnect);
+			/*
+			for (; doubleConnect != 0; doubleConnect &= doubleConnect - 1) {
+				Square square = lsb(doubleConnect);
+				result += 2 * EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
+			}
+			for (; singleConnect != 0; singleConnect &= singleConnect - 1) {
+				Square square = lsb(singleConnect);
+				result += EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
+			}
+			*/
+		}
+
+		/**
+ * Computes bonus index for connected and phalanx (adjacent) pawns
+ */
+		template <Piece COLOR>
+		static inline value_t computeConnectedPawnValue(const MoveGenerator& position) {
+			value_t result = 0;
+			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
+			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
+			bitBoard_t connectWest = BitBoardMasks::shiftColor<COLOR, WEST>(pawnsNorth)& pawns;
+			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth)& pawns;
 			bitBoard_t doubleConnect = connectWest & connectEast;
 			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
 			for (; doubleConnect != 0; doubleConnect &= doubleConnect - 1) {
@@ -387,9 +418,7 @@ namespace ChessEval {
 				Square square = lsb(singleConnect);
 				result += EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
 			}
-
 			return result;
-
 		}
 
 
@@ -514,20 +543,22 @@ namespace ChessEval {
 			0x2828282828282828ULL, 0x5050505050505050ULL, 0xA0A0A0A0A0A0A0A0ULL, 0x4040404040404040ULL
 		};
 
-		static const uint32_t DOUBLE_PAWN_INDEX = 0x1;
-		static const uint32_t INDEX_SIZE = 2;
+		static const uint32_t DOUBLE_PAWN_INDEX = 0x01;
+		static const uint32_t SINGLE_CONNECT_INDEX = 0x02;
+		static const uint32_t RANK_MASK = 0x07;
+		static const uint32_t DOUBLE_CONNECT_INDEX = 0x10;
+		static const uint32_t INDEX_SIZE = 0x80;
 
 		inline static array<value_t, INDEX_SIZE> evalMap = [] {
-			const value_t _trapped[2] = { -50, 0 };
-			const value_t _openFile[2] = { 10, 0 };
-			const value_t _halfOpenFile[2] = { 10, 0 };
-			const value_t _protectsPP[2] = { 20, 0 };
-			const value_t _pinned[2] = { 0, 0 };
 
 			array<value_t, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
 				value_t value = 0;
 				if (bitmask & DOUBLE_PAWN_INDEX) { value += EvalPawnValues::DOUBLE_PAWN_PENALTY; }
+				const uint32_t singleConnect = (bitmask / SINGLE_CONNECT_INDEX) & RANK_MASK;
+				if (singleConnect) { value += EvalPawnValues::PAWN_SUPPORT[singleConnect]; }
+				const uint32_t doubleConnect = (bitmask / DOUBLE_CONNECT_INDEX) & RANK_MASK;
+				if (doubleConnect) { value += 2 * EvalPawnValues::PAWN_SUPPORT[doubleConnect]; }
 				map[bitmask] = value;
 			}
 			return map;

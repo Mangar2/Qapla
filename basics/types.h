@@ -245,7 +245,12 @@ namespace QaplaBasics {
 	 */
 	template<Piece COLOR>
 	constexpr Rank getRank(Square square) {
-		return COLOR == WHITE ? Rank(square / NORTH) : Rank::R8 - Rank(square / NORTH);
+		if constexpr (COLOR == WHITE) {
+			return Rank(square / NORTH);
+		}
+		else {
+			return Rank::R8 - Rank(square / NORTH);
+		}
 	}
 
 	/**
