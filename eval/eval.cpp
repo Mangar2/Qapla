@@ -56,7 +56,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 	if (PRINT) printEvalStep("PST", result, board.getPstBonus(), evalResults.midgameInPercentV2);
 
 	// Add paw value to the evaluation
-	const auto pawnEval = Pawn::eval<PRINT>(board, evalResults);
+	const auto pawnEval = Pawn::eval(board, evalResults);
 	if (PRINT) printValue("Pawns", result, pawnEval);
 	result += pawnEval;
 	
