@@ -116,30 +116,6 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Calculates the evaluation for the pawn values on the position
-		 */
-		/*
-		template <bool PRINT>
-		static value_t eval(MoveGenerator& position, EvalResults& results) {
-			value_t value = probeTT(position, results);
-			if (!PRINT && value != NO_VALUE) {
-				return value;
-			}
-
-			colorBB_t moveRay{};
-			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
-			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
-
-			value =
-				evalColor<WHITE>(position, results, moveRay)
-				- evalColor<BLACK>(position, results, moveRay);
-
-			_tt.setEntry(position.getPawnHash(), value, results.passedPawns);
-			return value;
-		}
-		*/
-
-		/**
 		 * Computes the value of the pawn structure in the case there is no
 		 * piece on the position
 		 */
@@ -236,46 +212,56 @@ namespace ChessEval {
 		template<Piece COLOR, bool STORE_DETAILS>
 		static value_t evalColor(const MoveGenerator & position, EvalResults & results, colorBB_t moveRay, std::vector<PieceInfo>*details) {
 			value_t value = 0;
-			bitBoard_t pawnBB = position.getPieceBB(PAWN + COLOR);
+			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			results.passedPawns[COLOR] = 0;
-			if (pawnBB != 0) {
-				uint32_t doublePawnAmount = computeAmountOfDoublePawns(pawnBB, moveRay[COLOR]);
-				value += doublePawnAmount * EvalPawnValues::DOUBLE_PAWN_PENALTY;
-				
-				uint32_t isolatedPawnAmount = computeIsolatedPawnAmount<COLOR>(moveRay[COLOR]);
-				value += isolatedPawnAmount * EvalPawnValues::ISOLATED_PAWN_PENALTY;
+			if (pawns == 0) return 0;
 
-				value += computePassedPawnValue<COLOR>(position, results, moveRay);
-				value += computeConnectedPawnValue<COLOR>(position);
+			bitBoard_t doubleBB = pawns & moveRay[COLOR];
+
+			uint32_t isolatedPawnAmount = computeIsolatedPawnAmount<COLOR>(moveRay[COLOR]);
+			value += isolatedPawnAmount * EvalPawnValues::ISOLATED_PAWN_PENALTY;
+
+			value += computePassedPawnValue<COLOR>(position, results, moveRay);
+			value += computeConnectedPawnValue<COLOR>(position);
+
+			while (pawns)
+			{
+				const Square pawnSquare = popLSB(pawns);
+				const bitBoard_t pawnBB = squareToBB(pawnSquare);
+				uint32_t propertyIndex = (pawnBB & doubleBB) != 0;
+				value_t propertyValue = evalMap[propertyIndex];
+
+				value += propertyValue;
 
 				if constexpr (STORE_DETAILS) {
-					storePawnDetails(COLOR, position, pawnBB, details);
+					const auto materialValue = EvalValue(position.getPieceValue(PAWN + COLOR));
+					const auto pstValue = PST::getValue(pawnSquare, PAWN + COLOR);
+					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+					details->push_back({
+						PAWN + COLOR,
+						pawnSquare,
+						0,  // mob index
+						propertyIndex,
+						propertyIndexToString(propertyIndex),
+						0,  // mob value
+						property,
+						materialValue,
+						pstValue,
+						materialValue + pstValue + property });
 				}
 			}
 			return value;
 		}
 
-		static void storePawnDetails(const Piece color, const MoveGenerator& position, bitBoard_t pawnBB, std::vector<PieceInfo>* details) {
-			const auto materialValue = position.getPieceValue(PAWN + color);
-			for (; pawnBB != 0; pawnBB &= pawnBB - 1) {
-				Square pawnSquare = lsb(pawnBB);
-				const auto pstValue = PST::getValue(pawnSquare, PAWN + color);
-				/*
-				const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
-				const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
-				*/
-				details->push_back({ 
-					PAWN, 
-					pawnSquare, 
-					0,  // mob index
-					0,  // prob index
-					"", // property info
-					0,  // mob value
-					0,  // prop value
-					materialValue, 
-					pstValue, 
-					materialValue + pstValue});
-			}
+		/**
+		 * Gets a pawn string to explain the index
+		 */
+		static string propertyIndexToString(uint16_t pawnIndex) {
+			string result = "";
+			if (pawnIndex & DOUBLE_PAWN_INDEX) { result += "dp,"; }
+
+			if (!result.empty() && result.back() == ',') result.pop_back();
+			return result;
 		}
 
 		/**
@@ -504,6 +490,8 @@ namespace ChessEval {
 
 		static const value_t RUNNER_BONUS = 300;
 
+		
+
 
 		static const uint32_t LOOKUP_TABLE_SIZE = 1 << NORTH;
 		static const bitBoard_t LOOKUP_TABLE_MASK = LOOKUP_TABLE_SIZE - 1;
@@ -526,7 +514,26 @@ namespace ChessEval {
 			0x2828282828282828ULL, 0x5050505050505050ULL, 0xA0A0A0A0A0A0A0A0ULL, 0x4040404040404040ULL
 		};
 
+		static const uint32_t DOUBLE_PAWN_INDEX = 0x1;
+		static const uint32_t INDEX_SIZE = 2;
 
+		inline static array<value_t, INDEX_SIZE> evalMap = [] {
+			const value_t _trapped[2] = { -50, 0 };
+			const value_t _openFile[2] = { 10, 0 };
+			const value_t _halfOpenFile[2] = { 10, 0 };
+			const value_t _protectsPP[2] = { 20, 0 };
+			const value_t _pinned[2] = { 0, 0 };
+
+			array<value_t, INDEX_SIZE> map;
+			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
+				value_t value = 0;
+				if (bitmask & DOUBLE_PAWN_INDEX) { value += EvalPawnValues::DOUBLE_PAWN_PENALTY; }
+				map[bitmask] = value;
+			}
+			return map;
+		} ();
+
+		// Test position: 3r1r2/p1Pq2bk/p1n1nppp/2p5/3pP1P1/3P1NNQ/1PPB3P/1R3R1K w - - 0 1
 
 	};
 

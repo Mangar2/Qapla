@@ -145,7 +145,7 @@ void  Eval::printPieceRow(int row, const PieceInfo& pieceInfo, value_t midgameIn
 	constexpr auto width = 11;
 	switch (row) {
 	case 1: 
-		content = pieceToChar(pieceInfo.piece);
+		content = (getPieceColor(pieceInfo.piece) == WHITE ? std::string("W") : std::string("B")) + pieceToChar(pieceInfo.piece);
 		break;
 	case 2: // Eval mid- and endgame
 		content = pieceInfo.totalValue.toString();
