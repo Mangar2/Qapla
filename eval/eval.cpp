@@ -49,15 +49,9 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 	// Add material to the evaluation
 	value_t material = board.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
 	result += material;
-	if (PRINT) printEvalStep("Material", board.getMaterialValue().getValue(evalResults.midgameInPercentV2), 
-		board.getMaterialValue(), evalResults.midgameInPercentV2);
-
-	if (PRINT) board.printPst();
-	if (PRINT) printEvalStep("PST", result, board.getPstBonus(), evalResults.midgameInPercentV2);
 
 	// Add paw value to the evaluation
 	const auto pawnEval = Pawn::eval(board, evalResults);
-	if (PRINT) printValue("Pawns", result, pawnEval);
 	result += pawnEval;
 	
 	endGameResult = EvalEndgame::eval(board, result);
@@ -85,15 +79,18 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		if (evalResults.midgameInPercent > 0) {
 			result += KingAttack::eval(board, evalResults);
 		}
+
+		if constexpr (PRINT) {
+			std::vector<PieceInfo> details;
+			Pawn::evalWithDetails(board, evalResults, details);
+			Rook::evalWithDetails(board, evalResults, details);
+			Knight::evalWithDetails(board, evalResults, details);
+			Bishop::evalWithDetails(board, evalResults, details);
+			Queen::evalWithDetails(board, evalResults, details);
+			printEvalBoard(details, evalResults.midgameInPercentV2);
+		}
 	}
-	if constexpr (PRINT) {
-		std::vector<PieceInfo> details;
-		Knight::evalWithDetails(board, evalResults, details);
-		Bishop::evalWithDetails(board, evalResults, details);
-		Rook::evalWithDetails(board, evalResults, details);
-		Queen::evalWithDetails(board, evalResults, details);
-		printEvalBoard(details, evalResults.midgameInPercentV2);
-	}
+
 	return result;
 }
 

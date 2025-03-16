@@ -27,6 +27,7 @@
 #include <vector>
 #include "../basics/types.h"
 #include "../basics/move.h"
+#include "../basics/pst.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
@@ -246,8 +247,35 @@ namespace ChessEval {
 
 				value += computePassedPawnValue<COLOR>(position, results, moveRay);
 				value += computeConnectedPawnValue<COLOR>(position);
+
+				if constexpr (STORE_DETAILS) {
+					storePawnDetails(COLOR, position, pawnBB, details);
+				}
 			}
 			return value;
+		}
+
+		static void storePawnDetails(const Piece color, const MoveGenerator& position, bitBoard_t pawnBB, std::vector<PieceInfo>* details) {
+			const auto materialValue = position.getPieceValue(PAWN + color);
+			for (; pawnBB != 0; pawnBB &= pawnBB - 1) {
+				Square pawnSquare = lsb(pawnBB);
+				const auto pstValue = PST::getValue(pawnSquare, PAWN + color);
+				/*
+				const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
+				const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+				*/
+				details->push_back({ 
+					PAWN, 
+					pawnSquare, 
+					0,  // mob index
+					0,  // prob index
+					"", // property info
+					0,  // mob value
+					0,  // prop value
+					materialValue, 
+					pstValue, 
+					materialValue + pstValue});
+			}
 		}
 
 		/**
