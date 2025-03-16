@@ -73,7 +73,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 	}
 	else {
 		// Do not change ordering of the following calls. King attack needs result from Mobility
-		EvalValue evalValue = Rook::eval<PRINT>(board, evalResults);
+		EvalValue evalValue = Rook::eval(board, evalResults);
 		evalValue += Bishop::eval(board, evalResults);
 		evalValue += Knight::eval(board, evalResults);
 		evalValue += Queen::eval(board, evalResults);
@@ -90,6 +90,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		std::vector<PieceInfo> details;
 		Knight::evalWithDetails(board, evalResults, details);
 		Bishop::evalWithDetails(board, evalResults, details);
+		Rook::evalWithDetails(board, evalResults, details);
 		Queen::evalWithDetails(board, evalResults, details);
 		printEvalBoard(details, evalResults.midgameInPercentV2);
 	}
@@ -98,7 +99,8 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 
 void Eval::printEvalBoard(const std::vector<PieceInfo>& details, value_t midgameInPercent) {
 	// Überschrift
-	constexpr auto width = 11;
+	constexpr auto WIDTH = 11;
+	constexpr auto ROWS = 5;
 	std::cout 
 		<< "        A           B           C           D           E           F           G           H" 
 		<< std::endl
@@ -106,7 +108,7 @@ void Eval::printEvalBoard(const std::vector<PieceInfo>& details, value_t midgame
 		<< std::endl;
 
 	for (Rank rank = Rank::R8; rank >= Rank::R1; --rank) {
-		for (int row = 0; row < 6; ++row) {
+		for (int row = 0; row < ROWS; ++row) {
 			if (row == 3) {
 				std::cout << int(rank) + 1 << " |"; 
 			}
@@ -120,7 +122,7 @@ void Eval::printEvalBoard(const std::vector<PieceInfo>& details, value_t midgame
 					printPieceRow(row, *pieceInfo, midgameInPercent);
 				}
 				else {
-					std::cout << std::setw(width) << " " << "|";
+					std::cout << std::setw(WIDTH) << " " << "|";
 				}
 			}
 			std::cout << std::endl;
