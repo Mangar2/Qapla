@@ -223,22 +223,24 @@ namespace ChessEval {
 			const bitBoard_t doubleBB = pawns & moveRay[COLOR];
 			const auto [singleConnect, doubleConnect] = computeConnectedPawnIndex<COLOR>(position);
 			const bitBoard_t passedPawnBB = computePassedPawnBB(pawns, moveRay[opponentColor<COLOR>()]);
+			const bitBoard_t isolatedPawnBB = computeIsolatedPawnBB<COLOR>(moveRay[COLOR]);
 			results.passedPawns[COLOR] = passedPawnBB;
 
-			uint32_t isolatedPawnAmount = computeIsolatedPawnAmount<COLOR>(moveRay[COLOR]);
-			value += isolatedPawnAmount * EvalPawnValues::ISOLATED_PAWN_PENALTY;
+			const value_t isolatedPawnValue = computeIsolatedPawnAmount<COLOR>(isolatedPawnBB) * EvalPawnValues::ISOLATED_PAWN_PENALTY;
 
 			while (pawns)
 			{
 				const Square pawnSquare = popLSB(pawns);
 				const uint32_t pawnRank = uint32_t(getRank<COLOR>(pawnSquare));
 				const bitBoard_t pawnBB = squareToBB(pawnSquare);
-				uint32_t propertyIndex = pawnRank;
-				propertyIndex += ((pawnBB & doubleBB) != 0) * DOUBLE_PAWN_INDEX;
-				propertyIndex += ((pawnBB & singleConnect) != 0) * SINGLE_CONNECT_INDEX;
-				propertyIndex += ((pawnBB & doubleConnect) != 0) * DOUBLE_CONNECT_INDEX;
+				uint32_t propertyIndex = pawnRank
+					| ((pawnBB & doubleBB) != 0) * DOUBLE_PAWN_INDEX
+					| ((pawnBB & singleConnect) != 0) * SINGLE_CONNECT_INDEX
+					| ((pawnBB & doubleConnect) != 0) * DOUBLE_CONNECT_INDEX
+					| ((pawnBB & isolatedPawnBB) != 0) * ISOLATED_PAWN_INDEX;
+
 				if (passedPawnBB & pawnBB) {
-					propertyIndex += computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
+					propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
 				}
 				value_t propertyValue = evalMap[propertyIndex];
 				value += propertyValue;
@@ -269,13 +271,14 @@ namespace ChessEval {
 		static string propertyIndexToString(uint16_t pawnIndex) {
 			string result = "";
 			const auto passedPawnIndex = pawnIndex & PASSED_PAWN_MASK;
-			if (pawnIndex & DOUBLE_PAWN_INDEX) { result += "dp,"; }
+			if (pawnIndex & DOUBLE_PAWN_INDEX) { result += "dub,"; }
 			if (pawnIndex & SINGLE_CONNECT_INDEX) { result += "sc,"; }
 			if (pawnIndex & DOUBLE_CONNECT_INDEX) { result += "dc,"; }
+			if (pawnIndex & ISOLATED_PAWN_INDEX) { result += "iso,"; }
 			if (passedPawnIndex == PASSED_PAWN_INDEX) { result += "pp,"; }
-			if (passedPawnIndex == CONNECTED_PASSED_PAWN_INDEX) { result += "cpp,"; }
 			if (passedPawnIndex == DISTANT_PASSED_PAWN_INDEX) { result += "dpp,"; }
 			if (passedPawnIndex == PROTECTED_PASSED_PAWN_INDEX) { result += "ppp,"; }
+			if (passedPawnIndex == CONNECTED_PASSED_PAWN_INDEX) { result += "cpp,"; }
 
 			if (!result.empty() && result.back() == ',') result.pop_back();
 			return result;
@@ -349,6 +352,48 @@ namespace ChessEval {
 			return result;
 		}
 
+		/* ---------------------------------------------------------------------------------------------------------------------
+		 * PASSED_PAWNS
+		 * --------------------------------------------------------------------------------------------------------------------- */
+
+		 /**
+		  * Checks, if a passed pawn is a distant passed pawn (having no opponents further outside)
+		  */
+		static bool isDistantPassedPawn(Square pawnPos, bitBoard_t ownPawns, bitBoard_t opponentPawns) {
+			bool noOpponentPawnsFurtherOutside =
+				(opponentPawns & distantPassedPawnCheckNoOpponentPawn[uint32_t(getFile(pawnPos))]) == 0;
+			bool ownPawnsOnOtherSideOfBoard =
+				(ownPawns & distantPassedPawnCheckOwnPawn[uint32_t(getFile(pawnPos))]) != 0;
+			return noOpponentPawnsFurtherOutside && ownPawnsOnOtherSideOfBoard;
+		}
+
+		/**
+		 * Checks, if a passed pawn is connected to another passed pawn
+		 * The other passed pawn must be in an adjacent row - the file is not relevant.
+		 */
+		static inline bool isConnectedPassedPawn(Square pawnPos, bitBoard_t passedPawns) {
+			return (passedPawns & connectedPassedPawnCheckMap[uint32_t(getFile(pawnPos))]) != 0;
+		}
+
+		/**
+		 * Checks, if a passed pawn is protected by another pawn
+		 */
+		static constexpr bool isProtectedPassedPawn(Square pawnPos, bitBoard_t pawnAttack) {
+			return (squareToBB(pawnPos) & pawnAttack) != 0;
+		}
+
+		/**
+		 * Computes the bitboard for passed pawns
+		 * How it works: if a pawn is not in front of an opponent pawn or an opponent pawn on the left/right columns, it
+		 * is a passed pawn.
+		 */
+		inline static bitBoard_t computePassedPawnBB(bitBoard_t pawns, bitBoard_t opponentPawnMoveRay) {
+			bitBoard_t nonPasserMask = opponentPawnMoveRay;
+			nonPasserMask |= BitBoardMasks::shift<WEST>(opponentPawnMoveRay);
+			nonPasserMask |= BitBoardMasks::shift<EAST>(opponentPawnMoveRay);
+			return pawns & ~nonPasserMask;
+		}
+
 		/**
 		 * Computes the value for passed pawn
 		 */
@@ -395,20 +440,6 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Compute the passed pawn vaues using precomputed bitboards stored in this class
-		 */
-		/*
-		template <Piece COLOR>
-		static value_t computePassedPawnValue(const MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
-			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
-			bitBoard_t passedPawnBB = computePassedPawnBB(pawns, moveRay[switchColor(COLOR)]);
-			value_t result = computePassedPawnValue<COLOR>(position, passedPawnBB);
-			
-			return result;
-		}
-		*/
-
-		/**
 		 * Computes bonus index for connected and phalanx (adjacent) pawns
 		 */
 		template <Piece COLOR>
@@ -423,32 +454,6 @@ namespace ChessEval {
 			return std::make_tuple(singleConnect, doubleConnect);
 		}
 
-
-		/**
-		 * Checks, if a passed pawn is a distant passed pawn (having no opponents further outside)
-		 */
-		static bool isDistantPassedPawn(Square pawnPos, bitBoard_t ownPawns, bitBoard_t opponentPawns) {
-			bool noOpponentPawnsFurtherOutside = 
-				(opponentPawns & distantPassedPawnCheckNoOpponentPawn[uint32_t(getFile(pawnPos))]) == 0;
-			bool ownPawnsOnOtherSideOfBoard = 
-				(ownPawns & distantPassedPawnCheckOwnPawn[uint32_t(getFile(pawnPos))]) != 0;
-			return noOpponentPawnsFurtherOutside && ownPawnsOnOtherSideOfBoard;
-		}
-
-		/**
-		 * Checks, if a passed pawn is connected to another passed pawn
-		 */
-		static inline bool isConnectedPassedPawn(Square pawnPos, bitBoard_t passedPawns) {
-			return (passedPawns & connectedPassedPawnCheckMap[uint32_t(getFile(pawnPos))]) != 0;
-		}
-
-		/**
-		 * Checks, if a passed pawn is protected by another pawn
-		 */
-		static constexpr bool isProtectedPassedPawn(Square pawnPos, bitBoard_t pawnAttack) {
-			return (squareToBB(pawnPos) & pawnAttack) != 0;
-		}
-
 		/** 
 		 * Computes the isolated pawn penalty - for pawns that are not already on row 7/row 1
 		 * How it works: the pawnMoveRay is a bitboard with bit set for all positions in front of pawns until row 7
@@ -461,16 +466,10 @@ namespace ChessEval {
 			return isolatedPawnAmountLookup[(pawnMoveRay >> SHIFT * NORTH) & LOOKUP_TABLE_MASK];
 		}
 
-		/**
-		 * Computes the bitboard for passed pawns
-		 * How it works: if a pawn is not in front of an opponent pawn or an opponent pawn on the left/right columns, it 
-		 * is a passed pawn.
-		 */
-		inline static bitBoard_t computePassedPawnBB(bitBoard_t pawns, bitBoard_t opponentPawnMoveRay) {
-			bitBoard_t nonPasserMask = opponentPawnMoveRay;
-			nonPasserMask |= BitBoardMasks::shift<WEST>(opponentPawnMoveRay);
-			nonPasserMask |= BitBoardMasks::shift<EAST>(opponentPawnMoveRay);
-			return pawns & ~nonPasserMask;
+		template <Piece COLOR>
+		inline static bitBoard_t computeIsolatedPawnBB(bitBoard_t pawnMoveRay) {
+			const uint64_t SHIFT = COLOR == WHITE ? 6 : 1;
+			return isolatedPawnBB[(pawnMoveRay >> SHIFT * NORTH) & LOOKUP_TABLE_MASK];
 		}
 
 		template <Piece COLOR>
@@ -509,13 +508,11 @@ namespace ChessEval {
 		static void computeIsolatedPawnLookupTable();
 
 		static const value_t RUNNER_BONUS = 300;
-
 		
-
-
 		static const uint32_t LOOKUP_TABLE_SIZE = 1 << NORTH;
 		static const bitBoard_t LOOKUP_TABLE_MASK = LOOKUP_TABLE_SIZE - 1;
 		static value_t isolatedPawnAmountLookup[LOOKUP_TABLE_SIZE];
+		static bitBoard_t isolatedPawnBB[LOOKUP_TABLE_SIZE];
 		static bitBoard_t kingInfluenceTable[COLOR_COUNT][COLOR_COUNT][BOARD_SIZE];
 		static bitBoard_t kingSupportPawnTable[COLOR_COUNT][BOARD_SIZE];
 
@@ -544,7 +541,7 @@ namespace ChessEval {
 		static const uint32_t CONNECTED_PASSED_PAWN_INDEX	= 0x100;
 		static const uint32_t PASSED_PAWN_MASK				= 0x1C0;
 		static const uint32_t ISOLATED_PAWN_INDEX			= 0x200;
-		static const uint32_t INDEX_SIZE = 0x200;
+		static const uint32_t INDEX_SIZE					= 0x400;
 
 		inline static array<value_t, INDEX_SIZE> evalMap = [] {
 
@@ -556,6 +553,7 @@ namespace ChessEval {
 				if (bitmask & DOUBLE_PAWN_INDEX) value += EvalPawnValues::DOUBLE_PAWN_PENALTY;
 				if (bitmask & SINGLE_CONNECT_INDEX) value += EvalPawnValues::PAWN_SUPPORT[rank]; 
 				if (bitmask & DOUBLE_CONNECT_INDEX) value += 2 * EvalPawnValues::PAWN_SUPPORT[rank];
+				if (bitmask & ISOLATED_PAWN_INDEX) value += EvalPawnValues::ISOLATED_PAWN_PENALTY;
 				if (ppIndex == PASSED_PAWN_INDEX) value += EvalPawnValues::PASSED_PAWN_VALUE[rank];
 				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
 				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
@@ -566,6 +564,7 @@ namespace ChessEval {
 		} ();
 
 		// Test position: 3r1r2/p1Pqn1bk/pPn1PPpp/2p5/3p2P1/p2P1NNQ/1pPB3P/1R3R1K w - - 0 1
+		// Isolated pawns: 4k3/1p1p1ppp/8/8/8/8/1PPP1P1P/4K3 w KQkq - 0 1
 
 	};
 

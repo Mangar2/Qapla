@@ -65,10 +65,6 @@ namespace ChessEval {
 				~position.pawnAttack[OPPONENT];
 			occupiedBB &= ~passThrough;
 			const uint32_t row7Index = rooksOnRow7Index<COLOR>(rooks, position.getPieceBB(QUEEN + COLOR));
-			// Compatibility to old eval, one queen already triggers "rook on row 7" 
-			if (row7Index == 4 * ROW_7_INDEX) {
-				value += EvalValue(10, 0);
-			}
 
 			while (rooks)
 			{
