@@ -49,6 +49,10 @@ namespace QaplaSearch {
 	public:
 		BoardAdapter() : positionModified(true), _workerCount(0) {}
 
+		virtual IChessBoard* createNew() const {
+			return new BoardAdapter();
+		}
+
 		/**
 		 * Sets the class printing search information in the right format
 		 */

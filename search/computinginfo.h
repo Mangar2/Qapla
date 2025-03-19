@@ -247,6 +247,7 @@ namespace QaplaSearch {
 			exchange.elapsedTimeInMilliseconds = _timeControl.getTimeSpentInMilliseconds();
 			exchange.totalAmountOfMovesToConcider = _totalAmountOfMovesToConcider;
 			exchange.movesLeftToConcider = _totalAmountOfMovesToConcider - _currentMoveNoSearched - 1;
+			exchange.valueInCentiPawn = _positionValueInCentiPawn;
 			return exchange;
 		}
 

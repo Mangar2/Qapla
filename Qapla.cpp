@@ -27,6 +27,7 @@
 #include "interface/winboard.h"
 #include "interface/winboardprintsearchinfo.h"
 #include "interface/selectinterface.h"
+#include "interface/statistics.h"
 #include "search/searchparameter.h"
 
 #include "search/search.h"

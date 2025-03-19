@@ -26,6 +26,8 @@
  // Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
  // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
+#include <vector>
+#include <map>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 
@@ -33,16 +35,14 @@ using namespace QaplaBasics;
 
 namespace ChessEval {
 
+	using IndexVector = std::vector<std::pair<std::string, uint32_t>>;
+	using IndexLookupMap = std::map<std::string, std::vector<EvalValue>>;
+
 	struct PieceInfo {
 		Piece piece;
 		Square square;
-		uint32_t mobilityIndex;
-		uint32_t propertyIndex;
+		IndexVector indexVector;
 		std::string propertyInfo;
-		EvalValue mobilityValue;
-		EvalValue propertyValue;
-		EvalValue materialValue;
-		EvalValue pstValue;
 		EvalValue totalValue;
 	};
 

@@ -43,6 +43,14 @@ namespace ChessEval {
 		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
 			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
 		}
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["bMobility"] = std::vector<EvalValue>{ BISHOP_MOBILITY_MAP, BISHOP_MOBILITY_MAP + 15 };
+			indexLookup["bProperty"] = std::vector<EvalValue>{ BISHOP_PROPERTY_MAP, BISHOP_PROPERTY_MAP + 4 };
+			indexLookup["bPST"] = PST::getPSTLookup(BISHOP);
+			return indexLookup;
+		}
 	private:
 
 		/**
@@ -72,7 +80,7 @@ namespace ChessEval {
 				const auto mobilityValue = EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]);
 
 				const auto propertyIndex = allBishopsIndex | (isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
-				const auto propertyValue = EvalValue(BISHOP_INDEX_MAP[propertyIndex]);
+				const auto propertyValue = EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]);
 
 				const auto totalValue = mobilityValue + propertyValue;
 				value += totalValue;
@@ -85,13 +93,8 @@ namespace ChessEval {
 					details->push_back({
 						BISHOP + COLOR,
 						bishopSquare,
-						mobilityIndex,
-						propertyIndex,
+						{ { "bMobility", mobilityIndex }, { "bProperty", propertyIndex }, { "bPST", bishopSquare } },
 						BISHOP_PROPERTY_INFO[propertyIndex],
-						mobility,
-						property,
-						materialValue,
-						pstValue,
 						mobility + property + materialValue + pstValue });
 				}
 				
@@ -141,7 +144,7 @@ namespace ChessEval {
 		 */
 		static constexpr value_t _doubleBishop[2] = { 10, 5 };
 		static constexpr value_t _pinned[2] = { 0, 0 };
-		static constexpr value_t BISHOP_INDEX_MAP[4][2] = {
+		static constexpr value_t BISHOP_PROPERTY_MAP[4][2] = {
 			{ 0, 0 }, {_doubleBishop[0], _doubleBishop[1]}, {_pinned[0], _pinned[1]},
 			{_doubleBishop[0] + _pinned[0], _doubleBishop[1] + _pinned[1]}
 		};

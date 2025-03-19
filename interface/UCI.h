@@ -52,11 +52,11 @@ namespace QaplaInterface {
 		 */
 		void computeMove() {
 			_clock.storeCalculationStartTime();
-			_board->setClock(_clock);
+			getBoard()->setClock(_clock);
 			setInfiniteSearch(_clock.isAnalyseMode() || _clock.isPonderMode());
-			_computeThread.startTask([this]() {
-				_board->computeMove();
-				ComputingInfoExchange computingInfo = _board->getComputingInfo();
+			getWorkerThread().startTask([this]() {
+				getBoard()->computeMove();
+				ComputingInfoExchange computingInfo = getBoard()->getComputingInfo();
 				waitIfInfiniteSearchFinishedEarly();
 				print("bestmove " + computingInfo.currentConsideredMove);
 				if (computingInfo.ponderMove != "") {
@@ -71,13 +71,13 @@ namespace QaplaInterface {
 		 */
 		void uciCommand() {
 			_clock.setTimeBetweenInfoInMilliseconds(1000);
-			println("id name " + _board->getEngineInfo()["name"]);
-			println("id author " + _board->getEngineInfo()["author"]);
+			println("id name " + getBoard()->getEngineInfo()["name"]);
+			println("id author " + getBoard()->getEngineInfo()["author"]);
 			println("option name Hash type spin default 32 min 1 max 16000");
 			println("option name ponder type check");
 			println("option name MultiPV type spin default 1 min 1 max 40");
-			println("option name UCI_EngineAbout type string default " + _board->getEngineInfo()["engine-about"]);
-			_board->initialize();
+			println("option name UCI_EngineAbout type string default " + getBoard()->getEngineInfo()["engine-about"]);
+			getBoard()->initialize();
 			println("uciok");
 		}
 
@@ -131,7 +131,7 @@ namespace QaplaInterface {
 			if (getNextTokenBlocking() == "value") {
 				value = getNextTokenBlocking();
 			}
-			_board->setOption(name, value);
+			getBoard()->setOption(name, value);
 		}
 
 		/**
@@ -169,7 +169,7 @@ namespace QaplaInterface {
 		 */
 		void newGame() {
 			stopCompute();
-			_board->newGame();
+			getBoard()->newGame();
 		}
 
 		/**

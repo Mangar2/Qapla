@@ -119,6 +119,13 @@ namespace ChessEval {
 			return value;
 		}
 
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["pProperty"] = std::vector<EvalValue>{ evalMap.begin(), evalMap.end() };
+			indexLookup["pPST"] = PST::getPSTLookup(PAWN);
+			return indexLookup;
+		}
+
 		/**
 		 * Computes the value of the pawn structure in the case there is no
 		 * piece on the position
@@ -252,13 +259,8 @@ namespace ChessEval {
 					details->push_back({
 						PAWN + COLOR,
 						pawnSquare,
-						0,  // mob index
-						propertyIndex,
+						{ { "pProperty", propertyIndex }, { "pPST", pawnSquare } },
 						propertyIndexToString(propertyIndex),
-						0,  // mob value
-						property,
-						materialValue,
-						pstValue,
 						materialValue + pstValue + property });
 				}
 			}

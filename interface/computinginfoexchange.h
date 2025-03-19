@@ -44,6 +44,7 @@ namespace QaplaInterface {
 			totalAmountOfMovesToConcider = 0;
 			currentConsideredMove = "";
 			ponderMove = "";
+			valueInCentiPawn = 0;
 		};
 
 		uint64_t elapsedTimeInMilliseconds;
@@ -51,6 +52,7 @@ namespace QaplaInterface {
 		uint32_t searchDepth;
 		uint32_t movesLeftToConcider;
 		uint32_t totalAmountOfMovesToConcider;
+		int32_t valueInCentiPawn;
 		string currentConsideredMove;
 		string ponderMove;
 	};

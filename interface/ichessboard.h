@@ -39,11 +39,14 @@ namespace QaplaInterface {
 		DRAW_BY_STALEMATE,
 		DRAW_BY_NOT_ENOUGHT_MATERIAL,
 		WHITE_WINS_BY_MATE,
-		BLACK_WINS_BY_MATE
+		BLACK_WINS_BY_MATE,
+		ILLEGAL_MOVE
 	};
 
 	class IChessBoard {
 	public:
+
+		virtual IChessBoard* createNew() const = 0;
 
 		/**
 		 * Sets the class printing search information in the right format

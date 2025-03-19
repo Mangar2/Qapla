@@ -46,6 +46,14 @@ namespace ChessEval {
 		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
 			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
 		}
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["rMobility"] = std::vector<EvalValue>{ ROOK_MOBILITY_MAP, ROOK_MOBILITY_MAP + 15 };
+			indexLookup["rProperty"] = std::vector<EvalValue>{ evalMap.begin(), evalMap.end() };
+			indexLookup["rPST"] = PST::getPSTLookup(ROOK);
+			return indexLookup;
+		}
 	private:
 
 		/**
@@ -73,7 +81,7 @@ namespace ChessEval {
 				const auto mobilityIndex = calcMobilityIndex<COLOR>(results, rookSquare, occupiedBB, removeMask);
 
 				const auto mobilityValue = EvalValue(ROOK_MOBILITY_MAP[mobilityIndex]);
-				const auto propertyValue = evalMap.getValue(propertyIndex);
+				const auto propertyValue = evalMap[propertyIndex];
 
 				value += mobilityValue + propertyValue;
 
@@ -85,13 +93,8 @@ namespace ChessEval {
 					details->push_back({
 						ROOK + COLOR,
 						rookSquare,
-						mobilityIndex,
-						propertyIndex,
+						{ { "rMobility", mobilityIndex }, { "rProperty", propertyIndex }, { "rPST", rookSquare } },
 						propertyIndexToString(propertyIndex),
-						mobility,
-						property,
-						materialValue,
-						pstValue,
 						mobility + property + materialValue + pstValue });
 				}
 			}
@@ -243,14 +246,14 @@ namespace ChessEval {
 		static const uint32_t PINNED = 0x10;
 		static const uint32_t ROW_7_INDEX = 0x20;
 		
-		inline static EvalMap<INDEX_SIZE, 2> evalMap = [] {
+		inline static array<EvalValue, INDEX_SIZE> evalMap = [] {
 			const value_t _trapped[2] = { -50, 0 };
 			const value_t _openFile[2] = { 10, 0 };
 			const value_t _halfOpenFile[2] = { 10, 0 };
 			const value_t _protectsPP[2] = { 20, 0 };
 			const value_t _pinned[2] = { 0, 0 };
 
-			EvalMap<INDEX_SIZE, 2> map;
+			array<EvalValue, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
 				EvalValue value;
 				if (bitmask & TRAPPED) { value += _trapped; }
@@ -259,7 +262,7 @@ namespace ChessEval {
 				if (bitmask & PROTECTS_PP) { value += _protectsPP; }
 				if (bitmask & PINNED) { value += _pinned; }
 				if (bitmask / ROW_7_INDEX) { value += ROOK_ROW_7_MAP[bitmask / ROW_7_INDEX]; }
-				map.setValue(bitmask, value.getValue());
+				map[bitmask] = value;
 			}
 			return map;
 		} ();

@@ -45,6 +45,14 @@ namespace ChessEval {
 			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
 		}
 
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["qMobility"] = std::vector<EvalValue>{ QUEEN_MOBILITY_MAP, QUEEN_MOBILITY_MAP + 30 };
+			indexLookup["qProperty"] = std::vector<EvalValue>{ _pinned, _pinned + 2 };
+			indexLookup["qPST"] = PST::getPSTLookup(QUEEN);
+			return indexLookup;
+		}
+
 	private:
 
 		/**
@@ -81,13 +89,8 @@ namespace ChessEval {
 					details->push_back({
 						QUEEN + COLOR,
 						square,
-						mobilityIndex,
-						propertyIndex,
+						{ { "qMobility", mobilityIndex }, { "qProperty", propertyIndex }, { "qPST", square } },
 						QUEEN_PROPERTY_INFO[propertyIndex],
-						mobility,
-						property,
-						materialValue,
-						pstValue,
 						mobility + property + materialValue + pstValue });
 				}
 			}

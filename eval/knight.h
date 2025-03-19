@@ -46,6 +46,14 @@ namespace ChessEval {
 		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
 			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
 		}
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["kMobility"] = std::vector<EvalValue>{ KNIGHT_MOBILITY_MAP, KNIGHT_MOBILITY_MAP + 9 };
+			indexLookup["kProperty"] = std::vector<EvalValue>{ KNIGHT_PROPERTY_MAP, KNIGHT_PROPERTY_MAP + 4 };
+			indexLookup["kPST"] = PST::getPSTLookup(KNIGHT);
+			return indexLookup;
+		}
 	private:
 
 		/**
@@ -78,14 +86,9 @@ namespace ChessEval {
 					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
 					details->push_back({ 
 						KNIGHT + COLOR, 
-						knightSquare, 
-						mobilityIndex, 
-						propertyIndex, 
+						knightSquare,
+						{ { "kMobility", mobilityIndex }, { "kProperty", propertyIndex }, { "kPST", knightSquare } },
 						KNIGHT_PROPERTY_INFO[propertyIndex],
-						mobility,
-						property,
-						materialValue,
-						pstValue,
 						mobility + property + materialValue + pstValue });
 				}
 

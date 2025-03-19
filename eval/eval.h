@@ -126,7 +126,12 @@ namespace ChessEval {
 		template <bool PRINT>
 		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply);
 
-	
+		/**
+		 * Fetches details for the evaluation
+		 */ 
+		static std::vector<PieceInfo> fetchDetails(MoveGenerator& board, EvalResults& evalResults);
+		IndexVector fetchIndexVector(MoveGenerator& board, EvalResults& evalResults);
+		IndexLookupMap fetchIndexLookupMap();
 
 		/**
 		 * Initializes some fields of eval results

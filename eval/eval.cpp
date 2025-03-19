@@ -32,6 +32,34 @@
 
 using namespace ChessEval;
 
+std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& board, EvalResults& evalResults) {
+	std::vector<PieceInfo> details;
+	Pawn::evalWithDetails(board, evalResults, details);
+	Rook::evalWithDetails(board, evalResults, details);
+	Knight::evalWithDetails(board, evalResults, details);
+	Bishop::evalWithDetails(board, evalResults, details);
+	Queen::evalWithDetails(board, evalResults, details);
+	return details;
+}
+
+IndexVector Eval::fetchIndexVector(MoveGenerator& board, EvalResults& evalResults) {
+	IndexVector indexVector;
+	const std::vector<PieceInfo> details = fetchDetails(board, evalResults);
+	for (const auto& piece : details) {
+		indexVector.insert(indexVector.end(), piece.indexVector.begin(), piece.indexVector.end());
+	}
+	return indexVector;
+}
+
+IndexLookupMap Eval::fetchIndexLookupMap() {
+	IndexLookupMap indexLookup = Pawn::getIndexLookup();
+	indexLookup.merge(Knight::getIndexLookup());
+	indexLookup.merge(Bishop::getIndexLookup());
+	indexLookup.merge(Rook::getIndexLookup());
+	indexLookup.merge(Queen::getIndexLookup());
+	return indexLookup;
+}
+
  /**
   * Calculates an evaluation for the current board position
  */
@@ -81,12 +109,7 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		}
 
 		if constexpr (PRINT) {
-			std::vector<PieceInfo> details;
-			Pawn::evalWithDetails(board, evalResults, details);
-			Rook::evalWithDetails(board, evalResults, details);
-			Knight::evalWithDetails(board, evalResults, details);
-			Bishop::evalWithDetails(board, evalResults, details);
-			Queen::evalWithDetails(board, evalResults, details);
+			std::vector<PieceInfo> details = fetchDetails(board, evalResults);
 			printEvalBoard(details, evalResults.midgameInPercentV2);
 		}
 	}
