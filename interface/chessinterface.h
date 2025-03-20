@@ -177,6 +177,20 @@ namespace QaplaInterface {
 			return res;
 		}
 
+		static bool isCapture(string move, IChessBoard* board) {
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			bool res = false;
+			if (scanner.isLegal()) {
+				res = board->isCapture(
+					scanner.piece,
+					scanner.departureFile, scanner.departureRank,
+					scanner.destinationFile, scanner.destinationRank,
+					scanner.promote);
+			}
+			return res;
+		}
+
 
 	protected:
 
@@ -202,6 +216,10 @@ namespace QaplaInterface {
 		 */
 		bool setMove(string move) {
 			return setMove(move, _board);
+		}
+
+		bool isCapture(string move) {
+			return isCapture(move, _board);
 		}
 
 		/**

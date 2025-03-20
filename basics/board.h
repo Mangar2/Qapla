@@ -30,6 +30,7 @@
 #include "boardstate.h"
 #include "piecesignature.h"
 #include "materialbalance.h"
+#include "pst.h"
 
 namespace QaplaBasics {
 
@@ -242,6 +243,20 @@ namespace QaplaBasics {
 		 */
 		inline auto getPstBonus() const {
 			return _pstBonus;
+		}
+
+		/**
+		 * Debugging, recompute the piece square table bonus
+		 */
+		auto computePstBonus() const {
+			EvalValue bonus = 0;
+			for (Square square = A1; square <= H8; ++square) {
+				const auto piece = operator[](square);
+				if (piece == NO_PIECE) continue;
+				bonus += PST::getValue(square, piece);
+				// std::cout << squareToString(square) << " " << pieceToChar(piece) << " " << PST::getValue(square, piece) << std::endl;
+			}
+			return bonus;
 		}
 
 		/**

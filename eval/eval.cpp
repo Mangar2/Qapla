@@ -49,6 +49,8 @@ IndexVector Eval::computeIndexVector(MoveGenerator& position) {
 	indexVector.push_back(IndexInfo{ "midgame", uint32_t(computeMidgameInPercent(position)), NO_PIECE });
 	indexVector.push_back(IndexInfo{ "midgamev2", uint32_t(computeMidgameV2InPercent(position)), NO_PIECE });
 	indexVector.push_back(IndexInfo{ "tempo", 0, position.isWhiteToMove() ? WHITE : BLACK });
+	indexVector.push_back({ "kingPST", uint32_t(position.getKingSquare<WHITE>()), WHITE });
+	indexVector.push_back({ "kingPST", uint32_t(switchSide(position.getKingSquare<BLACK>())), BLACK });
 	initEvalResults(position, evalResults);
 	const std::vector<PieceInfo> details = fetchDetails(position, evalResults);
 	for (const auto& piece : details) {
@@ -70,6 +72,7 @@ IndexLookupMap Eval::computeIndexLookupMap(MoveGenerator& position) {
 	indexLookup.merge(Threat::getIndexLookup());
 	const auto& pieceValues = position.getPieceValues();
 	indexLookup["material"] = std::vector<EvalValue>{ pieceValues.begin(), pieceValues.end() };
+	indexLookup["kingPST"] = PST::getPSTLookup(KING);
 	indexLookup["tempo"] = std::vector<EvalValue>{ EvalValue(tempo) };
 	return indexLookup;
 }
@@ -93,6 +96,10 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 	// Add material to the evaluation
 	value_t material = position.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
 	result += material;
+	if constexpr (PRINT) {
+		EvalValue bonus = position.computePstBonus();
+		cout << "PST bonus: " << bonus << endl;
+	}
 
 	// Add paw value to the evaluation
 	const auto pawnEval = Pawn::eval(position, evalResults);

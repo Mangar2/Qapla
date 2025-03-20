@@ -157,38 +157,7 @@ namespace ChessEval {
 
 		}
 
-		template <Piece COLOR, bool PRINT>
-		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
-			value_t value = 0;
-			const Piece OPPONENT = switchColor(COLOR);
-			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
-			bitBoard_t pp = results.passedPawns[COLOR];
-			if (pp == 0) return 0;
-			bitBoard_t supported = position.attackMask[COLOR] & ~position.attackMask[OPPONENT];
-			bitBoard_t stopped = position.getPiecesOfOneColorBB<OPPONENT>() | 
-				(position.attackMask[OPPONENT] & ~position.attackMask[COLOR]);  
 
-			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
-				Square square = lsb(pp);
-				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
-				bool isAttacked = (position.attackMask[OPPONENT] & (1ULL << square)) != 0;
-				if (threatValue == 0) continue;
-				threatValue /= (1 + isAttacked);
-				value_t divisor = 1;
-				for (Square square = lsb(pp) + dir; divisor <= 2; square += dir) {
-					bitBoard_t pawn = 1ULL << square;
-					if (stopped & pawn) break;
-					bool isSupported = (supported & pawn) != 0;
-					value += threatValue * (2 + isSupported) / divisor;
-					divisor++;
-					if (COLOR == WHITE && square > Square::H7) break;
-					if (COLOR == BLACK && square < Square::A2) break;
-				}
-			}
-			if (PRINT) cout << colorToString(COLOR) << " passed pawn threat: "
-				<< std::right << std::setw(10) << value << endl;
-			return value;
-		}
 
 	private:
 
@@ -443,6 +412,39 @@ namespace ChessEval {
 				result += EvalPawnValues::PASSED_PAWN_VALUE[rank];
 			}
 			return result;
+		}
+
+		template <Piece COLOR, bool PRINT>
+		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
+			value_t value = 0;
+			const Piece OPPONENT = switchColor(COLOR);
+			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
+			bitBoard_t pp = results.passedPawns[COLOR];
+			if (pp == 0) return 0;
+			bitBoard_t supported = position.attackMask[COLOR] & ~position.attackMask[OPPONENT];
+			bitBoard_t stopped = position.getPiecesOfOneColorBB<OPPONENT>() |
+				(position.attackMask[OPPONENT] & ~position.attackMask[COLOR]);
+
+			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
+				Square square = lsb(pp);
+				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
+				bool isAttacked = (position.attackMask[OPPONENT] & (1ULL << square)) != 0;
+				if (threatValue == 0) continue;
+				threatValue /= (1 + isAttacked);
+				value_t divisor = 1;
+				for (Square square = lsb(pp) + dir; divisor <= 2; square += dir) {
+					bitBoard_t pawn = 1ULL << square;
+					if (stopped & pawn) break;
+					bool isSupported = (supported & pawn) != 0;
+					value += threatValue * (2 + isSupported) / divisor;
+					divisor++;
+					if (COLOR == WHITE && square > Square::H7) break;
+					if (COLOR == BLACK && square < Square::A2) break;
+				}
+			}
+			if (PRINT) cout << colorToString(COLOR) << " passed pawn threat: "
+				<< std::right << std::setw(10) << value << endl;
+			return value;
 		}
 
 		/**

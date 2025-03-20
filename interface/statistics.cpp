@@ -28,6 +28,32 @@ using namespace std;
 
 using namespace QaplaInterface;
 
+std::map<std::string, std::vector<uint64_t>> createIndexLookupCount(const ChessEval::IndexLookupMap& original) {
+	std::map<std::string, std::vector<uint64_t>> copy;
+
+	for (const auto& [key, values] : original) {
+		copy[key] = std::vector<uint64_t>(values.size(), 0);
+	}
+
+	return copy;
+}
+
+std::ostream& formatIndexLookupMap(const std::map<std::string, std::vector<uint64_t>>& map, std::ostream& os) {
+	for (const auto& [key, values] : map) {
+		os << key << ": ";
+		std::string spacer = "";
+		for (size_t i = 0; i < values.size(); ++i) {
+			if (i % 8 == 0) {
+				os << std::endl << "  (" << i << ") ";
+				spacer = "";
+			}
+			os << spacer << values[i];
+			spacer = ", ";
+		}
+		os << std::endl;
+	}
+	return os;
+}
 
 bool Statistics::handleMove(string move) {
 	move = move == "" ? getCurrentToken() : move;
@@ -36,7 +62,6 @@ bool Statistics::handleMove(string move) {
 		println("Illegal move: " + move);
 	}
 	else {
-		printGameResult(getBoard()->getGameResult());
 		legalMove = true;
 	}
 	return legalMove;
@@ -230,11 +255,11 @@ void Statistics::loadGamesFromFile(const std::string& filename) {
 			game.addMove(move, eval);
 		}
 		count++;
-		if (count % 1000 == 0) {  // Update nur alle 1000 Zeilen
+		if (count % 5000 == 0) {  // Update nur alle 1000 Zeilen
 			std::cout << "\rGames loaded: " << count << std::flush;
 		}
 		_games.push_back(game);
-		break;
+		//if (count > 10) break;
 	}
 	std::cout << "\rGames loaded: " << count << std::endl;
 }
@@ -242,13 +267,16 @@ void Statistics::loadGamesFromFile(const std::string& filename) {
 void Statistics::train() {
 	loadGamesFromFile("games.txt");
 	uint32_t gameIndex = 0;
+	auto lookupMap = getBoard()->computeEvalIndexLookupMap();
+	auto lookupCount = createIndexLookupCount(lookupMap);
+	int64_t difference = 0;
+	int64_t moveCount = 0;
 	for (auto& game : _games) {
 		gameIndex++;
 		setPositionByFen(game.fen);
 		for (auto& movePair : game.moves) {
-			
+
 			auto indexVector = getBoard()->computeEvalIndexVector();
-			auto lookupMap = getBoard()->computeEvalIndexLookupMap();
 			std::map<std::string, EvalValue> aggregatedValues;
 
 			EvalValue evalCalculated = 0;
@@ -261,33 +289,43 @@ void Statistics::train() {
 				}
 				auto lookupTable = lookupMap[indexInfo.name];
 				auto value = lookupMap[indexInfo.name][indexInfo.index];
+				lookupCount[indexInfo.name][indexInfo.index]++;
 				auto valueColor = indexInfo.color == WHITE ? value : -value;
 				evalCalculated += valueColor;
-				cout << "sum: " << evalCalculated << " " << indexInfo.name << " value: " << value << " index: " << indexInfo.index << " color: " << (indexInfo.color == WHITE ? "white": "black") << endl;
-				std::string modifiedName = indexInfo.name.substr(1);
-				aggregatedValues[modifiedName] += valueColor;
-				// aggregatedValues[indexInfo.name] += valueColor;
+				// cout << "sum: " << evalCalculated << " " << indexInfo.name << " value: " << value << " index: " << indexInfo.index << " color: " << (indexInfo.color == WHITE ? "white": "black") << endl;
+				//std::string modifiedName = indexInfo.name.substr(1);
+				//aggregatedValues[modifiedName] += valueColor;
+				//aggregatedValues[indexInfo.name] += valueColor;
 			}
 			int32_t eval = getBoard()->eval();
+			int32_t positionValue = movePair.second;
+			std::string move = movePair.first;
+
 			// Eval is from side to move perspective, we need the eval always from white perspective
 			if (!getBoard()->isWhiteToMove()) {
 				eval = -eval;
+				positionValue = -positionValue;
 			}
-			int32_t evalC = evalCalculated.getValue(midgameV2);
-			if (std::abs(eval - evalC) > 1) {
-				getBoard()->printEvalInfo();
-				std::cout << "Error: Eval not correct: " << eval << " != " << evalCalculated << std::endl;
+			if (!getBoard()->isInCheck() && !isCapture(move)) {
+				int32_t evalC = evalCalculated.getValue(midgameV2);
+				difference += std::abs(eval - positionValue);
+				moveCount++;
+				if (std::abs(eval - evalC) > 2) {
+					//getBoard()->printEvalInfo();
+					//std::cout << "Error: Eval not correct: " << eval << " != " << evalCalculated << std::endl;
+				}
 			}
-			std::string move = movePair.first;
-			int32_t positionValue = movePair.second;
-			
 			if (!handleMove(move)) {
 				break;
 			}
 		}
 		// print the number of game and the total games as releation to cout e.g. 5/123
-		std::cout << "Game " <<  gameIndex << "/" << _games.size() << std::endl;
+		if (gameIndex % 1000 == 0) {
+			std::cout << "\rGames trained: " << gameIndex << "/" << _games.size() << " averageDifference " << (difference / moveCount);
+		}
 	}
+	std::cout << "\rGames trained: " << gameIndex << "/" << _games.size() << std::endl;
+	formatIndexLookupMap(lookupCount, std::cout);
 }
 
 void Statistics::playEpdGames(uint32_t numThreads) {

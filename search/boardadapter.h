@@ -163,6 +163,16 @@ namespace QaplaSearch {
 			return !move.isEmpty();
 		};
 
+		virtual bool isCapture(char movingPiece,
+			uint32_t departureFile, uint32_t departureRank,
+			uint32_t destinationFile, uint32_t destinationRank,
+			char promotePiece)
+		{
+			Move move = findMove(position, movingPiece, departureFile, departureRank,
+				destinationFile, destinationRank, promotePiece);
+			return move.isCapture();
+		}
+
 		/**
 		 * Undoes the last move
 		 */
@@ -196,6 +206,13 @@ namespace QaplaSearch {
 		 */
 		virtual bool isWhiteToMove() {
 			return position.isWhiteToMove();
+		}
+
+		/**
+		 * Returns true, if the side to move is in check
+		 */
+		virtual bool isInCheck() {
+			return position.isInCheck();
 		}
 
 		/**

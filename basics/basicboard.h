@@ -196,7 +196,7 @@ public:
 
 	BoardState boardState;
 
-private:
+protected:
 	bool isInBoard(Square square) { return square >= A1 && square <= H8; }
 
 	array<Piece, BOARD_SIZE> _board;
