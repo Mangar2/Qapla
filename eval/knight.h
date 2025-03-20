@@ -84,12 +84,13 @@ namespace ChessEval {
 					const auto pstValue = PST::getValue(knightSquare, KNIGHT + COLOR);
 					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
 					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
-					details->push_back({ 
-						KNIGHT + COLOR, 
-						knightSquare,
-						{ { "kMobility", mobilityIndex }, { "kProperty", propertyIndex }, { "kPST", knightSquare } },
-						KNIGHT_PROPERTY_INFO[propertyIndex],
-						mobility + property + materialValue + pstValue });
+					const IndexVector indexVector{ { "kMobility", mobilityIndex, COLOR },
+						{ "kProperty", propertyIndex, COLOR },
+						{ "kPST", uint32_t(switchSideToWhite<COLOR>(knightSquare)), COLOR },
+						{ "material", KNIGHT, COLOR } };
+						
+					const auto value = mobility + property + materialValue + pstValue;
+					details->push_back({ KNIGHT + COLOR, knightSquare, indexVector, KNIGHT_PROPERTY_INFO[propertyIndex], value });
 				}
 
 			}

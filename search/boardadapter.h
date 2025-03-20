@@ -341,13 +341,19 @@ namespace QaplaSearch {
 			eval.printEval(position);
 		}
 
-		/**
-		 * Gets internal information from eval
-		 */
-		template <Piece COLOR>
-		auto getEvalFactors() {
+		virtual value_t eval() {
 			Eval eval;
-			return eval.getEvalFactors<COLOR>(position);
+			return eval.eval(position);
+		}
+
+		virtual IndexVector computeEvalIndexVector() {
+			Eval eval;
+			return eval.computeIndexVector(position);
+		}
+
+		virtual IndexLookupMap computeEvalIndexLookupMap() {
+			Eval eval;
+			return eval.computeIndexLookupMap(position);
 		}
 
 		/**

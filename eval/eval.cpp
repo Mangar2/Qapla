@@ -36,53 +36,68 @@ std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& board, EvalResults& eva
 	std::vector<PieceInfo> details;
 	Pawn::evalWithDetails(board, evalResults, details);
 	Rook::evalWithDetails(board, evalResults, details);
-	Knight::evalWithDetails(board, evalResults, details);
 	Bishop::evalWithDetails(board, evalResults, details);
+	Knight::evalWithDetails(board, evalResults, details);
 	Queen::evalWithDetails(board, evalResults, details);
+
 	return details;
 }
 
-IndexVector Eval::fetchIndexVector(MoveGenerator& board, EvalResults& evalResults) {
+IndexVector Eval::computeIndexVector(MoveGenerator& position) {
 	IndexVector indexVector;
-	const std::vector<PieceInfo> details = fetchDetails(board, evalResults);
+	EvalResults evalResults;
+	indexVector.push_back(IndexInfo{ "midgame", uint32_t(computeMidgameInPercent(position)), NO_PIECE });
+	indexVector.push_back(IndexInfo{ "midgamev2", uint32_t(computeMidgameV2InPercent(position)), NO_PIECE });
+	indexVector.push_back(IndexInfo{ "tempo", 0, position.isWhiteToMove() ? WHITE : BLACK });
+	initEvalResults(position, evalResults);
+	const std::vector<PieceInfo> details = fetchDetails(position, evalResults);
 	for (const auto& piece : details) {
 		indexVector.insert(indexVector.end(), piece.indexVector.begin(), piece.indexVector.end());
 	}
+	KingAttack::eval(position, evalResults);
+	KingAttack::addToIndexVector(evalResults, indexVector);
+	Threat::addToIndexVector(position, evalResults, indexVector);
 	return indexVector;
 }
 
-IndexLookupMap Eval::fetchIndexLookupMap() {
+IndexLookupMap Eval::computeIndexLookupMap(MoveGenerator& position) {
 	IndexLookupMap indexLookup = Pawn::getIndexLookup();
 	indexLookup.merge(Knight::getIndexLookup());
 	indexLookup.merge(Bishop::getIndexLookup());
 	indexLookup.merge(Rook::getIndexLookup());
 	indexLookup.merge(Queen::getIndexLookup());
+	indexLookup.merge(KingAttack::getIndexLookup());
+	indexLookup.merge(Threat::getIndexLookup());
+	const auto& pieceValues = position.getPieceValues();
+	indexLookup["material"] = std::vector<EvalValue>{ pieceValues.begin(), pieceValues.end() };
+	indexLookup["tempo"] = std::vector<EvalValue>{ EvalValue(tempo) };
 	return indexLookup;
 }
 
  /**
   * Calculates an evaluation for the current board position
+  * The result is a value from the view of white, thus positive values are better for white
+  * negative values better for black.
  */
 template <bool PRINT>
-value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply) {
+value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_t ply) {
 
 	value_t result = 0;
 	value_t endGameResult;
-	initEvalResults(board, evalResults);
+	initEvalResults(position, evalResults);
 
-	evalResults.midgameInPercent = computeMidgameInPercent(board);
-	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(board);
+	evalResults.midgameInPercent = computeMidgameInPercent(position);
+	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(position);
 	if (PRINT) cout << "Midgame factor:" << std::right << std::setw(20) << evalResults.midgameInPercentV2 << endl;
 	
 	// Add material to the evaluation
-	value_t material = board.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
+	value_t material = position.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
 	result += material;
 
 	// Add paw value to the evaluation
-	const auto pawnEval = Pawn::eval(board, evalResults);
+	const auto pawnEval = Pawn::eval(position, evalResults);
 	result += pawnEval;
-	
-	endGameResult = EvalEndgame::eval(board, result);
+	endGameResult = EvalEndgame::eval(position, result);
 
 	if (endGameResult != result) {
 		result = endGameResult;
@@ -94,26 +109,33 @@ value_t Eval::lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t p
 		}
 	}
 	else {
+		if (abs(result) < WINNING_BONUS) {
+			result += position.isWhiteToMove() ? tempo : -tempo;
+		}
+
 		// Do not change ordering of the following calls. King attack needs result from Mobility
-		EvalValue evalValue = Rook::eval(board, evalResults);
-		evalValue += Bishop::eval(board, evalResults);
-		evalValue += Knight::eval(board, evalResults);
-		evalValue += Queen::eval(board, evalResults);
-		evalValue += Threat::eval<PRINT>(board, evalResults);
-		evalValue += Pawn::evalPassedPawnThreats<PRINT>(board, evalResults);
+		EvalValue evalValue = Rook::eval(position, evalResults);
+		evalValue += Bishop::eval(position, evalResults);
+		evalValue += Knight::eval(position, evalResults);
+		evalValue += Queen::eval(position, evalResults);
+		evalValue += Threat::eval<PRINT>(position, evalResults);
+		evalValue += Pawn::evalPassedPawnThreats<PRINT>(position, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
 		if (PRINT) printEvalStep("Pieces", result, evalValue, evalResults.midgameInPercentV2);
 
 		if (evalResults.midgameInPercent > 0) {
-			result += KingAttack::eval(board, evalResults);
+			result += KingAttack::eval(position, evalResults);
 		}
 
 		if constexpr (PRINT) {
-			std::vector<PieceInfo> details = fetchDetails(board, evalResults);
+			std::vector<PieceInfo> details = fetchDetails(position, evalResults);
 			printEvalBoard(details, evalResults.midgameInPercentV2);
 		}
 	}
-
+	// If a value == 0, the position will not be stored in hash tables
+	// Value == 0 indicates a forced draw situation like repetetive moves 
+	// or move count without pawn move or capture == 50
+	if (result == 0) result = 1;
 	return result;
 }
 
@@ -197,26 +219,6 @@ void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
 }
 
 /**
- * Gets a map of relevant factors to examine eval
- */
-template <Piece COLOR>
-map<string, value_t> Eval::getEvalFactors(MoveGenerator& board) {
-	EvalResults evalResults;
-	lazyEval<false>(board, evalResults, 0);
-	map<string, value_t> result;
-	return result;
-}
-
-map<string, value_t> Eval::getEvalFactors(MoveGenerator& board) {
-	map<string, value_t> result;
-	auto factors = getEvalFactors<WHITE>(board);
-	result.insert(factors.begin(), factors.end());
-	factors = getEvalFactors<BLACK>(board);
-	result.insert(factors.begin(), factors.end());
-	return result;
-}
-
-/**
  * Prints the evaluation results
  */
 void Eval::printEval(MoveGenerator& board) {
@@ -235,8 +237,6 @@ void Eval::printEval(MoveGenerator& board) {
 	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }
 
-template map<string, value_t> Eval::getEvalFactors<WHITE>(MoveGenerator& board);
-template map<string, value_t> Eval::getEvalFactors<BLACK>(MoveGenerator& board);
-
-
+template value_t Eval::lazyEval<true>(MoveGenerator& board, EvalResults& evalResults, value_t ply);
+template value_t Eval::lazyEval<false>(MoveGenerator& board, EvalResults& evalResults, value_t ply);
 

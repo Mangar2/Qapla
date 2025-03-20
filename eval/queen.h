@@ -47,7 +47,7 @@ namespace ChessEval {
 
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
-			indexLookup["qMobility"] = std::vector<EvalValue>{ QUEEN_MOBILITY_MAP, QUEEN_MOBILITY_MAP + 30 };
+			indexLookup["qMobility"] = std::vector<EvalValue>{ QUEEN_MOBILITY_MAP.begin(), QUEEN_MOBILITY_MAP.end()};
 			indexLookup["qProperty"] = std::vector<EvalValue>{ _pinned, _pinned + 2 };
 			indexLookup["qPST"] = PST::getPSTLookup(QUEEN);
 			return indexLookup;
@@ -86,12 +86,14 @@ namespace ChessEval {
 					const auto pstValue = PST::getValue(square, QUEEN + COLOR);
 					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
 					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
-					details->push_back({
-						QUEEN + COLOR,
-						square,
-						{ { "qMobility", mobilityIndex }, { "qProperty", propertyIndex }, { "qPST", square } },
-						QUEEN_PROPERTY_INFO[propertyIndex],
-						mobility + property + materialValue + pstValue });
+					const IndexVector indexVector{ 
+						  { "qMobility", mobilityIndex, COLOR },
+						  { "qProperty", propertyIndex, COLOR },
+						  { "qPST", uint32_t(switchSideToWhite<COLOR>(square)), COLOR },
+						  { "material", QUEEN, COLOR } };
+
+					const auto value = materialValue + pstValue + mobility + property;
+					details->push_back({ QUEEN + COLOR, square, indexVector, QUEEN_PROPERTY_INFO[propertyIndex], value });
 				}
 			}
 			return value;
@@ -126,7 +128,7 @@ namespace ChessEval {
 			"", "<pin>"
 		};
 
-		static constexpr value_t QUEEN_MOBILITY_MAP[30] = {
+		static constexpr array<value_t, 30> QUEEN_MOBILITY_MAP = {
 			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
 		};

@@ -256,10 +256,14 @@ namespace ChessEval {
 					const auto materialValue = EvalValue(position.getPieceValue(PAWN + COLOR));
 					const auto pstValue = PST::getValue(pawnSquare, PAWN + COLOR);
 					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+					const IndexVector indexVector{ 
+						 { "pProperty", propertyIndex, COLOR },
+						 { "pPST", uint32_t(switchSideToWhite<COLOR>(pawnSquare)), COLOR },
+						 { "material", PAWN, COLOR } };
 					details->push_back({
 						PAWN + COLOR,
 						pawnSquare,
-						{ { "pProperty", propertyIndex }, { "pPST", pawnSquare } },
+						indexVector,
 						propertyIndexToString(propertyIndex),
 						materialValue + pstValue + property });
 				}

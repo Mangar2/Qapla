@@ -30,21 +30,11 @@
 #include <map>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
+#include "eval-exchange-structures.h"
 
 using namespace QaplaBasics;
 
 namespace ChessEval {
-
-	using IndexVector = std::vector<std::pair<std::string, uint32_t>>;
-	using IndexLookupMap = std::map<std::string, std::vector<EvalValue>>;
-
-	struct PieceInfo {
-		Piece piece;
-		Square square;
-		IndexVector indexVector;
-		std::string propertyInfo;
-		EvalValue totalValue;
-	};
 
 	struct EvalResults {
 		template <Piece COLOR>

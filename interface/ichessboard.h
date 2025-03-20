@@ -28,6 +28,7 @@
 #include "computinginfoexchange.h"
 #include "iwhatIf.h"
 #include "isendsearchinfo.h"
+#include "../eval/eval-exchange-structures.h"
 
 
 namespace QaplaInterface {
@@ -128,6 +129,9 @@ namespace QaplaInterface {
 		 * Promptly print an information string for the current evaluation status
 		 */
 		virtual void printEvalInfo() = 0;
+		virtual value_t eval() = 0;
+		virtual ChessEval::IndexVector computeEvalIndexVector() = 0;
+		virtual ChessEval::IndexLookupMap computeEvalIndexLookupMap() = 0;
 
 		/**
 		 * Sets the clock for the next move.
@@ -193,6 +197,7 @@ namespace QaplaInterface {
 		 */
 		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)
 		{}
+
 
 	};
 }

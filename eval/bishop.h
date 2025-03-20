@@ -90,12 +90,12 @@ namespace ChessEval {
 					const auto pstValue = PST::getValue(bishopSquare, BISHOP + COLOR);
 					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
 					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
-					details->push_back({
-						BISHOP + COLOR,
-						bishopSquare,
-						{ { "bMobility", mobilityIndex }, { "bProperty", propertyIndex }, { "bPST", bishopSquare } },
-						BISHOP_PROPERTY_INFO[propertyIndex],
-						mobility + property + materialValue + pstValue });
+					const IndexVector indexVector{ { "bMobility", mobilityIndex, COLOR }, 
+						{ "bProperty", propertyIndex, COLOR }, 
+						{ "bPST", uint32_t(switchSideToWhite<COLOR>(bishopSquare)), COLOR },
+						{ "material", BISHOP, COLOR } };
+					const auto value = materialValue + pstValue + mobility + property;
+					details->push_back({ BISHOP + COLOR, bishopSquare, indexVector, BISHOP_PROPERTY_INFO[propertyIndex], value });
 				}
 				
 			}

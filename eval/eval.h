@@ -64,18 +64,9 @@ namespace ChessEval {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else
-			static const value_t tempo = 8;
 			EvalResults evalResults;
 			value_t positionValue = lazyEval<false>(board, evalResults, ply);
-			positionValue = board.isWhiteToMove() ? positionValue : -positionValue;
-			if (abs(positionValue) < WINNING_BONUS) {
-				positionValue += tempo;
-			}
-			// If a value == 0, the position will not be stored in hash tables
-			// Value == 0 indicates a forced draw situation like repetetive moves 
-			// or move count without pawn move or capture == 50
-			if (positionValue == 0) positionValue = 1;
-			return positionValue;
+			return board.isWhiteToMove() ? positionValue : -positionValue;
 #endif
 		}
 
@@ -85,12 +76,14 @@ namespace ChessEval {
 		static void printEval(MoveGenerator& board);
 
 		/**
-		 * Gets a map of relevant factors to examine eval
+		 * Fetches the list of indices calculated by the evaluation
 		 */
-		template <Piece COLOR>
-		map<string, value_t> getEvalFactors(MoveGenerator& board);
+		IndexVector computeIndexVector(MoveGenerator& board);
+		/**
+		 * Fetches the lookup map to get the value of an index value
+		 */
+		IndexLookupMap computeIndexLookupMap(MoveGenerator& board);
 
-		map<string, value_t> getEvalFactors(MoveGenerator& board);
 	
 	private:
 
@@ -130,8 +123,7 @@ namespace ChessEval {
 		 * Fetches details for the evaluation
 		 */ 
 		static std::vector<PieceInfo> fetchDetails(MoveGenerator& board, EvalResults& evalResults);
-		IndexVector fetchIndexVector(MoveGenerator& board, EvalResults& evalResults);
-		IndexLookupMap fetchIndexLookupMap();
+
 
 		/**
 		 * Initializes some fields of eval results
@@ -166,7 +158,7 @@ namespace ChessEval {
 			100, 100, 100, 100, 100, 100, 100, 100,
 			100, 100, 100, 100, 100, 100, 100, 100, 100 };
 
-		
+		static const value_t tempo = 8;
 
 	};
 }

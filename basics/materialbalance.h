@@ -103,6 +103,10 @@ namespace QaplaBasics {
 			return _materialValue;
 		}
 
+		const array<EvalValue, PIECE_AMOUNT>& getPieceValues() const {
+			return pieceValues;
+		}
+
 		const static value_t PAWN_VALUE_MG = 80;
 		const static value_t PAWN_VALUE_EG = 95;
 		const static value_t KNIGHT_VALUE_MG = 360;

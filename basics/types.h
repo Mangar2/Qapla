@@ -121,6 +121,8 @@ namespace QaplaBasics {
 		return Square(square ^ 0x38);
 	}
 
+
+
 	/**
 	 * Gets the file of a square
 	 */
@@ -250,6 +252,16 @@ namespace QaplaBasics {
 		}
 		else {
 			return Rank::R8 - Rank(square / NORTH);
+		}
+	}
+
+	template <Piece COLOR>
+	constexpr Square switchSideToWhite(Square square) {
+		if constexpr (COLOR == WHITE) {
+			return square;
+		}
+		else {
+			return switchSide(square);
 		}
 	}
 

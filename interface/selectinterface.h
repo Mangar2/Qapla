@@ -52,7 +52,7 @@ namespace QaplaInterface {
 			board->setSendSerchInfo(&sendSearchInfo);
 			uci.run(board, ioHandler);
 		}
-		else if (startsWith(firstToken, { "stat", "epd" })) {
+		else if (startsWith(firstToken, { "stat", "epd", "train"})) {
 			Statistics statistics;
 			statistics.run(board, ioHandler);
 		} 

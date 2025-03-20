@@ -52,6 +52,21 @@ namespace ChessEval {
 
 	public:
 
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			std::vector<EvalValue> attack;
+			for (auto weight: KingAttackValues::attackWeight) {
+				attack.push_back(EvalValue(weight, 0));
+			}
+			indexLookup["kAttack"] = attack;
+			return indexLookup;
+		}
+
+		static void addToIndexVector(const EvalResults& results, IndexVector& indexVector) {
+			indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[WHITE]), WHITE });
+			indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[BLACK]), BLACK });
+		}
+
 		static void printBB(bitBoard_t bb) {
 			uint32_t lineBreak = 8;
 			for (uint64_t i = 1ULL << 63; i > 0; i /= 2) {

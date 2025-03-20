@@ -1883,6 +1883,7 @@
     <ClInclude Include="bitbase\verify.h" />
     <ClInclude Include="bitbase\workpackage.h" />
     <ClInclude Include="eval\bishop.h" />
+    <ClInclude Include="eval\eval-exchange-structures.h" />
     <ClInclude Include="eval\eval-helper.h" />
     <ClInclude Include="eval\eval-map.h" />
     <ClInclude Include="eval\eval.h" />

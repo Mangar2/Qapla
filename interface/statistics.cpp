@@ -19,6 +19,7 @@
 
 
 #include "statistics.h"
+#include "../eval/eval.h"
 #include "winboardprintsearchinfo.h"
 #include <thread>
 #include <vector>
@@ -201,6 +202,93 @@ void Statistics::WMTest() {
 	}
 	*/
 }
+void Statistics::loadGamesFromFile(const std::string& filename) {
+	std::ifstream file(filename);
+	if (!file) {
+		std::cerr << "Error: Could not open file " << filename << "\n";
+		return;
+	}
+	_games.clear();
+
+	std::string line;
+	uint32_t count = 0;
+	while (std::getline(file, line)) {
+		std::istringstream ss(line);
+		std::string fen, move;
+		int eval;
+
+		if (!std::getline(ss, fen, ',')) {
+			continue;
+		}
+
+		ChessGame game(fen);
+		while (std::getline(ss, move, ',')) {
+			if (!(ss >> eval)) {
+				break;
+			}
+			ss.ignore(); // Ignore comma separator
+			game.addMove(move, eval);
+		}
+		count++;
+		if (count % 1000 == 0) {  // Update nur alle 1000 Zeilen
+			std::cout << "\rGames loaded: " << count << std::flush;
+		}
+		_games.push_back(game);
+		break;
+	}
+	std::cout << "\rGames loaded: " << count << std::endl;
+}
+
+void Statistics::train() {
+	loadGamesFromFile("games.txt");
+	uint32_t gameIndex = 0;
+	for (auto& game : _games) {
+		gameIndex++;
+		setPositionByFen(game.fen);
+		for (auto& movePair : game.moves) {
+			
+			auto indexVector = getBoard()->computeEvalIndexVector();
+			auto lookupMap = getBoard()->computeEvalIndexLookupMap();
+			std::map<std::string, EvalValue> aggregatedValues;
+
+			EvalValue evalCalculated = 0;
+			int32_t midgame = indexVector[0].index;
+			int32_t midgameV2 = indexVector[1].index;
+			assert(indexVector[0].name == "midgame" && indexVector[1].name == "midgamev2");
+			for (auto indexInfo : indexVector) {
+				if (indexInfo.name == "midgame" || indexInfo.name == "midgamev2") {
+					continue;
+				}
+				auto lookupTable = lookupMap[indexInfo.name];
+				auto value = lookupMap[indexInfo.name][indexInfo.index];
+				auto valueColor = indexInfo.color == WHITE ? value : -value;
+				evalCalculated += valueColor;
+				cout << "sum: " << evalCalculated << " " << indexInfo.name << " value: " << value << " index: " << indexInfo.index << " color: " << (indexInfo.color == WHITE ? "white": "black") << endl;
+				std::string modifiedName = indexInfo.name.substr(1);
+				aggregatedValues[modifiedName] += valueColor;
+				// aggregatedValues[indexInfo.name] += valueColor;
+			}
+			int32_t eval = getBoard()->eval();
+			// Eval is from side to move perspective, we need the eval always from white perspective
+			if (!getBoard()->isWhiteToMove()) {
+				eval = -eval;
+			}
+			int32_t evalC = evalCalculated.getValue(midgameV2);
+			if (std::abs(eval - evalC) > 1) {
+				getBoard()->printEvalInfo();
+				std::cout << "Error: Eval not correct: " << eval << " != " << evalCalculated << std::endl;
+			}
+			std::string move = movePair.first;
+			int32_t positionValue = movePair.second;
+			
+			if (!handleMove(move)) {
+				break;
+			}
+		}
+		// print the number of game and the total games as releation to cout e.g. 5/123
+		std::cout << "Game " <<  gameIndex << "/" << _games.size() << std::endl;
+	}
+}
 
 void Statistics::playEpdGames(uint32_t numThreads) {
 	if (getNextTokenNonBlocking() != "") {
@@ -364,8 +452,8 @@ void Statistics::handleInput() {
 	else if (token == "memory") readMemory();
 	else if (token == "generate") generateEGTB();
 	else if (token == "verify") verifyEGTB();
-	else if (token == "play") playGame();
 	else if (token == "playepd") playEpdGames();
+	else if (token == "train") train();
 	else if (token == "epd") loadEPD();
 	else if (checkClockCommands()) {}
 }

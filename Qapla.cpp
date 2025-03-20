@@ -206,58 +206,6 @@ void checkThreadSpeed() {
 void runTests() {
 }
 
-void createStatistic() {
-	QaplaSearch::ChessEnvironment environment;
-	ChessPGN::PGNFileTokenizer fileTokenizer("quabla_all.pgn");
-	ChessPGN::PGNGame game;
-	array<value_t, 30> win;
-	array<value_t, 30> loss;
-	array<value_t, 30> draw;
-	win.fill(0);
-	loss.fill(0);
-	draw.fill(0);
-	while (game.setGame(fileTokenizer)) {
-		cout << '.';
-		const string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-		FenScanner scanner;
-		scanner.setBoard(fen, &environment.adapter);
-		for (auto& move : game.getMoves()) {
-			const MoveGenerator& board = environment.adapter.getBoard();
-			environment.setMove(move);
-			auto white = environment.adapter.getEvalFactors<WHITE>();
-			auto black = environment.adapter.getEvalFactors<BLACK>();
-			const string tag = "Knight attack";
-			if (white.find(tag) != white.end()) {
-				// if (white[tag] == 0) { environment.adapter.getBoard().print(); }
-				if (game.getTag("Result") == "1-0") {
-					win[white[tag]] ++; 
-					loss[black[tag]] ++;
-				}
-				else if (game.getTag("Result") == "0-1") {
-					loss[white[tag]] ++;
-					win[black[tag]] ++;
-				}
-				else if (game.getTag("Result") == "1/2-1/2") {
-					draw[white[tag]] ++;
-					draw[black[tag]] ++;
-				}
-			}
-		}
-	};
-	cout << endl;
-	for (uint32_t i = 0; i < 30; i++) {
-		uint32_t total = win[i] + loss[i] + draw[i];
-		if (total > 0) {
-			cout << i
-				<< " score: " << ((win[i] * 100 + draw[i] * 50) / total) << "% (" << win[i] << ")"
-				<< " win: " << (win[i] * 100 / total) << "% (" << win[i] << ")"
-				<< " loss: " << (loss[i] * 100 / total) << "% (" << loss[i] << ")"
-				<< " draw: " << (draw[i] * 100 / total) << "% (" << draw[i] << ")"
-				<< endl;
-		}
-	}
-}
-
 int main(int argc, char* argv[])
 {
 	

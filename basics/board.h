@@ -226,6 +226,10 @@ namespace QaplaBasics {
 			return _materialBalance.getMaterialValue();
 		}
 
+		inline const auto& getPieceValues() const {
+			return _materialBalance.getPieceValues();
+		}
+
 		/**
 		 * Gets the material balance value of the board
 		 */

@@ -42,16 +42,29 @@ namespace ChessEval {
 			return eval<WHITE, PRINT>(position, result) -
 				eval<BLACK, PRINT>(position, result);
 		}
-	private:
-		template<Piece COLOR, bool PRINT>
-		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["threat"] = std::vector<EvalValue>{ THREAT_LOOKUP, THREAT_LOOKUP + 11 };
+			return indexLookup;
+		}
+
+		static void addToIndexVector(MoveGenerator& position, const EvalResults& result, IndexVector& indexVector) {
+			uint32_t wIndex = computeThreatIndex<WHITE>(position, result);
+			uint32_t bIndex = computeThreatIndex<BLACK>(position, result);
+			indexVector.push_back(IndexInfo{ "threat", wIndex, WHITE });
+			indexVector.push_back(IndexInfo{ "threat", bIndex, BLACK });
+		}
+
+		template<Piece COLOR>
+		static uint32_t computeThreatIndex(MoveGenerator& position, const EvalResults& result) {
 			constexpr Piece OPPONENT = switchColor(COLOR);
 			const bitBoard_t opponentPieces = position.getPiecesOfOneColorBB<OPPONENT>() &
 				~position.getPieceBB(OPPONENT + PAWN);
 			const bitBoard_t nonProtectedPieces = opponentPieces & ~position.attackMask[OPPONENT];
 			const bitBoard_t minorAttack = result.bishopAttack[COLOR] | result.knightAttack[COLOR];
 			const bitBoard_t minorOrRookAttack = minorAttack | result.rookAttack[COLOR];
-			
+
 			const bitBoard_t threats =
 				position.pawnAttack[COLOR] & opponentPieces
 				| nonProtectedPieces & position.attackMask[COLOR]
@@ -63,9 +76,16 @@ namespace ChessEval {
 			if (threatAmout > 10) {
 				threatAmout = 10;
 			}
-			const EvalValue evThreats = THREAT_LOOKUP[threatAmout];
+			return threatAmout;
+		}
+
+	private:
+		template<Piece COLOR, bool PRINT>
+		static EvalValue eval(MoveGenerator& position, const EvalResults& result) {
+			const auto threatAmount = computeThreatIndex<COLOR>(position, result);
+			const EvalValue evThreats = THREAT_LOOKUP[threatAmount];
 			if (PRINT) cout
-				<< colorToString(COLOR) << " threats (" << threatAmout << "): " << std::right << std::setw(14) << evThreats << endl;
+				<< colorToString(COLOR) << " threats (" << threatAmount << "): " << std::right << std::setw(14) << evThreats << endl;
 			return evThreats;
 		}
 

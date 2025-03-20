@@ -151,15 +151,19 @@ namespace QaplaInterface {
 	class Statistics : public ChessInterface {
 	public:
 		Statistics();
-		/*
-		void run(IChessBoard* chessBoard, IInputOutput* ioHandler) {
-			_ioHandler = ioHandler;
-			_board = chessBoard;
-			runLoop();
-		}
-		*/
 
 	private:
+		class ChessGame {
+		public:
+			std::string fen;
+			std::vector<std::pair<std::string, int>> moves;
+
+			ChessGame(const std::string& fen) : fen(fen) {}
+			void addMove(const std::string& move, int eval) {
+				moves.emplace_back(move, eval);
+			}
+		};
+
 		/**
 		 * Reads the amount of cores
 		 */
@@ -254,9 +258,9 @@ namespace QaplaInterface {
 		void handleInputWhileComputingMove();
 
 		void playEpdGames(uint32_t numThreads = 1);
-
 		void loadEPD();
-
+		void loadGamesFromFile(const std::string& filename);
+		void train();
 
 		/**
 		 * Handles input while in "wait for user action" mode
@@ -266,6 +270,7 @@ namespace QaplaInterface {
 		bool _xBoardMode;
 		bool _computerIsWhite;
 		std::vector<std::string> _startPositions;
+		std::vector<ChessGame> _games;
 		ISendSearchInfo* _sendSearchInfo;
 		PlayEpdGamesTask epdTasks;
 	};
