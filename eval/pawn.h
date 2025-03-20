@@ -427,20 +427,20 @@ namespace ChessEval {
 
 			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
 				Square square = lsb(pp);
-				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
-				bool isAttacked = (position.attackMask[OPPONENT] & (1ULL << square)) != 0;
-				if (threatValue == 0) continue;
-				threatValue /= (1 + isAttacked);
-				value_t divisor = 1;
-				for (Square square = lsb(pp) + dir; divisor <= 2; square += dir) {
-					bitBoard_t pawn = 1ULL << square;
+				Rank rank = getRank<COLOR>(square);
+				if (rank <= Rank::R3) continue;
+				uint32_t index = uint32_t(rank);
+				bool isAttacked = (position.attackMask[OPPONENT] & squareToBB(square)) != 0;
+				index += isAttacked * PP_IS_ATTACKED_INDEX;
+				value_t i = 1;
+				for (Square square = lsb(pp) + dir; i <= 2; square += dir, i++) {
+					bitBoard_t pawn = squareToBB(square);
 					if (stopped & pawn) break;
-					bool isSupported = (supported & pawn) != 0;
-					value += threatValue * (2 + isSupported) / divisor;
-					divisor++;
-					if (COLOR == WHITE && square > Square::H7) break;
-					if (COLOR == BLACK && square < Square::A2) break;
+					index += PP_NOT_BLOCKED_INDEX * i;
+					index += ((supported & pawn) != 0) * PP_IS_SUPPORTED_INDEX * i;
+					if (rank + i > Rank::R7) break;
 				}
+				value += ppMap[index];
 			}
 			if (PRINT) cout << colorToString(COLOR) << " passed pawn threat: "
 				<< std::right << std::setw(10) << value << endl;
@@ -540,6 +540,33 @@ namespace ChessEval {
 		};
 
 		static const uint32_t RANK_MASK = 0x07;
+		static const uint32_t PP_IS_ATTACKED_INDEX			= 0x08;
+		static const uint32_t PP_IS_SUPPORTED_INDEX			= 0x10;
+		static const uint32_t PP_NOT_BLOCKED_INDEX			= 0x40;
+		static const uint32_t PP_INDEX_SIZE					= 0x100;
+
+		inline static array<value_t, PP_INDEX_SIZE> ppMap = [] {
+			array<value_t, PP_INDEX_SIZE> map;
+			for (uint32_t bitmask = 0; bitmask < PP_INDEX_SIZE; ++bitmask) {
+				value_t value = 0;
+				map[bitmask] = value;
+				const value_t rank = bitmask & RANK_MASK;
+				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[rank];
+				if (threatValue == 0) continue;
+				bool isAttacked = bitmask & PP_IS_ATTACKED_INDEX;
+				threatValue /= (1 + isAttacked);
+				value_t divisor = 1;
+				for (value_t divisor = 1; divisor <= 2; divisor++) {
+					bool isNotBlocked = bitmask & (PP_NOT_BLOCKED_INDEX * divisor);
+					if (!isNotBlocked) break;
+					bool isSupported = bitmask & (PP_IS_SUPPORTED_INDEX * divisor);
+					value += threatValue * (2 + isSupported) / divisor;
+				}
+				map[bitmask] = value;
+			}
+			return map;
+			} ();
+
 		static const uint32_t DOUBLE_PAWN_INDEX				= 0x08;
 		static const uint32_t SINGLE_CONNECT_INDEX			= 0x10;
 		static const uint32_t DOUBLE_CONNECT_INDEX			= 0x20;
