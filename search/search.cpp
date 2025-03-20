@@ -338,6 +338,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		node.setCutoff(Cutoff::HASH);
 		return node.bestValue;
 	}
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 
 	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
 	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
@@ -352,7 +353,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// We need only stable information from parent node; the node type and the previous move.
 	node.setFromParentNode(position, parentNode, alpha, beta, depth, TYPE == SearchRegion::PV);
 	
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 
 	// Check all kind of early cutoffs including futility, nullmove, bitbase and others 
 	// Additionally set eval. This is done as late as possible, as it is very time consuming. Some cutoff checks needs eval.
