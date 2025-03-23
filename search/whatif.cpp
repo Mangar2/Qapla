@@ -18,6 +18,7 @@ WhatIf::WhatIf() : maxPly(0), searchDepth(0), count(0)
 
 void WhatIf::init(const Board &board, const ComputingInfo &computingInfo, value_t alpha, value_t beta)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	if (computingInfo.getSearchDepht() == searchDepth)
 	{
 		std::cout << "New search [w:" << std::setw(6) << beta << "," << std::setw(6) << alpha << "]" << std::endl;
@@ -28,6 +29,7 @@ void WhatIf::init(const Board &board, const ComputingInfo &computingInfo, value_
 void WhatIf::printInfo(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack,
 					   Move currentMove, ply_t depth, ply_t ply, value_t result)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	printMoves(stack, currentMove, ply);
 	WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, result, "");
 	variables.printAll();
@@ -41,10 +43,9 @@ void WhatIf::printInfo(const WhatIfVariables &wiVariables)
 
 void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo, Move currentMove, ply_t ply, bool inQsearch)
 {
-	if (ply <= hashFoundPly)
-	{
-		hashFoundPly = -1;
-	}
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (ply <= hashFoundPly) return;
+
 	if (computingInfo.getSearchDepht() == searchDepth && board.computeBoardHash() == hash && ply <= amountOfMovesToSearch + 1)
 	{
 		hashFoundPly = ply;
@@ -54,10 +55,12 @@ void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo
 
 void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, Move currentMove, ply_t ply)
 {
-	if (searchDepth == -1)
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (ply <= hashFoundPly)
 	{
-		return;
+		hashFoundPly = -1;
 	}
+
 	moveSelected(board, computingInfo, currentMove, ply, false);
 	if ((ply - 1) == hashFoundPly && -1 != hashFoundPly)
 	{
@@ -68,20 +71,16 @@ void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo
 
 void WhatIf::startSearch(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, ply_t ply)
 {
-	if (searchDepth == -1)
-	{
-		return;
-	}
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (searchDepth == -1) return;
 	moveSelected(board, computingInfo, Move::EMPTY_MOVE, ply, false);
 }
 
 void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack,
 						  Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType)
 {
-	if (searchDepth == -1 || ply < 0)
-	{
-		return;
-	}
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (searchDepth == -1) return;
 	if (ply == hashFoundPly)
 	{
 		WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, curValue, searchType);
@@ -92,6 +91,7 @@ void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo
 
 void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, value_t standPatValue, ply_t ply)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	if (hashFoundPly != -1 && qsearch)
 	{
 		for (ply_t i = 0; i <= ply; i++)
@@ -117,11 +117,12 @@ string getCutoffString(Cutoff cutoff)
 
 void WhatIf::cutoff(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, ply_t ply, Cutoff cutoff)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	if (cutoff == Cutoff::NONE)
 	{
 		return;
 	}
-	if (searchDepth == -1 || ply < 0)
+	if ((searchDepth == -1 && (computingInfo.getDebug() == -1)) || ply < 0)
 	{
 		return;
 	}

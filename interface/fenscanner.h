@@ -39,19 +39,33 @@ namespace QaplaInterface {
 
 		bool setBoard(string fen, IChessBoard* chessBoard) {
 			chessBoard->clearBoard();
-			string::iterator fenIterator = fen.begin();
+			std::string::iterator fenIterator = fen.begin();
 			error = false;
+
 			scanPieceSector(fen, fenIterator, chessBoard);
 			skipBlank(fen, fenIterator);
 			scanSideToMove(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanCastlingRights(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanEPField(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanPlayedMovesInGame(fen, fenIterator, chessBoard);
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanCastlingRights(fen, fenIterator, chessBoard);
+			}
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanEPField(fen, fenIterator, chessBoard);
+			}
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, chessBoard);
+			}
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanPlayedMovesInGame(fen, fenIterator, chessBoard);
+			}
+
+			if (!error) {
+				chessBoard->finishBoardSetup();
+			}
+
 			return !error;
 		}
 

@@ -69,6 +69,7 @@ namespace QaplaBasics {
 		constexpr  EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
 		constexpr  EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
 		constexpr  EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
+		constexpr  EvalValue abs() const { return EvalValue(std::abs(_midgame), std::abs(_endgame)); }
 		// EvalValue operator*(value_t mul) { _midgame *= mul; _endgame *= mul; return *this; }
 
 		constexpr friend EvalValue operator+(EvalValue a, EvalValue b);
@@ -77,6 +78,7 @@ namespace QaplaBasics {
 		constexpr friend EvalValue operator*(EvalValue a, EvalValue b);
 		constexpr friend EvalValue operator/(EvalValue a, EvalValue b);
 
+
 		inline std::string toString() const {
 			return std::to_string(_midgame) + ", " + std::to_string(_endgame);
 		}
@@ -84,13 +86,13 @@ namespace QaplaBasics {
 		//This method handles all the outputs.    
 		friend ostream& operator<<(ostream&, const EvalValue&);
 	private:
-		int16_t _midgame;
-		int16_t _endgame;
+		value_t _midgame;
+		value_t _endgame;
 	};
 
 	inline ostream& operator<<(ostream& o, const EvalValue& v) {
-		o << "[" << std::right << std::setw(3) << v._midgame << ", " 
-			<< std::right << std::setw(3) << v._endgame << "]";
+		o << "{" << std::right << std::setw(3) << v._midgame << ", " 
+			<< std::right << std::setw(3) << v._endgame << "}";
 		return o;
 	}
 

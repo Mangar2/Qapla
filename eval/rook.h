@@ -90,10 +90,12 @@ namespace ChessEval {
 					const auto pstValue = PST::getValue(rookSquare, ROOK + COLOR);
 					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
 					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
-					const IndexVector& indexVector{ { "rMobility", mobilityIndex, COLOR }, 
-						{ "rProperty", propertyIndex, COLOR }, 
+					IndexVector indexVector{ { "rMobility", mobilityIndex, COLOR }, 
 						{ "rPST", uint32_t(switchSideToWhite<COLOR>(rookSquare)), COLOR },
 						{ "material", ROOK, COLOR } };
+					if (propertyIndex) {
+						indexVector.push_back({ "rProperty", propertyIndex, COLOR });
+					}
 					const auto value = mobility + property + materialValue + pstValue;
 					details->push_back({ ROOK + COLOR, rookSquare, indexVector, propertyIndexToString(propertyIndex), value });
 				}

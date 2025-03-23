@@ -39,6 +39,18 @@ std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& board, EvalResults& eva
 	Bishop::evalWithDetails(board, evalResults, details);
 	Knight::evalWithDetails(board, evalResults, details);
 	Queen::evalWithDetails(board, evalResults, details);
+	std::vector<PieceInfo> ppDetails;
+	Pawn::evalPassedPawnThreatsWithDetails(board, evalResults, ppDetails);
+	for (const auto& pp : ppDetails) {
+		const auto square = pp.square;
+		for (auto& detail : details) {
+			if (detail.square == square) {
+				detail.indexVector.insert(detail.indexVector.end(), pp.indexVector.begin(), pp.indexVector.end());
+				detail.totalValue += pp.totalValue;
+				break;
+			}
+		}
+	}
 
 	return details;
 }
@@ -126,7 +138,7 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 		evalValue += Knight::eval(position, evalResults);
 		evalValue += Queen::eval(position, evalResults);
 		evalValue += Threat::eval<PRINT>(position, evalResults);
-		evalValue += Pawn::evalPassedPawnThreats<PRINT>(position, evalResults);
+		evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
 		if (PRINT) printEvalStep("Pieces", result, evalValue, evalResults.midgameInPercentV2);
 

@@ -45,15 +45,19 @@ namespace ChessEval {
 
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
-			indexLookup["threat"] = std::vector<EvalValue>{ THREAT_LOOKUP, THREAT_LOOKUP + 11 };
+			indexLookup["threat"] = std::vector<EvalValue>{ THREAT_LOOKUP.begin(), THREAT_LOOKUP.end() };
 			return indexLookup;
 		}
 
 		static void addToIndexVector(MoveGenerator& position, const EvalResults& result, IndexVector& indexVector) {
 			uint32_t wIndex = computeThreatIndex<WHITE>(position, result);
 			uint32_t bIndex = computeThreatIndex<BLACK>(position, result);
-			indexVector.push_back(IndexInfo{ "threat", wIndex, WHITE });
-			indexVector.push_back(IndexInfo{ "threat", bIndex, BLACK });
+			if (wIndex) {
+				indexVector.push_back(IndexInfo{ "threat", wIndex, WHITE });
+			}
+			if (bIndex) {
+				indexVector.push_back(IndexInfo{ "threat", bIndex, BLACK });
+			}
 		}
 
 		template<Piece COLOR>
@@ -83,17 +87,20 @@ namespace ChessEval {
 		template<Piece COLOR, bool PRINT>
 		static EvalValue eval(MoveGenerator& position, const EvalResults& result) {
 			const auto threatAmount = computeThreatIndex<COLOR>(position, result);
-			const EvalValue evThreats = THREAT_LOOKUP[threatAmount];
-			if (PRINT) cout
+			const EvalValue evThreats = position.getEvalVersion() == 0 ? THREAT_LOOKUP[threatAmount] : THREAT_LOOKUP1[threatAmount];
+			if constexpr (PRINT) cout
 				<< colorToString(COLOR) << " threats (" << threatAmount << "): " << std::right << std::setw(14) << evThreats << endl;
 			return evThreats;
 		}
-
-		static constexpr value_t THREAT_LOOKUP[11][2] =
-		{
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
 			{ 0, 0 }, { 25, 20 }, { 70, 60 }, { 120, 100 }, { 200, 180 }, { 300, 300 },
 			{ 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }
-		};
+		} };
+		// Second Computer
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP1 = { {
+			{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 250, 250 }, 
+			{400, 400}, {400, 400}, {400, 400}, {400, 400}, {400, 400}
+		} };
 
 	};
 }

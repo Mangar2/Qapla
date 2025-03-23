@@ -332,6 +332,9 @@ namespace QaplaBasics {
 		 */
 		void printPst() const;
 
+		uint32_t getEvalVersion() const { return evalVersion; }
+		void setEvalVersion(uint32_t version) { evalVersion = version; }
+
 	protected:
 		array<Square, COLOR_COUNT> kingSquares;
 
@@ -405,8 +408,8 @@ namespace QaplaBasics {
 
 		void printPst(Piece piece) const;
 
+		uint32_t evalVersion = 0;
 		EvalValue _pstBonus;
-
 		PieceSignature _pieceSignature;
 		MaterialBalance _materialBalance;
 

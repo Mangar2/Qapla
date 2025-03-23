@@ -29,9 +29,6 @@ using namespace QaplaInterface;
 using namespace ChessEval;
 using namespace QaplaSearch;
 
-TT* Quiescence::_tt;
-
-
 /**
  * Computes the maximal value a capture move can gain + safety margin
  * If this value is not enough to make it a valuable move, the move is skipped

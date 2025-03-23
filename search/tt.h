@@ -83,14 +83,14 @@ namespace QaplaSearch {
 		 * Gets the size of the transposition table in bytes
 		 */
 		size_t getSizeInBytes() const { 
-			return _tt.capacity() * sizeof(TTEntry); 
+			return _tt.size() * sizeof(TTEntry); 
 		}
 
 		/**
 		 * Computes the hash index of a hash key 
 		 */
 		int32_t	computeEntryIndex(hash_t hashKey) const {
-			return int32_t(hashKey % _tt.capacity()) & ~1;
+			return int32_t(hashKey % _tt.size()) & ~1;
 		}
 
 		/**
@@ -98,8 +98,8 @@ namespace QaplaSearch {
 		 */
 		void setSizeInKilobytes(int32_t sizeInKiloBytes)
 		{
-			uint64_t newCapacitiy = ( 1024ULL * sizeInKiloBytes) / sizeof(TTEntry);
-			setCapacity(newCapacitiy);
+			uint64_t newSize = ( 1024ULL * sizeInKiloBytes) / sizeof(TTEntry);
+			setSize(newSize);
 		}
 
 		/**
@@ -247,7 +247,7 @@ namespace QaplaSearch {
 				int32_t newEntryAmount = 0;
 				// Anzahl der Elemente lesen
 				file.read(&newEntryAmount, sizeof(newEntryAmount), 1);
-				setCapacity(newEntryAmount);
+				setSize(newEntryAmount);
 				file.read(entry, sizeof(hash_t), entryAmount * ELEMENTS_PER_HASH_ENTRY);
 				printf("Hash file _loaded\n");
 			}
@@ -283,7 +283,7 @@ namespace QaplaSearch {
 		 * Gets the fill rate in percent only counting entries of current search
 		 */
 		uint32_t getHashFillRateInPermill() const {
-			return uint32_t(uint64_t(_entries) * 1000ULL / _tt.capacity());
+			return uint32_t(uint64_t(_entries) * 1000ULL / _tt.size());
 		}
 
 		/**
@@ -340,10 +340,10 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sets the transposition table capacity
+		 * Sets the transposition table size
 		 */
-		void setCapacity(uint64_t newCapacity) {
-			_tt.resize(newCapacity);
+		void setSize(uint64_t newSize) {
+			_tt = std::vector<TTEntry>(newSize);
 			clear();
 		}
 

@@ -201,7 +201,6 @@ void Board::undoMoveSpecialities(Move move) {
 
 }
 
-
 void Board::undoMove(Move move, BoardState boardState) {
 
 	Square departure = move.getDeparture();

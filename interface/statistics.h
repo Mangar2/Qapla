@@ -26,6 +26,7 @@
 #include <fstream>
 #include <vector>
 #include "chessinterface.h"
+#include "../search/boardadapter.h"
 
 using namespace std;
 
@@ -37,7 +38,19 @@ namespace QaplaInterface {
 		std::ofstream file;
 
 	public:
-		explicit FileWriter(const std::string& filename) {
+		explicit FileWriter(const std::string& filename = "") {
+			if (!filename.empty()) {
+				open(filename);
+			}
+		}
+
+		void open(const std::string& filename) {
+			if (filename.empty()) {
+				throw std::runtime_error("Error: Filename is empty");
+			}
+			if (file.is_open()) {
+				file.close();
+			}
 			file.open(filename, std::ios::out | std::ios::trunc);
 			if (!file) {
 				throw std::runtime_error("Error: Cannot open file " + filename);
@@ -59,34 +72,66 @@ namespace QaplaInterface {
 
 	class PlayEpdGamesTask {
 	public:
-		PlayEpdGamesTask() : edpIndex(0), fileWriter("output.txt") {}
+		PlayEpdGamesTask() : epdIndex(0) {}
 
-		void start(uint32_t numThreads, const ClockSetting& clock, const std::vector<std::string>& startPositions, const IChessBoard* boardTemplate) {
+		void setOutputFile(const std::string& filename) {
+			fileWriter.open(filename);
+		}
+
+		void start(uint32_t numThreads, const ClockSetting& clock
+			, const std::vector<std::string>& startPositions
+			, const IChessBoard* boardTemplate
+			, uint32_t games = 0) {
 			stop();
 			timeControl.storeStartTime();
 			this->startPositions = startPositions;
 			gameStatistics.clear();
+			computer1Result = 0;
+			gamesPlayed = 0;
+			epdIndex = 0;
 
 			for (size_t i = 0; i < numThreads; ++i) {
 				if (i >= workers.size()) {
-					workers.emplace_back();
+					workers.emplace_back(std::make_unique<WorkerThread>());
 				}
-				workers[i].startTask([this, board = boardTemplate->createNew(), clock]() {
+				workers[i]->startTask([this, board = boardTemplate->createNew(), clock, games]() {
+					board->setOption("Hash", "2");
 					while (!stopped) {
-						std::string fen;
+						bool computer1IsWhite;
+						std::string fen = "";
 						{
 							std::lock_guard<std::mutex> lock(positionMutex);
-							if (edpIndex >= this->startPositions.size()) {
+							const auto epdNo = statistic ? epdIndex / 2 : epdIndex;
+							if (epdNo >= this->startPositions.size() || (games > 0 && epdIndex >= games)) {
 								break;
 							}
-							fen = this->startPositions[edpIndex++];
+							computer1IsWhite = (epdIndex % 2) == 0;
+							fen = this->startPositions[epdNo];
+							epdIndex++;
 						}
-						GameResult result = playSingleGame(board, clock, fileWriter, fen);
+						GameResult result = playSingleGame(board, clock, fileWriter, fen, computer1IsWhite);
 						{
 							std::lock_guard<std::mutex> lock(statsMutex);
 							gameStatistics[result]++;
+							int32_t curResult = 0;
+							if (result == GameResult::WHITE_WINS_BY_MATE) {
+								curResult = computer1IsWhite ? 1 : - 1;
+							}
+							else if (result == GameResult::BLACK_WINS_BY_MATE) {
+								curResult = computer1IsWhite ? - 1 : + 1;
+							}
+							computer1Result += curResult;
+							gamesPlayed++;
+							const auto positions = statistic ? this->startPositions.size() * 2 : this->startPositions.size();
 							double timeSpentInSeconds = double(timeControl.getTimeSpentInMilliseconds()) / 1000.0;
-							std::cout << edpIndex << "/" << this->startPositions.size() << " time (s): " << timeSpentInSeconds << std::endl;
+							double estimatedTotalTime = timeSpentInSeconds * double(positions) / double(gamesPlayed);
+							if (gamesPlayed % 100 == 0 || gamesPlayed == games) {
+								std::cout
+									<< "\r" << gamesPlayed << "/" << positions
+									<< " time (s): " << timeSpentInSeconds << "/" << estimatedTotalTime
+									<< " result: " << std::fixed << std::setprecision(2) << (computer1Result + gamesPlayed) * 50.0 / gamesPlayed;
+								if (gamesPlayed == games) std::cout << std::endl;
+							}
 						}
 					}
 					delete board;
@@ -97,53 +142,61 @@ namespace QaplaInterface {
 		void stop() {
 			stopped = true;
 			for (auto& worker : workers) {
-				worker.waitForTaskCompletion();
+				worker->waitForTaskCompletion();
 			}
 			stopped = false;
 		}
 
 	private:
 
-		GameResult playSingleGame(IChessBoard* board, const ClockSetting& clock, FileWriter& fileWriter, std::string fen) {
-			std::string gameResultString = fen + ",";
+		GameResult playSingleGame(IChessBoard* board, const ClockSetting& clock, FileWriter& fileWriter, std::string fen, bool computer1IsWhite) {
+			std::string gameResultString = fen;
 			if (!ChessInterface::setPositionByFen(fen, board)) {
 				return GameResult::ILLEGAL_MOVE;
 			}
 			GameResult result = board->getGameResult();
-
 			while (result == GameResult::NOT_ENDED && !stopped) {
 				board->setClock(clock);
+				const auto evalVersion = computer1IsWhite == board->isWhiteToMove() ? 0 : 1;
+				board->setEvalVersion(evalVersion);
 				board->computeMove();
 				ComputingInfoExchange computingInfo = board->getComputingInfo();
 				const auto move = computingInfo.currentConsideredMove;
 				const auto value = computingInfo.valueInCentiPawn;
+
+				// std::cout << move << " " << value << " evalVersion " << evalVersion << std::endl;
+				gameResultString += ", " + move + "," + std::to_string(value);
+
+				// Adjudication: Stops game, if winning position reached.
+				if (abs(value) > 10000) {
+					result = value > 10000 == board->isWhiteToMove() ? GameResult::WHITE_WINS_BY_MATE : GameResult::BLACK_WINS_BY_MATE;
+					break;
+				}
 				if (!ChessInterface::setMove(move, board)) {
 					result = GameResult::ILLEGAL_MOVE;
 					break;
 				}
-				gameResultString += move + "," + std::to_string(value) + ",";
-
-				// Adjudication: Stops game, if winning position reached.
-				if (abs(value) > 10000) {
-					result = value > 10000 ? GameResult::WHITE_WINS_BY_MATE : GameResult::BLACK_WINS_BY_MATE;
-					break;
-				}
 				result = board->getGameResult();
 			}
+
 			if (!stopped) {
 				fileWriter.writeLine(gameResultString);
 			}
 			return result;
 		}
 
+		uint64_t computer1Result;
+		uint64_t gamesPlayed;
 		std::vector<std::string> startPositions;
-		std::vector<WorkerThread> workers;
+		std::vector<std::unique_ptr<WorkerThread>> workers;
+		std::array<int32_t, 1024> gameResults;
 		FileWriter fileWriter;
 		std::map<GameResult, uint32_t> gameStatistics;
 		std::mutex statsMutex;
 		std::mutex positionMutex;
-		uint64_t edpIndex;
+		uint64_t epdIndex;
 		bool stopped;
+		bool statistic = true;
 		StdTimeControl timeControl;
 	};
 
@@ -151,6 +204,12 @@ namespace QaplaInterface {
 	class Statistics : public ChessInterface {
 	public:
 		Statistics();
+
+
+		/**
+		 * Prints a game result information
+		 */
+		void printGameResult(GameResult result);
 
 	private:
 		class ChessGame {
@@ -185,10 +244,6 @@ namespace QaplaInterface {
 		 */
 		bool handleMove(string move = "");
 
-		/**
-		 * Prints a game result information
-		 */
-		void printGameResult(GameResult result);
 
 		/**
 		 * Processes any input coming from the console
@@ -216,6 +271,7 @@ namespace QaplaInterface {
 		 * Removes the last two moves, if a human person is at move
 		 */
 		void handleRemove();
+		void handleWhatIf(std::string whatif);
 		
 		/**
 		 * Sets the computer to analyze mode
@@ -257,10 +313,14 @@ namespace QaplaInterface {
 		 */
 		void handleInputWhileComputingMove();
 
+		void train();
 		void playEpdGames(uint32_t numThreads = 1);
+		void playStatistic(uint32_t numThreads = 1);
 		void loadEPD();
 		void loadGamesFromFile(const std::string& filename);
-		void train();
+		std::tuple<EvalValue, value_t>  computeEval(
+			ChessEval::IndexLookupMap& lookupMap, std::map<std::string, std::vector<uint64_t>>& lookupCount, bool verbose = false);
+		void trainPosition(ChessEval::IndexLookupMap& lookupMap, int32_t evalDiff);
 
 		/**
 		 * Handles input while in "wait for user action" mode

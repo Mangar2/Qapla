@@ -119,6 +119,11 @@ namespace QaplaInterface {
 		virtual void setPlayedMovesInGame(uint16_t moves) = 0;
 
 		/**
+		 * This function must be called after board setup is finished
+		 */
+		virtual void finishBoardSetup() = 0;
+
+		/**
 		 * Returns true, if it is whites turn to move
 		 */
 		virtual bool isWhiteToMove() = 0;
@@ -211,6 +216,10 @@ namespace QaplaInterface {
 		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)
 		{}
 
+		/**
+		 * Sets a version number for the evaluation, optional feature
+		 */
+		virtual void setEvalVersion(uint32_t version) {};
 
 	};
 }

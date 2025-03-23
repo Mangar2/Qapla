@@ -123,6 +123,7 @@ namespace ChessEval {
 			IndexLookupMap indexLookup;
 			indexLookup["pProperty"] = std::vector<EvalValue>{ evalMap.begin(), evalMap.end() };
 			indexLookup["pPST"] = PST::getPSTLookup(PAWN);
+			indexLookup["ppThreat"] = std::vector<EvalValue>{ ppMap.begin(), ppMap.end() };
 			return indexLookup;
 		}
 
@@ -149,12 +150,12 @@ namespace ChessEval {
 			return result;
 		}
 
-		template <bool PRINT>
 		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
-			return
-				evalPassedPawnThreats<WHITE, PRINT>(position, results)
-				- evalPassedPawnThreats<BLACK, PRINT>(position, results);
+			return evalPassedPawnThreats<WHITE, false>(position, results, nullptr) - evalPassedPawnThreats<BLACK, false>(position, results, nullptr);
+		}
 
+		static EvalValue evalPassedPawnThreatsWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+			return evalPassedPawnThreats<WHITE, true>(position, results, &details) - evalPassedPawnThreats<BLACK, true>(position, results, &details);
 		}
 
 
@@ -225,10 +226,12 @@ namespace ChessEval {
 					const auto materialValue = EvalValue(position.getPieceValue(PAWN + COLOR));
 					const auto pstValue = PST::getValue(pawnSquare, PAWN + COLOR);
 					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
-					const IndexVector indexVector{ 
-						 { "pProperty", propertyIndex, COLOR },
+					IndexVector indexVector{ 
 						 { "pPST", uint32_t(switchSideToWhite<COLOR>(pawnSquare)), COLOR },
 						 { "material", PAWN, COLOR } };
+					if (propertyIndex > RANK_MASK) {
+						indexVector.push_back({ "pProperty", propertyIndex, COLOR });
+					}
 					details->push_back({
 						PAWN + COLOR,
 						pawnSquare,
@@ -414,8 +417,8 @@ namespace ChessEval {
 			return result;
 		}
 
-		template <Piece COLOR, bool PRINT>
-		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
+		template <Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results, std::vector<PieceInfo>* details) {
 			value_t value = 0;
 			const Piece OPPONENT = switchColor(COLOR);
 			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
@@ -441,9 +444,13 @@ namespace ChessEval {
 					if (rank + i > Rank::R7) break;
 				}
 				value += ppMap[index];
+				if constexpr (STORE_DETAILS) {
+					if (index > RANK_MASK) {
+						const IndexVector indexVector{ { "ppThreat", index, COLOR } };
+						details->push_back({ PAWN + COLOR, square, indexVector, "", COLOR == WHITE ? value : -value });
+					}
+				}
 			}
-			if (PRINT) cout << colorToString(COLOR) << " passed pawn threat: "
-				<< std::right << std::setw(10) << value << endl;
 			return value;
 		}
 
@@ -578,7 +585,7 @@ namespace ChessEval {
 		static const uint32_t ISOLATED_PAWN_INDEX			= 0x200;
 		static const uint32_t INDEX_SIZE					= 0x400;
 
-		inline static array<value_t, INDEX_SIZE> evalMap = [] {
+		static inline array<value_t, INDEX_SIZE> evalMap = [] {
 
 			array<value_t, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
@@ -597,6 +604,28 @@ namespace ChessEval {
 			}
 			return map;
 		} ();
+
+		inline static array<value_t, INDEX_SIZE> evalMap2 = [] {
+
+			array<value_t, INDEX_SIZE> map;
+			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
+				value_t value = 0;
+				/*
+				const value_t rank = bitmask & RANK_MASK;
+				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
+				if (bitmask & DOUBLE_PAWN_INDEX) value += EvalPawnValues::DOUBLE_PAWN_PENALTY;
+				if (bitmask & SINGLE_CONNECT_INDEX) value += EvalPawnValues::PAWN_SUPPORT[rank];
+				if (bitmask & DOUBLE_CONNECT_INDEX) value += 2 * EvalPawnValues::PAWN_SUPPORT[rank];
+				if (bitmask & ISOLATED_PAWN_INDEX) value += EvalPawnValues::ISOLATED_PAWN_PENALTY;
+				if (ppIndex == PASSED_PAWN_INDEX) value += EvalPawnValues::PASSED_PAWN_VALUE[rank];
+				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
+				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
+				if (ppIndex == DISTANT_PASSED_PAWN_INDEX) value += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
+				*/
+				map[bitmask] = value;
+			}
+			return map;
+			} ();
 
 		// Test position: 3r1r2/p1Pqn1bk/pPn1PPpp/2p5/3p2P1/p2P1NNQ/1pPB3P/1R3R1K w - - 0 1
 		// Isolated pawns: 4k3/1p1p1ppp/8/8/8/8/1PPP1P1P/4K3 w KQkq - 0 1

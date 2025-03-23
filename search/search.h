@@ -34,6 +34,7 @@
 #include "tt.h"
 #include "butterfly-boards.h"
 #include "whatIf.h"
+#include "quiescence.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif
@@ -174,13 +175,15 @@ namespace QaplaSearch {
 			return _computingInfo.getRootMoves();
 		}
 
-
+		void setTT(TT* tt) {
+			_quiescence.setTT(tt);
+		}
 
 	private:
+		Quiescence _quiescence;
 		Eval eval;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
-
 		// RootMoves _rootMoves;
 	public:
 		ButterflyBoard _butterflyBoard;

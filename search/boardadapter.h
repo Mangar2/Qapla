@@ -47,7 +47,7 @@ namespace QaplaSearch {
 
 	class BoardAdapter : public IChessBoard {
 	public:
-		BoardAdapter() : positionModified(true), _workerCount(0) {}
+		BoardAdapter() : _workerCount(0) {}
 
 		virtual IChessBoard* createNew() const {
 			return new BoardAdapter();
@@ -151,10 +151,6 @@ namespace QaplaSearch {
 				destinationFile, destinationRank, promotePiece);
 
 			if (!move.isEmpty()) {
-				if (positionModified) {
-					moveHistory.setStartPosition(position);
-					positionModified = false;
-				}
 				position.doMove(move);
 				moveHistory.addMove(move);
 				playedMovesInGame++;
@@ -189,7 +185,6 @@ namespace QaplaSearch {
 		 */
 		virtual void clearBoard() {
 			position.clear();
-			positionModified = true;
 			playedMovesInGame = 0;
 			moveHistory.clearMoves();
 		}
@@ -278,6 +273,10 @@ namespace QaplaSearch {
 			playedMovesInGame = moves;
 		}
 
+		virtual void finishBoardSetup() {
+			moveHistory.setStartPosition(position);
+		}
+
 		/**
 		 * Starts perft
 		 */
@@ -363,6 +362,11 @@ namespace QaplaSearch {
 			return eval.eval(position);
 		}
 
+		virtual void setEvalVersion(uint32_t version) {
+			position.setEvalVersion(version);
+			iterativeDeepening.clearMemories();
+		};
+
 		virtual IndexVector computeEvalIndexVector() {
 			Eval eval;
 			return eval.computeIndexVector(position);
@@ -424,6 +428,10 @@ namespace QaplaSearch {
 			return foundMove;
 		}
 
+		void print() {
+			moveHistory.print();
+		}
+
 	private:
 
 
@@ -457,7 +465,6 @@ namespace QaplaSearch {
 			return result;
 		}
 
-		bool positionModified;
 		MoveGenerator position;
 		MoveHistory moveHistory;
 		uint32_t playedMovesInGame;

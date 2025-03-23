@@ -59,12 +59,21 @@ namespace ChessEval {
 				attack.push_back(EvalValue(weight, 0));
 			}
 			indexLookup["kAttack"] = attack;
+			std::vector<EvalValue> shield;
+			for (auto weight : KingAttackValues::pawnIndexFactor) {
+				shield.push_back(EvalValue(weight, 0));
+			}
+			indexLookup["kShield"] = shield;
 			return indexLookup;
 		}
 
 		static void addToIndexVector(const EvalResults& results, IndexVector& indexVector) {
-			indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[WHITE]), WHITE });
-			indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[BLACK]), BLACK });
+			if (results.kingPressureCount[WHITE]) {
+				indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[WHITE]), WHITE });
+			}
+			if (results.kingPressureCount[BLACK]) {
+				indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[BLACK]), BLACK });
+			}
 		}
 
 		static void printBB(bitBoard_t bb) {

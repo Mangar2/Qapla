@@ -97,6 +97,7 @@ namespace QaplaInterface {
 				stop_thread = true;
 			}
 			cv.notify_one();
+			waitForTaskCompletion();
 			if (worker.joinable()) {
 				worker.join();
 			}

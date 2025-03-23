@@ -42,7 +42,7 @@ namespace QaplaSearch {
 		 */
 		void setStartPosition(const MoveGenerator& aBoard) {
 			startPosition = aBoard;
-			_history.resize(0);
+			clearMoves();
 		}
 
 		/**
@@ -50,6 +50,7 @@ namespace QaplaSearch {
 		 */
 		void clearMoves() {
 			_history.resize(0);
+			_drawHashes.resize(0);
 		}
 
 		/**
@@ -120,6 +121,17 @@ namespace QaplaSearch {
 			}
 		}
 
+		void print() {
+			std::cout << "Move history, history size " << _history.size() << " draw hashes size " << _drawHashes.size() << std::endl;
+			for (auto move : _history) {
+				cout << move.getLAN() << " ";
+			}
+			for (auto drawHash : _drawHashes) {
+				cout << drawHash << " ";
+			}
+			cout << startPosition.getFen() << endl;
+			cout << endl;
+		}
 
 	private:
 
