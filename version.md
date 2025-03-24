@@ -1,5 +1,22 @@
 # Qapla Test Versions
 
+## 0.3.004 2025-03-22
+
+- Optimized eval threat weights, ca. +2% against itself (ply 8 search)
+
+## 0.3.003 2025-03-21
+
+- More minor bugfixes - all not relevant for playing strength
+- Enables the tt to shrink physical memory usage
+- Added a debug flag to exclude other threads from whatif
+- Implemented multi-threading statistic features to optimize eval weights
+
+## 0.3.002 2025-03-17
+
+- Stabilization bugfixes
+- Evaluation refactoring to focus on table lookup
+- New version of "eval" command printing a board with pieces and their values
+
 ## 0.3.001 2025-03-12
 
 - Stores and retrieves eval from tt.

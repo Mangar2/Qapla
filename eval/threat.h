@@ -37,10 +37,8 @@ namespace ChessEval {
 	class Threat
 	{
 	public:
-		template<bool PRINT>
 		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
-			return eval<WHITE, PRINT>(position, result) -
-				eval<BLACK, PRINT>(position, result);
+			return eval<WHITE>(position, result) - eval<BLACK>(position, result);
 		}
 
 		static IndexLookupMap getIndexLookup() {
@@ -83,21 +81,15 @@ namespace ChessEval {
 			return threatAmout;
 		}
 
+
 	private:
-		template<Piece COLOR, bool PRINT>
+		template<Piece COLOR>
 		static EvalValue eval(MoveGenerator& position, const EvalResults& result) {
 			const auto threatAmount = computeThreatIndex<COLOR>(position, result);
-			const EvalValue evThreats = position.getEvalVersion() == 0 ? THREAT_LOOKUP[threatAmount] : THREAT_LOOKUP1[threatAmount];
-			if constexpr (PRINT) cout
-				<< colorToString(COLOR) << " threats (" << threatAmount << "): " << std::right << std::setw(14) << evThreats << endl;
+			const EvalValue evThreats = THREAT_LOOKUP[threatAmount];
 			return evThreats;
 		}
 		static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
-			{ 0, 0 }, { 25, 20 }, { 70, 60 }, { 120, 100 }, { 200, 180 }, { 300, 300 },
-			{ 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }
-		} };
-		// Second Computer
-		static constexpr array<EvalValue, 11> THREAT_LOOKUP1 = { {
 			{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 250, 250 }, 
 			{400, 400}, {400, 400}, {400, 400}, {400, 400}, {400, 400}
 		} };

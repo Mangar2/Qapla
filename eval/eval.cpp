@@ -137,7 +137,7 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 		evalValue += Bishop::eval(position, evalResults);
 		evalValue += Knight::eval(position, evalResults);
 		evalValue += Queen::eval(position, evalResults);
-		evalValue += Threat::eval<PRINT>(position, evalResults);
+		evalValue += Threat::eval(position, evalResults);
 		evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
 		if (PRINT) printEvalStep("Pieces", result, evalValue, evalResults.midgameInPercentV2);
