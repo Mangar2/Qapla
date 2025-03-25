@@ -447,6 +447,31 @@ void Statistics::playEpdGames(uint32_t numThreads) {
 	epdTasks.start(numThreads, _clock, _startPositions, getBoard());
 }
 
+/**
+ * Improved evaulation weights by candidate pool selection
+ */
+void Statistics::trainCandidates(uint32_t numThreads) {
+	if (getNextTokenNonBlocking() != "") {
+		if (getCurrentToken() == "threads") {
+			if (getNextTokenNonBlocking() != "") {
+				numThreads = (uint32_t)getCurrentTokenAsUnsignedInt();
+			}
+		}
+	}
+	//
+	CandidateTrainer::initializePopulation(20);
+
+	while (!CandidateTrainer::finished()) {
+		Candidate& c = CandidateTrainer::getCurrentCandidate();
+		epdTasks.start(numThreads, _clock, _startPositions, getBoard());
+		epdTasks.waitForEnd();
+		CandidateTrainer::nextStep();
+	}
+
+	CandidateTrainer::printAll(std::cout);
+
+}
+
 void Statistics::handleWhatIf(std::string whatif) {
 	IWhatIf* whatIf = getBoard()->getWhatIf();
 	whatIf->clear();
@@ -662,6 +687,7 @@ void Statistics::handleInput() {
 	else if (token == "playepd") playEpdGames();
 	else if (token == "playstat") playStatistic();
 	else if (token == "train") train();
+	else if (token == "ct") trainCandidates();
 	else if (token == "epd") loadEPD();
 	else if (checkClockCommands()) {}
 }

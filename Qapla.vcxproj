@@ -1839,6 +1839,8 @@
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
     <ClCompile Include="eval\rook.cpp" />
+    <ClCompile Include="interface\candidate-trainer.cpp" />
+    <ClCompile Include="interface\optimizer.cpp" />
     <ClCompile Include="interface\statistics.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
     <ClCompile Include="interface\winboard.cpp" />
@@ -1899,6 +1901,7 @@
     <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="eval\rook.h" />
     <ClInclude Include="eval\threat.h" />
+    <ClInclude Include="interface\candidate-trainer.h" />
     <ClInclude Include="interface\chessinterface.h" />
     <ClInclude Include="interface\clocksetting.h" />
     <ClInclude Include="interface\computinginfoexchange.h" />
@@ -1909,6 +1912,7 @@
     <ClInclude Include="interface\isendsearchinfo.h" />
     <ClInclude Include="interface\iwhatIf.h" />
     <ClInclude Include="interface\movescanner.h" />
+    <ClInclude Include="interface\optimizer.h" />
     <ClInclude Include="interface\selectinterface.h" />
     <ClInclude Include="interface\statistics.h" />
     <ClInclude Include="interface\stdtimecontrol.h" />

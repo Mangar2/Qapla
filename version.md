@@ -2,7 +2,8 @@
 
 ## 0.3.004 2025-03-22
 
-- Optimized eval threat weights, ca. +2% against itself (ply 8 search)
+- Optimized eval threat weights, ca. +2.5% against itself (ply 8 search)
+- Raiting: 63.18
 
 ## 0.3.003 2025-03-21
 
@@ -207,7 +208,7 @@
 
 ## 0.2.028 2025-02-08
 
-- Raiting (new): 48.5
+- Raiting (new): 48.5 (based on a new tournament setup with stronger opponents)
 - Raiting (old): 68.7
 - Butterfly board fix, moves behind best moves are no longer decreased in pv nodes
 

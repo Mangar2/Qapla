@@ -73,7 +73,9 @@ namespace ChessEval {
 				uint32_t mobilityIndex = calcMobilityIndex<COLOR>(results, knightSquare, removeBB);
 				uint32_t propertyIndex = calcKnightProperties<COLOR>(position, knightSquare);
 
-				EvalValue mobilityValue = EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]);
+				// EvalValue mobilityValue = EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]);
+				EvalValue mobilityValue = position.getEvalVersion() == 0 ? EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(3)[mobilityIndex];
+
 				EvalValue propertyValue = EvalValue(KNIGHT_PROPERTY_MAP[propertyIndex]);
 
 				value += mobilityValue;

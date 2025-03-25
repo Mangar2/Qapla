@@ -26,6 +26,7 @@
 #include <fstream>
 #include <vector>
 #include "chessinterface.h"
+#include "candidate-trainer.h"
 #include "../search/boardadapter.h"
 
 using namespace std;
@@ -97,7 +98,7 @@ namespace QaplaInterface {
 				workers[i]->startTask([this, board = boardTemplate->createNew(), clock, games]() {
 					board->setOption("Hash", "2");
 					while (!stopped) {
-						bool computer1IsWhite;
+						bool computer1IsWhite; // This is the default version not the version with changed evaluation
 						std::string fen = "";
 						{
 							std::lock_guard<std::mutex> lock(positionMutex);
@@ -120,6 +121,9 @@ namespace QaplaInterface {
 							else if (result == GameResult::BLACK_WINS_BY_MATE) {
 								curResult = computer1IsWhite ? - 1 : + 1;
 							}
+							CandidateTrainer::setGameResult(curResult == -1, curResult == 0);
+							auto confidence = CandidateTrainer::getConfidenceInterval();
+							if (CandidateTrainer::shallTerminate()) break;
 							computer1Result += curResult;
 							gamesPlayed++;
 							const auto positions = statistic ? this->startPositions.size() * 2 : this->startPositions.size();
@@ -129,7 +133,9 @@ namespace QaplaInterface {
 								std::cout
 									<< "\r" << gamesPlayed << "/" << positions
 									<< " time (s): " << timeSpentInSeconds << "/" << estimatedTotalTime
-									<< " result: " << std::fixed << std::setprecision(2) << (computer1Result + gamesPlayed) * 50.0 / gamesPlayed;
+									<< " result: " << std::fixed << std::setprecision(2) << CandidateTrainer::getScore() << "%"
+									<< " confidence: " << (confidence.first * 100.0) << "% - " << (confidence.second * 100.0) << "%   ";
+
 								if (gamesPlayed == games) std::cout << std::endl;
 							}
 						}
@@ -141,10 +147,14 @@ namespace QaplaInterface {
 
 		void stop() {
 			stopped = true;
+			waitForEnd();
+			stopped = false;
+		}
+
+		void waitForEnd() {
 			for (auto& worker : workers) {
 				worker->waitForTaskCompletion();
 			}
-			stopped = false;
 		}
 
 	private:
@@ -314,6 +324,7 @@ namespace QaplaInterface {
 		void handleInputWhileComputingMove();
 
 		void train();
+		void trainCandidates(uint32_t numThreads = 1);
 		void playEpdGames(uint32_t numThreads = 1);
 		void playStatistic(uint32_t numThreads = 1);
 		void loadEPD();
@@ -321,6 +332,7 @@ namespace QaplaInterface {
 		std::tuple<EvalValue, value_t>  computeEval(
 			ChessEval::IndexLookupMap& lookupMap, std::map<std::string, std::vector<uint64_t>>& lookupCount, bool verbose = false);
 		void trainPosition(ChessEval::IndexLookupMap& lookupMap, int32_t evalDiff);
+		
 
 		/**
 		 * Handles input while in "wait for user action" mode

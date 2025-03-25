@@ -74,7 +74,8 @@ namespace ChessEval {
 			{
 				const Square square = popLSB(queens);
 				const auto mobilityIndex = calcMobilityIndex<COLOR>(position, results, square, occupied, removeMask);
-				const auto mobilityValue = EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]);
+				//const auto mobilityValue = EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]);
+				EvalValue mobilityValue = position.getEvalVersion() == 0 ? EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
 
 				const auto propertyIndex = isPinned(position.pinnedMask[COLOR], square);
 				const auto propertyValue = EvalValue(_pinned[propertyIndex]);

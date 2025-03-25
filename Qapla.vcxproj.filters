@@ -138,6 +138,12 @@
     <ClCompile Include="interface\statistics.cpp">
       <Filter>interface</Filter>
     </ClCompile>
+    <ClCompile Include="interface\optimizer.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\candidate-trainer.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tests\evalpawntest.h">
@@ -424,6 +430,12 @@
     </ClInclude>
     <ClInclude Include="eval\eval-exchange-structures.h">
       <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\candidate-trainer.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\optimizer.h">
+      <Filter>interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
