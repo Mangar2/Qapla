@@ -238,7 +238,7 @@ int main(int argc, char* argv[])
 	//const auto eval = Stockfish::Engine::evaluate();
 	//std::cout << "Evaluation: " << eval << std::endl;
 	//std::cout << Stockfish::Engine::trace() << std::endl;
-	std::cout << "Qapla (C) 2025 Volker Boehm" << std::endl;
+	std::cout << "Qapla 0.2.058 (C) 2025 Volker Boehm" << std::endl;
 	SearchParameter::parseCommandLine(argc, argv);
 	QaplaSearch::ChessEnvironment environment;
 	environment.run();
