@@ -204,7 +204,8 @@ void Winboard::computeMove() {
 
 	GameResult result = _board->getGameResult();
 	if (result != GameResult::NOT_ENDED) {
-		printGameResult(result);
+		// we may not send the game result as it will be again!
+		return;
 	}
 	else {
 		_mode = Mode::COMPUTE;
