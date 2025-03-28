@@ -49,7 +49,7 @@ namespace ChessEval {
 
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
-			indexLookup["rMobility"] = std::vector<EvalValue>{ ROOK_MOBILITY_MAP, ROOK_MOBILITY_MAP + 15 };
+			indexLookup["rMobility"] = std::vector<EvalValue>{ ROOK_MOBILITY_MAP.begin(), ROOK_MOBILITY_MAP.end()};
 			indexLookup["rProperty"] = std::vector<EvalValue>{ evalMap.begin(), evalMap.end() };
 			indexLookup["rPST"] = PST::getPSTLookup(ROOK);
 			return indexLookup;
@@ -83,8 +83,8 @@ namespace ChessEval {
 				const auto mobilityValue = EvalValue(ROOK_MOBILITY_MAP[mobilityIndex]);
 				// const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(ROOK_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(2)[mobilityIndex];
 
-				// const auto propertyValue = evalMap[propertyIndex];
-				const auto propertyValue = position.getEvalVersion() == 0 ? evalMap[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
+				const auto propertyValue = evalMap[propertyIndex];
+				//const auto propertyValue = position.getEvalVersion() == 0 ? evalMap[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
 				value += mobilityValue + propertyValue;
 
@@ -232,16 +232,17 @@ namespace ChessEval {
 
 		static constexpr bitBoard_t ROW_7[COLOR_COUNT] = { 0x00FF000000000000, 0x000000000000FF00 };
 
-		// Row 7 map per rook.
-		static constexpr value_t ROOK_ROW_7_MAP[8][2] = {
-			// no rook, one rook, two rooks or more, not defined, queen(s), one rook and queen(s), two rooks or more and queen(s), not defined
-			{ 0, 0 }, { 10, 0 }, { 10, 0 }, { 0, 0 }, { 0, 0 }, { 20, 0 }, { 20, 0 }, { 0, 0 }
-		};
+		// Row 7 map per rook. Seems to be pretty useless in playingstrength but also does not hurt
+		static constexpr std::array<EvalValue, 8> ROOK_ROW_7_MAP = { {
+				// no rook, one rook, two rooks or more, not defined, queen(s), one rook and queen(s), two rooks or more and queen(s), not defined
+				{ 0, 0 }, { 10, 0 }, { 10, 0 }, { 0, 0 }, { 0, 0 }, { 20, 0 }, { 20, 0 }, { 0, 0 }
+			} };
 
 		// Mobility Map
-		static constexpr value_t ROOK_MOBILITY_MAP[15][2] = {
+		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP = { {
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
-			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } };
+			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
+		} };
 
 		static const uint32_t INDEX_SIZE = 32 * 8;
 		static const uint32_t TRAPPED = 1;
@@ -252,11 +253,11 @@ namespace ChessEval {
 		static const uint32_t ROW_7_INDEX = 0x20;
 		
 		inline static array<EvalValue, INDEX_SIZE> evalMap = [] {
-			const value_t _trapped[2] = { -50, 0 };
-			const value_t _openFile[2] = { 10, 0 };
+			const value_t _trapped[2] = { -50, -16 };
+			const value_t _openFile[2] = { 18, 6 };
 			const value_t _halfOpenFile[2] = { 10, 0 };
-			const value_t _protectsPP[2] = { 20, 0 };
-			const value_t _pinned[2] = { 0, 0 };
+			const value_t _protectsPP[2] = { 25, 0 };
+			const value_t _pinned[2] = { -23, 0 };
 
 			array<EvalValue, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {

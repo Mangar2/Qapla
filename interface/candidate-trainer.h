@@ -307,10 +307,14 @@ public:
 	}
 
 	static void nextStep() {
+		if (currentCandidate) {
+			nextStepOnOptimizer();
+		}
         if (!currentCandidate) {
+			cout << "Starting to optimize new candidate" << endl;
 			nextStepOnPopulation();
+            if (!finished() && currentCandidate) nextStepOnOptimizer();
         }
-        nextStepOnOptimizer();
 	}
 
 private:

@@ -46,8 +46,8 @@ namespace ChessEval {
 
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
-			indexLookup["bMobility"] = std::vector<EvalValue>{ BISHOP_MOBILITY_MAP, BISHOP_MOBILITY_MAP + 15 };
-			indexLookup["bProperty"] = std::vector<EvalValue>{ BISHOP_PROPERTY_MAP, BISHOP_PROPERTY_MAP + 4 };
+			indexLookup["bMobility"] = std::vector<EvalValue>{ BISHOP_MOBILITY_MAP.begin(), BISHOP_MOBILITY_MAP.end()};
+			indexLookup["bProperty"] = std::vector<EvalValue>{ BISHOP_PROPERTY_MAP.begin(), BISHOP_PROPERTY_MAP.end()};
 			indexLookup["bPST"] = PST::getPSTLookup(BISHOP);
 			return indexLookup;
 		}
@@ -65,7 +65,7 @@ namespace ChessEval {
 				return 0;
 			}
 
-			uint32_t allBishopsIndex = hasDoubleBishop(bishops);
+			uint32_t allBishopsIndex = hasDoubleBishop(bishops) * DOUBLE_BISHOP_INDEX;
 
 			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + opponentColor<COLOR>());
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
@@ -142,6 +142,7 @@ namespace ChessEval {
 		 */
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
 
+		static const uint32_t DOUBLE_BISHOP_INDEX = 1;
 		static const uint32_t PINNED_INDEX = 2;
 
 		/**
@@ -149,10 +150,10 @@ namespace ChessEval {
 		 */
 		static constexpr value_t _doubleBishop[2] = { 10, 5 };
 		static constexpr value_t _pinned[2] = { 0, 0 };
-		static constexpr value_t BISHOP_PROPERTY_MAP[4][2] = {
-			{ 0, 0 }, {_doubleBishop[0], _doubleBishop[1]}, {_pinned[0], _pinned[1]},
-			{_doubleBishop[0] + _pinned[0], _doubleBishop[1] + _pinned[1]}
-		};
+
+		static constexpr std::array<EvalValue, 4> BISHOP_PROPERTY_MAP = { {
+			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} 
+		} };
 		static inline std::string BISHOP_PROPERTY_INFO[4] = {
 			"", "<par>", "<pin>", "<pin><par>"
 		};
@@ -161,10 +162,10 @@ namespace ChessEval {
 		 * Mobility of a bishop. Having negative values for 0 or 1 fields to move to did not bring ELO
 		 * Still I kept it.
 		 */
-		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = { {
 			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
-		};
+		} };
 
 	};
 }

@@ -279,7 +279,7 @@ void Candidate::correctAverageEndgame(std::vector<EvalValue>& vec, double target
 }
 
 void CandidateTrainer::initializePopulation() {
-    optimizerIndex = 11;
+    optimizerIndex = 0;
     candidateIndex = 0;
 	currentCandidate = nullptr;
     /*
@@ -289,48 +289,19 @@ void CandidateTrainer::initializePopulation() {
     ));
     */
 	addCandidate(std::make_unique<PropertyCandidateTemplate>(
-        "Rook",
-        std::vector<EvalValue>(
-          { {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0} }
-        )
+        "Queen",
+		std::vector<EvalValue>({ { 0,   0 }, { 0,   0 } })
     ));
     nextStep();
 }
 
 
 void CandidateTrainer::nextStepOnOptimizer() {
-    if (currentCandidate && currentCandidate->numGames() > 0) {
+    if (!currentCandidate) {
+        cout << "No candidate to optimize" << std::endl;
+        return;
+    }
+    if (currentCandidate->numGames() > 0) {
         optimizer.addPoint(currentCandidate->scaling, currentCandidate->score(), currentCandidate->getRadius());
         optimizer.printBest(std::cout);
         currentCandidate->printShort(std::cout);
@@ -348,16 +319,24 @@ void CandidateTrainer::nextStepOnOptimizer() {
         currentCandidate->print(std::cout);
         if (optimizerIndex >= currentCandidate->getNumIndex()) {
 			currentCandidate = nullptr;
+			cout << "Candidate optimized" << endl;
             return;
         }
         optimizerIndex++;
-    } 
+    }
+    else {
+        // optimizer index too high, no map to optimize
+        if (optimizerIndex >= currentCandidate->getNumIndex()) {
+            cout << "No more vectors to optimize for the current candidate. Shouldn´t come here! " << std::endl;
+            return;
+        }
+    }
 
     currentCandidate->clear();
     currentCandidate->scaling = optimizer.nextX(-10, 10);
 	currentCandidate->setBestValue(std::max(0.5, optimizer.getBest().second.pEstimated));
 	currentCandidate->scaleIndex(optimizerIndex, currentCandidate->scaling);
-    currentCandidate->setId("Mobility weights scaled by " + std::to_string(currentCandidate->scaling) + " Index: " + std::to_string(optimizerIndex));
+    currentCandidate->setId("Weights scaled by " + std::to_string(currentCandidate->scaling) + " Index: " + std::to_string(optimizerIndex));
 }
 
 bool CandidateTrainer::shallTerminate() {
@@ -369,7 +348,7 @@ bool CandidateTrainer::shallTerminate() {
 }
 
 void CandidateTrainer::nextStepOnPopulation() {
-	cout << "Candidate " << candidateIndex << " of " << population.size() << endl;
+	cout << "Candidate " << (candidateIndex + 1) << " of " << population.size() << endl;
     if (candidateIndex >= population.size()) {
 		cout << "Finished" << endl;
         finishedFlag = true;

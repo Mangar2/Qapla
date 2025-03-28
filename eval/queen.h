@@ -48,7 +48,7 @@ namespace ChessEval {
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
 			indexLookup["qMobility"] = std::vector<EvalValue>{ QUEEN_MOBILITY_MAP.begin(), QUEEN_MOBILITY_MAP.end()};
-			indexLookup["qProperty"] = std::vector<EvalValue>{ _pinned, _pinned + 1 };
+			indexLookup["qProperty"] = std::vector<EvalValue>{ QUEEN_PROPERTY_MAP.begin(), QUEEN_PROPERTY_MAP.end()};
 			indexLookup["qPST"] = PST::getPSTLookup(QUEEN);
 			return indexLookup;
 		}
@@ -78,8 +78,8 @@ namespace ChessEval {
 				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
 
 				const auto propertyIndex = isPinned(position.pinnedMask[COLOR], square);
-				const auto propertyValue = EvalValue(_pinned[propertyIndex]);
-				//const auto propertyValue = position.getEvalVersion() == 0 ? EvalValue(_pinned[propertyIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(3)[propertyIndex];
+				//const auto propertyValue = QUEEN_PROPERTY_MAP[propertyIndex];
+				const auto propertyValue = position.getEvalVersion() == 0 ? QUEEN_PROPERTY_MAP[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
 				value += mobilityValue + propertyValue;
 
@@ -127,15 +127,15 @@ namespace ChessEval {
 			return (pinnedBB & squareToBB(square)) != 0;
 		};
 
-		static constexpr value_t _pinned[2] = { 0, 0 };
+		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = { { { 0, 0 }, { 0, 0 } } };
 		static inline std::string QUEEN_PROPERTY_INFO[2] = {
 			"", "<pin>"
 		};
 
-		static constexpr array<value_t, 30> QUEEN_MOBILITY_MAP = {
+		static constexpr array<value_t, 30> QUEEN_MOBILITY_MAP = { {
 			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
-		};
+		} };
 
 	};
 };
