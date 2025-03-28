@@ -336,6 +336,7 @@ void CandidateTrainer::nextStepOnOptimizer() {
     currentCandidate->scaling = optimizer.nextX(-10, 10);
 	currentCandidate->setBestValue(std::max(0.5, optimizer.getBest().second.pEstimated));
 	currentCandidate->scaleIndex(optimizerIndex, currentCandidate->scaling);
+    getCurrentCandidate().print(std::cout);
     currentCandidate->setId("Weights scaled by " + std::to_string(currentCandidate->scaling) + " Index: " + std::to_string(optimizerIndex));
 }
 

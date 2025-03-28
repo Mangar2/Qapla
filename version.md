@@ -2,6 +2,7 @@
 
 ## 0.3.005 2025-03-26
 
+- Raiting: 65.79
 - Knight property values changed to: { {  0,   0}, { 20, 0}, { -43,  0}, {-23,  0} }
 - Bishop property values changed to: { {  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} }
 - Rook property values changed to:
