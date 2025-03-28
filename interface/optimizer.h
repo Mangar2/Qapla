@@ -37,10 +37,10 @@ class Optimizer {
         double confidence; 
     };
 public:
-	void addPoint(double x, double pMeasured) {
-		points.push_back(Point{ x, pMeasured, pMeasured, 1 });
-		updateEstimates();
+	void clear() {
+		points.clear();
 	}
+	void addPoint(double x, double pMeasured, double radius = 0.1);
 
     void updateEstimates(double radius = 0.1);
 
@@ -53,12 +53,16 @@ public:
 		return best.confidence > CONFIDENCE_THRESHOLD;
 	}
 
-	double nextX();
+	double nextX(double min, double max);
 
 	void print(std::ostream& os) {
 		for (const auto& point : points) {
-			os << point.x << " " << point.pMeasured << " " << point.pEstimated << " " << point.confidence << std::endl;
+			os << point.x << " " << point.pMeasured << " " << (point.pEstimated * 100.0) << "% " << point.confidence << std::endl;
 		}
+	}
+
+	size_t numPoints() const {
+		return points.size();
 	}
 
 	const double CONFIDENCE_THRESHOLD = 5;

@@ -49,8 +49,8 @@ namespace ChessEval {
 
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
-			indexLookup["kMobility"] = std::vector<EvalValue>{ KNIGHT_MOBILITY_MAP, KNIGHT_MOBILITY_MAP + 9 };
-			indexLookup["kProperty"] = std::vector<EvalValue>{ KNIGHT_PROPERTY_MAP, KNIGHT_PROPERTY_MAP + 4 };
+			indexLookup["kMobility"] = std::vector<EvalValue>{ KNIGHT_MOBILITY_MAP.begin(), KNIGHT_MOBILITY_MAP.end()};
+			indexLookup["kProperty"] = std::vector<EvalValue>{ KNIGHT_PROPERTY_MAP.begin() , KNIGHT_PROPERTY_MAP.end()};
 			indexLookup["kPST"] = PST::getPSTLookup(KNIGHT);
 			return indexLookup;
 		}
@@ -73,10 +73,11 @@ namespace ChessEval {
 				uint32_t mobilityIndex = calcMobilityIndex<COLOR>(results, knightSquare, removeBB);
 				uint32_t propertyIndex = calcKnightProperties<COLOR>(position, knightSquare);
 
-				// EvalValue mobilityValue = EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]);
-				EvalValue mobilityValue = position.getEvalVersion() == 0 ? EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(3)[mobilityIndex];
+				const auto mobilityValue = EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]);
+				// const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(KNIGHT_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
 
 				EvalValue propertyValue = EvalValue(KNIGHT_PROPERTY_MAP[propertyIndex]);
+				//const auto propertyValue = position.getEvalVersion() == 0 ? EvalValue(KNIGHT_PROPERTY_MAP[propertyIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
 				value += mobilityValue;
 				value += propertyValue;
@@ -152,19 +153,17 @@ namespace ChessEval {
 		}
 
 		// Mobility Map for knights
-		static constexpr value_t KNIGHT_MOBILITY_MAP[9][2] = { 
-			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 }, 
+		static constexpr std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP = { {
+			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
-		};
+		} };
 
 		static const uint32_t OUTPOST = 1;
 		static const uint32_t PINNED = 2;
 		
-		static constexpr value_t _outpost[2] = { 20, 0 };
-		static constexpr value_t _pinned[2] = { 0, 0 };
-		static constexpr value_t KNIGHT_PROPERTY_MAP[4][2] = {
-			{ 0, 0 }, { _outpost[0], _outpost[1] }, { _pinned[0], _pinned[1] }, { _outpost[0] + _pinned[0], _outpost[1] + _pinned[1]} 
-		};
+		static constexpr std::array<EvalValue, 4> KNIGHT_PROPERTY_MAP = { {
+			 {  0,   0}, { 20, 0}, { -43,  0}, {-23,  0}
+		} };
 
 		static inline std::string KNIGHT_PROPERTY_INFO[4] = {
 			"", "<otp>", "<pin>", "<pin><otp>"

@@ -21,6 +21,131 @@
 
 #include "candidate-trainer.h"
 
+MobilityCandidate::MobilityCandidate() {
+    // knight mobility
+    addWeight({ { -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 },
+        { 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 } });
+    // bishop mobility
+    addWeight({ { -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
+        { 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } });
+    // Rook mobility
+    addWeight({
+        { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
+        { 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } });
+    // Queen mobility
+    addWeight({
+        -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
+        10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
+        });
+}
+
+
+PropertyCandidate::PropertyCandidate() {
+    // knight
+    addWeight({ { 0,  0}, { 20,   0}, {  0,   0}, { 20,   0} });
+	// bishop
+    addWeight({ { 0,  0}, { 10,   5}, {  0,   0}, { 10,   5} });
+    // rook
+    addWeight({ 
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}
+     });
+    // queen
+    addWeight({ { 0,   0 }, { 0,   0 } });
+}
+
+int countBits(size_t number) {
+    int count = 0;
+    while (number > 0) {
+        count++;
+        number >>= 1; // Rechtsverschiebung um 1 Bit
+    }
+    return count;
+}
+
+void PropertyCandidate::scaleIndex(uint32_t index, double scale, bool noScale) {
+	const std::string indexNames[4] = { "knight", "bishop", "rook", "queen" };
+	bool isMidgame = index % 2 == 0;
+	int32_t remainingIndex = index / 2;
+	for (uint32_t vectorIndex = 0; vectorIndex < weights.size() && remainingIndex >= 0; ++vectorIndex) {
+        uint64_t propertyBit = 1ULL << remainingIndex;
+        if (propertyBit < weights[vectorIndex].size()) {
+			std::cout << "Scaling vector " << indexNames[vectorIndex] << " property " << remainingIndex << " phase " << (isMidgame ? "midgame" : "endgame") << " with " << scale;
+            for (uint32_t valueIndex = 0; valueIndex < weights[vectorIndex].size(); ++valueIndex) {
+                if (propertyBit & valueIndex) {
+                    EvalValue propertyWeight = originalWeights[vectorIndex][propertyBit];
+                    EvalValue baseWeight = weights[vectorIndex][valueIndex & (~propertyBit)];
+					EvalValue currentValue = weights[vectorIndex][valueIndex];
+                    weights[vectorIndex][valueIndex] = EvalValue(
+                        static_cast<value_t>(isMidgame && !noScale ? scaleValue(baseWeight.midgame(), propertyWeight.midgame(), scale) : currentValue.midgame()),
+						static_cast<value_t>(!isMidgame && !noScale ? scaleValue(baseWeight.endgame(), propertyWeight.endgame(), scale) : currentValue.endgame())
+                    );
+                }
+				std::cout << " " << weights[vectorIndex][valueIndex];
+            }
+			std::cout << std::endl;
+            break;
+        }
+		remainingIndex -= countBits(weights[vectorIndex].size() - 1);
+	}
+}
+
+void PropertyCandidateTemplate::scaleIndex(uint32_t index, double scale, bool noScale) {
+    bool isMidgame = index % 2 == 0;
+    const uint32_t vectorIndex = 0;
+    int32_t remainingIndex = index / 2;
+    uint64_t propertyBit = 1ULL << remainingIndex;
+    if (propertyBit < weights[vectorIndex].size()) {
+        std::cout << "Scaling vector " << pieceName << " property " << remainingIndex << " phase " << (isMidgame ? "midgame" : "endgame") << " with " << scale << std::endl;
+        for (uint32_t valueIndex = 0; valueIndex < weights[vectorIndex].size(); ++valueIndex) {
+            if (propertyBit & valueIndex) {
+                EvalValue propertyWeight = originalWeights[vectorIndex][propertyBit];
+                EvalValue baseWeight = weights[vectorIndex][valueIndex & (~propertyBit)];
+                EvalValue currentValue = weights[vectorIndex][valueIndex];
+                weights[vectorIndex][valueIndex] = EvalValue(
+                    static_cast<value_t>(isMidgame && !noScale ? scaleValue(baseWeight.midgame(), propertyWeight.midgame(), scale) : currentValue.midgame()),
+                    static_cast<value_t>(!isMidgame && !noScale ? scaleValue(baseWeight.endgame(), propertyWeight.endgame(), scale) : currentValue.endgame())
+                );
+            }
+        }
+    }
+}
+
+void Candidate::addWeight(const std::vector<EvalValue>& initial) {
+    weights.push_back(initial);
+    originalWeights.push_back(initial);
+}
+
 std::pair<double, double> Candidate::getConfidenceInterval() const {
     double z = Z98; // 98% confidence interval, for 95% use 1.96, for 99% use 2.58
     int n = numGames();
@@ -62,34 +187,197 @@ bool Candidate::isUnknown() const {
     return lowerBound <= bestValue && upper_bound >= bestValue && !isProbablyNeutral() && numGames() < MAX_GAMES;
 }
 
+// Rescale weight vector to preserve average evaluation (based on getValue(50))
+void Candidate::rescaleWeightVector(size_t index, double factor) {
+    assert(index < weights.size());
+    std::vector<EvalValue>& vec = weights[index];
+    if (vec.empty()) return;
+
+    double originalSum = 0.0;
+    for (const auto& v : vec) originalSum += v.getValue(50);
+
+    for (size_t i = 0; i < vec.size(); ++i) {
+        EvalValue scaled(
+            static_cast<value_t>(vec[i].midgame() * factor),
+            static_cast<value_t>(vec[i].endgame() * factor)
+        );
+        vec[i] = scaled;
+    }
+
+    correctAverage(vec, originalSum);
+}
+
+void Candidate::rescaleWeightPhase(size_t index, double factor) {
+	assert(index < weights.size());
+	std::vector<EvalValue>& vec = weights[index / 2];
+    if (vec.empty()) return;
+    bool isMidgame = index % 2 == 0;
+    double originalSum = 0.0;
+    for (const auto& v : vec) originalSum += isMidgame ? v.midgame() : v.endgame();
+
+	double midgameFactor = isMidgame ? factor : 1.0;
+	double endgameFactor = !isMidgame ? factor : 1.0;
+	if (vec.empty()) return;
+	for (size_t i = 0; i < vec.size(); ++i) {
+		EvalValue scaled(
+			static_cast<value_t>(vec[i].midgame() * midgameFactor),
+			static_cast<value_t>(vec[i].endgame() * endgameFactor)
+		);
+		vec[i] = scaled;
+	}
+	if (isMidgame) correctAverageMidgame(vec, originalSum);
+	else correctAverageEndgame(vec, originalSum);
+}
+
+// Adjusts the vector so its average (getValue(50)) matches the target average
+void Candidate::correctAverage(std::vector<EvalValue>& vec, double targetAverage) {
+    if (vec.empty()) return;
+
+    double currentSum = 0.0;
+    for (const auto& v : vec) currentSum += v.getValue(50);
+
+    double currentAverage = currentSum / vec.size();
+    double delta = (targetAverage - currentAverage) / vec.size();
+
+    for (auto& v : vec) {
+        value_t mid = static_cast<value_t>(v.midgame() + delta + 0.5);
+        value_t end = static_cast<value_t>(v.endgame() + delta + 0.5);
+        v = EvalValue(mid, end);
+    }
+}
+
+void Candidate::correctAverageMidgame(std::vector<EvalValue>& vec, double targetAverage) {
+    if (vec.empty()) return;
+
+    double currentSum = 0.0;
+    for (const auto& v : vec) currentSum += v.midgame();
+
+    double currentAverage = currentSum / vec.size();
+    double delta = (targetAverage - currentAverage) / vec.size();
+
+    for (auto& v : vec) {
+        value_t mid = static_cast<value_t>(v.midgame() + delta + 0.5);
+        value_t end = static_cast<value_t>(v.endgame());
+        v = EvalValue(mid, end);
+    }
+}
+
+void Candidate::correctAverageEndgame(std::vector<EvalValue>& vec, double targetAverage) {
+    if (vec.empty()) return;
+
+    double currentSum = 0.0;
+    for (const auto& v : vec) currentSum += v.endgame();
+
+    double currentAverage = currentSum / vec.size();
+    double delta = (targetAverage - currentAverage) / vec.size();
+
+    for (auto& v : vec) {
+        value_t mid = static_cast<value_t>(v.midgame());
+        value_t end = static_cast<value_t>(v.endgame() + delta + 0.5);
+        v = EvalValue(mid, end);
+    }
+}
+
+void CandidateTrainer::initializePopulation() {
+    optimizerIndex = 11;
+    candidateIndex = 0;
+	currentCandidate = nullptr;
+    /*
+    addCandidate(std::make_unique<PropertyCandidateTemplate>(
+        "Bishop",
+        std::vector<EvalValue>({ { 0,  0}, { 10,   5}, {  0,   0}, { 10,   5} })
+    ));
+    */
+	addCandidate(std::make_unique<PropertyCandidateTemplate>(
+        "Rook",
+        std::vector<EvalValue>(
+          { {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
+          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
+          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
+          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0} }
+        )
+    ));
+    nextStep();
+}
+
+
 void CandidateTrainer::nextStepOnOptimizer() {
-    if (currentCandidate) {
-        optimizer.addPoint(currentCandidate->scaling, currentCandidate->score());
+    if (currentCandidate && currentCandidate->numGames() > 0) {
+        optimizer.addPoint(currentCandidate->scaling, currentCandidate->score(), currentCandidate->getRadius());
         optimizer.printBest(std::cout);
         currentCandidate->printShort(std::cout);
     }
-    currentCandidate = std::make_unique<MobilityCandidate>();
-    currentCandidate->scaling = optimizer.nextX();
-    const uint32_t index = 2;
-    currentCandidate->rescaleWeightVector(index, currentCandidate->scaling);
-    currentCandidate->setId("Mobility weights scaled by " + std::to_string(currentCandidate->scaling) + " index: " + std::to_string(index));
-    finishedFlag = optimizer.goodEnough();
-    
+
+    if (optimizer.goodEnough()) {
+		auto best = optimizer.getBest().second;
+		if (best.pEstimated < currentCandidate->getLastBestValue() + 0.004) {
+            currentCandidate->scaleIndex(optimizerIndex, 1, true);
+        }
+        else {
+            currentCandidate->scaleIndex(optimizerIndex, best.x);
+        }
+        optimizer.clear();
+        currentCandidate->print(std::cout);
+        if (optimizerIndex >= currentCandidate->getNumIndex()) {
+			currentCandidate = nullptr;
+            return;
+        }
+        optimizerIndex++;
+    } 
+
+    currentCandidate->clear();
+    currentCandidate->scaling = optimizer.nextX(-10, 10);
+	currentCandidate->setBestValue(std::max(0.5, optimizer.getBest().second.pEstimated));
+	currentCandidate->scaleIndex(optimizerIndex, currentCandidate->scaling);
+    currentCandidate->setId("Mobility weights scaled by " + std::to_string(currentCandidate->scaling) + " Index: " + std::to_string(optimizerIndex));
 }
 
 bool CandidateTrainer::shallTerminate() {
     const Candidate& c = getCurrentCandidate();
-    if (!c.isUnknown()) return true;
+    if (c.isWorse() && c.numGames() > 1000) return true;
+	if (c.score() > c.getLastBestValue()) return c.numGames() >= 10000;
+	auto numPoints = optimizer.numPoints();
     return c.numGames() >= 10000;
 }
 
 void CandidateTrainer::nextStepOnPopulation() {
-    std::cout << std::endl;
-    getCurrentCandidate().printShort(std::cout);
-    ++currentIndex;
-    if (currentIndex >= population.size()) {
+	cout << "Candidate " << candidateIndex << " of " << population.size() << endl;
+    if (candidateIndex >= population.size()) {
+		cout << "Finished" << endl;
         finishedFlag = true;
     }
-    currentCandidate = std::move(population[currentIndex]);
+    else
+    {
+        currentCandidate = std::move(population[candidateIndex]);
+        ++candidateIndex;
+    }
 }
 

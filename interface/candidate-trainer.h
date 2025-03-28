@@ -37,6 +37,12 @@ class Candidate {
 public:
 	Candidate() :wins(0), draws(0), losses(0), bestValue(0.5) {}
 
+	void clear() {
+		wins = 0;
+		draws = 0;
+		losses = 0;
+	}
+
     // Access the i-th weight vector
     const std::vector<EvalValue>& getWeightVector(size_t index) const {
         assert(index < weights.size());
@@ -53,8 +59,19 @@ public:
     }
 
     // Initialize weights with external source (e.g., current engine config)
-    void addWeight(const std::vector<EvalValue>& initial) {
-		weights.push_back(initial);
+    void addWeight(const std::vector<EvalValue>& initial);
+
+    /**
+	 * Scales a the propertyWeight portion of a weight by a factor
+	 * @param baseWeight the weight without the weight of the current property
+	 * @param propertyWeight the weight of the current property
+     * @param scale the scaling factor
+     */
+    double scaleValue(double baseWeight, double propertyWeight, double scale) {
+        // If the original weight is 0, we assume a default weight of 5 to optimizer something
+        propertyWeight = propertyWeight == 0 ? 5 : propertyWeight;
+        // The baseWeight is the weight without the weight of the current property
+        return baseWeight + propertyWeight * scale;
     }
 
     // Returns number of weight vectors
@@ -70,41 +87,13 @@ public:
 	}
 
     // Rescale weight vector to preserve average evaluation (based on getValue(50))
-    void rescaleWeightVector(size_t index, double factor) {
-        assert(index < weights.size());
-        std::vector<EvalValue>& vec = weights[index];
-        if (vec.empty()) return;
-
-        double originalSum = 0.0;
-        for (const auto& v : vec) originalSum += v.getValue(50);
-
-        for (size_t i = 0; i < vec.size(); ++i) {
-            EvalValue scaled(
-                static_cast<value_t>(vec[i].midgame() * factor),
-                static_cast<value_t>(vec[i].endgame() * factor)
-            );
-            vec[i] = scaled;
-        }
-
-		correctAverage(vec, originalSum);
-    }
+    void rescaleWeightVector(size_t index, double factor);
+    void rescaleWeightPhase(size_t index, double factor);
 
     // Adjusts the vector so its average (getValue(50)) matches the target average
-    void correctAverage(std::vector<EvalValue>& vec, double targetAverage) {
-        if (vec.empty()) return;
-
-        double currentSum = 0.0;
-        for (const auto& v : vec) currentSum += v.getValue(50);
-
-        double currentAverage = currentSum / vec.size();
-        double delta = (targetAverage - currentAverage) / vec.size();
-
-        for (auto& v : vec) {
-            value_t mid = static_cast<value_t>(v.midgame() + delta + 0.5);
-            value_t end = static_cast<value_t>(v.endgame() + delta + 0.5);
-            v = EvalValue(mid, end);
-        }
-    }
+    void correctAverage(std::vector<EvalValue>& vec, double targetAverage);
+    void correctAverageMidgame(std::vector<EvalValue>& vec, double targetAverage);
+    void correctAverageEndgame(std::vector<EvalValue>& vec, double targetAverage);
 
 	size_t numWeights() const {
 		return weights.size();
@@ -162,12 +151,33 @@ public:
         os << std::endl;
 	}
 
+    uint32_t countBits(size_t number) const {
+        int count;
+        for (count = 0; number > 0; count++, number >>= 1) {}
+        return count;
+    }
+	double getLastBestValue() const {
+		return lastBestValue;
+	}
+
+    virtual uint32_t getNumIndex() const = 0;
+	virtual void scaleIndex(uint32_t index, double scale, bool noScale = false) = 0;
+    virtual double getRadius() const {
+        return radius;  
+    }
+
+
 protected:
-    bool done = false;
     std::string id;
     std::vector<std::vector<EvalValue>> weights; // Indexed lookup tables
+	std::vector<std::vector<EvalValue>> originalWeights; // Original lookup tables
     const double Z98 = 2.3263;
+	double radius = 0.5;
     double bestValue;
+    double lastBestValue = 0.5;
+    double minScale = -10;
+    double maxScale = 10;
+
     const uint32_t MAX_GAMES = 10000;
     const uint32_t MIN_GAMES = 2000;
 public:
@@ -176,35 +186,43 @@ public:
 
 class MobilityCandidate : public Candidate {
 public:
-	MobilityCandidate() {
-        // Queen mobility
-        addWeight({
-            -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
-            10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
-            });
-        // Rook mobility
-        addWeight({
-            { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
-            { 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } });
-        // bishop mobility
-        addWeight({ { -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
-            { 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 } });
-		// knight mobility
-        addWeight({ { -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 },
-            { 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 } });
+    MobilityCandidate();
+    virtual uint32_t getNumIndex() const {
+        return 8;
+    }
+    virtual void scaleIndex(uint32_t index, double scale, bool noScale = false)
+    {
+        rescaleWeightPhase(index, scale);
+    }
 
-        //rescaleAllWeightVectors(0.5);
+
+};
+
+class PropertyCandidateTemplate : public Candidate {
+public:
+    PropertyCandidateTemplate(std::string name, const std::vector<EvalValue> weight) : pieceName(name) { addWeight(weight); }
+	virtual void scaleIndex(uint32_t index, double scale, bool noScale = false);
+	virtual uint32_t getNumIndex() const {
+		return countBits(weights[0].size() - 1) * 2;
 	}
 
+protected:
+	std::string pieceName;
+};
+
+class PropertyCandidate : public Candidate {
+public:
+    PropertyCandidate();
+
+    virtual uint32_t getNumIndex() const {
+        return 4 + 4 + 16 + 2;
+    }
+    virtual void scaleIndex(uint32_t index, double scale, bool noScale = false);
 };
 
 class CandidateTrainer {
 public:
-    static void initializePopulation(int count) {
-		//buildScaledPopulation(0.5, 1.5, 0.1);
-		currentCandidate = nullptr;
-        nextStep();
-    }
+    static void initializePopulation();
 
     static void buildScaledPopulation(double min, double max, double step) {
         population.clear();
@@ -225,12 +243,12 @@ public:
 			c->setId("Mobility weights scaled by " + std::to_string(scale));
             population.push_back(std::move(c));
         }
-        currentIndex = 0;
+        candidateIndex = 0;
     }
 
-    static void nextStep() {
-		nextStepOnOptimizer();
-    }
+	static void addCandidate(std::unique_ptr<Candidate>&& c) {
+		population.push_back(std::move(c));
+	}
 
     static void nextStepOnOptimizer();
 
@@ -288,10 +306,18 @@ public:
 		}
 	}
 
+	static void nextStep() {
+        if (!currentCandidate) {
+			nextStepOnPopulation();
+        }
+        nextStepOnOptimizer();
+	}
+
 private:
     static inline std::vector<std::unique_ptr<Candidate>> population;
     static inline std::unique_ptr<Candidate> currentCandidate;
-    static inline size_t currentIndex = 0;
+    static inline size_t candidateIndex = 0;
     static inline bool finishedFlag = false;
 	static inline Optimizer optimizer;
+	static inline uint32_t optimizerIndex;
 };

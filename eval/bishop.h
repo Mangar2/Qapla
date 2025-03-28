@@ -77,11 +77,12 @@ namespace ChessEval {
 			{
 				const Square bishopSquare = popLSB(bishops);
 				const auto mobilityIndex = calcMobilityIndex<COLOR>(results, bishopSquare, occupiedBB, removeMask);
-				//const auto mobilityValue = EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]);
-				EvalValue mobilityValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(2)[mobilityIndex];
+				const auto mobilityValue = EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]);
+				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(1)[mobilityIndex];
 
 				const auto propertyIndex = allBishopsIndex | (isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
 				const auto propertyValue = EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]);
+				//const auto propertyValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
 				const auto totalValue = mobilityValue + propertyValue;
 				value += totalValue;

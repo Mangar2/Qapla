@@ -22,6 +22,11 @@
 #include "optimizer.h"
 
 
+void Optimizer::addPoint(double x, double pMeasured, double radius) {
+    points.push_back(Point{ x, pMeasured, pMeasured, 1 });
+    updateEstimates(radius);
+}
+
 std::pair<uint32_t, Optimizer::Point> Optimizer::getBest() {
     uint32_t bestIndex = 0;
 	if (points.size() == 0) {
@@ -60,12 +65,12 @@ void Optimizer::updateEstimates(double radius)
     }
 }
 
-double Optimizer::nextX() {
+double Optimizer::nextX(double min, double max) {
 	if (points.size() == 0) {
-		return 0.0;
+		return min;
 	}
     else if (points.size() == 1) {
-        return 10.0;
+        return max;
     }
     uint32_t bestIndex = 0;
     double leftNeighborDiff = 0;
@@ -76,21 +81,14 @@ double Optimizer::nextX() {
 		if (points[index].pEstimated > best) {
 			best = points[index].pEstimated;
 		}
-        if (index > 0) {
-            leftNeighborDiff = points[index].x - points[index - 1].x;
-        }
-        if (index + 1 < points.size()) {
-            rightNeighborDiff = points[index + 1].x - points[index].x;
-        }
-		const double maxDiff = std::max(leftNeighborDiff, rightNeighborDiff);
-        const double candidateValue = points[index].pEstimated + points[index].pMeasured / 3; //  +std::min(maxDiff / 100, 0.02);
+        const double candidateValue = points[index].pEstimated + points[index].pMeasured / 10;
         if (candidateValue > bestCandidateValue) {
             bestCandidateValue = candidateValue;
             bestIndex = index;
         }
     }
 	if (bestIndex == 0) {
-		return (points[1].x - points[0].x) / 2;
+		return (points[1].x + points[0].x) / 2;
 	}
     else if (bestIndex == points.size() - 1) {
         return (points[bestIndex].x + points[bestIndex - 1].x) / 2;
@@ -102,5 +100,5 @@ double Optimizer::nextX() {
 
 void Optimizer::printBest(std::ostream& os) {
 	auto [index, best] = getBest();
-	os << " best scale: " << best.x << " p: " << best.pMeasured << " est: " << best.pEstimated << " conf: " << best.confidence << " ";
+	os << " best scale: " << best.x << " p: " << best.pMeasured << " est: " << (best.pEstimated * 100.0) << "% conf: " << best.confidence << " ";
 }

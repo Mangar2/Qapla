@@ -459,7 +459,7 @@ void Statistics::trainCandidates(uint32_t numThreads) {
 		}
 	}
 	//
-	CandidateTrainer::initializePopulation(20);
+	CandidateTrainer::initializePopulation();
 
 	while (!CandidateTrainer::finished()) {
 		Candidate& c = CandidateTrainer::getCurrentCandidate();

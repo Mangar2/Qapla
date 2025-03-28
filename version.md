@@ -1,6 +1,18 @@
 # Qapla Test Versions
 
-## 0.3.004 2025-03-22
+## 0.3.005 2025-03-26
+
+- Knight property values changed to: { {  0,   0}, { 20, 0}, { -43,  0}, {-23,  0} }
+- Bishop property values changed to: { {  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} }
+- Rook property values changed to:
+	- Trapped: -50, -16
+	- OpenFile: 18, 6
+	- HalfOpenFile: 10, 0
+	- ProtectsPP: 25, 0
+	- Pinned : -23, 0
+	- Row7: { 0,0 }, { 17, 17 }, { 10, 0 }, { 0, 0 }
+
+ ## 0.3.004 2025-03-22
 
 - Optimized eval threat weights, ca. +2.5% against itself (ply 8 search)
 - Raiting: 63.18
