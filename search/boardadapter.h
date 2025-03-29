@@ -187,6 +187,7 @@ namespace QaplaSearch {
 			position.clear();
 			playedMovesInGame = 0;
 			moveHistory.clearMoves();
+			iterativeDeepening.startNewGame();
 		}
 
 		/**

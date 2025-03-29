@@ -52,8 +52,7 @@ namespace QaplaSearch {
 		 * Starts a new game or sets a new position e.g. by fen
 		 */
 		void startNewGame() {
-			_tt.clear();
-			_search.startNewGame();
+			clearMemories();
 		}
 
 		/**
