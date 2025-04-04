@@ -192,6 +192,11 @@ namespace QaplaBasics {
 			return _pieceSignature.getPiecesSignature();
 		}
 
+		template <Piece COLOR>
+			constexpr pieceSignature_t getPiecesSignature() const {
+			return _pieceSignature.getSignature<COLOR>();
+		}
+
 		/**
 		 * Gets a static piece value (Queen = 9, Rook = 5, Bishop & Knight = 3, >= 3 Pawns = 1)
 		 * The pawns are not really counted.

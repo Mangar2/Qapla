@@ -65,11 +65,48 @@ void Optimizer::updateEstimates(double radius)
     }
 }
 
+// Checks if the 6 neightbors of the best point have a nearly equal value
+bool Optimizer::unrelevant() {
+	const int numNeighbors = 4;
+    if (points.size() <= numNeighbors) { // We need at least 7 points to have 6 neighbors
+        return false;
+    }
+    auto [index, best] = getBest();
+    double bestValue = best.pMeasured;
+    double tolerance = 0.003; // Tolerance for "nearly equal"
+
+    // Check the 6 neighbors around the best point
+    int start = std::max(0, static_cast<int>(index) - (numNeighbors / 2));
+    int end = std::min(static_cast<int>(points.size()) - 1, static_cast<int>(index) + (numNeighbors / 2));
+
+    // Adjust start and end to ensure we always check 6 neighbors
+    if (end - start < numNeighbors) {
+        if (start == 0) {
+            end = std::min(static_cast<int>(points.size()) - 1, start + numNeighbors);
+        }
+        else if (end == static_cast<int>(points.size()) - 1) {
+            start = std::max(0, end - numNeighbors);
+        }
+    }
+
+    for (int i = start; i <= end; ++i) {
+        if (i == index) continue; // Skip the best point itself
+        double neighborValue = points[i].pMeasured;
+        if (std::abs(neighborValue - bestValue) > tolerance) {
+            return false; // If the neighbor value is not within the tolerance, the condition is not met
+        }
+    }
+    return true; // All neighbors have nearly the same measured value
+}
+
 double Optimizer::nextX(double min, double max) {
-	if (points.size() == 0) {
+    if (points.size() == 0) {
+        return 1;
+    } 
+    else if (points.size() == 1) {
 		return min;
 	}
-    else if (points.size() == 1) {
+    else if (points.size() == 2) {
         return max;
     }
     uint32_t bestIndex = 0;

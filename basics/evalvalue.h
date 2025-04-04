@@ -64,6 +64,8 @@ namespace QaplaBasics {
 
 		constexpr value_t midgame() const { return _midgame; }
 		constexpr value_t endgame() const { return _endgame; }
+		value_t& midgame() { return _midgame; }
+		value_t& endgame() { return _endgame; }
 
 		constexpr  EvalValue& operator+=(EvalValue add) { _midgame += add._midgame; _endgame += add._endgame; return *this; }
 		constexpr  EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }

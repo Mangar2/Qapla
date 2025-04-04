@@ -21,6 +21,76 @@
 
 #include "candidate-trainer.h"
 
+#include <vector>
+#include <cmath>
+#include <algorithm>
+
+std::vector<int> generateSmoothStepCurve(int size, int minValue, int maxValue, int kinkLow, int kinkHigh) {
+    std::vector<int> values(size);
+    if (size < 2 || kinkLow >= kinkHigh || kinkLow < 0 || kinkHigh >= size)
+        return values;
+
+    auto smoothStep = [](double t) {
+        return t * t * (3 - 2 * t);
+        };
+
+    for (int i = 0; i < size; ++i) {
+        double norm = 0.0;
+
+        if (i < kinkLow)
+            norm = 0.0;
+        else if (i > kinkHigh)
+            norm = 1.0;
+        else {
+            double t = double(i - kinkLow) / double(kinkHigh - kinkLow);
+            norm = smoothStep(t);
+        }
+
+        double scaled = minValue + norm * (maxValue - minValue);
+        values[i] = std::clamp(int(std::round(scaled)), minValue, maxValue);
+    }
+
+    return values;
+}
+
+
+std::vector<int> generateSigmoidCurve(int size, int minValue, int maxValue, int kinkLow, int kinkHigh) {
+    std::vector<int> values(size);
+    if (size < 2 || kinkLow >= kinkHigh || kinkLow < 0 || kinkHigh >= size)
+        return values;
+
+    auto sigmoid = [](double x) {
+        return 1.0 / (1.0 + std::exp(-x));
+        };
+
+    double startX = -6.0;
+    double endX = 6.0;
+
+    for (int i = 0; i < size; ++i) {
+        double norm = 0.0;
+
+        if (i < kinkLow)
+            norm = 0.0;
+        else if (i > kinkHigh)
+            norm = 1.0;
+        else {
+            double t = double(i - kinkLow) / double(kinkHigh - kinkLow); // 0..1
+            double x = startX + t * (endX - startX);                     
+            double y = sigmoid(x);
+
+            // Normiere so, dass sigmoid(-6) = 0 und sigmoid(6) = 1
+            norm = (y - sigmoid(startX)) / (sigmoid(endX) - sigmoid(startX));
+        }
+
+        double scaled = minValue + norm * (maxValue - minValue);
+        values[i] = std::clamp(int(std::round(scaled)), minValue, maxValue);
+    }
+
+    return values;
+}
+
+
+
 MobilityCandidate::MobilityCandidate() {
     // knight mobility
     addWeight({ { -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 },
@@ -37,87 +107,6 @@ MobilityCandidate::MobilityCandidate() {
         -10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
         10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
         });
-}
-
-
-PropertyCandidate::PropertyCandidate() {
-    // knight
-    addWeight({ { 0,  0}, { 20,   0}, {  0,   0}, { 20,   0} });
-	// bishop
-    addWeight({ { 0,  0}, { 10,   5}, {  0,   0}, { 10,   5} });
-    // rook
-    addWeight({ 
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0}, { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0},
-          { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}, { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          { 40,   0}, {-10,   0}, { 50,   0}, {  0,   0}, { 50,   0}, {  0,   0}, { 60,   0}, { 10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0},
-          {  0,   0}, {-50,   0}, { 10,   0}, {-40,   0}, { 10,   0}, {-40,   0}, { 20,   0}, {-30,   0},
-          { 20,   0}, {-30,   0}, { 30,   0}, {-20,   0}, { 30,   0}, {-20,   0}, { 40,   0}, {-10,   0}
-     });
-    // queen
-    addWeight({ { 0,   0 }, { 0,   0 } });
-}
-
-int countBits(size_t number) {
-    int count = 0;
-    while (number > 0) {
-        count++;
-        number >>= 1; // Rechtsverschiebung um 1 Bit
-    }
-    return count;
-}
-
-void PropertyCandidate::scaleIndex(uint32_t index, double scale, bool noScale) {
-	const std::string indexNames[4] = { "knight", "bishop", "rook", "queen" };
-	bool isMidgame = index % 2 == 0;
-	int32_t remainingIndex = index / 2;
-	for (uint32_t vectorIndex = 0; vectorIndex < weights.size() && remainingIndex >= 0; ++vectorIndex) {
-        uint64_t propertyBit = 1ULL << remainingIndex;
-        if (propertyBit < weights[vectorIndex].size()) {
-			std::cout << "Scaling vector " << indexNames[vectorIndex] << " property " << remainingIndex << " phase " << (isMidgame ? "midgame" : "endgame") << " with " << scale;
-            for (uint32_t valueIndex = 0; valueIndex < weights[vectorIndex].size(); ++valueIndex) {
-                if (propertyBit & valueIndex) {
-                    EvalValue propertyWeight = originalWeights[vectorIndex][propertyBit];
-                    EvalValue baseWeight = weights[vectorIndex][valueIndex & (~propertyBit)];
-					EvalValue currentValue = weights[vectorIndex][valueIndex];
-                    weights[vectorIndex][valueIndex] = EvalValue(
-                        static_cast<value_t>(isMidgame && !noScale ? scaleValue(baseWeight.midgame(), propertyWeight.midgame(), scale) : currentValue.midgame()),
-						static_cast<value_t>(!isMidgame && !noScale ? scaleValue(baseWeight.endgame(), propertyWeight.endgame(), scale) : currentValue.endgame())
-                    );
-                }
-				std::cout << " " << weights[vectorIndex][valueIndex];
-            }
-			std::cout << std::endl;
-            break;
-        }
-		remainingIndex -= countBits(weights[vectorIndex].size() - 1);
-	}
 }
 
 void PropertyCandidateTemplate::scaleIndex(uint32_t index, double scale, bool noScale) {
@@ -141,6 +130,115 @@ void PropertyCandidateTemplate::scaleIndex(uint32_t index, double scale, bool no
     }
 }
 
+KingAttackCandidate::KingAttackCandidate() {
+    addWeight(std::vector<QaplaBasics::EvalValue>{
+        0, 0, 0, 0, 0, -2, 0, -7, -2, -15, -9, -26, -20, -39, -34, -55,
+        -52, -73, -73, -93, -96, -115, -121, -137, -148, -161, -176, -186, -205, -211, -235, -237,
+        -265, -263, -295, -289, -324, -314, -352, -339, -379, -363, -404, -385, -427, -407, -448, -427,
+        -466, -445, -480, -461, -491, -474, -498, -485, -500, -493, -500, -498, -500, -500, -500, -500
+    });
+    addWeight(std::vector<QaplaBasics::EvalValue>{
+        0, 0, 0, 0, -1, -3, -5, -8, -11, -15, -19, -24, -29, -35, -41, -48, 0, 0, 0, 0, -1, -3, -5, -8, -11, -15, -19, -24, -29, -35, -41, -48
+    });
+    addWeight(std::vector<QaplaBasics::EvalValue>{
+        0, 0, 0, -1, -1, -2, -3, -3, -4, -5, -7, -11, -14, -18, -23, -28, 0, -1, -1, -2, -3, -4, -5, -7, -9, -11, -16, -21, -27, -34, -41, -49
+    });
+    addWeight(std::vector<QaplaBasics::EvalValue>{
+        0, 0, 0, -1, -1, -3, -4, -4, -6, -7, -10, -15, -19, -25, -31, -38, 0, -1, -1, -2, -3, -4, -5, -8, -10, -12, -18, -24, -31, -39, -48, -57
+    });
+    addWeight(std::vector<QaplaBasics::EvalValue>{
+        0, -1, -1, -2, -2, -4, -5, -5, -7, -9, -12, -18, -23, -30, -38, -46, 0, -1, -1, -2, -4, -5, -7, -9, -12, -15, -22, -29, -37, -47, -57, -68
+    });
+	addWeight(std::vector<QaplaBasics::EvalValue>{
+        237, 90, 117, 136, 110, 114, 171, 140, 56, 113, 100, 152, 79, 92, 122, 70
+	});
+    startIndex = 0;
+    numIndex = 26;
+    setRadius(0.1);
+    minScale = 0.4;
+    maxScale = 1.6;
+    maxGames = 100000;
+    /*
+    auto curve0 = generateSmoothStepCurve(32, 0, 500, 3, 28);
+    auto curve1 = generateSmoothStepCurve(32, 0, 500, 1, 30);
+	for (uint32_t i = 0; i < weights[0].size() / 2; ++i) {
+		originalWeights[0][i * 2] = EvalValue(
+			static_cast<value_t>(-curve0[i]),
+			static_cast<value_t>(0)
+		);
+		originalWeights[0][i * 2 + 1] = EvalValue(
+			static_cast<value_t>(-curve1[i]),
+			static_cast<value_t>(0)
+		);
+	}
+	weights[0] = originalWeights[0];
+    */
+}
+
+void KingAttackCandidate::scaleType(uint32_t weightIndex, uint32_t itemBaseIndex, uint32_t loopStep, uint32_t loopMax, double scale, bool noScale) {
+    auto originalWeight = originalWeights[weightIndex];
+    auto weight = weights[weightIndex];
+    if (noScale) {
+        weights[weightIndex] = originalWeight;
+        for (auto& weight : weights[weightIndex]) {
+            weight.endgame() = 0;
+        }
+        return;
+    }
+    for (uint32_t i = 0; i < loopMax; i += loopStep) {
+		const auto itemIndex = itemBaseIndex + i;
+        weights[weightIndex][itemIndex] = EvalValue(
+            static_cast<value_t>(originalWeight[itemIndex].midgame() * scale),
+            static_cast<value_t>(0)
+        );
+    }
+}
+
+void KingAttackCandidate::scaleIndex(uint32_t index, double scale, bool noScale) {
+    uint32_t baseIndex = 0;
+    uint32_t weightIndex = 0;
+    if (index >= 0 && index <= 1) {
+		weightIndex = 0;
+		scaleType(weightIndex, index % 2, 2, weights[0].size(), scale, noScale);
+	}
+    else if (index >= 2 && index <= 2) {
+		weightIndex = 1;
+        scaleType(weightIndex, 0, 1, weights[1].size(), scale, noScale);
+    }
+    else if (index >= 3 && index <= 9) {
+		weightIndex = 2 + ((index - 3) / 2);
+		const uint32_t step = (index - 3) % 2;
+		const uint32_t weightSize = weights[weightIndex].size();
+		scaleType(weightIndex, step * (weightSize / 2), 1, weightSize / 2, scale, noScale);
+    }
+    else if (index >= 10 && index <= 25) {
+        setRadius(0.1);
+		weightIndex = 5;
+		scaleType(weightIndex, index - 10, 1, 1, scale, noScale);
+    }
+    else if (index == 26) {
+        // do nothing
+    }
+    for (auto& weight : weights[weightIndex]) {
+        std::cout << weight.midgame() << ",";
+    }
+    std::cout << std::endl;
+}
+
+void KingAttackCandidate::print(std::ostream& os) const {
+    printShort(os);
+    for (auto& vec : weights) {
+        os << "{";
+        std::string sep = "";
+        for (const auto& v : vec) {
+            os << sep << v.midgame();
+            sep = ", ";
+        }
+        os << "}" << std::endl;
+    }
+    os << std::endl;
+}
+
 void Candidate::addWeight(const std::vector<EvalValue>& initial) {
     weights.push_back(initial);
     originalWeights.push_back(initial);
@@ -159,14 +257,14 @@ std::pair<double, double> Candidate::getConfidenceInterval() const {
 bool Candidate::isProbablyNeutral() const {
     double z = Z98; // 98% confidence interval, for 95% use 1.96, for 99% use 2.58
     uint32_t n = numGames();
-    if (n >= MAX_GAMES) return true;
+    if (n >= maxGames) return true;
     if (n <= MIN_GAMES) return false;
     double p = score();
     auto [lowerBound, upperBound] = getConfidenceInterval();
     double p_extreme = (std::abs(lowerBound - bestValue) > std::abs(upperBound - bestValue)) ? lowerBound : upperBound;
-    double p_future = (p * n + p_extreme * (MAX_GAMES - n)) / (MAX_GAMES * 1.0);
+    double p_future = (p * n + p_extreme * (maxGames - n)) / (maxGames * 1.0);
 
-    double stddev_future = std::sqrt(p_future * (1 - p_future) / (MAX_GAMES * 1.0));
+    double stddev_future = std::sqrt(p_future * (1 - p_future) / (maxGames * 1.0));
     double lower_future = p_future - z * stddev_future;
     double upper_future = p_future + z * stddev_future;
 
@@ -184,7 +282,7 @@ bool Candidate::isWorse() const {
 bool Candidate::isUnknown() const {
     if (numGames() < MIN_GAMES) return true;
     const auto [lowerBound, upper_bound] = getConfidenceInterval();
-    return lowerBound <= bestValue && upper_bound >= bestValue && !isProbablyNeutral() && numGames() < MAX_GAMES;
+    return lowerBound <= bestValue && upper_bound >= bestValue && !isProbablyNeutral() && numGames() < maxGames;
 }
 
 // Rescale weight vector to preserve average evaluation (based on getValue(50))
@@ -288,10 +386,7 @@ void CandidateTrainer::initializePopulation() {
         std::vector<EvalValue>({ { 0,  0}, { 10,   5}, {  0,   0}, { 10,   5} })
     ));
     */
-	addCandidate(std::make_unique<PropertyCandidateTemplate>(
-        "Queen",
-		std::vector<EvalValue>({ { 0,   0 }, { 0,   0 } })
-    ));
+    addCandidate(std::make_unique<KingAttackCandidate>());
     nextStep();
 }
 
@@ -307,9 +402,9 @@ void CandidateTrainer::nextStepOnOptimizer() {
         currentCandidate->printShort(std::cout);
     }
 
-    if (optimizer.goodEnough()) {
+    if (optimizer.goodEnough() || optimizer.unrelevant()) {
 		auto best = optimizer.getBest().second;
-		if (best.pEstimated < currentCandidate->getLastBestValue() + 0.004) {
+		if (best.pEstimated < currentCandidate->getLastBestValue() + 0.002) {
             currentCandidate->scaleIndex(optimizerIndex, 1, true);
         }
         else {
@@ -333,19 +428,19 @@ void CandidateTrainer::nextStepOnOptimizer() {
     }
 
     currentCandidate->clear();
-    currentCandidate->scaling = optimizer.nextX(-10, 10);
+    currentCandidate->scaling = optimizer.nextX(currentCandidate->minScale, currentCandidate->maxScale);
 	currentCandidate->setBestValue(std::max(0.5, optimizer.getBest().second.pEstimated));
 	currentCandidate->scaleIndex(optimizerIndex, currentCandidate->scaling);
-    getCurrentCandidate().print(std::cout);
+    //getCurrentCandidate().print(std::cout);
     currentCandidate->setId("Weights scaled by " + std::to_string(currentCandidate->scaling) + " Index: " + std::to_string(optimizerIndex));
 }
 
 bool CandidateTrainer::shallTerminate() {
     const Candidate& c = getCurrentCandidate();
     if (c.isWorse() && c.numGames() > 1000) return true;
-	if (c.score() > c.getLastBestValue()) return c.numGames() >= 10000;
+	if (c.score() > c.getLastBestValue()) return c.numGames() >= c.maxGames;
 	auto numPoints = optimizer.numPoints();
-    return c.numGames() >= 10000;
+    return c.numGames() >= c.maxGames;
 }
 
 void CandidateTrainer::nextStepOnPopulation() {
@@ -357,6 +452,7 @@ void CandidateTrainer::nextStepOnPopulation() {
     else
     {
         currentCandidate = std::move(population[candidateIndex]);
+        optimizerIndex = currentCandidate->startIndex;
         ++candidateIndex;
     }
 }

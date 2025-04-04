@@ -78,8 +78,8 @@ namespace ChessEval {
 				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
 
 				const auto propertyIndex = isPinned(position.pinnedMask[COLOR], square);
-				//const auto propertyValue = QUEEN_PROPERTY_MAP[propertyIndex];
-				const auto propertyValue = position.getEvalVersion() == 0 ? QUEEN_PROPERTY_MAP[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
+				const auto propertyValue = QUEEN_PROPERTY_MAP[propertyIndex];
+				// const auto propertyValue = position.getEvalVersion() == 0 ? QUEEN_PROPERTY_MAP[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
 				value += mobilityValue + propertyValue;
 

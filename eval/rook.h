@@ -81,7 +81,7 @@ namespace ChessEval {
 				const auto mobilityIndex = calcMobilityIndex<COLOR>(results, rookSquare, occupiedBB, removeMask);
 
 				const auto mobilityValue = EvalValue(ROOK_MOBILITY_MAP[mobilityIndex]);
-				// const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(ROOK_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(2)[mobilityIndex];
+				// const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(ROOK_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
 
 				const auto propertyValue = evalMap[propertyIndex];
 				//const auto propertyValue = position.getEvalVersion() == 0 ? evalMap[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];

@@ -53,6 +53,8 @@ public:
 		return best.confidence > CONFIDENCE_THRESHOLD;
 	}
 
+	bool unrelevant();
+
 	double nextX(double min, double max);
 
 	void print(std::ostream& os) {

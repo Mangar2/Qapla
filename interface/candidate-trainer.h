@@ -137,7 +137,7 @@ public:
             << std::endl;
 	}
 
-	void print(std::ostream& os) const {
+	virtual void print(std::ostream& os) const {
 		printShort(os);
 		for (auto& vec : weights) {
             os << "{";
@@ -160,11 +160,16 @@ public:
 		return lastBestValue;
 	}
 
-    virtual uint32_t getNumIndex() const = 0;
+	virtual uint32_t getNumIndex() const {
+		return numIndex;
+	}
 	virtual void scaleIndex(uint32_t index, double scale, bool noScale = false) = 0;
-    virtual double getRadius() const {
+    double getRadius() const {
         return radius;  
     }
+	void setRadius(double radius) {
+		this->radius = radius;
+	}
 
 
 protected:
@@ -175,13 +180,15 @@ protected:
 	double radius = 0.5;
     double bestValue;
     double lastBestValue = 0.5;
-    double minScale = -10;
-    double maxScale = 10;
+    uint32_t numIndex = 1;
 
-    const uint32_t MAX_GAMES = 10000;
     const uint32_t MIN_GAMES = 2000;
 public:
     double scaling;
+    double minScale = -10;
+    double maxScale = 10;
+    uint32_t startIndex = 0;
+    uint32_t maxGames = 10000;
 };
 
 class MobilityCandidate : public Candidate {
@@ -210,41 +217,17 @@ protected:
 	std::string pieceName;
 };
 
-class PropertyCandidate : public Candidate {
+class KingAttackCandidate : public Candidate {
 public:
-    PropertyCandidate();
-
-    virtual uint32_t getNumIndex() const {
-        return 4 + 4 + 16 + 2;
-    }
+	KingAttackCandidate();  
+	void scaleType(uint32_t weightIndex, uint32_t itemBaseIndex, uint32_t loopStep, uint32_t loopMax, double scale, bool noScale = false);
     virtual void scaleIndex(uint32_t index, double scale, bool noScale = false);
+    virtual void print(std::ostream& os) const;
 };
 
 class CandidateTrainer {
 public:
     static void initializePopulation();
-
-    static void buildScaledPopulation(double min, double max, double step) {
-        population.clear();
-		MobilityCandidate c;
-		for (size_t i = 0; i < c.numWeights(); i++) {
-			for (double scale = min; scale <= max; scale += step) {
-				if (scale == 1.0) continue;
-                auto c = make_unique<MobilityCandidate>();
-				c->rescaleWeightVector(i, scale);
-				c->setId("Mobility " + std::to_string(i) + " scaled by " + std::to_string(scale));
-                population.push_back(std::move(c));
-			}
-		}
-        for (double scale = min; scale <= max; scale += step) {
-            if (scale == 1.0) continue;
-            auto c = make_unique<MobilityCandidate>();
-            c->rescaleAllWeightVectors(scale);
-			c->setId("Mobility weights scaled by " + std::to_string(scale));
-            population.push_back(std::move(c));
-        }
-        candidateIndex = 0;
-    }
 
 	static void addCandidate(std::unique_ptr<Candidate>&& c) {
 		population.push_back(std::move(c));

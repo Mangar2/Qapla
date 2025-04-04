@@ -29,6 +29,7 @@
  // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
 #include <map>
+#include <algorithm>
 #include "../basics/types.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
@@ -40,14 +41,6 @@ using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 
-	struct KingAttackValues {
-		static const uint32_t MAX_WEIGHT_COUNT = 25;
-		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
-		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
-		static constexpr value_t pawnIndexFactor[8] = { 100, 100, 100, 100, 100, 100, 100, 100 };
-	};
-
 	class KingAttack {
 
 	public:
@@ -55,12 +48,12 @@ namespace ChessEval {
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
 			std::vector<EvalValue> attack;
-			for (auto weight: KingAttackValues::attackWeight) {
+			for (auto weight : attackWeight) {
 				attack.push_back(EvalValue(weight, 0));
 			}
 			indexLookup["kAttack"] = attack;
 			std::vector<EvalValue> shield;
-			for (auto weight : KingAttackValues::pawnIndexFactor) {
+			for (auto weight : pawnIndexFactor) {
 				shield.push_back(EvalValue(weight, 0));
 			}
 			indexLookup["kShield"] = shield;
@@ -95,9 +88,7 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& position, EvalResults& results) {
 			computeAttacks<WHITE>(position, results);
 			computeAttacks<BLACK>(position, results);
-			value_t result = computeAttackValue<WHITE>(position, results) -
-				computeAttackValue<BLACK>(position, results);
-			return result;
+			return computeAttackValue2<WHITE>(position, results) - computeAttackValue2<BLACK>(position, results);
 		}
 
 		/**
@@ -106,15 +97,15 @@ namespace ChessEval {
 		static void print(MoveGenerator& position, EvalResults& results) {
 			eval(position, results);
 			cout << "King attack" << endl;
-			cout << "White pawn shield:" << std::right << std::setw(18) << 
-				KingAttackValues::pawnIndexFactor[
-					computePawnShieldIndex<WHITE>(position.getKingSquare<WHITE>(), position.getPieceBB(WHITE_PAWN))] 
+			cout << "White pawn shield:" << std::right << std::setw(18) <<
+				pawnIndexFactor[
+					computePawnShieldIndex<WHITE>(position.getKingSquare<WHITE>(), position.getPieceBB(WHITE_PAWN))]
 				<< endl;
 			cout << "Black pawn shield:" << std::right << std::setw(18) <<
-				KingAttackValues::pawnIndexFactor[
+				pawnIndexFactor[
 					computePawnShieldIndex<BLACK>(position.getKingSquare<BLACK>(), position.getPieceBB(BLACK_PAWN))]
 				<< endl;
-			cout << "White (pressure " << results.kingPressureCount[WHITE] << "):" << std::right << std::setw(17) << 
+			cout << "White (pressure " << results.kingPressureCount[WHITE] << "):" << std::right << std::setw(17) <<
 				results.kingAttackValue[WHITE] << endl;
 			cout << "Black (pressure " << results.kingPressureCount[BLACK] << "):" << std::right << std::setw(17) <<
 				results.kingAttackValue[BLACK] << endl;
@@ -126,7 +117,7 @@ namespace ChessEval {
 		 * Computes an index for the pawn shield
 		 * Bit FWE F = Front pawn exists, W = West pawn Exists, E = East pawn exists
 		 */
-		template <Piece COLOR> 
+		template <Piece COLOR>
 		inline static uint32_t computePawnShieldIndex(Square kingSquare, bitBoard_t myPawnBB) {
 			uint32_t index = 0;
 			bitBoard_t kingBB = 1ULL << kingSquare;
@@ -143,26 +134,25 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Examine fields to attack the king
+		 * Compute the amount of moves checking the king
 		 */
 		template <Piece COLOR>
-		inline static int32_t computeCheckMoves(MoveGenerator& position, EvalResults& results) {
-			const Piece us = COLOR;
-			const Piece them = switchColor(COLOR);
-			Square kingSquare = position.getKingSquare<us>();
+		inline static value_t computeCheckMoves(MoveGenerator& position, EvalResults& results) {
+			const Piece OPPONENT = switchColor(COLOR);
+			Square kingSquare = position.getKingSquare<COLOR>();
 			bitBoard_t allPieces = position.getAllPiecesBB();
 			bitBoard_t kingAttack = BitBoardMasks::kingMoves[kingSquare];
 			bitBoard_t bishopChecks = Magics::genBishopAttackMask(kingSquare, allPieces);
 			bitBoard_t rookChecks = Magics::genRookAttackMask(kingSquare, allPieces);
 			bitBoard_t knightChecks = BitBoardMasks::knightMoves[kingSquare];
 
-			bishopChecks &= results.queenAttack[them] | results.bishopAttack[them];
-			rookChecks &= results.queenAttack[them] | results.rookAttack[them];
-			knightChecks &= results.knightAttack[them];
+			bishopChecks &= results.queenAttack[OPPONENT] | results.bishopAttack[OPPONENT];
+			rookChecks &= results.queenAttack[OPPONENT] | results.rookAttack[OPPONENT];
+			knightChecks &= results.knightAttack[OPPONENT];
 
-			bitBoard_t checks = (bishopChecks | rookChecks | knightChecks) & ~position.getPiecesOfOneColorBB<them>();
-			bitBoard_t undefended = ~results.piecesAttack[us];
-			bitBoard_t safeChecks = checks & ((undefended & ~kingAttack) | (undefended & results.piecesDoubleAttack[them]));
+			bitBoard_t checks = (bishopChecks | rookChecks | knightChecks) & ~position.getPiecesOfOneColorBB<OPPONENT>();
+			bitBoard_t undefended = ~results.piecesAttack[COLOR];
+			bitBoard_t safeChecks = checks & ((undefended & ~kingAttack) | (undefended & results.piecesDoubleAttack[OPPONENT]));
 			return popCount(checks) + popCount(safeChecks) * 2;
 		}
 
@@ -192,13 +182,55 @@ namespace ChessEval {
 				computeCheckMoves<COLOR>(position, results) +
 				(position.getPieceBB(QUEEN + COLOR) != 0) * 3;
 
-			if (results.kingPressureCount[COLOR] > KingAttackValues::MAX_WEIGHT_COUNT) {
-				results.kingPressureCount[COLOR] = KingAttackValues::MAX_WEIGHT_COUNT;
+			if (results.kingPressureCount[COLOR] > MAX_WEIGHT_COUNT) {
+				results.kingPressureCount[COLOR] = MAX_WEIGHT_COUNT;
 			}
 			value_t attackValue =
-				(KingAttackValues::attackWeight[results.kingPressureCount[COLOR]] * results.midgameInPercentV2) / 100;
+				(attackWeight[results.kingPressureCount[COLOR]] * results.midgameInPercentV2) / 100;
 			results.kingAttackValue[COLOR] = attackValue;
 			return results.kingAttackValue[COLOR];
+		}
+
+		template <Piece COLOR>
+		inline static value_t computeAttackValue2(MoveGenerator& position, EvalResults& results) {
+			Square kingSquare = position.getKingSquare<COLOR>();
+			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
+			const Piece OPPONENT = switchColor(COLOR);
+			bitBoard_t attackArea = _kingAttackBB2[kingSquare];
+
+			bitBoard_t kingAttacks = attackArea & results.piecesAttack[OPPONENT];
+			bitBoard_t kingAttacksNotDefendedByPawns = kingAttacks & ~position.pawnAttack[COLOR];
+
+			bitBoard_t kingDoubleAttacks = attackArea & results.piecesDoubleAttack[OPPONENT];
+			bitBoard_t kingDoubleAttacksDefended = kingDoubleAttacks & results.piecesAttack[COLOR];
+			bitBoard_t kingDoubleAttacksUndefended = kingDoubleAttacks & ~results.piecesAttack[COLOR];
+			auto pieceSignature = position.getPiecesSignature<OPPONENT>();
+			auto checkMoves = computeCheckMoves<COLOR>(position, results);
+			bool hasQueen = (pieceSignature & SignatureMask::QUEEN) != 0;
+
+			uint32_t pressure =
+				popCountForSparcelyPopulatedBitBoards(kingAttacksNotDefendedByPawns) +
+				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksDefended) +
+				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2;
+			uint32_t pieceIndex = std::min(MAX_ATTACK_COUNT, pressure) + hasQueen * QUEEN_AVAILABLE_INDEX;
+			/*
+			uint32_t attackSignature = 
+				((results.queenAttack[OPPONENT] & attackArea) > 0) * 1 +
+				((results.rookAttack[OPPONENT] & attackArea) > 0) * 2 +
+				((results.bishopAttack[OPPONENT] & attackArea) > 0) * 4 +
+				((results.knightAttack[OPPONENT] & attackArea) > 0) * 8;
+				attackValue = (attackValue * CandidateTrainer::getCurrentCandidate().getWeightVector(5)[attackSignature].midgame()) / 100;
+			*/
+
+			uint32_t index = hasQueen * QUEEN_INDEX + std::min(PRESSURE_MASK, pressure + checkMoves) * PRESSURE_INDEX;
+			//value_t attackValue = CandidateTrainer::getCurrentCandidate().getWeightVector(0)[index].midgame();
+			//attackValue = (attackValue * results.midgameInPercentV2) / 100;
+
+			value_t attackValue = (attackValueMap[index] * results.midgameInPercentV2) / 100;
+			if (attackValue > -10) { attackValue = 0; }
+			results.kingPressureCount[COLOR] = index;
+			results.kingAttackValue[COLOR] = attackValue;
+			return attackValue;
 		}
 
 		/**
@@ -212,13 +244,100 @@ namespace ChessEval {
 			results.piecesAttack[COLOR] |= pawnAttack;
 		}
 
+		static const uint32_t MAX_ATTACK_COUNT = 0x0F;
+		static const uint32_t QUEEN_AVAILABLE_INDEX = 0x10;
+
+		static constexpr array<value_t, QUEEN_AVAILABLE_INDEX * 2> queenAttackWeight = {
+			0, 0, 0, 0, -1, -3, -5, -8, -11, -15, -19, -24, -29, -35, -41, -48, 0, 0, 0, 0, -1, -3, -5, -8, -11, -15, -19, -24, -29, -35, -41, -48
+		};
+
+		static constexpr array<value_t, QUEEN_AVAILABLE_INDEX * 2> rookAttackWeight = {
+			0, 0, 0, -1, -1, -2, -3, -3, -4, -5, -7, -11, -14, -18, -23, -28, 0, -1, -1, -2, -3, -4, -5, -7, -9, -11, -16, -21, -27, -34, -41, -49
+		};
+
+		static constexpr array<value_t, QUEEN_AVAILABLE_INDEX * 2> bishopAttackWeight = {
+			0, 0, 0, -1, -1, -3, -4, -4, -6, -7, -10, -15, -19, -25, -31, -38, 0, -1, -1, -2, -3, -4, -5, -8, -10, -12, -18, -24, -31, -39, -48, -57
+		};
+
+		static constexpr array<value_t, QUEEN_AVAILABLE_INDEX * 2> knightAttackWeight = {
+			0, -1, -1, -2, -2, -4, -5, -5, -7, -9, -12, -18, -23, -30, -38, -46, 0, -1, -1, -2, -4, -5, -7, -9, -12, -15, -22, -29, -37, -47, -57, -68
+		};
+
+		static constexpr array<value_t, 0x10> SIGNATURE_FACTOR = {
+			237, 90, 117, 136, 110, 114, 171, 140, 56, 113, 100, 152, 79, 92, 122, 70
+		};
+
+
+
+		static const uint32_t QUEEN_INDEX = 0x01;
+		static const uint32_t PRESSURE_INDEX = 0x2;
+		static const uint32_t PRESSURE_MASK = 0x1F;
+		static const uint32_t INDEX_SIZE = 0x40;
 
 		static struct InitStatics {
 			InitStatics();
 		} _staticConstructor;
 
 		static array<bitBoard_t, BOARD_SIZE> _kingAttackBB[2];
+		static const uint32_t MAX_WEIGHT_COUNT = 25;
+		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
+		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
+		static constexpr array<value_t, 8> pawnIndexFactor = { 100, 100, 100, 100, 100, 100, 100, 100 };
 
+		constexpr static array<value_t, INDEX_SIZE> attackValueMap = {
+			   0,   0,   0,   0,   0,  -2,   0,  -7,  -2, -15,  -9, -26, -20, -39, -34, -55,
+			 -52, -73, -73, -93, -96,-115,-121,-137,-148,-161,-176,-186,-205,-211,-235,-237,
+			-265,-263,-295,-289,-324,-314,-352,-339,-379,-363,-404,-385,-427,-407,-448,-427,
+			-466,-445,-480,-461,-491,-474,-498,-485,-500,-493,-500,-498,-500,-500,-500,-500
+		};
+
+		inline static array<bitBoard_t, BOARD_SIZE> _kingAttackBB2 = [] {
+			array<bitBoard_t, BOARD_SIZE> kingAttackBB;
+			for (Square square = A1; square <= H8; ++square) {
+				bitBoard_t attackArea = 1ULL << square;
+				attackArea |= BitBoardMasks::shift<WEST>(attackArea);
+				attackArea |= BitBoardMasks::shift<EAST>(attackArea);
+				attackArea |= BitBoardMasks::shift<SOUTH>(attackArea);
+				attackArea |= BitBoardMasks::shift<NORTH>(attackArea);
+				// Ensure the attackArea is always 3x3 fields
+				if (getFile(square) == File::A) {
+					attackArea |= BitBoardMasks::shift<EAST>(attackArea);
+				}
+				if (getFile(square) == File::H) {
+					attackArea |= BitBoardMasks::shift<WEST>(attackArea);
+				}
+				if (getRank(square) == Rank::R1) {
+					attackArea |= BitBoardMasks::shift<NORTH>(attackArea);
+				}
+				if (getRank(square) == Rank::R8) {
+					attackArea |= BitBoardMasks::shift<SOUTH>(attackArea);
+				}
+				kingAttackBB[square] = attackArea;
+			}
+			return kingAttackBB;
+		} ();
+	
+
+		/*
+		inline static array<value_t, INDEX_SIZE> attackValueMap = [] {
+			const auto PRINT = false;
+			if (PRINT) std::cout << "{";
+			std::string separator = "";
+			array<value_t, INDEX_SIZE> map;
+			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
+				if (PRINT) if (bitmask % 16 == 0) std::cout << std::endl << "    ";
+				uint32_t index = 0;
+				if (bitmask & QUEEN_INDEX) index += 3;
+				index += (bitmask & (PRESSURE_INDEX * PRESSURE_MASK)) / PRESSURE_INDEX;
+				map[bitmask] = attackWeight[std::min(index, MAX_WEIGHT_COUNT)];
+				if (PRINT) std::cout << separator << map[bitmask];
+				separator = ", ";
+			}
+			if (PRINT) std::cout << "}" << std::endl;
+			return map;
+		} ();
+		*/
 	};
 }
 
