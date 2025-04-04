@@ -89,6 +89,7 @@ public:
     // Rescale weight vector to preserve average evaluation (based on getValue(50))
     void rescaleWeightVector(size_t index, double factor);
     void rescaleWeightPhase(size_t index, double factor);
+    void scaleType(uint32_t weightIndex, uint32_t itemBaseIndex, size_t loopStep, size_t loopMax, double scale, bool noScale = false);
 
     // Adjusts the vector so its average (getValue(50)) matches the target average
     void correctAverage(std::vector<EvalValue>& vec, double targetAverage);
@@ -220,9 +221,14 @@ protected:
 class KingAttackCandidate : public Candidate {
 public:
 	KingAttackCandidate();  
-	void scaleType(uint32_t weightIndex, uint32_t itemBaseIndex, uint32_t loopStep, uint32_t loopMax, double scale, bool noScale = false);
     virtual void scaleIndex(uint32_t index, double scale, bool noScale = false);
     virtual void print(std::ostream& os) const;
+};
+
+class PawnShieldCandidate : public Candidate {
+public:
+    PawnShieldCandidate();
+    virtual void scaleIndex(uint32_t index, double scale, bool noScale = false);
 };
 
 class CandidateTrainer {

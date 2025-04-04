@@ -88,7 +88,12 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& position, EvalResults& results) {
 			computeAttacks<WHITE>(position, results);
 			computeAttacks<BLACK>(position, results);
-			return computeAttackValue2<WHITE>(position, results) - computeAttackValue2<BLACK>(position, results);
+			if (position.getEvalVersion() == 1) {
+				auto result = computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
+				result += computePawnShieldValue<WHITE>(position, results) - computePawnShieldValue<BLACK>(position, results);
+				return result;
+			}
+			return computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
 		}
 
 		/**
@@ -131,6 +136,17 @@ namespace ChessEval {
 			index += (kingWest != 0 || (kingBB & BitBoardMasks::FILE_A_BITMASK) != 0) * 2;
 			index += kingEast != 0 || (kingBB & BitBoardMasks::FILE_H_BITMASK) != 0;
 			return index;
+		}
+
+		template <Piece COLOR>
+		inline static value_t computePawnShieldValue(MoveGenerator& position, const EvalResults& results) {
+			Square kingSquare = position.getKingSquare<COLOR>();
+			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
+			uint32_t index = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
+			//value_t pawnShieldValue = (pawnIndexFactor[index] * results.midgameInPercentV2) / 100;
+			value_t pawnShieldValue = CandidateTrainer::getCurrentCandidate().getWeightVector(0)[index].midgame();
+			pawnShieldValue = (pawnShieldValue * results.midgameInPercentV2) / 100;
+			return pawnShieldValue;
 		}
 
 		/**
@@ -188,7 +204,10 @@ namespace ChessEval {
 			value_t attackValue =
 				(attackWeight[results.kingPressureCount[COLOR]] * results.midgameInPercentV2) / 100;
 			results.kingAttackValue[COLOR] = attackValue;
-			return results.kingAttackValue[COLOR];
+
+			uint32_t pawnShieldIndex = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
+			attackValue += pawnIndexFactor[pawnShieldIndex] * results.midgameInPercentV2 / 100;
+			return attackValue;
 		}
 
 		template <Piece COLOR>
@@ -283,7 +302,7 @@ namespace ChessEval {
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
 		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
-		static constexpr array<value_t, 8> pawnIndexFactor = { 100, 100, 100, 100, 100, 100, 100, 100 };
+		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
 
 		constexpr static array<value_t, INDEX_SIZE> attackValueMap = {
 			   0,   0,   0,   0,   0,  -2,   0,  -7,  -2, -15,  -9, -26, -20, -39, -34, -55,

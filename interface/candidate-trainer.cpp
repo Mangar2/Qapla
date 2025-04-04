@@ -175,24 +175,7 @@ KingAttackCandidate::KingAttackCandidate() {
     */
 }
 
-void KingAttackCandidate::scaleType(uint32_t weightIndex, uint32_t itemBaseIndex, uint32_t loopStep, uint32_t loopMax, double scale, bool noScale) {
-    auto originalWeight = originalWeights[weightIndex];
-    auto weight = weights[weightIndex];
-    if (noScale) {
-        weights[weightIndex] = originalWeight;
-        for (auto& weight : weights[weightIndex]) {
-            weight.endgame() = 0;
-        }
-        return;
-    }
-    for (uint32_t i = 0; i < loopMax; i += loopStep) {
-		const auto itemIndex = itemBaseIndex + i;
-        weights[weightIndex][itemIndex] = EvalValue(
-            static_cast<value_t>(originalWeight[itemIndex].midgame() * scale),
-            static_cast<value_t>(0)
-        );
-    }
-}
+
 
 void KingAttackCandidate::scaleIndex(uint32_t index, double scale, bool noScale) {
     uint32_t baseIndex = 0;
@@ -207,9 +190,9 @@ void KingAttackCandidate::scaleIndex(uint32_t index, double scale, bool noScale)
     }
     else if (index >= 3 && index <= 9) {
 		weightIndex = 2 + ((index - 3) / 2);
-		const uint32_t step = (index - 3) % 2;
-		const uint32_t weightSize = weights[weightIndex].size();
-		scaleType(weightIndex, step * (weightSize / 2), 1, weightSize / 2, scale, noScale);
+		const size_t step = (index - 3) % 2;
+		const size_t weightSize = weights[weightIndex].size();
+		scaleType(weightIndex, uint32_t(step * (weightSize / 2)), 1, weightSize / 2, scale, noScale);
     }
     else if (index >= 10 && index <= 25) {
         setRadius(0.1);
@@ -239,10 +222,40 @@ void KingAttackCandidate::print(std::ostream& os) const {
     os << std::endl;
 }
 
+PawnShieldCandidate::PawnShieldCandidate() {
+    addWeight(std::vector<QaplaBasics::EvalValue>{
+        -8, -9, -9, -5, -9, -4, 5, 10
+    });
+    startIndex = 8;
+    numIndex = 9;
+    setRadius(0.2);
+    minScale = -10;
+    maxScale = +10;
+    maxGames = 10000;
+}
+
+void PawnShieldCandidate::scaleIndex(uint32_t index, double scale, bool noScale) {
+    uint32_t baseIndex = 0;
+    uint32_t weightIndex = 0;
+    if (index >= 0 && index <= 7) {
+        weightIndex = 0;
+        scaleType(weightIndex, index, 1, 1, scale, noScale);
+	}
+	else if (index == 8) {
+        weightIndex = 0;
+		scaleType(weightIndex, 0, 1, weights[weightIndex].size(), scale, noScale);
+	}
+    for (auto& weight : weights[weightIndex]) {
+        std::cout << weight.midgame() << ",";
+    }
+    std::cout << std::endl;
+}
+
 void Candidate::addWeight(const std::vector<EvalValue>& initial) {
     weights.push_back(initial);
     originalWeights.push_back(initial);
 }
+
 
 std::pair<double, double> Candidate::getConfidenceInterval() const {
     double z = Z98; // 98% confidence interval, for 95% use 1.96, for 99% use 2.58
@@ -327,6 +340,25 @@ void Candidate::rescaleWeightPhase(size_t index, double factor) {
 	else correctAverageEndgame(vec, originalSum);
 }
 
+void Candidate::scaleType(uint32_t weightIndex, uint32_t itemBaseIndex, size_t loopStep, size_t loopMax, double scale, bool noScale) {
+    auto originalWeight = originalWeights[weightIndex];
+    auto weight = weights[weightIndex];
+    if (noScale) {
+        weights[weightIndex] = originalWeight;
+        for (auto& weight : weights[weightIndex]) {
+            weight.endgame() = 0;
+        }
+        return;
+    }
+    for (size_t i = 0; i < loopMax; i += loopStep) {
+        const auto itemIndex = itemBaseIndex + uint32_t(i);
+        weights[weightIndex][itemIndex] = EvalValue(
+            static_cast<value_t>(originalWeight[itemIndex].midgame() * scale),
+            static_cast<value_t>(0)
+        );
+    }
+}
+
 // Adjusts the vector so its average (getValue(50)) matches the target average
 void Candidate::correctAverage(std::vector<EvalValue>& vec, double targetAverage) {
     if (vec.empty()) return;
@@ -386,7 +418,7 @@ void CandidateTrainer::initializePopulation() {
         std::vector<EvalValue>({ { 0,  0}, { 10,   5}, {  0,   0}, { 10,   5} })
     ));
     */
-    addCandidate(std::make_unique<KingAttackCandidate>());
+    addCandidate(std::make_unique<PawnShieldCandidate>());
     nextStep();
 }
 
