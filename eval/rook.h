@@ -85,7 +85,6 @@ namespace ChessEval {
 
 				const auto propertyValue = evalMap[propertyIndex];
 				//const auto propertyValue = position.getEvalVersion() == 0 ? evalMap[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
-
 				value += mobilityValue + propertyValue;
 
 				if constexpr (STORE_DETAILS) {

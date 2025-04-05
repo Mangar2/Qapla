@@ -44,29 +44,18 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 
 	struct EvalPawnValues {
-		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
-		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
+		using RankArray_t = array<value_t, uint32_t(Rank::COUNT)>;
+		using  FileArray_t = array<value_t, uint32_t(File::COUNT)>;
 
 		/**
 		 * For rank 2 to 6, ignored for rank 7
 		 * Double isolated pawn are counted as one isolated pawn and a double pawn
 		 */
-		const static value_t ISOLATED_PAWN_PENALTY = -15;
-
 		const static value_t MOBILITY_VALUE = 2;
-
-		const static value_t DOUBLE_PAWN_PENALTY = -20;
 
 		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   0,  0,  0,  0, 0 };
 		static constexpr FileArray_t PASSED_PAWN_THREAT_VALUE = { 0, 0,  0,  10, 20, 40, 80, 0 };
 
-		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  20,  30,  40,  50, 60, 0 };
-		static constexpr RankArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
-		static constexpr RankArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
-		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
-
-		// Bonus for supported pawns multiplied by 2 to 4 depending on the support and if it has an opponent
-		static constexpr RankArray_t PAWN_SUPPORT = { 0, 5, 6, 10, 20, 30, 30, 0 };
 		static constexpr value_t KING_SUPPORT_VALUE[uint32_t(Rank::COUNT)][uint32_t(File::COUNT)] =
 		{
 			{ 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -158,6 +147,9 @@ namespace ChessEval {
 			return evalPassedPawnThreats<WHITE, true>(position, results, &details) - evalPassedPawnThreats<BLACK, true>(position, results, &details);
 		}
 
+		static void clearPawnTT() {
+			_tt.clear();
+		}
 
 
 	private:
@@ -203,8 +195,6 @@ namespace ChessEval {
 			const bitBoard_t isolatedPawnBB = computeIsolatedPawnBB<COLOR>(moveRay[COLOR]);
 			results.passedPawns[COLOR] = passedPawnBB;
 
-			const value_t isolatedPawnValue = computeIsolatedPawnAmount<COLOR>(isolatedPawnBB) * EvalPawnValues::ISOLATED_PAWN_PENALTY;
-
 			while (pawns)
 			{
 				const Square pawnSquare = popLSB(pawns);
@@ -220,6 +210,10 @@ namespace ChessEval {
 					propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
 				}
 				value_t propertyValue = evalMap[propertyIndex];
+				if (position.getEvalVersion() == 1) {
+					propertyValue = testMap[propertyIndex];
+				}
+								
 				value += propertyValue;
 
 				if constexpr (STORE_DETAILS) {
@@ -378,7 +372,6 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static value_t computePassedPawnIndex(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
 			value_t result = PASSED_PAWN_INDEX;
-			uint32_t rank = uint32_t(getRank<COLOR>(pawnSquare));
 			if (isConnectedPassedPawn(pawnSquare, passedPawns)) {
 				result = CONNECTED_PASSED_PAWN_INDEX;
 			}
@@ -398,21 +391,11 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		static value_t computePassedPawnValue(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
-			value_t result = 0;
 			uint32_t rank = uint32_t(getRank<COLOR>(pawnSquare));
-			if (isConnectedPassedPawn(pawnSquare, passedPawns)) {
-				result += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
-			}
-			else if (noPieces && isDistantPassedPawn(pawnSquare, position.getPieceBB(PAWN + COLOR), 
-					position.getPieceBB(PAWN + switchColor(COLOR))))
-			{
-				result += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
-			}
-			else if (isProtectedPassedPawn(pawnSquare, position.pawnAttack[COLOR])) {
-				result += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
-			}
-			else {
-				result += EvalPawnValues::PASSED_PAWN_VALUE[rank];
+			uint32_t index = computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawns, noPieces) + rank;
+			value_t result = evalMap[index];
+			if (position.getEvalVersion() == 1) {
+				result = testMap[index];
 			}
 			return result;
 		}
@@ -583,7 +566,8 @@ namespace ChessEval {
 		static const uint32_t CONNECTED_PASSED_PAWN_INDEX	= 0x100;
 		static const uint32_t PASSED_PAWN_MASK				= 0x1C0;
 		static const uint32_t ISOLATED_PAWN_INDEX			= 0x200;
-		static const uint32_t INDEX_SIZE					= 0x400;
+		static const uint32_t BACKWARD_PAWN_INDEX			= 0x400;
+		static const uint32_t INDEX_SIZE					= 0x800;
 
 		static inline array<value_t, INDEX_SIZE> evalMap = [] {
 
@@ -592,36 +576,35 @@ namespace ChessEval {
 				value_t value = 0;
 				const value_t rank = bitmask & RANK_MASK;
 				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
-				if (bitmask & DOUBLE_PAWN_INDEX) value += EvalPawnValues::DOUBLE_PAWN_PENALTY;
-				if (bitmask & SINGLE_CONNECT_INDEX) value += EvalPawnValues::PAWN_SUPPORT[rank]; 
-				if (bitmask & DOUBLE_CONNECT_INDEX) value += 2 * EvalPawnValues::PAWN_SUPPORT[rank];
-				if (bitmask & ISOLATED_PAWN_INDEX) value += EvalPawnValues::ISOLATED_PAWN_PENALTY;
-				if (ppIndex == PASSED_PAWN_INDEX) value += EvalPawnValues::PASSED_PAWN_VALUE[rank];
-				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
-				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
-				if (ppIndex == DISTANT_PASSED_PAWN_INDEX) value += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
+				if (bitmask & DOUBLE_PAWN_INDEX) value += std::array{ 0, -20, -20, -20, -20, -20, -20, 0 }[rank];
+				if (bitmask & SINGLE_CONNECT_INDEX) value += std::array{ 0, 5, 6, 10, 20, 30, 30, 0 }[rank];
+				if (bitmask & DOUBLE_CONNECT_INDEX) value += std::array{ 0, 10, 12, 20, 40, 60, 60, 0 }[rank];
+				if (bitmask & ISOLATED_PAWN_INDEX) value += std::array{ 0, -15, -15, -15, -15, -15, -15, 0 }[rank];
+				if (ppIndex == PASSED_PAWN_INDEX) value += std::array{ 0, 10,  20,  30,  40,  50, 60, 0 }[rank];
+				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) value += std::array{ 0, 10, 20, 30, 40, 50, 60, 0 }[rank];
+				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) value += std::array{ 0, 10,  20,  30, 40, 50, 60, 0 }[rank];
+				if (ppIndex == DISTANT_PASSED_PAWN_INDEX) value += std::array{ 0, 25,  50,  60,  80, 100, 150, 0 }[rank];
 				map[bitmask] = value;
 			}
 			return map;
 		} ();
 
-		inline static array<value_t, INDEX_SIZE> evalMap2 = [] {
+		inline static array<value_t, INDEX_SIZE> testMap = [] {
 
 			array<value_t, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
 				value_t value = 0;
-				/*
 				const value_t rank = bitmask & RANK_MASK;
 				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
-				if (bitmask & DOUBLE_PAWN_INDEX) value += EvalPawnValues::DOUBLE_PAWN_PENALTY;
-				if (bitmask & SINGLE_CONNECT_INDEX) value += EvalPawnValues::PAWN_SUPPORT[rank];
-				if (bitmask & DOUBLE_CONNECT_INDEX) value += 2 * EvalPawnValues::PAWN_SUPPORT[rank];
-				if (bitmask & ISOLATED_PAWN_INDEX) value += EvalPawnValues::ISOLATED_PAWN_PENALTY;
-				if (ppIndex == PASSED_PAWN_INDEX) value += EvalPawnValues::PASSED_PAWN_VALUE[rank];
-				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
-				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) value += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
-				if (ppIndex == DISTANT_PASSED_PAWN_INDEX) value += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
-				*/
+				if (bitmask & DOUBLE_PAWN_INDEX)			value += std::array{ 0, -18, -18, -18, -18, -18, -18, 0 }[rank];
+				if (bitmask & SINGLE_CONNECT_INDEX)			value += std::array{ 0, 5, 6, 10, 20, 30, 30, 0 }[rank];
+				if (bitmask & DOUBLE_CONNECT_INDEX)			value += std::array{ 0, 5, 6, 10, 20, 30, 30, 0 }[rank];
+				if (bitmask & ISOLATED_PAWN_INDEX)			value += std::array{ 0, -15, -15, -15, -15, -15, -15, 0 }[rank];
+				if (ppIndex == PASSED_PAWN_INDEX)           value += std::array{ 0, 10, 20,  30,  40, 50, 80, 0 }[rank];
+				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) value += std::array{ 0, 10, 20,  30,  40, 50,  100, 0 }[rank];
+				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) value += std::array{ 0, 10, 20,  30,  40, 50,  120, 0 }[rank];
+				if (ppIndex == DISTANT_PASSED_PAWN_INDEX)   value += std::array{ 0, 25, 50,  60, 80, 100, 150, 0 }[rank];
+				
 				map[bitmask] = value;
 			}
 			return map;

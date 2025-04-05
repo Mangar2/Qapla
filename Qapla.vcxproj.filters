@@ -437,6 +437,9 @@
     <ClInclude Include="interface\optimizer.h">
       <Filter>interface</Filter>
     </ClInclude>
+    <ClInclude Include="eval\king.h">
+      <Filter>eval</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

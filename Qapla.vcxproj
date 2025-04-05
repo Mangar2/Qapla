@@ -1901,6 +1901,7 @@
     <ClInclude Include="eval\eval-map.h" />
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />
+    <ClInclude Include="eval\king.h" />
     <ClInclude Include="eval\pawntt.h" />
     <ClInclude Include="eval\print-eval.h" />
     <ClInclude Include="eval\queen.h" />

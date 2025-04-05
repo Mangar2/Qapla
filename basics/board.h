@@ -337,7 +337,9 @@ namespace QaplaBasics {
 		 */
 		void printPst() const;
 
-		uint32_t getEvalVersion() const { return evalVersion; }
+		uint32_t getEvalVersion() const {
+			return evalVersion;
+		}
 		void setEvalVersion(uint32_t version) { evalVersion = version; }
 
 	protected:

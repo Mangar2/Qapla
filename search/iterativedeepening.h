@@ -34,6 +34,7 @@
 #include "tt.h"
 #include "aspirationwindow.h"
 #include "searchstate.h"
+#include "../eval/pawn.h"
 
 namespace QaplaSearch {
 
@@ -60,6 +61,7 @@ namespace QaplaSearch {
 		 */
 		void clearTT() {
 			_tt.clear();
+			Pawn::clearPawnTT();
 		}
 
 		/**
@@ -67,6 +69,7 @@ namespace QaplaSearch {
 		 */
 		void clearMemories() {
 			_tt.clear();
+			Pawn::clearPawnTT();
 			_search.clearMemories();
 		}
 

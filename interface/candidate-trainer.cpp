@@ -251,6 +251,15 @@ void PawnShieldCandidate::scaleIndex(uint32_t index, double scale, bool noScale)
     std::cout << std::endl;
 }
 
+PawnCandidate::PawnCandidate() {
+    startIndex = 0;
+    numIndex = 1;
+    setRadius(0.1);
+    minScale = 1;
+    maxScale = 1;
+    maxGames = 300000;
+}
+
 void Candidate::addWeight(const std::vector<EvalValue>& initial) {
     weights.push_back(initial);
     originalWeights.push_back(initial);
@@ -418,7 +427,7 @@ void CandidateTrainer::initializePopulation() {
         std::vector<EvalValue>({ { 0,  0}, { 10,   5}, {  0,   0}, { 10,   5} })
     ));
     */
-    addCandidate(std::make_unique<PawnShieldCandidate>());
+    addCandidate(std::make_unique<PawnCandidate>());
     nextStep();
 }
 

@@ -88,11 +88,13 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& position, EvalResults& results) {
 			computeAttacks<WHITE>(position, results);
 			computeAttacks<BLACK>(position, results);
+			/*
 			if (position.getEvalVersion() == 1) {
 				auto result = computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
 				result += computePawnShieldValue<WHITE>(position, results) - computePawnShieldValue<BLACK>(position, results);
 				return result;
 			}
+			*/
 			return computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
 		}
 
@@ -143,9 +145,7 @@ namespace ChessEval {
 			Square kingSquare = position.getKingSquare<COLOR>();
 			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
 			uint32_t index = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			//value_t pawnShieldValue = (pawnIndexFactor[index] * results.midgameInPercentV2) / 100;
-			value_t pawnShieldValue = CandidateTrainer::getCurrentCandidate().getWeightVector(0)[index].midgame();
-			pawnShieldValue = (pawnShieldValue * results.midgameInPercentV2) / 100;
+			value_t pawnShieldValue = (pawnIndexFactor[index] * results.midgameInPercentV2) / 100;
 			return pawnShieldValue;
 		}
 
@@ -205,8 +205,8 @@ namespace ChessEval {
 				(attackWeight[results.kingPressureCount[COLOR]] * results.midgameInPercentV2) / 100;
 			results.kingAttackValue[COLOR] = attackValue;
 
-			uint32_t pawnShieldIndex = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			attackValue += pawnIndexFactor[pawnShieldIndex] * results.midgameInPercentV2 / 100;
+			//uint32_t pawnShieldIndex = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
+			//attackValue += (pawnIndexFactor[pawnShieldIndex] * results.midgameInPercentV2) / 100;
 			return attackValue;
 		}
 

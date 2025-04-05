@@ -164,7 +164,7 @@ public:
 	virtual uint32_t getNumIndex() const {
 		return numIndex;
 	}
-	virtual void scaleIndex(uint32_t index, double scale, bool noScale = false) = 0;
+    virtual void scaleIndex(uint32_t index, double scale, bool noScale = false) {};
     double getRadius() const {
         return radius;  
     }
@@ -229,6 +229,11 @@ class PawnShieldCandidate : public Candidate {
 public:
     PawnShieldCandidate();
     virtual void scaleIndex(uint32_t index, double scale, bool noScale = false);
+};
+
+class PawnCandidate : public Candidate {
+public:
+	PawnCandidate();
 };
 
 class CandidateTrainer {
