@@ -47,26 +47,7 @@ namespace ChessEval {
 		using RankArray_t = array<value_t, uint32_t(Rank::COUNT)>;
 		using  FileArray_t = array<value_t, uint32_t(File::COUNT)>;
 
-		/**
-		 * For rank 2 to 6, ignored for rank 7
-		 * Double isolated pawn are counted as one isolated pawn and a double pawn
-		 */
-		const static value_t MOBILITY_VALUE = 2;
-
 		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   0,  0,  0,  0, 0 };
-		static constexpr FileArray_t PASSED_PAWN_THREAT_VALUE = { 0, 0,  0,  10, 20, 40, 80, 0 };
-
-		static constexpr value_t KING_SUPPORT_VALUE[uint32_t(Rank::COUNT)][uint32_t(File::COUNT)] =
-		{
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 }
-		};
 	};
 
 	class Pawn {
@@ -185,6 +166,8 @@ namespace ChessEval {
 		template<Piece COLOR, bool STORE_DETAILS>
 		static value_t evalColor(const MoveGenerator & position, EvalResults & results, colorBB_t moveRay, std::vector<PieceInfo>*details) {
 			value_t value = 0;
+			EvalValue pawnValue = 0;
+
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			results.passedPawns[COLOR] = 0;
 			if (pawns == 0) return 0;
@@ -213,7 +196,7 @@ namespace ChessEval {
 				}
 				value_t propertyValue = evalMap[propertyIndex];
 				if (position.getEvalVersion() == 1) {
-					propertyValue = testMap[propertyIndex];
+					pawnValue += evalValueMap[propertyIndex];
 				}
 								
 				value += propertyValue;
@@ -235,6 +218,9 @@ namespace ChessEval {
 						propertyIndexToString(propertyIndex),
 						materialValue + pstValue + property });
 				}
+			}
+			if (position.getEvalVersion() == 1) {
+				return pawnValue.getValue(results.midgameInPercentV2);
 			}
 			return value;
 		}
@@ -407,6 +393,7 @@ namespace ChessEval {
 		template <Piece COLOR, bool STORE_DETAILS>
 		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results, std::vector<PieceInfo>* details) {
 			value_t value = 0;
+
 			const Piece OPPONENT = switchColor(COLOR);
 			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
 			bitBoard_t pp = results.passedPawns[COLOR];
@@ -545,7 +532,7 @@ namespace ChessEval {
 				value_t value = 0;
 				map[bitmask] = value;
 				const value_t rank = bitmask & RANK_MASK;
-				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[rank];
+				value_t threatValue = std::array{ 0, 0,  0,  10, 20, 40, 80, 0 }[rank];
 				if (threatValue == 0) continue;
 				bool isAttacked = bitmask & PP_IS_ATTACKED_INDEX;
 				threatValue /= (1 + isAttacked);
@@ -574,7 +561,7 @@ namespace ChessEval {
 		static const uint32_t NON_WEAK_PAWN_MASK = SINGLE_CONNECT_INDEX | DOUBLE_CONNECT_INDEX | PASSED_PAWN_MASK;
 		static const uint32_t INDEX_SIZE					= 0x800;
 
-		static inline array<value_t, INDEX_SIZE> evalMap = [] {
+		static constexpr array<value_t, INDEX_SIZE> evalMap = [] {
 
 			array<value_t, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
@@ -596,7 +583,7 @@ namespace ChessEval {
 			return map;
 		} ();
 
-		inline static array<value_t, INDEX_SIZE> testMap = [] {
+		static constexpr array<value_t, INDEX_SIZE> testMap = [] {
 
 			array<value_t, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
@@ -622,7 +609,7 @@ namespace ChessEval {
 
 		using RankEvalArray_t = array<EvalValue, uint32_t(Rank::COUNT)>;
 
-		inline static array<EvalValue, INDEX_SIZE> evalValueMap = [] {
+		static constexpr array<EvalValue, INDEX_SIZE> evalValueMap = [] {
 
 			array<EvalValue, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
@@ -631,8 +618,6 @@ namespace ChessEval {
 				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
 				const bool weakPawn = ((bitmask & NON_WEAK_PAWN_MASK) == 0) && ((bitmask & UNOPPOSED_PAWN_INDEX) != 0);
 
-				if (bitmask & DOUBLE_PAWN_INDEX)			
-					value += RankEvalArray_t{ { { 0, 0 }, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {0, 0} } }[rank];
 				if (bitmask & DOUBLE_PAWN_INDEX)            
 					value += RankEvalArray_t{ { { 0, 0 }, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {0, 0} } }[rank];
 				if (bitmask & SINGLE_CONNECT_INDEX)         
