@@ -188,7 +188,7 @@ namespace QaplaInterface {
 		virtual ComputingInfoExchange getComputingInfo() = 0;
 
 		/**
-		 * Signals a new game, the engine may ignore this
+		 * Signals a new game
 		 */
 		virtual void newGame() {};
 

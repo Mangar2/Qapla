@@ -110,10 +110,14 @@ namespace QaplaInterface {
 			}
 			if (getCurrentToken() == "moves") {
 				debug += " moves";
+				bool illegalMoveFound = false;
 				string token = getNextTokenBlocking(true);
 				while (token != "\n" && token != "\r" && !isFatalError()) {
 					debug += " " + token;
-					setMove(token);
+					if (!illegalMoveFound) {
+						illegalMoveFound = !setMove(token);
+						println("info string Illegal move encountered, remaining moves ignored");
+					}
 					token = getNextTokenBlocking(true);
 				}
 			}

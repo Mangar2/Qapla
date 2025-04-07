@@ -177,7 +177,6 @@ namespace QaplaSearch {
 			if (playedMovesInGame > 0) {
 				playedMovesInGame--;
 			}
-			iterativeDeepening.startNewGame();
 		}
 
 		/**
@@ -187,7 +186,6 @@ namespace QaplaSearch {
 			position.clear();
 			playedMovesInGame = 0;
 			moveHistory.clearMoves();
-			iterativeDeepening.startNewGame();
 		}
 
 		/**

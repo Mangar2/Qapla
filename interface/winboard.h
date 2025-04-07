@@ -123,6 +123,11 @@ namespace QaplaInterface {
 		void handlePing();
 
 		/**
+		 * Handles a new game command
+		 */
+		void newGame();
+
+		/**
 		 * Sets the board from fen
 		 */
 		void setBoard();

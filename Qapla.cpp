@@ -43,9 +43,6 @@
 
 using namespace QaplaInterface;
 
-QaplaSearch::BoardAdapter adapter;
-
-
 namespace QaplaSearch {
 	value_t SearchParameter::cmdLineParam[10];
 

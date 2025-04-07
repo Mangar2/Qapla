@@ -43,6 +43,7 @@ namespace QaplaSearch {
 	public:
 		IterativeDeepening() { 
 			_tt.setSizeInKilobytes(32736); 
+			clearMemories();
 		}
 
 		static const uint64_t ESTIMATED_TIME_FACTOR_FOR_NEXT_DEPTH = 4;

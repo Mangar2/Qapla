@@ -259,6 +259,11 @@ void Winboard::handlePing() {
 	}
 }
 
+void Winboard::newGame() {
+	getBoard()->newGame();
+	setPositionByFen();
+}
+
 void Winboard::setBoard() {
 	string fen = getToEOLBlocking();
 	bool success = setPositionByFen(fen);
@@ -487,7 +492,7 @@ void Winboard::handleInput() {
 	if (token == "analyze") analyzeMove();
 	else if (token == "force") _forceMode = true;
 	else if (token == "go") computeMove();
-	else if (token == "new") setPositionByFen();
+	else if (token == "new") newGame();
 	else if (token == "setboard") setBoard();
 	else if (token == "whatif") handleWhatIf();
 	else if (token == "easy") _easy = true;
