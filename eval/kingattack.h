@@ -95,7 +95,7 @@ namespace ChessEval {
 				return result;
 			}
 			*/
-			return computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
+			return computeAttackValue2<WHITE>(position, results) - computeAttackValue2<BLACK>(position, results);
 		}
 
 		/**
@@ -337,7 +337,6 @@ namespace ChessEval {
 			return kingAttackBB;
 		} ();
 	
-
 		/*
 		inline static array<value_t, INDEX_SIZE> attackValueMap = [] {
 			const auto PRINT = false;
