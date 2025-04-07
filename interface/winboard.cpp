@@ -73,7 +73,7 @@ void Winboard::generateEGTB() {
 	uint32_t debugLevel = 0;
 	uint64_t debugIndex = -1;
 	bool uncompressed = false;
-	while (token != "\n" && token != "\r") {
+	while (token != "\n" && token != "\r" && !isFatalError()) {
 		if (token == "cores") {
 			getNextTokenBlocking(true);
 			cores = uint32_t(getCurrentTokenAsUnsignedInt());
@@ -111,7 +111,7 @@ void Winboard::verifyEGTB() {
 	uint32_t cores = 16;
 	uint32_t traceLevel = 1;
 	uint32_t debugLevel = 0;
-	while (token != "\n" && token != "\r") {
+	while (token != "\n" && token != "\r" && !isFatalError()) {
 		if (token == "cores") {
 			getNextTokenBlocking(true);
 			cores = uint32_t(getCurrentTokenAsUnsignedInt());
@@ -403,7 +403,7 @@ void Winboard::runLoop() {
 	_mode = Mode::WAIT;
 	string token = "";
 	getBoard()->initialize();
-	while (token != "quit") {
+	while (token != "quit" && !isFatalError()) {
 		switch (_mode) {
 		case Mode::ANALYZE: handleInputWhileInAnalyzeMode(); break;
 		case Mode::COMPUTE: handleInputWhileComputingMove(); break;

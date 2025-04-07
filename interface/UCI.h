@@ -41,7 +41,7 @@ namespace QaplaInterface {
 				println("error (uci command expected): " + getCurrentToken());
 				return;
 			}
-			while (getCurrentToken() != "quit") {
+			while (getCurrentToken() != "quit" && !isFatalError()) {
 				processCommand();
 			}
 			stopCompute();
@@ -88,7 +88,7 @@ namespace QaplaInterface {
 			string token = getNextTokenBlocking(true);
 			string fen = "";
 			string space = "";
-			while (token != "moves" && token != "\n" && token != "\r") {
+			while (token != "moves" && token != "\n" && token != "\r" && !isFatalError()) {
 				fen += space + token;
 				space = " ";
 				token = getNextTokenBlocking(true);
@@ -111,7 +111,7 @@ namespace QaplaInterface {
 			if (getCurrentToken() == "moves") {
 				debug += " moves";
 				string token = getNextTokenBlocking(true);
-				while (token != "\n" && token != "\r") {
+				while (token != "\n" && token != "\r" && !isFatalError()) {
 					debug += " " + token;
 					setMove(token);
 					token = getNextTokenBlocking(true);
@@ -141,7 +141,7 @@ namespace QaplaInterface {
 			stopCompute();
 			_clock.reset();
 			string token = "";
-			while (token != "\n" && token != "\r") {
+			while (token != "\n" && token != "\r" && !isFatalError()) {
 				token = getNextTokenBlocking(true);
 				if (token == "\n" || token == "\r") break;
 				if (token == "infinite") _clock.setAnalyseMode();

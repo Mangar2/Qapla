@@ -68,6 +68,11 @@ namespace QaplaInterface {
 		 */
 		virtual void print(const string& string) = 0;
 
+		/**
+		 * Checks for fatal read error
+		 */
+		virtual bool isFatalReadError() = 0;
+
 	};
 
 }

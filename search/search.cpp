@@ -307,7 +307,7 @@ template <Search::SearchRegion TYPE>
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 
 	SearchVariables& node = stack[ply];
-	node.pvMovesStore[ply] = Move::EMPTY_MOVE;
+	node.pvMovesStore.setEmpty(ply);
 
 	// 1. Detect direct cutoffs without requiring search or eval
 	// This includes checking the hash and setting the hash information like ttMove

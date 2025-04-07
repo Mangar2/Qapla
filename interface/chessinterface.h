@@ -302,6 +302,7 @@ namespace QaplaInterface {
 		string getNextTokenNonBlocking(string separators = "") { return _ioHandler->getNextTokenNonBlocking(separators); }
 		string getToEOLBlocking() { return _ioHandler->getToEOLBlocking(); }
 		uint64_t getCurrentTokenAsUnsignedInt() { return _ioHandler->getCurrentTokenAsUnsignedInt(); }
+		bool isFatalError() { return _ioHandler->isFatalReadError(); }
 		IChessBoard* getBoard() { return _board; }
 		WorkerThread& getWorkerThread() { return _computeThread; }
 

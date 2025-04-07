@@ -59,9 +59,9 @@ namespace ChessEval {
 
 		static value_t eval(const MoveGenerator& position, EvalResults& results) {
 			
-			value_t value = probeTT(position, results);
-			if (value != NO_VALUE) {
-				return value;
+			value_t ttValue = probeTT(position, results);
+			if (ttValue != NO_VALUE) {
+				return ttValue;
 			}
 
 			colorBB_t moveRay{
@@ -69,7 +69,7 @@ namespace ChessEval {
 				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK))
 			};
 
-			value =
+			value_t value =
 				evalColor<WHITE, false>(position, results, moveRay, nullptr)
 				- evalColor<BLACK, false>(position, results, moveRay, nullptr);
 
@@ -617,23 +617,26 @@ namespace ChessEval {
 				const value_t rank = bitmask & RANK_MASK;
 				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
 				const bool weakPawn = ((bitmask & NON_WEAK_PAWN_MASK) == 0) && ((bitmask & UNOPPOSED_PAWN_INDEX) != 0);
-
+				// 50.6, 
 				if (bitmask & DOUBLE_PAWN_INDEX)            
-					value += RankEvalArray_t{ { { 0, 0 }, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {-18, -18}, {0, 0} } }[rank];
-				if (bitmask & SINGLE_CONNECT_INDEX)         
-					value += RankEvalArray_t{ { { 0, 0 }, {5, 5}, {6, 6}, {10, 10}, {20, 20}, {30, 30}, {30, 30}, {0, 0} } }[rank];
+					value += RankEvalArray_t{ { { 0, 0 }, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {0, 0} } }[rank];
+				// 50.9
+				if (bitmask & SINGLE_CONNECT_INDEX)
+					value += RankEvalArray_t{ { { 0, 0 }, {5, 0}, {6, 3}, {10, 10}, {16, 20}, {25, 40}, {30, 50}, {0, 0} } }[rank];
 				if (bitmask & DOUBLE_CONNECT_INDEX)         
-					value += RankEvalArray_t{ { { 0, 0 }, {5, 5}, {6, 6}, {10, 10}, {20, 20}, {30, 30}, {30, 30}, {0, 0} } }[rank];
+					value += RankEvalArray_t{ { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } }[rank];
 				if (bitmask & ISOLATED_PAWN_INDEX)          
 					value += RankEvalArray_t{ { { 0, 0 }, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {0, 0} } }[rank];
+				//51.29
 				if (weakPawn)                                
-					value += RankEvalArray_t{ { { 0, 0 }, {-10, -10}, {-10, -10}, {-10, -10}, {-10, -10}, {-10, -10}, {-10, -10}, {0, 0} } }[rank];
+					value += RankEvalArray_t{ { { 0, 0 }, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {0, 0} } }[rank];
+				//51.35
 				if (ppIndex == PASSED_PAWN_INDEX)           
-					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {20, 20}, {30, 30}, {40, 40}, {50, 50}, {80, 80}, {0, 0} } }[rank];
+					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {80, 80}, {0, 0} } }[rank];
 				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) 
-					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {20, 20}, {30, 30}, {40, 40}, {50, 50}, {100, 100}, {0, 0} } }[rank];
+					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {100, 100}, {0, 0} } }[rank];
 				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) 
-					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {20, 20}, {30, 30}, {40, 40}, {50, 50}, {120, 120}, {0, 0} } }[rank];
+					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {120, 120}, {0, 0} } }[rank];
 				if (ppIndex == DISTANT_PASSED_PAWN_INDEX)   
 					value += RankEvalArray_t{ { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } }[rank];
 
