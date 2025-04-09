@@ -126,7 +126,7 @@ namespace QaplaSearch {
 			}
 			if (node.adjustedEval == NO_VALUE) {
 				if (node.eval == NO_VALUE) {
-					node.eval = Eval::eval(position);
+					node.eval = Eval::eval(position, node.getTT()->getPawnTT());
 				}
 				node.adjustedEval = node.eval;
 				node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;

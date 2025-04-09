@@ -76,7 +76,7 @@ value_t Quiescence::search(bool isPvNode,
 	value_t alpha, value_t beta, ply_t ply)
 {
 	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
-		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, ply);
+		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
 	if (alpha > MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
@@ -102,7 +102,7 @@ value_t Quiescence::search(bool isPvNode,
 		bestValue = standPatValue = -MAX_VALUE + ply;
 	}
 	else {
-		bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, ply, alpha);
+		bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, _tt->getPawnTT(), ply, alpha);
 		if (std::abs(ttValue) < MIN_MATE_VALUE && (ttPrecision == TTEntry::EXACT || 
 			(ttPrecision == (standPatValue < ttValue ? TTEntry::GREATER_OR_EQUAL : TTEntry::LESSER_OR_EQUAL))))
 		{

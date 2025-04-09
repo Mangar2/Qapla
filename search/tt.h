@@ -29,6 +29,7 @@
 #include <fstream>
 #include <iterator>
 #include "ttentry.h"
+#include "../eval/pawntt.h"
 // #include "FileClass.h"
 
 using namespace std;
@@ -38,7 +39,10 @@ namespace QaplaSearch {
 	{
 	public:
 
-		TT() { clear(); }
+		TT() { 
+			clear(); 
+			_pawnTT.setSizeInKilobytes(1024);
+		}
 
 		/**
 		 * Clears the transposition table
@@ -50,6 +54,12 @@ namespace QaplaSearch {
 			}
 			_ageIndicator = 0;
 			_entries = 0;
+			_pawnTT.clear();
+			
+		}
+
+		ChessEval::PawnTT* getPawnTT() {
+			return &_pawnTT;
 		}
 
 		/**
@@ -356,6 +366,9 @@ namespace QaplaSearch {
 
 		// Transposition table
 		vector<TTEntry> _tt;
+
+		// Pawn hash
+		ChessEval::PawnTT _pawnTT;
 
 		int32_t _ageIndicator;
 		int32_t _entries;

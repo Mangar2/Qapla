@@ -210,7 +210,6 @@ namespace QaplaInterface {
 
 	private:
 
-
 		GameResult playSingleGame(const GamePairing& gamePairing, FileWriter& fileWriter, std::string fen, bool curIsWhite) {
 			std::string gameResultString = fen;
 			gamePairing.newGame();

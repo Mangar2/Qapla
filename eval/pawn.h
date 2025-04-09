@@ -57,13 +57,14 @@ namespace ChessEval {
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
 		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
-		static value_t eval(const MoveGenerator& position, EvalResults& results) {
+		static value_t eval(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
 			
-			value_t ttValue = probeTT(position, results);
+			// value_t ttValue = probeTT(position, results, pawnttPtr);
+			/*
 			if (ttValue != NO_VALUE) {
 				return ttValue;
 			}
-			
+			*/
 			colorBB_t moveRay{
 				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)),
 				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK))
@@ -72,8 +73,15 @@ namespace ChessEval {
 			value_t value =
 				evalColor<WHITE, false>(position, results, moveRay, nullptr)
 				- evalColor<BLACK, false>(position, results, moveRay, nullptr);
-
-			_tt.setEntry(position.getPawnHash(), value, results.passedPawns);
+			if (pawnttPtr != nullptr) {
+				pawnttPtr->setEntry(position.getPawnHash(), value, results.passedPawns);
+			}
+			/*
+			if (ttValue != NO_VALUE && ttValue!= value) {
+				position.print();
+				cout << "TT value: " << ttValue << " != " << value << endl;
+			}
+			*/
 			return value;
 		}
 
@@ -128,11 +136,6 @@ namespace ChessEval {
 			return evalPassedPawnThreats<WHITE, true>(position, results, &details) - evalPassedPawnThreats<BLACK, true>(position, results, &details);
 		}
 
-		static void clearPawnTT() {
-			_tt.clear();
-		}
-
-
 	private:
 
 		template <Piece COLOR>
@@ -148,12 +151,15 @@ namespace ChessEval {
 		/**
 		 * Tries to get the pawn evaluation from a transposition table
 		 */
-		static value_t probeTT(const MoveGenerator& position, EvalResults& results) {
+		static value_t probeTT(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
 			value_t value = NO_VALUE;
+			if (pawnttPtr == nullptr) {
+				return value;
+			}
 			hash_t key = position.getPawnHash();
-			uint32_t index = _tt.getTTEntryIndex(key);
-			if (index != _tt.INVALID_INDEX) {
-				const PawnTTEntry& entry = _tt.getEntry(index);
+			uint32_t index = pawnttPtr->getTTEntryIndex(key);
+			if (index != pawnttPtr->INVALID_INDEX) {
+				const PawnTTEntry& entry = pawnttPtr->getEntry(index);
 				results.passedPawns = entry._passedPawns;
 				value = entry._mgValue;
 			}
@@ -483,8 +489,6 @@ namespace ChessEval {
 			return pawnMoveRay;
 
 		}
-
-		static PawnTT _tt;
 
 		static struct InitStatics {
 			InitStatics();

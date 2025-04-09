@@ -287,7 +287,7 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 		node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
 	}
 	else if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
-		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, ply));
+		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, node.getTT()->getPawnTT(), ply));
 	}
 	else if (TYPE != SearchRegion::NEAR_LEAF && hasBitbaseCutoff(position, node)) {
 		node.setCutoff(Cutoff::BITBASE);
@@ -322,7 +322,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
 	/*
-	if (nodesSearched == 5647) {
+	if (nodesSearched == 161) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();

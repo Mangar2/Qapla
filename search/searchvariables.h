@@ -132,7 +132,8 @@ namespace QaplaSearch {
 			cutoff = Cutoff::NONE;
 			positionHashSignature = position.computeBoardHash();
 			ttValueIsUpperBound = false;
-			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position); 
+			sideToMoveIsInCheck = position.isInCheck();
+			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position, ttPtr->getPawnTT()); 
 			isImproving = false;
 			moveProvider.init();
 		}

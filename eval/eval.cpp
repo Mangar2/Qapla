@@ -97,7 +97,7 @@ IndexLookupMap Eval::computeIndexLookupMap(MoveGenerator& position) {
   * negative values better for black.
  */
 template <bool PRINT>
-value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_t ply) {
+value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr) {
 
 	value_t result = 0;
 	value_t endGameResult;
@@ -112,7 +112,7 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 	result += material;
 
 	// Add paw value to the evaluation
-	const auto pawnEval = Pawn::eval(position, evalResults);
+	const auto pawnEval = Pawn::eval(position, evalResults, pawnttPtr);
 	result += pawnEval;
 	endGameResult = EvalEndgame::eval(position, result);
 
@@ -257,6 +257,6 @@ void Eval::printEval(MoveGenerator& board) {
 	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }
 
-template value_t Eval::lazyEval<true>(MoveGenerator& board, EvalResults& evalResults, value_t ply);
-template value_t Eval::lazyEval<false>(MoveGenerator& board, EvalResults& evalResults, value_t ply);
+template value_t Eval::lazyEval<true>(MoveGenerator& board, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr);
+template value_t Eval::lazyEval<false>(MoveGenerator& board, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr);
 

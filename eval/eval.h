@@ -32,6 +32,7 @@
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
+#include "pawntt.h"
 
 using namespace QaplaMoveGenerator;
 
@@ -44,10 +45,10 @@ namespace ChessEval {
 		/**
 		 * Checks, that eval is symmetically identical
 		 */
-		static void assertSymetry(MoveGenerator& board, value_t evalResult) {
+		static void assertSymetry(MoveGenerator& board, value_t evalResult, PawnTT* ttPtr) {
 			MoveGenerator symBoard;
 			symBoard.setToSymetricBoard(board);
-			value_t symEvalResult = eval(symBoard, -MAX_VALUE);
+			value_t symEvalResult = eval(symBoard, ttPtr, -MAX_VALUE);
 
 			if (symEvalResult != evalResult) {
 				printEval(board);
@@ -60,12 +61,12 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		 */
-		static value_t eval(MoveGenerator& board, value_t ply = 0, value_t alpha = -MAX_VALUE) {
+		static value_t eval(MoveGenerator& board, PawnTT* pawnttPtr = nullptr, value_t ply = 0, value_t alpha = -MAX_VALUE) {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else
 			EvalResults evalResults;
-			value_t positionValue = lazyEval<false>(board, evalResults, ply);
+			value_t positionValue = lazyEval<false>(board, evalResults, ply, pawnttPtr);
 			return board.isWhiteToMove() ? positionValue : -positionValue;
 #endif
 		}
@@ -117,7 +118,7 @@ namespace ChessEval {
 		 * Calculates an evaluation for the current board position
 		 */
 		template <bool PRINT>
-		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply);
+		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr = nullptr);
 
 		/**
 		 * Fetches details for the evaluation
