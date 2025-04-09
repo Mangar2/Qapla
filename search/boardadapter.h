@@ -289,7 +289,7 @@ namespace QaplaSearch {
 		 * Provides the result of the game
 		 */
 		virtual GameResult getGameResult() {
-			GameResult result = isMate(position);
+			GameResult result = isMateOrStalemate(position);
 			if (result == GameResult::NOT_ENDED) {
 				if (moveHistory.isDrawByRepetition(position)) {
 					result = GameResult::DRAW_BY_REPETITION;
@@ -437,7 +437,7 @@ namespace QaplaSearch {
 		/**
 		 * Checks, if we have a mate situation
 		 */
-		GameResult isMate(MoveGenerator& position) {
+		GameResult isMateOrStalemate(MoveGenerator& position) {
 			GameResult result = GameResult::NOT_ENDED;
 			MoveList moveList;
 			position.genMovesOfMovingColor(moveList);

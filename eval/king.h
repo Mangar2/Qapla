@@ -60,7 +60,15 @@ namespace ChessEval {
 		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			const Square kingSquare = position.getKingSquare<COLOR>();
 			const value_t kingDistance = minDistance(kingSquare, position.getPieceBB(PAWN + COLOR));
-			return kingDistance * DISTANCE_PENALTY;
+			const value_t propertyValue = kingDistance * DISTANCE_PENALTY * (100 - results.midgameInPercentV2) / 100;
+			if constexpr (STORE_DETAILS) {
+				const auto materialValue = 0;
+				const auto pstValue = PST::getValue(kingSquare, KING + COLOR);
+				const auto mobility = 0;
+				const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+				details->push_back({ KING + COLOR, kingSquare, {}, "", property + pstValue });
+			}
+			return propertyValue;
 		}
 
 		static inline std::array<std::array<uint64_t, 6>, 64> king_distance_masks = [] {
@@ -85,15 +93,15 @@ namespace ChessEval {
 			}
 			const auto& masks = king_distance_masks[kingSquare];
 			if (pawns & masks[2]) {
-				return (pawns & masks[1]) ? 2 : 1;
+				return (pawns & masks[0]) ? 0 : 1;
 			}
 			else if (pawns& masks[4]) {
-				return (pawns & masks[3]) ? 4 : 5;
+				return (pawns & masks[3]) ? 3 : 4;
 			}
-			else return (pawns & masks[5]) ? 6 : 7;
+			else return (pawns & masks[5]) ? 5 : 6;
 		}
 
-		static const value_t DISTANCE_PENALTY = -5;
+		static const value_t DISTANCE_PENALTY = -10;
 	};
 }
 

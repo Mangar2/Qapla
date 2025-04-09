@@ -45,6 +45,7 @@ namespace QaplaInterface {
 			currentConsideredMove = "";
 			ponderMove = "";
 			valueInCentiPawn = 0;
+			error = "";
 		};
 
 		uint64_t elapsedTimeInMilliseconds;
@@ -55,6 +56,7 @@ namespace QaplaInterface {
 		int32_t valueInCentiPawn;
 		string currentConsideredMove;
 		string ponderMove;
+		string error;
 	};
 }
 

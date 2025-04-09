@@ -127,6 +127,14 @@ namespace QaplaSearch {
 			return _multiPV;
 		}	
 
+		void print() {
+			cout
+				<< "[" << getAlpha() << ", " << getBeta() << "]"
+				<< " [" << getState() << "]"
+				<< " [r" << getRetryCount() << "]"
+				<< " [a" << _alternateCount << "]" << endl;
+		}
+
 
 	private:
 
@@ -178,13 +186,7 @@ namespace QaplaSearch {
 			}
 		}
 
-		void printWindow() {
-			cout
-				<< "[" << getAlpha() << ", " << getBeta() << "]"
-				<< " [" << getState() << "]"
-				<< " [r" << getRetryCount() << "]"
-				<< " [a" << _alternateCount << "]" << endl;
-		}
+
 
 		State _state;
 		int32_t _retryCount;

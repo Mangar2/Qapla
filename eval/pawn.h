@@ -63,7 +63,7 @@ namespace ChessEval {
 			if (ttValue != NO_VALUE) {
 				return ttValue;
 			}
-
+			
 			colorBB_t moveRay{
 				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)),
 				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK))
@@ -195,9 +195,11 @@ namespace ChessEval {
 					propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
 				}
 				value_t propertyValue = evalMap[propertyIndex];
+				/*
 				if (position.getEvalVersion() == 1) {
 					pawnValue += evalValueMap[propertyIndex];
 				}
+				*/
 								
 				value += propertyValue;
 
@@ -219,9 +221,11 @@ namespace ChessEval {
 						materialValue + pstValue + property });
 				}
 			}
+			/*
 			if (position.getEvalVersion() == 1) {
 				return pawnValue.getValue(results.midgameInPercentV2);
 			}
+			*/
 			return value;
 		}
 

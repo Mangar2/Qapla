@@ -115,7 +115,9 @@ namespace QaplaSearch {
 			}	
 			_search.startNewSearch(searchBoard);
 			_clockManager.setNewMove();
-
+			if (_search.getComputingInfo().getMovesAmount() == 0) {
+				return _search.getComputingInfo();
+			}
 			ply_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
 			const ply_t depthLimit = _clockSetting.getSearchDepthLimit();
 			if (depthLimit > 0 && depthLimit < maxDepth) {
@@ -216,6 +218,7 @@ namespace QaplaSearch {
 				_window[i].newDepth(searchDepth);
 			}
 			uint32_t numberOfPVSearchedMoves = 0;
+			//uint32_t iterations = 0;
 			do {
 				const auto alphaRed = std::max(0, int32_t(multiPV) - int32_t(numberOfPVSearchedMoves) - 1) * 5;
 				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
@@ -228,7 +231,14 @@ namespace QaplaSearch {
 				_clockManager.setIterationResult(_window[multiPVPos].getAlpha(), _window[multiPVPos].getBeta(), positionValue);
 				isInWindow = _window[multiPVPos].isInside(positionValue);
 				_window[multiPVPos].setSearchResult(positionValue);
-
+				/*
+				iterations++;
+				if (iterations > 10) {
+					cout << numberOfPVSearchedMoves << " " << multiPVPos << " " << positionValue << endl;
+					_window[multiPVPos].print();
+					position.print();
+				}
+				*/
 			} while (!_clockManager.shouldAbort() && numberOfPVSearchedMoves < multiPV);
 
 		}

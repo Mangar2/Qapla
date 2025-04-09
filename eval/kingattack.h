@@ -95,7 +95,7 @@ namespace ChessEval {
 				return result;
 			}
 			*/
-			return computeAttackValue2<WHITE>(position, results) - computeAttackValue2<BLACK>(position, results);
+			return computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
 		}
 
 		/**

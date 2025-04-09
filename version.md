@@ -1,8 +1,21 @@
 # Qapla Test Versions
 
+## 0.3.009 2025-04-07
+
+- Removed King Attack as it produced a bad raiting
+- Tests for King to pawn distance in endgame evaluation
+	- 50.46% on -5 per distance
+
+## 0.3.008 2025-04-07
+
+- Raiting: 47,8
+- Updated King Attack, worked well in game against itself
+- Fixed bug in clearing memories, tt and history after a move in uci
+- Fixed bug with illeagal move in pv due to not resetting pv entry in search nodes
+
 ## 0.3.005 2025-03-26
 
-- Raiting: 65.79
+- Raiting: 50.5; Old Raiting: 65.79
 - Knight property values changed to: { {  0,   0}, { 20, 0}, { -43,  0}, {-23,  0} }
 - Bishop property values changed to: { {  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} }
 - Rook property values changed to:

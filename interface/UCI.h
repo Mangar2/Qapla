@@ -57,12 +57,17 @@ namespace QaplaInterface {
 			getWorkerThread().startTask([this]() {
 				getBoard()->computeMove();
 				ComputingInfoExchange computingInfo = getBoard()->getComputingInfo();
-				waitIfInfiniteSearchFinishedEarly();
-				print("bestmove " + computingInfo.currentConsideredMove);
-				if (computingInfo.ponderMove != "") {
-					print(" ponder " + computingInfo.ponderMove);
+				if (computingInfo.error != "") {
+					println("info string illegal go command on " + computingInfo.error);
 				}
-				println("");
+				else {
+					waitIfInfiniteSearchFinishedEarly();
+					print("bestmove " + computingInfo.currentConsideredMove);
+					if (computingInfo.ponderMove != "") {
+						print(" ponder " + computingInfo.ponderMove);
+					}
+					println("");
+				}
 			});
 		}
 

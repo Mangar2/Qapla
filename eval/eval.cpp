@@ -27,6 +27,7 @@
 #include "bishop.h"
 #include "knight.h"
 #include "kingattack.h"
+#include "king.h"
 #include "threat.h"
 #include "print-eval.h"
 
@@ -39,6 +40,7 @@ std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& board, EvalResults& eva
 	Bishop::evalWithDetails(board, evalResults, details);
 	Knight::evalWithDetails(board, evalResults, details);
 	Queen::evalWithDetails(board, evalResults, details);
+	King::evalWithDetails(board, evalResults, details);
 	std::vector<PieceInfo> ppDetails;
 	Pawn::evalPassedPawnThreatsWithDetails(board, evalResults, ppDetails);
 	for (const auto& pp : ppDetails) {
@@ -108,10 +110,6 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 	// Add material to the evaluation
 	value_t material = position.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
 	result += material;
-	if constexpr (PRINT) {
-		EvalValue bonus = position.computePstBonus();
-		cout << "PST bonus: " << bonus << endl;
-	}
 
 	// Add paw value to the evaluation
 	const auto pawnEval = Pawn::eval(position, evalResults);
@@ -139,12 +137,15 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 		evalValue += Queen::eval(position, evalResults);
 		evalValue += Threat::eval(position, evalResults);
 		evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
-		result += evalValue.getValue(evalResults.midgameInPercentV2);
-		if (PRINT) printEvalStep("Pieces", result, evalValue, evalResults.midgameInPercentV2);
+		if (evalResults.midgameInPercent < 100) {
+			evalValue += King::eval(position, evalResults);
+		}
+		evalValue += King::eval(position, evalResults);
 
 		if (evalResults.midgameInPercent > 0) {
 			result += KingAttack::eval(position, evalResults);
 		}
+		result += evalValue.getValue(evalResults.midgameInPercentV2);
 
 		if constexpr (PRINT) {
 			std::vector<PieceInfo> details = fetchDetails(position, evalResults);

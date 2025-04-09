@@ -238,6 +238,10 @@ namespace QaplaSearch {
 	     */
 		ComputingInfoExchange getExchangeStructure() const {
 			ComputingInfoExchange exchange;
+			if (getMovesAmount() == 0) {
+				exchange.error = "stalemate or mate";
+				return exchange;
+			}
 			const PV& pv = getPV();
 			exchange.currentConsideredMove = pv.getMove(0).getLAN();
 			Move ponderMove = pv.getMove(1);

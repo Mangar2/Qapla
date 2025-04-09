@@ -24,6 +24,7 @@
 #include "../bitbase/bitbaseindex.h"
 #include "../bitbase/bitbasereader.h"
 #include "pawn.h"
+#include "king.h"
 
 
 using namespace ChessEval;
@@ -146,9 +147,14 @@ value_t EvalEndgame::KQPsKRPs(MoveGenerator& position, value_t value) {
 
 value_t EvalEndgame::KPsKPs(MoveGenerator& position, value_t value) {
 	value_t result = 0;
-	Pawn evalPawn;
 	EvalResults mobility;
+	Pawn evalPawn;
 	result += evalPawn.computePawnValueNoPiece(position, mobility);
+	
+	if (position.getEvalVersion() == 1) {
+		mobility.midgameInPercentV2 = 0;
+		result += King::eval(position, mobility).endgame();
+	}
 	
 	if (mobility.passedPawns[WHITE] == 0 && mobility.passedPawns[BLACK] == 0) {
 		KingPawnAttack kingPawnAttack;

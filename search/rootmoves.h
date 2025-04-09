@@ -159,7 +159,7 @@ namespace QaplaSearch {
 		const RootMove& getMove(size_t index) const { return _moves[index]; }
 
 		/**
-		 * Retunrs the amount of moves with full pv search of current depth and a value in the search window 
+		 * Returns the amount of moves with full pv search of current depth and a value in the search window 
 		 * at the start of the move list. 
 		 */
 		uint32_t countPVSearchedMovesInWindow(ply_t depth) const {
