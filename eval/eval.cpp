@@ -137,7 +137,7 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 		evalValue += Queen::eval(position, evalResults);
 		evalValue += Threat::eval(position, evalResults);
 		evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
-		if (evalResults.midgameInPercent < 100) {
+		if (evalResults.midgameInPercentV2 < 100) {
 			evalValue += King::eval(position, evalResults);
 		}
 		evalValue += King::eval(position, evalResults);

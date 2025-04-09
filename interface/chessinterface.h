@@ -78,7 +78,7 @@ namespace QaplaInterface {
 				if (task_running) {
 					return;
 				}
-				this->task = task;
+				this->task = std::move(task);
 				task_running = true;
 			}
 			cv.notify_one();

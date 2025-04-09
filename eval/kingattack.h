@@ -104,14 +104,6 @@ namespace ChessEval {
 		static void print(MoveGenerator& position, EvalResults& results) {
 			eval(position, results);
 			cout << "King attack" << endl;
-			cout << "White pawn shield:" << std::right << std::setw(18) <<
-				pawnIndexFactor[
-					computePawnShieldIndex<WHITE>(position.getKingSquare<WHITE>(), position.getPieceBB(WHITE_PAWN))]
-				<< endl;
-			cout << "Black pawn shield:" << std::right << std::setw(18) <<
-				pawnIndexFactor[
-					computePawnShieldIndex<BLACK>(position.getKingSquare<BLACK>(), position.getPieceBB(BLACK_PAWN))]
-				<< endl;
 			cout << "White (pressure " << results.kingPressureCount[WHITE] << "):" << std::right << std::setw(17) <<
 				results.kingAttackValue[WHITE] << endl;
 			cout << "Black (pressure " << results.kingPressureCount[BLACK] << "):" << std::right << std::setw(17) <<

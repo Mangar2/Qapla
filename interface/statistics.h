@@ -72,6 +72,57 @@ namespace QaplaInterface {
 	};
 
 	class PlayEpdGamesTask {
+	private:
+		struct GamePairing {
+			GamePairing(const IChessBoard* boardTemplate, const ClockSetting& clock)
+				: curBoard(boardTemplate->createNew()), newBoard(boardTemplate->createNew()), clock(clock) {
+				curBoard->setOption("Hash", "2");
+				newBoard->setOption("Hash", "2");
+				curBoard->setEvalVersion(0);
+				newBoard->setEvalVersion(1);
+				curBoard->setClock(clock);
+				newBoard->setClock(clock);
+			}
+			~GamePairing() {
+				delete curBoard;
+				delete newBoard;
+			}
+			bool setPositionByFen(const string& fen) const {
+				bool err1 = ChessInterface::setPositionByFen(fen, curBoard);
+				bool err2 = ChessInterface::setPositionByFen(fen, newBoard);
+				return err1 || err2;
+			}
+			auto getGameResult() const {
+				return curBoard->getGameResult();
+			}
+			void newGame() const {
+				curBoard->newGame();
+				newBoard->newGame();
+			}
+			std::tuple<GameResult, std::string, value_t> computeMove(bool curIsWhite) const {
+				ComputingInfoExchange computingInfo;
+				IChessBoard* sideToPlay = curIsWhite == curBoard->isWhiteToMove()  ? curBoard : newBoard;
+				sideToPlay->computeMove();
+  			    computingInfo = sideToPlay->getComputingInfo();
+				const auto value = computingInfo.valueInCentiPawn;
+				const auto move = computingInfo.currentConsideredMove;
+				GameResult result;
+				if (abs(value) > 10000) {
+					result = value > 10000 == sideToPlay->isWhiteToMove() ? GameResult::WHITE_WINS_BY_MATE : GameResult::BLACK_WINS_BY_MATE;
+				} 
+				else {
+					bool illegalMove = !ChessInterface::setMove(move, curBoard);
+					ChessInterface::setMove(move, newBoard);
+					result = illegalMove ? GameResult::ILLEGAL_MOVE : curBoard->getGameResult();
+				}
+				return std::tuple(result, move, value);
+			}
+			IChessBoard* curBoard;
+			IChessBoard* newBoard;
+			ClockSetting clock;
+		private:
+			GamePairing(const GamePairing&) = delete;
+		};
 	public:
 		PlayEpdGamesTask() : epdIndex(0) {}
 
@@ -95,10 +146,10 @@ namespace QaplaInterface {
 				if (i >= workers.size()) {
 					workers.emplace_back(std::make_unique<WorkerThread>());
 				}
-				workers[i]->startTask([this, board = boardTemplate->createNew(), clock, games]() {
-					board->setOption("Hash", "2");
+				auto task = std::function<void()>([this, boardTemplate, clock, games]() {
+					GamePairing gamePairing = GamePairing(boardTemplate, clock);
 					while (!stopped) {
-						bool computer1IsWhite; // This is the default version not the version with changed evaluation
+						bool curIsWhite; // This is the default version not the version with changed evaluation
 						std::string fen = "";
 						{
 							std::lock_guard<std::mutex> lock(positionMutex);
@@ -106,20 +157,20 @@ namespace QaplaInterface {
 							if (epdNo >= this->startPositions.size() || (games > 0 && epdIndex >= games)) {
 								break;
 							}
-							computer1IsWhite = (epdIndex % 2) == 0;
+							curIsWhite = (epdIndex % 2) == 0;
 							fen = this->startPositions[epdNo];
 							epdIndex++;
 						}
-						GameResult result = playSingleGame(board, clock, fileWriter, fen, computer1IsWhite);
+						GameResult result = playSingleGame(gamePairing, fileWriter, fen, curIsWhite);
 						{
 							std::lock_guard<std::mutex> lock(statsMutex);
 							gameStatistics[result]++;
 							int32_t curResult = 0;
 							if (result == GameResult::WHITE_WINS_BY_MATE) {
-								curResult = computer1IsWhite ? 1 : - 1;
+								curResult = curIsWhite ? 1 : - 1;
 							}
 							else if (result == GameResult::BLACK_WINS_BY_MATE) {
-								curResult = computer1IsWhite ? - 1 : + 1;
+								curResult = curIsWhite ? - 1 : + 1;
 							}
 							CandidateTrainer::setGameResult(curResult == -1, curResult == 0);
 							auto confidence = CandidateTrainer::getConfidenceInterval();
@@ -140,8 +191,8 @@ namespace QaplaInterface {
 							}
 						}
 					}
-					delete board;
 				});
+				workers[i]->startTask(task);
 			}
 		}
 
@@ -159,40 +210,22 @@ namespace QaplaInterface {
 
 	private:
 
-		GameResult playSingleGame(IChessBoard* board, const ClockSetting& clock, FileWriter& fileWriter, std::string fen, bool computer1IsWhite) {
+
+		GameResult playSingleGame(const GamePairing& gamePairing, FileWriter& fileWriter, std::string fen, bool curIsWhite) {
 			std::string gameResultString = fen;
-			if (!ChessInterface::setPositionByFen(fen, board)) {
-				return GameResult::ILLEGAL_MOVE;
-			}
-			GameResult result = board->getGameResult();
-			while (result == GameResult::NOT_ENDED && !stopped) {
-				board->setClock(clock);
-				const auto evalVersion = computer1IsWhite == board->isWhiteToMove() ? 0 : 1;
-				board->setEvalVersion(evalVersion);
-				board->computeMove();
-				ComputingInfoExchange computingInfo = board->getComputingInfo();
-				const auto move = computingInfo.currentConsideredMove;
-				const auto value = computingInfo.valueInCentiPawn;
-
-				// std::cout << move << " " << value << " evalVersion " << evalVersion << std::endl;
+			gamePairing.newGame();
+			gamePairing.setPositionByFen(fen);
+			GameResult gameResult = gamePairing.getGameResult();
+			while (gameResult == GameResult::NOT_ENDED && !stopped) {
+				const auto [result, move, value] = gamePairing.computeMove(curIsWhite);
 				gameResultString += ", " + move + "," + std::to_string(value);
-
-				// Adjudication: Stops game, if winning position reached.
-				if (abs(value) > 10000) {
-					result = value > 10000 == board->isWhiteToMove() ? GameResult::WHITE_WINS_BY_MATE : GameResult::BLACK_WINS_BY_MATE;
-					break;
-				}
-				if (!ChessInterface::setMove(move, board)) {
-					result = GameResult::ILLEGAL_MOVE;
-					break;
-				}
-				result = board->getGameResult();
+				gameResult = result;
 			}
 
 			if (!stopped) {
 				fileWriter.writeLine(gameResultString);
 			}
-			return result;
+			return gameResult;
 		}
 
 		uint64_t computer1Result;
