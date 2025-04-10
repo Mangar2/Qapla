@@ -30,7 +30,6 @@ Pawn::InitStatics Pawn::_staticConstructor;
 
 Pawn::InitStatics::InitStatics() {
 	computeKingInfluenceTable();
-	computeIsolatedPawnLookupTable();
 	computeKingSupportTable();
 }
 
@@ -88,39 +87,6 @@ void Pawn::computeKingSupportTable() {
 	}
 	for (Square kingPos = A1; kingPos <= H8; ++kingPos) {
 		kingSupportPawnTable[BLACK][kingPos] = BitBoardMasks::axialReflection(kingSupportPawnTable[WHITE][kingPos ^ 0x38]);
-	}
-}
-
-/* 
- * Computes a lookup table for a chess board file returning the amount of
- * bits without neighbour and a corresponding bitboard with the file set to 1, if the index has no neighbour
- */
-void Pawn::computeIsolatedPawnLookupTable() {
-	uint32_t pawnMask;
-	const bitBoard_t FILE_A_BITMASK = 0x0101010101010101;
-	const bitBoard_t FILE_B_BITMASK = FILE_A_BITMASK << EAST;
-	isolatedPawnAmountLookup[0] = 0;
-	isolatedPawnBB[0] = 0;
-	for (pawnMask = 1; pawnMask < LOOKUP_TABLE_SIZE; pawnMask++) {
-		uint32_t leftPawnMask = pawnMask >> 1;
-		value_t isolatedPawnAmount = isolatedPawnAmountLookup[leftPawnMask];
-		// We will not have an overrun, because the msb is always 0.
-		bitBoard_t isolatedBB = isolatedPawnBB[leftPawnMask] << EAST;
-		if ((pawnMask & 1) == 1) {
-			// Mask says, we have a pawn on File A
-			if ((leftPawnMask & 1) == 0) {
-				// But no pawn on File B, we have an isolated pawn on A then
-				isolatedPawnAmount++;
-				isolatedBB |= FILE_A_BITMASK;
-			}
-			else if ((leftPawnMask & 2) == 0) {
-				// But a pawn on File B, thus neither File A nor File B is isolated
-				isolatedPawnAmount--;
-				isolatedBB &= ~FILE_B_BITMASK;
-			}
-		}
-		isolatedPawnAmountLookup[pawnMask] = isolatedPawnAmount;
-		isolatedPawnBB[pawnMask] = isolatedBB;
 	}
 }
 

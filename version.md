@@ -1,5 +1,22 @@
 # Qapla Test Versions
 
+## 0.3.011 2025-04-10
+
+- Raiting:
+- Various cleanups
+- Corrected king distance to 0, 1, 2, ... (was 0, 1, 3, ...)
+- Use king distance now in pawn only endgames too
+- Use race algorithm for KPsKPs also for KPs
+
+## 0.3.010 2025-04-10
+
+- Raiting: 51.9% 
+- King to pawn distance
+- Pawn evaluation with differences between midgame and endgame
+- Improved pawn evaluation values
+- Pawn hash moved to tt
+- Improvements in internal statistic functionaliy
+
 ## 0.3.009 2025-04-07
 
 - Removed King Attack as it produced a bad raiting
@@ -15,7 +32,7 @@
 
 ## 0.3.005 2025-03-26
 
-- Raiting: 50.5; Old Raiting: 65.79
+- Raiting: 49.3%; Old Raiting: 65.79
 - Knight property values changed to: { {  0,   0}, { 20, 0}, { -43,  0}, {-23,  0} }
 - Bishop property values changed to: { {  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} }
 - Rook property values changed to:

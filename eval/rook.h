@@ -30,7 +30,6 @@
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "print-eval.h"
-#include "eval-map.h"
 #include "evalresults.h"
 
 using namespace QaplaBasics;

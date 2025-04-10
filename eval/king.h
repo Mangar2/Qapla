@@ -96,9 +96,9 @@ namespace ChessEval {
 				return (pawns & masks[0]) ? 0 : 1;
 			}
 			else if (pawns& masks[4]) {
-				return (pawns & masks[3]) ? 3 : 4;
+				return (pawns & masks[3]) ? 2 : 3;
 			}
-			else return (pawns & masks[5]) ? 5 : 6;
+			else return (pawns & masks[5]) ? 4 : 5;
 		}
 
 		static const value_t DISTANCE_PENALTY = -10;

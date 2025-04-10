@@ -99,7 +99,6 @@ IndexLookupMap Eval::computeIndexLookupMap(MoveGenerator& position) {
 template <bool PRINT>
 value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr) {
 
-	value_t endGameResult;
 	value_t result = 0;
 	initEvalResults(position, evalResults);
 
@@ -113,13 +112,13 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 	// Add paw value to the evaluation
 	evalValue += Pawn::eval(position, evalResults, pawnttPtr);
 
-	endGameResult = EvalEndgame::eval(position, evalValue.endgame());
-	if (endGameResult != evalValue.endgame()) {
+	auto [isEndgame, endGameResult] = EvalEndgame::eval(position, evalValue.endgame());
+	if (isEndgame) {
 		result = endGameResult;
 		if (result > MIN_MATE_VALUE) {
 			result -= ply;
 		}
-		if (result < MIN_MATE_VALUE) {
+		if (result < -MIN_MATE_VALUE) {
 			result += ply;
 		}
 	}
@@ -241,12 +240,8 @@ void Eval::printEval(MoveGenerator& board) {
 
 	value_t evalValue = lazyEval<true>(board, evalResults, 0);
 
-	const value_t endGameResult = EvalEndgame::print(board, evalValue);
-
-	if (endGameResult == evalValue) {
-		if (evalResults.midgameInPercent > 0) {
-			KingAttack::print(board, evalResults);
-		}
+	if (evalResults.midgameInPercent > 0) {
+		KingAttack::print(board, evalResults);
 	}
 	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }

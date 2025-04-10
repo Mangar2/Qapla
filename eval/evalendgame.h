@@ -40,25 +40,14 @@ namespace ChessEval {
 		/**
 		 * Provides end game evaluation
 		 */
-		static value_t eval(MoveGenerator& board, value_t currentValue) {
+		static std::tuple<bool, value_t> eval(MoveGenerator& board, value_t currentValue) {
 
 			uint8_t functionNo = mapPieceSignatureToFunctionNo[board.getPiecesSignature()];
 			if (functionNo < functionMap.size()) {
-				currentValue = functionMap[functionNo](board, currentValue);
+				return std::tuple(true, functionMap[functionNo](board, currentValue));
 			}
 
-			return currentValue;
-		}
-
-		/**
-		 * Prints end game evaluation terms to stdout
-		 */
-		static value_t print(MoveGenerator& board, value_t currentValue) {
-			value_t newValue = eval(board, currentValue);
-			if (currentValue != newValue) {
-				std::cout << "Eval endgame mod    : " << currentValue << " => " << newValue << std::endl;
-			}
-			return newValue;
+			return std::tuple(false, currentValue);
 		}
 
 		/**

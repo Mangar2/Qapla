@@ -1842,7 +1842,6 @@
     <ClCompile Include="bitbase\bitbasereader.cpp" />
     <ClCompile Include="bitbase\compress.cpp" />
     <ClCompile Include="bitbase\reverseindex.cpp" />
-    <ClCompile Include="eval\eval-helper.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\pawn.cpp" />
@@ -1898,7 +1897,6 @@
     <ClInclude Include="eval\bishop.h" />
     <ClInclude Include="eval\eval-exchange-structures.h" />
     <ClInclude Include="eval\eval-helper.h" />
-    <ClInclude Include="eval\eval-map.h" />
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />
     <ClInclude Include="eval\king.h" />

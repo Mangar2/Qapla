@@ -132,9 +132,6 @@
     <ClCompile Include="basics\hashconstants.cpp">
       <Filter>basics</Filter>
     </ClCompile>
-    <ClCompile Include="eval\eval-helper.cpp">
-      <Filter>eval</Filter>
-    </ClCompile>
     <ClCompile Include="interface\statistics.cpp">
       <Filter>interface</Filter>
     </ClCompile>
@@ -409,9 +406,6 @@
     </ClInclude>
     <ClInclude Include="basics\movelist.h">
       <Filter>basics</Filter>
-    </ClInclude>
-    <ClInclude Include="eval\eval-map.h">
-      <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="search\movehistory.h">
       <Filter>search</Filter>
