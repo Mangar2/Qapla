@@ -209,11 +209,6 @@ namespace ChessEval {
 						materialValue + pstValue + property });
 				}
 			}
-			/*
-			if (position.getEvalVersion() == 1) {
-				return pawnValue.getValue(results.midgameInPercentV2);
-			}
-			*/
 			return value;
 		}
 
