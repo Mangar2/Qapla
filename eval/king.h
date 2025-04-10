@@ -60,7 +60,7 @@ namespace ChessEval {
 		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			const Square kingSquare = position.getKingSquare<COLOR>();
 			const value_t kingDistance = minDistance(kingSquare, position.getPieceBB(PAWN + COLOR));
-			const value_t propertyValue = kingDistance * DISTANCE_PENALTY * (100 - results.midgameInPercentV2) / 100;
+			const EvalValue propertyValue = EvalValue(0, kingDistance * DISTANCE_PENALTY);
 			if constexpr (STORE_DETAILS) {
 				const auto materialValue = 0;
 				const auto pstValue = PST::getValue(kingSquare, KING + COLOR);

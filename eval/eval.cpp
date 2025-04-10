@@ -99,8 +99,8 @@ IndexLookupMap Eval::computeIndexLookupMap(MoveGenerator& position) {
 template <bool PRINT>
 value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr) {
 
-	value_t result = 0;
 	value_t endGameResult;
+	value_t result = 0;
 	initEvalResults(position, evalResults);
 
 	evalResults.midgameInPercent = computeMidgameInPercent(position);
@@ -108,15 +108,13 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 	if (PRINT) cout << "Midgame factor:" << std::right << std::setw(20) << evalResults.midgameInPercentV2 << endl;
 	
 	// Add material to the evaluation
-	value_t material = position.getMaterialAndPSTValue().getValue(evalResults.midgameInPercentV2);
-	result += material;
+	EvalValue evalValue = position.getMaterialAndPSTValue();
 
 	// Add paw value to the evaluation
-	const auto pawnEval = Pawn::eval(position, evalResults, pawnttPtr);
-	result += pawnEval;
-	endGameResult = EvalEndgame::eval(position, result);
+	evalValue += Pawn::eval(position, evalResults, pawnttPtr);
 
-	if (endGameResult != result) {
+	endGameResult = EvalEndgame::eval(position, evalValue.endgame());
+	if (endGameResult != evalValue.endgame()) {
 		result = endGameResult;
 		if (result > MIN_MATE_VALUE) {
 			result -= ply;
@@ -126,24 +124,21 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 		}
 	}
 	else {
-		if (abs(result) < WINNING_BONUS) {
-			result += position.isWhiteToMove() ? tempo : -tempo;
-		}
+		evalValue += position.isWhiteToMove() ? tempo : -tempo;
 
 		// Do not change ordering of the following calls. King attack needs result from Mobility
-		EvalValue evalValue = Rook::eval(position, evalResults);
+		evalValue += Rook::eval(position, evalResults);
 		evalValue += Bishop::eval(position, evalResults);
 		evalValue += Knight::eval(position, evalResults);
 		evalValue += Queen::eval(position, evalResults);
 		evalValue += Threat::eval(position, evalResults);
 		evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
-		if (evalResults.midgameInPercentV2 < 100) {
-			evalValue += King::eval(position, evalResults);
-		}
+		evalValue += King::eval(position, evalResults);
 
 		if (evalResults.midgameInPercent > 0) {
-			result += KingAttack::eval(position, evalResults);
+			evalValue += KingAttack::eval(position, evalResults);
 		}
+
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
 
 		if constexpr (PRINT) {

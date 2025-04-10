@@ -57,10 +57,10 @@ namespace ChessEval {
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
 		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
-		static value_t eval(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
+		static EvalValue eval(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
 			
-			value_t ttValue = probeTT(position, results, pawnttPtr);
-			if (ttValue != NO_VALUE) {
+			EvalValue ttValue = probeTT(position, results, pawnttPtr);
+			if (ttValue.midgame() != NO_VALUE) {
 				return ttValue;
 			}
 			
@@ -69,7 +69,7 @@ namespace ChessEval {
 				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK))
 			};
 
-			value_t value =
+			EvalValue value =
 				evalColor<WHITE, false>(position, results, moveRay, nullptr)
 				- evalColor<BLACK, false>(position, results, moveRay, nullptr);
 			if (pawnttPtr != nullptr) {
@@ -78,13 +78,13 @@ namespace ChessEval {
 			return value;
 		}
 
-		static value_t evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
 			colorBB_t moveRay{ 
 				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)), 
 				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK)) 
 			};
 
-			value_t value = 
+			EvalValue value = 
 				evalColor<WHITE, true>(position, results, moveRay, &details)
 				- evalColor<BLACK, true>(position, results, moveRay, &details);
 			return value;
@@ -131,12 +131,6 @@ namespace ChessEval {
 
 	private:
 
-		template <Piece COLOR>
-		static value_t getKingDistance(const Board& position, Square square, Square kingPos) {
-			const Piece OPPONENT_COLOR = switchColor(COLOR);
-			Square opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
-			Square myKingPos = position.getKingSquare<COLOR>();
-		}
 
 		template <Piece COLOR>
 		static value_t computeKingSupport(const Board& position);
@@ -144,8 +138,8 @@ namespace ChessEval {
 		/**
 		 * Tries to get the pawn evaluation from a transposition table
 		 */
-		static value_t probeTT(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
-			value_t value = NO_VALUE;
+		static EvalValue probeTT(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
+			EvalValue value = NO_VALUE;
 			if (pawnttPtr == nullptr) {
 				return value;
 			}
@@ -154,7 +148,7 @@ namespace ChessEval {
 			if (index != pawnttPtr->INVALID_INDEX) {
 				const PawnTTEntry& entry = pawnttPtr->getEntry(index);
 				results.passedPawns = entry._passedPawns;
-				value = entry._mgValue;
+				value = EvalValue(entry._mgValue, entry._egValue);
 			}
 			return value;
 		}
@@ -163,9 +157,8 @@ namespace ChessEval {
 		 * Evaluates pawns per color
 		 */
 		template<Piece COLOR, bool STORE_DETAILS>
-		static value_t evalColor(const MoveGenerator & position, EvalResults & results, colorBB_t moveRay, std::vector<PieceInfo>*details) {
-			value_t value = 0;
-			EvalValue pawnValue = 0;
+		static EvalValue evalColor(const MoveGenerator & position, EvalResults & results, colorBB_t moveRay, std::vector<PieceInfo>*details) {
+			EvalValue value = 0;
 
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			results.passedPawns[COLOR] = 0;
@@ -193,12 +186,8 @@ namespace ChessEval {
 				if (passedPawnBB & pawnBB) {
 					propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
 				}
-				value_t propertyValue = evalMap[propertyIndex];
-				/*
-				if (position.getEvalVersion() == 1) {
-					pawnValue += evalValueMap[propertyIndex];
-				}
-				*/
+				//value_t propertyValue = evalMap[propertyIndex];
+				EvalValue propertyValue = evalValueMap[propertyIndex];
 								
 				value += propertyValue;
 

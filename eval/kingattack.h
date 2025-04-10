@@ -85,7 +85,7 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current position position
 		 */
-		static value_t eval(MoveGenerator& position, EvalResults& results) {
+		static EvalValue eval(MoveGenerator& position, EvalResults& results) {
 			computeAttacks<WHITE>(position, results);
 			computeAttacks<BLACK>(position, results);
 			/*
@@ -203,7 +203,7 @@ namespace ChessEval {
 		}
 
 		template <Piece COLOR>
-		inline static value_t computeAttackValue2(MoveGenerator& position, EvalResults& results) {
+		inline static EvalValue computeAttackValue2(MoveGenerator& position, EvalResults& results) {
 			Square kingSquare = position.getKingSquare<COLOR>();
 			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
 			const Piece OPPONENT = switchColor(COLOR);
@@ -237,11 +237,11 @@ namespace ChessEval {
 			//value_t attackValue = CandidateTrainer::getCurrentCandidate().getWeightVector(0)[index].midgame();
 			//attackValue = (attackValue * results.midgameInPercentV2) / 100;
 
-			value_t attackValue = (attackValueMap[index] * results.midgameInPercentV2) / 100;
+			value_t attackValue = attackValueMap[index];
 			if (attackValue > -10) { attackValue = 0; }
 			results.kingPressureCount[COLOR] = index;
 			results.kingAttackValue[COLOR] = attackValue;
-			return attackValue;
+			return EvalValue(attackValue, 0);
 		}
 
 		/**
