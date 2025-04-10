@@ -109,11 +109,6 @@ namespace ChessEval {
 		static value_t winningValue(MoveGenerator& board, value_t currentValue);
 
 		/**
-		 * Evaluate material balance and pawn structure
-		 */
-		static value_t materialAndPawnStructure(MoveGenerator& board);
-
-		/**
 		 * Gets a value from a bitbase
 		 */
 		static value_t getFromBitbase(MoveGenerator& position, value_t currentValue);
@@ -202,6 +197,11 @@ namespace ChessEval {
 		 * Computes the distance between two squares
 		 */
 		static value_t computeDistance(Square pos1, Square pos2);
+		static value_t computeDistance(Square square1, Square square2) {
+			value_t fileDistance = abs(value_t(getFile(square1)) - value_t(getFile(square2)));
+			value_t rankDistance = abs(value_t(getRank(square1)) - value_t(getRank(square2)));
+			return fileDistance + rankDistance;
+		}
 
 		/**
 		 * Computes the distance between two kings
