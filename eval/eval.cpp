@@ -140,7 +140,6 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 		if (evalResults.midgameInPercentV2 < 100) {
 			evalValue += King::eval(position, evalResults);
 		}
-		evalValue += King::eval(position, evalResults);
 
 		if (evalResults.midgameInPercent > 0) {
 			result += KingAttack::eval(position, evalResults);

@@ -59,12 +59,11 @@ namespace ChessEval {
 
 		static value_t eval(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
 			
-			// value_t ttValue = probeTT(position, results, pawnttPtr);
-			/*
+			value_t ttValue = probeTT(position, results, pawnttPtr);
 			if (ttValue != NO_VALUE) {
 				return ttValue;
 			}
-			*/
+			
 			colorBB_t moveRay{
 				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)),
 				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK))
@@ -76,12 +75,6 @@ namespace ChessEval {
 			if (pawnttPtr != nullptr) {
 				pawnttPtr->setEntry(position.getPawnHash(), value, results.passedPawns);
 			}
-			/*
-			if (ttValue != NO_VALUE && ttValue!= value) {
-				position.print();
-				cout << "TT value: " << ttValue << " != " << value << endl;
-			}
-			*/
 			return value;
 		}
 
