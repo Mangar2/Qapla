@@ -2,11 +2,13 @@
 
 ## 0.3.011 2025-04-10
 
-- Raiting:
-- Various cleanups
-- Corrected king distance to 0, 1, 2, ... (was 0, 1, 3, ...)
+- Raiting: 49.6%, 
+- Corrected the usage of end game evaluation by adding a boolean flag if there is an endgame function
+- Using new pawn evaluation values in computePawnValueNoPieceButPawn function 
+- Corrected king distance to 0, 1, 2, ... (was 0, 1, 3, ...) - better correction (b)
 - Use king distance now in pawn only endgames too
-- Use race algorithm for KPsKPs also for KPs
+- Use race algorithm for KPsKPs also for KPs (removed on version b)
+- Use current value in endgame evaluation (based on material, pst, pawn) instead of calculating it allone
 
 ## 0.3.010 2025-04-10
 

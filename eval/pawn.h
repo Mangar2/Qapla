@@ -129,6 +129,14 @@ namespace ChessEval {
 			return evalPassedPawnThreats<WHITE, true>(position, results, &details) - evalPassedPawnThreats<BLACK, true>(position, results, &details);
 		}
 
+		static void computePassedPawns(const MoveGenerator& position, EvalResults& results) {
+			colorBB_t moveRay{};
+			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
+			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
+			results.passedPawns[WHITE] = computePassedPawnBB(position.getPieceBB(PAWN + WHITE), moveRay[BLACK]);
+			results.passedPawns[BLACK] = computePassedPawnBB(position.getPieceBB(PAWN + BLACK), moveRay[WHITE]);
+		}
+
 	private:
 
 
@@ -252,6 +260,8 @@ namespace ChessEval {
 			results.passedPawns[COLOR] = passedPawns;
 			return pawnValue;
 		}
+
+
 
 		/**
 		 * Computes pawn values for boards with only few pawns

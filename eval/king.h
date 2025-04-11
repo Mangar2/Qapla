@@ -93,12 +93,14 @@ namespace ChessEval {
 			}
 			const auto& masks = king_distance_masks[kingSquare];
 			if (pawns & masks[2]) {
-				return (pawns & masks[0]) ? 0 : 1;
+				return (pawns & masks[0]) ? 0 : (pawns & masks[1]) ? 1 : 2;
 			}
 			else if (pawns& masks[4]) {
-				return (pawns & masks[3]) ? 2 : 3;
+				return (pawns & masks[3]) ? 3 : 4;
 			}
-			else return (pawns & masks[5]) ? 4 : 5;
+			else {
+				return (pawns & masks[5]) ? 5 : 6;
+			}
 		}
 
 		static const value_t DISTANCE_PENALTY = -10;

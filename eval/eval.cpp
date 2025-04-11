@@ -112,8 +112,11 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 	// Add paw value to the evaluation
 	evalValue += Pawn::eval(position, evalResults, pawnttPtr);
 
-	auto [isEndgame, endGameResult] = EvalEndgame::eval(position, evalValue.endgame());
-	if (isEndgame) {
+	// Try endgame evaluation first. If it returns a modified value, use it.
+	// This indicates a known endgame pattern was recognized.
+	// Otherwise, continue the standard evaluation
+	value_t endGameResult = EvalEndgame::eval(position, evalValue.endgame());
+	if (evalValue.endgame() != endGameResult) {
 		result = endGameResult;
 		if (result > MIN_MATE_VALUE) {
 			result -= ply;

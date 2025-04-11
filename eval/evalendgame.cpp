@@ -81,7 +81,8 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KNK", drawValue);
 
 	// Pawn
-	registerFunction("KP*KP*", KPsKPs);
+	REGISTER("KP+K", KPsK);
+	registerFunction("KP+KP+", KPsKPs);
 
 	// Draw situations
 	REGISTER("KK", drawValue);
@@ -136,22 +137,56 @@ value_t EvalEndgame::KQPsKRPs(MoveGenerator& position, value_t value) {
 	return result;
 }
 
+template <Piece COLOR>
+value_t EvalEndgame::KPsK(MoveGenerator& position, value_t value) {
+	value_t result = value;
+	Square opponentKingSquare = position.getKingSquare<switchColor(COLOR)>();
+	Square myKingSquare = position.getKingSquare<COLOR>();
+	bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
+
+	if ((pawns & (pawns - 1)) == 0) {
+		return value;
+	}
+
+	bitBoard_t opponentKingInfluence = BitBoardMasks::kingMoves[opponentKingSquare] | (1ULL << opponentKingSquare);
+	bitBoard_t myKingInfluence = BitBoardMasks::kingMoves[myKingSquare] | (1ULL << myKingSquare);
+
+	if ((pawns & ~BitBoardMasks::FILE_A_BITMASK) == 0 && isSquareInBitMask<COLOR>(A8, opponentKingInfluence)) {
+		result = DRAW_VALUE;
+	}
+	else if ((pawns & ~BitBoardMasks::FILE_H_BITMASK) == 0 && isSquareInBitMask<COLOR>(H8, opponentKingInfluence)) {
+		result = DRAW_VALUE;
+	}
+	else if ((BitBoardMasks::shiftColor<COLOR, NORTH>(pawns) & myKingInfluence) != 0) {
+		result += BONUS[COLOR];
+	}
+	return result;
+}
+
 value_t EvalEndgame::KPsKPs(MoveGenerator& position, value_t value) {
 	value_t result = 0;
-	EvalResults mobility;
+	EvalResults evalResults;
+
 	Pawn evalPawn;
-	result += evalPawn.computePawnValueNoPiece(position, mobility);
-	
-	mobility.midgameInPercentV2 = 0;
-	result += King::eval(position, mobility).endgame();
-	
-	if ((mobility.passedPawns[WHITE] | mobility.passedPawns[BLACK]) == 0) {
+	result += evalPawn.computePawnValueNoPiece(position, evalResults);
+
+	evalResults.midgameInPercentV2 = 0;
+	result += King::eval(position, evalResults).endgame();
+
+	/*
+	result = value;
+	Pawn::computePassedPawns(position, evalResults);
+	PawnRace pawnRace;
+	value_t runnerValue = pawnRace.runnerRace(position,
+		evalResults.passedPawns[WHITE], evalResults.passedPawns[BLACK]);
+	if (runnerValue != 0) {
+		result /= 4;
+		result += runnerValue;
+	}
+	*/
+	if ((evalResults.passedPawns[WHITE] | evalResults.passedPawns[BLACK]) == 0) {
 		KingPawnAttack kingPawnAttack;
 		result += kingPawnAttack.computeKingRace(position) * KING_RACED_PAWN_BONUS;
-	}
-	else
-	{
-		//Pawn::computeRunnerPace<WHITE>(position, mobility.passedPawns[WHITE]);
 	}
 	return result;
 }

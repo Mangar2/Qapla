@@ -38,16 +38,24 @@ namespace ChessEval {
 	public:
 
 		/**
-		 * Provides end game evaluation
+		 * Attempts to evaluate the current position using specialized endgame evaluation functions.
+		 *
+		 * If no such function is registered for the current piece signature, or if the function
+		 * determines that the position is not a recognizable endgame pattern, the function returns
+		 * `currentValue`. This signals the caller to proceed with the standard evaluation logic.
+		 *
+		 * @param board         The current board state.
+		 * @param currentValue  The evaluation value from earlier stages.
+		 * @return              The evaluated score, either from endgame logic or the unchanged currentValue.
 		 */
-		static std::tuple<bool, value_t> eval(MoveGenerator& board, value_t currentValue) {
+		static value_t eval(MoveGenerator& board, value_t currentValue) {
 
 			uint8_t functionNo = mapPieceSignatureToFunctionNo[board.getPiecesSignature()];
 			if (functionNo < functionMap.size()) {
-				return std::tuple(true, functionMap[functionNo](board, currentValue));
+				return functionMap[functionNo](board, currentValue);
 			}
 
-			return std::tuple(false, currentValue);
+			return currentValue;
 		}
 
 		/**
