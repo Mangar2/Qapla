@@ -402,11 +402,21 @@ namespace ChessEval {
 			return std::make_tuple(singleConnect, doubleConnect);
 		}
 
-		/** 
-		 * Computes the isolated pawn penalty - for pawns that are not already on row 7/row 1
-		 * How it works: the pawnMoveRay is a bitboard with bit set for all positions in front of pawns until row 7
-		 * As a result, the row 7/row 1 is a bitmap with bits set to 1 for all columns having pawns. 
-		 * Thus we can retrieve the isolated pawns from a lookup table using it.
+		/**
+		 * Computes the bitboard of isolated pawns (excluding those already on rank 7 or rank 1).
+		 *
+		 * How it works:
+		 * - `pawnMoveRay` is a bitboard with all squares in front of pawns (toward promotion) set to 1,
+		 *   stopping before the final rank (rank 8 for white, rank 1 for black).
+		 *
+		 * - This mask is used to index into a lookup table (`isolatedPawnBB`) that returns a bitboard
+		 *   marking all isolated pawn files.
+		 *
+		 * Template parameter:
+		 *   - COLOR: either WHITE or BLACK, determines the shift direction.
+		 *
+		 * @param pawnMoveRay Bitboard with all forward rays of pawns (excluding final rank)
+		 * @return Bitboard marking files with isolated pawns (bits set on all ranks of isolated files)
 		 */
 		template <Piece COLOR>
 		inline static bitBoard_t computeIsolatedPawnBB(bitBoard_t pawnMoveRay) {
