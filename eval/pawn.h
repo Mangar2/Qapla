@@ -94,7 +94,7 @@ namespace ChessEval {
 			IndexLookupMap indexLookup;
 			indexLookup["pProperty"] = std::vector<EvalValue>{ evalValueMap.begin(), evalValueMap.end() };
 			indexLookup["pPST"] = PST::getPSTLookup(PAWN);
-			indexLookup["ppThreat"] = std::vector<EvalValue>{ ppMap.begin(), ppMap.end() };
+			indexLookup["ppThreat"] = std::vector<EvalValue>{ ppThreatMap.begin(), ppThreatMap.end() };
 			return indexLookup;
 		}
 
@@ -376,7 +376,7 @@ namespace ChessEval {
 					index += ((supported & pawn) != 0) * PP_IS_SUPPORTED_INDEX * i;
 					if (rank + i > Rank::R7) break;
 				}
-				value += ppMap[index];
+				value += ppThreatMap[index];
 				if constexpr (STORE_DETAILS) {
 					if (index > RANK_MASK) {
 						const IndexVector indexVector{ { "ppThreat", index, COLOR } };
@@ -408,12 +408,6 @@ namespace ChessEval {
 		 * As a result, the row 7/row 1 is a bitmap with bits set to 1 for all columns having pawns. 
 		 * Thus we can retrieve the isolated pawns from a lookup table using it.
 		 */
-		template <Piece COLOR>
-		inline static uint32_t computeIsolatedPawnAmount(bitBoard_t pawnMoveRay) {
-			const uint64_t SHIFT = COLOR == WHITE ? 6 : 1;
-			return isolatedPawnAmountLookup[(pawnMoveRay >> SHIFT * NORTH) & LOOKUP_TABLE_MASK];
-		}
-
 		template <Piece COLOR>
 		inline static bitBoard_t computeIsolatedPawnBB(bitBoard_t pawnMoveRay) {
 			const uint64_t SHIFT = COLOR == WHITE ? 6 : 1;
@@ -456,8 +450,10 @@ namespace ChessEval {
 		
 		static const uint32_t LOOKUP_TABLE_SIZE = 1 << NORTH;
 		static const bitBoard_t LOOKUP_TABLE_MASK = LOOKUP_TABLE_SIZE - 1;
-		static value_t isolatedPawnAmountLookup[LOOKUP_TABLE_SIZE];
-		static bitBoard_t isolatedPawnBB[LOOKUP_TABLE_SIZE];
+
+		static std::array<bitBoard_t, LOOKUP_TABLE_SIZE> computeIsolatedPawnLookupTable();
+		static inline std::array<bitBoard_t, LOOKUP_TABLE_SIZE> isolatedPawnBB = computeIsolatedPawnLookupTable();
+
 		static bitBoard_t kingInfluenceTable[COLOR_COUNT][COLOR_COUNT][BOARD_SIZE];
 		static bitBoard_t kingSupportPawnTable[COLOR_COUNT][BOARD_SIZE];
 
@@ -482,7 +478,7 @@ namespace ChessEval {
 		static const uint32_t PP_NOT_BLOCKED_INDEX			= 0x40;
 		static const uint32_t PP_INDEX_SIZE					= 0x100;
 
-		inline static array<value_t, PP_INDEX_SIZE> ppMap = [] {
+		inline static array<value_t, PP_INDEX_SIZE> ppThreatMap = [] {
 			array<value_t, PP_INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < PP_INDEX_SIZE; ++bitmask) {
 				value_t value = 0;

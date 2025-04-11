@@ -87,21 +87,41 @@ namespace ChessEval {
 			return result;
 		}();
 
+		/*
+		 * Computes the minimum abstract distance between a king and any pawn.
+		 *
+		 * The distance is calculated using precomputed bitboard masks: king_distance_masks[square][i],
+		 * where each mask is a union of concentric zones around the given square.
+		 * Each mask[i] fully includes all closer distances.
+		 *
+		 * The function checks the pawn bitboard against the distance masks using a grouped form
+		 * of binary search over distance zones to efficiently find the closest pawn.
+		 *
+		 * @param kingSquare The square of the king
+		 * @param pawns A bitboard with all pawn positions set
+		 * @return The distance to the closest pawn:
+		 *         0 = adjacent pawn,
+		 *         1–6 = increasing distance,
+		 *         0 also if no pawns are present
+		 */
 		static value_t minDistance(Square kingSquare, bitBoard_t pawns) {
 			if (pawns == 0) {
 				return 0;
 			}
 			const auto& masks = king_distance_masks[kingSquare];
+			// The order is important: we must check the smallest distance masks first
+			// to ensure we return the minimal distance to any pawn.
 			if (pawns & masks[2]) {
 				return (pawns & masks[0]) ? 0 : (pawns & masks[1]) ? 1 : 2;
 			}
-			else if (pawns& masks[4]) {
+			else if (pawns & masks[4]) {
 				return (pawns & masks[3]) ? 3 : 4;
 			}
 			else {
 				return (pawns & masks[5]) ? 5 : 6;
 			}
 		}
+
 
 		static const value_t DISTANCE_PENALTY = -10;
 	};

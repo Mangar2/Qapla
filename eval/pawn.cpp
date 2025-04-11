@@ -21,8 +21,6 @@
 
 using namespace ChessEval;
 
-value_t Pawn::isolatedPawnAmountLookup[Pawn::LOOKUP_TABLE_SIZE];
-bitBoard_t Pawn::isolatedPawnBB[Pawn::LOOKUP_TABLE_SIZE];
 bitBoard_t Pawn::kingInfluenceTable[COLOR_COUNT][COLOR_COUNT][BOARD_SIZE];
 bitBoard_t Pawn::kingSupportPawnTable[COLOR_COUNT][BOARD_SIZE];
 
@@ -31,6 +29,37 @@ Pawn::InitStatics Pawn::_staticConstructor;
 Pawn::InitStatics::InitStatics() {
 	computeKingInfluenceTable();
 	computeKingSupportTable();
+}
+
+/*
+ * Computes a lookup table where for each 8-bit file occupancy (pawnPresenceMask),
+ * we get a bitboard marking all isolated pawn files (all ranks of that file set to 1).
+ */
+std::array<bitBoard_t, Pawn::LOOKUP_TABLE_SIZE> Pawn::computeIsolatedPawnLookupTable() {
+	std::array<bitBoard_t, LOOKUP_TABLE_SIZE> table{};
+	const bitBoard_t FILE_MASK_A = 0x0101010101010101ULL;
+	table[0] = 0;  // No pawns -> no isolated files
+
+	for (uint32_t pawnPresenceMask = 1; pawnPresenceMask < LOOKUP_TABLE_SIZE; pawnPresenceMask++) {
+		bitBoard_t result = 0;
+
+		for (int file = 0; file < 8; file++) {
+			bool hasPawn = (pawnPresenceMask >> file) & 1;
+
+			if (!hasPawn)
+				continue;
+
+			bool leftHasPawn = (file > 0) && ((pawnPresenceMask >> (file - 1)) & 1);
+			bool rightHasPawn = (file < 7) && ((pawnPresenceMask >> (file + 1)) & 1);
+
+			if (!leftHasPawn && !rightHasPawn) {
+				// Isolated pawn on this file
+				result |= (FILE_MASK_A << file);
+			}
+		}
+		table[pawnPresenceMask] = result;
+	}
+	return table;
 }
 
 bool Pawn::kingReachesPawn(Square kingPos, Square pawnPos, bool atMove) {
