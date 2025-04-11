@@ -1848,7 +1848,6 @@
     <ClCompile Include="eval\kingAttack.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
-    <ClCompile Include="eval\rook.cpp" />
     <ClCompile Include="interface\candidate-trainer.cpp" />
     <ClCompile Include="interface\optimizer.cpp" />
     <ClCompile Include="interface\statistics.cpp" />

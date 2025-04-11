@@ -140,9 +140,6 @@ namespace ChessEval {
 	private:
 
 
-		template <Piece COLOR>
-		static value_t computeKingSupport(const Board& position);
-
 		/**
 		 * Tries to get the pawn evaluation from a transposition table
 		 */
@@ -349,9 +346,31 @@ namespace ChessEval {
 			return evalValueMap[index];
 		}
 
+		template <Piece COLOR>
+		static inline EvalValue kingNearPassedPawn(const MoveGenerator& position, Square frontOfPP) {
+			// 52,09 -> 10, 10
+			// 52,65 -> rank * 3
+			// 52,38 -> rank * 4
+			// 51,10 -> rank * 3, 5 - distance
+			EvalValue result = 0;
+			const value_t rank = value_t(getRank<COLOR>(frontOfPP));
+			Square ownKingSquare = position.getKingSquare<COLOR>();
+			Square opponentKingSquare = position.getKingSquare<opponentColor<COLOR>()>();
+			value_t ownDistance = EvalHelper::computeDistance(ownKingSquare, frontOfPP);
+			value_t opponentDistance = EvalHelper::computeDistance(opponentKingSquare, frontOfPP);
+			if (ownDistance < 4) {
+				if (ownDistance == 0) ownDistance = 2; // Blocking
+				result += EvalValue(0, (4 - ownDistance) * rank * 3);
+			}
+			if (opponentDistance < 4) {
+				result -= EvalValue(0, (4 - opponentDistance) * rank * 3);
+			}
+			return result;
+		}
+
 		template <Piece COLOR, bool STORE_DETAILS>
 		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results, std::vector<PieceInfo>* details) {
-			value_t value = 0;
+			EvalValue value = 0;
 
 			const Piece OPPONENT = switchColor(COLOR);
 			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
@@ -362,14 +381,15 @@ namespace ChessEval {
 				(position.attackMask[OPPONENT] & ~position.attackMask[COLOR]);
 
 			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
-				Square square = lsb(pp);
-				Rank rank = getRank<COLOR>(square);
+				Square pawnSquare = lsb(pp);
+				Rank rank = getRank<COLOR>(pawnSquare);
 				if (rank <= Rank::R3) continue;
 				uint32_t index = uint32_t(rank);
-				bool isAttacked = (position.attackMask[OPPONENT] & squareToBB(square)) != 0;
+				bool isAttacked = (position.attackMask[OPPONENT] & squareToBB(pawnSquare)) != 0;
 				index += isAttacked * PP_IS_ATTACKED_INDEX;
 				value_t i = 1;
-				for (Square square = lsb(pp) + dir; i <= 2; square += dir, i++) {
+				Square frontOfPawn = pawnSquare + dir;
+				for (Square square = frontOfPawn; i <= 2; square += dir, i++) {
 					bitBoard_t pawn = squareToBB(square);
 					if (stopped & pawn) break;
 					index += PP_NOT_BLOCKED_INDEX * i;
@@ -377,10 +397,13 @@ namespace ChessEval {
 					if (rank + i > Rank::R7) break;
 				}
 				value += ppThreatMap[index];
+				if (position.getEvalVersion() == 1) {
+					value += kingNearPassedPawn<COLOR>(position, frontOfPawn);
+				}
 				if constexpr (STORE_DETAILS) {
 					if (index > RANK_MASK) {
 						const IndexVector indexVector{ { "ppThreat", index, COLOR } };
-						details->push_back({ PAWN + COLOR, square, indexVector, "", COLOR == WHITE ? value : -value });
+						details->push_back({ PAWN + COLOR, pawnSquare, indexVector, "", COLOR == WHITE ? value : -value });
 					}
 				}
 			}
@@ -442,19 +465,6 @@ namespace ChessEval {
 			return pawnMoveRay;
 
 		}
-
-		static struct InitStatics {
-			InitStatics();
-		} _staticConstructor;
-
-		typedef bool testFunction_t(Square kingPos, Square pawnPos, bool atMove);
-		static bool kingSupportsPassedPawn(Square kingPos, Square pawnPos, bool atMove);
-		static bool kingReachesPawn(Square kingPos, Square pawnPos, bool atMove);
-
-		static bitBoard_t computeKingInfluence(Square kingPos, bool atMove, testFunction_t testFunction);
-
-		static void computeKingInfluenceTable();
-		static void computeKingSupportTable();
 
 		static const value_t RUNNER_BONUS = 300;
 		

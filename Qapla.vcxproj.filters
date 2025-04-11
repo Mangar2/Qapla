@@ -93,9 +93,6 @@
     <ClCompile Include="bitbase\bitbasereader.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
-    <ClCompile Include="eval\rook.cpp">
-      <Filter>eval</Filter>
-    </ClCompile>
     <ClCompile Include="eval\eval.cpp">
       <Filter>eval</Filter>
     </ClCompile>
