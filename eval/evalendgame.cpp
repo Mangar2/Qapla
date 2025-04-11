@@ -164,17 +164,19 @@ value_t EvalEndgame::KPsK(MoveGenerator& position, value_t value) {
 }
 
 value_t EvalEndgame::KPsKPs(MoveGenerator& position, value_t value) {
+	
 	value_t result = 0;
 	EvalResults evalResults;
 
 	Pawn evalPawn;
 	result += evalPawn.computePawnValueNoPiece(position, evalResults);
 
-	evalResults.midgameInPercentV2 = 0;
-	result += King::eval(position, evalResults).endgame();
-
+	//evalResults.midgameInPercentV2 = 0;
+	//result += King::eval(position, evalResults).endgame();
+	
 	/*
-	result = value;
+	value_t result = value;
+	EvalResults evalResults;
 	Pawn::computePassedPawns(position, evalResults);
 	PawnRace pawnRace;
 	value_t runnerValue = pawnRace.runnerRace(position,
@@ -184,7 +186,7 @@ value_t EvalEndgame::KPsKPs(MoveGenerator& position, value_t value) {
 		result += runnerValue;
 	}
 	*/
-	if ((evalResults.passedPawns[WHITE] | evalResults.passedPawns[BLACK]) == 0) {
+	if (evalResults.passedPawns[WHITE] == 0 &&  evalResults.passedPawns[BLACK] == 0) {
 		KingPawnAttack kingPawnAttack;
 		result += kingPawnAttack.computeKingRace(position) * KING_RACED_PAWN_BONUS;
 	}
