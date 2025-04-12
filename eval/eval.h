@@ -65,8 +65,7 @@ namespace ChessEval {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else
-			EvalResults evalResults;
-			value_t positionValue = lazyEval<false>(board, evalResults, ply, pawnttPtr);
+			value_t positionValue = lazyEval<false>(board, ply, pawnttPtr);
 			return board.isWhiteToMove() ? positionValue : -positionValue;
 #endif
 		}
@@ -118,12 +117,12 @@ namespace ChessEval {
 		 * Calculates an evaluation for the current board position
 		 */
 		template <bool PRINT>
-		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr = nullptr);
+		static value_t lazyEval(MoveGenerator& board, value_t ply, PawnTT* pawnttPtr = nullptr);
 
 		/**
 		 * Fetches details for the evaluation
 		 */ 
-		static std::vector<PieceInfo> fetchDetails(MoveGenerator& board, EvalResults& evalResults);
+		static std::vector<PieceInfo> fetchDetails(MoveGenerator& board);
 
 
 		/**

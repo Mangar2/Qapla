@@ -397,9 +397,7 @@ namespace ChessEval {
 					if (rank + i > Rank::R7) break;
 				}
 				value += ppThreatMap[index];
-				if (position.getEvalVersion() == 1) {
-					value += kingNearPassedPawn<COLOR>(position, frontOfPawn);
-				}
+				value += kingNearPassedPawn<COLOR>(position, frontOfPawn);
 				if constexpr (STORE_DETAILS) {
 					if (index > RANK_MASK) {
 						const IndexVector indexVector{ { "ppThreat", index, COLOR } };

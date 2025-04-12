@@ -72,9 +72,6 @@
     <ClCompile Include="interface\stdtimecontrol.cpp">
       <Filter>interface</Filter>
     </ClCompile>
-    <ClCompile Include="eval\kingAttack.cpp">
-      <Filter>eval</Filter>
-    </ClCompile>
     <ClCompile Include="search\search.cpp">
       <Filter>search</Filter>
     </ClCompile>
@@ -230,7 +227,7 @@
     <ClInclude Include="eval\kingpawnattack.h">
       <Filter>eval</Filter>
     </ClInclude>
-    <ClInclude Include="eval\kingattack.h">
+    <ClInclude Include="eval\king-attack.h">
       <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="search\search.h">
@@ -430,6 +427,12 @@
     </ClInclude>
     <ClInclude Include="eval\king.h">
       <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\king-attack-spike.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\square-table.h">
+      <Filter>basics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

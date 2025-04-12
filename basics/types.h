@@ -37,6 +37,22 @@ namespace QaplaBasics {
 	typedef array<bitBoard_t, 2> colorBB_t;
 
 	/**
+	 * Prints a bitboard to stdout
+	 */
+	static void printBB(bitBoard_t bb) {
+		uint32_t lineBreak = 8;
+		for (uint64_t i = 1ULL << 63; i > 0; i /= 2) {
+			cout << ((bb & i) ? "X " : ". ");
+			lineBreak--;
+			if (lineBreak == 0) {
+				std::cout << endl;
+				lineBreak = 8;
+			}
+		}
+		std::cout << std::endl;
+	}
+
+	/**
 	 * Chess board Squares
 	 */
 	enum Square {
@@ -67,7 +83,7 @@ namespace QaplaBasics {
 	constexpr Square operator-(Square square) { return Square(-int32_t(square)); }
 	constexpr bool operator<(Square a, Square b) { return int32_t(a) < int32_t(b); }
 	inline Square operator^=(Square& square, int32_t a) { return square = Square(square ^ a); }
-	inline Square& operator++(Square& square) { return square = Square(square + 1); }
+	constexpr Square& operator++(Square& square) { return square = Square(square + 1); }
 	inline Square& operator--(Square& square) { return square = Square(square - 1); }
 	inline Square& operator+=(Square& a, int32_t b) { return a = Square(a + b); }
 	constexpr bitBoard_t squareToBB(Square square) { return 1ULL << square; }
@@ -120,8 +136,6 @@ namespace QaplaBasics {
 	constexpr Square switchSide(Square square) {
 		return Square(square ^ 0x38);
 	}
-
-
 
 	/**
 	 * Gets the file of a square

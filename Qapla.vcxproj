@@ -1845,7 +1845,6 @@
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\pawn.cpp" />
-    <ClCompile Include="eval\kingAttack.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
     <ClCompile Include="interface\candidate-trainer.cpp" />
@@ -1877,6 +1876,7 @@
     <ClInclude Include="basics\movelist.h" />
     <ClInclude Include="basics\piecesignature.h" />
     <ClInclude Include="basics\pst.h" />
+    <ClInclude Include="basics\square-table.h" />
     <ClInclude Include="basics\types.h" />
     <ClInclude Include="bitbase\bitbase.h" />
     <ClInclude Include="bitbase\bitbasegenerator.h" />
@@ -1899,12 +1899,13 @@
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />
     <ClInclude Include="eval\king.h" />
+    <ClInclude Include="eval\king-attack-spike.h" />
     <ClInclude Include="eval\pawntt.h" />
     <ClInclude Include="eval\print-eval.h" />
     <ClInclude Include="eval\queen.h" />
     <ClInclude Include="eval\pawn.h" />
     <ClInclude Include="eval\evalresults.h" />
-    <ClInclude Include="eval\kingattack.h" />
+    <ClInclude Include="eval\king-attack.h" />
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\knight.h" />
     <ClInclude Include="eval\pawnrace.h" />

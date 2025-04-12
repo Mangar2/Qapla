@@ -26,29 +26,34 @@
 #include "rook.h"
 #include "bishop.h"
 #include "knight.h"
-#include "kingattack.h"
+#include "king-attack.h"
 #include "king.h"
 #include "threat.h"
 #include "print-eval.h"
 
 using namespace ChessEval;
 
-std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& board, EvalResults& evalResults) {
+std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& position) {
+	EvalResults evalResults;
+	initEvalResults(position, evalResults);
+
 	std::vector<PieceInfo> details;
-	Pawn::evalWithDetails(board, evalResults, details);
-	Rook::evalWithDetails(board, evalResults, details);
-	Bishop::evalWithDetails(board, evalResults, details);
-	Knight::evalWithDetails(board, evalResults, details);
-	Queen::evalWithDetails(board, evalResults, details);
-	King::evalWithDetails(board, evalResults, details);
-	std::vector<PieceInfo> ppDetails;
-	Pawn::evalPassedPawnThreatsWithDetails(board, evalResults, ppDetails);
-	for (const auto& pp : ppDetails) {
-		const auto square = pp.square;
+	Pawn::evalWithDetails(position, evalResults, details);
+	Rook::evalWithDetails(position, evalResults, details);
+	Bishop::evalWithDetails(position, evalResults, details);
+	Knight::evalWithDetails(position, evalResults, details);
+	Queen::evalWithDetails(position, evalResults, details);
+	King::evalWithDetails(position, evalResults, details);
+	std::vector<PieceInfo> moreDetails;
+	Pawn::evalPassedPawnThreatsWithDetails(position, evalResults, moreDetails);
+	KingAttack::evalWithDetails(position, evalResults, moreDetails);
+	for (const auto& add : moreDetails) {
+		const auto square = add.square;
 		for (auto& detail : details) {
 			if (detail.square == square) {
-				detail.indexVector.insert(detail.indexVector.end(), pp.indexVector.begin(), pp.indexVector.end());
-				detail.totalValue += pp.totalValue;
+				detail.indexVector.insert(detail.indexVector.end(), add.indexVector.begin(), add.indexVector.end());
+				detail.totalValue += add.totalValue;
+				detail.propertyInfo += add.propertyInfo;
 				break;
 			}
 		}
@@ -65,8 +70,7 @@ IndexVector Eval::computeIndexVector(MoveGenerator& position) {
 	indexVector.push_back(IndexInfo{ "tempo", 0, position.isWhiteToMove() ? WHITE : BLACK });
 	indexVector.push_back({ "kingPST", uint32_t(position.getKingSquare<WHITE>()), WHITE });
 	indexVector.push_back({ "kingPST", uint32_t(switchSide(position.getKingSquare<BLACK>())), BLACK });
-	initEvalResults(position, evalResults);
-	const std::vector<PieceInfo> details = fetchDetails(position, evalResults);
+	const std::vector<PieceInfo> details = fetchDetails(position);
 	for (const auto& piece : details) {
 		indexVector.insert(indexVector.end(), piece.indexVector.begin(), piece.indexVector.end());
 	}
@@ -97,9 +101,10 @@ IndexLookupMap Eval::computeIndexLookupMap(MoveGenerator& position) {
   * negative values better for black.
  */
 template <bool PRINT>
-value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr) {
+value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 
 	value_t result = 0;
+	EvalResults evalResults;
 	initEvalResults(position, evalResults);
 
 	evalResults.midgameInPercent = computeMidgameInPercent(position);
@@ -144,7 +149,7 @@ value_t Eval::lazyEval(MoveGenerator& position, EvalResults& evalResults, value_
 		result += evalValue.getValue(evalResults.midgameInPercentV2);
 
 		if constexpr (PRINT) {
-			std::vector<PieceInfo> details = fetchDetails(position, evalResults);
+			std::vector<PieceInfo> details = fetchDetails(position);
 			printEvalBoard(details, evalResults.midgameInPercentV2);
 		}
 	}
@@ -238,17 +243,12 @@ void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
  * Prints the evaluation results
  */
 void Eval::printEval(MoveGenerator& board) {
-	EvalResults evalResults;
 	board.print();
 
-	value_t evalValue = lazyEval<true>(board, evalResults, 0);
-
-	if (evalResults.midgameInPercent > 0) {
-		KingAttack::print(board, evalResults);
-	}
+	value_t evalValue = lazyEval<true>(board, 0);
 	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }
 
-template value_t Eval::lazyEval<true>(MoveGenerator& board, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr);
-template value_t Eval::lazyEval<false>(MoveGenerator& board, EvalResults& evalResults, value_t ply, PawnTT* pawnttPtr);
+template value_t Eval::lazyEval<true>(MoveGenerator& board, value_t ply, PawnTT* pawnttPtr);
+template value_t Eval::lazyEval<false>(MoveGenerator& board, value_t ply, PawnTT* pawnttPtr);
 
