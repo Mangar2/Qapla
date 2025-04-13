@@ -22,6 +22,7 @@
 #include <string>
 #include "consoleio.h"
 #include "winboard.h"
+#include "winboardprintsearchinfo.h"
 #include "uci.h"
 #include "statistics.h"
 #include "uciprintsearchinfo.h"

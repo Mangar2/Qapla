@@ -1,7 +1,12 @@
 # Qapla Test Versions
 
+## 0.3.014 2025-04-13
+
+- Reduced ignore count for 50 move rule draw-scoring from 10 to 20
+
 ## 0.3.013 2025-04-13
 
+- Raiting: 50,9%
 - 50 moves rule detection included + reducing eval on more than 10 halfmoves without pawn move or capture
 
 ## 0.3.011 2025-04-10

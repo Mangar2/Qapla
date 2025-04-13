@@ -408,6 +408,7 @@ void Winboard::runLoop() {
 	_mode = Mode::WAIT;
 	string token = "";
 	getBoard()->initialize();
+	setPositionByFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	while (token != "quit" && !isFatalError()) {
 		switch (_mode) {
 		case Mode::ANALYZE: handleInputWhileInAnalyzeMode(); break;

@@ -67,8 +67,8 @@ namespace ChessEval {
 #else
 			value_t positionValue = lazyEval<false>(board, ply, pawnttPtr);
 			const value_t halfmovesWithoutPawnOrCapture = board.getTotalHalfmovesWithoutPawnMoveOrCapture();
-			if (halfmovesWithoutPawnOrCapture > 10) {
-				positionValue -= positionValue * halfmovesWithoutPawnOrCapture / 250;
+			if (halfmovesWithoutPawnOrCapture > 20) {
+				positionValue -= positionValue * (halfmovesWithoutPawnOrCapture - 20) / 250;
 			}
 			return board.isWhiteToMove() ? positionValue : -positionValue;
 #endif
