@@ -286,6 +286,9 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
 		node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
 	}
+	else if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() >= 100) {
+		node.setCutoff(Cutoff::DRAW_BY_50_MOVES_RULE, 0);
+	}
 	else if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
 		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, node.getTT()->getPawnTT(), ply));
 	}

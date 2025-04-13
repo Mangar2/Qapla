@@ -1,5 +1,8 @@
 # Qapla Test Versions
 
+## 0.3.013 2025-04-13
+
+- 50 moves rule detection included + reducing eval on more than 10 halfmoves without pawn move or capture
 
 ## 0.3.011 2025-04-10
 

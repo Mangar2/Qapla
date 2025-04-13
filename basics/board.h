@@ -142,11 +142,19 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Gets the amount of half moves without pawn move or capture to implement
-		 * the 50-moves-draw rule
+		 * Gets the amount of half moves without pawn move or capture to implement the repetitive moves draw rule
+		 * Note: the fen value is not included as there are no corresponding moves stored
 		 */
 		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
 			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture;
+		}
+
+		/**
+		 * Gets the amount of half moves without pawn move or capture including the start value from fen to implement
+		 * the 50-moves-draw rule
+		 */
+		inline auto getTotalHalfmovesWithoutPawnMoveOrCapture() const {
+			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture + fenHalfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
@@ -154,6 +162,10 @@ namespace QaplaBasics {
 		 */
 		void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
 			_basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture = number;
+		}
+
+		void setFenHalfmovesWihtoutPawnMoveOrCapture(uint16_t number) {
+			fenHalfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
@@ -340,7 +352,9 @@ namespace QaplaBasics {
 		uint32_t getEvalVersion() const {
 			return evalVersion;
 		}
-		void setEvalVersion(uint32_t version) { evalVersion = version; }
+		void setEvalVersion(uint32_t version) { 
+			evalVersion = version; 
+		}
 
 	protected:
 		array<Square, COLOR_COUNT> kingSquares;
@@ -419,6 +433,7 @@ namespace QaplaBasics {
 		EvalValue _pstBonus;
 		PieceSignature _pieceSignature;
 		MaterialBalance _materialBalance;
+		uint16_t fenHalfmovesWithoutPawnMoveOrCapture = 0;
 
 	};
 }

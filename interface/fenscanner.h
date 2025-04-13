@@ -191,16 +191,24 @@ namespace QaplaInterface {
 		void scanEPField(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {
 			uint32_t epFile = -1;
 			uint32_t epRank = -1;
+			if (fenIterator != fen.end() && *fenIterator == '-') {
+				++fenIterator;
+				return;
+			}
 			if (fenIterator != fen.end() && *fenIterator >= 'a' && *fenIterator <= 'h') {
 				epFile = *fenIterator - 'a';
 				++fenIterator;
 			}
-			if (fenIterator != fen.end() && *fenIterator >= '1' && *fenIterator <= '8') {
+			if (fenIterator != fen.end() && (*fenIterator == '3' || *fenIterator == '6')) {
 				epRank = *fenIterator - '1';
 				++fenIterator;
 			}
 			if (epFile != -1 && epRank != -1) {
 				chessBoard->setEPSquare(epFile, epRank);
+			}
+			else {
+				// No legal EN-Passant-Field found
+				error = true;
 			}
 		}
 

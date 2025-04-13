@@ -23,13 +23,10 @@
 
 #pragma once
 
- // Idee 1: Evaluierung in der Ruhesuche ohne positionelle Details
- // Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
- // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
-
 #include <map>
 #include <algorithm>
 #include "../basics/types.h"
+#include "../basics/square-table.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
@@ -60,12 +57,6 @@ namespace ChessEval {
 		}
 
 		static void addToIndexVector(const EvalResults& results, IndexVector& indexVector) {
-			if (results.kingPressureCount[WHITE]) {
-				indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[WHITE]), WHITE });
-			}
-			if (results.kingPressureCount[BLACK]) {
-				indexVector.push_back(IndexInfo{ "kAttack", uint32_t(results.kingPressureCount[BLACK]), BLACK });
-			}
 		}
 
 		/**
@@ -153,7 +144,7 @@ namespace ChessEval {
 		inline static value_t computeAttackValue(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			Square kingSquare = position.getKingSquare<COLOR>();
 			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
-			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
+			const Piece OPPONENT = opponentColor<COLOR>();
 			bitBoard_t attackArea = _kingAttackBB[COLOR][kingSquare];
 
 			bitBoard_t kingAttacks = attackArea & results.piecesAttack[OPPONENT];
@@ -170,16 +161,36 @@ namespace ChessEval {
 				(position.getPieceBB(QUEEN + COLOR) != 0) * 3;
 
 			attackIndex = std::min(MAX_WEIGHT_COUNT, attackIndex);
+			value_t attackValue = 0;
+			if (position.getEvalVersion() == 0) {
+				attackValue = attackWeight[attackIndex];
+				attackValue = (attackValue * results.midgameInPercentV2) / 100;
+			}
+			else {
+				if (results.midgameInPercentV2 >= 90) {
+					//attackValue += initialKingThreat.map<COLOR>(kingSquare);
+				}
+				attackValue = attackWeight2[attackIndex];
+				attackValue = (attackValue * results.midgameInPercentV2) / 100;
+					/*
+				value_t attackValueDiv = getKingAttackDiv<OPPONENT>(position);
+				if (attackValueDiv <= 4) {
+					attackValue = attackValue / attackValueDiv;
+				}
+				else {
+					attackValue = 0;
+				}
+				*/
+			}
+			
+			//uint32_t pawnShieldIndex = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
+			//attackValue += (pawnIndexFactor[pawnShieldIndex] * results.midgameInPercentV2) / 100;
 
-			value_t attackValue = (attackWeight[attackIndex] * results.midgameInPercentV2) / 100;
-			results.kingAttackValue[COLOR] = attackValue;
 			if constexpr (STORE_DETAILS) {
 				const IndexVector indexVector{ { "kingAttack", attackIndex, COLOR } };
 				details->push_back({ KING + COLOR, kingSquare, indexVector, "a<" + std::to_string(attackIndex) + ">", COLOR == WHITE ? attackValue : -attackValue });
 			}
-			//uint32_t pawnShieldIndex = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			//attackValue += (pawnIndexFactor[pawnShieldIndex] * results.midgameInPercentV2) / 100;
-			results.kingPressureCount[COLOR] = attackIndex;
+			
 			return attackValue;
 		}
 
@@ -211,10 +222,25 @@ namespace ChessEval {
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
 		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight2 =
+		{ 0,  0, -5, -10, -15, -25, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900 };
 		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
 
+		static constexpr SquareTable<value_t> initialKingThreat = SquareTable<value_t>(
+			std::array<value_t, 64>{
+			5, 5, 5, 5, 5, 5, 5, 5,
+				5, 5, 5, 5, 5, 5, 5, 5,
+				5, 5, 5, 5, 5, 5, 5, 5,
+				5, 5, 5, 5, 5, 5, 5, 5,
+				5, 5, 5, 5, 5, 5, 5, 5,
+				3, 3, 3, 3, 3, 3, 3, 3,
+				1, 1, 2, 2, 2, 2, 1, 1,
+				1, 0, 0, 1, 1, 0, 0, 1
+
+		});
+
 		static constexpr array<array<bitBoard_t, BOARD_SIZE>, 2> _kingAttackBB = [] {
-			array<array<bitBoard_t, BOARD_SIZE>, 2> kingAttackBB;
+			array<array<bitBoard_t, BOARD_SIZE>, 2> kingAttackBB{};
 			for (Square kingSquare = A1; kingSquare <= H8; ++kingSquare) {
 				bitBoard_t attackArea = 1ULL << kingSquare;
 				attackArea |= BitBoardMasks::shift<WEST>(attackArea);
@@ -235,7 +261,7 @@ namespace ChessEval {
 			} ();
 
 		static constexpr array<bitBoard_t, BOARD_SIZE> _kingAttackBB2 = [] {
-			array<bitBoard_t, BOARD_SIZE> kingAttackBB;
+			array<bitBoard_t, BOARD_SIZE> kingAttackBB{};
 			for (Square square = A1; square <= H8; ++square) {
 				bitBoard_t attackArea = 1ULL << square;
 				attackArea |= BitBoardMasks::shift<WEST>(attackArea);
@@ -259,5 +285,38 @@ namespace ChessEval {
 			}
 			return kingAttackBB;
 		} ();
+
+		template <Piece COLOR>
+		static constexpr value_t getKingAttackDiv(const MoveGenerator& position) {
+			const auto signature = position.getPiecesSignature<COLOR>();
+			return KingAttackTableDiv[signature];
+		}
+
+		static inline std::array<value_t, size_t(SignatureMask::ALL)> KingAttackTableDiv = [] {
+			std::array<value_t, size_t(SignatureMask::ALL)> result{};
+
+			for (uint32_t sig = 0; sig < uint32_t(SignatureMask::ALL); ++sig) {
+				uint32_t queens = (sig & pieceSignature_t(SignatureMask::QUEEN)) / pieceSignature_t(Signature::QUEEN);
+				uint32_t rooks = (sig & pieceSignature_t(SignatureMask::ROOK)) / pieceSignature_t(Signature::ROOK);
+				uint32_t bishops = (sig & pieceSignature_t(SignatureMask::BISHOP)) / pieceSignature_t(Signature::BISHOP);
+				uint32_t knights = (sig & pieceSignature_t(SignatureMask::KNIGHT)) / pieceSignature_t(Signature::KNIGHT);
+
+				value_t points = 6;
+				points -= 3 * queens;
+				points -= rooks;
+				points -= bishops;
+				points -= knights;
+				points = std::max(static_cast<value_t>(0), points) + 1;
+
+				// Bonus if only queen is present (no other minor/major pieces)
+				if (queens == 1 && rooks == 0 && bishops == 0 && knights == 0) {
+					points += 1;
+				}
+
+				result[sig] = std::array<value_t, 8>{ 64, 64, 85, 128, 4 * 64, 5 * 64, 6 * 64, 7 * 64 }[points];
+				result[sig] = points;
+			}
+			return result;
+			}();
 	};
 }

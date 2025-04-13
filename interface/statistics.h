@@ -140,6 +140,8 @@ namespace QaplaInterface {
 			gameStatistics.clear();
 			computer1Result = 0;
 			gamesPlayed = 0;
+			fiftyMovesRule = 0;
+
 			epdIndex = 0;
 
 			for (size_t i = 0; i < numThreads; ++i) {
@@ -172,6 +174,7 @@ namespace QaplaInterface {
 							else if (result == GameResult::BLACK_WINS_BY_MATE) {
 								curResult = curIsWhite ? - 1 : + 1;
 							}
+							else if (result == GameResult::DRAW_BY_REPETITION) fiftyMovesRule++;
 							CandidateTrainer::setGameResult(curResult == -1, curResult == 0);
 							auto confidence = CandidateTrainer::getConfidenceInterval();
 							if (CandidateTrainer::shallTerminate()) break;
@@ -185,6 +188,7 @@ namespace QaplaInterface {
 									<< "\r" << gamesPlayed << "/" << positions
 									<< " time (s): " << timeSpentInSeconds << "/" << estimatedTotalTime
 									<< " result: " << std::fixed << std::setprecision(2) << CandidateTrainer::getScore() << "%"
+									<< " 50moves: " << fiftyMovesRule
 									<< " confidence: " << (confidence.first * 100.0) << "% - " << (confidence.second * 100.0) << "%   ";
 
 								if (gamesPlayed == games) std::cout << std::endl;
@@ -229,6 +233,7 @@ namespace QaplaInterface {
 
 		uint64_t computer1Result;
 		uint64_t gamesPlayed;
+		uint64_t fiftyMovesRule = 0;
 		std::vector<std::string> startPositions;
 		std::vector<std::unique_ptr<WorkerThread>> workers;
 		std::array<int32_t, 1024> gameResults;

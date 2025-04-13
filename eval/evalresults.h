@@ -73,10 +73,6 @@ namespace ChessEval {
 		// The midgame factor in percent
 		value_t midgameInPercent;
 		value_t midgameInPercentV2;
-		// Amount of non defended attacks on squares near king
-		value_t kingPressureCount[2];
-		// Evaluation of the king attack
-		value_t kingAttackValue[2];
 	};
 
 }

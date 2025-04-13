@@ -262,7 +262,7 @@ namespace QaplaSearch {
 		 * Sets the number of half moves without pawn move or capture
 		 */
 		virtual void setHalfmovesWithouthPawnMoveOrCapture(uint16_t number) {
-			position.setHalfmovesWithoutPawnMoveOrCapture(number);
+			position.setFenHalfmovesWihtoutPawnMoveOrCapture(number);
 		}
 
 		/**
@@ -294,7 +294,7 @@ namespace QaplaSearch {
 				if (moveHistory.isDrawByRepetition(position)) {
 					result = GameResult::DRAW_BY_REPETITION;
 				}
-				else if (position.getHalfmovesWithoutPawnMoveOrCapture() > 100) {
+				else if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() > 100) {
 					result = GameResult::DRAW_BY_50_MOVES_RULE;
 				}
 			}

@@ -19,12 +19,10 @@
  * Defines a bitmap representing the available pieces at the board
  */
 
-#ifndef __PIECESIGNATURE_H
-#define __PIECESIGNATURE_H
+#pragma once
 
 #include <array>
 #include "evalvalue.h"
-#include "move.h"
 
 using namespace std;
 
@@ -260,7 +258,6 @@ namespace QaplaBasics {
 			return result;
 		}
 
-
 		static const pieceSignature_t SIG_SHIFT_BLACK = 10;
 		static const pieceSignature_t PIECE_SIGNATURE_SIZE = 1 << (SIG_SHIFT_BLACK * 2);
 
@@ -268,9 +265,6 @@ namespace QaplaBasics {
 		pieceSignature_t _signature;
 
 		inline operator pieceSignature_t() const { return _signature; }
-
-
-		static array<pieceSignature_t, PIECE_AMOUNT> mapPieceToSignature;
 
 		/**
 		 * Returns the amount of pieces found in a signature
@@ -298,19 +292,49 @@ namespace QaplaBasics {
 			}
 		}
 
+		static constexpr array<pieceSignature_t, PIECE_AMOUNT> mapPieceToSignature = []() {
+			array<pieceSignature_t, PIECE_AMOUNT> result{};
+			result.fill(pieceSignature_t(Signature::EMPTY));
+			result[WHITE_PAWN] = pieceSignature_t(Signature::PAWN);
+			result[WHITE_KNIGHT] = pieceSignature_t(Signature::KNIGHT);
+			result[WHITE_BISHOP] = pieceSignature_t(Signature::BISHOP);
+			result[WHITE_ROOK] = pieceSignature_t(Signature::ROOK);
+			result[WHITE_QUEEN] = pieceSignature_t(Signature::QUEEN);
+			result[BLACK_PAWN] = pieceSignature_t(Signature::PAWN) << SIG_SHIFT_BLACK;
+			result[BLACK_KNIGHT] = pieceSignature_t(Signature::KNIGHT) << SIG_SHIFT_BLACK;
+			result[BLACK_BISHOP] = pieceSignature_t(Signature::BISHOP) << SIG_SHIFT_BLACK;
+			result[BLACK_ROOK] = pieceSignature_t(Signature::ROOK) << SIG_SHIFT_BLACK;
+			result[BLACK_QUEEN] = pieceSignature_t(Signature::QUEEN) << SIG_SHIFT_BLACK;
+			return result;
+			}();
+
+
 		/**
 		 * Maps a piece to a signature bit
 		 */
-		static array<pieceSignature_t, size_t(SignatureMask::ALL)> futilityOnCaptureMap;
-		static array<value_t, size_t(SignatureMask::ALL)> staticPiecesValue;
+		static inline array<pieceSignature_t, size_t(SignatureMask::ALL)> futilityOnCaptureMap = []() {
+			array<pieceSignature_t, size_t(SignatureMask::ALL)> result{};
+			for (uint32_t index = 0; index < uint32_t(SignatureMask::ALL); index++) {
+				result[index] = true;
+				if (getPieceAmount(index) <= 2) {
+					result[index] = false;
+				}
+			}
+			return result;
+			}();
+		static constexpr array<value_t, size_t(SignatureMask::ALL)> staticPiecesValue = []() {
+			array<value_t, size_t(SignatureMask::ALL)> result{};
+			for (uint32_t index = 0; index < uint32_t(SignatureMask::ALL); index++) {
+				result[index] =
+					getPieceAmount<QUEEN>(index) * 9 +
+					getPieceAmount<ROOK>(index) * 5 +
+					getPieceAmount<BISHOP>(index) * 3 +
+					getPieceAmount<KNIGHT>(index) * 3 +
+					getPieceAmount<PAWN>(index) / 3;
+			}
+			return result;
+			}();
 		
-		/**
-		 * Initializes the static arrays
-		 */
-		static struct InitStatics {
-			InitStatics();
-		} _staticConstructur;
-
 		/**
 		 * Maps a piece char to a piece signature bit
 		 */
@@ -329,4 +353,4 @@ namespace QaplaBasics {
 
 }
 
-#endif // __PIECESIGNATURE_H
+

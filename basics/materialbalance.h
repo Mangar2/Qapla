@@ -106,6 +106,9 @@ namespace QaplaBasics {
 		const array<EvalValue, PIECE_AMOUNT>& getPieceValues() const {
 			return pieceValues;
 		}
+		array<EvalValue, PIECE_AMOUNT>& getPieceValues() {
+			return pieceValues;
+		}
 
 		const static value_t PAWN_VALUE_MG = 80;
 		const static value_t PAWN_VALUE_EG = 95;
