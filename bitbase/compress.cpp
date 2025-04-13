@@ -22,6 +22,7 @@
 #include <array>
 #include <vector>
 #include <unordered_map>
+#include "lz4.h"
 #include "try.h"
 #include "HuffmanCode.h"
 #include "deflate.h"
@@ -30,55 +31,96 @@
 using namespace std;
 
 /**
- * Compressed a vector
+ * Compresses a vector using LZ4
  */
-void QaplaCompress::compress(const vector<bbt_t>& in, vector<bbt_t>& out, bool verbose) {
-	vector<bbt_t> tmp;
-	tmp.reserve(in.size());
-	Deflate::compress(in, tmp, 0x100000);
-	if (tmp.size() < 2048) {
-		// This is too small for huffman
-		out.push_back(bbt_t(Compression::inflated));
-		out.insert(out.end(), tmp.begin(), tmp.end());
+std::vector<QaplaCompress::bbt_t> QaplaCompress::lz4Compress(const std::vector<bbt_t>& input) {
+	int maxCompressedSize = LZ4_compressBound(static_cast<int>(input.size()));
+	std::vector<bbt_t> compressed(maxCompressedSize);
+
+	int compressedSize = LZ4_compress_default(
+		reinterpret_cast<const char*>(input.data()),
+		reinterpret_cast<char*>(compressed.data()),
+		static_cast<int>(input.size()),
+		maxCompressedSize
+	);
+
+	if (compressedSize <= 0) {
+		throw std::runtime_error("LZ4 compression failed");
 	}
-	else {
-		HuffmanCode huffman(tmp);
-		uint64_t expectedSize = 256 + (huffman.computeSizeInBit() / (sizeof(bbt_t) * 8));
-		if (expectedSize > tmp.size()) {
-			out.push_back(bbt_t(Compression::inflated));
-			out.insert(out.end(), tmp.begin(), tmp.end());
-		} 
-		else {
-			out.push_back(bbt_t(Compression::huffman));
-			huffman.storeCode(out);
-			huffman.compress(tmp.begin(), out, uint32_t(tmp.size()));
-		}
+
+	compressed.resize(compressedSize);
+	return compressed;
+}
+
+/**
+ * Decompresses a vector using LZ4
+ */
+std::vector<QaplaCompress::bbt_t> QaplaCompress::lz4Uncompress(const std::vector<bbt_t>& compressed, size_t decompressedSize) {
+	std::vector<bbt_t> decompressed(decompressedSize);
+
+	int decompressedSizeActual = LZ4_decompress_safe(
+		reinterpret_cast<const char*>(compressed.data()),
+		reinterpret_cast<char*>(decompressed.data()),
+		static_cast<int>(compressed.size()),
+		static_cast<int>(decompressedSize)
+	);
+
+	if (decompressedSizeActual < 0) {
+		throw std::runtime_error("LZ4 decompression failed");
 	}
+
+	return decompressed;
+}
+
+ /**
+  * Compresses a vector using the best available method (default: LZ4)
+  */
+std::vector<QaplaCompress::bbt_t> QaplaCompress::compress(const std::vector<bbt_t>& in, bool verbose) {
+	std::vector<bbt_t> out;
+
+	// Default: use LZ4
+	auto compressed = lz4Compress(in);
+	out.push_back(static_cast<bbt_t>(Compression::lz4));
+	out.insert(out.end(), compressed.begin(), compressed.end());
+
 	if (verbose) {
-		cout << "Original: " << in.size() << " inflated: " << tmp.size() << " final: " << out.size() << endl;
+		std::cout << "Original: " << in.size() << " compressed (LZ4): " << compressed.size()
+			<< " total with header: " << out.size() << std::endl;
 	}
+
+	return out;
 }
 
 
 /**
- * Uncompresses a vector
+ * Decompresses a vector
  */
-void QaplaCompress::uncompress(const vector<bbt_t>& in, vector<bbt_t>& out, uint64_t outSize) {
+std::vector<QaplaCompress::bbt_t> QaplaCompress::uncompress(const std::vector<bbt_t>& in, uint64_t outSize) {
 	Compression compression = Compression(in[0]);
-	out.resize(outSize);
+	std::vector<bbt_t> out;
+
 	if (compression == Compression::huffman) {
-		vector<bbt_t> tmp;
-		//tmp.reserve(outSize);
+		std::vector<bbt_t> tmp;
 		HuffmanCode huffman;
 		uint32_t codeSize = huffman.retrieveCode(in.begin() + 1);
 		huffman.uncompress(in.begin() + codeSize + 1, tmp);
+		out.resize(outSize);
 		Deflate::uncompress(tmp.begin(), tmp.end(), out.begin(), outSize);
 	}
 	else if (compression == Compression::inflated) {
+		out.resize(outSize);
 		Deflate::uncompress(in.begin() + 1, in.end(), out.begin(), outSize);
 	}
+	else if (compression == Compression::lz4) {
+		std::vector<bbt_t> compressed(in.begin() + 1, in.end());
+		out = lz4Uncompress(compressed, outSize);
+	}
 	else {
+		// uncompressed fallback
+		out.resize(outSize);
 		std::copy(in.begin() + 1, in.end(), out.begin());
 	}
+
+	return out;
 }
 

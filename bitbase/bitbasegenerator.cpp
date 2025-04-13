@@ -578,7 +578,7 @@ void BitbaseGenerator::computeBitbase(PieceList &pieceList)
 	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
 	cout << "c";
-	state.storeToFile(fileName, _uncompressed, _debugLevel > 1, _traceLevel > 1);
+	state.storeToFile(fileName, pieceString, _uncompressed, _debugLevel > 1, _traceLevel > 1);
 	printTimeSpent(clock, 0, _traceLevel == 0);
 	printStatistic(state, 1);
 	cout << endl;

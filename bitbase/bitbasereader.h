@@ -46,11 +46,10 @@ namespace QaplaBitbase {
 	{
 	public:
 		static void loadBitbase() {
-			return;
 			QaplaSearch::ClockManager clock;
 			clock.setStartTime();
 			//loadBitbaseRec("K*K");
-			loadBitbaseRec("KPK");
+			loadBitbaseRec("KRK");
 
 			//loadBitbaseRec("KK*");
 			//loadBitbaseRec("K*K*");

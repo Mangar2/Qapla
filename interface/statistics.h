@@ -298,16 +298,6 @@ namespace QaplaInterface {
 		virtual void runLoop();
 
 		/**
-		 * handles a generate EGTB command
-		 */
-		void generateEGTB();
-
-		/**
-		 * handles a verify EGTB command
-		 */
-		void verifyEGTB();
-
-		/**
 		 * Sets xBoard mode 
 		 */
 		void handleXBoard() {

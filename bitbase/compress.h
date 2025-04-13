@@ -41,23 +41,34 @@
 #include <vector>
 
 namespace QaplaCompress {
-	typedef uint8_t bbt_t;
+	using bbt_t = uint8_t;
 
 	enum class Compression {
 		uncompresed = 0,
 		inflated = 1,
 		huffman = 2,
+		lz4 = 3
 	};
 
 	/**
 	 * Compressed a vector
 	 */
-	void compress(const std::vector<bbt_t>& in, std::vector<bbt_t>& out, bool verbose = false);
+	std::vector<bbt_t> compress(const std::vector<bbt_t>& in, bool verbose = false);
 
 	/**
 	 * Uncompresses a vector
 	 */
-	void uncompress(const std::vector<bbt_t>&in, std::vector<bbt_t>&out, uint64_t outSize);
+	std::vector<bbt_t> uncompress(const std::vector<bbt_t>&in, uint64_t outSize);
+
+	/**
+	 * Compresses a vector using LZ4
+	 */
+	std::vector<bbt_t> lz4Compress(const std::vector<bbt_t>& input);
+
+	/**
+	 * Decompresses a vector using LZ4
+	 */
+	std::vector<bbt_t> lz4Uncompress(const std::vector<bbt_t>& compressed, size_t decompressedSize);
 }
 
 

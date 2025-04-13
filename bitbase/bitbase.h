@@ -19,14 +19,14 @@
  * Provides an array of bits in a
  */
 
-
-#ifndef __BITBASE_H
-#define __BITBASE_H
+#pragma once
 
 #include <vector>
 #include <fstream>
 #include <cerrno>
+#include <bit>
 
+#include "lz4.h"
 #include "../basics/move.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
@@ -38,16 +38,16 @@ namespace QaplaBitbase {
 	/**
 	 * Basic type storing bits.
 	 */
-	typedef uint8_t bbt_t;
+	using bbt_t = uint8_t;
 
 	class Bitbase {
 	public:
-		Bitbase(bool loaded = false) : _sizeInBit(0), _loaded(loaded) {}
+		explicit Bitbase(bool loaded = false) : _loaded(loaded), _sizeInBit(0) {}
 
 		/**
 		 * @param sizeInBit number of positions stored in the bitbase
 		 */
-		Bitbase(uint64_t sizeInBit) : _loaded(true) {
+		explicit Bitbase(uint64_t sizeInBit) : _loaded(true), _sizeInBit(0) {
 			setSize(sizeInBit);
 		};
 
@@ -65,7 +65,7 @@ namespace QaplaBitbase {
 		/**
 		 * Gets the amount of stored positions
 		 */
-		uint64_t getSizeInBit() { return _sizeInBit; }
+		uint64_t getSizeInBit() const { return _sizeInBit; }
 
 		/**
 		 * Sets all elements in the _bitbase to zero
@@ -124,46 +124,65 @@ namespace QaplaBitbase {
 		/**
 		 * Stores a bitbase uncompressed to a file
 		 */
-		void storeUncompressed(string fileName) {
-			ofstream fout(fileName, ios::out | ios::binary);
+		void storeUncompressed(const std::string& fileName) {
+			std::ofstream fout(fileName, std::ios::out | std::ios::binary);
+			if (!fout) {
+				std::cerr << "Error: Cannot open file for writing: " << fileName << std::endl;
+				return;
+			}
+
 			uint64_t size = _bitbase.size();
 			uint8_t compression = 0;
-			fout.write((char*)&size, sizeof(size));
-			fout.write((char*)&compression, sizeof(compression));
-			fout.write((char*)&_bitbase[0], size * sizeof(bbt_t));
+
+			fout.write(reinterpret_cast<const char*>(&size), sizeof(size));
+			fout.write(reinterpret_cast<const char*>(&compression), sizeof(compression));
+			fout.write(reinterpret_cast<const char*>(_bitbase.data()), size * sizeof(bbt_t));
+
+			if (!fout) {
+				std::cerr << "Error: Failed while writing to file: " << fileName << std::endl;
+			}
 			fout.close();
 		}
+
 
 		/**
 		 * Stores a _bitbase to a file
 		 */
-		void storeToFile(string fileName, bool test = false, bool verbose = false) {
-			vector<bbt_t> compressed;
-			vector<bbt_t> uncompressed;
+		void storeToFile(string fileName, string signature, bool test = false, bool verbose = false) {
 			if (verbose) cout << "compressing " << endl;
-			QaplaCompress::compress(_bitbase, compressed);
+			auto compressed = std::move(QaplaCompress::compress(_bitbase));
+			if (signature != "") {
+				writeCompressedVectorAsCppFile(compressed, signature, signature + ".h");
+			}
 			if (test) {
-				cout << "testing compression ... " << endl;
-				QaplaCompress::uncompress(compressed, uncompressed, _bitbase.size());
+				if (verbose) std::cout << "testing compression ... " << std::endl;
+				auto uncompressed = QaplaCompress::uncompress(compressed, _bitbase.size());
 				if (_bitbase != uncompressed) {
-					cout << " compression error " << fileName << endl;
+					std::cerr << "compression error in file: " << fileName << std::endl;
 					for (uint64_t index = 0; index < _bitbase.size(); index++) {
 						if (_bitbase[index] != uncompressed[index]) {
-							cout << " First error at index: " << index
+							std::cerr << " First error at index: " << index
 								<< " required: " << int(_bitbase[index])
 								<< " found: " << int(uncompressed[index])
-								<< endl;
+								<< std::endl;
 						}
 					}
 				}
 				else {
-					cout << "OK! Original file and uncompressed file are identical" << endl;
+					if (verbose) std::cout << "OK! Original file and uncompressed file are identical" << std::endl;
 				}
 			}
 			ofstream fout(fileName, ios::out | ios::binary);
+			if (!fout) {
+				std::cerr << "Error: Cannot open file for writing: " << fileName << std::endl;
+				return;
+			}
 			uint64_t size = compressed.size();
 			fout.write((char*)&size, sizeof(size));
 			fout.write((char*)&compressed[0], size * sizeof(bbt_t));
+			if (!fout) {
+				std::cerr << "Error: Failed while writing to file: " << fileName << std::endl;
+			}
 			fout.close();
 		}
 
@@ -185,7 +204,7 @@ namespace QaplaBitbase {
 		 * Retrieves all indexes from the bitbase as vector
 		 */
 		void getAllIndexes(const Bitbase& andNot, vector<uint64_t>& indexes) const {
-			for (uint64_t index = 0; index < _sizeInBit; index += 8) {
+			for (uint64_t index = 0; index < _sizeInBit; index += BITS_IN_ELEMENT) {
 				uint64_t bbIndex = index / BITS_IN_ELEMENT;
 				bbt_t value = _bitbase[bbIndex] & ~andNot._bitbase[bbIndex] ;
 				for (uint64_t sub = 0; value; sub++, value /= 2) {
@@ -199,25 +218,86 @@ namespace QaplaBitbase {
 		/**
 		 * Retrieves the amount of won positions in the bitbase
 		 */
-		uint64_t computeWonPositions(uint64_t begin = 0, uint64_t end = -1) const {
+		uint64_t computeWonPositions(uint64_t begin = 0) const {
 			uint64_t result = 0;
 			for (uint64_t index = begin; index < _bitbase.size(); index ++) {
-				for (uint8_t content = _bitbase[index]; content != 0; content &= content - 1) {
-					result++;
-				}
+				result += std::popcount(_bitbase[index]);
 			}
 			return result;
 		}
 
+		void writeCompressedVectorAsCppFile(const std::vector<uint8_t>& data, const std::string& varName, const std::string& filename) {
+			std::ofstream out(filename);
+			if (!out.is_open()) {
+				throw std::runtime_error("Cannot open output file: " + filename);
+			}
+
+			out << "#pragma once" << std::endl << std::endl;
+			out << "#include <cstdint>" << std::endl << std::endl;
+			out << "constexpr uint32_t " << varName << "_size = " << data.size() << ";" << std::endl;
+			out << "constexpr uint32_t " << varName << "[] = {";
+
+			size_t fullChunks = data.size() / 4;
+			size_t remaining = data.size() % 4;
+
+			auto read32 = [&](size_t index) -> uint32_t {
+				uint32_t val = 0;
+				for (size_t i = 0; i < 4; ++i) {
+					size_t pos = index * 4 + i;
+					val |= (pos < data.size() ? data[pos] : 0) << (i * 8); // little endian
+				}
+				return val;
+				};
+			std::string spacer = "";
+			for (size_t i = 0; i < fullChunks + (remaining ? 1 : 0); ++i) {
+				uint32_t value = read32(i);
+				if (i % 10 == 0) out << std::endl << "  ";
+				out << spacer << "0x" << std::hex << std::setw(8) << std::setfill('0') << value;
+				spacer = ",";
+			}
+
+			out << std::endl << "};" << std::endl;
+			out.close();
+		}
+
+		void loadFromEmbeddedData(const uint32_t* data32, uint32_t byteSize, uint64_t sizeInBit, bool verbose) {
+			std::vector<bbt_t> compressed;
+			compressed.reserve(byteSize);
+
+			// uint32_t -> 4 bytes (little endian)
+			for (uint32_t i = 0; i < byteSize / 4; ++i) {
+				uint32_t val = data32[i];
+				compressed.push_back(static_cast<bbt_t>(val & 0xFF));
+				compressed.push_back(static_cast<bbt_t>((val >> 8) & 0xFF));
+				compressed.push_back(static_cast<bbt_t>((val >> 16) & 0xFF));
+				compressed.push_back(static_cast<bbt_t>((val >> 24) & 0xFF));
+			}
+
+			// Cut on not full 4 bytes
+			if (byteSize % 4 != 0) {
+				uint32_t val = data32[byteSize / 4];
+				for (uint32_t i = 0; i < byteSize % 4; ++i) {
+					compressed.push_back(static_cast<bbt_t>((val >> (8 * i)) & 0xFF));
+				}
+			}
+
+			_bitbase = QaplaCompress::uncompress(compressed, sizeInBit / BITS_IN_ELEMENT + 1);
+			_sizeInBit = sizeInBit;
+			_loaded = true;
+
+			if (verbose) {
+				std::cout << "Bitbase loaded from embedded data, sizeInBit = " << _sizeInBit << std::endl;
+			}
+		}
+
+
 		/**
 		 * Returns true, if the _bitbase is _loaded
 		 */
-		bool isLoaded() { return _loaded; }
+		bool isLoaded() const { return _loaded; }
 
 	private:
-		typedef uint8_t bbt_t;
-
-
+		
 		/**
 		 * Reads a _bitbase from the file
 		 */
@@ -225,19 +305,16 @@ namespace QaplaBitbase {
 			_sizeInBit = sizeInBit;
 			ifstream fin(fileName, ios::in | ios::binary);
 			if (!fin.is_open()) {
-				/*
-				string message = "Error reading bitbase file ";
-				perror((message + fileName + ": ").c_str());
-				*/
+				std::cerr << "Error: Cannot open file for reading: " << fileName << std::endl;
 				return false;
 			}
 			uint64_t size;
-			fin.read((char*)&size, sizeof(size));
+			fin.read(reinterpret_cast<char*>(&size), sizeof(size));
 			vector<bbt_t> compressed;
 			_bitbase.clear();
 			compressed.resize(size);
-			fin.read((char*)&compressed[0], size * sizeof(bbt_t));
-			QaplaCompress::uncompress(compressed, _bitbase, sizeInBit);
+			fin.read(reinterpret_cast<char*>(&compressed[0]), size * sizeof(bbt_t));
+			_bitbase = std::move(QaplaCompress::uncompress(compressed, _sizeInBit));
 			fin.close();
 			if (verbose) {
 				cout << "Read: " << fileName << endl;
@@ -265,5 +342,3 @@ namespace QaplaBitbase {
 	}
 
 }
-
-#endif // BITBASE_H

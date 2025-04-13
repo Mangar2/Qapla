@@ -1840,12 +1840,14 @@
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
     <ClCompile Include="bitbase\bitbasereader.cpp" />
     <ClCompile Include="bitbase\compress.cpp" />
+    <ClCompile Include="bitbase\lz4.c" />
     <ClCompile Include="bitbase\reverseindex.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\pawn.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
+    <ClCompile Include="interface\bitbase-interface.cpp" />
     <ClCompile Include="interface\candidate-trainer.cpp" />
     <ClCompile Include="interface\optimizer.cpp" />
     <ClCompile Include="interface\statistics.cpp" />
@@ -1910,6 +1912,7 @@
     <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="eval\rook.h" />
     <ClInclude Include="eval\threat.h" />
+    <ClInclude Include="interface\bitbase-interface.h" />
     <ClInclude Include="interface\candidate-trainer.h" />
     <ClInclude Include="interface\chessinterface.h" />
     <ClInclude Include="interface\clocksetting.h" />

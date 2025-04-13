@@ -25,6 +25,7 @@
 #include "winboardprintsearchinfo.h"
 #include "uci.h"
 #include "statistics.h"
+#include "bitbase-interface.h"
 #include "uciprintsearchinfo.h"
 
 using namespace std;
@@ -57,6 +58,10 @@ namespace QaplaInterface {
 			Statistics statistics;
 			statistics.run(board, ioHandler);
 		} 
+		else if (startsWith(firstToken, { "bitgenerate", "bitverify" })) {
+			BitbaseInterface bitboardInterface;
+			bitboardInterface.run(board, ioHandler);
+		}
 		else {
 			Winboard winboard;
 			WinboardPrintSearchInfo sendSearchInfo(ioHandler);
