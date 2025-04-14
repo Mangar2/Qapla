@@ -211,7 +211,6 @@ value_t EvalEndgame::winningValue(MoveGenerator& position, value_t value) {
 
 template <Piece COLOR>
 value_t EvalEndgame::KPsKR(MoveGenerator& position, value_t value) {
-	if (position.getEvalVersion() == 0) return value;
 	auto const OPPONENT = opponentColor<COLOR>();
 	auto kingSquare = position.getKingSquare<COLOR>();
 	auto opponentKingSquare = position.getKingSquare<OPPONENT>();

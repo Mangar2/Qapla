@@ -505,7 +505,7 @@ namespace ChessEval {
 				value_t value = 0;
 				map[bitmask] = value;
 				const value_t rank = bitmask & RANK_MASK;
-				value_t threatValue = std::array{ 0, 0,  0,  10, 20, 40, 80, 0 }[rank];
+				value_t threatValue = std::array{ 0, 0,  0,  10, 15, 25, 60, 0 }[rank];
 				if (threatValue == 0) continue;
 				bool isAttacked = bitmask & PP_IS_ATTACKED_INDEX;
 				threatValue /= (1 + isAttacked);
