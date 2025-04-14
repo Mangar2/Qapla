@@ -26,9 +26,10 @@
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
+#include <bit>
 #include "compress.h"
 #include "bitbaseindex.h"
-#include "../position/piecelist.h"
+#include "piecelist.h"
 
 using namespace std;
 
@@ -101,11 +102,11 @@ namespace QaplaBitbase {
         fout.close();
     }
 
-    void Bitbase::storeToFile(string fileName, string signature, bool test, bool verbose) {
+    void Bitbase::storeToFile(string fileName, string signature, bool first, bool test, bool verbose) {
         if (verbose) cout << "compressing\n";
         auto compressed = QaplaCompress::compress(_bitbase);
 
-        if (!signature.empty()) {
+        if (!signature.empty() && first) {
             writeCompressedVectorAsCppFile(compressed, signature, signature + ".h");
         }
 
@@ -230,7 +231,6 @@ namespace QaplaBitbase {
         _sizeInBit = sizeInBit;
         ifstream fin(fileName, ios::binary);
         if (!fin) {
-            cerr << "Error: Cannot open file for reading: " << fileName << endl;
             return false;
         }
         uint64_t size = 0;

@@ -192,12 +192,12 @@ namespace QaplaBitbase {
 		/**
 		 * Stores the result (bitbase with winning positions) to a file
 		 */
-		void storeToFile(string fileName, string signature, bool uncompressed, bool test = false, bool verbose = false) { 
+		void storeToFile(string fileName, string signature, bool uncompressed, bool first, bool test = false, bool verbose = false) { 
 			if (uncompressed) {
 				_wonPositions.storeUncompressed(fileName);
 			}
 			else {
-				_wonPositions.storeToFile(fileName, signature, test, verbose);
+				_wonPositions.storeToFile(fileName, signature, first, test, verbose);
 			}
 		}
 

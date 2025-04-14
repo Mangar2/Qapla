@@ -188,7 +188,6 @@ namespace QaplaInterface {
 									<< "\r" << gamesPlayed << "/" << positions
 									<< " time (s): " << timeSpentInSeconds << "/" << estimatedTotalTime
 									<< " result: " << std::fixed << std::setprecision(2) << CandidateTrainer::getScore() << "%"
-									<< " 50moves: " << fiftyMovesRule
 									<< " confidence: " << (confidence.first * 100.0) << "% - " << (confidence.second * 100.0) << "%   ";
 
 								if (gamesPlayed == games) std::cout << std::endl;

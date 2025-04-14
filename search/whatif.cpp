@@ -53,7 +53,7 @@ void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo
 	}
 }
 
-void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, Move currentMove, ply_t ply)
+void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, Move currentMove, ply_t depth, ply_t ply)
 {
 	if (computingInfo.isExcludedFromWhatIf()) return;
 	if (ply <= hashFoundPly)
@@ -64,7 +64,7 @@ void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo
 	moveSelected(board, computingInfo, currentMove, ply, false);
 	if ((ply - 1) == hashFoundPly && -1 != hashFoundPly)
 	{
-		WhatIfVariables variables(computingInfo, stack, currentMove, stack[ply].getRemainingDepth(), ply - 1, NO_VALUE, "");
+		WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply - 1, NO_VALUE, "");
 		variables.printSelected();
 	}
 }

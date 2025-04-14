@@ -396,12 +396,15 @@ namespace ChessEval {
 					index += ((supported & pawn) != 0) * PP_IS_SUPPORTED_INDEX * i;
 					if (rank + i > Rank::R7) break;
 				}
-				value += ppThreatMap[index];
-				value += kingNearPassedPawn<COLOR>(position, frontOfPawn);
+				EvalValue propertyValue = ppThreatMap[index];
+				propertyValue += kingNearPassedPawn<COLOR>(position, frontOfPawn);
+				value += propertyValue;
+
 				if constexpr (STORE_DETAILS) {
 					if (index > RANK_MASK) {
 						const IndexVector indexVector{ { "ppThreat", index, COLOR } };
-						details->push_back({ PAWN + COLOR, pawnSquare, indexVector, "", COLOR == WHITE ? value : -value });
+						const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+						details->push_back({ PAWN + COLOR, pawnSquare, indexVector, "", property });
 					}
 				}
 			}
@@ -496,7 +499,7 @@ namespace ChessEval {
 		static const uint32_t PP_NOT_BLOCKED_INDEX			= 0x40;
 		static const uint32_t PP_INDEX_SIZE					= 0x100;
 
-		inline static array<value_t, PP_INDEX_SIZE> ppThreatMap = [] {
+		static constexpr array<value_t, PP_INDEX_SIZE> ppThreatMap = [] {
 			array<value_t, PP_INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < PP_INDEX_SIZE; ++bitmask) {
 				value_t value = 0;
@@ -506,8 +509,7 @@ namespace ChessEval {
 				if (threatValue == 0) continue;
 				bool isAttacked = bitmask & PP_IS_ATTACKED_INDEX;
 				threatValue /= (1 + isAttacked);
-				value_t divisor = 1;
-				for (value_t divisor = 1; divisor <= 2; divisor++) {
+				for (value_t divisor = 1; divisor <= 2 && rank + divisor <= 7; divisor++) {
 					bool isNotBlocked = bitmask & (PP_NOT_BLOCKED_INDEX * divisor);
 					if (!isNotBlocked) break;
 					bool isSupported = bitmask & (PP_IS_SUPPORTED_INDEX * divisor);

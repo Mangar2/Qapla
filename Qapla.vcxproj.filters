@@ -87,7 +87,7 @@
     <ClCompile Include="bitbase\bitbaseindex.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
-    <ClCompile Include="bitbase\bitbasereader.cpp">
+    <ClCompile Include="bitbase\bitbase-reader.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
     <ClCompile Include="eval\eval.cpp">
@@ -136,6 +136,15 @@
       <Filter>interface</Filter>
     </ClCompile>
     <ClCompile Include="bitbase\lz4.c">
+      <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\bitbase.cpp">
+      <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\miniz.c">
+      <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\compress-miniz.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
   </ItemGroup>
@@ -212,7 +221,7 @@
     <ClInclude Include="bitbase\bitbase.h">
       <Filter>bitbase</Filter>
     </ClInclude>
-    <ClInclude Include="bitbase\bitbasereader.h">
+    <ClInclude Include="bitbase\bitbase-reader.h">
       <Filter>bitbase</Filter>
     </ClInclude>
     <ClInclude Include="bitbase\bitbaseindex.h">
@@ -439,6 +448,12 @@
     </ClInclude>
     <ClInclude Include="interface\bitbase-interface.h">
       <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\KPK.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\miniz.h">
+      <Filter>bitbase</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

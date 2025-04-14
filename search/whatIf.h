@@ -176,7 +176,7 @@ namespace QaplaSearch {
 		void startSearch(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply) {};
 
 		void moveSelected(const Board& board, const ComputingInfo& computingInfo, Move currentMove, ply_t ply, bool inQsearch) {};
-		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {};
+		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply) {};
 
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack,
 			Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType = "") {};
@@ -207,7 +207,7 @@ namespace QaplaSearch {
 		void startSearch(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply);
 
 		void moveSelected(const Board& board, const ComputingInfo& computingInfo, Move currentMove, ply_t ply, bool inQsearch);
-		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply);
+		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply);
 
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, 
 			Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType = "");

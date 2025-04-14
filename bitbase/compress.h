@@ -47,7 +47,8 @@ namespace QaplaCompress {
 		uncompresed = 0,
 		inflated = 1,
 		huffman = 2,
-		lz4 = 3
+		lz4 = 3,
+		miniz = 4
 	};
 
 	/**
@@ -69,6 +70,17 @@ namespace QaplaCompress {
 	 * Decompresses a vector using LZ4
 	 */
 	std::vector<bbt_t> lz4Uncompress(const std::vector<bbt_t>& compressed, size_t decompressedSize);
+
+	/**
+	 * Compresses a vector using miniz
+	 */
+	std::vector<bbt_t> minizCompress(const std::vector<bbt_t>& input);
+
+	/**
+	 * Decompresses a vector using miniz
+	 */
+	std::vector<bbt_t> minizUncompress(const std::vector<bbt_t>& compressed, size_t decompressedSize);
+
 }
 
 

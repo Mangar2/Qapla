@@ -29,7 +29,7 @@
 #include "boardaccess.h"
 #include "workpackage.h"
 #include "generationstate.h"
-#include "bitbasereader.h"
+#include "bitbase-reader.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -247,8 +247,9 @@ namespace QaplaBitbase {
 		/**
 		 * Computes a bitbase for a set of pieces described by a piece list.
 		 * @param pieceList list of pieces in the bitbase
+		 * @param first true, if this is a primary bitbase and not an additionally required and recursively identified bitbase
 		 */
-		void computeBitbase(PieceList& pieceList);
+		void computeBitbase(PieceList& pieceList, bool first);
 
 		/**
 		 * Recursively computes bitbases based on a bitbase string

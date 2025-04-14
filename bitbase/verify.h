@@ -28,7 +28,7 @@
 #include "boardaccess.h"
 #include "workpackage.h"
 #include "generationstate.h"
-#include "bitbasereader.h"
+#include "bitbase-reader.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;

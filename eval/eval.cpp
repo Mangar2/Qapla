@@ -36,6 +36,8 @@ using namespace ChessEval;
 std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& position) {
 	EvalResults evalResults;
 	initEvalResults(position, evalResults);
+	evalResults.midgameInPercent = computeMidgameInPercent(position);
+	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(position);
 
 	std::vector<PieceInfo> details;
 	Pawn::evalWithDetails(position, evalResults, details);
@@ -120,37 +122,37 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	// Try endgame evaluation first. If it returns a modified value, use it.
 	// This indicates a known endgame pattern was recognized.
 	// Otherwise, continue the standard evaluation
-	value_t endGameResult = EvalEndgame::eval(position, evalValue.endgame());
-	if (evalValue.endgame() != endGameResult) {
+
+	evalValue += position.isWhiteToMove() ? tempo : -tempo;
+
+	// Do not change ordering of the following calls. King attack needs result from Mobility
+	evalValue += Rook::eval(position, evalResults);
+	evalValue += Bishop::eval(position, evalResults);
+	evalValue += Knight::eval(position, evalResults);
+	evalValue += Queen::eval(position, evalResults);
+	evalValue += Threat::eval(position, evalResults);
+	evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
+	evalValue += King::eval(position, evalResults);
+
+	if (evalResults.midgameInPercent > 0) {
+		evalValue += KingAttack::eval(position, evalResults);
+	}
+
+	result += evalValue.getValue(evalResults.midgameInPercentV2);
+
+	if constexpr (PRINT) {
+		std::vector<PieceInfo> details = fetchDetails(position);
+		printEvalBoard(details, evalResults.midgameInPercentV2);
+	}
+
+	value_t endGameResult = EvalEndgame::eval(position, result);
+	if (endGameResult != result) {
 		result = endGameResult;
 		if (result > MIN_MATE_VALUE) {
 			result -= ply;
 		}
 		if (result < -MIN_MATE_VALUE) {
 			result += ply;
-		}
-	}
-	else {
-		evalValue += position.isWhiteToMove() ? tempo : -tempo;
-
-		// Do not change ordering of the following calls. King attack needs result from Mobility
-		evalValue += Rook::eval(position, evalResults);
-		evalValue += Bishop::eval(position, evalResults);
-		evalValue += Knight::eval(position, evalResults);
-		evalValue += Queen::eval(position, evalResults);
-		evalValue += Threat::eval(position, evalResults);
-		evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
-		evalValue += King::eval(position, evalResults);
-
-		if (evalResults.midgameInPercent > 0) {
-			evalValue += KingAttack::eval(position, evalResults);
-		}
-
-		result += evalValue.getValue(evalResults.midgameInPercentV2);
-
-		if constexpr (PRINT) {
-			std::vector<PieceInfo> details = fetchDetails(position);
-			printEvalBoard(details, evalResults.midgameInPercentV2);
 		}
 	}
 	// If a value == 0, the position will not be stored in hash tables

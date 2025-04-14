@@ -30,7 +30,7 @@ using namespace std;
 
 namespace QaplaCompress {
 
-	typedef uint8_t bbt_t;
+	using bbt_t = uint8_t;
 
 	struct HuffmanNode {
 

@@ -17,6 +17,8 @@
  * @copyright Copyright (c) 2021 Volker B�hm
  */
 
+
+
 #include <iostream>
 #include <queue>
 #include <array>
@@ -72,12 +74,12 @@ std::vector<QaplaCompress::bbt_t> QaplaCompress::lz4Uncompress(const std::vector
 	return decompressed;
 }
 
- /**
-  * Compresses a vector using the best available method (default: LZ4)
-  */
+/**
+ * Compresses a vector using the best available method (default: LZ4)
+ */
 std::vector<QaplaCompress::bbt_t> QaplaCompress::compress(const std::vector<bbt_t>& in, bool verbose) {
 	std::vector<bbt_t> out;
-
+	/*
 	// Default: use LZ4
 	auto compressed = lz4Compress(in);
 	out.push_back(static_cast<bbt_t>(Compression::lz4));
@@ -85,6 +87,15 @@ std::vector<QaplaCompress::bbt_t> QaplaCompress::compress(const std::vector<bbt_
 
 	if (verbose) {
 		std::cout << "Original: " << in.size() << " compressed (LZ4): " << compressed.size()
+			<< " total with header: " << out.size() << std::endl;
+	}
+	*/
+	// Use miniz
+	auto compressed = minizCompress(in);
+	out.push_back(static_cast<bbt_t>(Compression::miniz));
+	out.insert(out.end(), compressed.begin(), compressed.end());
+	if (verbose) {
+		std::cout << "Original: " << in.size() << " compressed (miniz): " << compressed.size()
 			<< " total with header: " << out.size() << std::endl;
 	}
 
@@ -114,6 +125,10 @@ std::vector<QaplaCompress::bbt_t> QaplaCompress::uncompress(const std::vector<bb
 	else if (compression == Compression::lz4) {
 		std::vector<bbt_t> compressed(in.begin() + 1, in.end());
 		out = lz4Uncompress(compressed, outSize);
+	}
+	else if (compression == Compression::miniz) {
+		std::vector<bbt_t> compressed(in.begin() + 1, in.end());
+		out = minizUncompress(compressed, outSize);
 	}
 	else {
 		// uncompressed fallback

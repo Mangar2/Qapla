@@ -37,7 +37,7 @@
 #include "movehistory.h"
 #include "../bitbase/bitbasegenerator.h"
 #include "../bitbase/verify.h"
-#include "../bitbase/bitbasereader.h"
+#include "../bitbase/bitbase-reader.h"
 
 using namespace QaplaMoveGenerator;
 using namespace QaplaInterface;

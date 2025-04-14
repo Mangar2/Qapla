@@ -67,6 +67,7 @@ namespace ChessEval {
 		}
 
 	private:
+
 		/**
 		 * Checks, if a square is set in a bitmask handling color symmetry
 		 * @returns true, if the square is set in the bitmask
@@ -120,6 +121,9 @@ namespace ChessEval {
 		static value_t KPsK(MoveGenerator& board, value_t currentValue);
 
 		static value_t KPsKPs(MoveGenerator& board, value_t currentValue);
+
+		template <Piece COLOR>
+		static value_t KPsKR(MoveGenerator& position, value_t value);
 
 		template <Piece COLOR>
 		static value_t KBNK(MoveGenerator& board, value_t currentValue);
@@ -200,6 +204,12 @@ namespace ChessEval {
 		}
 
 		/**
+		 * Checks, if king cannot prevent pawn from promoting
+		 */
+		template <Piece COLOR>
+		static bool isRunner(MoveGenerator& board, Square pawnSquare);
+
+		/**
 		 * Computes the distance between two kings
 		 */
 		static value_t computeKingDistance(MoveGenerator& board);
@@ -222,10 +232,8 @@ namespace ChessEval {
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AAULL;
 		static const bitBoard_t BLACK_FIELDS = 0xAA55AA55AA55AA55ULL;
 
-		static constexpr value_t BONUS[COLOR_COUNT] = { WINNING_BONUS, -WINNING_BONUS };
 		static constexpr value_t NEAR_DRAW[COLOR_COUNT] = { 20, -20 };
 		static constexpr Square UP[COLOR_COUNT] = { NORTH, SOUTH };
-		static constexpr value_t COLOR_VALUE[COLOR_COUNT] = { 1, -1 };
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
 

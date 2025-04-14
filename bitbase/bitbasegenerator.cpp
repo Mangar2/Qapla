@@ -27,7 +27,7 @@
 #include "../search/moveprovider.h"
 #include "bitbaseindex.h"
 #include "generationstate.h"
-#include "bitbasereader.h"
+#include "bitbase-reader.h"
 #include "bitbasegenerator.h"
 
 using namespace std;
@@ -546,7 +546,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 /**
  * Computes a bitbase for a set of pieces described by a piece list.
  */
-void BitbaseGenerator::computeBitbase(PieceList &pieceList)
+void BitbaseGenerator::computeBitbase(PieceList &pieceList, bool first)
 {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
@@ -578,7 +578,7 @@ void BitbaseGenerator::computeBitbase(PieceList &pieceList)
 	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
 	cout << "c";
-	state.storeToFile(fileName, pieceString, _uncompressed, _debugLevel > 1, _traceLevel > 1);
+	state.storeToFile(fileName, pieceString, _uncompressed, first, _debugLevel > 1, _traceLevel > 1);
 	printTimeSpent(clock, 0, _traceLevel == 0);
 	printStatistic(state, 1);
 	cout << endl;
@@ -621,7 +621,7 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first)
 
 	if (first || !BitbaseReader::isBitbaseAvailable(pieceString))
 	{
-		computeBitbase(pieceList);
+		computeBitbase(pieceList, first);
 		if (_debugLevel > 1)
 		{
 			compareFiles(pieceString);

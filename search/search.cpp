@@ -20,7 +20,7 @@
 #include "search.h"
 #include "whatIf.h"
 #include "quiescence.h"
-#include "../bitbase/bitbasereader.h"
+#include "../bitbase/bitbase-reader.h"
 
 using namespace QaplaSearch;
 
@@ -341,7 +341,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		node.setCutoff(Cutoff::HASH);
 		return node.bestValue;
 	}
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, depth, ply);
 
 	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
 	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
@@ -460,7 +460,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
 	node.computeMoves(position, _butterflyBoard);
 	_computingInfo.nextIteration(node);
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::Engine::set_position(position.getFen());
 #endif

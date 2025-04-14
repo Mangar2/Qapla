@@ -41,6 +41,15 @@ namespace QaplaBasics {
 	// the draw value is reseved and signales a forced draw (stalemate, repetition)
 	const value_t DRAW_VALUE = 1;
 
+	template <Piece COLOR> value_t whiteValue(value_t value) {
+		if constexpr (COLOR == WHITE) {
+			return value;
+		}
+		else {
+			return -value;
+		}
+	}
+
 	class EvalValue {
 	public:
 		constexpr EvalValue() : _midgame(0), _endgame(0) {}
