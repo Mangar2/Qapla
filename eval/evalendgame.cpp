@@ -44,8 +44,8 @@ EvalEndgame::InitStatics::InitStatics() {
 
 	// Queen
 	REGISTER("KQ+R*B*N*P*K", forceToAnyCornerToMate);
-	REGISTER("KQR*B*N*P*KB", ForceToCornerWithBonus);
-	REGISTER("KQR*B*N*P*KN", ForceToCornerWithBonus);
+	REGISTER("KQR*B*N*P*KB", forceToCornerWithBonus);
+	REGISTER("KQR*B*N*P*KN", forceToCornerWithBonus);
 	REGISTER("KQKR", KQKR);
 	REGISTER("KQNKQ", forceToAnyCornerButDraw);
 	REGISTER("KQP+KRP+", KQPsKRPs);
@@ -132,10 +132,9 @@ template<Piece COLOR>
 value_t EvalEndgame::KQPsKRPs(MoveGenerator& position, value_t value) {
 	static const value_t QUEEN_BONUS_PER_PAWN = 10;
 	
-	auto result = value;
 	auto pawnAmount = popCount(position.getPieceBB(WHITE_PAWN) | position.getPieceBB(BLACK_PAWN));
-	result += whiteValue<COLOR>(QUEEN_BONUS_PER_PAWN) * pawnAmount;
-	return result;
+	value += whiteValue<COLOR>(QUEEN_BONUS_PER_PAWN) * pawnAmount;
+	return value;
 }
 
 template <Piece COLOR>
@@ -239,9 +238,9 @@ value_t EvalEndgame::KBNK(MoveGenerator& position, value_t value) {
 	Square themKingSquare = position.getKingSquare<switchColor(COLOR)>();
 	bitBoard_t usBishops = position.getPieceBB(BISHOP + COLOR);
 	Square usKnightSquare = lsb(position.getPieceBB(KNIGHT + COLOR));
-	value_t cornerValue = forceToCorrectCorner<COLOR>(position, 0, usBishops & WHITE_FIELDS) * 5;
-	value_t knightDistance = computeDistance(themKingSquare, usKnightSquare) * 2;
-	value = whiteValue<COLOR>(MAX_BONUS + cornerValue - knightDistance);
+	value = forceToCorrectCorner<COLOR>(position, 0, usBishops & WHITE_FIELDS) * 50;
+	value_t knightDistance = manhattenDistance(themKingSquare, usKnightSquare) * 20;
+	value += whiteValue<COLOR>(WINNING_BONUS - knightDistance);
 	return value;
 }
 
@@ -312,6 +311,10 @@ value_t EvalEndgame::KNPsK(MoveGenerator& position, value_t value) {
 
 template <Piece COLOR>
 value_t EvalEndgame::KQKR(MoveGenerator& position, value_t value) {
+	return forceToAnyCorner<COLOR>(position, value);
+	// The following code seems to be missleading as the position cannot be won in many cases without
+	// egtb
+	/*
 	value_t result = value;
 	const Piece OPPONENT_COLOR = switchColor(COLOR);
 	Square opponentKingSquare = position.getKingSquare<OPPONENT_COLOR>();
@@ -325,6 +328,7 @@ value_t EvalEndgame::KQKR(MoveGenerator& position, value_t value) {
 
 	result = forceToAnyCorner<COLOR>(position, result);
 	return result;
+	*/
 }
 
 template <Piece COLOR>
@@ -336,15 +340,15 @@ template <Piece COLOR>
 value_t EvalEndgame::forceToAnyCornerToMate(MoveGenerator& position, value_t value) {
 	Square themKingSquare = position.getKingSquare<switchColor(COLOR)>();
 	Square usKingSquare = position.getKingSquare<COLOR>();
-	value_t themKingDistanceToCorner = computeDistanceToAnyCorner(themKingSquare);
-	value_t usKingDinstanceToCorner = computeDistanceToAnyCorner(usKingSquare);
-	value_t distanceValue = -computeKingDistance(position) * 8;
+	value_t themKingDistanceToCorner = distanceToAnyCorner(themKingSquare);
+	value_t usKingDinstanceToCorner = distanceToAnyCorner(usKingSquare);
+	value_t distanceValue = -manhattenKingDistance(position) * 8;
 	distanceValue -= themKingDistanceToCorner * 4;
 	if (usKingDinstanceToCorner < themKingDistanceToCorner) {
 		distanceValue -= (themKingDistanceToCorner - usKingDinstanceToCorner) * 16;
 	}
 
-	value = whiteValue<COLOR>(MAX_BONUS + distanceValue);
+	value += whiteValue<COLOR>(2 * WINNING_BONUS + distanceValue * 2);
 	return value;
 }
 
@@ -352,9 +356,9 @@ template <Piece COLOR>
 value_t EvalEndgame::forceToAnyCorner(MoveGenerator& position, value_t value) {
 	Square opponentKingSquare = position.getKingSquare<switchColor(COLOR)>();
 	Square kingSquare = position.getKingSquare<COLOR>();
-	value_t opponentKingDistanceToCorner = computeDistanceToAnyCorner(opponentKingSquare);
-	value_t ownKingDinstanceToCorner = computeDistanceToAnyCorner(kingSquare);
-	value_t distanceValue = -computeKingDistance(position) * 2;
+	value_t opponentKingDistanceToCorner = distanceToAnyCorner(opponentKingSquare);
+	value_t ownKingDinstanceToCorner = distanceToAnyCorner(kingSquare);
+	value_t distanceValue = -manhattenKingDistance(position) * 2;
 	distanceValue -= opponentKingDistanceToCorner * 1;
 	if (ownKingDinstanceToCorner < opponentKingDistanceToCorner) {
 		distanceValue -= (opponentKingDistanceToCorner - ownKingDinstanceToCorner) * 4;
@@ -367,13 +371,13 @@ value_t EvalEndgame::forceToAnyCorner(MoveGenerator& position, value_t value) {
 template <Piece COLOR>
 value_t EvalEndgame::forceToCorrectCorner(MoveGenerator& position, value_t value, bool whiteCorner) {
 	Square opponentKingSquare = position.getKingSquare<switchColor(COLOR)>();
-	value_t distanceValue = -computeKingDistance(position) * 1 - computeDistanceToCorrectCorner(opponentKingSquare, whiteCorner) * 2;
+	value_t distanceValue = -manhattenKingDistance(position) * 1 - distanceToCorrectColorCorner(opponentKingSquare, whiteCorner) * 2;
 	value += whiteValue<COLOR>(distanceValue);
 	return value;
 }
 
 template <Piece COLOR>
-value_t EvalEndgame::ForceToCornerWithBonus(MoveGenerator& position, value_t value) {
+value_t EvalEndgame::forceToCornerWithBonus(MoveGenerator& position, value_t value) {
 	value = forceToAnyCorner<COLOR>(position, value);
 	value += whiteValue<COLOR>(WINNING_BONUS);
 	return value;
@@ -427,14 +431,14 @@ bool EvalEndgame::isRunner(MoveGenerator& board, Square pawnSquare) {
 /**
  * Computes the "distance" = file + rank distance between two squares 
  */
-value_t EvalEndgame::computeKingDistance(MoveGenerator& position) {
+value_t EvalEndgame::manhattenKingDistance(MoveGenerator& position) {
 	Square square1 = position.getKingSquare<WHITE>();
 	Square square2 = position.getKingSquare<BLACK>();
-	value_t result = computeDistance(square1, square2);
+	value_t result = manhattenDistance(square1, square2);
 	return result;
 }
 
-value_t EvalEndgame::computeDistanceToBorder(Square kingPos) {
+value_t EvalEndgame::distanceToBorder(Square kingPos) {
 	value_t kingFile = value_t(getFile(kingPos));
 	value_t kingRank = value_t(getRank(kingPos));
 	value_t fileDistance = min(kingFile, 7 - kingFile);
@@ -443,7 +447,7 @@ value_t EvalEndgame::computeDistanceToBorder(Square kingPos) {
 	return result;
 }
 
-value_t EvalEndgame::computeDistanceToAnyCorner(Square kingPos) {
+value_t EvalEndgame::distanceToAnyCorner(Square kingPos) {
 	value_t kingFile = value_t(getFile(kingPos));
 	value_t kingRank = value_t(getRank(kingPos));
 	value_t fileDistance = min(kingFile, value_t(File::H) - kingFile);
@@ -451,7 +455,7 @@ value_t EvalEndgame::computeDistanceToAnyCorner(Square kingPos) {
 	return max(fileDistance, rankDistance) * 2 + min(fileDistance, rankDistance);
 }
 
-value_t EvalEndgame::computeDistanceToCorrectCorner(Square kingPos, bool whiteCorner) {
+value_t EvalEndgame::distanceToCorrectColorCorner(Square kingPos, bool whiteCorner) {
 	value_t result;
 	value_t kingFile = value_t(getFile(kingPos));
 	value_t kingRank = value_t(getRank(kingPos));

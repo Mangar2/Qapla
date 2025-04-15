@@ -145,6 +145,11 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 		printEvalBoard(details, evalResults.midgameInPercentV2);
 	}
 
+	const value_t halfmovesWithoutPawnOrCapture = position.getTotalHalfmovesWithoutPawnMoveOrCapture();
+	if (halfmovesWithoutPawnOrCapture > 20) {
+		result -= result * (halfmovesWithoutPawnOrCapture - 20) / 250;
+	}
+
 	value_t endGameResult = EvalEndgame::eval(position, result);
 	if (endGameResult != result) {
 		result = endGameResult;
@@ -244,13 +249,13 @@ void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
 /**
  * Prints the evaluation results
  */
-void Eval::printEval(MoveGenerator& board) {
-	board.print();
+void Eval::printEval(MoveGenerator& position) {
+	position.print();
 
-	value_t evalValue = lazyEval<true>(board, 0);
+	value_t evalValue = lazyEval<true>(position, 0);
 	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }
 
-template value_t Eval::lazyEval<true>(MoveGenerator& board, value_t ply, PawnTT* pawnttPtr);
-template value_t Eval::lazyEval<false>(MoveGenerator& board, value_t ply, PawnTT* pawnttPtr);
+template value_t Eval::lazyEval<true>(MoveGenerator& position, value_t ply, PawnTT* pawnttPtr);
+template value_t Eval::lazyEval<false>(MoveGenerator& position, value_t ply, PawnTT* pawnttPtr);
 

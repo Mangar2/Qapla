@@ -163,7 +163,7 @@ namespace QaplaSearch {
 		string _pv;
 		const SearchStack& _stack;
 		static constexpr array<const char*, int(Cutoff::COUNT)> 
-			_cutoffString = { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL", "BITB", "LOST", "MAXD", "ABOR"};
+			_cutoffString = { "NONE", "REPT", "50MO", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL", "BITB", "LOST", "MAXD", "ABOR"};
 	};
 
 #if (DOWHATIF == false) 

@@ -132,7 +132,7 @@ namespace QaplaSearch {
 				node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
 			}
 			// Must be after node.probeTT, because futility uses the information from TT
-			if (node.futility(position)) {
+			if (node.forewardFutility(position)) {
 				node.setCutoff(Cutoff::FUTILITY);
 				return true;
 			} 

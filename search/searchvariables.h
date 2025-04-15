@@ -247,7 +247,7 @@ namespace QaplaSearch {
 		/**
 		 * Examine, if we can do a futility pruning based on an evaluation score
 		 */
-		inline bool futility(MoveGenerator& position) {
+		inline bool forewardFutility(MoveGenerator& position) {
 			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
 			if (adjustedEval < beta) return false;
@@ -263,7 +263,7 @@ namespace QaplaSearch {
 
 			const bool doFutility = adjustedEval - SearchParameter::futilityMargin(remainingDepth, isImproving) >= beta;
 			if (doFutility) {
-				bestValue = beta + (adjustedEval - beta) / 10;
+				bestValue = beta + (adjustedEval - beta) / 2;
 			}
 			return doFutility;
 		}

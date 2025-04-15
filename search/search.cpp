@@ -357,7 +357,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	node.setFromParentNode(position, parentNode, alpha, beta, depth, TYPE == SearchRegion::PV);
 	
 
-	// Check all kind of early cutoffs including futility, nullmove, bitbase and others 
+	// 7. Check all kind of early cutoffs including futility, nullmove, bitbase and others 
 	// Additionally set eval. This is done as late as possible, as it is very time consuming. Some cutoff checks needs eval.
 	if (checkCutoffAndSetEval<TYPE>(position, stack, node, depth, ply)) {
 		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
@@ -365,7 +365,9 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	node.computeMoves(position, _butterflyBoard);
-	depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
+	// 8. Calculate additional search extensions
+	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
+
 	bool isNullWindow = false;
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {

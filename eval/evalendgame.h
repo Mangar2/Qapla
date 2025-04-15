@@ -173,7 +173,7 @@ namespace ChessEval {
 
 
 		template <Piece COLOR>
-		static value_t ForceToCornerWithBonus(MoveGenerator& board, value_t currentValue);
+		static value_t forceToCornerWithBonus(MoveGenerator& board, value_t currentValue);
 
 		/**
 		 * Check, if a bishop is able to attack the promotion field of a pawn
@@ -197,7 +197,7 @@ namespace ChessEval {
 		/**
 		 * Computes the distance between two squares
 		 */
-		static value_t computeDistance(Square square1, Square square2) {
+		static value_t manhattenDistance(Square square1, Square square2) {
 			value_t fileDistance = abs(value_t(getFile(square1)) - value_t(getFile(square2)));
 			value_t rankDistance = abs(value_t(getRank(square1)) - value_t(getRank(square2)));
 			return fileDistance + rankDistance;
@@ -212,22 +212,22 @@ namespace ChessEval {
 		/**
 		 * Computes the distance between two kings
 		 */
-		static value_t computeKingDistance(MoveGenerator& board);
+		static value_t manhattenKingDistance(MoveGenerator& board);
 
 		/**
 		 * Computes the distance to any border
 		 */
-		static value_t computeDistanceToBorder(Square kingPos);
+		static value_t distanceToBorder(Square kingPos);
 
 		/**
 		 * Computes the distance to any corner
 		 */
-		static value_t computeDistanceToAnyCorner(Square kingPos);
+		static value_t distanceToAnyCorner(Square kingPos);
 
 		/**
 		 * Computes the distance to a white or black corner
 		 */
-		static value_t computeDistanceToCorrectCorner(Square kingPos, bool whiteCorner);
+		static value_t distanceToCorrectColorCorner(Square kingPos, bool whiteCorner);
 
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AAULL;
 		static const bitBoard_t BLACK_FIELDS = 0xAA55AA55AA55AA55ULL;

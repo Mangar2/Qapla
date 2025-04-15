@@ -45,14 +45,14 @@ namespace ChessEval {
 		/**
 		 * Checks, that eval is symmetically identical
 		 */
-		static void assertSymetry(MoveGenerator& board, value_t evalResult, PawnTT* ttPtr) {
-			MoveGenerator symBoard;
-			symBoard.setToSymetricBoard(board);
-			value_t symEvalResult = eval(symBoard, ttPtr, -MAX_VALUE);
+		static void assertSymetry(MoveGenerator& position, value_t evalResult, PawnTT* ttPtr) {
+			MoveGenerator symPosition;
+			symPosition.setToSymetricBoard(position);
+			value_t symEvalResult = eval(symPosition, ttPtr, -MAX_VALUE);
 
 			if (symEvalResult != evalResult) {
-				printEval(board);
-				printEval(symBoard);
+				printEval(position);
+				printEval(symPosition);
 				symEvalResult = evalResult;
 				assert(false);
 			}
@@ -61,32 +61,29 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		 */
-		static value_t eval(MoveGenerator& board, PawnTT* pawnttPtr = nullptr, value_t ply = 0, value_t alpha = -MAX_VALUE) {
+		static value_t eval(MoveGenerator& position, PawnTT* pawnttPtr = nullptr, value_t ply = 0, value_t alpha = -MAX_VALUE) {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else
-			value_t positionValue = lazyEval<false>(board, ply, pawnttPtr);
-			const value_t halfmovesWithoutPawnOrCapture = board.getTotalHalfmovesWithoutPawnMoveOrCapture();
-			if (halfmovesWithoutPawnOrCapture > 20) {
-				positionValue -= positionValue * (halfmovesWithoutPawnOrCapture - 20) / 250;
-			}
-			return board.isWhiteToMove() ? positionValue : -positionValue;
+			value_t positionValue = lazyEval<false>(position, ply, pawnttPtr);
+
+			return position.isWhiteToMove() ? positionValue : -positionValue;
 #endif
 		}
 
 		/**
 		 * Prints the evaluation results
 		 */
-		static void printEval(MoveGenerator& board);
+		static void printEval(MoveGenerator& position);
 
 		/**
 		 * Fetches the list of indices calculated by the evaluation
 		 */
-		IndexVector computeIndexVector(MoveGenerator& board);
+		IndexVector computeIndexVector(MoveGenerator& position);
 		/**
 		 * Fetches the lookup map to get the value of an index value
 		 */
-		IndexLookupMap computeIndexLookupMap(MoveGenerator& board);
+		IndexLookupMap computeIndexLookupMap(MoveGenerator& position);
 
 	
 	private:
@@ -98,8 +95,8 @@ namespace ChessEval {
 		/**
 		 * Calculates the midgame factor in percent
 		 */
-		static value_t computeMidgameInPercent(MoveGenerator& board) {
-			value_t pieces = board.getStaticPiecesValue<WHITE>() + board.getStaticPiecesValue<BLACK>();
+		static value_t computeMidgameInPercent(MoveGenerator& position) {
+			value_t pieces = position.getStaticPiecesValue<WHITE>() + position.getStaticPiecesValue<BLACK>();
 			if (pieces > 64) {
 				pieces = 64;
 			}
@@ -109,8 +106,8 @@ namespace ChessEval {
 		/**
 		 * Calculates the midgame factor in percent
 		 */
-		static value_t computeMidgameV2InPercent(MoveGenerator& board) {
-			value_t pieces = board.getStaticPiecesValue<WHITE>() + board.getStaticPiecesValue<BLACK>();
+		static value_t computeMidgameV2InPercent(MoveGenerator& position) {
+			value_t pieces = position.getStaticPiecesValue<WHITE>() + position.getStaticPiecesValue<BLACK>();
 			if (pieces > 64) {
 				pieces = 64;
 			}
@@ -121,18 +118,18 @@ namespace ChessEval {
 		 * Calculates an evaluation for the current board position
 		 */
 		template <bool PRINT>
-		static value_t lazyEval(MoveGenerator& board, value_t ply, PawnTT* pawnttPtr = nullptr);
+		static value_t lazyEval(MoveGenerator& position, value_t ply, PawnTT* pawnttPtr = nullptr);
 
 		/**
 		 * Fetches details for the evaluation
 		 */ 
-		static std::vector<PieceInfo> fetchDetails(MoveGenerator& board);
+		static std::vector<PieceInfo> fetchDetails(MoveGenerator& position);
 
 
 		/**
 		 * Initializes some fields of eval results
 		 */
-		static void initEvalResults(MoveGenerator& board, EvalResults& evalResults);
+		static void initEvalResults(MoveGenerator& position, EvalResults& evalResults);
 
 		/**
 		 * Determines the game phase based on a static piece value
