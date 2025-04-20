@@ -1231,6 +1231,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <StackReserveSize>2500000</StackReserveSize>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <StackCommitSize>2500000</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -1853,6 +1854,7 @@
     <ClCompile Include="interface\bitbase-interface.cpp" />
     <ClCompile Include="interface\candidate-trainer.cpp" />
     <ClCompile Include="interface\optimizer.cpp" />
+    <ClCompile Include="interface\self-play-manager.cpp" />
     <ClCompile Include="interface\statistics.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
     <ClCompile Include="interface\winboard.cpp" />
@@ -1867,6 +1869,7 @@
     <ClCompile Include="search\rootmoves.cpp" />
     <ClCompile Include="search\search.cpp" />
     <ClCompile Include="search\whatif.cpp" />
+    <ClCompile Include="training\piece-signature-statistic.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h" />
@@ -1907,6 +1910,8 @@
     <ClInclude Include="eval\king.h" />
     <ClInclude Include="eval\king-attack-spike.h" />
     <ClInclude Include="eval\pawntt.h" />
+    <ClInclude Include="eval\piece-signature-def.h" />
+    <ClInclude Include="eval\piece-signature-lookup.h" />
     <ClInclude Include="eval\print-eval.h" />
     <ClInclude Include="eval\queen.h" />
     <ClInclude Include="eval\pawn.h" />
@@ -1931,6 +1936,7 @@
     <ClInclude Include="interface\movescanner.h" />
     <ClInclude Include="interface\optimizer.h" />
     <ClInclude Include="interface\selectinterface.h" />
+    <ClInclude Include="interface\self-play-manager.h" />
     <ClInclude Include="interface\statistics.h" />
     <ClInclude Include="interface\stdtimecontrol.h" />
     <ClInclude Include="interface\uci.h" />
@@ -1971,6 +1977,7 @@
     <ClInclude Include="search\whatIf.h" />
     <ClInclude Include="tests\evalmobilitytest.h" />
     <ClInclude Include="tests\evalpawntest.h" />
+    <ClInclude Include="training\piece-signature-statistic.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.md" />

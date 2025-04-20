@@ -20,13 +20,13 @@
  * Returns +100, if white is one pawn up
  */
 
-#ifndef __EVALENDGAME_H
-#define __EVALENDGAME_H
+#pragma once
 
 #include <string>
 #include <vector>
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
+#include "piece-signature-lookup.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -87,6 +87,10 @@ namespace ChessEval {
 		 * Register an endgame evaluation funciton for a dedicated piece selection
 		 */
 		static void registerFunction(string pieces, evalFunction_t function, bool changeSide = false);
+		static void registerSym(string pieces, evalFunction_t function) {
+			registerFunction(pieces, function, true);
+			registerFunction(pieces, function, false);
+		}
 
 		/**
 		 * Forces a draw value
@@ -130,6 +134,11 @@ namespace ChessEval {
 
 		template <Piece COLOR>
 		static value_t KBBK(MoveGenerator& board, value_t currentValue);
+
+		template <const PieceSignatureLookup& Table>
+		static value_t evalByLookup(MoveGenerator& board, value_t currentValue) {
+			return Table.lookup(board);
+		}
 
 		template <Piece COLOR>
 		static value_t KBsPsK(MoveGenerator& board, value_t currentValue);
@@ -244,4 +253,3 @@ namespace ChessEval {
 
 }
 
-#endif

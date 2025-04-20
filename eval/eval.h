@@ -20,8 +20,7 @@
  * Used to evaluate in quiescense search
  */
 
-#ifndef __EVAL_H
-#define __EVAL_H
+#pragma once
 
  // Idee 1: Evaluierung in der Ruhesuche ohne positionelle Details
  // Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
@@ -66,7 +65,7 @@ namespace ChessEval {
 			return Stockfish::Engine::evaluate();
 #else
 			value_t positionValue = lazyEval<false>(position, ply, pawnttPtr);
-
+			// positionValue += rand() % (20 + 1) - 10;
 			return position.isWhiteToMove() ? positionValue : -positionValue;
 #endif
 		}
@@ -164,4 +163,3 @@ namespace ChessEval {
 	};
 }
 
-#endif

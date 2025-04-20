@@ -40,6 +40,9 @@
     <Filter Include="nnue">
       <UniqueIdentifier>{ac4400ea-9b03-4962-b270-fd2c4fa4b157}</UniqueIdentifier>
     </Filter>
+    <Filter Include="training">
+      <UniqueIdentifier>{f351d389-c3ba-4b6d-b322-81eb295d645f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="search\perft.cpp">
@@ -146,6 +149,12 @@
     </ClCompile>
     <ClCompile Include="bitbase\compress-miniz.cpp">
       <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\self-play-manager.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
+    <ClCompile Include="training\piece-signature-statistic.cpp">
+      <Filter>training</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -454,6 +463,18 @@
     </ClInclude>
     <ClInclude Include="bitbase\miniz.h">
       <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\self-play-manager.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\piece-signature-lookup.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\piece-signature-def.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="training\piece-signature-statistic.h">
+      <Filter>training</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

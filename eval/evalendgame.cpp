@@ -27,7 +27,6 @@
 #include "pawn.h"
 #include "king.h"
 
-
 using namespace ChessEval;
 using namespace QaplaBitbase;
 
@@ -52,6 +51,36 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KQNKRR", forceToAnyCornerButDraw);
 
 	// Rook
+	/*
+	registerSym("KRRBBNP*KRBBNNP*", evalByLookup<KRRBBNKRBBNN>);
+	registerSym("KRRBBP*KRRBP*", evalByLookup<KRRBBKRRB>);
+	registerSym("KRRBBP*KRRNP*", evalByLookup<KRRBBKRRN>);
+	registerSym("KRRBBP*KRBBNNP*", evalByLookup<KRRBBKRBBNN>);
+	registerSym("KRRBNNP*KRBBNNP*", evalByLookup<KRRBNNKRBBNN>);
+	registerSym("KRRBNP*KRBBNNP*", evalByLookup<KRRBNKRBBNN>);
+	registerSym("KRRBNP*KRBBNP*", evalByLookup<KRRBNKRBBN>);
+	registerSym("KRRBP*KRRP*", evalByLookup<KRRBKRR>);
+	registerSym("KRRBP*KRBBNP*", evalByLookup<KRRBKRBBN>);
+	registerSym("KRRBP*KRBNNP*", evalByLookup<KRRBKRBNN>);
+	registerSym("KRRNNP*KRBBNP*", evalByLookup<KRRNNKRBBN>);
+	registerSym("KRRNP*KRRP*", evalByLookup<KRRNKRR>); 
+	registerSym("KRRNP*KRBBNP*", evalByLookup<KRRNKRBBN>);
+	registerSym("KRRNP*KRBBP*", evalByLookup<KRRNKRBB>);
+	registerSym("KRRP*KRBBP*", evalByLookup<KRRKRBB>);
+	registerSym("KRRP*KRBNP*", evalByLookup<KRRKRBN>);
+	registerSym("KRRP*KRBP*", evalByLookup< KRRKRB>);
+	registerSym("KRBBP*KRBP*", evalByLookup<KRBBKRB>);
+	registerSym("KRBBP*KRNP*", evalByLookup<KRBBKRN>);
+	registerSym("KRBNP*KRBP*", evalByLookup< KRBNKRB>);
+	registerSym("KRBP*KRP*", evalByLookup<KRBKR>); 
+	registerSym("KRBP*KBBP*", evalByLookup<KRBKBB>);
+	registerSym("KRBP*KNP*", evalByLookup<KRBKN>);
+	registerSym("KRNP*KRP*", evalByLookup<KRNKR>);
+	registerSym("KRP*KBP*", evalByLookup<KRKB>);
+	registerSym("KRP*KNNP*", evalByLookup<KRKNN>);
+	registerSym("KRP*KNP*", evalByLookup<KRKN>); 
+	registerSym("KRP*KP*", evalByLookup<KRK>);
+	*/
 	REGISTER("KR+B*N*P*K", forceToAnyCornerToMate);
 	REGISTER("KRRP*KN", winningValue);
 	REGISTER("KRRP*KB", winningValue);
@@ -63,29 +92,43 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KP+KR", KPsKR);
 
 	// Bishop
-	REGISTER("KBB+K", KBBK);
-	REGISTER("KB+P+K", KBsPsK);
+	//REGISTER("KBKP", minusKnightPlusPawn);
+	/*
+	registerSym("KBBP*KBNP*", evalByLookup<KBBKBN>);
+	registerSym("KBBP*KBP*", evalByLookup<KBBKB>);
+	registerSym("KBBP*KNP*", evalByLookup<KBBKN>);
+	registerSym("KBNP*KBP*", evalByLookup<KBNKB>);
+	registerSym("KBP*KBP*", evalByLookup<KBKB>);
+	registerSym("KBP*KNP*", evalByLookup<KBKN>);
+	registerSym("KBP*KP*", evalByLookup<KBK>);
+	*/
 	REGISTER("KB+N+K", KBNK);
-	REGISTER("KBB+KN", winningValue);
 	REGISTER("KBBKR", forceToAnyCornerButDraw);
 	REGISTER("KBNKR", forceToAnyCornerButDraw);
-	REGISTER("KBKP", minusKnightPlusPawn);
+	REGISTER("KB+P+K", KBsPsK);
+	REGISTER("KBB+KN", winningValue);
+	REGISTER("KBB+K", KBBK);
 	REGISTER("KBK", drawValue);
 
 	// Knight
+	/*
+	registerSym("KNP*KP*", evalByLookup<KNK>);
+	registerSym("KNP*KNP*", evalByLookup<KNKN>);
+	*/
 	REGISTER("KNP+K", KNPsK);
-	REGISTER("KNNK", drawValue);
 	REGISTER("KNNN+K", forceToAnyCornerToMate);
 	REGISTER("KNNPK", winningValue);
 	REGISTER("KNNKR", forceToAnyCornerButDraw);
 	REGISTER("KNKP", minusKnightPlusPawn);
 	REGISTER("KNK", drawValue);
+	REGISTER("KNNK", drawValue);
 
 	// Pawn
 	REGISTER("KP+K", KPsK);
 	registerFunction("KP+KP+", KPsKPs);
 
 	// Draw situations
+	//registerSym("KP*KP*", evalByLookup<KK>);
 	REGISTER("KK", drawValue);
 
 }

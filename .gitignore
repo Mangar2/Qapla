@@ -15,6 +15,7 @@
 *.txt
 *.o
 *.7z
+*.bin
 
 !CMakeLists.txt
 

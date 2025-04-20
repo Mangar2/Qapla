@@ -19,6 +19,7 @@
 
 
 #include "statistics.h"
+#include "../training/piece-signature-statistic.h"
 #include "../eval/eval.h"
 #include "winboardprintsearchinfo.h"
 #include <thread>
@@ -372,7 +373,7 @@ void Statistics::playEpdGames(uint32_t numThreads) {
 			}
 		}
 	}
-	epdTasks.setOutputFile("epdGames.txt");
+	// epdTasks.setOutputFile("epdGames.txt");
 	epdTasks.start(numThreads, _clock, _startPositions, getBoard());
 }
 
@@ -530,22 +531,9 @@ bool Statistics::checkClockCommands() {
 }
 
 
-void Statistics::undoMove() {
-	if (_mode == Mode::ANALYZE) {
-		stopCompute();
-		analyzeMove();
-	}
-	else if (_mode == Mode::COMPUTE) {
-		stopCompute();
-		// undoes the move that is automatically set due to stopCompute resulting in a move
-		getBoard()->undoMove();
-		// undoes the move before -> this is the move the user asked us to undo
-		getBoard()->undoMove();
-	}
-	else {
-		waitForComputingThreadToEnd();
-		getBoard()->undoMove();
-	}
+void Statistics::computeMaterialDifference() {
+	QaplaTraining::PieceSignatureStatistic pieceSignatureStatistic;
+	pieceSignatureStatistic.generateResultTableOnce();
 }
 
 void Statistics::loadEPD() {
@@ -616,5 +604,6 @@ void Statistics::handleInput() {
 	else if (token == "train") train();
 	else if (token == "ct") trainCandidates();
 	else if (token == "epd") loadEPD();
+	else if (token == "material") computeMaterialDifference();
 	else if (checkClockCommands()) {}
 }

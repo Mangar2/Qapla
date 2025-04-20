@@ -19,6 +19,8 @@
 
 
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 #include "interface/selectinterface.h"
 
 #ifdef USE_STOCKFISH_EVAL
@@ -92,6 +94,7 @@ FenTests fenTests = {
 int main(int argc, char* argv[])
 {
 
+	srand(static_cast<unsigned>(time(nullptr)));
 	/*
 	 * This engine can be run testing itself with stockfish evaluation by the nnue network.
 	 * The nnue branch contains the neccesary files. Still the required stockfish integration is part of

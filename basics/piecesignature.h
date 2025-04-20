@@ -82,6 +82,41 @@ namespace QaplaBasics {
 		}
 		void clear() { _signature = 0; }
 
+		std::string toString() const {
+			return toString<WHITE>() + toString<BLACK>();
+		}
+
+		template <Piece COLOR>
+		std::string toString() const {
+			pieceSignature_t colorSignature = getSignature<COLOR>();
+			std::string result = "K";
+			for (uint32_t i = 0; i < getPieceAmount<QUEEN>(colorSignature); i++) result += "Q";
+			for (uint32_t i = 0; i < getPieceAmount<ROOK>(colorSignature); i++) result += "R";
+			for (uint32_t i = 0; i < getPieceAmount<BISHOP>(colorSignature); i++) result += "B";
+			for (uint32_t i = 0; i < getPieceAmount<KNIGHT>(colorSignature); i++) result += "N";
+			for (uint32_t i = 0; i < getPieceAmount<PAWN>(colorSignature); i++) result += "P";
+			return result;
+		}
+
+		/**
+		 * Computes the classic value difference for the pieces - without pawn, as the signature
+		 * does not include more than 3 pawns per side
+		 */
+		value_t toValueNP() const {
+			return toValueNP<WHITE>() - toValueNP<BLACK>();
+		}
+
+		template <Piece COLOR>
+		value_t toValueNP() const {
+			pieceSignature_t colorSignature = getSignature<COLOR>();
+			value_t value = 0;
+			value += getPieceAmount<QUEEN>(colorSignature) * 9;
+			value += getPieceAmount<ROOK>(colorSignature) * 5;
+			value += getPieceAmount<BISHOP>(colorSignature) * 3;
+			value += getPieceAmount<KNIGHT>(colorSignature) * 3;
+			return value;
+		}
+
 		/**
 		 * Checks, if a piece is available more than twice
 		 */
@@ -134,7 +169,7 @@ namespace QaplaBasics {
 
 		/**
 		 * Gets a static piece value (Queen = 9, Rook = 5, Bishop & Knight = 3, >= 3 Pawns = 1)
-		 * The pawns are not really counted.
+		 * The pawns are counted as one, if there are 3 or more pawns
 		 */
 		template <Piece COLOR>
 		value_t getStaticPiecesValue() const { return staticPiecesValue[getSignature<COLOR>()]; }
@@ -312,9 +347,9 @@ namespace QaplaBasics {
 		/**
 		 * Maps a piece to a signature bit
 		 */
-		static inline array<pieceSignature_t, size_t(SignatureMask::ALL)> futilityOnCaptureMap = []() {
-			array<pieceSignature_t, size_t(SignatureMask::ALL)> result{};
-			for (uint32_t index = 0; index < uint32_t(SignatureMask::ALL); index++) {
+		static inline array<pieceSignature_t, size_t(SignatureMask::SIZE)> futilityOnCaptureMap = []() {
+			array<pieceSignature_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
+			for (uint32_t index = 0; index < static_cast<uint32_t>(SignatureMask::SIZE); index++) {
 				result[index] = true;
 				if (getPieceAmount(index) <= 2) {
 					result[index] = false;
@@ -322,9 +357,9 @@ namespace QaplaBasics {
 			}
 			return result;
 			}();
-		static constexpr array<value_t, size_t(SignatureMask::ALL)> staticPiecesValue = []() {
-			array<value_t, size_t(SignatureMask::ALL)> result{};
-			for (uint32_t index = 0; index < uint32_t(SignatureMask::ALL); index++) {
+		static constexpr array<value_t, size_t(SignatureMask::SIZE)> staticPiecesValue = []() {
+			array<value_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
+			for (uint32_t index = 0; index < static_cast<uint32_t>(SignatureMask::ALL); index++) {
 				result[index] =
 					getPieceAmount<QUEEN>(index) * 9 +
 					getPieceAmount<ROOK>(index) * 5 +

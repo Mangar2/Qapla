@@ -29,7 +29,7 @@
 #include "king-attack.h"
 #include "king.h"
 #include "threat.h"
-#include "print-eval.h"
+#include "eval-correction.h"
 
 using namespace ChessEval;
 
@@ -66,6 +66,12 @@ std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& position) {
 
 IndexVector Eval::computeIndexVector(MoveGenerator& position) {
 	IndexVector indexVector;
+	uint32_t sig = position.getPiecesSignature();
+	int32_t val = PieceSignature(sig).toValueNP() + popCount(position.getPieceBB(WHITE_PAWN)) - popCount(position.getPieceBB(BLACK_PAWN));
+	int32_t clampedVal = std::clamp(val, -4, 4);
+	uint32_t extSig = sig * 8 + (std::abs(clampedVal) == 4 ? 7 : clampedVal + 3);
+	indexVector.push_back(IndexInfo{ "pieceSignature", extSig, NO_PIECE });
+	return indexVector;
 	EvalResults evalResults;
 	indexVector.push_back(IndexInfo{ "midgame", uint32_t(computeMidgameInPercent(position)), NO_PIECE });
 	indexVector.push_back(IndexInfo{ "midgamev2", uint32_t(computeMidgameV2InPercent(position)), NO_PIECE });
@@ -111,7 +117,6 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 
 	evalResults.midgameInPercent = computeMidgameInPercent(position);
 	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(position);
-	if (PRINT) cout << "Midgame factor:" << std::right << std::setw(20) << evalResults.midgameInPercentV2 << endl;
 	
 	// Add material to the evaluation
 	EvalValue evalValue = position.getMaterialAndPSTValue();
@@ -143,22 +148,43 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	if constexpr (PRINT) {
 		std::vector<PieceInfo> details = fetchDetails(position);
 		printEvalBoard(details, evalResults.midgameInPercentV2);
+		cout << "Midgame factor:" 
+			<< std::right << std::setw(21) << evalResults.midgameInPercentV2 << endl;
+		cout << "Piece based eval:" 
+			<< std::right << std::setw(19) << result << std::endl;
 	}
 
 	const value_t halfmovesWithoutPawnOrCapture = position.getTotalHalfmovesWithoutPawnMoveOrCapture();
 	if (halfmovesWithoutPawnOrCapture > 20) {
 		result -= result * (halfmovesWithoutPawnOrCapture - 20) / 250;
+		if constexpr (PRINT) {
+			cout << "No pawn move or capture (" << halfmovesWithoutPawnOrCapture << "):" 
+				<< std::right << std::setw(20) << result << std::endl;
+		}
 	}
 
-	value_t endGameResult = EvalEndgame::eval(position, result);
-	if (endGameResult != result) {
-		result = endGameResult;
+	if (position.getEvalVersion() == 1) {
+		result += EVAL_CORRECTION[position.getPiecesSignature()] / 2;
+	}
+	if constexpr (PRINT) {
+		cout << "Piece Signature Correction:"
+			<< std::right << std::setw(9) << result << std::endl;
+	}
+
+	value_t endgameCorrection = EvalEndgame::eval(position, result);
+	if (endgameCorrection != result) {
+		result = endgameCorrection;
 		if (result > MIN_MATE_VALUE) {
 			result -= ply;
 		}
 		if (result < -MIN_MATE_VALUE) {
 			result += ply;
 		}
+		if constexpr (PRINT) {
+			cout << "Endgame correction:" 
+				<< std::right << std::setw(9) << result << std::endl;
+		}
+
 	}
 	// If a value == 0, the position will not be stored in hash tables
 	// Value == 0 indicates a forced draw situation like repetetive moves 
@@ -250,8 +276,6 @@ void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
  * Prints the evaluation results
  */
 void Eval::printEval(MoveGenerator& position) {
-	position.print();
-
 	value_t evalValue = lazyEval<true>(position, 0);
 	cout << "Total:" << std::right << std::setw(30) << evalValue << endl;
 }

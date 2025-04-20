@@ -298,6 +298,9 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
+	else if (_clockManager->stopOnNodeTarget(_computingInfo._nodesSearched)) {
+		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
+	}
 
 	WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
 	return node.cutoff != Cutoff::NONE;
@@ -333,7 +336,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 	*/
 	_computingInfo._nodesSearched++;
-
 
 	// 3. Probe the hash table. This will set the hash information to the node.
 	// The required hash signature is set in nonSearchingCutoff

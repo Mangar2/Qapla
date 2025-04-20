@@ -1,8 +1,16 @@
 # Qapla Test Versions
 
+## 0.3.015 2025-04-15
+
+- Raiting: 54,4%
+- Few fixes on endgame evaluations
+- Now using 50% of margin above beta on forewared futility pruning return value (instead of 10%)
+- Check extensions only on PV moves
+
 ## 0.3.014 2025-04-13
 
 - Reduced ignore count for 50 move rule draw-scoring from 10 to 20
+- Reduced king attack values
 
 ## 0.3.013 2025-04-13
 
