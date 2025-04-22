@@ -242,6 +242,10 @@ namespace QaplaBasics {
 					}
 					break;
 				case '+':
+					if ((_signature & (lastSignature * 3)) == (lastSignature * 3)) {
+						std::cerr << "Maximum of three pieces per type allowed " << pieces << " given" << std::endl;
+						break;
+					}
 					// Add only one, if we have a double definition like BB+
 					onlyAddOne = _signature & (lastSignature * 2);
 					divider = onlyAddOne ? 2 : 3;
@@ -255,6 +259,10 @@ namespace QaplaBasics {
 					break;
 				default:
 					lastSignature = charToSignature(pieces[pos]) << shift;
+					if ((_signature & (lastSignature * 3)) == (lastSignature * 3)) {
+						std::cerr << "Maximum of three pieces per type allowed " << pieces << " given" << std::endl;
+						break;
+					}
 					_signature += lastSignature;
 					break;
 				}

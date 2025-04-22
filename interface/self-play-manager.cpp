@@ -22,9 +22,11 @@
 #include "self-play-manager.h"
 #include "chessinterface.h"
 #include "../basics/piecesignature.h"
+#include "../training/game-record.h"
 
 namespace QaplaInterface {
 
+	
 	void ResultPerPieceIndex::saveToFile(const std::string& filename) {
 		std::ofstream out(filename, std::ios::binary);
 		if (!out) return;
@@ -216,6 +218,9 @@ namespace QaplaInterface {
 		auto getGameResult() const {
 			return curBoard->getGameResult();
 		}
+		auto eval() const {
+			return curBoard->eval();
+		}
 		void newGame() const {
 			curBoard->newGame();
 			newBoard->newGame();
@@ -235,8 +240,8 @@ namespace QaplaInterface {
 			const auto move = computingInfo.currentConsideredMove;
 			GameResult result;
 			bool capture = isCapture(move);
-			if (abs(value) > 10000) {
-				result = value > 10000 == sideToPlay->isWhiteToMove() ? GameResult::WHITE_WINS_BY_MATE : GameResult::BLACK_WINS_BY_MATE;
+			if (abs(value) > 1000) {
+				result = value > 1000 == sideToPlay->isWhiteToMove() ? GameResult::WHITE_WINS_BY_MATE : GameResult::BLACK_WINS_BY_MATE;
 			}
 			else {
 				bool illegalMove = !ChessInterface::setMove(move, curBoard);
@@ -256,7 +261,7 @@ namespace QaplaInterface {
 		, const std::vector<std::string>& startPositions
 		, const IChessBoard* boardTemplate
 		, uint32_t games) {
-		const uint64_t gamesPerEpd = 2;
+		const uint64_t gamesPerEpd = 16;
 		stop();
 		timeControl.storeStartTime();
 		this->startPositions = startPositions;
@@ -264,24 +269,22 @@ namespace QaplaInterface {
 		computer1Result = 0;
 		gamesPlayed = 0;
 		fiftyMovesRule = 0;
-		/*
-		resultPerPieceIndex.loadFromFile("result.bin");
-		resultPerPieceIndex.printResult();
-		*/
 		epdIndex = 0;
 
 		for (size_t i = 0; i < numThreads; ++i) {
 			if (i >= workers.size()) {
 				workers.emplace_back(std::make_unique<WorkerThread>());
 			}
-			auto task = std::function<void()>([this, boardTemplate, clock, games]() {
+			auto task = std::function<void()>([this, i, boardTemplate, clock, games]() {
+				srand(static_cast<unsigned>(time(nullptr)) ^ static_cast<unsigned>(i));
 				GamePairing gamePairing = GamePairing(boardTemplate, clock);
 				while (!stopped) {
 					bool curIsWhite; // This is the default version not the version with changed evaluation
+					uint64_t epdNo = 0;
 					std::string fen = "";
 					{
 						std::lock_guard<std::mutex> lock(positionMutex);
-						const auto epdNo = statistic ? epdIndex / gamesPerEpd : epdIndex;
+						epdNo = statistic ? epdIndex / gamesPerEpd : epdIndex;
 						if (epdNo >= this->startPositions.size() || (games > 0 && epdIndex >= games)) {
 							break;
 						}
@@ -289,9 +292,10 @@ namespace QaplaInterface {
 						fen = this->startPositions[epdNo];
 						epdIndex++;
 					}
-					GameResult result = playSingleGame(gamePairing, fileWriter, fen, curIsWhite);
+					QaplaTraining::GameRecord game = playSingleGame(gamePairing, fen, static_cast<uint32_t>(epdNo), curIsWhite);
 					{
 						std::lock_guard<std::mutex> lock(statsMutex);
+						const auto result = game.getResult();
 						gameStatistics[result]++;
 						int32_t curResult = 0;
 						if (result == GameResult::WHITE_WINS_BY_MATE) {
@@ -301,11 +305,12 @@ namespace QaplaInterface {
 							curResult = curIsWhite ? -1 : +1;
 						}
 						else if (result == GameResult::DRAW_BY_REPETITION) fiftyMovesRule++;
-						
+						writer.write(game);
+						/*
 						CandidateTrainer::setGameResult(curResult == -1, curResult == 0);
 						auto confidence = CandidateTrainer::getConfidenceInterval();
 						if (CandidateTrainer::shallTerminate()) break;
-						
+						*/
 						computer1Result += curResult;
 						gamesPlayed++;
 						const auto positions = statistic ? this->startPositions.size() * gamesPerEpd : this->startPositions.size();
@@ -315,16 +320,11 @@ namespace QaplaInterface {
 							std::cout
 								<< "\r" << gamesPlayed << "/" << positions
 								<< " time (s): " << timeSpentInSeconds << "/" << estimatedTotalTime
-								<< " result: " << std::fixed << std::setprecision(2) << CandidateTrainer::getScore() << "%"
-								<< " confidence: " << (confidence.first * 100.0) << "% - " << (confidence.second * 100.0) << "%   ";
+								// << " result: " << std::fixed << std::setprecision(2) << CandidateTrainer::getScore() << "%"
+								// << " confidence: " << (confidence.first * 100.0) << "% - " << (confidence.second * 100.0) << "%   "
+								;
 							if (gamesPlayed == games) std::cout << std::endl;
 						}
-						/*
-						if (gamesPlayed % 10000 == 0 || gamesPlayed == games) {
-							resultPerPieceIndex.printResult();
-							resultPerPieceIndex.saveToFile("result.bin");
-						}
-						*/
 					}
 				}
 			});
@@ -332,8 +332,12 @@ namespace QaplaInterface {
 		}
 	}
 
-	GameResult SelfPlayManager::playSingleGame(const GamePairing& gamePairing, FileWriter& fileWriter, std::string fen, bool curIsWhite) {
+	QaplaTraining::GameRecord SelfPlayManager::playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite) {
+
 		std::string gameResultString = fen;
+		QaplaTraining::GameRecord gameRecord;
+		gameRecord.setFENId(fenIndex);
+
 		gamePairing.newGame();
 		gamePairing.setPositionByFen(fen);
 		GameResult gameResult = gamePairing.getGameResult();
@@ -351,14 +355,14 @@ namespace QaplaInterface {
 				const auto& index = indexVector[0];
 				captureBefore = false;
 			}
-			gameResultString += ", " + move + "," + std::to_string(value);
+			gameResultString += ", " + move + ", " + std::to_string(value);
+			const auto eval = gamePairing.eval();
+			gameRecord.addMove(move, value);
 			gameResult = result;
 		}
-
 		if (!stopped) {
-			fileWriter.writeLine(gameResultString);
-			// resultPerPieceIndex.setResult(detectedIndices, gameResult);
+			gameRecord.setResult(gameResult);
 		}
-		return gameResult;
+		return gameRecord;
 	}
 }

@@ -1870,6 +1870,7 @@
     <ClCompile Include="search\search.cpp" />
     <ClCompile Include="search\whatif.cpp" />
     <ClCompile Include="training\piece-signature-statistic.cpp" />
+    <ClCompile Include="training\signature-eval-adjuster.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h" />
@@ -1977,7 +1978,10 @@
     <ClInclude Include="search\whatIf.h" />
     <ClInclude Include="tests\evalmobilitytest.h" />
     <ClInclude Include="tests\evalpawntest.h" />
+    <ClInclude Include="training\game-record.h" />
+    <ClInclude Include="training\game-replay-engine.h" />
     <ClInclude Include="training\piece-signature-statistic.h" />
+    <ClInclude Include="training\signature-eval-adjuster.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.md" />

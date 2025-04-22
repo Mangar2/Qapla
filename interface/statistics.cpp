@@ -20,6 +20,7 @@
 
 #include "statistics.h"
 #include "../training/piece-signature-statistic.h"
+#include "../training/signature-eval-adjuster.h"
 #include "../eval/eval.h"
 #include "winboardprintsearchinfo.h"
 #include <thread>
@@ -140,32 +141,6 @@ void Statistics::analyzeMove() {
 		getWorkerThread().startTask([this]() {
 			getBoard()->computeMove();
 			waitIfInfiniteSearchFinishedEarly();
-		});
-	}
-}
-
-/**
- * Starts computing a move - sets analyze mode to false
- */
-void Statistics::computeMove() {
-	_computerIsWhite = getBoard()->isWhiteToMove();
-
-	GameResult result = getBoard()->getGameResult();
-	if (result != GameResult::NOT_ENDED) {
-		printGameResult(result);
-	}
-	else {
-		_mode = Mode::COMPUTE;
-		_clock.storeCalculationStartTime();
-		_clock.setSearchMode();
-		setInfiniteSearch(false);
-		getBoard()->setClock(_clock);
-		getWorkerThread().startTask([this]() {
-			getBoard()->computeMove();
-			_mode = Mode::WAIT;
-			ComputingInfoExchange computingInfo = getBoard()->getComputingInfo();
-			handleMove(computingInfo.currentConsideredMove);
-			_clock.storeTimeSpent();
 		});
 	}
 }
@@ -373,7 +348,7 @@ void Statistics::playEpdGames(uint32_t numThreads) {
 			}
 		}
 	}
-	// epdTasks.setOutputFile("epdGames.txt");
+	epdTasks.setOutputFile("epdGames.bin");
 	epdTasks.start(numThreads, _clock, _startPositions, getBoard());
 }
 
@@ -532,8 +507,8 @@ bool Statistics::checkClockCommands() {
 
 
 void Statistics::computeMaterialDifference() {
-	QaplaTraining::PieceSignatureStatistic pieceSignatureStatistic;
-	pieceSignatureStatistic.generateResultTableOnce();
+	QaplaTraining::SignatureEvalAdjuster adjuster;
+	adjuster.run(_startPositions, getBoard(), "epdGamesT.bin");
 }
 
 void Statistics::loadEPD() {

@@ -27,12 +27,89 @@
 #include "chessinterface.h"
 #include "candidate-trainer.h"
 #include "../search/boardadapter.h"
+#include "../training/game-record.h"
 
 using namespace std;
 
 namespace QaplaInterface {
 
 	class GamePairing;
+
+
+	/**
+	 * Handles writing GameRecord objects to a binary file.
+	 * Automatically opens and closes the file. Flushes after each write.
+	 */
+	class GameRecordWriter {
+	public:
+		GameRecordWriter() {}
+
+		/**
+		 * Opens the file if a non-empty filename is provided.
+		 *
+		 * @param filename Path to the output file
+		 */
+		void open(const std::string& filename) {
+			this->filename = filename;
+			if (out.is_open()) {
+				out.close();
+			}
+			if (!filename.empty()) {
+				out.open(filename, std::ios::binary | std::ios::out | std::ios::trunc);
+				if (!out) {
+					std::cerr << "Failed to open file for writing: " << filename << std::endl;
+				}
+			}
+		}
+
+		/**
+		 * Opens the file in append mode if a non-empty filename is provided.
+		 *
+		 * @param filename Path to the output file
+		 */
+		void append(const std::string& filename) {
+			this->filename = filename;
+			if (out.is_open()) {
+				out.close();
+			}
+			if (!filename.empty()) {
+				out.open(filename, std::ios::binary | std::ios::out | std::ios::app);
+				if (!out) {
+					std::cerr << "Failed to open file for appending: " << filename << std::endl;
+				}
+			}
+		}
+
+		void close() {
+			if (out.is_open()) {
+				out.close();
+			}
+		}
+
+		~GameRecordWriter() {
+			close();
+		}
+
+		/**
+		 * Writes a GameRecord to the file. Does nothing if file is not open.
+		 *
+		 * @param game GameRecord to write
+		 */
+		void write(const QaplaTraining::GameRecord& game) {
+			if (!out.is_open()) return;
+			out << game;
+			out.flush();
+		}
+
+		std::string getFilename() const {
+			return filename;
+		}
+
+	private:
+		std::ofstream out;
+		std::string filename;
+	};
+
 
 	struct ResultPerPieceIndex {
 		ResultPerPieceIndex()
@@ -73,43 +150,6 @@ namespace QaplaInterface {
 		
 	};
 
-	class FileWriter {
-	private:
-		std::ofstream file;
-
-	public:
-		explicit FileWriter(const std::string& filename = "") {
-			if (!filename.empty()) {
-				open(filename);
-			}
-		}
-
-		void open(const std::string& filename) {
-			if (filename.empty()) {
-				throw std::runtime_error("Error: Filename is empty");
-			}
-			if (file.is_open()) {
-				file.close();
-			}
-			file.open(filename, std::ios::out | std::ios::trunc);
-			if (!file) {
-				throw std::runtime_error("Error: Cannot open file " + filename);
-			}
-		}
-
-		~FileWriter() {
-			if (file.is_open()) {
-				file.close();
-			}
-		}
-
-		void writeLine(const std::string& line) {
-			if (file) {
-				file << line << std::endl;
-			}
-		}
-	};
-
 	class SelfPlayManager {
 	private:
 		
@@ -117,7 +157,7 @@ namespace QaplaInterface {
 		SelfPlayManager() : epdIndex(0) {}
 
 		void setOutputFile(const std::string& filename) {
-			fileWriter.open(filename);
+			writer.append(filename);
 		}
 
 		void start(uint32_t numThreads, const ClockSetting& clock
@@ -139,7 +179,7 @@ namespace QaplaInterface {
 
 	private:
 
-		GameResult playSingleGame(const GamePairing& gamePairing, FileWriter& fileWriter, std::string fen, bool curIsWhite); 
+		QaplaTraining::GameRecord playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite);
 
 		uint64_t computer1Result;
 		uint64_t gamesPlayed;
@@ -147,7 +187,6 @@ namespace QaplaInterface {
 		std::vector<std::string> startPositions;
 		std::vector<std::unique_ptr<WorkerThread>> workers;
 		std::array<int32_t, 1024> gameResults;
-		FileWriter fileWriter;
 		std::map<GameResult, uint32_t> gameStatistics;
 		std::mutex statsMutex;
 		std::mutex positionMutex;
@@ -156,7 +195,7 @@ namespace QaplaInterface {
 		bool statistic = true;
 		StdTimeControl timeControl;
 		ResultPerPieceIndex resultPerPieceIndex;
-		
+		GameRecordWriter writer;
 	};
 
 

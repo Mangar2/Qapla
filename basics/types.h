@@ -300,8 +300,8 @@ namespace QaplaBasics {
 	 */
 	static auto stringToSquare(std::string squareAsString) {
 		square_t result =
-			squareAsString[0] * EAST +
-			squareAsString[1] * NORTH;
+			(squareAsString[0] - 'a') * EAST +
+			(squareAsString[1] - '1') * NORTH;
 		return result;
 	}
 

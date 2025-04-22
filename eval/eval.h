@@ -65,7 +65,7 @@ namespace ChessEval {
 			return Stockfish::Engine::evaluate();
 #else
 			value_t positionValue = lazyEval<false>(position, ply, pawnttPtr);
-			// positionValue += rand() % (20 + 1) - 10;
+			positionValue += rand() % (20 + 1) - 10;
 			return position.isWhiteToMove() ? positionValue : -positionValue;
 #endif
 		}

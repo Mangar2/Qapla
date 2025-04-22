@@ -117,6 +117,12 @@ namespace QaplaSearch {
 			QaplaBitbase::BitbaseReader::loadBitbase();
 		}
 
+
+		/**
+	     * Returns the current position in FEN format
+		 */
+		virtual std::string getFen() { return position.getFen(); }
+
 		/**
 		 * Retrieves the what if object
 		 */
@@ -358,7 +364,7 @@ namespace QaplaSearch {
 
 		virtual value_t eval() {
 			Eval eval;
-			return eval.eval(position);
+			return position.isWhiteToMove() ? eval.eval(position) : -eval.eval(position);
 		}
 
 		virtual void setEvalVersion(uint32_t version) {

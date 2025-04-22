@@ -116,7 +116,7 @@ EvalEndgame::InitStatics::InitStatics() {
 	registerSym("KNP*KNP*", evalByLookup<KNKN>);
 	*/
 	REGISTER("KNP+K", KNPsK);
-	REGISTER("KNNN+K", forceToAnyCornerToMate);
+	REGISTER("KNNNK", forceToAnyCornerToMate);
 	REGISTER("KNNPK", winningValue);
 	REGISTER("KNNKR", forceToAnyCornerButDraw);
 	REGISTER("KNKP", minusKnightPlusPawn);

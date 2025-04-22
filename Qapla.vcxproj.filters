@@ -156,6 +156,9 @@
     <ClCompile Include="training\piece-signature-statistic.cpp">
       <Filter>training</Filter>
     </ClCompile>
+    <ClCompile Include="training\signature-eval-adjuster.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tests\evalpawntest.h">
@@ -474,6 +477,15 @@
       <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="training\piece-signature-statistic.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="training\game-record.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="training\game-replay-engine.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="training\signature-eval-adjuster.h">
       <Filter>training</Filter>
     </ClInclude>
   </ItemGroup>

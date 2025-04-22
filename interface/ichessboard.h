@@ -144,6 +144,11 @@ namespace QaplaInterface {
 		virtual uint64_t perft(uint16_t depth, bool verbose = true, uint32_t _maxTheadCount = 1) = 0;
 
 		/**
+		 * Returns the current position in FEN format
+		 */
+		virtual std::string getFen() = 0;
+
+		/**
 		 * Promptly print an information string for the current evaluation status
 		 */
 		virtual void printEvalInfo() = 0;
