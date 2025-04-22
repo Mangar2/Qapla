@@ -260,8 +260,8 @@ namespace QaplaInterface {
 	void SelfPlayManager::start(uint32_t numThreads, const ClockSetting& clock
 		, const std::vector<std::string>& startPositions
 		, const IChessBoard* boardTemplate
-		, uint32_t games) {
-		const uint64_t gamesPerEpd = 16;
+		, uint32_t games
+		, uint64_t gamesPerEpd) {
 		stop();
 		timeControl.storeStartTime();
 		this->startPositions = startPositions;
@@ -275,7 +275,7 @@ namespace QaplaInterface {
 			if (i >= workers.size()) {
 				workers.emplace_back(std::make_unique<WorkerThread>());
 			}
-			auto task = std::function<void()>([this, i, boardTemplate, clock, games]() {
+			auto task = std::function<void()>([this, gamesPerEpd, i, boardTemplate, clock, games]() {
 				srand(static_cast<unsigned>(time(nullptr)) ^ static_cast<unsigned>(i));
 				GamePairing gamePairing = GamePairing(boardTemplate, clock);
 				while (!stopped) {

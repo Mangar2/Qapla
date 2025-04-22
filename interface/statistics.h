@@ -130,6 +130,7 @@ namespace QaplaInterface {
 		void playEpdGames(uint32_t numThreads = 1);
 		void playStatistic(uint32_t numThreads = 1);
 		void loadEPD();
+		void loadEPD(const std::string& filename);
 		void loadGamesFromFile(const std::string& filename);
 		std::tuple<EvalValue, value_t>  computeEval(
 			ChessEval::IndexLookupMap& lookupMap, std::map<std::string, std::vector<uint64_t>>& lookupCount, bool verbose = false);

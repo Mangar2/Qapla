@@ -163,7 +163,8 @@ namespace QaplaInterface {
 		void start(uint32_t numThreads, const ClockSetting& clock
 			, const std::vector<std::string>& startPositions
 			, const IChessBoard* boardTemplate
-			, uint32_t games = 0);
+			, uint32_t games = 0
+			, uint64_t gamesPerEpd = 2);
 
 		void stop() {
 			stopped = true;

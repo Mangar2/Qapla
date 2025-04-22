@@ -146,26 +146,36 @@ void Statistics::analyzeMove() {
 }
 
 void Statistics::WMTest() {
-	/*
-	EPDTest test;
-	test.initGames();
-	FenScanner scanner;
+	uint32_t numThreads = 16;
+	uint32_t depthLimit = 10;
 	uint64_t totalNodesSearched = 0;
-	uint64_t totalTimeUsedInMilliseconds = 0;
-	if (getNextTokenNonBlocking()) {
-		uint32_t depth = (uint32_t)getCurrentTokenAsUnsignedInt();
-		for (uint32_t index = 0; index < 100; index++) {
-			scanner.setBoard(test.Game1[index], getBoard());
-			_clock.setAnalyseMode();
-			_clock.setSearchDepthLimit(depth);
-			getBoard()->computeMove(false);
-			totalNodesSearched += getBoard()->getComputingInfo().nodesSearched;
-			totalTimeUsedInMilliseconds += getBoard()->getComputingInfo().elapsedTimeInMilliseconds;
-			test.printResult(index, totalTimeUsedInMilliseconds, totalNodesSearched);
+	while (getNextTokenNonBlocking() != "") {
+		if (getCurrentToken() == "threads") {
+			if (getNextTokenNonBlocking() != "") {
+				numThreads = (uint32_t)getCurrentTokenAsUnsignedInt();
+			}
 		}
+		else if (getCurrentToken() == "sd") {
+			if (getNextTokenNonBlocking() != "") {
+				depthLimit = (uint32_t)getCurrentTokenAsUnsignedInt();
+			}
+		}
+
 	}
-	*/
+	loadEPD("wmtest.epd");
+	_clock.setSearchDepthLimit(depthLimit);
+	getBoard()->setClock(_clock);
+	for (auto& epd : _startPositions) {
+		getBoard()->newGame();
+		ChessInterface::setPositionByFen(epd, getBoard());
+		getBoard()->computeMove();
+		auto info = getBoard()->getComputingInfo();
+		totalNodesSearched += info.nodesSearched;
+		std::cout << epd << " nodes: " << info.nodesSearched << " total: " << totalNodesSearched << std::endl;
+	}
+	std::cout << "Positions searched: " << _startPositions.size() << " Total nodes searched: " << totalNodesSearched << std::endl;
 }
+
 void Statistics::loadGamesFromFile(const std::string& filename) {
 	std::ifstream file(filename);
 	if (!file) {
@@ -341,15 +351,31 @@ void Statistics::train() {
 }
 
 void Statistics::playEpdGames(uint32_t numThreads) {
-	if (getNextTokenNonBlocking() != "") {
+	uint32_t games = 0;
+	uint64_t gpe = 2;
+	while (getNextTokenNonBlocking() != "") {
 		if (getCurrentToken() == "threads") {
 			if (getNextTokenNonBlocking() != "") {
 				numThreads = (uint32_t)getCurrentTokenAsUnsignedInt();
 			}
 		}
+		else if (getCurrentToken() == "file") {
+			if (getNextTokenNonBlocking() != "") {
+				epdTasks.setOutputFile(getCurrentToken()); 
+			}
+		}
+		else if (getCurrentToken() == "games") {
+			if (getNextTokenNonBlocking() != "") {
+				games = static_cast<uint32_t>(getCurrentTokenAsUnsignedInt());
+			}
+		}
+		else if (getCurrentToken() == "gpe") {
+			if (getNextTokenNonBlocking() != "") {
+				gpe = static_cast<uint64_t>(getCurrentTokenAsUnsignedInt());
+			}
+		}
 	}
-	epdTasks.setOutputFile("epdGames.bin");
-	epdTasks.start(numThreads, _clock, _startPositions, getBoard());
+	epdTasks.start(numThreads, _clock, _startPositions, getBoard(), games, gpe);
 }
 
 /**
@@ -513,10 +539,17 @@ void Statistics::computeMaterialDifference() {
 
 void Statistics::loadEPD() {
 	std::string fileName = getNextTokenNonBlocking();
-	std::ifstream file(fileName);
+	if (fileName == "") {
+		std::cerr << "Error: No EPD file specified." << std::endl;
+		return;
+	}
+	loadEPD(fileName);
+}
+void Statistics::loadEPD(const std::string & filename) {
+	std::ifstream file(filename);
 
 	if (!file) {
-		std::cerr << "Error: Could not open file " << fileName << std::endl;
+		std::cerr << "Error: Could not open file " << filename << std::endl;
 		return;
 	}
 
