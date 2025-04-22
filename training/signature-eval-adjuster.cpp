@@ -89,17 +89,22 @@ namespace QaplaTraining {
             break;
         }
 
-        /*
+        
         auto index = pieceIndex / 8;
-        if (index == (static_cast<uint32_t>(Signature::PAWN) * 2) << PieceSignature::SIG_SHIFT_BLACK) {
-            // Debugging for KKPP
+        if (index == (static_cast<uint32_t>(Signature::PAWN))) {
+            // Debugging for KPK
             if (moveInfo.eval > 0) {
 				auto test = moveInfo.engine->eval();
             }
-            auto total = computeTotal(pieceIndex);
-            std::cout << "KKPP: " << moveInfo.eval << " sum: " << evalSum[pieceIndex] << " total: " << total << " " << moveInfo.engine->getFen() << std::endl;
+            uint32_t symIndex = (pieceIndex & 0x7) 
+                | (((pieceIndex >> 3) & uint32_t(SignatureMask::ALL)) << (PieceSignature::SIG_SHIFT_BLACK + 3))
+				| (((pieceIndex >> 3) & (uint32_t(SignatureMask::ALL) << PieceSignature::SIG_SHIFT_BLACK)) >> (PieceSignature::SIG_SHIFT_BLACK - 3));
+            const auto [statistic, evalAverage, total] = computeStatistic(pieceIndex, symIndex);
+            std::cout << "KPK: " << moveInfo.eval << " avr: " << evalAverage
+				<< " stat: " << statistic
+                << " total: " << total << " " << moveInfo.engine->getFen() << std::endl;
         }
-        */
+        
     }
 
     void SignatureEvalAdjuster::onFinish() {

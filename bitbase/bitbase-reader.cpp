@@ -118,28 +118,22 @@ Result BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
 
 Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 	PieceSignature signature = PieceSignature(position.getPiecesSignature());
-	bool whiteMayWin = signature.hasEnoughMaterialToMate<WHITE>();
-	bool blackMayWin = signature.hasEnoughMaterialToMate<BLACK>();
-	// We test against two bitbases as bitbases only provides winning information for the side to move
-	// Test the white-view piece signature first. Example white has rook, black has pawn: KRKP
+
+	// A bitbase contains winning information for white only. White wins or does not win.
+	// We can use the same bitbase to see, if black will win by switching the side. (second case).
 	const Bitbase* whiteBitbase = getBitbase(signature);
 	if (whiteBitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
+		// Check if white wins
 		if (whiteBitbase->getBit(index)) {
 			// Bitbase indicates that side to move is winning - result is calculated on white view
 			return position.isWhiteToMove() ? Result::Win : Result::Loss;
 		}
-		else if (position.isWhiteToMove() && !blackMayWin) {
-			// If white is to move, not winning and black has no chance to win, it is a draw
-			return Result::Draw;
-		}
-		else if (!position.isWhiteToMove() && !whiteMayWin) {
-			// If black is to move, not winning and white has no chance to win, it is a draw
-			return Result::Draw;
-		}
+		// If we are here, then white will not win. If black may not win, it is draw
+		if (!signature.hasEnoughMaterialToMate<BLACK>()) return Result::Draw;
 	}
 
-	// Test the black-view piece signature second. Example white has rook, black has pawn: KPKR
+	// Now switching the side to test, if black may win
 	signature.changeSide();
 	const Bitbase* blackBitbase = getBitbase(signature);
 	if (blackBitbase != 0) {
@@ -147,12 +141,8 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 		if (blackBitbase->getBit(index)) {
 			return position.isWhiteToMove() ? Result::Loss : Result::Win;
 		}
-		else if (position.isWhiteToMove() && !whiteMayWin) {
-			return Result::Draw;
-		}
-		else if (!position.isWhiteToMove() && !blackMayWin) {
-			return Result::Draw;
-		}
+		// If we are here, then black will not win. If white may not win, it is draw
+		if (!signature.hasEnoughMaterialToMate<WHITE>()) return Result::Draw;
 	}
 
 	// If both bitbases are available and we did not find a win, it is a draw. 

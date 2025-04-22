@@ -143,13 +143,13 @@ namespace QaplaTraining {
 		bool setMove(const std::string& move, int32_t value, QaplaInterface::GameResult result) {
 			bool isCapture = QaplaInterface::ChessInterface::isCapture(move, chessEngine_.get());
 			value_t eval = chessEngine_->eval();
+            if (moveCallback_) {
+                moveCallback_({ false, move, chessEngine_.get(), value, eval, isCapture, moveBeforeWasCapture_, result });
+            }
 			bool isLegalMove = QaplaInterface::ChessInterface::setMove(move, chessEngine_.get());
             if (!isLegalMove) {
                 std::cerr << "Error: Illegal move: " << move << std::endl;
                 return false;
-            }
-            if (moveCallback_) {
-                moveCallback_({ false, move, chessEngine_.get(), value, eval, isCapture, moveBeforeWasCapture_, result});
             }
 			moveBeforeWasCapture_ = isCapture;
 			return true;

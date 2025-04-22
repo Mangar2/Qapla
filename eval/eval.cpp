@@ -128,7 +128,6 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	// This indicates a known endgame pattern was recognized.
 	// Otherwise, continue the standard evaluation
 
-	evalValue += position.isWhiteToMove() ? tempo : -tempo;
 
 	// Do not change ordering of the following calls. King attack needs result from Mobility
 	evalValue += Rook::eval(position, evalResults);
@@ -182,9 +181,16 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 		}
 		if constexpr (PRINT) {
 			cout << "Endgame correction:" 
-				<< std::right << std::setw(9) << result << std::endl;
+				<< std::right << std::setw(17) << result << std::endl;
 		}
 
+	}
+	else {
+		result += position.isWhiteToMove() ? tempo : -tempo;
+		if constexpr (PRINT) {
+			cout << "Tempo correction:"
+				<< std::right << std::setw(19) << result << std::endl;
+		}
 	}
 	// If a value == 0, the position will not be stored in hash tables
 	// Value == 0 indicates a forced draw situation like repetetive moves 
