@@ -129,7 +129,7 @@ namespace QaplaTraining {
          * @param fen The FEN string representing the initial position
 		 * @return true if successful, false otherwise
          */
-        bool setupBoardFromFEN(uint16_t fenId) {
+        bool setupBoardFromFEN(uint32_t fenId) {
             if (fenId < fenList_.size()) {
 				QaplaInterface::ChessInterface::setPositionByFen(fenList_[fenId], chessEngine_.get());
 				return true;

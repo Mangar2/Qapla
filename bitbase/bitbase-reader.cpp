@@ -142,7 +142,8 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 			return position.isWhiteToMove() ? Result::Loss : Result::Win;
 		}
 		// If we are here, then black will not win. If white may not win, it is draw
-		if (!signature.hasEnoughMaterialToMate<WHITE>()) return Result::Draw;
+		// We use "BLACK" as template argument as we changed the sigature to have "white view"
+		if (!signature.hasEnoughMaterialToMate<BLACK>()) return Result::Draw;
 	}
 
 	// If both bitbases are available and we did not find a win, it is a draw. 

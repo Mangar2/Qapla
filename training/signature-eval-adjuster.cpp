@@ -89,22 +89,19 @@ namespace QaplaTraining {
             break;
         }
 
-        
+        PieceSignature debugIndex;
+        debugIndex.set("KQRRBBNPPPKQRRBNNPPP");
         auto index = pieceIndex / 8;
-        if (index == (static_cast<uint32_t>(Signature::PAWN))) {
-            // Debugging for KPK
-            if (moveInfo.eval > 0) {
-				auto test = moveInfo.engine->eval();
-            }
-            uint32_t symIndex = (pieceIndex & 0x7) 
+        if (index == debugIndex.getPiecesSignature()) {
+            // Debugging 
+            uint32_t symIndex = (6 -(pieceIndex & 0x7)) 
                 | (((pieceIndex >> 3) & uint32_t(SignatureMask::ALL)) << (PieceSignature::SIG_SHIFT_BLACK + 3))
 				| (((pieceIndex >> 3) & (uint32_t(SignatureMask::ALL) << PieceSignature::SIG_SHIFT_BLACK)) >> (PieceSignature::SIG_SHIFT_BLACK - 3));
             const auto [statistic, evalAverage, total] = computeStatistic(pieceIndex, symIndex);
-            std::cout << "KPK: " << moveInfo.eval << " avr: " << evalAverage
+            std::cout << debugIndex.toString() << ": " << moveInfo.eval << " avr: " << evalAverage
 				<< " stat: " << statistic
                 << " total: " << total << " " << moveInfo.engine->getFen() << std::endl;
         }
-        
     }
 
     void SignatureEvalAdjuster::onFinish() {
@@ -122,6 +119,8 @@ namespace QaplaTraining {
         constexpr int MAX_DEVIATION = 30;		 // max. derivation in centipawn to check consistence
         constexpr int TRUST_THRESHOLD = 1000;    // full usage of resultn
         constexpr int MIN_RELIABLE_TOTAL = 100;  // no input, if below
+		constexpr int MIN_ADJUSTMENT = 5;	// minimum adjustment in centipawn
+		constexpr int MIN_REL_ADJUSTMENT_DIVIDER = 10; // minimum relative adjustment in centipawn
 
         for (uint32_t wsig = 0; wsig < (1 << PieceSignature::SIG_SHIFT_BLACK); wsig++) {
             for (uint32_t bsig = 0; bsig < (1 << PieceSignature::SIG_SHIFT_BLACK); bsig++) {
@@ -151,6 +150,7 @@ namespace QaplaTraining {
                     // We apply weighting to avoid overfitting on low sample sizes
                     value_t weightedAdjustment = static_cast<value_t>(valueAdjustment * weight);
 
+					// We select the lowest absolute value of the adjustment to avoid overfitting
                     if (!valueFound ||
                         (std::abs(weightedAdjustment) < std::abs(resultTable[sig].adjustment) && total >= TRUST_THRESHOLD)) {
                         resultTable[sig] = { weightedAdjustment, evalAverage, total };
@@ -158,6 +158,14 @@ namespace QaplaTraining {
                         valueFound = true;
                     }
                 }
+                /*
+                // Shall we keep small adjustments?
+                if (std::abs(resultTable[sig].adjustment) <= MIN_ADJUSTMENT || 
+                    std::abs(resultTable[sig].adjustment) < std::abs(resultTable[sig].evalAverage / MIN_REL_ADJUSTMENT_DIVIDER)) {
+                    resultTable[sig] = { 0, 0, 0 };
+                    resultTable[sym] = { 0, 0, 0 };
+                }
+                */
             }
         }
         return resultTable;
