@@ -152,12 +152,13 @@ void EvalEndgame::registerFunction(string pieces, evalFunction_t function, bool 
 		cout << "Too many functions for endgame eval. Please change code" << endl;
 		return;
 	}
-	while (signature.set(pieces, iteration)) {
-		if (changeSide) {
-			signature.changeSide();
-		}
-		mapPieceSignatureToFunctionNo[signature.getPiecesSignature()] = uint8_t(functionNo);
-		iteration++;
+
+	vector<pieceSignature_t> signatures;
+	signature.generateSignatures(pieces, signatures);
+	for (auto sig : signatures) { 
+		PieceSignature psig(sig);
+		if (changeSide) psig.changeSide();
+		mapPieceSignatureToFunctionNo[psig.getPiecesSignature()] = uint8_t(functionNo);
 	}
 }
 

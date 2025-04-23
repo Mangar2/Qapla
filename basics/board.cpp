@@ -65,7 +65,7 @@ void Board::removePiece(Square squareOfPiece) {
 }
 
 void Board::addPiece(Square squareOfPiece, Piece pieceToAdd) {
-	_pieceSignature.addPiece(pieceToAdd, bitBoardsPiece[pieceToAdd]);
+	_pieceSignature.addPiece(pieceToAdd);
 	addPieceBB(squareOfPiece, pieceToAdd);
 	_basicBoard.addPiece(squareOfPiece, pieceToAdd);
 	_materialBalance.addPiece(pieceToAdd);

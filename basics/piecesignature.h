@@ -21,10 +21,13 @@
 
 #pragma once
 
+#include <string.h>
+#include <assert.h>
 #include <array>
+#include <vector>
+#include <tuple>
 #include "evalvalue.h"
-
-using namespace std;
+#include "bits.h"
 
 namespace QaplaBasics {
 
@@ -35,11 +38,11 @@ namespace QaplaBasics {
 	 */
 	enum class Signature {
 		EMPTY = 0,
-		PAWN = 0x00001,
-		KNIGHT = 0x00004,
-		BISHOP = 0x00010,
-		ROOK = 0x00040,
-		QUEEN = 0x00100
+		PAWN =	 1 << 0,
+		KNIGHT = 1 << 3,
+		BISHOP = 1 << 5 ,
+		ROOK = 1 << 7,
+		QUEEN = 1 << 9
 	};
 
 	constexpr pieceSignature_t operator|(Signature a, Signature b) { return pieceSignature_t(a) | pieceSignature_t(b); }
@@ -52,12 +55,12 @@ namespace QaplaBasics {
 	 * Mask to extract a dedicated piece type form the bit field
 	 */
 	enum class SignatureMask {
-		PAWN = Signature::PAWN * 3,
+		PAWN = Signature::PAWN * 7,
 		KNIGHT = Signature::KNIGHT * 3,
 		BISHOP = Signature::BISHOP * 3,
 		ROOK = Signature::ROOK * 3,
 		QUEEN = Signature::QUEEN * 3,
-		ALL = PAWN + KNIGHT + BISHOP + ROOK + QUEEN,
+		ALL = PAWN | KNIGHT | BISHOP | ROOK | QUEEN,
 		SIZE = ALL + 1
 	};
 	constexpr pieceSignature_t operator|(SignatureMask a, SignatureMask b) { return pieceSignature_t(a) | pieceSignature_t(b); }
@@ -70,6 +73,8 @@ namespace QaplaBasics {
 
 	class PieceSignature {
 	public:
+		static const pieceSignature_t SIG_SHIFT_BLACK = 11;
+		static const pieceSignature_t PIECE_SIGNATURE_SIZE = 1 << (SIG_SHIFT_BLACK * 2);
 
 		PieceSignature() : _signature(0) {}
 		PieceSignature(pieceSignature_t signature) : _signature(signature) {}
@@ -118,44 +123,31 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Checks, if a piece is available more than twice
-		 */
-		inline bool moreThanTwoPiecesInBitBoard(bitBoard_t bitBoard) const {
-			bitBoard &= bitBoard - 1;
-			bitBoard &= bitBoard - 1;
-			return bitBoard != 0;
-		}
-
-		/**
-		 * Checks, if a piece is available more than once
-		 */
-		inline bool moreThanOnePieceInBitBoard(bitBoard_t bitBoard) const {
-			bitBoard &= bitBoard - 1;
-			return bitBoard != 0;
-		}
-
-		/**
 		 * Adds a piece to the signature
 		 */
-		void addPiece(Piece piece, bitBoard_t pieceBitboardBeforeAddingPiece) {
-			if (!moreThanTwoPiecesInBitBoard(pieceBitboardBeforeAddingPiece)) {
-				_signature += mapPieceToSignature[piece];
-			}
+		void addPiece(Piece piece) {
+			const pieceSignature_t inc = pieceToSignature[piece];
+			const pieceSignature_t mask = pieceToMask[piece];
+			_signature += ((_signature & mask) < mask) * inc;
+			assert(_signature < PIECE_SIGNATURE_SIZE);
 		}
 
 		/**
 		 * Removes a piece from the signature
 		 */
 		void removePiece(Piece piece, bitBoard_t pieceBitboardAfterRemovingPiece) {
-			if (!moreThanTwoPiecesInBitBoard(pieceBitboardAfterRemovingPiece)) {
-				_signature -= mapPieceToSignature[piece];
-			}
+			const pieceSignature_t dec = pieceToSignature[piece];
+			const pieceSignature_t mask = pieceToMask[piece];
+			const pieceSignature_t pieces = popCount(pieceBitboardAfterRemovingPiece) * dec;
+			assert(mask == 0 || (_signature & mask) != 0); // king results in mask = 0
+			_signature -= (pieces < mask) * dec;
+			assert(_signature < PIECE_SIGNATURE_SIZE);
 		}
 
 		/**
 		 * Gets the piece signature of a color
 		 */
-		template <Piece COLOR> 
+		template <Piece COLOR>
 		constexpr pieceSignature_t getSignature() const {
 			return (COLOR == WHITE) ? (_signature & pieceSignature_t(SignatureMask::ALL)) : _signature >> SIG_SHIFT_BLACK;
 		}
@@ -172,10 +164,13 @@ namespace QaplaBasics {
 		 * The pawns are counted as one, if there are 3 or more pawns
 		 */
 		template <Piece COLOR>
-		value_t getStaticPiecesValue() const { return staticPiecesValue[getSignature<COLOR>()]; }
+		value_t getStaticPiecesValue() const { 
+			const auto signature = getSignature<COLOR>();
+			return staticPiecesValue[signature]; 
+		}
 
 		/**
-		 * Checks, if a side has any material 
+		 * Checks, if a side has any material
 		 */
 		template <Piece COLOR>
 		bool hasAnyMaterial() const {
@@ -205,7 +200,9 @@ namespace QaplaBasics {
 		template <Piece COLOR>
 		bool hasEnoughMaterialToMate() const {
 			pieceSignature_t signature = getSignature<COLOR>();
-			return (signature & SignatureMask::PAWN) || (signature > pieceSignature_t(Signature::BISHOP));
+			return (signature & SignatureMask::PAWN)
+				|| (signature > pieceSignature_t(Signature::BISHOP))
+				|| (signature & SignatureMask::KNIGHT) == pieceSignature_t(SignatureMask::KNIGHT);
 		}
 
 		/**
@@ -217,7 +214,7 @@ namespace QaplaBasics {
 				pieceSignature_t(SignatureMask::ALL) & ~(Signature::BISHOP | Signature::KNIGHT);
 
 			// Checks that no other bit is set than "one bishop" and "one knight"
-			bool anyColorNotMoreThanOneNightAndOneBishop = 
+			bool anyColorNotMoreThanOneNightAndOneBishop =
 				(_signature & (ONLY_KNIGHT_AND_BISHOP | (ONLY_KNIGHT_AND_BISHOP << SIG_SHIFT_BLACK))) == 0;
 			// Checks that "one bishop" and "one knight" is not set at the same time
 			bool hasEitherKnightOrBishop = (_signature & (_signature >> 2)) == 0;
@@ -227,48 +224,17 @@ namespace QaplaBasics {
 		/**
 		 * Tansforms a string constant in a piece signature (like KKN = one Knight)
 		 */
-		bool set(string pieces, uint32_t iteration = 0) {
-			_signature = 0;
-			pieceSignature_t shift = 0;
-			pieceSignature_t lastSignature = 0;
-			uint32_t divider;
-			bool onlyAddOne;
+		void set(string pieces);
 
-			for (int pos = 0; pos < pieces.length(); pos++) {
-				switch (pieces[pos]) {
-				case 'K':
-					if (pos > 0) {
-						shift = SIG_SHIFT_BLACK;
-					}
-					break;
-				case '+':
-					if ((_signature & (lastSignature * 3)) == (lastSignature * 3)) {
-						std::cerr << "Maximum of three pieces per type allowed " << pieces << " given" << std::endl;
-						break;
-					}
-					// Add only one, if we have a double definition like BB+
-					onlyAddOne = _signature & (lastSignature * 2);
-					divider = onlyAddOne ? 2 : 3;
-					_signature += lastSignature * (iteration % divider);
-					iteration /= divider;
-					break;
-				case '*':
-					_signature -= lastSignature;
-					_signature += lastSignature * (iteration % 4);
-					iteration /= 4;
-					break;
-				default:
-					lastSignature = charToSignature(pieces[pos]) << shift;
-					if ((_signature & (lastSignature * 3)) == (lastSignature * 3)) {
-						std::cerr << "Maximum of three pieces per type allowed " << pieces << " given" << std::endl;
-						break;
-					}
-					_signature += lastSignature;
-					break;
-				}
-			}
-			return iteration == 0;
-		}
+		/**
+		 * Generates a list of signatures from a pattern. It supports "+" (one or more pieces),
+		 * "*" (zero or more pieces)
+		 * Example: KQP+KRP* generates: all KQKR combinations with one or more whites pawn and zero or more black pawns
+		 * @param pattern The pattern to generate the signatures from
+		 * @param out The output vector to store the generated signatures
+		 * 
+		 */
+		void generateSignatures(const std::string& pattern, std::vector<pieceSignature_t>& out);
 
 		/**
 		 * Debugging functionality: swap white and black signature
@@ -296,13 +262,11 @@ namespace QaplaBasics {
 		 */
 		bool doFutilityOnPromote() const {
 			bool result = true;
-			result = futilityOnCaptureMap[_signature & SignatureMask::ALL] && 
+			result = futilityOnCaptureMap[_signature & SignatureMask::ALL] &&
 				futilityOnCaptureMap[_signature >> SIG_SHIFT_BLACK];
 			return result;
 		}
 
-		static const pieceSignature_t SIG_SHIFT_BLACK = 10;
-		static const pieceSignature_t PIECE_SIGNATURE_SIZE = 1 << (SIG_SHIFT_BLACK * 2);
 
 	private:
 		pieceSignature_t _signature;
@@ -310,14 +274,31 @@ namespace QaplaBasics {
 		inline operator pieceSignature_t() const { return _signature; }
 
 		/**
+		 * Checks, if a piece is available more than twice
+		 */
+		inline bool moreThanTwoPiecesInBitBoard(bitBoard_t bitBoard) const {
+			bitBoard &= bitBoard - 1;
+			bitBoard &= bitBoard - 1;
+			return bitBoard != 0;
+		}
+
+		/**
+		 * Checks, if a piece is available more than once
+		 */
+		inline bool moreThanOnePieceInBitBoard(bitBoard_t bitBoard) const {
+			bitBoard &= bitBoard - 1;
+			return bitBoard != 0;
+		}
+
+		/**
 		 * Returns the amount of pieces found in a signature
 		 */
-		constexpr static uint32_t getPieceAmount(pieceSignature_t signature)  {
-			uint32_t result = 0;
-			for (; signature != 0; signature >>= 2) {
-				result += signature & 3;
-			}
-			return result;
+		constexpr static uint32_t getPieceAmount(pieceSignature_t signature) {
+			return getPieceAmount<PAWN>(signature) + 
+				getPieceAmount<KNIGHT>(signature) +
+				getPieceAmount<BISHOP>(signature) +
+				getPieceAmount<ROOK>(signature) +
+				getPieceAmount<QUEEN>(signature);
 		}
 
 		/**
@@ -335,7 +316,7 @@ namespace QaplaBasics {
 			}
 		}
 
-		static constexpr array<pieceSignature_t, PIECE_AMOUNT> mapPieceToSignature = []() {
+		static constexpr array<pieceSignature_t, PIECE_AMOUNT> pieceToSignature = []() {
 			array<pieceSignature_t, PIECE_AMOUNT> result{};
 			result.fill(pieceSignature_t(Signature::EMPTY));
 			result[WHITE_PAWN] = pieceSignature_t(Signature::PAWN);
@@ -343,6 +324,7 @@ namespace QaplaBasics {
 			result[WHITE_BISHOP] = pieceSignature_t(Signature::BISHOP);
 			result[WHITE_ROOK] = pieceSignature_t(Signature::ROOK);
 			result[WHITE_QUEEN] = pieceSignature_t(Signature::QUEEN);
+
 			result[BLACK_PAWN] = pieceSignature_t(Signature::PAWN) << SIG_SHIFT_BLACK;
 			result[BLACK_KNIGHT] = pieceSignature_t(Signature::KNIGHT) << SIG_SHIFT_BLACK;
 			result[BLACK_BISHOP] = pieceSignature_t(Signature::BISHOP) << SIG_SHIFT_BLACK;
@@ -351,9 +333,29 @@ namespace QaplaBasics {
 			return result;
 			}();
 
+		static constexpr std::array<pieceSignature_t, PIECE_AMOUNT> pieceToMask = []() {
+			std::array<pieceSignature_t, PIECE_AMOUNT> result{};
+			result.fill(0);
+			result[WHITE_PAWN] = pieceSignature_t(SignatureMask::PAWN);
+			result[WHITE_KNIGHT] = pieceSignature_t(SignatureMask::KNIGHT);
+			result[WHITE_BISHOP] = pieceSignature_t(SignatureMask::BISHOP);
+			result[WHITE_ROOK] = pieceSignature_t(SignatureMask::ROOK);
+			result[WHITE_QUEEN] = pieceSignature_t(SignatureMask::QUEEN);
+
+			result[BLACK_PAWN] = static_cast<pieceSignature_t>(SignatureMask::PAWN) << SIG_SHIFT_BLACK;
+			result[BLACK_KNIGHT] = static_cast<pieceSignature_t>(SignatureMask::KNIGHT) << SIG_SHIFT_BLACK;
+			result[BLACK_BISHOP] = static_cast<pieceSignature_t>(SignatureMask::BISHOP) << SIG_SHIFT_BLACK;
+			result[BLACK_ROOK] = static_cast<pieceSignature_t>(SignatureMask::ROOK) << SIG_SHIFT_BLACK;
+			result[BLACK_QUEEN] = static_cast<pieceSignature_t>(SignatureMask::QUEEN) << SIG_SHIFT_BLACK;
+			return result;
+			}();
+
 
 		/**
-		 * Maps a piece to a signature bit
+		 * Initializes a lookup table used for futility pruning.
+		 *
+		 * Prevents futility pruning when the remaining material after a capture
+		 * consists of fewer than two pieces.
 		 */
 		static inline array<pieceSignature_t, size_t(SignatureMask::SIZE)> futilityOnCaptureMap = []() {
 			array<pieceSignature_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
@@ -365,6 +367,15 @@ namespace QaplaBasics {
 			}
 			return result;
 			}();
+
+		/**
+		 * Initializes a lookup table for static piece values.
+		 *
+		 * Queen = 9, Rook = 5, Bishop = 3, Knight = 3.
+		 * Pawns contribute exactly 1 point if there are at least 3.
+		 *
+		 * This table is used for fast material evaluation in search heuristics.
+		 */
 		static constexpr array<value_t, size_t(SignatureMask::SIZE)> staticPiecesValue = []() {
 			array<value_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
 			for (uint32_t index = 0; index < static_cast<uint32_t>(SignatureMask::ALL); index++) {
@@ -373,27 +384,17 @@ namespace QaplaBasics {
 					getPieceAmount<ROOK>(index) * 5 +
 					getPieceAmount<BISHOP>(index) * 3 +
 					getPieceAmount<KNIGHT>(index) * 3 +
-					getPieceAmount<PAWN>(index) / 3;
+					(getPieceAmount<PAWN>(index) >= 3 ? 1 : 0);
 			}
 			return result;
 			}();
-		
+
 		/**
 		 * Maps a piece char to a piece signature bit
 		 */
-		pieceSignature_t charToSignature(char piece) {
-			Signature result = Signature::EMPTY;
-			switch (piece) {
-			case 'Q': result = Signature::QUEEN; break;
-			case 'R': result = Signature::ROOK; break;
-			case 'B': result = Signature::BISHOP; break;
-			case 'N': result = Signature::KNIGHT; break;
-			case 'P': result = Signature::PAWN; break;
-			}
-			return pieceSignature_t(result);
-		}
-	};
+		std::tuple<pieceSignature_t, pieceSignature_t> charToSignature(char piece);
 
+	};
 }
 
 

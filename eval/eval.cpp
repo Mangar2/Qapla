@@ -29,7 +29,7 @@
 #include "king-attack.h"
 #include "king.h"
 #include "threat.h"
-#include "eval-correction.h"
+//#include "eval-correction.h"
 
 using namespace ChessEval;
 
@@ -161,10 +161,11 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 				<< std::right << std::setw(20) << result << std::endl;
 		}
 	}
-
+	/*
 	if (position.getEvalVersion() == 1) {
 		result += EVAL_CORRECTION[position.getPiecesSignature()] / 2;
 	}
+	*/
 	if constexpr (PRINT) {
 		cout << "Piece Signature Correction:"
 			<< std::right << std::setw(9) << result << std::endl;

@@ -88,7 +88,7 @@ namespace QaplaTraining {
             signatureDraw[pieceIndex]++;
             break;
         }
-
+        /*
         PieceSignature debugIndex;
         debugIndex.set("KQRRBBNPPPKQRRBNNPPP");
         auto index = pieceIndex / 8;
@@ -102,6 +102,7 @@ namespace QaplaTraining {
 				<< " stat: " << statistic
                 << " total: " << total << " " << moveInfo.engine->getFen() << std::endl;
         }
+        */
     }
 
     void SignatureEvalAdjuster::onFinish() {

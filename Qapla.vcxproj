@@ -1836,6 +1836,7 @@
     <ClCompile Include="basics\basicboard.cpp" />
     <ClCompile Include="basics\board.cpp" />
     <ClCompile Include="basics\hashconstants.cpp" />
+    <ClCompile Include="basics\piecesignature.cpp" />
     <ClCompile Include="basics\pst.cpp" />
     <ClCompile Include="bitbase\bitbase.cpp" />
     <ClCompile Include="bitbase\bitbasegenerator.cpp" />
