@@ -491,6 +491,9 @@
     <ClInclude Include="training\signature-eval-adjuster.h">
       <Filter>training</Filter>
     </ClInclude>
+    <ClInclude Include="basics\hashed-lookup.h">
+      <Filter>basics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

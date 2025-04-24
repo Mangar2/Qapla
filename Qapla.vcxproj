@@ -1885,6 +1885,7 @@
     <ClInclude Include="basics\movelist.h" />
     <ClInclude Include="basics\piecesignature.h" />
     <ClInclude Include="basics\pst.h" />
+    <ClInclude Include="basics\hashed-lookup.h" />
     <ClInclude Include="basics\square-table.h" />
     <ClInclude Include="basics\types.h" />
     <ClInclude Include="bitbase\bitbase.h" />

@@ -113,9 +113,9 @@ namespace QaplaInterface {
 
 	struct ResultPerPieceIndex {
 		ResultPerPieceIndex()
-			: signatureWin(PieceSignature::PIECE_SIGNATURE_SIZE * 8),
-			signatureDraw(PieceSignature::PIECE_SIGNATURE_SIZE * 8),
-			signatureLoss(PieceSignature::PIECE_SIGNATURE_SIZE * 8)
+			: signatureWin(PieceSignature::SIG_SIZE * 8),
+			signatureDraw(PieceSignature::SIG_SIZE * 8),
+			signatureLoss(PieceSignature::SIG_SIZE * 8)
 		{}
 
 		void setResult(std::vector<uint32_t>& indexes, GameResult gameResult);

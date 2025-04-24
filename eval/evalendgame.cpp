@@ -30,16 +30,11 @@
 using namespace ChessEval;
 using namespace QaplaBitbase;
 
-
-vector<EvalEndgame::evalFunction_t*> EvalEndgame::functionMap;
-array<uint8_t, PieceSignature::PIECE_SIGNATURE_SIZE> EvalEndgame::mapPieceSignatureToFunctionNo;
 EvalEndgame::InitStatics EvalEndgame::_staticConstructor;
-
 #define REGISTER(index, function) registerFunction(index, function<WHITE>, false); registerFunction(index, function<BLACK>, true);
 
 
 EvalEndgame::InitStatics::InitStatics() {
-	mapPieceSignatureToFunctionNo.fill(255);
 
 	// Queen
 	REGISTER("KQ+R*B*N*P*K", forceToAnyCornerToMate);
@@ -134,31 +129,14 @@ EvalEndgame::InitStatics::InitStatics() {
 }
 
 void EvalEndgame::registerFunction(string pieces, evalFunction_t function, bool changeSide) {
-	const int16_t NOT_FOUND = -1;
-	int16_t functionNo = NOT_FOUND;
 	PieceSignature signature;
-	uint32_t iteration = 0;
-	for (uint8_t index = 0; index < functionMap.size(); index++) {
-		if (functionMap[index] == function) {
-			functionNo = index;
-			break;
-		}
-	}
-	if (functionNo == NOT_FOUND) {
-		functionNo = int16_t(functionMap.size());
-		functionMap.push_back(function);
-	}
-	if (functionMap.size() > 255) {
-		cout << "Too many functions for endgame eval. Please change code" << endl;
-		return;
-	}
 
 	vector<pieceSignature_t> signatures;
 	signature.generateSignatures(pieces, signatures);
 	for (auto sig : signatures) { 
 		PieceSignature psig(sig);
 		if (changeSide) psig.changeSide();
-		mapPieceSignatureToFunctionNo[psig.getPiecesSignature()] = uint8_t(functionNo);
+		pieceSignatureHash.insert(psig.getPiecesSignature(), function);
 	}
 }
 

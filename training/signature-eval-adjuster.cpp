@@ -27,10 +27,11 @@ namespace QaplaTraining {
     using namespace QaplaBasics;
 
     SignatureEvalAdjuster::SignatureEvalAdjuster()
-            : signatureWin(PieceSignature::PIECE_SIGNATURE_SIZE * 8),
-            signatureDraw(PieceSignature::PIECE_SIGNATURE_SIZE * 8),
-            signatureLoss(PieceSignature::PIECE_SIGNATURE_SIZE * 8),
-		    evalSum(PieceSignature::PIECE_SIGNATURE_SIZE * 8)
+        : signatureWin(PieceSignature::SIG_SIZE),
+        signatureDraw(PieceSignature::SIG_SIZE),
+        signatureLoss(PieceSignature::SIG_SIZE),
+        evalSum(PieceSignature::SIG_SIZE),
+        valSum(1000), valTotal(1000)
         {
         }
 
@@ -51,6 +52,12 @@ namespace QaplaTraining {
         // Skip: we only want evaluation after the last move of a capture sequence,
         // to avoid transient eval noise from ongoing exchanges.
         if (!moveInfo.moveBeforeWasCapture || moveInfo.isCapture) return;
+
+        // Ignore positions with search value result largely different to eval.
+        // This avoids statistics from situation with compensation for missing material
+        int32_t whiteValue = moveInfo.engine->isWhiteToMove() ? moveInfo.value : -moveInfo.value;
+		int32_t absValue = std::min(std::abs(whiteValue), 999);
+        //if (std::abs(whiteValue - moveInfo.eval) > 50) return;
 		
         const auto& indexVector = moveInfo.engine->computeEvalIndexVector();
         if (indexVector[0].name != "pieceSignature") {
@@ -59,11 +66,6 @@ namespace QaplaTraining {
         }
 		auto pieceIndex = indexVector[0].index;
                 
-        // The piece signature contains a 3-bit packed value represending a pawn difference in the piece signature from -3 to 3
-        // The value 7 represents a pawn difference > abs(3). We ignore these cases in our statistic.
-        int32_t pieceSignatureValueDifferencePacked = static_cast<int32_t>(pieceIndex % 8);
-        if (pieceSignatureValueDifferencePacked == 7) return;
-
         int64_t currentSum = evalSum[pieceIndex];
         int64_t toAdd = static_cast<int64_t>(moveInfo.eval);
         if ((toAdd > 0 && currentSum > INT64_MAX - toAdd) ||
@@ -72,13 +74,16 @@ namespace QaplaTraining {
             return;
         }
 		evalSum[pieceIndex] += toAdd;
+        valTotal[absValue]++;
 
         switch (moveInfo.result) {
         case QaplaInterface::GameResult::WHITE_WINS_BY_MATE:
             signatureWin[pieceIndex]++;
+            valSum[absValue] += whiteValue >= 0 ? 1 : -1;
             break;
         case QaplaInterface::GameResult::BLACK_WINS_BY_MATE:
             signatureLoss[pieceIndex]++;
+			valSum[absValue] += whiteValue < 0 ? 1 : -1;
             break;
         case QaplaInterface::GameResult::NOT_ENDED:
             // Do nothing
@@ -88,8 +93,11 @@ namespace QaplaTraining {
             signatureDraw[pieceIndex]++;
             break;
         }
+
         /*
-        PieceSignature debugIndex;
+        PieceSignature debugIndex(pieceIndex / 8);
+        cout << debugIndex.toString() << " eval: " << moveInfo.eval << " value: " << moveInfo.value << std::endl;
+
         debugIndex.set("KQRRBBNPPPKQRRBNNPPP");
         auto index = pieceIndex / 8;
         if (index == debugIndex.getPiecesSignature()) {
@@ -112,16 +120,116 @@ namespace QaplaTraining {
         std::cout << "Analysis finished." << std::endl;
     }
 
+    void PrintVectorStats(const std::vector<int64_t>& valTotal, const std::vector<int64_t>& valSum) {
+        constexpr int perLine = 10;
+        constexpr int maxIndex = 999;
+
+        std::cout << std::fixed << std::setprecision(3);
+
+        for (int i = 0; i <= maxIndex; i += perLine) {
+            for (int j = 0; j < perLine && i + j <= maxIndex; ++j) {
+                int idx = i + j;
+                if (valTotal[idx] > 0) {
+                    double winRate = static_cast<double>(valSum[idx]) / valTotal[idx];
+                    std::cout << "[" << idx << "] " << winRate << "  ";
+                }
+                else {
+                    std::cout << "[" << idx << "] ---   ";
+                }
+            }
+            std::cout << "\n";
+        }
+    }
+    
+    std::vector<int> SignatureEvalAdjuster::smoothVector(
+        const std::vector<int>& original, int radius, double sigmaSpace) {
+
+        std::vector<int> vec = original;
+        const int n = static_cast<int>(vec.size());
+
+        for (int i = 0; i < n; ++i) {
+            const int adjustedRadius = std::min(radius, std::min(i, n - 1 - i));
+
+            double sum = 0.0;
+            double weightSum = 0.0;
+
+            for (int r = -adjustedRadius; r <= adjustedRadius; ++r) {
+                const int j = i + r;
+                const double dist2 = r * r;
+
+                const double weight = std::exp(-dist2 / (2.0 * sigmaSpace * sigmaSpace));
+
+                sum += original[j] * weight;
+                weightSum += weight;
+            }
+
+            vec[i] = static_cast<int>(std::round(sum / weightSum));
+        }
+
+        return vec;
+    }
+
+    std::vector<int> SignatureEvalAdjuster::ComputeCentipawnByWinProbability()
+    {
+        constexpr int probabilityBins = 101;
+        constexpr int maxCentipawnIndex = 999;
+
+        std::vector<int64_t> weightedSum(probabilityBins, 0);
+        std::vector<int64_t> totalWeight(probabilityBins, 0);
+        std::vector<int> result(probabilityBins, -1);
+
+        for (int i = 0; i <= maxCentipawnIndex; ++i) {
+            if (valTotal[i] == 0) continue;
+
+            double winRate = static_cast<double>(valSum[i]) / valTotal[i];
+            double binF = winRate * 100.0;
+            int binLow = static_cast<int>(std::floor(binF));
+            int binHigh = binLow + 1;
+
+            double fracHigh = binF - binLow;
+            double fracLow = 1.0 - fracHigh;
+
+            if (binLow >= 0 && binLow < probabilityBins) {
+                weightedSum[binLow] += static_cast<int64_t>(i * valTotal[i] * fracLow);
+                totalWeight[binLow] += static_cast<int64_t>(valTotal[i] * fracLow);
+            }
+
+            if (binHigh >= 0 && binHigh < probabilityBins) {
+                weightedSum[binHigh] += static_cast<int64_t>(i * valTotal[i] * fracHigh);
+                totalWeight[binHigh] += static_cast<int64_t>(valTotal[i] * fracHigh);
+            }
+        }
+
+        for (int bin = 0; bin < probabilityBins; ++bin) {
+            if (totalWeight[bin] > 0) {
+                result[bin] = static_cast<int>(weightedSum[bin] / totalWeight[bin]);
+            }
+        }
+
+        for (size_t i = 0; i < result.size(); ++i) {
+            std::cout << "Centipawn " << i << ": " << result[i] << std::endl;
+        }
+
+		auto smoothed = smoothVector(result, 5, 2.0);
+
+        for (size_t i = 0; i < smoothed.size(); ++i) {
+            std::cout << "Centipawn " << i << ": " << smoothed[i] << std::endl;
+        }
+        return smoothed;
+    }
+
     /**
      * Computes the statistic for a given signature and its symmetric counterpart
      */
     std::vector<SignatureEvalAdjuster::AdjustResult> SignatureEvalAdjuster::computeResultTable() {
-        std::vector<AdjustResult> resultTable(PieceSignature::PIECE_SIGNATURE_SIZE);
+        std::vector<AdjustResult> resultTable(PieceSignature::SIG_SIZE);
         constexpr int MAX_DEVIATION = 30;		 // max. derivation in centipawn to check consistence
         constexpr int TRUST_THRESHOLD = 1000;    // full usage of resultn
         constexpr int MIN_RELIABLE_TOTAL = 100;  // no input, if below
 		constexpr int MIN_ADJUSTMENT = 5;	// minimum adjustment in centipawn
 		constexpr int MIN_REL_ADJUSTMENT_DIVIDER = 10; // minimum relative adjustment in centipawn
+		// PrintVectorStats(valTotal, valSum);
+		std::vector<int> centipawnByWinProbability = ComputeCentipawnByWinProbability();
 
         for (uint32_t wsig = 0; wsig < (1 << PieceSignature::SIG_SHIFT_BLACK); wsig++) {
             for (uint32_t bsig = 0; bsig < (1 << PieceSignature::SIG_SHIFT_BLACK); bsig++) {
@@ -131,42 +239,23 @@ namespace QaplaTraining {
                 if (wsig == bsig) continue;
                 uint32_t sig = (bsig << PieceSignature::SIG_SHIFT_BLACK | wsig);
                 uint32_t sym = (wsig << PieceSignature::SIG_SHIFT_BLACK | bsig);
-                bool valueFound = false;
 
-                for (uint32_t valueDeltaInPawn = 0; valueDeltaInPawn <= 3; valueDeltaInPawn++) {
-                    uint32_t sigValue = (sig * 8 + valueDeltaInPawn + 3);
-                    uint32_t symValue = (sym * 8 + (3 - valueDeltaInPawn));
+                const auto [statistic, evalAverage, total] = computeStatistic(sig, sym);
+                if (total < MIN_RELIABLE_TOTAL) continue;
 
-                    const auto [statistic, evalAverage, total] = computeStatistic(sigValue, symValue);
-                    if (total < MIN_RELIABLE_TOTAL) continue;
+                const value_t differenceInCentipawn = propToValue(statistic);
+                const value_t valueAdjustment = differenceInCentipawn - evalAverage;
 
-                    const value_t differenceInCentipawn = propToValue(statistic);
-                    const value_t valueAdjustment = differenceInCentipawn - evalAverage;
+                double weight = std::clamp(
+                    static_cast<double>(total - MIN_RELIABLE_TOTAL) / (TRUST_THRESHOLD - MIN_RELIABLE_TOTAL),
+                    0.0, 1.0
+                );
 
-                    double weight = std::clamp(
-                        static_cast<double>(total - MIN_RELIABLE_TOTAL) / (TRUST_THRESHOLD - MIN_RELIABLE_TOTAL),
-                        0.0, 1.0
-                    );
+                // We apply weighting to avoid overfitting on low sample sizes
+                value_t weightedAdjustment = static_cast<value_t>(valueAdjustment * weight);
 
-                    // We apply weighting to avoid overfitting on low sample sizes
-                    value_t weightedAdjustment = static_cast<value_t>(valueAdjustment * weight);
-
-					// We select the lowest absolute value of the adjustment to avoid overfitting
-                    if (!valueFound ||
-                        (std::abs(weightedAdjustment) < std::abs(resultTable[sig].adjustment) && total >= TRUST_THRESHOLD)) {
-                        resultTable[sig] = { weightedAdjustment, evalAverage, total };
-                        resultTable[sym] = { -weightedAdjustment, -evalAverage, total };
-                        valueFound = true;
-                    }
-                }
-                /*
-                // Shall we keep small adjustments?
-                if (std::abs(resultTable[sig].adjustment) <= MIN_ADJUSTMENT || 
-                    std::abs(resultTable[sig].adjustment) < std::abs(resultTable[sig].evalAverage / MIN_REL_ADJUSTMENT_DIVIDER)) {
-                    resultTable[sig] = { 0, 0, 0 };
-                    resultTable[sym] = { 0, 0, 0 };
-                }
-                */
+                resultTable[sig] = { weightedAdjustment, evalAverage, total };
+                resultTable[sym] = { -weightedAdjustment, -evalAverage, total };
             }
         }
         return resultTable;

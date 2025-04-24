@@ -84,7 +84,7 @@ namespace QaplaTraining {
 	int64_t PieceSignatureStatistic::computeWinAllSignatures(uint32_t value) {
 		int64_t total = 0;
 		int64_t win = 0;
-		for (uint32_t sig = 0; sig < PieceSignature::PIECE_SIGNATURE_SIZE; sig++) {
+		for (uint32_t sig = 0; sig < PieceSignature::SIG_SIZE; sig++) {
 			uint32_t vSig = sig * 8 + value + 3;
 			uint32_t vSigSym = sig * 8 + (3 - value);
 			total += computeTotal(vSig) + computeTotal(vSigSym);
@@ -111,7 +111,7 @@ namespace QaplaTraining {
 	 * Computes the statistic for a given signature and its symmetric counterpart
 	 */
 	std::vector<int32_t> PieceSignatureStatistic::computeResultTable() {
-		std::vector<int32_t> resultTable(PieceSignature::PIECE_SIGNATURE_SIZE);
+		std::vector<int32_t> resultTable(PieceSignature::SIG_SIZE);
 		constexpr int MAX_DEVIATION = 30;		 // max. derivation in centipawn to check consistence
 		constexpr int TRUST_THRESHOLD = 1000;    // full usage of resultn
 		constexpr int MIN_RELIABLE_TOTAL = 100;  // no input, if below
@@ -161,7 +161,7 @@ namespace QaplaTraining {
 		constexpr value_t MAX_MATERIAL = 64; // 32 per side
 		const value_t trustThreshold = static_cast<value_t>(materialOfTrust * MAX_MATERIAL);
 
-		for (uint32_t sig = 0; sig < PieceSignature::PIECE_SIGNATURE_SIZE; ++sig) {
+		for (uint32_t sig = 0; sig < PieceSignature::SIG_SIZE; ++sig) {
 			PieceSignature ps(sig);
 			value_t materialWhite = ps.getStaticPiecesValue<WHITE>();
 			value_t materialBlack = ps.getStaticPiecesValue<BLACK>();

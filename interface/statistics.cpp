@@ -165,6 +165,8 @@ void Statistics::WMTest() {
 	loadEPD("wmtest.epd");
 	_clock.setSearchDepthLimit(depthLimit);
 	getBoard()->setClock(_clock);
+	StdTimeControl timeControl;
+	timeControl.storeStartTime();
 	for (auto& epd : _startPositions) {
 		getBoard()->newGame();
 		ChessInterface::setPositionByFen(epd, getBoard());
@@ -173,7 +175,9 @@ void Statistics::WMTest() {
 		totalNodesSearched += info.nodesSearched;
 		std::cout << epd << " nodes: " << info.nodesSearched << " total: " << totalNodesSearched << std::endl;
 	}
-	std::cout << "Positions searched: " << _startPositions.size() << " Total nodes searched: " << totalNodesSearched << std::endl;
+	std::cout << "Positions searched: " << _startPositions.size() 
+		<< " Total nodes searched: " << totalNodesSearched 
+		<< " Time used (s): " << (timeControl.getTimeSpentInMilliseconds() * 1.0 / 1000.0) << std::endl;
 }
 
 void Statistics::loadGamesFromFile(const std::string& filename) {

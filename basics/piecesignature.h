@@ -39,10 +39,10 @@ namespace QaplaBasics {
 	enum class Signature {
 		EMPTY = 0,
 		PAWN =	 1 << 0,
-		KNIGHT = 1 << 3,
-		BISHOP = 1 << 5 ,
-		ROOK = 1 << 7,
-		QUEEN = 1 << 9
+		KNIGHT = 1 << 4,
+		BISHOP = 1 << 6 ,
+		ROOK = 1 << 8,
+		QUEEN = 1 << 10
 	};
 
 	constexpr pieceSignature_t operator|(Signature a, Signature b) { return pieceSignature_t(a) | pieceSignature_t(b); }
@@ -55,7 +55,7 @@ namespace QaplaBasics {
 	 * Mask to extract a dedicated piece type form the bit field
 	 */
 	enum class SignatureMask {
-		PAWN = Signature::PAWN * 7,
+		PAWN = Signature::PAWN * 15,
 		KNIGHT = Signature::KNIGHT * 3,
 		BISHOP = Signature::BISHOP * 3,
 		ROOK = Signature::ROOK * 3,
@@ -69,12 +69,11 @@ namespace QaplaBasics {
 	constexpr pieceSignature_t operator&(pieceSignature_t a, SignatureMask b) { return a & pieceSignature_t(b); }
 	constexpr pieceSignature_t operator~(SignatureMask a) { return ~pieceSignature_t(a); }
 	
-
-
 	class PieceSignature {
 	public:
-		static const pieceSignature_t SIG_SHIFT_BLACK = 11;
-		static const pieceSignature_t PIECE_SIGNATURE_SIZE = 1 << (SIG_SHIFT_BLACK * 2);
+		static const pieceSignature_t SIG_SHIFT_BLACK = 12;
+		static const pieceSignature_t SIG_SIZE = 1 << (SIG_SHIFT_BLACK * 2);
+		static const pieceSignature_t SIG_SIZE_PER_SIDE = 1 << SIG_SHIFT_BLACK;
 
 		PieceSignature() : _signature(0) {}
 		PieceSignature(pieceSignature_t signature) : _signature(signature) {}
@@ -129,7 +128,7 @@ namespace QaplaBasics {
 			const pieceSignature_t inc = pieceToSignature[piece];
 			const pieceSignature_t mask = pieceToMask[piece];
 			_signature += ((_signature & mask) < mask) * inc;
-			assert(_signature < PIECE_SIGNATURE_SIZE);
+			assert(_signature < SIG_SIZE);
 		}
 
 		/**
@@ -141,7 +140,7 @@ namespace QaplaBasics {
 			const pieceSignature_t pieces = popCount(pieceBitboardAfterRemovingPiece) * dec;
 			assert(mask == 0 || (_signature & mask) != 0); // king results in mask = 0
 			_signature -= (pieces < mask) * dec;
-			assert(_signature < PIECE_SIGNATURE_SIZE);
+			assert(_signature < SIG_SIZE);
 		}
 
 		/**

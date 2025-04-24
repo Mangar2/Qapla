@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 #include "../basics/move.h"
+#include "../basics/hashed-lookup.h"
 #include "../movegenerator/movegenerator.h"
 #include "piece-signature-lookup.h"
 
@@ -49,12 +50,10 @@ namespace ChessEval {
 		 * @return              The evaluated score, either from endgame logic or the unchanged currentValue.
 		 */
 		static value_t eval(MoveGenerator& board, value_t currentValue) {
-
-			uint8_t functionNo = mapPieceSignatureToFunctionNo[board.getPiecesSignature()];
-			if (functionNo < functionMap.size()) {
-				return functionMap[functionNo](board, currentValue);
+			auto function = pieceSignatureHash.lookup(board.getPiecesSignature());
+			if (function.has_value()) {
+				return function.value()(board, currentValue);
 			}
-
 			return currentValue;
 		}
 
@@ -246,9 +245,7 @@ namespace ChessEval {
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
 
-		static vector<evalFunction_t*> functionMap;
-		static array<uint8_t, PieceSignature::PIECE_SIGNATURE_SIZE> mapPieceSignatureToFunctionNo;
-
+		static inline PieceSignatureHashedLookup<evalFunction_t*, 32768, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
 	};
 
 }

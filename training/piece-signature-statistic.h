@@ -34,9 +34,9 @@ namespace QaplaTraining {
 
 	struct PieceSignatureStatistic {
 		PieceSignatureStatistic()
-			: signatureWin(QaplaBasics::PieceSignature::PIECE_SIGNATURE_SIZE * 8),
-			signatureDraw(QaplaBasics::PieceSignature::PIECE_SIGNATURE_SIZE * 8),
-			signatureLoss(QaplaBasics::PieceSignature::PIECE_SIGNATURE_SIZE * 8)
+			: signatureWin(QaplaBasics::PieceSignature::SIG_SIZE * 8),
+			signatureDraw(QaplaBasics::PieceSignature::SIG_SIZE * 8),
+			signatureLoss(QaplaBasics::PieceSignature::SIG_SIZE * 8)
 		{}
 
 		void printResult();

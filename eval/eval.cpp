@@ -67,10 +67,7 @@ std::vector<PieceInfo> Eval::fetchDetails(MoveGenerator& position) {
 IndexVector Eval::computeIndexVector(MoveGenerator& position) {
 	IndexVector indexVector;
 	uint32_t sig = position.getPiecesSignature();
-	int32_t val = PieceSignature(sig).toValueNP() + popCount(position.getPieceBB(WHITE_PAWN)) - popCount(position.getPieceBB(BLACK_PAWN));
-	int32_t clampedVal = std::clamp(val, -4, 4);
-	uint32_t extSig = sig * 8 + (std::abs(clampedVal) == 4 ? 7 : clampedVal + 3);
-	indexVector.push_back(IndexInfo{ "pieceSignature", extSig, NO_PIECE });
+	indexVector.push_back(IndexInfo{ "pieceSignature", sig, NO_PIECE });
 	return indexVector;
 	EvalResults evalResults;
 	indexVector.push_back(IndexInfo{ "midgame", uint32_t(computeMidgameInPercent(position)), NO_PIECE });

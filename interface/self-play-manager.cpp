@@ -75,7 +75,7 @@ namespace QaplaInterface {
 	int64_t ResultPerPieceIndex::computeWinAllSignatures(uint32_t value) {
 		int64_t total = 0;
 		int64_t win = 0;
-		for (uint32_t sig = 0; sig < PieceSignature::PIECE_SIGNATURE_SIZE; sig++) {
+		for (uint32_t sig = 0; sig < PieceSignature::SIG_SIZE; sig++) {
 			uint32_t vSig = sig * 8 + value + 3;
 			uint32_t vSigSym = sig * 8 + (3 - value);
 			total += computeTotal(vSig) + computeTotal(vSigSym);

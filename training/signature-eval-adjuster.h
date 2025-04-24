@@ -55,6 +55,16 @@ namespace QaplaTraining {
             int64_t total;
         };
 
+        std::vector<int> ComputeCentipawnByWinProbability();
+        /**
+         * @brief Smooths the vector using a 1D bilateral filter
+         * @param vec The vector to smooth
+         * @param radius The radius of the smoothing window
+         * @param sigmaSpace The spatial standard deviation for the bilateral filter
+         */
+        std::vector<int> smoothVector(
+            const std::vector<int>& original, int radius, double sigmaSpace);
+
 		uint64_t computeTotal(uint32_t sig) {
 			if (sig >= signatureWin.size()) {
 				std::cout << "Error: Signature out of range: " << sig << std::endl;
@@ -85,6 +95,8 @@ namespace QaplaTraining {
         std::vector<int64_t> signatureDraw;
         std::vector<int64_t> signatureLoss;
         std::vector<int64_t> evalSum;
+        std::vector<int64_t> valSum;
+        std::vector<int64_t> valTotal;
         void onMove(const MoveInfo& moveInfo);
         void onFinish();
     };
