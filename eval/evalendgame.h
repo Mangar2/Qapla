@@ -34,9 +34,24 @@ using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 
+	
+
 	class EvalEndgame {
 
 	public:
+
+		typedef value_t evalFunction_t(MoveGenerator& board, value_t currentValue);
+
+		struct EvalEntry {
+			bool isFunction;
+			union {
+				evalFunction_t* fn;
+				int32_t value;
+			};
+			EvalEntry() : isFunction(false), value(0) {}
+			EvalEntry(evalFunction_t* f) : isFunction(true), fn(f) {}
+			EvalEntry(int32_t v) : isFunction(false), value(v) {}
+		};
 
 		/**
 		 * Attempts to evaluate the current position using specialized endgame evaluation functions.
@@ -50,22 +65,25 @@ namespace ChessEval {
 		 * @return              The evaluated score, either from endgame logic or the unchanged currentValue.
 		 */
 		static value_t eval(MoveGenerator& board, value_t currentValue) {
-			auto function = pieceSignatureHash.lookup(board.getPiecesSignature());
-			if (function.has_value()) {
-				return function.value()(board, currentValue);
-			}
-			return currentValue;
+			auto result = pieceSignatureHash.lookup(board.getPiecesSignature());
+			if (!result.has_value()) return currentValue;
+
+			const auto& entry = result.value();
+			return entry.isFunction
+				? entry.fn(board, currentValue)
+				: currentValue + entry.value;
 		}
 
 		/**
 		 * Registers the use of a bitbase
 		 */
 		static void registerBitbase(string pieces) {
-			registerFunction(pieces, getFromBitbase, false);
-			registerFunction(pieces, getFromBitbase, true);
+			registerEntry(pieces, EvalEntry(getFromBitbase), false);
+			registerEntry(pieces, EvalEntry(getFromBitbase), true);
 		}
 
 	private:
+
 
 		/**
 		 * Checks, if a square is set in a bitmask handling color symmetry
@@ -80,15 +98,19 @@ namespace ChessEval {
 			return (mask & (1ULL << square)) != 0;
 		}
 
-		typedef value_t evalFunction_t(MoveGenerator& board, value_t currentValue);
 
 		/**
 		 * Register an endgame evaluation funciton for a dedicated piece selection
 		 */
-		static void registerFunction(string pieces, evalFunction_t function, bool changeSide = false);
-		static void registerSym(string pieces, evalFunction_t function) {
-			registerFunction(pieces, function, true);
-			registerFunction(pieces, function, false);
+		//static void registerFunction(string pieces, evalFunction_t function, bool changeSide = false);
+		static void registerEntry(string pieces, EvalEntry entry, bool changeSide = false);
+		static void regFun(string pieces, evalFunction_t function) {
+			registerEntry(pieces, EvalEntry(function), false);
+			registerEntry(pieces, EvalEntry(function), true);
+		}
+		static void regVal(string pieces, value_t evalCorrection) {
+			registerEntry(pieces, EvalEntry(evalCorrection), false);
+			registerEntry(pieces, EvalEntry(-evalCorrection), true);
 		}
 
 		/**
@@ -164,16 +186,6 @@ namespace ChessEval {
 		static value_t forceToAnyCornerButDraw(MoveGenerator& board, value_t currentValue);
 
 		/**
-		 * Reduces the value
-		 */
-		template <Piece COLOR> 
-		static value_t minusKnightPlusPawn(MoveGenerator& board, value_t currentValue) {
-			constexpr value_t reduce = MaterialBalance::KNIGHT_VALUE_EG - MaterialBalance::PAWN_VALUE_EG;
-			return currentValue - 
-				(COLOR == WHITE ? reduce : -reduce);
-		}
-
-		/**
 		 * Tries to trap the opponent king in a white or black corner
 		 */
 		template <Piece COLOR>
@@ -245,7 +257,7 @@ namespace ChessEval {
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
 
-		static inline PieceSignatureHashedLookup<evalFunction_t*, 32768, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
+		static inline PieceSignatureHashedLookup<EvalEntry, 32768, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
 	};
 
 }

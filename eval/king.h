@@ -51,41 +51,6 @@ namespace ChessEval {
 			indexLookup["kPST"] = PST::getPSTLookup(KNIGHT);
 			return indexLookup;
 		}
-	private:
-
-		/**
-		 * Evaluates Kings
-		 */
-		template<Piece COLOR, bool STORE_DETAILS>
-		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
-			const Square kingSquare = position.getKingSquare<COLOR>();
-			const value_t kingDistance = minDistance(kingSquare, position.getPieceBB(PAWN + COLOR));
-			const EvalValue propertyValue = EvalValue(0, kingDistance * DISTANCE_PENALTY);
-			if constexpr (STORE_DETAILS) {
-				const auto materialValue = 0;
-				const auto pstValue = PST::getValue(kingSquare, KING + COLOR);
-				const auto mobility = 0;
-				const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
-				details->push_back({ KING + COLOR, kingSquare, {}, "", property + pstValue });
-			}
-			return propertyValue;
-		}
-
-		static inline std::array<std::array<uint64_t, 6>, 64> king_distance_masks = [] {
-			std::array<std::array<uint64_t, 6>, 64> result{};
-
-			for (int king = 0; king < 64; ++king) {
-				for (int sq = 0; sq < 64; ++sq) {
-					int d = std::max(std::abs(king % 8 - sq % 8), std::abs(king / 8 - sq / 8));
-					if (d > 0 && d <= 6)
-						result[king][d - 1] |= 1ULL << sq;
-				}
-				result[king][2] |= result[king][0] | result[king][1];
-				result[king][4] |= result[king][3];
-			}
-
-			return result;
-		}();
 
 		/*
 		 * Computes the minimum abstract distance between a king and any pawn.
@@ -121,7 +86,41 @@ namespace ChessEval {
 				return (pawns & masks[5]) ? 5 : 6;
 			}
 		}
+	private:
 
+		/**
+		 * Evaluates Kings
+		 */
+		template<Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
+			const Square kingSquare = position.getKingSquare<COLOR>();
+			const value_t kingDistance = minDistance(kingSquare, position.getPieceBB(PAWN + COLOR));
+			const EvalValue propertyValue = EvalValue(0, kingDistance * DISTANCE_PENALTY);
+			if constexpr (STORE_DETAILS) {
+				const auto materialValue = 0;
+				const auto pstValue = PST::getValue(kingSquare, KING + COLOR);
+				const auto mobility = 0;
+				const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+				details->push_back({ KING + COLOR, kingSquare, {}, "", property + pstValue });
+			}
+			return propertyValue;
+		}
+
+		static inline std::array<std::array<uint64_t, 6>, 64> king_distance_masks = [] {
+			std::array<std::array<uint64_t, 6>, 64> result{};
+
+			for (int king = 0; king < 64; ++king) {
+				for (int sq = 0; sq < 64; ++sq) {
+					int d = std::max(std::abs(king % 8 - sq % 8), std::abs(king / 8 - sq / 8));
+					if (d > 0 && d <= 6)
+						result[king][d - 1] |= 1ULL << sq;
+				}
+				result[king][2] |= result[king][0] | result[king][1];
+				result[king][4] |= result[king][3];
+			}
+
+			return result;
+		}();
 
 		static const value_t DISTANCE_PENALTY = -10;
 	};

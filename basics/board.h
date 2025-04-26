@@ -154,7 +154,8 @@ namespace QaplaBasics {
 		 * the 50-moves-draw rule
 		 */
 		inline auto getTotalHalfmovesWithoutPawnMoveOrCapture() const {
-			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture + fenHalfmovesWithoutPawnMoveOrCapture;
+			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture 
+				+ _basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
@@ -164,8 +165,11 @@ namespace QaplaBasics {
 			_basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture = number;
 		}
 
+		/**
+		 * Sets the number of half moves without pawn move or capture from initial fen
+		 */
 		void setFenHalfmovesWihtoutPawnMoveOrCapture(uint16_t number) {
-			fenHalfmovesWithoutPawnMoveOrCapture = number;
+			_basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
@@ -188,6 +192,13 @@ namespace QaplaBasics {
 		 */
 		template<Piece COLOR> auto hasAnyMaterial() const {
 			return _pieceSignature.hasAnyMaterial<COLOR>();
+		}
+
+		/**
+		 * @return true, if side to move has more that pawns
+		 */
+		auto hasMoreThanPawns() const {
+			return isWhiteToMove() ? _pieceSignature.hasMoreThanPawns<WHITE>() : _pieceSignature.hasMoreThanPawns<BLACK>();
 		}
 
 		/**
@@ -433,7 +444,7 @@ namespace QaplaBasics {
 		EvalValue _pstBonus;
 		PieceSignature _pieceSignature;
 		MaterialBalance _materialBalance;
-		uint16_t fenHalfmovesWithoutPawnMoveOrCapture = 0;
+
 
 	};
 }

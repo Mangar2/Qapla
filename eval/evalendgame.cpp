@@ -31,8 +31,9 @@ using namespace ChessEval;
 using namespace QaplaBitbase;
 
 EvalEndgame::InitStatics EvalEndgame::_staticConstructor;
-#define REGISTER(index, function) registerFunction(index, function<WHITE>, false); registerFunction(index, function<BLACK>, true);
-
+#define REGISTER(index, function) \
+    registerEntry(index, EvalEntry(function<WHITE>), false); \
+    registerEntry(index, EvalEntry(function<BLACK>), true);
 
 EvalEndgame::InitStatics::InitStatics() {
 
@@ -103,6 +104,9 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KB+P+K", KBsPsK);
 	REGISTER("KBB+KN", winningValue);
 	REGISTER("KBB+K", KBBK);
+	regVal("KBKPP+", -MaterialBalance::PAWN_VALUE_EG);
+	regVal("KBKPP", -MaterialBalance::PAWN_VALUE_EG * 3 / 2);
+	regVal("KBKP", -MaterialBalance::BISHOP_VALUE_EG + MaterialBalance::PAWN_VALUE_EG);
 	REGISTER("KBK", drawValue);
 
 	// Knight
@@ -114,13 +118,15 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KNNNK", forceToAnyCornerToMate);
 	REGISTER("KNNPK", winningValue);
 	REGISTER("KNNKR", forceToAnyCornerButDraw);
-	REGISTER("KNKP", minusKnightPlusPawn);
+	regVal("KNKPP+", -MaterialBalance::PAWN_VALUE_EG);
+	regVal("KNKPP", -MaterialBalance::PAWN_VALUE_EG * 3 / 2);
+	regVal("KNKP", -MaterialBalance::KNIGHT_VALUE_EG + MaterialBalance::PAWN_VALUE_EG);
 	REGISTER("KNK", drawValue);
 	REGISTER("KNNK", drawValue);
 
 	// Pawn
 	REGISTER("KP+K", KPsK);
-	registerFunction("KP+KP+", KPsKPs);
+	regFun("KP+KP+", KPsKPs);
 
 	// Draw situations
 	//registerSym("KP*KP*", evalByLookup<KK>);
@@ -128,20 +134,20 @@ EvalEndgame::InitStatics::InitStatics() {
 
 }
 
-void EvalEndgame::registerFunction(string pieces, evalFunction_t function, bool changeSide) {
+void EvalEndgame::registerEntry(string pieces, EvalEntry entry, bool changeSide) {
 	PieceSignature signature;
 
 	vector<pieceSignature_t> signatures;
 	signature.generateSignatures(pieces, signatures);
-	for (auto sig : signatures) { 
+	for (auto sig : signatures) {
 		PieceSignature psig(sig);
 		if (changeSide) psig.changeSide();
-		pieceSignatureHash.insert(psig.getPiecesSignature(), function);
+		pieceSignatureHash.insert(psig.getPiecesSignature(), entry);
 	}
 }
 
 value_t EvalEndgame::getFromBitbase(MoveGenerator& position, value_t value) {
-	if (value >= WINNING_BONUS || value <= -WINNING_BONUS) {
+	if (value >= MAX_BONUS || value <= -MAX_BONUS) {
 		return value;
 	}
 	const value_t bitbaseValue = position.isWhiteToMove() ? 
@@ -307,6 +313,7 @@ template <Piece COLOR>
 value_t EvalEndgame::KNPsK(MoveGenerator& position, value_t value) {
 	value_t result = value;
 	Square kingPos = position.getKingSquare<COLOR>();
+	Square opponentKingSquare = position.getKingSquare<switchColor(COLOR)>();
 	bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 	bitBoard_t pawnMoves = BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
 	pawnMoves &= ~(position.getPieceBB(PAWN + COLOR) + position.getPieceBB(KING + COLOR));
@@ -325,7 +332,12 @@ value_t EvalEndgame::KNPsK(MoveGenerator& position, value_t value) {
 		}
 	}
 	else {
-		result += whiteValue<COLOR>(WINNING_BONUS);
+		if (King::minDistance(kingPos, pawns) < King::minDistance(opponentKingSquare, pawns)) {
+			result += whiteValue<COLOR>(MaterialBalance::PAWN_VALUE_EG * popCount(pawns) * 2);
+		}
+		else {
+			result -= whiteValue<COLOR>(MaterialBalance::PAWN_VALUE_EG);
+		}
 	}
 	return result;
 }
@@ -370,7 +382,7 @@ value_t EvalEndgame::forceToAnyCornerToMate(MoveGenerator& position, value_t val
 		distanceValue -= (themKingDistanceToCorner - usKingDinstanceToCorner) * 16;
 	}
 
-	value += whiteValue<COLOR>(2 * WINNING_BONUS + distanceValue * 2);
+	value += whiteValue<COLOR>(WINNING_BONUS + distanceValue * 2);
 	return value;
 }
 

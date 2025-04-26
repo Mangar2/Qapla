@@ -154,6 +154,7 @@ public:
 		bool isMoveTwoRanks = ((departure - destination) & 0x0F) == 0;
 		if (isCapture || isPawnMove) {
 			boardState.halfmovesWithoutPawnMoveOrCapture = 0;
+			boardState.fenHalfmovesWithoutPawnMoveOrCapture = 0;
 		}
 		if (isPawnMove && isMoveTwoRanks) {
 			boardState.setEP(destination);
@@ -204,6 +205,7 @@ protected:
 
 	// Amount of half moves played befor fen
 	int16_t _startHalfmoves;
+
 };
 
 }

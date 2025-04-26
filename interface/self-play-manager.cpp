@@ -232,6 +232,7 @@ namespace QaplaInterface {
 			return ChessInterface::isCapture(move, curBoard);
 		}
 		std::tuple<GameResult, std::string, value_t, bool> computeMove(bool curIsWhite) const {
+			const auto ADJUDICATE = false;
 			ComputingInfoExchange computingInfo;
 			IChessBoard* sideToPlay = curIsWhite == curBoard->isWhiteToMove() ? curBoard : newBoard;
 			sideToPlay->computeMove();
@@ -240,7 +241,7 @@ namespace QaplaInterface {
 			const auto move = computingInfo.currentConsideredMove;
 			GameResult result;
 			bool capture = isCapture(move);
-			if (abs(value) > 1000) {
+			if (ADJUDICATE && abs(value) > 1000) {
 				result = value > 1000 == sideToPlay->isWhiteToMove() ? GameResult::WHITE_WINS_BY_MATE : GameResult::BLACK_WINS_BY_MATE;
 			}
 			else {
@@ -342,21 +343,9 @@ namespace QaplaInterface {
 		gamePairing.setPositionByFen(fen);
 		GameResult gameResult = gamePairing.getGameResult();
 		bool captureBefore = false;
-		vector<uint32_t> detectedIndices;
 		while (gameResult == GameResult::NOT_ENDED && !stopped) {
 			const auto [result, move, value, capture] = gamePairing.computeMove(curIsWhite);
-			if (capture) {
-				captureBefore = true;
-			} else if (captureBefore) {
-				const auto& indexVector = gamePairing.getCurBoard()->computeEvalIndexVector();
-				if (indexVector[0].name == "pieceSignature") {
-					detectedIndices.push_back(indexVector[0].index);
-				}
-				const auto& index = indexVector[0];
-				captureBefore = false;
-			}
 			gameResultString += ", " + move + ", " + std::to_string(value);
-			const auto eval = gamePairing.eval();
 			gameRecord.addMove(move, value);
 			gameResult = result;
 		}

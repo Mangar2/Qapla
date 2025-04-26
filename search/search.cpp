@@ -377,7 +377,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		const auto lmr = computeLMR(node, position, depth, ply, curMove);
 
 		// 1. Move count pruning
-		if (lmr > 0 && depth - lmr < 0 && node.bestValue > -MIN_MATE_VALUE) continue;
+		if (lmr > 0 && depth - lmr < 0 && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) continue;
 
 		childNode.doMove(position, curMove);
 

@@ -186,6 +186,12 @@ namespace QaplaBasics {
 			return (getSignature<COLOR>() & mask) != 0;
 		}
 
+		template <Piece COLOR>
+		bool hasMoreThanPawns() const {
+			constexpr pieceSignature_t mask = SignatureMask::QUEEN | SignatureMask::ROOK | SignatureMask::BISHOP | SignatureMask::KNIGHT;
+			return (getSignature<COLOR>() & mask) != 0;
+		}
+
 		/**
 		 * Checks, if the side to move has a range piece
 		 */

@@ -21,6 +21,7 @@
 #include "statistics.h"
 #include "../training/piece-signature-statistic.h"
 #include "../training/signature-eval-adjuster.h"
+#include "../training/position-filter.h"
 #include "../eval/eval.h"
 #include "winboardprintsearchinfo.h"
 #include <thread>
@@ -357,13 +358,22 @@ void Statistics::train() {
 void Statistics::playEpdGames(uint32_t numThreads) {
 	uint32_t games = 0;
 	uint64_t gpe = 2;
+	// command line: epd file <epd-filename> output <output-filename> threads <numThreads> games <numGames> gpe <games per epd>
 	while (getNextTokenNonBlocking() != "") {
+		if (checkClockCommands()) {
+			continue;
+		}
 		if (getCurrentToken() == "threads") {
 			if (getNextTokenNonBlocking() != "") {
 				numThreads = (uint32_t)getCurrentTokenAsUnsignedInt();
 			}
 		}
 		else if (getCurrentToken() == "file") {
+			if (getNextTokenNonBlocking() != "") {
+				loadEPD(getCurrentToken());
+			}
+		}
+		else if (getCurrentToken() == "output") {
 			if (getNextTokenNonBlocking() != "") {
 				epdTasks.setOutputFile(getCurrentToken()); 
 			}
@@ -538,7 +548,44 @@ bool Statistics::checkClockCommands() {
 
 void Statistics::computeMaterialDifference() {
 	QaplaTraining::SignatureEvalAdjuster adjuster;
-	adjuster.run(_startPositions, getBoard(), "epdGamesT.bin");
+	int32_t minAdjust = 0;
+	bool run = false;
+	std::string binaryGamesFile = "epdGamesT.bin";
+	while (getNextTokenNonBlocking() != "") {
+		if (getCurrentToken() == "epd") {
+			if (getNextTokenNonBlocking() != "") {
+				loadEPD(getCurrentToken());
+			}
+		}
+		if (getCurrentToken() == "games-file") {
+			if (getNextTokenNonBlocking() != "") {
+				binaryGamesFile = getCurrentToken();
+			}
+		}
+		else if (getCurrentToken() == "min") {
+			if (getNextTokenNonBlocking() != "") {
+				minAdjust = (uint32_t)getCurrentTokenAsUnsignedInt();
+			}
+		}
+		else if (getCurrentToken() == "run") {
+			run = true;
+		}
+		else {
+			break;
+		}
+	}
+	QaplaTraining::PositionFilter positionFilter(1023);
+	QaplaTraining::GameReplayEngine engine(getBoard(), _startPositions);
+	positionFilter.analyzeGames(engine, "epdFiles.bin");
+
+	/*
+	if (run) {
+		adjuster.run(_startPositions, getBoard(), binaryGamesFile);
+	}
+	else {
+		adjuster.computeFromFile("signature-eval-adjuster.bin", minAdjust);
+	}
+	*/
 }
 
 void Statistics::loadEPD() {

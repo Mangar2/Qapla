@@ -1983,6 +1983,7 @@
     <ClInclude Include="training\game-record.h" />
     <ClInclude Include="training\game-replay-engine.h" />
     <ClInclude Include="training\piece-signature-statistic.h" />
+    <ClInclude Include="training\position-filter.h" />
     <ClInclude Include="training\signature-eval-adjuster.h" />
   </ItemGroup>
   <ItemGroup>

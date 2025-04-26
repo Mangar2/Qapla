@@ -494,6 +494,9 @@
     <ClInclude Include="basics\hashed-lookup.h">
       <Filter>basics</Filter>
     </ClInclude>
+    <ClInclude Include="training\position-filter.h">
+      <Filter>training</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

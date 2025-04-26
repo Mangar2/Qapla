@@ -115,7 +115,7 @@ namespace QaplaTraining {
 
     void SignatureEvalAdjuster::onFinish() {
 		saveToFile("signature-eval-adjuster.bin");
-		std::vector<AdjustResult> resultTable = computeResultTable();
+		std::vector<AdjustResult> resultTable = computeResultTable(1);
 		writeResultTableAsCppHeader(resultTable, "EvalCorrection.h");
         std::cout << "Analysis finished." << std::endl;
     }
@@ -221,13 +221,14 @@ namespace QaplaTraining {
     /**
      * Computes the statistic for a given signature and its symmetric counterpart
      */
-    std::vector<SignatureEvalAdjuster::AdjustResult> SignatureEvalAdjuster::computeResultTable() {
+    std::vector<SignatureEvalAdjuster::AdjustResult> SignatureEvalAdjuster::computeResultTable(int32_t minAdjust) {
         std::vector<AdjustResult> resultTable(PieceSignature::SIG_SIZE);
         constexpr int MAX_DEVIATION = 30;		 // max. derivation in centipawn to check consistence
         constexpr int TRUST_THRESHOLD = 1000;    // full usage of resultn
         constexpr int MIN_RELIABLE_TOTAL = 100;  // no input, if below
 		constexpr int MIN_ADJUSTMENT = 5;	// minimum adjustment in centipawn
 		constexpr int MIN_REL_ADJUSTMENT_DIVIDER = 10; // minimum relative adjustment in centipawn
+		constexpr int MAX_EVAL_VALUE = 800; // max. eval value to check, larger values indicates endgame eval bonus functions
 		// PrintVectorStats(valTotal, valSum);
 		std::vector<int> centipawnByWinProbability = ComputeCentipawnByWinProbability();
 
@@ -242,6 +243,8 @@ namespace QaplaTraining {
 
                 const auto [statistic, evalAverage, total] = computeStatistic(sig, sym);
                 if (total < MIN_RELIABLE_TOTAL) continue;
+                if (std::abs(evalAverage) > MAX_EVAL_VALUE) continue;
+
 
                 const value_t differenceInCentipawn = propToValue(statistic);
                 const value_t valueAdjustment = differenceInCentipawn - evalAverage;
@@ -253,7 +256,9 @@ namespace QaplaTraining {
 
                 // We apply weighting to avoid overfitting on low sample sizes
                 value_t weightedAdjustment = static_cast<value_t>(valueAdjustment * weight);
-
+				if (weightedAdjustment <= minAdjust) {
+					continue;
+				}
                 resultTable[sig] = { weightedAdjustment, evalAverage, total };
                 resultTable[sym] = { -weightedAdjustment, -evalAverage, total };
             }
@@ -310,6 +315,7 @@ namespace QaplaTraining {
         writeMap(signatureDraw);
         writeMap(signatureLoss);
 		writeMap(evalSum);
+        writeMap(valSum);
         out.close();
     }
 
@@ -337,5 +343,12 @@ namespace QaplaTraining {
 		readMap(evalSum);
         in.close();
     }
+
+	void SignatureEvalAdjuster::computeFromFile(const std::string& filename, int32_t minAdjust) {
+		loadFromFile(filename);
+		auto resultTable = computeResultTable(minAdjust);
+		writeResultTableAsCppHeader(resultTable, "EvalCorrection.h");
+		std::cout << "Result table generated and saved to EvalCorrection.h" << std::endl;
+	}
 
 } // namespace QaplaTraining

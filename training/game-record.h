@@ -179,21 +179,15 @@ namespace QaplaTraining {
         std::pair<uint32_t, bool> encodeMoveEval(
             const std::string& lan, value_t staticEval)
         {
+			constexpr value_t MAX_EVAL = 1023;
             auto [moveCode, valid] = encodeLAN(lan);
             if (!valid) {
                 return { 0, false };
             }
 
-            constexpr value_t adjudicationThreshold = 1024;
-
-            if (staticEval >= adjudicationThreshold) {
-                return { 0, false };
-            }
-            if (staticEval <= -adjudicationThreshold) {
-                return { 0, false };
-            }
-
-            uint16_t evalBits = static_cast<uint16_t>(staticEval + 1024);
+			staticEval = std::clamp(staticEval, -MAX_EVAL, MAX_EVAL);
+           
+            uint16_t evalBits = static_cast<uint16_t>(staticEval + MAX_EVAL + 1);
             uint32_t encoded = (static_cast<uint32_t>(evalBits) << 12) | moveCode;
 
             if (lan.length() == 5) {

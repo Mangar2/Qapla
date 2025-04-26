@@ -44,6 +44,8 @@ namespace QaplaTraining {
             const QaplaInterface::IChessBoard* engine,
             const std::string& filePath);
 
+        void computeFromFile(const std::string& filename, int32_t minAdjust);
+
         void saveToFile(const std::string& filename);
 
         void loadFromFile(const std::string& filename);
@@ -88,7 +90,7 @@ namespace QaplaTraining {
             return { static_cast<int32_t>(statistic * 100 / total), evalAverage, total };
 		}
 
-        std::vector<AdjustResult> computeResultTable();
+        std::vector<AdjustResult> computeResultTable(int32_t minAdjust);
         void writeResultTableAsCppHeader(const std::vector<AdjustResult>& resultTable, const std::string& filename);
 
         std::vector<int64_t> signatureWin;

@@ -96,7 +96,7 @@ namespace QaplaTraining {
                 // Notify start of new game
                 if (moveCallback_) {
                     value_t eval = chessEngine_->eval();
-                    moveCallback_({ true, "", chessEngine_.get(), 0, eval, false, false});
+                    moveCallback_({ true, "", chessEngine_.get(), 0, eval, false, false, result });
                 }
 				moveBeforeWasCapture_ = false;
                 for (size_t index = 0; index < game.numMoves(); ++index) {
