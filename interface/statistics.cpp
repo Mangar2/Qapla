@@ -550,7 +550,7 @@ void Statistics::computeMaterialDifference() {
 	QaplaTraining::SignatureEvalAdjuster adjuster;
 	int32_t minAdjust = 0;
 	bool run = false;
-	std::string binaryGamesFile = "epdGamesT.bin";
+	std::string binaryGamesFile = "epdGames.bin";
 	while (getNextTokenNonBlocking() != "") {
 		if (getCurrentToken() == "epd") {
 			if (getNextTokenNonBlocking() != "") {
@@ -576,7 +576,7 @@ void Statistics::computeMaterialDifference() {
 	}
 	QaplaTraining::PositionFilter positionFilter(1023);
 	QaplaTraining::GameReplayEngine engine(getBoard(), _startPositions);
-	positionFilter.analyzeGames(engine, "epdFiles.bin");
+	positionFilter.analyzeGames(engine, binaryGamesFile);
 
 	/*
 	if (run) {

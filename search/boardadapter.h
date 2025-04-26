@@ -372,6 +372,13 @@ namespace QaplaSearch {
 			iterativeDeepening.clearMemories();
 		};
 
+		virtual void setEvalFeature(std::string feature, value_t value) {
+			if (feature == "random") {
+				position.setRandomBonus(value);
+			}
+			iterativeDeepening.clearMemories();
+		};
+
 		virtual IndexVector computeEvalIndexVector() {
 			Eval eval;
 			return eval.computeIndexVector(position);

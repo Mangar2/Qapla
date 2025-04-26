@@ -226,6 +226,8 @@ namespace QaplaInterface {
 		 */
 		virtual void setEvalVersion(uint32_t version) {};
 
+		virtual void setEvalFeature(std::string feature, value_t value) {};
+
 	};
 }
 

@@ -180,7 +180,8 @@ namespace QaplaInterface {
 
 	private:
 
-		QaplaTraining::GameRecord playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite);
+		std::pair<QaplaTraining::GameRecord, std::string> 
+			playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite);
 
 		uint64_t computer1Result;
 		uint64_t gamesPlayed;

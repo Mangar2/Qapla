@@ -184,6 +184,16 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 
 	}
 	else {
+		const value_t randomBonus = position.getRandomBonus();
+		if (randomBonus != 0) {
+			result += randomBonus;
+			result += rand() % (2 * randomBonus + 1) - randomBonus;
+			if constexpr (PRINT) {
+				cout << "Random bonus:"
+					<< std::right << std::setw(20) << result << std::endl;
+			}
+		}
+		
 		result += position.isWhiteToMove() ? tempo : -tempo;
 		if constexpr (PRINT) {
 			cout << "Tempo correction:"

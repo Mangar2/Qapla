@@ -144,16 +144,20 @@ namespace ChessEval {
 		 * Tries to get the pawn evaluation from a transposition table
 		 */
 		static EvalValue probeTT(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
+			constexpr hash_t NO_PAWNS_KEY = 0;
 			EvalValue value = NO_VALUE;
 			if (pawnttPtr == nullptr) {
 				return value;
 			}
 			hash_t key = position.getPawnHash();
+			if (key == NO_PAWNS_KEY) return NO_VALUE;
 			uint32_t index = pawnttPtr->getTTEntryIndex(key);
 			if (index != pawnttPtr->INVALID_INDEX) {
 				const PawnTTEntry& entry = pawnttPtr->getEntry(index);
-				results.passedPawns = entry._passedPawns;
-				value = EvalValue(entry._mgValue, entry._egValue);
+				if (!entry.isEmpty()) {
+					results.passedPawns = entry._passedPawns;
+					value = EvalValue(entry._mgValue, entry._egValue);
+				}
 			}
 			return value;
 		}

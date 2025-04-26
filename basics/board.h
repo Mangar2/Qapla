@@ -367,6 +367,13 @@ namespace QaplaBasics {
 			evalVersion = version; 
 		}
 
+		value_t getRandomBonus() const {
+			return randomBonus;
+		}
+		void setRandomBonus(value_t bonus) {
+			randomBonus = bonus;
+		}
+
 	protected:
 		array<Square, COLOR_COUNT> kingSquares;
 
@@ -440,6 +447,7 @@ namespace QaplaBasics {
 
 		void printPst(Piece piece) const;
 
+		value_t randomBonus = 0;
 		uint32_t evalVersion = 0;
 		EvalValue _pstBonus;
 		PieceSignature _pieceSignature;

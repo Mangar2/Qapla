@@ -447,19 +447,6 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	value_t result;
 
 	ply_t depth = node.remainingDepth;
-	/*
-	const bool debug = depth == 4 && position.getFen() == "r1bqk1nr/pppp1ppp/2nb4/4p3/4P3/5N2/PPPPBPPP/RNBQK2R w" && position.getEvalVersion() == 0;
-	if (debug) {
-		_computingInfo.setExcludeFromWhatIf(false);
-		WhatIf::whatIf.setBoard(position);
-		WhatIf::whatIf.setSearchDepht(5);
-		WhatIf::whatIf.setMove(0, uint32_t(NO_PIECE), uint32_t(File::E), uint32_t(Rank::R2), uint32_t(File::C), uint32_t(Rank::R4), uint32_t(NO_PIECE));
-		WhatIf::whatIf.setMove(1, uint32_t(NO_PIECE), uint32_t(File::D), uint32_t(Rank::R6), uint32_t(File::C), uint32_t(Rank::R5), uint32_t(NO_PIECE));
-	}
-	else {
-		_computingInfo.setExcludeFromWhatIf(true);
-	}
-	*/
 
 	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
 	node.computeMoves(position, _butterflyBoard);

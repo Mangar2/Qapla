@@ -30,14 +30,21 @@
 namespace QaplaTraining {
 
     struct MoveInfo {
+		MoveInfo(uint32_t id, const std::string& start, QaplaInterface::IChessBoard* e, QaplaInterface::GameResult r)
+            : gameStarting(true), move(""), moveNo(0), engine(e), value(0), eval(0), isCapture(false),
+			moveBeforeWasCapture(false), result(r), startFen(start), fenId(id) {
+		}
         bool gameStarting;
 		std::string move;
+        uint32_t moveNo;
         QaplaInterface::IChessBoard* engine;
 		value_t value;
 		value_t eval;
 		bool isCapture;
 		bool moveBeforeWasCapture;
         QaplaInterface::GameResult result;
+        std::string startFen;
+		uint32_t fenId;
     };
 
     /**
@@ -84,7 +91,6 @@ namespace QaplaTraining {
             while (reader.read(game)) {
                 
 				gameCounter++;
-                const auto result = game.getResult();
                 // Reset board to initial position
                 const auto fenId = game.getFENId();
                 error = !setupBoardFromFEN(fenId);
@@ -93,14 +99,19 @@ namespace QaplaTraining {
 					break;
 				}
 
+                MoveInfo moveInfo(fenId, fenList_[fenId], chessEngine_.get(), game.getResult());
+
                 // Notify start of new game
                 if (moveCallback_) {
                     value_t eval = chessEngine_->eval();
-                    moveCallback_({ true, "", chessEngine_.get(), 0, eval, false, false, result });
+                    moveCallback_(moveInfo);
                 }
-				moveBeforeWasCapture_ = false;
+				moveInfo.gameStarting = false;
                 for (size_t index = 0; index < game.numMoves(); ++index) {
-                    bool isLegal = setMove(game.getMove(index), game.getValue(index), result);
+					moveInfo.move = game.getMove(index);
+					moveInfo.value = game.getValue(index);
+					moveInfo.moveNo = static_cast<uint32_t>(index / 2 + 1);
+                    bool isLegal = setMove(moveInfo);
 					if (!isLegal) {
 						std::cerr << "Error: Invalid move at index " << index << " fen id " << fenId << std::endl;
 						break;
@@ -122,7 +133,6 @@ namespace QaplaTraining {
         std::unique_ptr<QaplaInterface::IChessBoard> chessEngine_;
         MoveCallback moveCallback_;
         FinishCallback finishCallback_;
-        bool moveBeforeWasCapture_;
 
         /**
          * @brief Sets up the internal board state from a FEN string
@@ -140,18 +150,18 @@ namespace QaplaTraining {
 			}
         }
 
-		bool setMove(const std::string& move, int32_t value, QaplaInterface::GameResult result) {
-			bool isCapture = QaplaInterface::ChessInterface::isCapture(move, chessEngine_.get());
-			value_t eval = chessEngine_->eval();
+		bool setMove(MoveInfo& moveInfo) {
+			bool isCapture = QaplaInterface::ChessInterface::isCapture(moveInfo.move, moveInfo.engine);
+			moveInfo.eval = moveInfo.engine->eval();
             if (moveCallback_) {
-                moveCallback_({ false, move, chessEngine_.get(), value, eval, isCapture, moveBeforeWasCapture_, result });
+                moveCallback_(moveInfo);
             }
-			bool isLegalMove = QaplaInterface::ChessInterface::setMove(move, chessEngine_.get());
+			bool isLegalMove = QaplaInterface::ChessInterface::setMove(moveInfo.move, moveInfo.engine);
             if (!isLegalMove) {
-                std::cerr << "Error: Illegal move: " << move << std::endl;
+                std::cerr << "Error: Illegal move: " << moveInfo.move << std::endl;
                 return false;
             }
-			moveBeforeWasCapture_ = isCapture;
+			moveInfo.moveBeforeWasCapture = isCapture;
 			return true;
 		}
 

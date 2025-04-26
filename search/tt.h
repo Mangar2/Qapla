@@ -145,7 +145,6 @@ namespace QaplaSearch {
 				if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
 				set(index + 1, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);
 			}
-
 			return index;
 		}
 
@@ -284,6 +283,7 @@ namespace QaplaSearch {
 						  << "[idx:" << index << "]"
 						  << "[dpt:" << entry.getComputedDepth() << "]"
 						  << "[val:" << entry.getPositionValue(0) << "]"
+						  << "[eval:" << entry.getEval() << "]"
 						  << "[pre:" << entry.getComputedPrecision() << "]"
 						  << "[mov:" << entry.getMove().getLAN() << "]\n";
 			}

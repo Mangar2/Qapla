@@ -68,7 +68,7 @@ namespace QaplaInterface {
 		 */
 		void readMemory() {
 			getNextTokenBlocking();
-			_maxMemory = uint32_t(getCurrentTokenAsUnsignedInt());
+			getBoard()->setOption("hash", getCurrentToken());
 		}
 
 		/**

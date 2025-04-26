@@ -318,7 +318,6 @@ namespace QaplaInterface {
 	protected:
 		ClockSetting _clock;
 		uint32_t _maxTheadCount;
-		uint32_t _maxMemory;
 		string _egtPath;
 		string _bitbasePath;
 	};

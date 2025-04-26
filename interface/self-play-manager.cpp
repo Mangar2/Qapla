@@ -205,6 +205,8 @@ namespace QaplaInterface {
 			newBoard->setEvalVersion(1);
 			curBoard->setClock(clock);
 			newBoard->setClock(clock);
+			curBoard->setEvalFeature("random", 0);
+			newBoard->setEvalFeature("random", 0);
 		}
 		~GamePairing() {
 			delete curBoard;
@@ -279,6 +281,7 @@ namespace QaplaInterface {
 			auto task = std::function<void()>([this, gamesPerEpd, i, boardTemplate, clock, games]() {
 				srand(static_cast<unsigned>(time(nullptr)) ^ static_cast<unsigned>(i));
 				GamePairing gamePairing = GamePairing(boardTemplate, clock);
+				std::string last;
 				while (!stopped) {
 					bool curIsWhite; // This is the default version not the version with changed evaluation
 					uint64_t epdNo = 0;
@@ -293,9 +296,19 @@ namespace QaplaInterface {
 						fen = this->startPositions[epdNo];
 						epdIndex++;
 					}
-					QaplaTraining::GameRecord game = playSingleGame(gamePairing, fen, static_cast<uint32_t>(epdNo), curIsWhite);
+					auto [game, gameStr] = playSingleGame(gamePairing, fen, static_cast<uint32_t>(epdNo), curIsWhite);
 					{
 						std::lock_guard<std::mutex> lock(statsMutex);
+						if ((epdIndex - 1) % gamesPerEpd == 0) {
+							last = gameStr;
+							std::cout << "Game string: " << gameStr << std::endl;
+						}
+						else if (last != gameStr) {
+							std::cout << "Error: Game string mismatch at index " << epdIndex << ", epd no " << epdNo << std::endl;
+							std::cout << "Last: " << last << std::endl;
+							std::cout << "Current: " << gameStr << std::endl;
+							break;
+						}
 						const auto result = game.getResult();
 						gameStatistics[result]++;
 						int32_t curResult = 0;
@@ -333,7 +346,8 @@ namespace QaplaInterface {
 		}
 	}
 
-	QaplaTraining::GameRecord SelfPlayManager::playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite) {
+	std::pair<QaplaTraining::GameRecord, std::string>
+		SelfPlayManager::playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite) {
 
 		std::string gameResultString = fen;
 		QaplaTraining::GameRecord gameRecord;
@@ -343,15 +357,18 @@ namespace QaplaInterface {
 		gamePairing.setPositionByFen(fen);
 		GameResult gameResult = gamePairing.getGameResult();
 		bool captureBefore = false;
+		auto moveNo = 2;
 		while (gameResult == GameResult::NOT_ENDED && !stopped) {
 			const auto [result, move, value, capture] = gamePairing.computeMove(curIsWhite);
-			gameResultString += ", " + move + ", " + std::to_string(value);
+			gameResultString += ", " + (moveNo % 2 == 0 ? to_string(moveNo / 2) : ". ") + move + ", " + std::to_string(value);
 			gameRecord.addMove(move, value);
 			gameResult = result;
+			moveNo++;
 		}
 		if (!stopped) {
 			gameRecord.setResult(gameResult);
+			// std::cout << gameResultString << std::endl;
 		}
-		return gameRecord;
+		return { gameRecord, gameResultString };
 	}
 }
