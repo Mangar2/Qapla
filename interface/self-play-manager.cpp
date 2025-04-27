@@ -197,7 +197,7 @@ namespace QaplaInterface {
 
 	class GamePairing {
 	public:
-		GamePairing(const IChessBoard* boardTemplate, const ClockSetting& clock)
+		GamePairing(const IChessBoard* boardTemplate, const ClockSetting& clock, int32_t random)
 			: curBoard(boardTemplate->createNew()), newBoard(boardTemplate->createNew()), clock(clock) {
 			curBoard->setOption("Hash", "2");
 			newBoard->setOption("Hash", "2");
@@ -205,8 +205,8 @@ namespace QaplaInterface {
 			newBoard->setEvalVersion(1);
 			curBoard->setClock(clock);
 			newBoard->setClock(clock);
-			curBoard->setEvalFeature("random", 0);
-			newBoard->setEvalFeature("random", 0);
+			curBoard->setEvalFeature("random", random);
+			newBoard->setEvalFeature("random", random);
 		}
 		~GamePairing() {
 			delete curBoard;
@@ -280,7 +280,7 @@ namespace QaplaInterface {
 			}
 			auto task = std::function<void()>([this, gamesPerEpd, i, boardTemplate, clock, games]() {
 				srand(static_cast<unsigned>(time(nullptr)) ^ static_cast<unsigned>(i));
-				GamePairing gamePairing = GamePairing(boardTemplate, clock);
+				GamePairing gamePairing = GamePairing(boardTemplate, clock, gamesPerEpd == 1 ? 0 : 10);
 				std::string last;
 				while (!stopped) {
 					bool curIsWhite; // This is the default version not the version with changed evaluation
@@ -299,16 +299,6 @@ namespace QaplaInterface {
 					auto [game, gameStr] = playSingleGame(gamePairing, fen, static_cast<uint32_t>(epdNo), curIsWhite);
 					{
 						std::lock_guard<std::mutex> lock(statsMutex);
-						if ((epdIndex - 1) % gamesPerEpd == 0) {
-							last = gameStr;
-							std::cout << "Game string: " << gameStr << std::endl;
-						}
-						else if (last != gameStr) {
-							std::cout << "Error: Game string mismatch at index " << epdIndex << ", epd no " << epdNo << std::endl;
-							std::cout << "Last: " << last << std::endl;
-							std::cout << "Current: " << gameStr << std::endl;
-							break;
-						}
 						const auto result = game.getResult();
 						gameStatistics[result]++;
 						int32_t curResult = 0;

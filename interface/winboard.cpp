@@ -368,7 +368,7 @@ void Winboard::handleInputWhileComputingMove() {
 void Winboard::handleInputWhileInAnalyzeMode() {
 	const string token = getCurrentToken();
 
-	if (token == "new" || token == "setboard" || token == "usermove" || token == "undo") {
+	if (token == "new" || token == "setboard" || token == "usermove" || token == "undo" || token == "exit") {
 		stopCompute();
 	}
 	if (token == ".") getBoard()->requestPrintSearchInfo();
@@ -378,6 +378,7 @@ void Winboard::handleInputWhileInAnalyzeMode() {
 	else if (token == "new") setPositionByFen();
 	else if (token == "setboard") setBoard();
 	else if (token == "force") { _mode = Mode::WAIT; _forceMode = true; }
+	else if (token == "exit") { _mode = Mode::WAIT; }
 	else {
 		println("Error (command not supported in analyze mode): " + token);
 	}
