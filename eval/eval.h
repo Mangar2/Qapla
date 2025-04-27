@@ -60,7 +60,8 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		 */
-		static value_t eval(MoveGenerator& position, PawnTT* pawnttPtr = nullptr, value_t ply = 0, value_t alpha = -MAX_VALUE) {
+		static value_t eval(MoveGenerator& position, PawnTT* pawnttPtr = nullptr, value_t ply = 0, 
+			[[maybe_unused]]value_t alpha = -MAX_VALUE) {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else

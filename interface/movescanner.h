@@ -83,7 +83,6 @@ namespace QaplaInterface {
 		void scanMove(string move) {
 			piece = 0;
 			promote = 0;
-			bool legalMove = true;
 			int32_t curIndex = static_cast<int32_t>(move.size()) - 1;
 			// It is more simple to read the move from the end instead from the beginning. 
 			while (curIndex >= 0 && move[curIndex] == ' ') {
@@ -158,15 +157,15 @@ namespace QaplaInterface {
 		 * lower case letters are also supported to align with winboard standard
 		 */
 		char getPiece(const string& move, int32_t& curIndex) {
-			char piece = 0;
+			char p = 0;
 			if (curIndex >= 0 && isPieceChar(move[curIndex])) {
-				piece = move[curIndex];
+				p = move[curIndex];
 				curIndex--;
 				if (curIndex >= 0 && isPromoteChar(move[curIndex])) {
 					curIndex--;
 				}
 			}
-			return piece;
+			return p;
 		}
 
 		/**

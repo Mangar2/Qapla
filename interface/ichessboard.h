@@ -20,8 +20,7 @@
  * the interface management
  */
 
-#ifndef __ICHESSBOARD_H
-#define __ICHESSBOARD_H
+#pragma once
 
 #include <map>
 #include "clocksetting.h"
@@ -44,191 +43,146 @@ namespace QaplaInterface {
 		ILLEGAL_MOVE
 	};
 
-	class IChessBoard {
-	public:
+    class IChessBoard {
+    public:
+        virtual ~IChessBoard() = default;
 
-		virtual IChessBoard* createNew() const = 0;
+        /** Creates a fresh, empty board instance. */
+        virtual IChessBoard* createNew() const = 0;
 
-		/**
-		 * Sets the class printing search information in the right format
-		 */
-		virtual void setSendSerchInfo(ISendSearchInfo* sendSearchInfo) = 0;
+        /** Sets the search information output handler. */
+        virtual void setSendSearchInfo(ISendSearchInfo* sendSearchInfo) = 0;
 
-		/**
-		 * Retrieves the name of the engine
-		 */
-		virtual map<string, string> getEngineInfo() = 0;
+        /** Retrieves basic engine information (name, author, etc.). */
+        virtual std::map<std::string, std::string> getEngineInfo() = 0;
 
-		/**
-		 * Initializations are done here
-		 */
-		virtual void initialize() {}
+        /** Performs all necessary initializations. */
+        virtual void initialize() {}
 
-		/**
-		 * Sets a move, the information may be incomplete as long as the information is unambiguous
-		 */
-		virtual bool doMove(char movingPiece,
-			uint32_t depatureFile, uint32_t departureRank,
-			uint32_t destinationFile, uint32_t destinationRank,
-			char promotePiece) = 0;
+        /** Executes a move. Partial information is allowed if unambiguous. */
+        virtual bool doMove(char movingPiece,
+                            uint32_t departureFile, uint32_t departureRank,
+                            uint32_t destinationFile, uint32_t destinationRank,
+                            char promotePiece) = 0;
 
-		/**
-		 * True, if the move is a capture
-		 */
-		virtual bool isCapture(char movingPiece,
-			uint32_t depatureFile, uint32_t departureRank,
-			uint32_t destinationFile, uint32_t destinationRank,
-			char promotePiece) = 0;
+        /** Returns true if the move results in a capture. */
+        virtual bool isCapture(char movingPiece,
+                               uint32_t departureFile, uint32_t departureRank,
+                               uint32_t destinationFile, uint32_t destinationRank,
+                               char promotePiece) = 0;
 
-		/**
-		 * Undoes the last move - possible only, if the engine stores the last moves
-		 */
-		virtual void undoMove() = 0;
+        /** Undoes the last move (if history is stored). */
+        virtual void undoMove() = 0;
 
-		/**
-		 * Clears the board to an empty board
-		 */
-		virtual void clearBoard() = 0;
+        /** Clears the board to an empty setup. */
+        virtual void clearBoard() = 0;
 
-		/**
-		 * Set castling rights
-		 */
-		virtual void setWhiteQueenSideCastlingRight(bool allow) = 0;
-		virtual void setWhiteKingSideCastlingRight(bool allow) = 0;
-		virtual void setBlackQueenSideCastlingRight(bool allow) = 0;
-		virtual void setBlackKingSideCastlingRight(bool allow) = 0;
+        /** Sets white queenside castling right. */
+        virtual void setWhiteQueenSideCastlingRight(bool allow) = 0;
 
-		/**
-		 * Sets the destination position for an en-passant move
-		 */
-		virtual void setEPSquare(uint32_t epFile, uint32_t epRank) = 0;
+        /** Sets white kingside castling right. */
+        virtual void setWhiteKingSideCastlingRight(bool allow) = 0;
 
-		/**
-		 * Set wether it is whites turn to move
-		 */
-		virtual void setWhiteToMove(bool whiteToMove) = 0;
+        /** Sets black queenside castling right. */
+        virtual void setBlackQueenSideCastlingRight(bool allow) = 0;
 
-		/**
-		 * Set the amount of half moves without pawn move or capture played in the start position
-		 */
-		virtual void setHalfmovesWithouthPawnMoveOrCapture(uint16_t moves) = 0;
+        /** Sets black kingside castling right. */
+        virtual void setBlackKingSideCastlingRight(bool allow) = 0;
 
-		/**
-		 * Set the amount of half moves without pawn move or capture played in the start position
-		 */
-		virtual void setPlayedMovesInGame(uint16_t moves) = 0;
+        /** Sets en-passant target square. */
+        virtual void setEPSquare(uint32_t epFile, uint32_t epRank) = 0;
 
-		/**
-		 * This function must be called after board setup is finished
-		 */
-		virtual void finishBoardSetup() = 0;
+        /** Sets whether white is to move. */
+        virtual void setWhiteToMove(bool whiteToMove) = 0;
 
-		/**
-		 * Returns true, if it is whites turn to move
-		 */
-		virtual bool isWhiteToMove() = 0;
+        /** Sets the number of halfmoves without pawn move or capture. */
+        virtual void setHalfmovesWithoutPawnMoveOrCapture(uint16_t moves) = 0;
 
-		/**
-		 * Returns true, if the side to move is in check
-		 */
-		virtual bool isInCheck() = 0;
+        /** Sets the number of halfmoves played in the game. */
+        virtual void setPlayedMovesInGame(uint16_t moves) = 0;
 
-		/**
-		 * Sets a piece to a square
-		 */
-		virtual void setPiece(uint32_t file, uint32_t rank, char piece) = 0;
+        /** Signals that board setup is complete. */
+        virtual void finishBoardSetup() = 0;
 
-		/**
-		 * Starts perft calculation
-		 */
-		virtual uint64_t perft(uint16_t depth, bool verbose = true, uint32_t _maxTheadCount = 1) = 0;
+        /** Returns true if it is white's turn. */
+        virtual bool isWhiteToMove() = 0;
 
-		/**
-		 * Returns the current position in FEN format
-		 */
-		virtual std::string getFen() = 0;
+        /** Returns true if the side to move is in check. */
+        virtual bool isInCheck() = 0;
 
-		/**
-		 * Promptly print an information string for the current evaluation status
-		 */
-		virtual void printEvalInfo() = 0;
-		virtual value_t eval() = 0;
-		virtual ChessEval::IndexVector computeEvalIndexVector() = 0;
-		virtual ChessEval::IndexLookupMap computeEvalIndexLookupMap() = 0;
+        /** Places a piece onto the board at the given square. */
+        virtual void setPiece(uint32_t file, uint32_t rank, char piece) = 0;
 
-		/**
-		 * Sets the clock for the next move.
-		 * It must be set by the managing thread and not the computing thread to avoid races!
-		 */
-		virtual void setClock(const ClockSetting& clockSetting) = 0;
+        /** Executes a perft calculation. */
+        virtual uint64_t perft(uint16_t depth, bool verbose = true, uint32_t maxThreadCount = 1) = 0;
 
-		/**
-		 * Starts to compute a move
-		 */
-		virtual void computeMove(bool verbose = true) = 0;
+        /** Returns the current position in FEN format. */
+        virtual std::string getFen() = 0;
 
-		/**
-		 * Signals a ponder hit
-		 */
-		virtual void ponderHit() {}
+        /** Immediately prints evaluation information. */
+        virtual void printEvalInfo() = 0;
 
-		/**
-		 * Print an information string for the current search status
-		 */
-		virtual void requestPrintSearchInfo() = 0;
+        /** Evaluates the current position numerically. */
+        virtual value_t eval() = 0;
 
-		/**
-		 * Stop calcuation and play the current move
-		 */
-		virtual void moveNow() = 0;
-		
-		/**
-		 * Returns the current game status
-		 */
-		virtual GameResult getGameResult() = 0;
+        /** Computes evaluation index vector for advanced evaluation. */
+        virtual ChessEval::IndexVector computeEvalIndexVector() = 0;
 
-		/**
-		 * Returns and information about the current computing result
-		 */
-		virtual ComputingInfoExchange getComputingInfo() = 0;
+        /** Computes evaluation index lookup map for advanced evaluation. */
+        virtual ChessEval::IndexLookupMap computeEvalIndexLookupMap() = 0;
 
-		/**
-		 * Signals a new game
-		 */
-		virtual void newGame() {};
+        /** Sets the clock settings for the next move. */
+        virtual void setClock(const ClockSetting& clockSetting) = 0;
 
-		/**
-		 * Sets an option
-		 */
-		virtual void setOption(string name, string value) {};
+        /** Starts move computation asynchronously. */
+        virtual void computeMove(bool verbose = true) = 0;
 
-		/**
-		 * Returns a whatif evaluation structure (see IWhatIf for further information)
-		 */
-		virtual IWhatIf* getWhatIf() = 0;
+        /** Signals that a pondered move was hit. */
+        virtual void ponderHit() {}
 
-		/**
-		 * Generates bitbases for a signature and all bitbases needed
-		 * to compute this bitabase (if they cannot be loaded)
-		 */
-		virtual void generateBitbases(string signature, uint32_t cores = 1, bool uncompressed = false, 
-			uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64) 
-		{}
+        /** Requests immediate search information printout. */
+        virtual void requestPrintSearchInfo() = 0;
 
-		/**
-		 * Verify bitbases for a signature 
-		 */
-		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)
-		{}
+        /** Stops calculation and plays the best move found. */
+        virtual void moveNow() = 0;
 
-		/**
-		 * Sets a version number for the evaluation, optional feature
-		 */
-		virtual void setEvalVersion(uint32_t version) {};
+        /** Retrieves the current game result. */
+        virtual GameResult getGameResult() = 0;
 
-		virtual void setEvalFeature(std::string feature, value_t value) {};
+        /** Returns current computing result information. */
+        virtual ComputingInfoExchange getComputingInfo() = 0;
 
-	};
+        /** Signals that a new game has started. */
+        virtual void newGame() {}
+
+        /** Sets a configuration option (e.g., from GUI). */
+        virtual void setOption(std::string name, std::string value) {}
+
+        /** Provides access to "what-if" evaluation functionality. */
+        virtual IWhatIf* getWhatIf() = 0;
+
+        /** Generates bitbases for the given signature and dependencies. */
+        virtual void generateBitbases([[maybe_unused]] std::string signature,
+                                      [[maybe_unused]] uint32_t cores = 1,
+                                      [[maybe_unused]] bool uncompressed = false,
+                                      [[maybe_unused]] uint32_t traceLevel = 0,
+                                      [[maybe_unused]] uint32_t debugLevel = 0,
+                                      [[maybe_unused]] uint64_t debugIndex = 64) {}
+
+        /** Verifies bitbases for the given signature. */
+        virtual void verifyBitbases([[maybe_unused]] std::string signature,
+                                    [[maybe_unused]] uint32_t cores = 1,
+                                    [[maybe_unused]] uint32_t traceLevel = 0,
+                                    [[maybe_unused]] uint32_t debugLevel = 0) {}
+
+        /** Sets the evaluation version number. */
+        virtual void setEvalVersion([[maybe_unused]] uint32_t version) {}
+
+        /** Sets a named evaluation feature. */
+        virtual void setEvalFeature([[maybe_unused]] std::string feature,
+                                    [[maybe_unused]] value_t value) {}
+    };
+
 }
 
-#endif // __ICHESSBOARD_H
+

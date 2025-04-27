@@ -56,7 +56,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets the class printing search information in the right format
 		 */
-		virtual void setSendSerchInfo(ISendSearchInfo* sendSearchInfo) {
+		virtual void setSendSearchInfo(ISendSearchInfo* sendSearchInfo) {
 			iterativeDeepening.setSendSearchInfoInterface(sendSearchInfo);
 		};
 
@@ -267,7 +267,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets the number of half moves without pawn move or capture
 		 */
-		virtual void setHalfmovesWithouthPawnMoveOrCapture(uint16_t number) {
+		virtual void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
 			position.setFenHalfmovesWihtoutPawnMoveOrCapture(number);
 		}
 

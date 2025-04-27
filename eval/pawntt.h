@@ -41,8 +41,8 @@ namespace ChessEval {
 		bool isEmpty() const { return _hash == 0; }
 		void set(hash_t hash, EvalValue value, colorBB_t passedPawns) {
 			_hash = hash;
-			_mgValue = value.midgame();
-			_egValue = value.endgame();
+			_mgValue = static_cast<int16_t>(value.midgame());
+			_egValue = static_cast<int16_t>(value.endgame());
 			_passedPawns = passedPawns;
 		}
 		EvalValue getValue() const {

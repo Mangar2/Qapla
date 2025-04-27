@@ -71,8 +71,6 @@ namespace QaplaInterface {
 
 	private:
 
-		string::iterator fenIterator;
-
 		bool error;
 
 		/**
@@ -226,7 +224,7 @@ namespace QaplaInterface {
 		}
 
 		void scanHalfMovesWithouthPawnMoveOrCapture(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {
-			chessBoard->setHalfmovesWithouthPawnMoveOrCapture((uint8_t)scanInteger(fen, fenIterator));
+			chessBoard->setHalfmovesWithoutPawnMoveOrCapture((uint8_t)scanInteger(fen, fenIterator));
 		}
 
 		void scanPlayedMovesInGame(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {

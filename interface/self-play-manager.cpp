@@ -27,7 +27,7 @@
 namespace QaplaInterface {
 
 	
-	void ResultPerPieceIndex::saveToFile(const std::string& filename) {
+	void ResultPerPieceIndex::saveToFile(const std::string& filename) const {
 		std::ofstream out(filename, std::ios::binary);
 		if (!out) return;
 
@@ -54,11 +54,11 @@ namespace QaplaInterface {
 
 		auto readMap = [&](std::vector<int64_t>& vec) {
 			while (true) {
-				uint32_t index;
+				uint32_t index = 0;
 				in.read(reinterpret_cast<char*>(&index), sizeof(uint32_t));
 				if (index == UINT32_MAX || in.eof()) break;
 
-				int64_t value;
+				int64_t value = 0;
 				in.read(reinterpret_cast<char*>(&value), sizeof(int64_t));
 				if (index < vec.size()) {
 					vec[index] = value;
@@ -337,7 +337,7 @@ namespace QaplaInterface {
 	}
 
 	std::pair<QaplaTraining::GameRecord, std::string>
-		SelfPlayManager::playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite) {
+		SelfPlayManager::playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite) const {
 
 		std::string gameResultString = fen;
 		QaplaTraining::GameRecord gameRecord;

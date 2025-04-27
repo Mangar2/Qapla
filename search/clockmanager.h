@@ -62,7 +62,7 @@ namespace QaplaSearch {
 		 * @param movesToGo amount of moves to play in the time provided by clockSetting
 		 * @param clockSetting the time available to play the chess game
 		 */
-		void startCalculatingMove(int32_t movesToGo, const ClockSetting& clockSetting)
+		void startCalculatingMove([[maybe_unused]]int32_t movesToGo, const ClockSetting& clockSetting)
 		{
 			setStartTime();
 			_clockSetting = clockSetting;

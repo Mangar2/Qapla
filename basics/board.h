@@ -338,7 +338,7 @@ namespace QaplaBasics {
 		template <Piece COLOR>
 		inline auto getQueenRookStartSquare() const { return _basicBoard.queenRookStartSquare[COLOR]; }
 
-		BoardState getBoardState() { return _basicBoard.boardState; }
+		BoardState getBoardState() const { return _basicBoard.boardState; }
 
 		/**
 		 * Gets the board in Fen representation

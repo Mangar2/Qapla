@@ -73,7 +73,7 @@ namespace QaplaSearch {
 		 * Adjust the state accoring an iteration result that might be in or outside the
 		 * aspiration window
 		 */
-		void setIterationResult(value_t alpha, value_t beta, value_t positionValue)
+		void setIterationResult(value_t alpha, [[maybe_unused]]value_t beta, value_t positionValue)
 		{
 			if (_depth < 3) return;
 

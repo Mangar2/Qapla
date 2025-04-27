@@ -121,7 +121,7 @@ namespace QaplaInterface {
 		void setResult(std::vector<uint32_t>& indexes, GameResult gameResult);
 		void printResult();
 
-		void saveToFile(const std::string& filename);
+		void saveToFile(const std::string& filename) const;
 
 		void loadFromFile(const std::string& filename);
 
@@ -181,7 +181,7 @@ namespace QaplaInterface {
 	private:
 
 		std::pair<QaplaTraining::GameRecord, std::string> 
-			playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite);
+			playSingleGame(const GamePairing& gamePairing, std::string fen, uint32_t fenIndex, bool curIsWhite) const;
 
 		uint64_t computer1Result;
 		uint64_t gamesPlayed;

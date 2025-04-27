@@ -51,7 +51,7 @@ namespace QaplaInterface {
 		if (firstToken == "uci") {
 			UCI uci;
 			UCIPrintSearchInfo sendSearchInfo(ioHandler);
-			board->setSendSerchInfo(&sendSearchInfo);
+			board->setSendSearchInfo(&sendSearchInfo);
 			uci.run(board, ioHandler);
 		}
 		else if (startsWith(firstToken, { "stat", "epd", "playepd", "wmtest", "train", "material"})) {
@@ -65,7 +65,7 @@ namespace QaplaInterface {
 		else {
 			Winboard winboard;
 			WinboardPrintSearchInfo sendSearchInfo(ioHandler);
-			board->setSendSerchInfo(&sendSearchInfo);
+			board->setSendSearchInfo(&sendSearchInfo);
 			winboard.run(board, ioHandler);
 		}
 	}

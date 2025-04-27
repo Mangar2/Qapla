@@ -229,13 +229,13 @@ std::tuple<EvalValue, value_t> Statistics::computeEval(
 	int32_t midgame = indexVector[0].index;
 	int32_t midgameV2 = indexVector[1].index;
 	assert(indexVector[0].name == "midgame" && indexVector[1].name == "midgamev2");
-	for (auto indexInfo : indexVector) {
+	for (auto& indexInfo : indexVector) {
 		if (indexInfo.name == "midgame" || indexInfo.name == "midgamev2") {
 			continue;
 		}
 		auto index = indexInfo.index;
 		assert(index < lookupMap[indexInfo.name].size());
-		auto value = lookupMap[indexInfo.name][index];
+		auto& value = lookupMap[indexInfo.name][index];
 		lookupCount[indexInfo.name][indexInfo.index]++;
 		auto valueColor = indexInfo.color == WHITE ? value : -value;
 		evalCalculated += valueColor;
@@ -258,7 +258,7 @@ void Statistics::trainPosition(ChessEval::IndexLookupMap& lookupMap, int32_t eva
 	int32_t eta = std::clamp(evalDiff, -100, 100);
 	EvalValue etaEval(eta * midgameV2 / 100, eta * (100 - midgameV2) / 100);
 
-	for (auto indexInfo : indexVector) {
+	for (auto& indexInfo : indexVector) {
 		if (indexInfo.name == "midgame" || indexInfo.name == "midgamev2") {
 			continue;
 		}
@@ -413,7 +413,7 @@ void Statistics::trainCandidates(uint32_t numThreads) {
 		CandidateTrainer::nextStep();
 	}
 
-	CandidateTrainer::printAll(std::cout);
+	CandidateTrainer::printAll();
 
 }
 

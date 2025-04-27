@@ -93,7 +93,7 @@ namespace QaplaBasics {
 		 */
 		void swapEntry(uint32_t index1, uint32_t index2) {
 			swap(moveList[index1], moveList[index2]);
-			swap(moveWeight[index1], moveWeight[index2]);
+			swap(moveWeights[index1], moveWeights[index2]);
 		}
 
 		/**
@@ -104,13 +104,13 @@ namespace QaplaBasics {
 		void dragMoveToTheBack(uint32_t departureIndex, uint32_t destinationIndex) {
 			assert(destinationIndex >= departureIndex);
 			Move tempMove = moveList[destinationIndex];
-			value_t tempWeight = moveWeight[destinationIndex];
+			value_t tempWeight = moveWeights[destinationIndex];
 			for (uint32_t index = destinationIndex; index > departureIndex; index--) {
 				moveList[index] = moveList[index - 1];
-				moveWeight[index] = moveWeight[index - 1];
+				moveWeights[index] = moveWeights[index - 1];
 			}
 			moveList[departureIndex] = tempMove;
-			moveWeight[departureIndex] = tempWeight;
+			moveWeights[departureIndex] = tempWeight;
 		}
 
 		/**
@@ -143,8 +143,8 @@ namespace QaplaBasics {
 		uint32_t getTotalMoveAmount() const { return totalMoveAmount; }
 		uint32_t getNonSilentMoveAmount() const { return nonSilentMoveAmount; }
 
-		value_t getWeight(uint32_t index) const { return moveWeight[index]; }
-		void setWeight(uint32_t index, value_t weight) { moveWeight[index] = weight; }
+		value_t getWeight(uint32_t index) const { return moveWeights[index]; }
+		void setWeight(uint32_t index, value_t weight) { moveWeights[index] = weight; }
 
 		// Prints all mvoes to stdout
 		void PrintMoves()
@@ -161,7 +161,7 @@ namespace QaplaBasics {
 		static const int32_t MAX_MOVE_AMOUNT = 200;
 
 		array<Move, MAX_MOVE_AMOUNT> moveList;
-		array<value_t, MAX_MOVE_AMOUNT> moveWeight;
+		array<value_t, MAX_MOVE_AMOUNT> moveWeights;
 	public:
 		uint32_t totalMoveAmount;
 		uint32_t nonSilentMoveAmount;

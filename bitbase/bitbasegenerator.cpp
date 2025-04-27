@@ -323,11 +323,8 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
  */
 void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &clock)
 {
-	const uint64_t bitbaseSizeInBit = state.getSizeInBit();
 	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++)
 	{
-		uint64_t index = 0;
-		uint32_t threadNo = 0;
 		Workpackage workpackage(state);
 		state.clearAllCandidates();
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)

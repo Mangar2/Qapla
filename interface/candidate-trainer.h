@@ -108,8 +108,8 @@ public:
         return (wins + 0.5 * draws) / (wins + draws + losses);
     }
 
-	void setId(const std::string& id) {
-		this->id = id;
+	void setId(const std::string& candidate_id) {
+		id = candidate_id;
 	}
 
     std::pair<double, double> getConfidenceInterval() const;
@@ -164,12 +164,12 @@ public:
 	virtual uint32_t getNumIndex() const {
 		return numIndex;
 	}
-    virtual void scaleIndex(uint32_t index, double scale, bool noScale = false) {};
+    virtual void scaleIndex([[maybe_unused]]uint32_t index, [[maybe_unused]]double scale, [[maybe_unused]]bool noScale = false) {};
     double getRadius() const {
         return radius;  
     }
-	void setRadius(double radius) {
-		this->radius = radius;
+	void setRadius(double smoothRadius) {
+		this->radius = smoothRadius;
 	}
 
 
@@ -198,7 +198,7 @@ public:
     virtual uint32_t getNumIndex() const {
         return 8;
     }
-    virtual void scaleIndex(uint32_t index, double scale, bool noScale = false)
+    virtual void scaleIndex(uint32_t index, double scale, [[maybe_unused]]bool noScale = false)
     {
         rescaleWeightPhase(index, scale);
     }
@@ -274,7 +274,7 @@ public:
 
     static void printBest(std::ostream& os) {
         os << "Best candidate after training:\n";
-        uint32_t bestIndex = -1;
+        int32_t bestIndex = -1;
 		for (uint32_t i = 1; i < population.size(); ++i) {
 			if (population[i]->score() > population[bestIndex]->score()) {
 				bestIndex = i;
@@ -291,7 +291,7 @@ public:
             });
     }
 
-	static void printAll(std::ostream& os) {
+	static void printAll() {
 		sort();
         cout << std::endl;
 		for (const auto& c : population) {

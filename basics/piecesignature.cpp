@@ -31,7 +31,6 @@
 namespace QaplaBasics {
 
 	std::tuple<pieceSignature_t, pieceSignature_t> PieceSignature::charToSignature(char piece) {
-		Signature result = Signature::EMPTY;
 		switch (piece) {
 		case 0: return { 0, 0 };
 		case 'Q': return{ static_cast<pieceSignature_t>(Signature::QUEEN),  static_cast<pieceSignature_t>(SignatureMask::QUEEN) };

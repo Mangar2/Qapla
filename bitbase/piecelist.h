@@ -91,10 +91,11 @@ namespace QaplaBitbase {
 		template<Piece COLOR>
 		string getPieceStringOfColor() {
 			string result = "K";
-			const int32_t indexWithoutKings = 2;
-			for (int32_t pieceNo = getNumberOfPieces() - 1; pieceNo >= indexWithoutKings; pieceNo--) {
+			const uint32_t indexWithoutKings = 2;
+			assert(getNumberOfPieces() >= 2);
+			for (uint32_t pieceNo = getNumberOfPieces() - 1; pieceNo >= indexWithoutKings; pieceNo--) {
 				if (getPieceColor(getPiece(pieceNo)) == COLOR) {
-					result += toupper(pieceToChar(getPieceType(getPiece(pieceNo))));
+					result += static_cast<char>(toupper(pieceToChar(getPieceType(getPiece(pieceNo)))));
 				}
 			}
 			return result;

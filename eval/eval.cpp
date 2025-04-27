@@ -273,8 +273,10 @@ void  Eval::printPieceRow(int row, const PieceInfo& pieceInfo, value_t midgameIn
 		content = "";
 		break;
 	}
-	int padding = (width - int(content.length())) / 2;
-	std::cout << std::setw(padding + content.length()) << content << std::setw(width + 1 - padding - content.length()) << "|";
+	
+	int padding = (width - static_cast<int>(content.length())) / 2;
+	std::cout << std::setw(padding + content.length()) << content 
+		<< std::setw(static_cast<std::streamsize>(width) + 1 - padding - static_cast<int>(content.length())) << "|";
 }
 
 void Eval::initEvalResults(MoveGenerator& position, EvalResults& evalResults) {
