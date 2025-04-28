@@ -32,7 +32,7 @@ using namespace std;
 
 using namespace QaplaInterface;
 
-std::map<std::string, std::vector<uint64_t>> createIndexLookupCount(const ChessEval::IndexLookupMap& original) {
+static std::map<std::string, std::vector<uint64_t>> createIndexLookupCount(const ChessEval::IndexLookupMap& original) {
 	std::map<std::string, std::vector<uint64_t>> copy;
 
 	for (const auto& [key, values] : original) {
@@ -42,7 +42,7 @@ std::map<std::string, std::vector<uint64_t>> createIndexLookupCount(const ChessE
 	return copy;
 }
 
-std::ostream& formatIndexLookupMap(const std::map<std::string, std::vector<uint64_t>>& map, std::ostream& os) {
+static std::ostream& formatIndexLookupMap(const std::map<std::string, std::vector<uint64_t>>& map, std::ostream& os) {
 	for (const auto& [key, values] : map) {
 		os << key << ": ";
 		std::string spacer = "";
@@ -59,7 +59,7 @@ std::ostream& formatIndexLookupMap(const std::map<std::string, std::vector<uint6
 	return os;
 }
 
-std::ostream& formatMultiplyIndexLookupMap(const ChessEval::IndexLookupMap& map, std::ostream& os) {
+static std::ostream& formatMultiplyIndexLookupMap(const ChessEval::IndexLookupMap& map, std::ostream& os) {
 	for (const auto& [key, values] : map) {
 		os << "static constexpr std::array<EvalValue, " << values.size() << "> " << key << "{ {";
 		std::string spacer = "";
@@ -78,7 +78,7 @@ std::ostream& formatMultiplyIndexLookupMap(const ChessEval::IndexLookupMap& map,
 	return os;
 }
 
-ChessEval::IndexLookupMap multiplyIndexLookupMap(const ChessEval::IndexLookupMap& original) {
+static ChessEval::IndexLookupMap multiplyIndexLookupMap(const ChessEval::IndexLookupMap& original) {
 	ChessEval::IndexLookupMap result;
 	for (const auto& [key, vec] : original) {
 		std::vector<EvalValue> newVec;
@@ -557,7 +557,7 @@ void Statistics::computeMaterialDifference() {
 				loadEPD(getCurrentToken());
 			}
 		}
-		if (getCurrentToken() == "games-file") {
+		else if (getCurrentToken() == "games-file") {
 			if (getNextTokenNonBlocking() != "") {
 				binaryGamesFile = getCurrentToken();
 			}

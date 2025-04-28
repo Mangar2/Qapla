@@ -28,6 +28,8 @@
 #include <vector>
 #include <fstream>
 #include <iterator>
+#include <type_traits>
+#include <cassert>
 #include "ttentry.h"
 #include "../eval/pawntt.h"
 // #include "FileClass.h"
@@ -121,7 +123,11 @@ namespace QaplaSearch {
 			value_t eval, value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
-
+			/*
+			if (hashKey == 7541197627045278876) {
+				printHash(hashKey);
+			}
+			*/
 			if (_tt[index].isEmpty())
 			{
 				_entries++;
@@ -225,44 +231,7 @@ namespace QaplaSearch {
 			}
 			return newEntryAmount;
 		}
-
-		/**
-		void storeHashToFile(char* fileName)
-		{
-			FileClass file;
-			file.open(fileName, "bw+");
-			if (!file.isOpen())
-			{
-				printf("Could not open file to store hash %s\n", fileName);
-			}
-			else {
-				file.write(&entryAmount, sizeof(entryAmount), 1);
-				file.write(entry, sizeof(hash_t), entryAmount * ELEMENTS_PER_HASH_ENTRY);
-			}
-		}
-
-		void loadHashFromFile(char* fileName)
-		{
-			FileClass file;
-			// �ffnet eine Datei im Bin�rmodus zum lesen
-			file.open(fileName, "br");
-
-			if (!file.isOpen())
-			{
-				printf("Could not read hash file %s\n", fileName);
-			}
-			else {
-				printf("Loading hash file %s ... \n", fileName);
-				int32_t newEntryAmount = 0;
-				// Anzahl der Elemente lesen
-				file.read(&newEntryAmount, sizeof(newEntryAmount), 1);
-				setSize(newEntryAmount);
-				file.read(entry, sizeof(hash_t), entryAmount * ELEMENTS_PER_HASH_ENTRY);
-				printf("Hash file _loaded\n");
-			}
-		}
-		*/
-
+	
 		/**
 		 * Gets the age indicator of the current search
 		 */
@@ -297,30 +266,45 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Writes the tt to a file
+		 * Writes the current transposition table to the provided file.
+		 * @param filename Name of the file to write the transposition table to.
 		 */
-		bool writeToFile(std::string fileName) {
-			ofstream oFile(fileName, ios::binary | ios::trunc);
-			if (!oFile.is_open()) {
+		bool write(const std::string& filename) const {
+			std::ofstream ofs(filename, std::ios::binary);
+			if (!ofs) {
 				return false;
 			}
-			for (const auto& entry : _tt) {
-				oFile.write((char*)(&entry), sizeof(entry));
+
+			int64_t size = static_cast<int64_t>(_tt.size());
+			ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));
+			ofs.write(reinterpret_cast<const char*>(&_ageIndicator), sizeof(_ageIndicator));
+			ofs.write(reinterpret_cast<const char*>(&_entries), sizeof(_entries));
+
+			if (!_tt.empty()) {
+				ofs.write(reinterpret_cast<const char*>(_tt.data()), sizeof(TTEntry) * _tt.size());
 			}
 			return true;
 		}
 
 		/**
-		 * Reads the tt to a file
+ 		 * Reads a transposition table from the provided file.
+		 * @param filename Name of the file to read the transposition table from.
 		 */
-		bool readFromFile(string fileName) {
-			ifstream iFile(fileName, ios::binary);
-			if (!iFile.is_open()) {
-				cerr << "Error: " << errno << endl;
+		bool read(const std::string& filename) {
+			std::ifstream ifs(filename, std::ios::binary);
+			if (!ifs) {
 				return false;
 			}
-			for (auto& entry : _tt) {
-				iFile.read((char*)(&entry), sizeof(entry));
+
+			int64_t size = 0;
+			ifs.read(reinterpret_cast<char*>(&size), sizeof(size));
+			ifs.read(reinterpret_cast<char*>(&_ageIndicator), sizeof(_ageIndicator));
+			ifs.read(reinterpret_cast<char*>(&_entries), sizeof(_entries));
+
+			_tt.resize(size);
+
+			if (!_tt.empty()) {
+				ifs.read(reinterpret_cast<char*>(_tt.data()), sizeof(TTEntry) * _tt.size());
 			}
 			return true;
 		}
@@ -366,12 +350,12 @@ namespace QaplaSearch {
 
 		// Transposition table
 		vector<TTEntry> _tt;
+		int32_t _ageIndicator;
+		int32_t _entries;
+
 
 		// Pawn hash
 		ChessEval::PawnTT _pawnTT;
-
-		int32_t _ageIndicator;
-		int32_t _entries;
 
 	};
 

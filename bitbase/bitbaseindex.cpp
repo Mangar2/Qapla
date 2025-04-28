@@ -164,7 +164,7 @@ uint32_t BitbaseIndex::computeSquareMapType(const PieceList& pieceList) {
 		// 2. Ignore pieces of the same type that are arranged in mirror symmetry according the A1:H8 diagonal
 		// 3. The smalles piece of the first type decides the mapping, if not ignored
 
-		array<Square, 10> squares;
+		array<Square, 10> squares{};
 		for (uint32_t index = 2; index < pieceList.getNumberOfPieces();) {
 			uint32_t count = pieceList.getNumberOfSamePieces(index);
 			for (uint32_t sqIndex = 0; sqIndex < count; sqIndex++) {
@@ -226,7 +226,7 @@ void BitbaseIndex::addNonPawnPieceToIndex(Square mappedSquare) {
 	addPieceSquare(mappedSquare);
 }
 
-void bubbleSort(array<Square, 10>& squares, uint32_t count) {
+static void bubbleSort(array<Square, 10>& squares, uint32_t count) {
 	for (int32_t outerLoop = count - 1; outerLoop > 0; outerLoop--) {
 		for (int32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
 			if (squares[innerLoop - 1] > squares[innerLoop]) {
@@ -251,7 +251,7 @@ void  BitbaseIndex::bubbleSortMultiplePiece(array<Square, 10>& squares, uint32_t
  */
 void BitbaseIndex::addPiecesToIndex(const PieceList& pieceList, uint32_t begin, uint32_t count)
 {
-	array<Square, 10> squares;
+	array<Square, 10> squares{};
 	Piece piece = pieceList.getPiece(begin);
 	for (uint32_t index = 0; index < count; index++) {
 		squares[index] = mapSquare(pieceList.getSquare(index + begin), _mapType);
@@ -271,7 +271,6 @@ void BitbaseIndex::addPiecesToIndex(const PieceList& pieceList, uint32_t begin, 
 }
 
 void BitbaseIndex::addSinglePieceToIndex(const PieceList& pieceList, uint32_t index) {
-	Piece piece = pieceList.getPiece(index);
 	Square square = mapSquare(pieceList.getSquare(index), _mapType);
 	if (isPawn(pieceList.getPiece(index))) {
 		addPawnToIndex(square);

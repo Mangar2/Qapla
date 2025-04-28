@@ -350,14 +350,14 @@ namespace QaplaInterface {
 		auto moveNo = 2;
 		while (gameResult == GameResult::NOT_ENDED && !stopped) {
 			const auto [result, move, value, capture] = gamePairing.computeMove(curIsWhite);
-			gameResultString += ", " + (moveNo % 2 == 0 ? to_string(moveNo / 2) : ". ") + move + ", " + std::to_string(value);
+			gameResultString += ", " + (moveNo % 2 == 0 ? to_string(moveNo / 2) + ". " : "") + move + ", " + std::to_string(value);
 			gameRecord.addMove(move, value);
 			gameResult = result;
 			moveNo++;
 		}
 		if (!stopped) {
 			gameRecord.setResult(gameResult);
-			// std::cout << gameResultString << std::endl;
+			std::cout << gameResultString << std::endl;
 		}
 		return { gameRecord, gameResultString };
 	}

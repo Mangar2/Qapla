@@ -34,7 +34,6 @@
 #include "evalresults.h"
 #include "pawnrace.h"
 #include "pawntt.h"
-#include "print-eval.h"
 #include "eval-helper.h"
 
 using namespace std;
@@ -504,7 +503,7 @@ namespace ChessEval {
 		static const uint32_t PP_INDEX_SIZE					= 0x100;
 
 		static constexpr array<value_t, PP_INDEX_SIZE> ppThreatMap = [] {
-			array<value_t, PP_INDEX_SIZE> map;
+			array<value_t, PP_INDEX_SIZE> map{};
 			for (uint32_t bitmask = 0; bitmask < PP_INDEX_SIZE; ++bitmask) {
 				value_t value = 0;
 				map[bitmask] = value;

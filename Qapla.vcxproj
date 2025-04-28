@@ -1915,7 +1915,6 @@
     <ClInclude Include="eval\pawntt.h" />
     <ClInclude Include="eval\piece-signature-def.h" />
     <ClInclude Include="eval\piece-signature-lookup.h" />
-    <ClInclude Include="eval\print-eval.h" />
     <ClInclude Include="eval\queen.h" />
     <ClInclude Include="eval\pawn.h" />
     <ClInclude Include="eval\evalresults.h" />

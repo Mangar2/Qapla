@@ -52,11 +52,13 @@ namespace QaplaTraining {
         void analyzeGames(GameReplayEngine& engine, const std::string& filePath) {
             std::string moveList = "";
             std::string startFen = "";
-            engine.setMoveCallback([this, &moveList, &startFen](const MoveInfo& moveInfo) {
+            std::string finalFen = "";
+            engine.setMoveCallback([this, &moveList, &startFen, &finalFen](const MoveInfo& moveInfo) {
 				if (moveInfo.gameStarting) {
 					newGame_ = true;
 					if (suspiciousPosition_ != "") {
 						cout << "start" << startFen << std::endl;
+						cout << "final" << finalFen << std::endl;
 						cout << "moves: " << moveList << std::endl;
 						cout << suspiciousPosition_ << std::endl << std::endl;
 						suspiciousPositions_.push_back(suspiciousPosition_);
@@ -66,7 +68,7 @@ namespace QaplaTraining {
                     moveList = "";
                     return;
 				}
-
+				finalFen = moveInfo.engine->getFen();
                 int32_t whiteValue = moveInfo.engine->isWhiteToMove() ? moveInfo.value : -moveInfo.value;
 
                 if (std::abs(whiteValue) >= threshold_ && !isWinFor(whiteValue, moveInfo.result) && newGame_) {

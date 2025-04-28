@@ -28,6 +28,7 @@ void BasicBoard::clear() {
 	kingRookStartSquare = { H1, H8 };
 	boardState.initialize();
 	_board.fill(NO_PIECE);
+	_startHalfmoves = 0;
 }
 
 void BasicBoard::initClearCastleMask() {

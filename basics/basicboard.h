@@ -192,7 +192,7 @@ protected:
 	array<uint16_t, 64> _clearCastleFlagMask;
 
 	// Amount of half moves played befor fen
-	int16_t _startHalfmoves;
+	int32_t _startHalfmoves;
 
 };
 

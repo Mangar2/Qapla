@@ -274,10 +274,10 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	node.cutoff = Cutoff::NONE;
 	node.setHashSignature(position);
 
-	if (alpha > MAX_VALUE - value_t(ply)) {
+	if (TYPE != SearchRegion::PV && alpha > MAX_VALUE - value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
 	}
-	else if (beta < -MAX_VALUE + value_t(ply)) {
+	else if (TYPE != SearchRegion::PV && beta < -MAX_VALUE + value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 	}
 	else if (position.drawDueToMissingMaterial()) {

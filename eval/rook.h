@@ -29,7 +29,6 @@
 #include "../movegenerator/movegenerator.h"
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
-#include "print-eval.h"
 #include "evalresults.h"
 
 using namespace QaplaBasics;

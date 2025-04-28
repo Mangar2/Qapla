@@ -410,9 +410,6 @@
     <ClInclude Include="basics\hashconstants.h">
       <Filter>basics</Filter>
     </ClInclude>
-    <ClInclude Include="eval\print-eval.h">
-      <Filter>eval</Filter>
-    </ClInclude>
     <ClInclude Include="eval\eval-helper.h">
       <Filter>eval</Filter>
     </ClInclude>

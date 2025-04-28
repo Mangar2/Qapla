@@ -104,9 +104,19 @@ namespace QaplaSearch {
 			MoveGenerator searchBoard = position;
 			if (_clockManager.isAnalyzeMode()) {
 				clearMemories();
+				/*
+				auto fen = position.getFen();
+				std::replace(fen.begin(), fen.end(), '/', '_');
+				_tt.read("tt_in_" + fen + ".bin");
+				*/
 			}
 			else {
 				_tt.setNextSearch();
+				/*
+				auto fen = position.getFen();
+				std::replace(fen.begin(), fen.end(), '/', '_');
+				_tt.write("tt_out_" + fen + ".bin");
+				*/
 			}
 			for (auto& window : _window) {
 				window.initSearch();
@@ -247,6 +257,7 @@ namespace QaplaSearch {
 		TT _tt;
 		Search _search;
 		array<AspirationWindow, MAX_PV> _window;
+		uint32_t ttDebug = 0;
 	};
 
 }
