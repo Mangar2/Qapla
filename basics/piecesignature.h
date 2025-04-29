@@ -242,6 +242,13 @@ namespace QaplaBasics {
 		void generateSignatures(const std::string& pattern, std::vector<pieceSignature_t>& out);
 
 		/**
+		 * Checks if the current signature matches a pattern
+		 * @param pattern The pattern to check against
+		 * @return true if the signature matches the pattern, false otherwise
+		 */
+		bool matchesPattern(const std::string& pattern) const;
+
+		/**
 		 * Debugging functionality: swap white and black signature
 		 */
 		void changeSide() {
@@ -397,7 +404,7 @@ namespace QaplaBasics {
 		/**
 		 * Maps a piece char to a piece signature bit
 		 */
-		std::tuple<pieceSignature_t, pieceSignature_t> charToSignature(char piece);
+		std::tuple<pieceSignature_t, pieceSignature_t> charToSignature(char piece) const;
 
 	};
 }

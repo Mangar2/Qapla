@@ -30,7 +30,7 @@
 
 namespace QaplaBasics {
 
-	std::tuple<pieceSignature_t, pieceSignature_t> PieceSignature::charToSignature(char piece) {
+	std::tuple<pieceSignature_t, pieceSignature_t> PieceSignature::charToSignature(char piece) const {
 		switch (piece) {
 		case 0: return { 0, 0 };
 		case 'Q': return{ static_cast<pieceSignature_t>(Signature::QUEEN),  static_cast<pieceSignature_t>(SignatureMask::QUEEN) };
@@ -101,6 +101,71 @@ namespace QaplaBasics {
 
 		recurse(0, 0, 0, true);
 	}
+
+	/**
+	 * Parses a sequence of a given piece character in a pattern string.
+	 *
+	 * @param pieceChar The piece character to match ('Q', 'R', 'B', 'N', 'P').
+	 * @param part The pattern substring for the current color.
+	 * @param pos Current parsing position, updated internally.
+	 * @return A tuple (minCount, allowMore, valid).
+	 */
+	static std::tuple<int, bool, bool> parsePieceInPattern(char pieceChar, std::string_view part) {
+		int minCount = 0;
+		bool allowMore = false;
+		bool valid = true;
+		size_t pos = 0;
+
+		for (; pos < part.size() && part[pos] != pieceChar; ++pos);
+		for (; pos < part.size() && part[pos] == pieceChar; ++pos, ++minCount);
+
+		if (pos < part.size()) {
+			allowMore = (part[pos] == '+' || part[pos] == '*');
+			valid = !((minCount == 0) && allowMore);
+			if (part[pos] == '*') {
+				valid = minCount == 1;
+				minCount = 0;
+			}
+		}
+
+		return { minCount, allowMore, valid };
+	}
+
+	bool PieceSignature::matchesPattern(const std::string & pattern) const {
+		std::array<std::string, 2> parts{ pattern, "" };
+		for (uint32_t pos = 1; pos < pattern.size(); ++pos) {
+			if (pattern[pos] == 'K') {
+				parts[0] = pattern.substr(1, pos);
+				parts[1] = pattern.substr(pos + 1);
+				break;
+			}
+		}
+
+		for (int color = 0; color < 2; ++color) {
+			const std::string& part = parts[color];
+			for (char pieceChar : {'Q', 'R', 'B', 'N', 'P'}) {
+				auto [minCount, allowMore, valid] = parsePieceInPattern(pieceChar, part);
+				if (!valid)
+					return false;
+
+				auto [value, mask] = charToSignature(pieceChar);
+				if (color == 1) {
+					value <<= SIG_SHIFT_BLACK;
+					mask <<= SIG_SHIFT_BLACK;
+				}
+
+				uint32_t count = (_signature & mask) / value;
+
+				if (count < static_cast<uint32_t>(minCount))
+					return false;
+				if (count > static_cast<uint32_t>(minCount) && !allowMore)
+					return false;
+			}
+		}
+
+		return true;
+	}
+
 
 	void PieceSignature::set(string pieces) {
 		_signature = 0;

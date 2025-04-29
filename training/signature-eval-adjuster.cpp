@@ -26,16 +26,36 @@ namespace QaplaTraining {
 
     using namespace QaplaBasics;
 
-    SignatureEvalAdjuster::SignatureEvalAdjuster()
+    void SignatureEvalAdjuster::AdjustStatistic::condAdd(uint32_t pieceIndex, int64_t r, int64_t e, int64_t v, int32_t factor) {
+        PieceSignature sig(pieceIndex);
+        if (sig.matchesPattern(pattern)) {
+            add(r, e, v, factor);
+        }
+        sig.changeSide();
+        if (sig.matchesPattern(pattern)) {
+            add(-r, -e, -v, factor);
+        }
+    }
+
+    SignatureEvalAdjuster::SignatureEvalAdjuster(int32_t minAdjustment)
         : signatureWin(PieceSignature::SIG_SIZE),
         signatureDraw(PieceSignature::SIG_SIZE),
         signatureLoss(PieceSignature::SIG_SIZE),
         evalSum(PieceSignature::SIG_SIZE),
-        valSum(1000), valTotal(1000)
+		valSum(1000), valTotal(1000), minAdjust(minAdjustment) 
         {
-        }
+		    // Initialize the statistics with patterns
+		    signatureStatisticsMg.push_back(AdjustStatistic("KQR*B*N*P*KR*B*N*P*"));
+		    signatureStatisticsMg.push_back(AdjustStatistic("KQ*RRB*N*P*KQ*RB*N*P*"));
+            signatureStatisticsMg.push_back(AdjustStatistic("KQ*RB*N*P*KQ*B*N*P*"));
+			signatureStatisticsMg.push_back(AdjustStatistic("KQ*R*BBN*P*KQ*R*BN*P*"));
+            signatureStatisticsMg.push_back(AdjustStatistic("KQ*R*BN*P*KQ*R*N*P*"));
+			signatureStatisticsMg.push_back(AdjustStatistic("KQ*R*B*NNP*KQ*R*B*NP*"));
+            signatureStatisticsMg.push_back(AdjustStatistic("KQ*R*B*NP*KQ*R*B*P*"));
+            signatureStatisticsEg = signatureStatisticsMg;
+    }
 
-    void SignatureEvalAdjuster::run(const std::vector<std::string>& fenList,
+	 void SignatureEvalAdjuster::run(const std::vector<std::string>& fenList,
         const QaplaInterface::IChessBoard* engine,
         const std::string& filePath) {
         GameReplayEngine replayEngine(engine, fenList);
@@ -48,74 +68,85 @@ namespace QaplaTraining {
         replayEngine.run(filePath);
     }
 
-    void SignatureEvalAdjuster::onMove(const MoveInfo& moveInfo) {
-        // Skip: we only want evaluation after the last move of a capture sequence,
-        // to avoid transient eval noise from ongoing exchanges.
-        if (!moveInfo.moveBeforeWasCapture || moveInfo.isCapture) return;
+     void SignatureEvalAdjuster::onMove(const MoveInfo& moveInfo) {
+         // Skip: we only want evaluation after the last move of a capture sequence,
+         // to avoid transient eval noise from ongoing exchanges.
+         if (!moveInfo.moveBeforeWasCapture || moveInfo.isCapture) return;
+         // Ignore positions with search value result largely different to eval.
+         // This avoids statistics from situation with compensation for missing material
+         int32_t whiteValue = moveInfo.engine->isWhiteToMove() ? moveInfo.value : -moveInfo.value;
+         int32_t absValue = std::min(std::abs(whiteValue), 999);
+         if (absValue > 300) return;
 
-        // Ignore positions with search value result largely different to eval.
-        // This avoids statistics from situation with compensation for missing material
-        int32_t whiteValue = moveInfo.engine->isWhiteToMove() ? moveInfo.value : -moveInfo.value;
-		int32_t absValue = std::min(std::abs(whiteValue), 999);
-        //if (std::abs(whiteValue - moveInfo.eval) > 50) return;
-		
-        const auto& indexVector = moveInfo.engine->computeEvalIndexVector();
-        if (indexVector[0].name != "pieceSignature") {
-            std::cerr << "Error: First index is not pieceSignature" << std::endl;
-            return;
-        }
-		auto pieceIndex = indexVector[0].index;
-                
-        int64_t currentSum = evalSum[pieceIndex];
-        int64_t toAdd = static_cast<int64_t>(moveInfo.eval);
-        if ((toAdd > 0 && currentSum > INT64_MAX - toAdd) ||
-            (toAdd < 0 && currentSum < INT64_MIN - toAdd)) {
-            std::cerr << "Overflow in evalSum for pieceIndex: " << pieceIndex << std::endl;
-            return;
-        }
-		evalSum[pieceIndex] += toAdd;
-        valTotal[absValue]++;
+         const auto& indexVector = moveInfo.engine->computeEvalIndexVector();
+         if (indexVector[0].name != "pieceSignature") {
+             std::cerr << "Error: First index is not pieceSignature" << std::endl;
+             return;
+         }
+         auto pieceIndex = indexVector[0].index;
 
-        switch (moveInfo.result) {
-        case QaplaInterface::GameResult::WHITE_WINS_BY_MATE:
-            signatureWin[pieceIndex]++;
-            valSum[absValue] += whiteValue >= 0 ? 1 : -1;
-            break;
-        case QaplaInterface::GameResult::BLACK_WINS_BY_MATE:
-            signatureLoss[pieceIndex]++;
-			valSum[absValue] += whiteValue < 0 ? 1 : -1;
-            break;
-        case QaplaInterface::GameResult::NOT_ENDED:
-            // Do nothing
-            break;
-        default:
-            // Draw (several draw cases)
-            signatureDraw[pieceIndex]++;
-            break;
-        }
+         int64_t currentSum = evalSum[pieceIndex];
+         int64_t toAdd = static_cast<int64_t>(moveInfo.eval);
+         if ((toAdd > 0 && currentSum > INT64_MAX - toAdd) ||
+             (toAdd < 0 && currentSum < INT64_MIN - toAdd)) {
+             std::cerr << "Overflow in evalSum for pieceIndex: " << pieceIndex << std::endl;
+             return;
+         }
+         evalSum[pieceIndex] += toAdd;
+         valTotal[absValue]++;
+         int64_t gameResult = 0;
 
-        /*
-        PieceSignature debugIndex(pieceIndex / 8);
-        cout << debugIndex.toString() << " eval: " << moveInfo.eval << " value: " << moveInfo.value << std::endl;
+         switch (moveInfo.result) {
+         case QaplaInterface::GameResult::WHITE_WINS_BY_MATE:
+             signatureWin[pieceIndex]++;
+             valSum[absValue] += whiteValue >= 0 ? 1 : -1;
+             gameResult = 1;
+             break;
+         case QaplaInterface::GameResult::BLACK_WINS_BY_MATE:
+             signatureLoss[pieceIndex]++;
+             valSum[absValue] += whiteValue < 0 ? 1 : -1;
+             gameResult = -1;
+             break;
+         case QaplaInterface::GameResult::NOT_ENDED:
+             return;
+         default:
+             // Draw (several draw cases)
+             signatureDraw[pieceIndex]++;
+             break;
+         }
 
-        debugIndex.set("KQRRBBNPPPKQRRBNNPPP");
-        auto index = pieceIndex / 8;
-        if (index == debugIndex.getPiecesSignature()) {
-            // Debugging 
-            uint32_t symIndex = (6 -(pieceIndex & 0x7)) 
-                | (((pieceIndex >> 3) & uint32_t(SignatureMask::ALL)) << (PieceSignature::SIG_SHIFT_BLACK + 3))
-				| (((pieceIndex >> 3) & (uint32_t(SignatureMask::ALL) << PieceSignature::SIG_SHIFT_BLACK)) >> (PieceSignature::SIG_SHIFT_BLACK - 3));
-            const auto [statistic, evalAverage, total] = computeStatistic(pieceIndex, symIndex);
-            std::cout << debugIndex.toString() << ": " << moveInfo.eval << " avr: " << evalAverage
-				<< " stat: " << statistic
-                << " total: " << total << " " << moveInfo.engine->getFen() << std::endl;
-        }
-        */
+         PieceSignature sig(pieceIndex);
+         int32_t pieces = sig.getStaticPiecesValue<WHITE>() + sig.getStaticPiecesValue<BLACK>();
+         int32_t egFactor = midgameV2InPercent[pieces];
+         if (egFactor < 0 || egFactor > 100) {
+             std::cerr << "Error: egFactor out of range: " << egFactor << std::endl;
+             std::cerr << sig.toString() << std::endl;
+             return;
+         }
+         if (egFactor >= 80) {
+             for (auto& stat : signatureStatisticsMg) {
+                 stat.condAdd(pieceIndex, gameResult, moveInfo.eval, whiteValue, egFactor);
+             }
+         }
+         if (egFactor <= 20) {
+             for (auto& stat : signatureStatisticsEg) {
+                 stat.condAdd(pieceIndex, gameResult, moveInfo.eval, whiteValue, 100 - egFactor);
+             }
+         }
     }
 
     void SignatureEvalAdjuster::onFinish() {
 		saveToFile("signature-eval-adjuster.bin");
-		std::vector<AdjustResult> resultTable = computeResultTable(1);
+		std::vector<AdjustResult> resultTable = computeResultTable(minAdjust);
+        std::vector<int> centipawnByWinProbability = ComputeCentipawnByWinProbability();
+		std::cout << "Midgame statistics:" << std::endl;
+		for (auto& stat : signatureStatisticsMg) {
+            stat.print(centipawnByWinProbability);
+		}
+		std::cout << "Endgame statistics:" << std::endl;
+		for (auto& stat : signatureStatisticsEg) {
+			stat.print(centipawnByWinProbability);
+		}
 		writeResultTableAsCppHeader(resultTable, "EvalCorrection.h");
         std::cout << "Analysis finished." << std::endl;
     }
@@ -206,11 +237,7 @@ namespace QaplaTraining {
             }
         }
 
-        for (size_t i = 0; i < result.size(); ++i) {
-            std::cout << "Centipawn " << i << ": " << result[i] << std::endl;
-        }
-
-		auto smoothed = smoothVector(result, 5, 2.0);
+        auto smoothed = smoothVector(result, 5, 2.0);
 
         for (size_t i = 0; i < smoothed.size(); ++i) {
             std::cout << "Centipawn " << i << ": " << smoothed[i] << std::endl;
@@ -230,7 +257,7 @@ namespace QaplaTraining {
 		constexpr int MIN_REL_ADJUSTMENT_DIVIDER = 10; // minimum relative adjustment in centipawn
 		constexpr int MAX_EVAL_VALUE = 800; // max. eval value to check, larger values indicates endgame eval bonus functions
 		// PrintVectorStats(valTotal, valSum);
-		std::vector<int> centipawnByWinProbability = ComputeCentipawnByWinProbability();
+		// std::vector<int> centipawnByWinProbability = ComputeCentipawnByWinProbability();
 
         for (uint32_t wsig = 0; wsig < (1 << PieceSignature::SIG_SHIFT_BLACK); wsig++) {
             for (uint32_t bsig = 0; bsig < (1 << PieceSignature::SIG_SHIFT_BLACK); bsig++) {
@@ -344,7 +371,7 @@ namespace QaplaTraining {
         in.close();
     }
 
-	void SignatureEvalAdjuster::computeFromFile(const std::string& filename, int32_t minAdjust) {
+	void SignatureEvalAdjuster::computeFromFile(const std::string& filename) {
 		loadFromFile(filename);
 		auto resultTable = computeResultTable(minAdjust);
 		writeResultTableAsCppHeader(resultTable, "EvalCorrection.h");

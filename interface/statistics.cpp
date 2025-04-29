@@ -547,7 +547,6 @@ bool Statistics::checkClockCommands() {
 
 
 void Statistics::computeMaterialDifference() {
-	QaplaTraining::SignatureEvalAdjuster adjuster;
 	int32_t minAdjust = 0;
 	bool run = false;
 	std::string binaryGamesFile = "epdGames.bin";
@@ -574,18 +573,19 @@ void Statistics::computeMaterialDifference() {
 			break;
 		}
 	}
+	/*
 	QaplaTraining::PositionFilter positionFilter(1023);
 	QaplaTraining::GameReplayEngine engine(getBoard(), _startPositions);
 	positionFilter.analyzeGames(engine, binaryGamesFile);
+	*/
+	QaplaTraining::SignatureEvalAdjuster adjuster(minAdjust);
 
-	/*
 	if (run) {
 		adjuster.run(_startPositions, getBoard(), binaryGamesFile);
 	}
 	else {
-		adjuster.computeFromFile("signature-eval-adjuster.bin", minAdjust);
+		adjuster.computeFromFile("signature-eval-adjuster.bin");
 	}
-	*/
 }
 
 void Statistics::loadEPD() {

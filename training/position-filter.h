@@ -70,7 +70,9 @@ namespace QaplaTraining {
 				}
 				finalFen = moveInfo.engine->getFen();
                 int32_t whiteValue = moveInfo.engine->isWhiteToMove() ? moveInfo.value : -moveInfo.value;
-
+                if (moveInfo.moveBeforeWasCapture && !moveInfo.isCapture && abs(moveInfo.eval) > 900 && abs(moveInfo.value) < 50) {
+                    suspiciousPosition_ = moveInfo.engine->getFen() + " ";
+                }
                 if (std::abs(whiteValue) >= threshold_ && !isWinFor(whiteValue, moveInfo.result) && newGame_) {
 					suspiciousPosition_ = moveInfo.engine->getFen() + " ";
                     newGame_ = false;

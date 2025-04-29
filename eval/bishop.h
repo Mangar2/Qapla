@@ -148,7 +148,7 @@ namespace ChessEval {
 		/**
 		 * Additional value for two bishops on different colors
 		 */
-		static constexpr value_t _doubleBishop[2] = { 10, 5 };
+		static constexpr value_t _doubleBishop[2] = { 5, 15 };
 		static constexpr value_t _pinned[2] = { 0, 0 };
 
 		static constexpr std::array<EvalValue, 4> BISHOP_PROPERTY_MAP = { {

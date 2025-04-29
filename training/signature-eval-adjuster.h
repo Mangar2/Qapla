@@ -32,7 +32,7 @@ namespace QaplaTraining {
     class SignatureEvalAdjuster {
     public:
 
-        SignatureEvalAdjuster();
+        SignatureEvalAdjuster(int32_t minAdjustment);
 
         /**
          * @brief Executes the analysis and builds the correction table
@@ -44,7 +44,7 @@ namespace QaplaTraining {
             const QaplaInterface::IChessBoard* engine,
             const std::string& filePath);
 
-        void computeFromFile(const std::string& filename, int32_t minAdjust);
+        void computeFromFile(const std::string& filename);
 
         void saveToFile(const std::string& filename);
 
@@ -55,6 +55,46 @@ namespace QaplaTraining {
             int32_t adjustment;
             int32_t evalAverage;
             int64_t total;
+        };
+
+        struct AdjustStatistic {
+			AdjustStatistic(std::string pattern) : pattern(pattern), count(0), result(0), evalSum(0), valSum(0) {}
+            void add(int64_t r, int64_t e, int64_t v, int32_t factor) {
+				result += r * factor;
+				evalSum += e * factor;
+				valSum += v * factor;
+                count+= factor;
+            }
+            void condAdd(uint32_t pieceIndex, int64_t r, int64_t e, int64_t v, int32_t factor);
+            int64_t getEval() {
+				return count != 0 ? static_cast<int64_t>(evalSum / count) : 0;
+			}
+            int64_t getValue() {
+				return count != 0 ? static_cast<int64_t>(valSum / count) : 0;
+			}
+            int64_t getResult() {
+				return count != 0 ? static_cast<int64_t>(result * 100 / count) : 0;
+			}
+			void print(std::vector<int> centipawnByWinProbability) {
+				int cp = centipawnByWinProbability[static_cast<size_t>(std::abs(getResult()))];
+				if (getResult() < 0) {
+					cp = -cp;
+				}
+				std::cout 
+                    << "Count: " << static_cast<int64_t>(count)
+					<< " Pattern: " << pattern
+                    << " Eval: " << getEval() 
+                    << " Value: " << getValue() 
+                    << " Result: " << getResult() << "%" 
+					<< " Centipawn: " << cp
+                    << " Adjust: " << cp - getValue()
+                    << std::endl;
+			}
+            std::string pattern;
+            double count;
+            double result;
+            double evalSum;
+            double valSum;
         };
 
         std::vector<int> ComputeCentipawnByWinProbability();
@@ -99,8 +139,31 @@ namespace QaplaTraining {
         std::vector<int64_t> evalSum;
         std::vector<int64_t> valSum;
         std::vector<int64_t> valTotal;
+		std::vector<AdjustStatistic> signatureStatisticsMg;
+        std::vector<AdjustStatistic> signatureStatisticsEg;
+        int32_t minAdjust;
         void onMove(const MoveInfo& moveInfo);
         void onFinish();
+
+        std::array<value_t, 123> midgameV2InPercent = [] {
+            std::array<value_t, 123> arr{};
+            arr.fill(100); // alles auf 100 setzen
+
+            constexpr std::array<value_t, 65> base = {
+            0, 0,  0,  0,  0,  0,  0,  0,  0,
+            0,  0,  0,  3,  6,  9,  12,  12,
+            12, 16, 20, 24, 28, 32, 36, 40,
+            44, 47, 50, 53, 56, 60, 64, 66,
+            68, 70, 72, 74, 76, 78, 80, 82,
+            84, 86, 88, 90, 92, 94, 96, 98,
+            100, 100, 100, 100, 100, 100, 100, 100,
+            100, 100, 100, 100, 100, 100, 100, 100 };
+
+            for (uint32_t i = 0; i < base.size(); ++i) {
+                arr[i] = base[i];
+            }
+            return arr;
+            }();
     };
 
 } // namespace QaplaTraining

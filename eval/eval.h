@@ -60,8 +60,8 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		 */
-		static value_t eval(MoveGenerator& position, PawnTT* pawnttPtr = nullptr, value_t ply = 0, 
-			[[maybe_unused]]value_t alpha = -MAX_VALUE) {
+		static value_t eval(MoveGenerator& position, PawnTT* pawnttPtr = nullptr, value_t ply = 0,
+			[[maybe_unused]] value_t alpha = -MAX_VALUE) {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else
@@ -84,7 +84,7 @@ namespace ChessEval {
 		 */
 		IndexLookupMap computeIndexLookupMap(MoveGenerator& position);
 
-	
+
 	private:
 
 		static void printEvalBoard(const std::vector<PieceInfo>& details, value_t midgameInPercent);
@@ -121,7 +121,7 @@ namespace ChessEval {
 
 		/**
 		 * Fetches details for the evaluation
-		 */ 
+		 */
 		static std::vector<PieceInfo> fetchDetails(MoveGenerator& position);
 
 
@@ -133,8 +133,13 @@ namespace ChessEval {
 		/**
 		 * Determines the game phase based on a static piece value
 		 * queens = 9, rooks = 5, bishop/knights = 3, pawns +1 if >= 3.
+		 * Size is enlarged to handle extreme cases like 3 queens + 3 rooks + ...
 		 */
-		static constexpr array<value_t, 65> midgameV2InPercent = {
+		static constexpr std::array<value_t, 123> midgameV2InPercent = [] {
+			std::array<value_t, 123> arr{};
+			arr.fill(100); // alles auf 100 setzen
+			
+			constexpr std::array<value_t, 65> base = {
 			0, 0,  0,  0,  0,  0,  0,  0,  0,
 			0,  0,  0,  3,  6,  9,  12,  12,
 			12, 16, 20, 24, 28, 32, 36, 40,
@@ -143,12 +148,23 @@ namespace ChessEval {
 			84, 86, 88, 90, 92, 94, 96, 98,
 			100, 100, 100, 100, 100, 100, 100, 100,
 			100, 100, 100, 100, 100, 100, 100, 100 };
+			
+			for (uint32_t i = 0; i < base.size(); ++i) {
+				arr[i] = base[i];
+			}
+			return arr;
+			}();
 
 		/** 
 		 * Determines the game phase based on a static piece value 
 		 * queens = 9, rooks = 5, bishop/knights = 3, pawns +1 if >= 3.
+		 * Size is enlarged to handle extreme cases like 3 queens + 3 rooks + ...
 		 */
-		static constexpr array<value_t, 65> midgameInPercent = {
+		static constexpr std::array<value_t, 123> midgameInPercent = [] {
+			std::array<value_t, 123> arr{};
+			arr.fill(100); 
+
+			constexpr std::array<value_t, 65> base = {
 			0,  0,  0,  0,  0,  0,  4,  8,
 			12, 16, 20, 24, 28, 32, 36, 40,
 			44, 47, 50, 53, 56, 60, 64, 66,
@@ -157,6 +173,13 @@ namespace ChessEval {
 			100, 100, 100, 100, 100, 100, 100, 100,
 			100, 100, 100, 100, 100, 100, 100, 100,
 			100, 100, 100, 100, 100, 100, 100, 100, 100 };
+
+			for (uint32_t i = 0; i < base.size(); ++i) {
+				arr[i] = base[i];
+			}
+			return arr;
+			}();
+
 
 		static const value_t tempo = 8;
 

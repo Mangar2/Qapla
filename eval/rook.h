@@ -71,11 +71,12 @@ namespace ChessEval {
 				~position.pawnAttack[OPPONENT];
 			occupiedBB &= ~passThrough;
 			const uint32_t row7Index = rooksOnRow7Index<COLOR>(rooks, position.getPieceBB(QUEEN + COLOR));
+			const uint32_t doubleRookIndex = ((rooks & rooks - 1) != 0) * DOUBLE_ROOK_INDEX;
 
 			while (rooks)
 			{
 				const Square rookSquare = popLSB(rooks);
-				const auto propertyIndex = calcPropertyIndex<COLOR>(position, results, row7Index, rookSquare);
+				const auto propertyIndex = doubleRookIndex | calcPropertyIndex<COLOR>(position, results, row7Index, rookSquare);
 				const auto mobilityIndex = calcMobilityIndex<COLOR>(results, rookSquare, occupiedBB, removeMask);
 
 				const auto mobilityValue = EvalValue(ROOK_MOBILITY_MAP[mobilityIndex]);
@@ -97,7 +98,8 @@ namespace ChessEval {
 						indexVector.push_back({ "rProperty", propertyIndex, COLOR });
 					}
 					const auto value = mobility + property + materialValue + pstValue;
-					details->push_back({ ROOK + COLOR, rookSquare, indexVector, propertyIndexToString(propertyIndex), value });
+					details->push_back({ ROOK + COLOR, rookSquare, indexVector, 
+						propertyIndexToString(propertyIndex), value });
 				}
 			}
 			return value;
@@ -158,6 +160,7 @@ namespace ChessEval {
 			if (rookIndex & TRAPPED) { result += "tbk,"; }
 			if (rookIndex & PROTECTS_PP) { result += "ppp,"; }
 			if (rookIndex & PINNED) { result += "pin,"; }
+			if (rookIndex & DOUBLE_ROOK_INDEX) { result += "dup,"; }
 			if (((rookIndex / ROW_7_INDEX) & 7) == 1) { result += "r7,"; }
 			if (((rookIndex / ROW_7_INDEX) & 7) == 2) { result += "rr7,"; }
 			if (((rookIndex / ROW_7_INDEX) & 7) == 5) { result += "rq7,"; }
@@ -241,13 +244,14 @@ namespace ChessEval {
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
-		static const uint32_t INDEX_SIZE = 32 * 8;
+		static const uint32_t INDEX_SIZE = 0x40 * 8;
 		static const uint32_t TRAPPED = 1;
 		static const uint32_t OPEN_FILE = 2;
 		static const uint32_t HALF_OPEN_FILE = 4;
 		static const uint32_t PROTECTS_PP = 8;
 		static const uint32_t PINNED = 0x10;
-		static const uint32_t ROW_7_INDEX = 0x20;
+		static const uint32_t DOUBLE_ROOK_INDEX = 0x20;
+		static const uint32_t ROW_7_INDEX = 0x40;
 		
 		inline static array<EvalValue, INDEX_SIZE> evalMap = [] {
 			const value_t _trapped[2] = { -50, -16 };
@@ -264,6 +268,7 @@ namespace ChessEval {
 				if (bitmask & HALF_OPEN_FILE) { value += _halfOpenFile; }
 				if (bitmask & PROTECTS_PP) { value += _protectsPP; }
 				if (bitmask & PINNED) { value += _pinned; }
+				if (bitmask & DOUBLE_ROOK_INDEX) { value += { -13, 0 }; }
 				if (bitmask / ROW_7_INDEX) { value += ROOK_ROW_7_MAP[bitmask / ROW_7_INDEX]; }
 				map[bitmask] = value;
 			}

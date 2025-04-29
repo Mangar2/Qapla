@@ -151,7 +151,7 @@ namespace QaplaTraining {
         }
 
 		bool setMove(MoveInfo& moveInfo) {
-			bool isCapture = QaplaInterface::ChessInterface::isCapture(moveInfo.move, moveInfo.engine);
+			moveInfo.isCapture = QaplaInterface::ChessInterface::isCapture(moveInfo.move, moveInfo.engine);
 			moveInfo.eval = moveInfo.engine->eval();
             if (moveCallback_) {
                 moveCallback_(moveInfo);
@@ -161,7 +161,7 @@ namespace QaplaTraining {
                 std::cerr << "Error: Illegal move: " << moveInfo.move << std::endl;
                 return false;
             }
-			moveInfo.moveBeforeWasCapture = isCapture;
+			moveInfo.moveBeforeWasCapture = moveInfo.isCapture;
 			return true;
 		}
 
