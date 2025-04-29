@@ -150,14 +150,6 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			<< std::right << std::setw(19) << result << std::endl;
 	}
 
-	const value_t halfmovesWithoutPawnOrCapture = position.getTotalHalfmovesWithoutPawnMoveOrCapture();
-	if (halfmovesWithoutPawnOrCapture > 20) {
-		result -= result * (halfmovesWithoutPawnOrCapture - 20) / 250;
-		if constexpr (PRINT) {
-			cout << "No pawn move or capture (" << halfmovesWithoutPawnOrCapture << "):" 
-				<< std::right << std::setw(20) << result << std::endl;
-		}
-	}
 	/*
 	if (position.getEvalVersion() == 1) {
 		result += EVAL_CORRECTION[position.getPiecesSignature()] / 2;
@@ -166,12 +158,6 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	if constexpr (PRINT) {
 		cout << "Piece Signature Correction:"
 			<< std::right << std::setw(9) << result << std::endl;
-	}
-
-	result += position.isWhiteToMove() ? tempo : -tempo;
-	if constexpr (PRINT) {
-		cout << "Tempo correction:"
-			<< std::right << std::setw(19) << result << std::endl;
 	}
 
 	value_t endgameCorrection = EvalEndgame::eval(position, result);
@@ -200,7 +186,20 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			}
 		}
 		
+		result += position.isWhiteToMove() ? tempo : -tempo;
+		if constexpr (PRINT) {
+			cout << "Tempo correction:"
+				<< std::right << std::setw(19) << result << std::endl;
+		}
 
+		const value_t halfmovesWithoutPawnOrCapture = position.getTotalHalfmovesWithoutPawnMoveOrCapture();
+		if (halfmovesWithoutPawnOrCapture > 20) {
+			result -= result * (halfmovesWithoutPawnOrCapture - 20) / 250;
+			if constexpr (PRINT) {
+				cout << "No pawn move or capture (" << halfmovesWithoutPawnOrCapture << "):"
+					<< std::right << std::setw(20) << result << std::endl;
+			}
+		}
 	}
 	// If a value == 0, the position will not be stored in hash tables
 	// Value == 0 indicates a forced draw situation like repetetive moves 
