@@ -168,6 +168,12 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			<< std::right << std::setw(9) << result << std::endl;
 	}
 
+	result += position.isWhiteToMove() ? tempo : -tempo;
+	if constexpr (PRINT) {
+		cout << "Tempo correction:"
+			<< std::right << std::setw(19) << result << std::endl;
+	}
+
 	value_t endgameCorrection = EvalEndgame::eval(position, result);
 	if (endgameCorrection != result) {
 		result = endgameCorrection;
@@ -194,11 +200,7 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			}
 		}
 		
-		result += position.isWhiteToMove() ? tempo : -tempo;
-		if constexpr (PRINT) {
-			cout << "Tempo correction:"
-				<< std::right << std::setw(19) << result << std::endl;
-		}
+
 	}
 	// If a value == 0, the position will not be stored in hash tables
 	// Value == 0 indicates a forced draw situation like repetetive moves 
