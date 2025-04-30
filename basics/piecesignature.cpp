@@ -182,6 +182,7 @@ namespace QaplaBasics {
 			auto [pieceSignature, pieceMask] = charToSignature(pieceChar);
 			if (pieceSignature != 0) {
 				pieceSignature <<= shift;
+				pieceMask <<= shift;
 				int32_t remainingPieces = pieceChar ? (pieceMask - (_signature & pieceMask)) / pieceSignature : 0;
 				if (remainingPieces > 0) {
 					_signature += pieceSignature;

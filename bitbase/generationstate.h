@@ -182,11 +182,12 @@ namespace QaplaBitbase {
 		 */
 		void printStatistic() {
 			uint64_t drawOrLoss = _sizeInBit - _won - _illegal;
-			cout 
+			cout
 				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%) " << _wonPositions.computeWonPositions()
 				<< " Not Won: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
-				<< " Mated: " << _loss 
-				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)";
+				<< " Mated: " << _loss
+				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)"
+				<< " Uncompressed memory size " << _wonPositions.getSize();
 		}
 
 		/**
@@ -199,6 +200,15 @@ namespace QaplaBitbase {
 			else {
 				_wonPositions.storeToFile(fileName, signature, first, test, verbose);
 			}
+		}
+
+		void print() {
+			std::cout << "Won positions: " << std::endl;
+			_wonPositions.print();
+			std::cout << "Computed positions: " << std::endl;
+			_computedPositions.print();
+			std::cout << "Candidates: " << std::endl;
+			_candidates.print();
 		}
 
 	private:

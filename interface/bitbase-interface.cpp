@@ -32,11 +32,11 @@ using namespace QaplaInterface;
 void BitbaseInterface::generateBitbases() {
 	string piecesString = getNextTokenBlocking(true);
 	if (piecesString == "\r" || piecesString == "\n") {
-		println("usage bitgenerate pieces [cores n] [uncompressed] [trace n] [debug n] [index n]");
+		println("usage bitgenerate pieces [cores n] [path p] [uncompressed] [trace n] [debug n] [index n]");
 		return;
 	}
 	string token = getNextTokenBlocking(true);
-	uint32_t cores = 16;
+	uint32_t cores = 1;
 	uint32_t traceLevel = 1;
 	uint32_t debugLevel = 0;
 	uint64_t debugIndex = -1;
@@ -45,6 +45,9 @@ void BitbaseInterface::generateBitbases() {
 		if (token == "cores") {
 			getNextTokenBlocking(true);
 			cores = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "path") {
+			getBoard()->setOption("qaplaBitbasePathNL", getNextTokenBlocking(true));
 		}
 		else if (token == "uncompressed" || token == "uc") {
 			uncompressed = true;
@@ -76,7 +79,7 @@ void BitbaseInterface::verifyBitbases() {
 		return;
 	}
 	string token = getNextTokenBlocking(true);
-	uint32_t cores = 16;
+	uint32_t cores = 1;
 	uint32_t traceLevel = 1;
 	uint32_t debugLevel = 0;
 	while (token != "\n" && token != "\r") {

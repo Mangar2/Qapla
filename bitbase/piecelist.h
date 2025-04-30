@@ -83,6 +83,8 @@ namespace QaplaBitbase {
 		void clear() {
 			_numberOfPieces = 0;
 			_numberOfPawns = 0;
+			_pieces.fill(Piece{});
+			_pieceSquares.fill(Square{});
 		}
 
 		/**
@@ -170,14 +172,14 @@ namespace QaplaBitbase {
 		 * Gets a piece
 		 */
 		Piece getPiece(uint32_t pieceNo) const {
-			return _pieces[pieceNo];
+			return pieceNo < _numberOfPieces ? _pieces[pieceNo] : NO_PIECE;
 		}
 
 		/**
 		 * Gets the Square of a piece
 	      */
 		const Square getSquare(uint32_t pieceNo) const {
-			return _pieceSquares[pieceNo];
+			return pieceNo < _numberOfPieces ? _pieceSquares[pieceNo] : NO_SQUARE;
 		}
 
 		/**
@@ -259,8 +261,8 @@ namespace QaplaBitbase {
 		uint32_t _numberOfPieces;
 		uint32_t _numberOfPawns;
 		static const uint32_t MAX_PIECES_COUNT = 10;
-		array<Piece, MAX_PIECES_COUNT> _pieces;
-		array<Square, MAX_PIECES_COUNT> _pieceSquares;
+		array<Piece, MAX_PIECES_COUNT> _pieces{};
+		array<Square, MAX_PIECES_COUNT> _pieceSquares{};
 	};
 
 }

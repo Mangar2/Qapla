@@ -170,16 +170,21 @@ namespace QaplaBitbase {
 		void compareFiles(string pieceString) {
 			Bitbase bitbase1;
 			Bitbase bitbase2;
-			bool found1 = bitbase1.readFromFile(pieceString, ".btb", "./", false);
-			if (found1 == false) {
-				cout << "Missing file ./" << pieceString << ".btb compare not possible " << endl;
+			try {
+				bool found1 = bitbase1.readFromFile(pieceString, ".btb", "./", false);
+				if (found1 == false) {
+					if (debug) cout << "Missing file ./" << pieceString << ".btb compare not possible " << endl;
+				}
+				bool found2 = bitbase2.readFromFile(pieceString, ".btb", "./generated/", false);
+				if (found2 == false) {
+					if (debug) cout << "Missing file ./generated/" << pieceString << ".btb compare not possible " << endl;
+				}
+				if (found1 && found2) {
+					compareBitbases(pieceString, bitbase1, bitbase2);
+				}
 			}
-			bool found2 = bitbase2.readFromFile(pieceString, ".btb", "./generated/", false);
-			if (found2 == false) {
-				cout << "Missing file ./generated/" << pieceString << ".btb compare not possible " << endl;
-			}
-			if (found1 && found2) {
-				compareBitbases(pieceString, bitbase1, bitbase2);
+			catch (const std::runtime_error& e) {
+				std::cerr << "Error: " << e.what() << '\n';
 			}
 			
 		}
@@ -258,6 +263,7 @@ namespace QaplaBitbase {
 		 */
 		void computeBitbaseRec(PieceList& pieceList, bool first);
 
+		const bool debug = false;
 		uint64_t _numberOfIllegalPositions;
 		uint64_t _numberOfDirectLoss;
 		uint64_t _numberOfDirectDraw;

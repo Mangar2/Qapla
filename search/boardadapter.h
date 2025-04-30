@@ -83,6 +83,16 @@ namespace QaplaSearch {
 				intValue = 1;
 			}
 			else {
+				if (name == "qaplaBitbasePath") {
+					if (value != "" && QaplaBitbase::BitbaseReader::setBitbasePath(value)) {
+						QaplaBitbase::BitbaseReader::loadBitbase();
+					}
+					return;
+				}
+				if (name == "qaplaBitbasePathNL") {
+					QaplaBitbase::BitbaseReader::setBitbasePath(value);
+					return;
+				}
 				auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
 				if (ec != std::errc()) {
 					return;
@@ -110,13 +120,8 @@ namespace QaplaSearch {
 			verify.verifyBitbaseRec(signature, cores, traceLevel, debugLevel);
 		}
 
-		/**
-		 * Load databases like tablebases or bitbases
-		 */
 		virtual void initialize() {
-			QaplaBitbase::BitbaseReader::loadBitbase();
 		}
-
 
 		/**
 	     * Returns the current position in FEN format

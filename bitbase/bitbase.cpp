@@ -45,7 +45,7 @@ namespace QaplaBitbase {
 
     void Bitbase::setSize(uint64_t sizeInBit) {
         _sizeInBit = sizeInBit;
-        _bitbase.resize(_sizeInBit / BITS_IN_ELEMENT + 1);
+        _bitbase.resize((_sizeInBit + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT);
         clear();
     }
 
@@ -76,6 +76,10 @@ namespace QaplaBitbase {
 
     uint64_t Bitbase::getSizeInBit() const {
         return _sizeInBit;
+    }
+
+    uint64_t Bitbase::getSize() const {
+		return _bitbase.size() * sizeof(bbt_t);
     }
 
     std::string Bitbase::getStatistic() const {
@@ -140,10 +144,11 @@ namespace QaplaBitbase {
         fout.close();
     }
 
-    bool Bitbase::readFromFile(string pieceString, string extension, string path, bool verbose) {
+    bool Bitbase::readFromFile(string pieceString, string extension, std::filesystem::path path, bool verbose) {
         PieceList list(pieceString);
         BitbaseIndex index(list);
-        return readFromFile(path + pieceString + extension, index.getSizeInBit(), verbose);
+        const std::filesystem::path filePath = path / (pieceString + extension);
+        return readFromFile(filePath, index.getSizeInBit(), verbose);
     }
 
     bool Bitbase::isLoaded() const {
@@ -227,8 +232,9 @@ namespace QaplaBitbase {
         }
     }
 
-    bool Bitbase::readFromFile(string fileName, size_t sizeInBit, bool verbose) {
+    bool Bitbase::readFromFile(std::filesystem::path fileName, size_t sizeInBit, bool verbose) {
         _sizeInBit = sizeInBit;
+        if (verbose) cout << "Reading: " << fileName << endl;
         ifstream fin(fileName, ios::binary);
         if (!fin) {
             return false;
@@ -237,8 +243,14 @@ namespace QaplaBitbase {
         fin.read(reinterpret_cast<char*>(&size), sizeof(size));
         vector<bbt_t> compressed(size);
         fin.read(reinterpret_cast<char*>(compressed.data()), size * sizeof(bbt_t));
-        _bitbase = QaplaCompress::uncompress(compressed, _sizeInBit);
         fin.close();
+        try {
+            _bitbase = QaplaCompress::uncompress(compressed, _sizeInBit / BITS_IN_ELEMENT + 1);
+        }
+        catch (const std::runtime_error& e) {
+            std::cerr << "Error: " << e.what() << '\n';
+            return false;
+        }
         if (verbose) cout << "Read: " << fileName << endl;
         _loaded = true;
         return true;
@@ -250,6 +262,20 @@ namespace QaplaBitbase {
 
     ostream& operator<<(ostream& stream, const Bitbase& bitBase) {
         return stream << bitBase.getStatistic();
+    }
+
+    void Bitbase::print() const {
+        std::cout << "Bitbase Information:\n";
+        std::cout << "  Loaded: " << std::boolalpha << _loaded << '\n';
+        std::cout << "  Size in bits: " << _sizeInBit << '\n';
+
+        const uint64_t expectedBytes = (_sizeInBit + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
+        std::cout << "  Expected storage size (bytes): " << expectedBytes << '\n';
+        std::cout << "  Actual storage size (bytes):   " << _bitbase.size() << '\n';
+
+        if (_bitbase.size() != expectedBytes) {
+            std::cout << " Size mismatch detected between bit count and storage size.\n";
+        }
     }
 
 } // namespace QaplaBitbase

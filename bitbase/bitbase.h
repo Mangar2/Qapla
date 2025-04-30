@@ -25,6 +25,7 @@
 #include <string>
 #include <cstdint>
 #include <ostream>
+#include <filesystem>
 
 namespace QaplaBitbase {
 
@@ -90,6 +91,12 @@ namespace QaplaBitbase {
          */
         uint64_t getSizeInBit() const;
 
+		/**
+		 * @brief Gets the size of the bitbase (internal vector structure) in bytes.
+		 * @return Size in bytes.
+		 */
+        uint64_t getSize() const;
+
         /**
          * @brief Returns a string describing number of won and non-won positions.
          * @return Descriptive string.
@@ -119,7 +126,7 @@ namespace QaplaBitbase {
          * @param verbose Enable output.
          * @return True on success.
          */
-        bool readFromFile(std::string pieceString, std::string extension = ".btb", std::string path = "./", bool verbose = true);
+        bool readFromFile(std::string pieceString, std::string extension = ".btb", std::filesystem::path path = "./", bool verbose = true);
 
         /**
          * @brief Checks if bitbase data has been successfully loaded.
@@ -158,8 +165,14 @@ namespace QaplaBitbase {
          */
         void loadFromEmbeddedData(const uint32_t* data32, uint32_t byteSize, uint64_t sizeInBit, bool verbose = false);
 
+        /**
+         * @brief Prints debug information about the current bitbase.
+         */
+        void print() const;
+
+
     private:
-        bool readFromFile(std::string fileName, size_t sizeInBit, bool verbose);
+        bool readFromFile(std::filesystem::path fileName, size_t sizeInBit, bool verbose);
         uint32_t computeVectorSize();
 
         bool _loaded;

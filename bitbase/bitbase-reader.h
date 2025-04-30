@@ -23,6 +23,7 @@
 #pragma once
 
 #include <map>
+#include <filesystem>
 #include "piecelist.h"
 #include "bitbase.h"
 
@@ -50,6 +51,13 @@ namespace QaplaBitbase {
     {
     public:
 
+		/**
+		 * @brief Sets the path to the bitbase directory.
+		 * @param path Path to the bitbase directory.
+		 * @return True if the path is valid and set successfully.
+		 */
+        static bool setBitbasePath(const std::string& path);
+
         /** Loads all relevant bitbases. */
         static void loadBitbase();
 
@@ -67,9 +75,6 @@ namespace QaplaBitbase {
          * @param force If true, reloads even if bitbase is already present.
          */
         static void loadBitbaseRec(std::string name, bool force = false);
-
-        /** Loads all relevant 3-piece bitbases. */
-        static void loadRelevant3StoneBitbase();
 
         /** Loads all relevant 4-piece bitbases. */
         static void loadRelevant4StoneBitbase();
@@ -129,7 +134,8 @@ namespace QaplaBitbase {
         static const Bitbase* getBitbase(PieceSignature signature);
 
         BitbaseReader();
-        static std::map<pieceSignature_t, Bitbase> _bitbases;
+        static inline std::map<pieceSignature_t, Bitbase> _bitbases;
+        static inline std::filesystem::path bitbasePath;
     };
 
 }

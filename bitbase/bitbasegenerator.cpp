@@ -502,6 +502,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 {
 	MoveGenerator position;
 	vector<uint64_t> candidates;
+	uint64_t sizeInBit = state.getSizeInBit();
 
 	uint64_t packageSize = min(static_cast<uint64_t>(50000), (state.getSizeInBit() + 5) / 5);
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
@@ -509,6 +510,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 	{
 		for (uint64_t index = package.first; index < package.second; ++index)
 		{
+			assert(index < sizeInBit);
 			ReverseIndex reverseIndex(index, state.getPieceList());
 			if (!reverseIndex.isLegal())
 			{
@@ -533,17 +535,23 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 		}
 		if (state.setCandidatesTreadSafe(candidates, false))
 		{
+			for (uint64_t index : candidates) {
+				assert(index < sizeInBit);
+			}
 			candidates.clear();
 		}
 		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	}
 	state.setCandidatesTreadSafe(candidates);
+	for (uint64_t index : candidates) {
+		assert(index < sizeInBit);
+	}
 }
 
 /**
  * Computes a bitbase for a set of pieces described by a piece list.
  */
-void BitbaseGenerator::computeBitbase(PieceList &pieceList, bool first)
+void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first)
 {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
@@ -564,7 +572,7 @@ void BitbaseGenerator::computeBitbase(PieceList &pieceList, bool first)
 	for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 	{
 		_threads[threadNo] = thread([this, &workpackage, &state]()
-									{ computeInitialWorkpackage(workpackage, state); });
+			{ computeInitialWorkpackage(workpackage, state); });
 	}
 	joinThreads();
 	cout << ".";
@@ -575,11 +583,16 @@ void BitbaseGenerator::computeBitbase(PieceList &pieceList, bool first)
 	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
 	cout << "c";
-	state.storeToFile(fileName, pieceString, _uncompressed, first, _debugLevel > 1, _traceLevel > 1);
-	printTimeSpent(clock, 0, _traceLevel == 0);
-	printStatistic(state, 1);
-	cout << endl;
-	BitbaseReader::setBitbase(pieceString, state.getWonPositions());
+	try {
+		state.storeToFile(fileName, pieceString, _uncompressed, first, _debugLevel > 1, _traceLevel > 1);
+		printTimeSpent(clock, 0, _traceLevel == 0);
+		printStatistic(state, 1);
+		cout << endl;
+		BitbaseReader::setBitbase(pieceString, state.getWonPositions());
+	}
+	catch (const std::runtime_error& e) {
+		std::cerr << "Error: " << e.what() << '\n';
+	}
 }
 
 /**

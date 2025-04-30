@@ -28,19 +28,31 @@
 
 using namespace QaplaBitbase;
 
-map<pieceSignature_t, Bitbase> BitbaseReader::_bitbases;
-
 void BitbaseReader::loadBitbase() {
 	QaplaSearch::ClockManager clock;
 	clock.setStartTime();
 	registerBitbaseFromHeader("KPK", KPK, KPK_size);
-	// registerBitbaseFromHeader("KRKP", KRKP, KRKP_size);
-	//loadBitbaseRec("K*K");
-	//loadBitbaseRec("KK*");
-	//loadBitbaseRec("K*K*");
-	//loadBitbaseRec("K**K");
-	//loadBitbaseRec("K**K*");
-	//cout << "Time spent to load bitbases: " << clock.computeTimeSpentInMilliseconds() << " Milliseconds " << endl;
+	loadBitbaseRec("K*K");
+	loadBitbaseRec("KK*");
+	loadBitbaseRec("K*K*");
+	loadBitbaseRec("K**K");
+	loadBitbaseRec("KK**");
+	loadBitbaseRec("K**K*");
+	loadBitbaseRec("K*K**");
+	loadBitbaseRec("K***K");
+	loadBitbaseRec("KK***");
+	std::cout << "info string time spent to load bitbases: " << clock.computeTimeSpentInMilliseconds() << " milliseconds " << endl;
+}
+
+bool BitbaseReader::setBitbasePath(const std::string& path) {
+	const std::filesystem::path p(path);
+	bitbasePath = "";
+	if (!std::filesystem::is_directory(p)) {
+		return false;
+	}
+
+	bitbasePath = std::filesystem::canonical(p).string();
+	return true;
 }
 
 void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uint32_t data[], uint32_t sizeInBytes) {
@@ -60,42 +72,27 @@ void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uin
 
 void BitbaseReader::loadBitbaseRec(string name, bool force) {
 	auto pos = name.find('*');
-	if (pos != string::npos) {
-		for (auto ch : string("QRBNP")) {
-			string next = name;
+	if (pos != std::string::npos) {
+		for (auto ch : std::string("QRBNP")) {
+			std::string next = name;
 			next[pos] = ch;
 			loadBitbaseRec(next, force);
 		}
 	}
-	else {
-		if (force || !isBitbaseAvailable(name)) {
-			loadBitbase(name);
-		}
+	else if (force || !isBitbaseAvailable(name)) {
+		loadBitbase(name);
 	}
 }
 
-void BitbaseReader::loadRelevant3StoneBitbase() {
-	loadBitbase("KPK");
-}
-
 void BitbaseReader::loadRelevant4StoneBitbase() {
-	loadBitbase("KPKP");
-	loadBitbase("KPKN");
-	loadBitbase("KPKB");
-	loadBitbase("KPPK");
-	loadBitbase("KNPK");
-	loadBitbase("KBPK");
-	loadBitbase("KBNK");
-	loadBitbase("KBBK");
-	loadBitbase("KRKP");
-	loadBitbase("KRKN");
-	loadBitbase("KRKB");
-	loadBitbase("KRKR");
-	loadBitbase("KQKP");
-	loadBitbase("KQKN");
-	loadBitbase("KQKB");
-	loadBitbase("KQKR");
-	loadBitbase("KQKQ");
+	std::vector<std::string> pieceStrings = {
+		"KPKP", "KPKN", "KPKB", "KPPK", "KNPK", "KBPK", "KBNK", "KBBK",
+		"KRKP", "KRKN", "KRKB", "KRKR", "KQKP", "KQKN", "KQKB", "KQKR",
+		"KQKQ"
+	};
+	for (const auto& pieceString : pieceStrings) {
+		loadBitbase(pieceString);
+	}
 }
 
 void BitbaseReader::load5StoneBitbase() {
@@ -163,14 +160,16 @@ void BitbaseReader::loadBitbase(std::string pieceString) {
 	PieceSignature signature;
 	signature.set(pieceString);
 	pieceSignature_t sig = signature.getPiecesSignature();
-	if (_bitbases.find(sig) != _bitbases.end()) {
+	if (_bitbases.contains(sig)) {
 		return;
 	}
+
 	Bitbase bitbase;
-	_bitbases[sig] = bitbase;
-	if (!_bitbases[sig].readFromFile(pieceString)) {
-		_bitbases.erase(sig);
+	if (!bitbase.readFromFile(pieceString, ".btb", bitbasePath)) {
+		return; // Failed to read – do not insert
 	}
+
+	_bitbases.emplace(sig, std::move(bitbase));
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
 }
 

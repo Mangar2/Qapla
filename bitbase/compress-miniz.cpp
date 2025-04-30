@@ -32,11 +32,12 @@ std::vector<QaplaCompress::bbt_t> QaplaCompress::minizCompress(const std::vector
 	uLongf compressedSize = compressBound(static_cast<uLongf>(input.size()));
 	std::vector<bbt_t> compressed(compressedSize);
 
+	uLongf size = static_cast<uLongf>(input.size()) * sizeof(bbt_t);
 	int result = mz_compress2(
 		reinterpret_cast<Bytef*>(compressed.data()),
 		&compressedSize,
 		reinterpret_cast<const Bytef*>(input.data()),
-		static_cast<uLongf>(input.size()),
+		static_cast<uLongf>(size),
 		Z_BEST_COMPRESSION
 	);
 

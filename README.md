@@ -140,7 +140,57 @@ The chess engine is based on a bitboard move generator, which generates only leg
 
 ### Bitbases
 
-I have build bitbase support, but it is not yet included
+Bitbase support is included in a basic form starting with version 0.3.
+
+⚠️ **Important:** 
+- This is a simple first version. It will load all bitbases in uncompressed format in memory once you set the bitbase path. Make sure you have good memory, if you use it.
+- It is currently limited on 5 pieces bitbases. 6 pieces may work, but it is untested.
+
+You can generate bitbases using the following command:
+
+**`bitgenerate pieces [cores n]`**
+
+⚠️ **Important:** This must be the very first command after starting the engine.  
+Any other command (e.g. `uci` or `xboard` or anything else as xboard is default) will activate one of the standard protocols, which do not support bitbase generation.  
+Once you enter bitbase generation mode, the engine will remain in this mode and only accept further `bitgenerate` commands.
+
+#### Parameters
+
+- `pieces`: The piece signature to generate.
+  - Example: `KPK` will generate the bitbase for **King and Pawn vs. King**.
+- `cores n`: (optional) Number of CPU cores to use during generation.
+
+The bitbase will be created in the current working directory.  
+Each generated bitbase is saved as a separate file (e.g. `KPK.btb` for King–Pawn–King).
+The starting bitbase (e.g. KPPK if you bitgenerate KPPK) will also be saved as KPPK.h - a compiled header file containing the binary data for the bitbase, if you wish to link it to the program. The file KPK is for example alread linked in that way beginning with version 0.3.
+
+#### Note on `P` in Signatures
+
+The character `P` in a signature acts like a **wildcard for promotable pieces**.  
+For example, generating `KPPPK` will implicitly require other bitbases like `KQK`, `KRK`, `KBK`, `KNK` to determine promotion outcomes.
+
+As a result, generating a bitbase with a signature like `KPPPK` may trigger the generation of several additional bitbases if they are not already available.
+
+#### Note KPPKP is not identical to KPKPP
+
+KPPKP will store which positions are won for the side with the two pawns, while KPKPP will store which positions are won for the side with one pawn. Note that trying to generate KKPP - thus the bitbase for the won positions for the side having only a king will generate nothing. But KNK will be generated even, if it will produce an nearly zero size file. 
+To Generate:
+
+- All 3-pieces: KPK
+- All 4-pieces: KPPK, KPKP
+- All 5-pieces: KPPKP, KPKPP, KPPPK
+
+#### Delete the files not needed
+
+You may delete the files that you dont want after generation or you can cherry-pick the files you want. The system only needs all files for generation, not for playing with them.
+
+#### Generation result information
+
+The engine will print something like:
+KQQKQ using 16 threads .................................................c
+Time spent: 0:0:14.976 Won: 44433482 (42%) 44433482 Not Won: 11561529 (11%) Mated: 9051 Illegal: 48897469 (46%)
+
+Each dot is a moves to mate dot. So if the first dot show up, the engine computed all positions with mate in one. The last "c" shows that copression is started. It also shows the amount of positions Won, the amount of positions not Won (draw or lost), the amout of mate positions and the amount of illegal positions (king not to move in check ...).
 
 ### Table bases
 

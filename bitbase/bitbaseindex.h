@@ -160,12 +160,12 @@ namespace QaplaBitbase {
 				NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN * COLOR_COUNT :
 				NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN * COLOR_COUNT;
 			uint32_t pieceNo = 2;
-			while (isPawn(pieceList.getPiece(pieceNo))) {
+			while (pieceList.getNumberOfPieces() > pieceNo && isPawn(pieceList.getPiece(pieceNo))) {
 				const uint32_t count = pieceList.getNumberOfSamePieces(pieceNo);
 				_sizeInBit *= pawnIndexSize[count][pieceNo - 2];
 				pieceNo += count;
 			}
-			for (; pieceList.getNumberOfPieces() > pieceNo;) {
+			while (pieceList.getNumberOfPieces() > pieceNo) {
 				const uint32_t count = pieceList.getNumberOfSamePieces(pieceNo);
 				_sizeInBit *= pieceIndexSize[count][pieceNo - 2];
 				pieceNo += count;

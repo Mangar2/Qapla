@@ -82,6 +82,7 @@ namespace QaplaInterface {
 			println("option name ponder type check");
 			println("option name MultiPV type spin default 1 min 1 max 40");
 			println("option name UCI_EngineAbout type string default " + getBoard()->getEngineInfo()["engine-about"]);
+			println("option name qaplaBitbasePath type string");
 			getBoard()->initialize();
 			println("uciok");
 		}
