@@ -176,9 +176,9 @@ As a result, generating a bitbase with a signature like `KPPPK` may trigger the 
 KPPKP will store which positions are won for the side with the two pawns, while KPKPP will store which positions are won for the side with one pawn. Note that trying to generate KKPP - thus the bitbase for the won positions for the side having only a king will generate nothing. But KNK will be generated even, if it will produce an nearly zero size file. 
 To Generate:
 
-- All 3-pieces: KPK
-- All 4-pieces: KPPK, KPKP
-- All 5-pieces: KPPKP, KPKPP, KPPPK
+- All 3-pieces: KPK (or just "3", eg. bitgenerate 3 cores 4)
+- All 4-pieces: KPPK, KPKP (or "4")
+- All 5-pieces: KPPKP, KPKPP, KPPPK (or "5" will also generate all 4 and all 3 pieces)
 
 #### Delete the files not needed
 

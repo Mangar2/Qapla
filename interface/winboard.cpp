@@ -329,6 +329,15 @@ void Winboard::undoMove() {
 	}
 }
 
+void Winboard::loadEgtb() {
+	std::string tk = getNextTokenNonBlocking();
+	std::string path = getNextTokenNonBlocking();
+
+	if (tk == "qaplaBitbases") {
+		getBoard()->setOption("qaplaBitbasePath", path);
+	}
+}
+
 /**
  * Processes any input from stdio
  */
@@ -445,6 +454,7 @@ void Winboard::handleInput() {
 	else if (token == "result") getToEOLBlocking();
 	else if (token == "cores") readCores();
 	else if (token == "memory") readMemory();
+	else if (token == "egtpath") loadEgtb();
 	else if (checkClockCommands()) {}
 	else if (checkMoveCommand()) {}
 }

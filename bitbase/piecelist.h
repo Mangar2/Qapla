@@ -83,8 +83,6 @@ namespace QaplaBitbase {
 		void clear() {
 			_numberOfPieces = 0;
 			_numberOfPawns = 0;
-			_pieces.fill(Piece{});
-			_pieceSquares.fill(Square{});
 		}
 
 		/**

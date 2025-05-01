@@ -51,6 +51,11 @@ namespace QaplaInterface {
 		}
 
 		/**
+		 * @brief Loads the EGTB or bitbases
+		 */
+		void loadEgtb();
+
+		/**
 		 * Manages a move
 		 */
 		bool handleMove(string move = "");
