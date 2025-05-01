@@ -1843,7 +1843,6 @@
     <ClCompile Include="bitbase\bitbasegenerator.cpp" />
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
     <ClCompile Include="bitbase\bitbase-reader.cpp" />
-    <ClCompile Include="bitbase\compress-miniz.cpp" />
     <ClCompile Include="bitbase\compress.cpp" />
     <ClCompile Include="bitbase\lz4.c" />
     <ClCompile Include="bitbase\miniz.c" />
@@ -1897,14 +1896,11 @@
     <ClInclude Include="bitbase\boardaccess.h" />
     <ClInclude Include="bitbase\compress.h" />
     <ClInclude Include="bitbase\generationstate.h" />
-    <ClInclude Include="bitbase\huffmancode.h" />
-    <ClInclude Include="bitbase\deflate.h" />
     <ClInclude Include="bitbase\KPK.h" />
     <ClInclude Include="bitbase\miniz.h" />
     <ClInclude Include="bitbase\piecelist.h" />
     <ClInclude Include="bitbase\generateresult.h" />
     <ClInclude Include="bitbase\reverseindex.h" />
-    <ClInclude Include="bitbase\try.h" />
     <ClInclude Include="bitbase\verify.h" />
     <ClInclude Include="bitbase\workpackage.h" />
     <ClInclude Include="eval\bishop.h" />

@@ -25,9 +25,7 @@
 #include <vector>
 #include <unordered_map>
 #include "lz4.h"
-#include "try.h"
-#include "HuffmanCode.h"
-#include "deflate.h"
+#include "miniz.h"
 #include "compress.h"
 
 using namespace std;
@@ -84,12 +82,73 @@ namespace QaplaCompress {
 		return out;
 	}
 
+	const char* minizErrorString(int code) {
+		switch (code) {
+		case Z_OK:             return "Z_OK";
+		case Z_STREAM_END:     return "Z_STREAM_END";
+		case Z_NEED_DICT:      return "Z_NEED_DICT";
+		case Z_ERRNO:          return "Z_ERRNO";
+		case Z_STREAM_ERROR:   return "Z_STREAM_ERROR";
+		case Z_DATA_ERROR:     return "Z_DATA_ERROR";
+		case Z_MEM_ERROR:      return "Z_MEM_ERROR";
+		case Z_BUF_ERROR:      return "Z_BUF_ERROR";
+		case Z_VERSION_ERROR:  return "Z_VERSION_ERROR";
+		case Z_PARAM_ERROR:    return "Z_PARAM_ERROR";
+		default:               return "UNKNOWN_ERROR";
+		}
+	}
+
+	std::vector<uint8_t> minizCompressFn(const uint8_t* in, size_t inSize) {
+		uLongf maxCompressedSize = compressBound(static_cast<uLongf>(inSize));
+		std::vector<uint8_t> compressed(maxCompressedSize);
+
+		uLongf compressedSize = maxCompressedSize;
+		int result = mz_compress2(
+			reinterpret_cast<Bytef*>(compressed.data()),
+			&compressedSize,
+			reinterpret_cast<const Bytef*>(in),
+			static_cast<uLongf>(inSize),
+			Z_BEST_COMPRESSION
+		);
+
+		if (result != Z_OK) {
+			throw std::runtime_error(
+				std::string("Miniz compression failed: ") + minizErrorString(result)
+			);
+		}
+
+		compressed.resize(compressedSize);
+		return compressed;
+	}
+
+	std::vector<uint8_t> minizDecompressFn(const uint8_t* in, size_t inSize, size_t expectedSize) {
+		std::vector<uint8_t> decompressed(expectedSize);
+
+		uLongf outSize = static_cast<uLongf>(expectedSize);
+		uLongf inSizeCopy = static_cast<uLongf>(inSize);
+
+		int result = mz_uncompress2(
+			reinterpret_cast<Bytef*>(decompressed.data()),
+			&outSize,
+			reinterpret_cast<const Bytef*>(in),
+			&inSizeCopy
+		);
+
+		if (result != Z_OK) {
+			throw std::runtime_error(
+				std::string("Miniz decompression failed: ") + minizErrorString(result)
+			);
+		}
+
+		return decompressed;
+	}
+
 
 	CompressFn Compress::getCompressor(CompressionType type) {
 		switch (type) {
 		case CompressionType::None:  return noneCompressFn;
 		case CompressionType::LZ4:   return lz4CompressFn;
-		case CompressionType::Miniz: throw std::runtime_error("Miniz compression not implemented");
+		case CompressionType::Miniz: return minizCompressFn;
 		default:                     throw std::runtime_error("Unknown compression type");
 		}
 	}
@@ -98,74 +157,10 @@ namespace QaplaCompress {
 		switch (type) {
 		case CompressionType::None:  return noneDecompressFn;
 		case CompressionType::LZ4:   return lz4DecompressFn;
-		case CompressionType::Miniz: throw std::runtime_error("Miniz decompression not implemented");
+		case CompressionType::Miniz: return minizDecompressFn;
 		default:                     throw std::runtime_error("Unknown compression type");
 		}
 	}
 
-	/**
-	 * Compresses a vector using the best available method (default: LZ4)
-	 */
-	std::vector<QaplaCompress::bbt_t> QaplaCompress::compress(const std::vector<bbt_t>& in, bool verbose) {
-		std::vector<bbt_t> out;
-		/*
-		// Default: use LZ4
-		auto compressed = lz4Compress(in);
-		out.push_back(static_cast<bbt_t>(Compression::lz4));
-		out.insert(out.end(), compressed.begin(), compressed.end());
-
-		if (verbose) {
-			std::cout << "Original: " << in.size() << " compressed (LZ4): " << compressed.size()
-				<< " total with header: " << out.size() << std::endl;
-		}
-		*/
-		// Use miniz
-		auto compressed = minizCompress(in);
-		out.push_back(static_cast<bbt_t>(Compression::miniz));
-		out.insert(out.end(), compressed.begin(), compressed.end());
-		if (verbose) {
-			std::cout << "Original: " << in.size() << " compressed (miniz): " << compressed.size()
-				<< " total with header: " << out.size() << std::endl;
-		}
-
-		return out;
-	}
-
-
-	/**
-	 * Decompresses a vector
-	 */
-	std::vector<QaplaCompress::bbt_t> QaplaCompress::uncompress(const std::vector<bbt_t>& in, uint64_t outSize) {
-		Compression compression = Compression(in[0]);
-		std::vector<bbt_t> out;
-
-		if (compression == Compression::huffman) {
-			std::vector<bbt_t> tmp;
-			HuffmanCode huffman;
-			uint32_t codeSize = huffman.retrieveCode(in.begin() + 1);
-			huffman.uncompress(in.begin() + codeSize + 1, tmp);
-			out.resize(outSize);
-			Deflate::uncompress(tmp.begin(), tmp.end(), out.begin(), outSize);
-		}
-		else if (compression == Compression::inflated) {
-			out.resize(outSize);
-			Deflate::uncompress(in.begin() + 1, in.end(), out.begin(), outSize);
-		}
-		else if (compression == Compression::lz4) {
-			std::vector<bbt_t> compressed(in.begin() + 1, in.end());
-			out = lz4Uncompress(compressed, outSize);
-		}
-		else if (compression == Compression::miniz) {
-			std::vector<bbt_t> compressed(in.begin() + 1, in.end());
-			out = minizUncompress(compressed, outSize);
-		}
-		else {
-			// uncompressed fallback
-			out.resize(outSize);
-			std::copy(in.begin() + 1, in.end(), out.begin());
-		}
-
-		return out;
-	}
 }
 

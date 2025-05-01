@@ -147,9 +147,6 @@
     <ClCompile Include="bitbase\miniz.c">
       <Filter>bitbase</Filter>
     </ClCompile>
-    <ClCompile Include="bitbase\compress-miniz.cpp">
-      <Filter>bitbase</Filter>
-    </ClCompile>
     <ClCompile Include="interface\self-play-manager.cpp">
       <Filter>interface</Filter>
     </ClCompile>
@@ -320,9 +317,6 @@
     <ClInclude Include="search\clockmanager.h">
       <Filter>search</Filter>
     </ClInclude>
-    <ClInclude Include="bitbase\huffmancode.h">
-      <Filter>bitbase</Filter>
-    </ClInclude>
     <ClInclude Include="eval\queen.h">
       <Filter>eval</Filter>
     </ClInclude>
@@ -401,13 +395,7 @@
     <ClInclude Include="bitbase\verify.h">
       <Filter>bitbase</Filter>
     </ClInclude>
-    <ClInclude Include="bitbase\try.h">
-      <Filter>bitbase</Filter>
-    </ClInclude>
     <ClInclude Include="bitbase\reverseindex.h">
-      <Filter>bitbase</Filter>
-    </ClInclude>
-    <ClInclude Include="bitbase\deflate.h">
       <Filter>bitbase</Filter>
     </ClInclude>
     <ClInclude Include="basics\hashconstants.h">

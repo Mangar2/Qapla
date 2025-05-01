@@ -37,8 +37,8 @@ namespace QaplaBitbase {
         const std::string& fileNameWithPath,
         const std::vector<bbt_t>& data,
         uint32_t clusterElements,
-        CompressionType compression,
-        const CompressFn& compressFn
+        QaplaCompress::CompressionType compression,
+        const QaplaCompress::CompressFn& compressFn
     ) {
         if (clusterElements == 0) {
             throw std::invalid_argument("Cluster size must be > 0");
@@ -66,7 +66,7 @@ namespace QaplaBitbase {
     std::vector<std::vector<uint8_t>> BitbaseFile::compressClusters(
         const std::vector<bbt_t>& data,
         uint32_t clusterElements,
-        const CompressFn& compressFn
+        const QaplaCompress::CompressFn& compressFn
     ) {
         const size_t totalClusters = (data.size() + clusterElements - 1) / clusterElements;
         std::vector<std::vector<uint8_t>> result;
@@ -79,10 +79,7 @@ namespace QaplaBitbase {
             const uint8_t* inPtr = reinterpret_cast<const uint8_t*>(&data[start]);
             const size_t inSize = count * sizeof(bbt_t);
 
-            std::vector<uint8_t> compressed;
-            if (!compressFn(inPtr, inSize, compressed)) {
-                throw std::runtime_error("Compression failed for cluster " + std::to_string(i));
-            }
+            std::vector<uint8_t> compressed = compressFn(inPtr, inSize);
 
             result.push_back(std::move(compressed));
         }
@@ -137,7 +134,7 @@ namespace QaplaBitbase {
 
     }
 
-    std::tuple<std::vector<uint64_t>, CompressionType> 
+    std::tuple<std::vector<uint64_t>, uint32_t, QaplaCompress::CompressionType>
         BitbaseFile::readOffsets(const std::string& fileNameWithPath) {
         std::ifstream in(fileNameWithPath, std::ios::binary);
         if (!in) {
@@ -145,7 +142,7 @@ namespace QaplaBitbase {
         }
 
         BitbaseHeader header = BitbaseHeader::read(in);
-        const size_t offsetCount = static_cast<size_t>(header.cluster_count()) + 1;
+        const size_t offsetCount = static_cast<size_t>(header.clusterCount()) + 1;
 
         std::vector<uint64_t> offsets(offsetCount);
         in.read(reinterpret_cast<char*>(offsets.data()), offsetCount * sizeof(uint64_t));
@@ -153,14 +150,15 @@ namespace QaplaBitbase {
             throw std::runtime_error("Failed to read offset table");
         }
 
-        return { std::move(offsets), header.compression() };
+        return { std::move(offsets), header.clusterSize(), header.compression() };
     }
 
     std::vector<bbt_t> BitbaseFile::readCluster(
         const std::string& fileNameWithPath,
+		uint32_t clusterSizeBytes,
         uint32_t clusterIndex,
         const std::vector<uint64_t>& offsets,
-        const DecompressFn& decompressFn
+        const QaplaCompress::DecompressFn& decompressFn
     ) {
         if (clusterIndex + 1 >= offsets.size()) {
             throw std::out_of_range("Invalid cluster index (offsets out of bounds)");
@@ -186,10 +184,7 @@ namespace QaplaBitbase {
             throw std::runtime_error("Failed to read cluster data");
         }
 
-        std::vector<uint8_t> decompressed;
-        if (!decompressFn(compressed.data(), compressed.size(), decompressed)) {
-            throw std::runtime_error("Cluster decompression failed");
-        }
+		std::vector<uint8_t> decompressed = decompressFn(compressed.data(), compressed.size(), clusterSizeBytes);
 
         if (decompressed.size() % sizeof(bbt_t) != 0) {
             throw std::runtime_error("Invalid decompressed cluster size");
@@ -202,8 +197,9 @@ namespace QaplaBitbase {
 
     std::vector<bbt_t> BitbaseFile::readAll(
         const std::string& fileNameWithPath,
+		uint32_t clusterSizeInBytes,
         const std::vector<uint64_t>& offsets,
-        const DecompressFn& decompressFn
+        const QaplaCompress::DecompressFn& decompressFn
     ) {
         if (offsets.size() < 2) {
             throw std::runtime_error("Offset table is too short");
@@ -213,7 +209,7 @@ namespace QaplaBitbase {
         std::vector<bbt_t> result;
 
         for (size_t i = 0; i < clusterCount; ++i) {
-            std::vector<bbt_t> cluster = readCluster(fileNameWithPath, static_cast<uint32_t>(i), offsets, decompressFn);
+            std::vector<bbt_t> cluster = readCluster(fileNameWithPath, clusterSizeInBytes, static_cast<uint32_t>(i), offsets, decompressFn);
             result.insert(result.end(), cluster.begin(), cluster.end());
         }
 

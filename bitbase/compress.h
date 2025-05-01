@@ -40,8 +40,6 @@
 
 namespace QaplaCompress {
 
-	using bbt_t = uint8_t;
-
 	/**
 	 * CompressionType defines the compression algorithm used for each cluster.
 	 */
@@ -65,43 +63,5 @@ namespace QaplaCompress {
 		static CompressFn getCompressor(CompressionType type);
 		static DecompressFn getDecompressor(CompressionType type);
 	};
-
-	enum class Compression {
-		uncompresed = 0,
-		inflated = 1,
-		huffman = 2,
-		lz4 = 3,
-		miniz = 4
-	};
-
-	/**
-	 * Compressed a vector
-	 */
-	std::vector<bbt_t> compress(const std::vector<bbt_t>& in, bool verbose = false);
-
-	/**
-	 * Uncompresses a vector
-	 */
-	std::vector<bbt_t> uncompress(const std::vector<bbt_t>& in, uint64_t outSize);
-
-	/**
-	 * Compresses a vector using LZ4
-	 */
-	std::vector<bbt_t> lz4Compress(const std::vector<bbt_t>& input);
-
-	/**
-	 * Decompresses a vector using LZ4
-	 */
-	std::vector<bbt_t> lz4Uncompress(const std::vector<bbt_t>& compressed, size_t decompressedSize);
-
-	/**
-	 * Compresses a vector using miniz
-	 */
-	std::vector<bbt_t> minizCompress(const std::vector<bbt_t>& input);
-
-	/**
-	 * Decompresses a vector using miniz
-	 */
-	std::vector<bbt_t> minizUncompress(const std::vector<bbt_t>& compressed, size_t decompressedSize);
 
 }

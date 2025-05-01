@@ -26,6 +26,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include "compress.h"
 
 
 namespace QaplaBitbase {
@@ -33,22 +34,11 @@ namespace QaplaBitbase {
 	using bbt_t = uint8_t; // Type for bitbase data
 
     /**
-     * CompressionType defines the compression algorithm used for each cluster.
-     */
-    enum class CompressionType : uint32_t {
-        None = 0,
-        LZ4 = 1,
-        Miniz = 2
-    };
-    
-    /**
      * Static utility class for reading and writing Bitbase files.
      * Handles raw file format only — no caching, no semantics.
      */
     class BitbaseFile {
     public:
-        using CompressFn = std::function<bool(const uint8_t*, size_t, std::vector<uint8_t>&)>;
-        using DecompressFn = std::function<bool(const uint8_t*, size_t, std::vector<uint8_t>&)>;
 
         /**
          * Writes a bitbase file to disk.
@@ -63,22 +53,24 @@ namespace QaplaBitbase {
             const std::string& fileNameWithPath,
             const std::vector<bbt_t>& data,
             uint32_t clusterElements,
-            CompressionType compression,
-            const CompressFn& compressFn
+            QaplaCompress::CompressionType compression,
+            const QaplaCompress::CompressFn& compressFn
         );
 
         /**
          * Reads only the file header and cluster offset table.
          *
          * @param fileNameWithPath Path to the bitbase file.
+		 * @return Tuple containing offsets, cluster size, and compression type.
          */
-        static std::tuple<std::vector<uint64_t>, CompressionType>
+        static std::tuple<std::vector<uint64_t>, uint32_t, QaplaCompress::CompressionType>
             readOffsets(const std::string& fileNameWithPath);
 
         /**
          * Reads and decompresses a single cluster.
          *
          * @param fileNameWithPath Path to the bitbase file.
+         * @param clusterSizeInBytes Size of each uncompressed cluster in bytes.
          * @param clusterIndex Index of the cluster to read.
          * @param offsets Offset table (N+1 entries), as returned by readOffsets().
          * @param decompressFn Decompression function.
@@ -86,22 +78,25 @@ namespace QaplaBitbase {
          */
         static std::vector<bbt_t> readCluster(
             const std::string& fileNameWithPath,
+			uint32_t clusterSizeBytes,
             uint32_t clusterIndex,
             const std::vector<uint64_t>& offsets,
-            const DecompressFn& decompressFn
+            const QaplaCompress::DecompressFn& decompressFn
         );
 
         /**
          * Reads and decompresses the entire bitbase into a single flat vector.
          *
          * @param fileNameWithPath Path to the bitbase file.
+		 * @param clusterSizeInBytes Size of each uncompressed cluster in bytes.
          * @param decompressFn Decompression function.
          * @return Entire bitbase as uncompressed vector of bbt_t.
          */
         static std::vector<bbt_t> readAll(
             const std::string& fileNameWithPath,
+            uint32_t clusterSizeInBytes,
             const std::vector<uint64_t>& offsets,
-            const DecompressFn& decompressFn
+            const QaplaCompress::DecompressFn& decompressFn
         );
 
     private:
@@ -124,7 +119,7 @@ namespace QaplaBitbase {
              * @param cluster_size Size of uncompressed cluster in bytes.
              * @param cluster_count Number of clusters in file.
              */
-            BitbaseHeader(CompressionType compression, uint32_t cluster_size, uint32_t cluster_count) {
+            BitbaseHeader(QaplaCompress::CompressionType compression, uint32_t cluster_size, uint32_t cluster_count) {
                 words[0] = MAGIC_1;
                 words[1] = MAGIC_2;
                 words[2] = CURRENT_VERSION;
@@ -145,9 +140,11 @@ namespace QaplaBitbase {
             }
 
             uint32_t version() const { return words[2]; }
-            CompressionType compression() const { return static_cast<CompressionType>(words[3]); }
-            uint32_t cluster_size() const { return words[4]; }
-            uint32_t cluster_count() const { return words[5]; }
+            QaplaCompress::CompressionType compression() const { 
+                return static_cast<QaplaCompress::CompressionType>(words[3]); 
+            }
+            uint32_t clusterSize() const { return words[4]; }
+            uint32_t clusterCount() const { return words[5]; }
 
             void write(std::ostream& out) const {
                 out.write(reinterpret_cast<const char*>(words), sizeof(words));
@@ -166,7 +163,7 @@ namespace QaplaBitbase {
         static std::vector<std::vector<uint8_t>> compressClusters(
             const std::vector<bbt_t>& data,
             uint32_t clusterElements,
-            const CompressFn& compressFn
+            const QaplaCompress::CompressFn& compressFn
         );
 
         static void computeOffsets(
