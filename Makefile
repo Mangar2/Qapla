@@ -1,5 +1,5 @@
 CXX := clang++
-CXXFLAGS := -std=c++17 -Wno-unused-variable -Wno-unused-parameter \
+CXXFLAGS := -std=c++20 -Wno-unused-variable -Wno-unused-parameter \
     -flto -ffunction-sections -fdata-sections
 
 LDFLAGS := -flto -Wl,--gc-sections -fuse-ld=lld
