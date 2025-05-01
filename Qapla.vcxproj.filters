@@ -162,6 +162,9 @@
     <ClCompile Include="basics\piecesignature.cpp">
       <Filter>basics</Filter>
     </ClCompile>
+    <ClCompile Include="bitbase\bitbase-file.cpp">
+      <Filter>bitbase</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tests\evalpawntest.h">
@@ -493,6 +496,9 @@
     </ClInclude>
     <ClInclude Include="training\position-filter.h">
       <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\bitbase-file.h">
+      <Filter>bitbase</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1838,6 +1838,7 @@
     <ClCompile Include="basics\hashconstants.cpp" />
     <ClCompile Include="basics\piecesignature.cpp" />
     <ClCompile Include="basics\pst.cpp" />
+    <ClCompile Include="bitbase\bitbase-file.cpp" />
     <ClCompile Include="bitbase\bitbase.cpp" />
     <ClCompile Include="bitbase\bitbasegenerator.cpp" />
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
@@ -1888,6 +1889,7 @@
     <ClInclude Include="basics\hashed-lookup.h" />
     <ClInclude Include="basics\square-table.h" />
     <ClInclude Include="basics\types.h" />
+    <ClInclude Include="bitbase\bitbase-file.h" />
     <ClInclude Include="bitbase\bitbase.h" />
     <ClInclude Include="bitbase\bitbasegenerator.h" />
     <ClInclude Include="bitbase\bitbaseindex.h" />

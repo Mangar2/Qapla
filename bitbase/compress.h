@@ -34,14 +34,37 @@
  * continuation byte structure explained above.
  */
 
-#ifndef _QAPLA_COMPRESS_COMPRESS_H
-#define _QAPLA_COMPRESS_COMPRESS_H
-
 #include <cstdint>
 #include <vector>
+#include <functional>
 
 namespace QaplaCompress {
+
 	using bbt_t = uint8_t;
+
+	/**
+	 * CompressionType defines the compression algorithm used for each cluster.
+	 */
+	enum class CompressionType : uint32_t {
+		None = 0,
+		LZ4 = 1,
+		Miniz = 2
+	};
+
+	using CompressFn = std::function<std::vector<uint8_t>(
+		const uint8_t* input,
+		size_t inputSize)>;
+
+	using DecompressFn = std::function<std::vector<uint8_t>(
+		const uint8_t* input,
+		size_t inputSize,
+		size_t expectedOutputSize)>;
+
+	class Compress {
+	public:
+		static CompressFn getCompressor(CompressionType type);
+		static DecompressFn getDecompressor(CompressionType type);
+	};
 
 	enum class Compression {
 		uncompresed = 0,
@@ -59,7 +82,7 @@ namespace QaplaCompress {
 	/**
 	 * Uncompresses a vector
 	 */
-	std::vector<bbt_t> uncompress(const std::vector<bbt_t>&in, uint64_t outSize);
+	std::vector<bbt_t> uncompress(const std::vector<bbt_t>& in, uint64_t outSize);
 
 	/**
 	 * Compresses a vector using LZ4
@@ -82,6 +105,3 @@ namespace QaplaCompress {
 	std::vector<bbt_t> minizUncompress(const std::vector<bbt_t>& compressed, size_t decompressedSize);
 
 }
-
-
-#endif		// _QAPLA_COMPRESS_COMPRESS_H

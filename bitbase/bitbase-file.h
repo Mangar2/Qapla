@@ -1,0 +1,187 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2021 Volker Böhm
+ * @Overview
+ * Workpackage for a thread in bitbase generation
+ */
+
+#pragma once
+
+#include <cstdint>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <functional>
+
+
+namespace QaplaBitbase {
+
+	using bbt_t = uint8_t; // Type for bitbase data
+
+    /**
+     * CompressionType defines the compression algorithm used for each cluster.
+     */
+    enum class CompressionType : uint32_t {
+        None = 0,
+        LZ4 = 1,
+        Miniz = 2
+    };
+    
+    /**
+     * Static utility class for reading and writing Bitbase files.
+     * Handles raw file format only — no caching, no semantics.
+     */
+    class BitbaseFile {
+    public:
+        using CompressFn = std::function<bool(const uint8_t*, size_t, std::vector<uint8_t>&)>;
+        using DecompressFn = std::function<bool(const uint8_t*, size_t, std::vector<uint8_t>&)>;
+
+        /**
+         * Writes a bitbase file to disk.
+         *
+         * @param fileNameWithPath Destination file path (e.g. "kpk.bb").
+         * @param data Uncompressed bitbase data (vector of bbt_t).
+         * @param clusterElements Number of elements per cluster.
+         * @param compression Compression type identifier.
+         * @param compressFn Compression function to apply per cluster.
+         */
+        static void write(
+            const std::string& fileNameWithPath,
+            const std::vector<bbt_t>& data,
+            uint32_t clusterElements,
+            CompressionType compression,
+            const CompressFn& compressFn
+        );
+
+        /**
+         * Reads only the file header and cluster offset table.
+         *
+         * @param fileNameWithPath Path to the bitbase file.
+         */
+        static std::tuple<std::vector<uint64_t>, CompressionType>
+            readOffsets(const std::string& fileNameWithPath);
+
+        /**
+         * Reads and decompresses a single cluster.
+         *
+         * @param fileNameWithPath Path to the bitbase file.
+         * @param clusterIndex Index of the cluster to read.
+         * @param offsets Offset table (N+1 entries), as returned by readOffsets().
+         * @param decompressFn Decompression function.
+         * @return Decompressed cluster data as vector of bbt_t.
+         */
+        static std::vector<bbt_t> readCluster(
+            const std::string& fileNameWithPath,
+            uint32_t clusterIndex,
+            const std::vector<uint64_t>& offsets,
+            const DecompressFn& decompressFn
+        );
+
+        /**
+         * Reads and decompresses the entire bitbase into a single flat vector.
+         *
+         * @param fileNameWithPath Path to the bitbase file.
+         * @param decompressFn Decompression function.
+         * @return Entire bitbase as uncompressed vector of bbt_t.
+         */
+        static std::vector<bbt_t> readAll(
+            const std::string& fileNameWithPath,
+            const std::vector<uint64_t>& offsets,
+            const DecompressFn& decompressFn
+        );
+
+    private:
+        /**
+         * Compact, binary-safe bitbase file header (32 bytes).
+         * Structured as 8× uint32_t, with explicit constructor for all fields.
+         */
+        struct BitbaseHeader {
+            static constexpr size_t WordCount = 8;
+            static constexpr uint32_t MAGIC_1 = 0x4C504151; // 'Q''A''P''L'
+            static constexpr uint32_t MAGIC_2 = 0x42494241; // 'A''B''I''B'
+            static constexpr uint32_t CURRENT_VERSION = 1;
+
+            uint32_t words[WordCount];
+
+            /**
+             * Constructs a BitbaseHeader with required metadata.
+             *
+             * @param compression CompressionType as integer.
+             * @param cluster_size Size of uncompressed cluster in bytes.
+             * @param cluster_count Number of clusters in file.
+             */
+            BitbaseHeader(CompressionType compression, uint32_t cluster_size, uint32_t cluster_count) {
+                words[0] = MAGIC_1;
+                words[1] = MAGIC_2;
+                words[2] = CURRENT_VERSION;
+                words[3] = static_cast<uint32_t>(compression);
+                words[4] = cluster_size;
+                words[5] = cluster_count;
+                words[6] = 0;
+                words[7] = 0;
+            }
+
+            BitbaseHeader() {
+                // Default constructor initializes to zero
+                std::fill(std::begin(words), std::end(words), 0u);
+            }
+
+            bool is_valid() const {
+                return words[0] == MAGIC_1 && words[1] == MAGIC_2;
+            }
+
+            uint32_t version() const { return words[2]; }
+            CompressionType compression() const { return static_cast<CompressionType>(words[3]); }
+            uint32_t cluster_size() const { return words[4]; }
+            uint32_t cluster_count() const { return words[5]; }
+
+            void write(std::ostream& out) const {
+                out.write(reinterpret_cast<const char*>(words), sizeof(words));
+                if (!out) throw std::runtime_error("Failed to write bitbase header");
+            }
+
+            static BitbaseHeader read(std::istream& in) {
+                BitbaseHeader h = BitbaseHeader();
+                in.read(reinterpret_cast<char*>(h.words), sizeof(h.words));
+                if (!in) throw std::runtime_error("Failed to read bitbase header");
+                if (!h.is_valid()) throw std::runtime_error("Invalid bitbase file magic");
+                return h;
+            }
+        };
+
+        static std::vector<std::vector<uint8_t>> compressClusters(
+            const std::vector<bbt_t>& data,
+            uint32_t clusterElements,
+            const CompressFn& compressFn
+        );
+
+        static void computeOffsets(
+            const std::vector<std::vector<uint8_t>>& compressedClusters,
+            std::vector<uint64_t>& outOffsets,
+            size_t headerSize
+        );
+
+        static void writeToFile(
+            const std::string& tempFile,
+            const BitbaseHeader& header,
+            const std::vector<uint64_t>& offsets,
+            const std::vector<std::vector<uint8_t>>& compressedClusters
+        );
+    };
+
+}
+
