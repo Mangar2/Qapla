@@ -21,6 +21,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <cstdint>  // Added for uint64_t definition
 #include "interface/selectinterface.h"
 
 #ifdef USE_STOCKFISH_EVAL

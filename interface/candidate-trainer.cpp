@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a UCI - Interface
  */
@@ -463,7 +463,7 @@ void CandidateTrainer::nextStepOnOptimizer() {
     else {
         // optimizer index too high, no map to optimize
         if (optimizerIndex >= currentCandidate->getNumIndex()) {
-            cout << "No more vectors to optimize for the current candidate. Shouldn´t come here! " << std::endl;
+            cout << "No more vectors to optimize for the current candidate. Should not come here! " << std::endl;
             return;
         }
     }

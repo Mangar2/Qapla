@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements piece square table for static evaluation for the piece placement
  */
@@ -85,7 +85,7 @@ namespace QaplaBasics {
          * @brief Returns the value mapped to a square from the perspective of the given color.
          *
          * @tparam COLOR The color perspective (WHITE or BLACK).
-         * @param sq The square index (0–63, where a1 = 0, h8 = 63).
+         * @param sq The square index (0ï¿½63, where a1 = 0, h8 = 63).
          * @return The mapped value for the given square and color.
          */
         template<Piece COLOR>
@@ -108,7 +108,7 @@ namespace QaplaBasics {
 
         static constexpr int toHalfIndex(Square sq) {
             File file = File(sq);
-            int fileIndex = file < File::E ? file: file - File::E;
+            int fileIndex = static_cast<int>(file < File::E ? file: file - File::E);
             return static_cast<int>(Rank(sq)) * 4 + fileIndex;
         }
     };

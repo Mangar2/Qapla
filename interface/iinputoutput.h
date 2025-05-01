@@ -3,7 +3,7 @@
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Interface for Input/Output handling - usually to receive token from the console and to print
  * text to the console. Still the interface is independent and can be used for any input/output.
@@ -23,6 +23,8 @@
 #ifndef IINPUTOUTPUT__H
 #define IINPUTOUTPUT__H
 
+#include <cctype>
+#include <cstdint>  // Added for uint64_t definition
 #include <string>
 
 using namespace std;

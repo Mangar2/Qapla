@@ -113,9 +113,9 @@ namespace QaplaSearch {
 	private:
 		function<void()> _work;
 		condition_variable _cvWorkFinished;
-		volatile uint32_t _workerCount;
+		std::atomic<uint32_t> _workerCount;
 		mutex _mtxWork;
-		volatile bool _lastToReserve;
+		std::atomic<bool> _lastToReserve;
 	};
 
 	class WorkerThread {

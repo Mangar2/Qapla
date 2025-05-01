@@ -23,6 +23,7 @@
 #define __CHESSINTERFACE_H
 
 #include <string>
+#include <cstdint>  // Added for uint64_t definition
 #include "ichessboard.h"
 #include "iinputoutput.h"
 #include "clocksetting.h"
@@ -210,7 +211,7 @@ namespace QaplaInterface {
 			return setPositionByFen(position, _board);
 		}
 
-		bool isLegalMove(string move) {}
+		bool isLegalMove(string move) { return false; }
 
 		/**
 		 * Gets a move to the board

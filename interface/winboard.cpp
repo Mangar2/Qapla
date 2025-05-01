@@ -47,6 +47,7 @@ void Winboard::printGameResult(GameResult result) {
 	case GameResult::DRAW_BY_NOT_ENOUGHT_MATERIAL: println("1/2-1/2 {Not enough material to win}"); break;
 	case GameResult::BLACK_WINS_BY_MATE: println("0-1 {Black mates}"); break;
 	case GameResult::WHITE_WINS_BY_MATE: println("1-0 {White mates}"); break;
+	case GameResult::ILLEGAL_MOVE: /* nothing to print on winboard*/ break;
 	case GameResult::NOT_ENDED: break; // do nothing
 	}
 }
