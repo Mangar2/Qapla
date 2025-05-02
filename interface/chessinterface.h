@@ -36,6 +36,8 @@
 #include <atomic>
 #include <condition_variable>
 
+#include "../bitbase/bitbase-reader.h"
+
 using namespace std;
 
 namespace QaplaInterface {
@@ -153,6 +155,7 @@ namespace QaplaInterface {
 		void run(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 			_ioHandler = ioHandler;
 			_board = chessBoard;
+			QaplaBitbase::BitbaseReader::registerBitbaseFromHeader();
 			runLoop();
 		}
 

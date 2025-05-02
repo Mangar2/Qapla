@@ -163,8 +163,9 @@ namespace QaplaInterface {
 
         /** Generates bitbases for the given signature and dependencies. */
         virtual void generateBitbases([[maybe_unused]] std::string signature,
-                                      [[maybe_unused]] uint32_t cores = 1,
-                                      [[maybe_unused]] bool uncompressed = false,
+                                      [[maybe_unused]] uint32_t cores,
+                                      [[maybe_unused]] std::string compression,
+			                          [[maybe_unused]] bool generateCpp = false,
                                       [[maybe_unused]] uint32_t traceLevel = 0,
                                       [[maybe_unused]] uint32_t debugLevel = 0,
                                       [[maybe_unused]] uint64_t debugIndex = 64) {}

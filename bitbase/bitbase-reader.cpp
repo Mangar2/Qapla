@@ -30,7 +30,6 @@ using namespace QaplaBitbase;
 void BitbaseReader::loadBitbase() {
 	QaplaSearch::ClockManager clock;
 	clock.setStartTime();
-	registerBitbaseFromHeader("KPK", KPK, KPK_size);
 	loadBitbaseRec("K*K");
 	loadBitbaseRec("KK*");
 	loadBitbaseRec("K*K*");
@@ -41,6 +40,10 @@ void BitbaseReader::loadBitbase() {
 	loadBitbaseRec("K***K");
 	loadBitbaseRec("KK***");
 	std::cout << "info string time spent to load bitbases: " << clock.computeTimeSpentInMilliseconds() << " milliseconds " << endl;
+}
+
+void BitbaseReader::registerBitbaseFromHeader() {
+	registerBitbaseFromHeader("KPK", KPK, KPK_size);
 }
 
 bool BitbaseReader::setBitbasePath(const std::string& path) {
@@ -61,8 +64,7 @@ void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uin
 	if (_bitbases.find(sig) != _bitbases.end()) {
 		return;
 	}
-	PieceList list(pieceString);
-	BitbaseIndex index(list);
+	BitbaseIndex index(pieceString);
 	Bitbase<false> bitbase(index);
 	_bitbases[sig] = bitbase;
 	_bitbases[sig].loadFromEmbeddedData(data);
@@ -162,11 +164,15 @@ void BitbaseReader::loadBitbase(std::string pieceString) {
 	if (_bitbases.contains(sig)) {
 		return;
 	}
+	BitbaseIndex index(pieceString);
 
-	Bitbase<false> bitbase;
-	bitbase.attachFromFile(pieceString, ".btb", bitbasePath);
+	Bitbase<false> bitbase(index);
+	
+	// Bitbase is not available is a supported situation and not an error
+	if (!bitbase.attachFromFile(pieceString, ".btb", bitbasePath)) return;
+
 	auto [success, errorMessage] = bitbase.readAll();
-	if (success) {
+	if (!success) {
 		std::cout << "info string loaded bitbase " << pieceString << " " << errorMessage << std::endl;
 		return; // Failed to read – do not insert
 	}

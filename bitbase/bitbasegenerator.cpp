@@ -520,7 +520,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 /**
  * Computes a bitbase for a set of pieces described by a piece list.
  */
-void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression)
+void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
 {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
@@ -554,6 +554,10 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	cout << "c";
 	try {
 		state.storeToFile(fileName, pieceString, compression);
+		if (generateCpp)
+		{
+			state.generateCpp(pieceString);
+		}
 		printTimeSpent(clock, 0, _traceLevel == 0);
 		printStatistic(state, 1);
 		cout << endl;
@@ -569,7 +573,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
  * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
  * so that any bitbase KQKP can get to is available
  */
-void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, QaplaCompress::CompressionType compression)
+void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
 {
 	if (pieceList.getNumberOfPieces() <= 2)
 		return;
@@ -586,16 +590,16 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, Qapla
 			for (Piece piece = QUEEN; piece >= KNIGHT; piece -= 2)
 			{
 				newPieceList.promotePawn(pieceNo, piece);
-				computeBitbaseRec(newPieceList, false, compression);
+				computeBitbaseRec(newPieceList, false, compression, generateCpp);
 				newPieceList = pieceList;
 			}
 		}
 		newPieceList.removePiece(pieceNo);
-		computeBitbaseRec(newPieceList, false, compression);
+		computeBitbaseRec(newPieceList, false, compression, generateCpp);
 	}
 
 	if (first || !BitbaseReader::isBitbaseAvailable(pieceString))
 	{
-		computeBitbase(pieceList, first, compression);
+		computeBitbase(pieceList, first, compression, generateCpp);
 	}
 }

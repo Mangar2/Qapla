@@ -39,11 +39,17 @@ namespace QaplaBitbase {
      */
     class BitbaseFile {
     public:
-
+		struct FileInfo {
+			std::vector<uint64_t> offsets;
+			uint32_t clusterSize;
+			QaplaCompress::CompressionType compression;
+			uint64_t sizeInBits;
+		};
         /**
          * Writes a bitbase file to disk.
          *
          * @param fileNameWithPath Destination file path (e.g. "kpk.bb").
+		 * @param sizeInBits Total number of bits in the bitbase.
          * @param data Uncompressed bitbase data (vector of bbt_t).
          * @param clusterElements Number of elements per cluster.
          * @param compression Compression type identifier.
@@ -51,6 +57,7 @@ namespace QaplaBitbase {
          */
         static void write(
             const std::string& fileNameWithPath,
+			uint64_t sizeInBits,
             const std::vector<bbt_t>& data,
             uint32_t clusterElements,
             QaplaCompress::CompressionType compression,
@@ -60,11 +67,10 @@ namespace QaplaBitbase {
         /**
          * Reads only the file header and cluster offset table.
          *
-         * @param fileNameWithPath Path to the bitbase file.
+         * @param filePath Path to the bitbase file.
 		 * @return Tuple containing offsets, cluster size, and compression type.
          */
-        static std::tuple<std::vector<uint64_t>, uint32_t, QaplaCompress::CompressionType>
-            readOffsets(const std::string& fileNameWithPath);
+		static std::optional<BitbaseFile::FileInfo> readFileInfo(const std::string& filePath);
 
         /**
          * Reads and decompresses a single cluster.
@@ -77,7 +83,8 @@ namespace QaplaBitbase {
          * @return Decompressed cluster data as vector of bbt_t.
          */
         static std::vector<bbt_t> readCluster(
-            const std::string& fileNameWithPath,
+            const std::string& filePath,
+			uint64_t sizeInBits,
 			uint32_t clusterSizeBytes,
             uint32_t clusterIndex,
             const std::vector<uint64_t>& offsets,
@@ -94,6 +101,7 @@ namespace QaplaBitbase {
          */
         static std::vector<bbt_t> readAll(
             const std::string& fileNameWithPath,
+			uint64_t sizeInBits,
             uint32_t clusterSizeInBytes,
             const std::vector<uint64_t>& offsets,
             const QaplaCompress::DecompressFn& decompressFn
@@ -105,7 +113,7 @@ namespace QaplaBitbase {
          * Structured as 8× uint32_t, with explicit constructor for all fields.
          */
         struct BitbaseHeader {
-            static constexpr size_t WordCount = 8;
+            static constexpr size_t WordCount = 10;
             static constexpr uint32_t MAGIC_1 = 0x4C504151; // 'Q''A''P''L'
             static constexpr uint32_t MAGIC_2 = 0x42494241; // 'A''B''I''B'
             static constexpr uint32_t CURRENT_VERSION = 1;
@@ -118,20 +126,24 @@ namespace QaplaBitbase {
              * @param compression CompressionType as integer.
              * @param cluster_size Size of uncompressed cluster in bytes.
              * @param cluster_count Number of clusters in file.
+             * @param totalBits Total number of uncompressed bits in the entire bitbase.
              */
-            BitbaseHeader(QaplaCompress::CompressionType compression, uint32_t cluster_size, uint32_t cluster_count) {
+            BitbaseHeader(QaplaCompress::CompressionType compression, uint32_t cluster_size, uint32_t cluster_count, uint64_t sizeInBits) {
                 words[0] = MAGIC_1;
                 words[1] = MAGIC_2;
                 words[2] = CURRENT_VERSION;
                 words[3] = static_cast<uint32_t>(compression);
                 words[4] = cluster_size;
                 words[5] = cluster_count;
-                words[6] = 0;
-                words[7] = 0;
+
+                // Split sizeInBits into two 32-bit words (little-endian order)
+                words[6] = static_cast<uint32_t>(sizeInBits & 0xFFFFFFFF);
+                words[7] = static_cast<uint32_t>((sizeInBits >> 32) & 0xFFFFFFFF);
+                words[8] = 0;
+                words[9] = 0;
             }
 
             BitbaseHeader() {
-                // Default constructor initializes to zero
                 std::fill(std::begin(words), std::end(words), 0u);
             }
 
@@ -140,11 +152,15 @@ namespace QaplaBitbase {
             }
 
             uint32_t version() const { return words[2]; }
-            QaplaCompress::CompressionType compression() const { 
-                return static_cast<QaplaCompress::CompressionType>(words[3]); 
+            QaplaCompress::CompressionType compression() const {
+                return static_cast<QaplaCompress::CompressionType>(words[3]);
             }
             uint32_t clusterSize() const { return words[4]; }
             uint32_t clusterCount() const { return words[5]; }
+
+            uint64_t sizeInBits() const {
+                return (static_cast<uint64_t>(words[7]) << 32) | static_cast<uint64_t>(words[6]);
+            }
 
             void write(std::ostream& out) const {
                 out.write(reinterpret_cast<const char*>(words), sizeof(words));
@@ -155,7 +171,7 @@ namespace QaplaBitbase {
                 BitbaseHeader h = BitbaseHeader();
                 in.read(reinterpret_cast<char*>(h.words), sizeof(h.words));
                 if (!in) throw std::runtime_error("Failed to read bitbase header");
-                if (!h.is_valid()) throw std::runtime_error("Invalid bitbase file magic");
+                if (!h.is_valid()) throw std::runtime_error("Invalid bitbase file, magic signature not found");
                 return h;
             }
         };

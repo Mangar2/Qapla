@@ -37,10 +37,10 @@ using namespace std;
 namespace QaplaBitbase {
 
 	template<bool Clustered>
-    Bitbase<Clustered>::Bitbase() : _loaded(false), _sizeInBit(0) {}
+    Bitbase<Clustered>::Bitbase() : _loaded(false), _sizeInBits(0) {}
 
     template<bool Clustered>
-    Bitbase<Clustered>::Bitbase(uint64_t sizeInBit) : _loaded(false), _sizeInBit(sizeInBit) {
+    Bitbase<Clustered>::Bitbase(uint64_t sizeInBit) : _loaded(false), _sizeInBits(sizeInBit) {
     }
 
     template<bool Clustered>
@@ -55,7 +55,7 @@ namespace QaplaBitbase {
 
     template<bool Clustered>
     void Bitbase<Clustered>::setBit(uint64_t index) {
-        if (index >= _sizeInBit) return;
+        if (index >= _sizeInBits) return;
         if constexpr (Clustered) {
             // todo
         } else {
@@ -65,7 +65,7 @@ namespace QaplaBitbase {
 
     template<bool Clustered>
     void Bitbase<Clustered>::clearBit(uint64_t index) {
-        if (index >= _sizeInBit) return;
+        if (index >= _sizeInBits) return;
 
         if constexpr (Clustered) {
             // TODO: implement cluster-aware clearBit
@@ -77,11 +77,25 @@ namespace QaplaBitbase {
 
     template<bool Clustered>
     bool Bitbase<Clustered>::getBit(uint64_t index) const {
-        if (index >= _sizeInBit) return false;
+        if (index >= _sizeInBits) return false;
 
         if constexpr (Clustered) {
-            // TODO: implement cluster-aware getBit (with optional fallback)
-            return false;
+            const uint32_t bitsPerCluster = _clusterSizeBytes * 8;
+            const uint32_t clusterIndex = static_cast<uint32_t>(index / bitsPerCluster);
+            const uint32_t bitInCluster = static_cast<uint32_t>(index % bitsPerCluster);
+
+            auto cluster = BitbaseFile::readCluster(
+                _filePath.string(),
+                _sizeInBits,
+                _clusterSizeBytes,
+                clusterIndex,
+                _offsets,
+                QaplaCompress::Compress::getDecompressor(_compression)
+            );
+
+            const bbt_t word = cluster[bitInCluster / BITS_IN_ELEMENT];
+            const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
+            return (word >> bit) & 1;
         }
         else {
             return (_bitbase[index / BITS_IN_ELEMENT] & (bbt_t(1) << (index % BITS_IN_ELEMENT))) != 0;
@@ -90,14 +104,14 @@ namespace QaplaBitbase {
 
     template<bool Clustered>
     uint64_t Bitbase<Clustered>::getSizeInBit() const {
-        return _sizeInBit;
+        return _sizeInBits;
     }
 
     template<bool Clustered>
     std::string Bitbase<Clustered>::getStatistic() const {
         uint64_t win = 0;
         uint64_t draw = 0;
-        for (uint64_t index = 0; index < _sizeInBit; ++index) {
+        for (uint64_t index = 0; index < _sizeInBits; ++index) {
             if (getBit(index)) win++; else draw++;
         }
         return " win: " + to_string(win) + " draw, loss or error: " + to_string(draw);
@@ -115,11 +129,14 @@ namespace QaplaBitbase {
 
             BitbaseFile::write(
                 fileName,
+				_sizeInBits,
                 _bitbase,
                 clusterElements,
                 compression,
                 QaplaCompress::Compress::getCompressor(compression)
             );
+
+			verifyWrittenFile();
         }
         catch (const std::exception& ex) {
             std::cerr << "Error: Failed to write uncompressed bitbase file '" << fileName
@@ -128,25 +145,60 @@ namespace QaplaBitbase {
     }
 
     template<bool Clustered>
-    void Bitbase<Clustered>::loadHeader(const std::filesystem::path& path) {
-        auto [offsets, clusterSizeBytes, compression] = BitbaseFile::readOffsets(path.string());
+    void Bitbase<Clustered>::verifyWrittenFile() {
+        if constexpr (Clustered) {
+			return;
+        }
 
-        _offsets = std::move(offsets);
-        _clusterSizeBytes = clusterSizeBytes;
-        _compression = compression;
+        Bitbase<Clustered> loaded(_sizeInBits);
+        loaded._filePath = _filePath;
+        if (!loaded.loadHeader(_filePath)) {
+			throw std::runtime_error("Error: Failed to open file to compare '" + _filePath.string() + "' ");
+        }
+
+        auto [success, errorMessage] = loaded.readAll();
+        if (!success) {
+			throw std::runtime_error("Error: Failed to read bitbase file '" + _filePath.string() + "' " + errorMessage);
+		}
+
+        if (loaded.getSizeInBit() != _sizeInBits) {
+			throw std::runtime_error("Error: Size mismatch between original and loaded bitbase.");
+        }
+
+        if (loaded._bitbase != _bitbase) {
+			throw std::runtime_error("Error: Data mismatch between original and loaded bitbase.");
+        }
+
+    }
+
+
+    template<bool Clustered>
+    bool Bitbase<Clustered>::loadHeader(const std::filesystem::path& path) {
+        auto fileInfoOpt = BitbaseFile::readFileInfo(path.string());
+        if (!fileInfoOpt) return false;
+
+		const auto& fileInfo = *fileInfoOpt;
+
+        _offsets = std::move(fileInfo.offsets);
+        _clusterSizeBytes = fileInfo.clusterSize;
+        _compression = fileInfo.compression;
+        if (fileInfo.sizeInBits != _sizeInBits) {
+            throw std::runtime_error("Error: Size mismatch between file and bitbase.");
+        }
+        return true;
     }
 
     template<bool Clustered>
-    void Bitbase<Clustered>::attachFromFile(std::string pieceString, std::string extension, std::filesystem::path path) {
-        _filePath = path / (pieceString + extension);
-        loadHeader(_filePath);
+    bool Bitbase<Clustered>::attachFromFile(std::string pieceString, std::string extension, std::filesystem::path path) {
+        setFilename(pieceString, extension, path);
+        return loadHeader(_filePath);
     }
 
     template<bool Clustered>
     std::tuple<bool, std::string> Bitbase<Clustered>::readAll() {
         try {
             const auto decompressFn = QaplaCompress::Compress::getDecompressor(_compression);
-            std::vector<bbt_t> data = BitbaseFile::readAll(_filePath.string(), _clusterSizeBytes, _offsets, decompressFn);
+            std::vector<bbt_t> data = BitbaseFile::readAll(_filePath.string(), _sizeInBits, _clusterSizeBytes, _offsets, decompressFn);
 
             if constexpr (Clustered) {
                 // TODO: Clustered-Ladepfad implementieren
@@ -166,7 +218,7 @@ namespace QaplaBitbase {
     template<bool Clustered>
     void Bitbase<Clustered>::getAllIndexes(const Bitbase& andNot, vector<uint64_t>& indexes) const {
 		if (Clustered) throw std::runtime_error("Clustered bitbase does not support getAllIndexes");
-        for (uint64_t index = 0; index < _sizeInBit; index += BITS_IN_ELEMENT) {
+        for (uint64_t index = 0; index < _sizeInBits; index += BITS_IN_ELEMENT) {
             uint64_t bbIndex = index / BITS_IN_ELEMENT;
             bbt_t value = _bitbase[bbIndex] & ~andNot._bitbase[bbIndex];
             for (uint64_t sub = 0; value; ++sub, value >>= 1) {
@@ -261,7 +313,7 @@ namespace QaplaBitbase {
         _loaded = true;
 
         if (verbose) {
-            cout << "Bitbase loaded from embedded data, sizeInBit = " << _sizeInBit << endl;
+            cout << "Bitbase loaded from embedded data, sizeInBit = " << _sizeInBits << endl;
         }
     }
 
@@ -269,7 +321,7 @@ namespace QaplaBitbase {
     void Bitbase<Clustered>::Bitbase::print() const {
         std::cout << "Bitbase Information:\n";
         std::cout << "  Loaded: " << std::boolalpha << _loaded << '\n';
-        std::cout << "  Size in bits: " << _sizeInBit << '\n';
+        std::cout << "  Size in bits: " << _sizeInBits << '\n';
 
         const uint64_t expectedSize = getSize();
         std::cout << "  Expected memory size (bytes): " << expectedSize << '\n';

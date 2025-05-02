@@ -83,6 +83,13 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Creates a bitbase index and sets the pieces from a piece string
+		 * @param pieceString string of pieces to be used in the bitbase index
+		 */
+		explicit BitbaseIndex(const std::string& pieceString) :BitbaseIndex(PieceList(pieceString)) {
+		}
+
+		/**
 		 * Sets the bitbase index from a piece List
 		 */
 		void set(const PieceList& pieceList, bool wtm);

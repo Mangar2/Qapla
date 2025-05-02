@@ -19,8 +19,7 @@
  * State of the generation for a single piece combination
  */
 
-#ifndef __GENERATIONSTATE_H
-#define __GENERATIONSTATE_H
+#pragma once
 
 #include <mutex>
 #include <atomic>
@@ -42,9 +41,9 @@ namespace QaplaBitbase {
 		{
 			BitbaseIndex bitbaseIndexType(pieceList);
 			_sizeInBit = bitbaseIndexType.getSizeInBit();
-			_wonPositions.setSize(_sizeInBit);
-			_computedPositions.setSize(_sizeInBit);
-			_candidates.setSize(_sizeInBit);
+			_wonPositions.resize(_sizeInBit);
+			_computedPositions.resize(_sizeInBit);
+			_candidates.resize(_sizeInBit);
 			_pieceList = pieceList;
 			_illegal = 0;
 			_loss = 0;
@@ -195,8 +194,12 @@ namespace QaplaBitbase {
 		 * Stores the result (bitbase with winning positions) to a file
 		 */
 		void storeToFile(string fileName, string signature, QaplaCompress::CompressionType compression) {
-			_wonPositions.attachFromFile(signature, ".btb");
+			_wonPositions.setFilename(signature, ".btb");
 			_wonPositions.storeToFile(fileName, compression);
+		}
+
+		void generateCpp(string signature) {
+			_wonPositions.writeAsCppFile(signature, signature + ".h");
 		}
 
 		void print() {
@@ -231,5 +234,3 @@ namespace QaplaBitbase {
 	};
 
 }
-
-#endif // __GENERATIONSTATE_H

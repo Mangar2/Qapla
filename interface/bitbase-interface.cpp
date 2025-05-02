@@ -32,7 +32,7 @@ using namespace QaplaInterface;
 void BitbaseInterface::generateBitbases() {
 	string piecesString = getNextTokenBlocking(true);
 	if (piecesString == "\r" || piecesString == "\n") {
-		println("usage bitgenerate pieces [cores n] [path p] [uncompressed] [trace n] [debug n] [index n]");
+		println("usage bitgenerate pieces [cores n] [path p] [compression c] [cpp] [trace n] [debug n] [index n]");
 		return;
 	}
 	string token = getNextTokenBlocking(true);
@@ -40,7 +40,8 @@ void BitbaseInterface::generateBitbases() {
 	uint32_t traceLevel = 1;
 	uint32_t debugLevel = 0;
 	uint64_t debugIndex = -1;
-	bool uncompressed = false;
+	std::string compression = "miniz";
+	bool generateCpp = false;
 	while (token != "\n" && token != "\r") {
 		if (token == "cores") {
 			getNextTokenBlocking(true);
@@ -49,8 +50,8 @@ void BitbaseInterface::generateBitbases() {
 		else if (token == "path") {
 			getBoard()->setOption("qaplaBitbasePathNL", getNextTokenBlocking(true));
 		}
-		else if (token == "uncompressed" || token == "uc") {
-			uncompressed = true;
+		else if (token == "compression" || token == "comp") {
+			compression = getNextTokenBlocking(true);
 		}
 		else if (token == "trace") {
 			getNextTokenBlocking(true);
@@ -64,12 +65,15 @@ void BitbaseInterface::generateBitbases() {
 			getNextTokenBlocking(true);
 			debugIndex = getCurrentTokenAsUnsignedInt();
 		}
+		else if (token == "cpp") {
+			generateCpp = true;
+		}
 		else {
 			break;
 		}
 		token = getNextTokenBlocking(true);
 	}
-	getBoard()->generateBitbases(piecesString, cores, uncompressed, traceLevel, debugLevel, debugIndex);
+	getBoard()->generateBitbases(piecesString, cores, compression, generateCpp, traceLevel, debugLevel, debugIndex);
 }
 
 void BitbaseInterface::verifyBitbases() {

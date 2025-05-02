@@ -60,6 +60,7 @@ namespace QaplaBitbase {
 
         /** Loads all relevant bitbases. */
         static void loadBitbase();
+        static void registerBitbaseFromHeader();
 
         /**
          * Registers a bitbase using embedded header data.
