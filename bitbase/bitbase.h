@@ -26,22 +26,22 @@
 #include <cstdint>
 #include <ostream>
 #include <filesystem>
+#include "bitbase-file.h"
+#include "compress.h"
 
 namespace QaplaBitbase {
-
-    using bbt_t = uint8_t;
 
     /**
      * @class Bitbase
      * @brief Stores and manages bit-level data for chess endgame databases.
      */
+    template<bool Clustered>
     class Bitbase {
     public:
         /**
          * @brief Constructs an empty Bitbase.
-         * @param loaded Whether the Bitbase is initially considered loaded.
          */
-        explicit Bitbase(bool loaded = false);
+        explicit Bitbase();
 
         /**
          * @brief Constructs a Bitbase with a given size in bits.
@@ -56,10 +56,23 @@ namespace QaplaBitbase {
         Bitbase(const class BitbaseIndex& index);
 
         /**
+         * @brief Attaches the Bitbase to a file and loads its header metadata.
+         *
+         * @param pieceString Identifier string for the bitbase (e.g. "KPK").
+         * @param extension File extension (default: ".bb").
+         * @param path Directory path to the bitbase file (default: current directory).
+         */
+        void attachFromFile(std::string pieceString,
+            std::string extension = ".bb",
+            std::filesystem::path path = "./");
+
+        /**
          * @brief Sets the number of bits in the bitbase.
          * @param sizeInBit New size in bits.
          */
-        void setSize(uint64_t sizeInBit);
+        void setSize(uint64_t sizeInBit) {
+            _sizeInBit = sizeInBit;
+        }
 
         /**
          * @brief Clears all bits in the bitbase (sets to 0).
@@ -92,10 +105,12 @@ namespace QaplaBitbase {
         uint64_t getSizeInBit() const;
 
 		/**
-		 * @brief Gets the size of the bitbase (internal vector structure) in bytes.
-		 * @return Size in bytes.
+		 * @brief Gets the size of the bitbase (internal vector structure) in Elements.
+		 * @return Size in Elements.
 		 */
-        uint64_t getSize() const;
+        uint64_t getSize() const {
+            return (_sizeInBit + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
+        }
 
         /**
          * @brief Returns a string describing number of won and non-won positions.
@@ -106,33 +121,23 @@ namespace QaplaBitbase {
         /**
          * @brief Saves the bitbase uncompressed to file.
          * @param fileName Output file path.
+		 * @param compression Compression type.
          */
-        void storeUncompressed(const std::string& fileName);
+        void storeToFile(const std::string& fileName, QaplaCompress::CompressionType compression);
 
         /**
-         * @brief Saves the bitbase compressed to file, with optional C++ export.
-         * @param fileName File path to save binary.
-         * @param signature Optional C++ array name to generate header.
-         * @param test Whether to verify compression integrity.
-         * @param verbose Enable output.
-         */
-        void storeToFile(std::string fileName, std::string signature, bool first, bool test = false, bool verbose = false);
-
-        /**
-         * @brief Loads a bitbase from disk based on a piece string.
-         * @param pieceString Piece string identifying the position set.
-         * @param extension File extension to use.
-         * @param path Directory path.
-         * @param verbose Enable output.
+         * @brief Loads a bitbase from disk
          * @return True on success.
          */
-        bool readFromFile(std::string pieceString, std::string extension = ".btb", std::filesystem::path path = "./", bool verbose = true);
+        std::tuple<bool, std::string> readAll();
 
         /**
          * @brief Checks if bitbase data has been successfully loaded.
          * @return True if loaded.
          */
-        bool isLoaded() const;
+        bool isLoaded() const {
+            return _loaded;
+        }
 
         /**
          * @brief Returns all indexes where current bitbase is 1 and the given is 0.
@@ -154,16 +159,14 @@ namespace QaplaBitbase {
          * @param varName Name of the array.
          * @param filename Output header file path.
          */
-        void writeCompressedVectorAsCppFile(const std::vector<uint8_t>& data, const std::string& varName, const std::string& filename);
+        void writeAsCppFile(const std::string& varName, const std::string& filename);
 
         /**
          * @brief Loads a compressed bitbase from a compiled-in uint32_t array.
          * @param data32 Input data.
-         * @param byteSize Total size in bytes.
-         * @param sizeInBit Original size in bits.
          * @param verbose Enable output.
          */
-        void loadFromEmbeddedData(const uint32_t* data32, uint32_t byteSize, uint64_t sizeInBit, bool verbose = false);
+        void loadFromEmbeddedData(const uint32_t* data32, bool verbose = false);
 
         /**
          * @brief Prints debug information about the current bitbase.
@@ -172,16 +175,21 @@ namespace QaplaBitbase {
 
 
     private:
-        bool readFromFile(std::filesystem::path fileName, size_t sizeInBit, bool verbose);
-        uint32_t computeVectorSize();
+
+        void loadHeader(const std::filesystem::path& path);
+
+        static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; // 16 KiB
 
         bool _loaded;
+        std::filesystem::path _filePath;
         static const uint64_t BITS_IN_ELEMENT = sizeof(bbt_t) * 8;
         std::vector<bbt_t> _bitbase;
         uint64_t _sizeInBit;
-    };
 
-    std::ostream& operator<<(std::ostream& stream, const Bitbase& bitBase);
+        std::vector<uint64_t> _offsets;
+        uint32_t _clusterSizeBytes = DEFAULT_CLUSTER_SIZE_IN_BYTES;
+        QaplaCompress::CompressionType _compression;
+    };
 
 } // namespace QaplaBitbase
 

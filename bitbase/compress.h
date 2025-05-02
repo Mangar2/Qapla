@@ -34,6 +34,8 @@
  * continuation byte structure explained above.
  */
 
+#pragma once
+
 #include <cstdint>
 #include <vector>
 #include <functional>

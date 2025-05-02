@@ -26,6 +26,7 @@
 #include <atomic>
 #include "bitbase.h"
 #include "bitbaseindex.h"
+#include "compress.h"
 
 namespace QaplaBitbase {
 
@@ -89,7 +90,7 @@ namespace QaplaBitbase {
 		/**
 		 * Retrieves the won positions bitbase
 		 */
-		const Bitbase& getWonPositions() const { return _wonPositions; }
+		const Bitbase<false>& getWonPositions() const { return _wonPositions; }
 
 		/**
 		 * Sets a list of candidates 
@@ -193,13 +194,9 @@ namespace QaplaBitbase {
 		/**
 		 * Stores the result (bitbase with winning positions) to a file
 		 */
-		void storeToFile(string fileName, string signature, bool uncompressed, bool first, bool test = false, bool verbose = false) { 
-			if (uncompressed) {
-				_wonPositions.storeUncompressed(fileName);
-			}
-			else {
-				_wonPositions.storeToFile(fileName, signature, first, test, verbose);
-			}
+		void storeToFile(string fileName, string signature, QaplaCompress::CompressionType compression) {
+			_wonPositions.attachFromFile(signature, ".btb");
+			_wonPositions.storeToFile(fileName, compression);
 		}
 
 		void print() {
@@ -225,9 +222,9 @@ namespace QaplaBitbase {
 		std::atomic<uint64_t> _draw;
 		std::atomic<uint64_t>  _won;
 		std::atomic<uint64_t>  _hasCandidates;
-		Bitbase _wonPositions;
-		Bitbase _computedPositions;
-		Bitbase _candidates;
+		Bitbase<false> _wonPositions;
+		Bitbase<false> _computedPositions;
+		Bitbase<false> _candidates;
 		PieceList _pieceList;
 		mutex _mtxUpdate;
 		bool _updateRunning;

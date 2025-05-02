@@ -23,7 +23,6 @@
 
 #include "boardaccess.h"
 #include "KPK.h"
-#include "KRKP.h"
 #include "bitbase-reader.h"
 
 using namespace QaplaBitbase;
@@ -64,9 +63,9 @@ void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uin
 	}
 	PieceList list(pieceString);
 	BitbaseIndex index(list);
-	Bitbase bitbase;
+	Bitbase<false> bitbase(index);
 	_bitbases[sig] = bitbase;
-	_bitbases[sig].loadFromEmbeddedData(data, sizeInBytes, index.getSizeInBit());
+	_bitbases[sig].loadFromEmbeddedData(data);
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
 }
 
@@ -105,7 +104,7 @@ Result BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
 		return Result::DrawOrLoss;
 	}
 
-	const Bitbase* bitbase = getBitbase(signature);
+	const Bitbase<false>* bitbase = getBitbase(signature);
 	if (bitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
 		return bitbase->getBit(index) ? Result::Win : Result::DrawOrLoss;
@@ -118,7 +117,7 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 
 	// A bitbase contains winning information for white only. White wins or does not win.
 	// We can use the same bitbase to see, if black will win by switching the side. (second case).
-	const Bitbase* whiteBitbase = getBitbase(signature);
+	const Bitbase<false>* whiteBitbase = getBitbase(signature);
 	if (whiteBitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
 		// Check if white wins
@@ -132,7 +131,7 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 
 	// Now switching the side to test, if black may win
 	signature.changeSide();
-	const Bitbase* blackBitbase = getBitbase(signature);
+	const Bitbase<false>* blackBitbase = getBitbase(signature);
 	if (blackBitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<1>(position);
 		if (blackBitbase->getBit(index)) {
@@ -164,8 +163,11 @@ void BitbaseReader::loadBitbase(std::string pieceString) {
 		return;
 	}
 
-	Bitbase bitbase;
-	if (!bitbase.readFromFile(pieceString, ".btb", bitbasePath)) {
+	Bitbase<false> bitbase;
+	bitbase.attachFromFile(pieceString, ".btb", bitbasePath);
+	auto [success, errorMessage] = bitbase.readAll();
+	if (success) {
+		std::cout << "info string loaded bitbase " << pieceString << " " << errorMessage << std::endl;
 		return; // Failed to read – do not insert
 	}
 
@@ -180,14 +182,14 @@ bool BitbaseReader::isBitbaseAvailable(std::string pieceString) {
 	return (it != _bitbases.end() && it->second.isLoaded());
 }
 
-void BitbaseReader::setBitbase(std::string pieceString, const Bitbase& bitBase) {
+void BitbaseReader::setBitbase(std::string pieceString, const Bitbase<false>& bitBase) {
 	PieceSignature signature;
 	signature.set(pieceString.c_str());
 	_bitbases[signature.getPiecesSignature()] = bitBase;
 }
 
-const Bitbase* BitbaseReader::getBitbase(PieceSignature signature) {
-	Bitbase* bitbase = 0;
+const Bitbase<false>* BitbaseReader::getBitbase(PieceSignature signature) {
+	Bitbase<false>* bitbase = 0;
 	auto it = _bitbases.find(signature.getPiecesSignature());
 	if (it != _bitbases.end() && it->second.isLoaded()) {
 		bitbase = &it->second;

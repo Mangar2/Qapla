@@ -122,7 +122,7 @@ namespace QaplaBitbase {
          * @param pieceString Piece configuration string.
          * @param bitBase Bitbase instance to set.
          */
-        static void setBitbase(std::string pieceString, const Bitbase& bitBase);
+        static void setBitbase(std::string pieceString, const Bitbase<false>& bitBase);
 
     private:
 
@@ -131,10 +131,10 @@ namespace QaplaBitbase {
          * @param signature Signature of piece configuration.
          * @return Pointer to Bitbase or nullptr if unavailable.
          */
-        static const Bitbase* getBitbase(PieceSignature signature);
+        static const Bitbase<false>* getBitbase(PieceSignature signature);
 
         BitbaseReader();
-        static inline std::map<pieceSignature_t, Bitbase> _bitbases;
+        static inline std::map<pieceSignature_t, Bitbase<false>> _bitbases;
         static inline std::filesystem::path bitbasePath;
     };
 

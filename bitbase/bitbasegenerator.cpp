@@ -25,6 +25,7 @@
 #include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
 #include "../search/moveprovider.h"
+#include "bitbase.h"
 #include "bitbaseindex.h"
 #include "generationstate.h"
 #include "bitbase-reader.h"
@@ -39,7 +40,7 @@ using namespace QaplaBitbase;
  * Computes a position value by probing all moves and lookup the result in this bitmap
  * Captures are excluded, they have been tested in the initial search.
  */
-bool BitbaseGenerator::computeValue(MoveGenerator &position, const Bitbase &bitbase, bool verbose)
+bool BitbaseGenerator::computeValue(MoveGenerator &position, const Bitbase<false> &bitbase, bool verbose)
 {
 	MoveList moveList;
 	Move move;
@@ -103,38 +104,6 @@ uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &positi
 	}
 
 	return result;
-}
-
-/**
- * Prints the difference of two bitbases
- */
-void BitbaseGenerator::compareBitbases(string pieceString, Bitbase &newBitbase, Bitbase &oldBitbase)
-{
-	MoveGenerator position;
-	PieceList pieceList(pieceString);
-	uint64_t sizeInBit = newBitbase.getSizeInBit();
-	uint64_t differences = 0;
-	for (uint64_t index = 0; index < sizeInBit; index++)
-	{
-		bool newResult = newBitbase.getBit(index);
-		bool oldResult = oldBitbase.getBit(index);
-		if (newResult != oldResult)
-		{
-			ReverseIndex reverseIndex(index, pieceList);
-			addPiecesToPosition(position, reverseIndex, pieceList);
-			differences++;
-			if (differences < 10)
-			{
-				printf("new: %s, old: %s\n", newResult ? "won" : "not won", oldResult ? "won" : "not won");
-				printDebugInfo(position, index);
-			}
-			position.clear();
-		}
-	}
-	if (differences > 0 || _traceLevel > 0)
-	{
-		cout << "Compare for " << pieceString << " amount of differences: " << differences << endl;
-	}
 }
 
 /**
@@ -551,7 +520,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 /**
  * Computes a bitbase for a set of pieces described by a piece list.
  */
-void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first)
+void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression)
 {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
@@ -584,7 +553,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first)
 	string fileName = pieceString + string(".btb");
 	cout << "c";
 	try {
-		state.storeToFile(fileName, pieceString, _uncompressed, first, _debugLevel > 1, _traceLevel > 1);
+		state.storeToFile(fileName, pieceString, compression);
 		printTimeSpent(clock, 0, _traceLevel == 0);
 		printStatistic(state, 1);
 		cout << endl;
@@ -600,7 +569,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first)
  * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
  * so that any bitbase KQKP can get to is available
  */
-void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first)
+void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, QaplaCompress::CompressionType compression)
 {
 	if (pieceList.getNumberOfPieces() <= 2)
 		return;
@@ -608,10 +577,6 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first)
 	if (!first && !BitbaseReader::isBitbaseAvailable(pieceString))
 	{
 		BitbaseReader::loadBitbase(pieceString);
-		if (_debugLevel > 1)
-		{
-			compareFiles(pieceString);
-		}
 	}
 	for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++)
 	{
@@ -621,25 +586,16 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first)
 			for (Piece piece = QUEEN; piece >= KNIGHT; piece -= 2)
 			{
 				newPieceList.promotePawn(pieceNo, piece);
-				computeBitbaseRec(newPieceList, false);
+				computeBitbaseRec(newPieceList, false, compression);
 				newPieceList = pieceList;
 			}
 		}
 		newPieceList.removePiece(pieceNo);
-		computeBitbaseRec(newPieceList, false);
+		computeBitbaseRec(newPieceList, false, compression);
 	}
 
 	if (first || !BitbaseReader::isBitbaseAvailable(pieceString))
 	{
-		computeBitbase(pieceList, first);
-		if (_debugLevel > 1)
-		{
-			compareFiles(pieceString);
-		}
-	}
-
-	if (first && DO_DEBUG)
-	{
-		compareFiles(pieceString);
+		computeBitbase(pieceList, first, compression);
 	}
 }
