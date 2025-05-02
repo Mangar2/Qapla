@@ -578,10 +578,11 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, Qapla
 	if (pieceList.getNumberOfPieces() <= 2)
 		return;
 	string pieceString = pieceList.getPieceString();
-	if (!first && !BitbaseReader::isBitbaseAvailable(pieceString))
-	{
-		BitbaseReader::loadBitbase(pieceString);
-	}
+	if (pieceString.substr(0, 2) == "KK") return;
+	if (!first && BitbaseReader::isBitbaseAvailable(pieceString)) return;
+	if (!first) std::cout << "Loading bitbase " << pieceString << endl;
+	BitbaseReader::loadBitbase(pieceString);
+
 	for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++)
 	{
 		PieceList newPieceList(pieceList);
