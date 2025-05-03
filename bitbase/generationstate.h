@@ -89,7 +89,8 @@ namespace QaplaBitbase {
 		/**
 		 * Retrieves the won positions bitbase
 		 */
-		const Bitbase<false>& getWonPositions() const { return _wonPositions; }
+		const Bitbase& getWonPositions() const { return _wonPositions; }
+		Bitbase& getWonPositions() { return _wonPositions; }
 
 		/**
 		 * Sets a list of candidates 
@@ -225,9 +226,9 @@ namespace QaplaBitbase {
 		std::atomic<uint64_t> _draw;
 		std::atomic<uint64_t>  _won;
 		std::atomic<uint64_t>  _hasCandidates;
-		Bitbase<false> _wonPositions;
-		Bitbase<false> _computedPositions;
-		Bitbase<false> _candidates;
+		Bitbase _wonPositions;
+		Bitbase _computedPositions;
+		Bitbase _candidates;
 		PieceList _pieceList;
 		mutex _mtxUpdate;
 		bool _updateRunning;

@@ -35,7 +35,6 @@ namespace QaplaBitbase {
      * @class Bitbase
      * @brief Stores and manages bit-level data for chess endgame databases.
      */
-    template<bool Clustered>
     class Bitbase {
     public:
         /**
@@ -116,6 +115,13 @@ namespace QaplaBitbase {
          */
         bool getBit(uint64_t index) const;
 
+		/**
+		 * @brief Gets the value of a specific bit from a clustered bitbase.
+		 * @param index Bit index to retrieve.
+		 * @return True if bit is set, false otherwise.
+		 */
+        bool getBitCluster(uint64_t index);
+
         /**
          * @brief Gets the size of the bitbase in bits.
          * @return Bit count.
@@ -156,6 +162,14 @@ namespace QaplaBitbase {
         bool isLoaded() const {
             return _loaded;
         }
+
+		/**
+		 * @brief Sets the loaded state of the bitbase.
+		 * @param loaded New loaded state.
+		 */
+		void setLoaded(bool loaded) {
+			_loaded = loaded;
+		}
 
         /**
          * @brief Returns all indexes where current bitbase is 1 and the given is 0.
