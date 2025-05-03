@@ -27,19 +27,19 @@
 
 using namespace QaplaBitbase;
 
-void BitbaseReader::loadBitbase() {
+std::vector<std::string> BitbaseReader::loadBitbase() {
 	QaplaSearch::ClockManager clock;
 	clock.setStartTime();
-	loadBitbaseRec("K*K");
-	loadBitbaseRec("KK*");
-	loadBitbaseRec("K*K*");
-	loadBitbaseRec("K**K");
-	loadBitbaseRec("KK**");
-	loadBitbaseRec("K**K*");
-	loadBitbaseRec("K*K**");
-	loadBitbaseRec("K***K");
-	loadBitbaseRec("KK***");
-	std::cout << "info string time spent to load bitbases: " << clock.computeTimeSpentInMilliseconds() << " milliseconds " << endl;
+	vector<std::string> toLoad = {
+		"K*K", "KK*", "K*K*", "K**K", "KK**", "K**K*", "K*K**", "K***K", "KK***"
+	};
+	vector <std::string> messages;
+	for (const auto& name : toLoad) {
+		auto subErrors = loadBitbaseRec(name, true);
+		messages.insert(messages.end(), subErrors.begin(), subErrors.end());
+	}
+	messages.push_back("time spent to load bitbases: " + to_string(clock.computeTimeSpentInMilliseconds()) + " milliseconds ");
+	return messages;
 }
 
 void BitbaseReader::registerBitbaseFromHeader() {
@@ -71,33 +71,29 @@ void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uin
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
 }
 
-void BitbaseReader::loadBitbaseRec(string name, bool force) {
+std::vector<std::string> BitbaseReader::loadBitbaseRec(std::string name, bool force) {
+	std::vector<std::string> errors;
+
 	auto pos = name.find('*');
 	if (pos != std::string::npos) {
-		for (auto ch : std::string("QRBNP")) {
+		for (char ch : std::string("QRBNP")) {
 			std::string next = name;
 			next[pos] = ch;
-			loadBitbaseRec(next, force);
+
+			auto subErrors = loadBitbaseRec(next, force);
+			errors.insert(errors.end(), subErrors.begin(), subErrors.end());
 		}
 	}
 	else if (force || !isBitbaseAvailable(name)) {
-		loadBitbase(name);
+		try {
+			loadBitbase(name, false);
+		}
+		catch (const std::runtime_error& e) {
+			errors.push_back("[" + name + "]: " + e.what());
+		}
 	}
-}
 
-void BitbaseReader::loadRelevant4StoneBitbase() {
-	std::vector<std::string> pieceStrings = {
-		"KPKP", "KPKN", "KPKB", "KPPK", "KNPK", "KBPK", "KBNK", "KBBK",
-		"KRKP", "KRKN", "KRKB", "KRKR", "KQKP", "KQKN", "KQKB", "KQKR",
-		"KQKQ"
-	};
-	for (const auto& pieceString : pieceStrings) {
-		loadBitbase(pieceString);
-	}
-}
-
-void BitbaseReader::load5StoneBitbase() {
-	loadBitbase("KQQKQ");
+	return errors;
 }
 
 Result BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
@@ -106,7 +102,7 @@ Result BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
 		return Result::DrawOrLoss;
 	}
 
-	const Bitbase* bitbase = getBitbase(signature);
+	Bitbase* bitbase = getBitbase(signature);
 	if (bitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
 		return bitbase->getBit(index) ? Result::Win : Result::DrawOrLoss;
@@ -119,7 +115,7 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 
 	// A bitbase contains winning information for white only. White wins or does not win.
 	// We can use the same bitbase to see, if black will win by switching the side. (second case).
-	const Bitbase* whiteBitbase = getBitbase(signature);
+	Bitbase* whiteBitbase = getBitbase(signature);
 	if (whiteBitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
 		// Check if white wins
@@ -133,7 +129,7 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 
 	// Now switching the side to test, if black may win
 	signature.changeSide();
-	const Bitbase* blackBitbase = getBitbase(signature);
+	Bitbase* blackBitbase = getBitbase(signature);
 	if (blackBitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<1>(position);
 		if (blackBitbase->getBit(index)) {
@@ -157,7 +153,7 @@ value_t BitbaseReader::getValueFromBitbase(const MoveGenerator& position, value_
 	return value;
 }
 
-void BitbaseReader::loadBitbase(std::string pieceString) {
+void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
 	PieceSignature signature;
 	signature.set(pieceString);
 	pieceSignature_t sig = signature.getPiecesSignature();
@@ -169,22 +165,23 @@ void BitbaseReader::loadBitbase(std::string pieceString) {
 	Bitbase bitbase(index);
 	// Bitbase is not available is a supported situation and not an error
 	if (!bitbase.attachFromFile(pieceString, ".btb", bitbasePath)) return;
-
-	auto [success, errorMessage] = bitbase.readAll();
-	if (!success) {
-		std::cout << "info string loaded bitbase " << pieceString << " " << errorMessage << std::endl;
-		return; // Failed to read – do not insert
-	}
-
-	_bitbases.emplace(sig, std::move(bitbase));
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
+	if (!onlyHeader) {
+		auto [success, errorMessage] = bitbase.readAll();
+		if (!success) {
+			std::cout << "info string loaded bitbase " << pieceString << " " << errorMessage << std::endl;
+			return; // Failed to read – do not insert
+		}
+
+		_bitbases.emplace(sig, std::move(bitbase));
+	}
 }
 
 bool BitbaseReader::isBitbaseAvailable(std::string pieceString) {
 	PieceSignature signature;
 	signature.set(pieceString.c_str());
 	auto it = _bitbases.find(signature.getPiecesSignature());
-	return (it != _bitbases.end() && it->second.isLoaded());
+	return (it != _bitbases.end() && it->second.isHeaderLoaded());
 }
 
 void BitbaseReader::setBitbase(std::string pieceString, const Bitbase& bitBase) {
@@ -193,7 +190,7 @@ void BitbaseReader::setBitbase(std::string pieceString, const Bitbase& bitBase) 
 	_bitbases[signature.getPiecesSignature()] = bitBase;
 }
 
-const Bitbase* BitbaseReader::getBitbase(PieceSignature signature) {
+Bitbase* BitbaseReader::getBitbase(PieceSignature signature) {
 	Bitbase* bitbase = 0;
 	auto it = _bitbases.find(signature.getPiecesSignature());
 	if (it != _bitbases.end() && it->second.isLoaded()) {

@@ -36,9 +36,9 @@ using namespace std;
 
 namespace QaplaBitbase {
 
-    Bitbase::Bitbase() : _loaded(false), _sizeInBits(0) {}
+    Bitbase::Bitbase() : _loaded(false), _sizeInBits(0), _headerLoaded(false) {}
 
-    Bitbase::Bitbase(uint64_t sizeInBit) : _loaded(false), _sizeInBits(sizeInBit) {
+    Bitbase::Bitbase(uint64_t sizeInBit) : _loaded(false), _sizeInBits(sizeInBit), _headerLoaded(false) {
     }
 
     Bitbase::Bitbase(const BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {}
@@ -48,17 +48,22 @@ namespace QaplaBitbase {
     }
 
     void Bitbase::setBit(uint64_t index) {
+		assert(isLoaded());
         if (index >= _sizeInBits) return;
         _bitbase[index / BITS_IN_ELEMENT] |= bbt_t(1) << (index % BITS_IN_ELEMENT);
     }
 
     void Bitbase::clearBit(uint64_t index) {
+        assert(isLoaded());
         if (index >= _sizeInBits) return;
         _bitbase[index / BITS_IN_ELEMENT] &= ~(bbt_t(1) << (index % BITS_IN_ELEMENT));
     }
 
-    bool Bitbase::getBitCluster(uint64_t index) {
+    bool Bitbase::getBit(uint64_t index) {
         if (index >= _sizeInBits) return false;
+		if (_loaded) {
+			return (_bitbase[index / BITS_IN_ELEMENT] & (bbt_t(1) << (index % BITS_IN_ELEMENT))) != 0;
+		}
 
         const uint32_t bitsPerCluster = _clusterSizeBytes * 8;
         const uint32_t clusterIndex = static_cast<uint32_t>(index / bitsPerCluster);
@@ -78,16 +83,11 @@ namespace QaplaBitbase {
         return (word >> bit) & 1;
     }
 
-    bool Bitbase::getBit(uint64_t index) const {
-        if (index >= _sizeInBits) return false;
-        return (_bitbase[index / BITS_IN_ELEMENT] & (bbt_t(1) << (index % BITS_IN_ELEMENT))) != 0;
-    }
-
     uint64_t Bitbase::getSizeInBit() const {
         return _sizeInBits;
     }
 
-    std::string Bitbase::getStatistic() const {
+    std::string Bitbase::getStatistic() {
         uint64_t win = 0;
         uint64_t draw = 0;
         for (uint64_t index = 0; index < _sizeInBits; ++index) {
@@ -97,24 +97,21 @@ namespace QaplaBitbase {
     }
 
     void Bitbase::storeToFile(const std::string& fileName, QaplaCompress::CompressionType compression) {
-        try {
-            const uint32_t clusterElements = DEFAULT_CLUSTER_SIZE_IN_BYTES / sizeof(bbt_t);
+		if (!isLoaded()) {
+			throw std::runtime_error("Error: Bitbase is not loaded.");
+		}
+        const uint32_t clusterElements = DEFAULT_CLUSTER_SIZE_IN_BYTES / sizeof(bbt_t);
 
-            BitbaseFile::write(
-                fileName,
-				_sizeInBits,
-                _bitbase,
-                clusterElements,
-                compression,
-                QaplaCompress::Compress::getCompressor(compression)
-            );
+        BitbaseFile::write(
+            fileName,
+			_sizeInBits,
+            _bitbase,
+            clusterElements,
+            compression,
+            QaplaCompress::Compress::getCompressor(compression)
+        );
 
-			verifyWrittenFile();
-        }
-        catch (const std::exception& ex) {
-            std::cerr << "Error: Failed to write uncompressed bitbase file '" << fileName
-                << "': " << ex.what() << std::endl;
-        }
+		verifyWrittenFile();
     }
 
     void Bitbase::verifyWrittenFile() {
@@ -140,17 +137,24 @@ namespace QaplaBitbase {
     }
 
     bool Bitbase::loadHeader(const std::filesystem::path& path) {
-        auto fileInfoOpt = BitbaseFile::readFileInfo(path.string());
-        if (!fileInfoOpt) return false;
+        try {
+            auto fileInfoOpt = BitbaseFile::readFileInfo(path.string());
+            if (!fileInfoOpt) return false;
 
-		const auto& fileInfo = *fileInfoOpt;
+            const auto& fileInfo = *fileInfoOpt;
 
-        _offsets = std::move(fileInfo.offsets);
-        _clusterSizeBytes = fileInfo.clusterSize;
-        _compression = fileInfo.compression;
-        if (fileInfo.sizeInBits != _sizeInBits) {
-            throw std::runtime_error("Error: Size mismatch between file and bitbase.");
+            _offsets = std::move(fileInfo.offsets);
+            _clusterSizeBytes = fileInfo.clusterSize;
+            _compression = fileInfo.compression;
+            if (fileInfo.sizeInBits != _sizeInBits) {
+                throw std::runtime_error("Error: Size mismatch between file and bitbase.");
+            }
+            _headerLoaded = true;
         }
+		catch (const std::exception& ex) {
+			std::cerr << "Error loading header: " << ex.what() << std::endl;
+			return false;
+		}
         return true;
     }
 

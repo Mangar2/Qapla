@@ -62,7 +62,7 @@ namespace QaplaBitbase {
 		 * @param index index of the position
 		 * @param onlyCandidates if true, only candidates are provided to be checked
 		 */
-		bool isPositionToCheck(uint64_t index, bool onlyCandidates) const {
+		bool isPositionToCheck(uint64_t index, bool onlyCandidates) {
 			return !_computedPositions.getBit(index) &&
 				(!onlyCandidates || _candidates.getBit(index));
 		}

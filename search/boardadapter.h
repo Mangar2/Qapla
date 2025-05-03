@@ -85,7 +85,10 @@ namespace QaplaSearch {
 			else {
 				if (name == "qaplaBitbasePath") {
 					if (value != "" && QaplaBitbase::BitbaseReader::setBitbasePath(value)) {
-						QaplaBitbase::BitbaseReader::loadBitbase();
+						auto messages = QaplaBitbase::BitbaseReader::loadBitbase();
+						for (const auto& message : messages) {
+							cout << "info string " << message << endl;
+						}
 					}
 					return;
 				}

@@ -145,7 +145,7 @@ namespace QaplaBitbase {
 		 * Computes a position value by probing all moves and lookup the result in this bitmap
 		 * Captures are excluded, they have been tested in the initial search. 
 		 */
-		bool computeValue(MoveGenerator& position, const Bitbase& bitbase, bool verbose);
+		bool computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose);
 
 		/**
 		 * Sets the bitbase index for a position by computing the position value from the bitbase itself

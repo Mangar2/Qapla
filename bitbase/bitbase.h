@@ -113,14 +113,7 @@ namespace QaplaBitbase {
          * @param index Bit index to retrieve.
          * @return True if bit is set, false otherwise.
          */
-        bool getBit(uint64_t index) const;
-
-		/**
-		 * @brief Gets the value of a specific bit from a clustered bitbase.
-		 * @param index Bit index to retrieve.
-		 * @return True if bit is set, false otherwise.
-		 */
-        bool getBitCluster(uint64_t index);
+        bool getBit(uint64_t index);
 
         /**
          * @brief Gets the size of the bitbase in bits.
@@ -140,7 +133,7 @@ namespace QaplaBitbase {
          * @brief Returns a string describing number of won and non-won positions.
          * @return Descriptive string.
          */
-        std::string getStatistic() const;
+        std::string getStatistic();
 
         /**
          * @brief Saves the bitbase uncompressed to file.
@@ -162,6 +155,14 @@ namespace QaplaBitbase {
         bool isLoaded() const {
             return _loaded;
         }
+
+        /**
+		 * @brief Checks if the header information has been loaded.
+		 * @return True if header is loaded.
+         */
+		bool isHeaderLoaded() const {
+			return _headerLoaded;
+		}
 
 		/**
 		 * @brief Sets the loaded state of the bitbase.
@@ -211,14 +212,18 @@ namespace QaplaBitbase {
         bool loadHeader(const std::filesystem::path& path);
         void verifyWrittenFile();
 
-        static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; // 16 KiB
+        static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; 
 
-        bool _loaded;
-        std::filesystem::path _filePath;
         static const uint64_t BITS_IN_ELEMENT = sizeof(bbt_t) * 8;
-        std::vector<bbt_t> _bitbase;
         uint64_t _sizeInBits;
+        
+        // Fully loaded bitbase data
+        bool _loaded;
+        std::vector<bbt_t> _bitbase;
 
+        // Information to load further clusters from file
+        bool _headerLoaded;
+        std::filesystem::path _filePath;
         std::vector<uint64_t> _offsets;
         uint32_t _clusterSizeBytes = DEFAULT_CLUSTER_SIZE_IN_BYTES;
         QaplaCompress::CompressionType _compression;

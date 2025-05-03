@@ -40,7 +40,7 @@ using namespace QaplaBitbase;
  * Computes a position value by probing all moves and lookup the result in this bitmap
  * Captures are excluded, they have been tested in the initial search.
  */
-bool BitbaseGenerator::computeValue(MoveGenerator &position, const Bitbase &bitbase, bool verbose)
+bool BitbaseGenerator::computeValue(MoveGenerator &position, Bitbase &bitbase, bool verbose)
 {
 	MoveList moveList;
 	Move move;
@@ -581,7 +581,7 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, Qapla
 	string pieceString = pieceList.getPieceString();
 	if (pieceString.substr(0, 2) == "KK") return;
 	if (!first && BitbaseReader::isBitbaseAvailable(pieceString)) return;
-	BitbaseReader::loadBitbase(pieceString);
+	BitbaseReader::loadBitbase(pieceString, false);
 
 	for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++)
 	{

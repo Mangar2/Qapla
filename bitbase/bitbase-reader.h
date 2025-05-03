@@ -59,7 +59,7 @@ namespace QaplaBitbase {
         static bool setBitbasePath(const std::string& path);
 
         /** Loads all relevant bitbases. */
-        static void loadBitbase();
+        static std::vector<std::string> loadBitbase();
         static void registerBitbaseFromHeader();
 
         /**
@@ -75,13 +75,7 @@ namespace QaplaBitbase {
          * @param name Piece string with optional '*' wildcards.
          * @param force If true, reloads even if bitbase is already present.
          */
-        static void loadBitbaseRec(std::string name, bool force = false);
-
-        /** Loads all relevant 4-piece bitbases. */
-        static void loadRelevant4StoneBitbase();
-
-        /** Loads selected 5-piece bitbase. */
-        static void load5StoneBitbase();
+        static vector<std::string> loadBitbaseRec(std::string name, bool force = false);
 
         /**
          * Queries a bitbase for a win/draw/loss result (white perspective).
@@ -108,8 +102,9 @@ namespace QaplaBitbase {
         /**
          * Loads a bitbase from file.
          * @param pieceString Piece configuration string.
+		 * @param onlyHeader If true, only loads header information.
          */
-        static void loadBitbase(std::string pieceString);
+        static void loadBitbase(std::string pieceString, bool onlyHeader);
 
         /**
          * Checks if a bitbase is available.
@@ -132,7 +127,7 @@ namespace QaplaBitbase {
          * @param signature Signature of piece configuration.
          * @return Pointer to Bitbase or nullptr if unavailable.
          */
-        static const Bitbase* getBitbase(PieceSignature signature);
+        static Bitbase* getBitbase(PieceSignature signature);
 
         BitbaseReader();
         static inline std::map<pieceSignature_t, Bitbase> _bitbases;
