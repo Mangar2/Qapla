@@ -31,7 +31,9 @@ std::vector<std::string> BitbaseReader::loadBitbase() {
 	QaplaSearch::ClockManager clock;
 	clock.setStartTime();
 	vector<std::string> toLoad = {
-		"K*K", "KK*", "K*K*", "K**K", "KK**", "K**K*", "K*K**", "K***K", "KK***"
+		"K*K", "K*K*", "K**K", 
+		"K*K**","K**K*",  "K***K",
+		"K*K***", "K**K**", "K***K*"
 	};
 	vector <std::string> messages;
 	for (const auto& name : toLoad) {

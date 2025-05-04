@@ -209,6 +209,12 @@ namespace QaplaBitbase {
          */
         void print() const;
 
+		static void setCacheSize(uint32_t sizeInMB) {
+			uint64_t numCluster = static_cast<uint64_t>(sizeInMB) * 1024 * 1024 / DEFAULT_CLUSTER_SIZE_IN_BYTES;
+			numCluster = std::clamp(numCluster, static_cast<uint64_t>(2), static_cast<uint64_t>(UINT32_MAX));
+			cache.resize(numCluster);
+		}
+
 
     private:
 
@@ -217,7 +223,7 @@ namespace QaplaBitbase {
 
         // Caching
         uint32_t _signature;
-        static inline ClusterCache cache{ 8095 }; // 1023
+        static inline ClusterCache cache{ 511 };
 
         static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; 
 

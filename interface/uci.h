@@ -78,11 +78,12 @@ namespace QaplaInterface {
 			_clock.setTimeBetweenInfoInMilliseconds(1000);
 			println("id name " + getBoard()->getEngineInfo()["name"]);
 			println("id author " + getBoard()->getEngineInfo()["author"]);
-			println("option name Hash type spin default 32 min 1 max 16000");
+			println("option name Hash type spin default 32 min 1 max 32000");
 			println("option name ponder type check");
 			println("option name MultiPV type spin default 1 min 1 max 40");
 			println("option name UCI_EngineAbout type string default " + getBoard()->getEngineInfo()["engine-about"]);
 			println("option name qaplaBitbasePath type string");
+			println("option name qaplaBitbaseCache type spin default 8 min 1 max 32000");
 			getBoard()->initialize();
 			println("uciok");
 		}

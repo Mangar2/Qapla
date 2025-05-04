@@ -56,6 +56,11 @@ namespace QaplaInterface {
 		void loadEgtb();
 
 		/**
+		 * Sets a winboard option
+		 */
+		void setOption();
+
+		/**
 		 * Manages a move
 		 */
 		bool handleMove(string move = "");

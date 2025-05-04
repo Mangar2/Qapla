@@ -68,7 +68,8 @@ void Winboard::handleProtover() {
 		
 		if (_protoVer > 1) {
 			println("feature done=0");
-			println("feature colors=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
+			println("feature colors=0 pause=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1 ");
+			println("feature egt=qaplaBitbases option=qaplaBitbaseCache -spin 1 1600 ");
 			println("feature myname=\"" + getBoard()->getEngineInfo()["name"] + " by " + getBoard()->getEngineInfo()["author"] + "\"");
 			println("feature done=1");
 		}
@@ -339,6 +340,14 @@ void Winboard::loadEgtb() {
 	}
 }
 
+void Winboard::setOption() {
+	std::string option = getNextTokenBlocking(true);
+	// split the option string into name and value. It is separated by "="
+	std::string name = option.substr(0, option.find("="));
+	std::string value = option.substr(option.find("=") + 1);
+	getBoard()->setOption(name, value);
+}
+
 /**
  * Processes any input from stdio
  */
@@ -456,6 +465,7 @@ void Winboard::handleInput() {
 	else if (token == "cores") readCores();
 	else if (token == "memory") readMemory();
 	else if (token == "egtpath") loadEgtb();
+	else if (token == "option") setOption();
 	else if (checkClockCommands()) {}
 	else if (checkMoveCommand()) {}
 }

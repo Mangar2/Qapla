@@ -35,6 +35,7 @@
 #include "../eval/eval.h"
 #include "../search/iterativedeepening.h"
 #include "movehistory.h"
+#include "../bitbase/bitbase.h"
 #include "../bitbase/bitbasegenerator.h"
 #include "../bitbase/verify.h"
 #include "../bitbase/bitbase-reader.h"
@@ -102,6 +103,7 @@ namespace QaplaSearch {
 				}
 				if (name == "Hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
 				if (name == "MultiPV") iterativeDeepening.setMultiPV(std::clamp(intValue, 1, 40));
+				if (name == "qaplaBitbaseCache") QaplaBitbase::Bitbase::setCacheSize(intValue);
 			}
 		}
 
