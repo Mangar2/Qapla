@@ -37,9 +37,8 @@ namespace QaplaBasics {
 	const value_t MAX_VALUE = 30000;
 	const value_t NO_VALUE = -30001;
 	const value_t MIN_MATE_VALUE = MAX_VALUE - 1000;
-	const value_t MAX_BONUS = MAX_VALUE - 5000;
-	const value_t WINNING_BONUS = 5000;
-	const value_t EG_WINNING_BONUS = 500;
+	const value_t NON_MATE_VALUE_LIMIT = MAX_VALUE - 5000;
+	const value_t WINNING_BONUS = 10000;
 
 	// the draw value is reseved and signales a forced draw (stalemate, repetition)
 	const value_t DRAW_VALUE = 1;

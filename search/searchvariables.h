@@ -256,9 +256,8 @@ namespace QaplaSearch {
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
 			if (ttValueIsUpperBound) return false;
-			// We do not prune on potentional mate values
+			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
 			if (adjustedEval > WINNING_BONUS) return false;
-			// Do not prune on window indicating mate values
 			if (alpha > WINNING_BONUS || beta < -WINNING_BONUS) return false;
 
 			const bool doFutility = adjustedEval - SearchParameter::futilityMargin(remainingDepth, isImproving) >= beta;

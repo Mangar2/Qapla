@@ -147,7 +147,7 @@ void EvalEndgame::registerEntry(string pieces, EvalEntry entry, bool changeSide)
 }
 
 value_t EvalEndgame::getFromBitbase(MoveGenerator& position, value_t value) {
-	if (value >= MAX_BONUS || value <= -MAX_BONUS) {
+	if (value >= NON_MATE_VALUE_LIMIT || value <= -NON_MATE_VALUE_LIMIT) {
 		return value;
 	}
 	const value_t bitbaseValue = position.isWhiteToMove() ? 
