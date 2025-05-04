@@ -109,17 +109,9 @@ uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &positi
 /**
  * Prints the time spent so far
  */
-void BitbaseGenerator::printTimeSpent(ClockManager &clock, int minTraceLevel, bool sameLine)
+void BitbaseGenerator::printTimeSpent(ClockManager &clock)
 {
-	if (_traceLevel < minTraceLevel)
-	{
-		return;
-	}
 	uint64_t timeInMilliseconds = clock.computeTimeSpentInMilliseconds();
-	if (!sameLine)
-		cout << endl;
-	else
-		cout << " ";
 	cout << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000))
 		 << ":" << ((timeInMilliseconds / (60 * 1000)) % 60)
 		 << ":" << ((timeInMilliseconds / 1000) % 60)
@@ -304,7 +296,6 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 
 		joinThreads();
 		cout << ".";
-		printTimeSpent(clock, 3);
 		if (!state.hasCandidates())
 		{
 			break;
@@ -524,15 +515,15 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
+	PieceSignature pieceSignature(pieceString.c_str());
 	if (pieceString.substr(0, 2) == "KK")
 	{
 		return;
 	}
-	if (_traceLevel > 1)
-		cout << endl;
+
 	cout << pieceString << " using " << _cores << " threads ";
 
-	GenerationState state(pieceList);
+	GenerationState state(pieceList, pieceSignature.getPiecesSignature());
 	ClockManager clock;
 	clock.setStartTime();
 
@@ -545,23 +536,19 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	}
 	joinThreads();
 	cout << ".";
-	printTimeSpent(clock, 2);
-	printStatistic(state, 2);
 	computeBitbase(state, clock);
 
-	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
-	cout << "c";
+	cout << "c" << std::endl;
 	try {
 		state.storeToFile(fileName, pieceString, compression);
 		if (generateCpp)
 		{
 			state.generateCpp(pieceString);
 		}
-		printTimeSpent(clock, 0, _traceLevel == 0);
-		printStatistic(state, 1);
-		cout << endl;
-		state.getWonPositions().setLoaded(true);
+		printTimeSpent(clock);
+		printStatistic(state);
+		std::cout << std::endl;
 		BitbaseReader::setBitbase(pieceString, state.getWonPositions());
 	}
 	catch (const std::runtime_error& e) {

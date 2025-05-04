@@ -32,7 +32,7 @@ using namespace QaplaInterface;
 void BitbaseInterface::generateBitbases() {
 	string piecesString = getNextTokenBlocking(true);
 	if (piecesString == "\r" || piecesString == "\n") {
-		println("usage bitgenerate pieces [cores n] [path p] [compression c] [cpp] [trace n] [debug n] [index n]");
+		println("usage bitgenerate pieces [cores n] [path p] [compression miniz || lz4 || none] [cpp] [trace n] [debug n] [index n]");
 		return;
 	}
 	string token = getNextTokenBlocking(true);

@@ -36,14 +36,17 @@ namespace QaplaBitbase {
 		 * Creates a generation state object holding information which positions are already decided
 		 * and where to look further
 		 */
-		GenerationState(PieceList& pieceList) 
-			: _wonPositions(true), _computedPositions(true), _candidates(true)
+		GenerationState(PieceList& pieceList, uint32_t sig) 
+			: _wonPositions(true, sig), _computedPositions(true, sig), _candidates(true, sig)
 		{
 			BitbaseIndex bitbaseIndexType(pieceList);
 			_sizeInBit = bitbaseIndexType.getSizeInBit();
 			_wonPositions.resize(_sizeInBit);
+			_wonPositions.setLoaded();
 			_computedPositions.resize(_sizeInBit);
+			_computedPositions.setLoaded();
 			_candidates.resize(_sizeInBit);
+			_candidates.setLoaded();
 			_pieceList = pieceList;
 			_illegal = 0;
 			_loss = 0;
@@ -184,11 +187,15 @@ namespace QaplaBitbase {
 		void printStatistic() {
 			uint64_t drawOrLoss = _sizeInBit - _won - _illegal;
 			cout
-				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%) " << _wonPositions.computeWonPositions()
-				<< " Not Won: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
-				<< " Mated: " << _loss
+				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%) " 
+				<< " Draw or loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
+				<< " Loss in 0: " << _loss
 				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)"
-				<< " Uncompressed memory size " << _wonPositions.getSize();
+				<< " Uncompressed memory size " << _wonPositions.getSize()
+				<< std:: endl;
+			if (_won != _wonPositions.computeWonPositions()) {
+				std::cout << "Error, won positions do not match!" << std::endl;
+			}
 		}
 
 		/**

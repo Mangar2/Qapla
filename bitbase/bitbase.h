@@ -28,6 +28,7 @@
 #include <filesystem>
 #include "bitbase-file.h"
 #include "compress.h"
+#include "cluster-cache.h"
 
 namespace QaplaBitbase {
 
@@ -45,14 +46,16 @@ namespace QaplaBitbase {
         /**
          * @brief Constructs a Bitbase with a given size in bits.
          * @param sizeInBit Number of bits the bitbase should hold.
+		 * @param sig Signature of the bitbase.
          */
-        explicit Bitbase(uint64_t sizeInBit);
+        explicit Bitbase(uint64_t sizeInBit, uint32_t sig);
 
         /**
          * @brief Constructs a Bitbase from a BitbaseIndex.
          * @param index Index providing the bitbase size.
+		 * @param sig Signature of the bitbase.
          */
-        Bitbase(const class BitbaseIndex& index);
+        Bitbase(const class BitbaseIndex& index, uint32_t sig);
 
         /**
          * @brief Sets the filename.
@@ -111,9 +114,9 @@ namespace QaplaBitbase {
         /**
          * @brief Gets the value of a specific bit.
          * @param index Bit index to retrieve.
-         * @return True if bit is set, false otherwise.
+         * @return 1 if bit is set, 0, if not and -1 on error.
          */
-        bool getBit(uint64_t index);
+        int getBit(uint64_t index);
 
         /**
          * @brief Gets the size of the bitbase in bits.
@@ -166,10 +169,10 @@ namespace QaplaBitbase {
 
 		/**
 		 * @brief Sets the loaded state of the bitbase.
-		 * @param loaded New loaded state.
 		 */
-		void setLoaded(bool loaded) {
-			_loaded = loaded;
+		void setLoaded() {
+			_loaded = true;
+            _headerLoaded = true;
 		}
 
         /**
@@ -211,6 +214,10 @@ namespace QaplaBitbase {
 
         bool loadHeader(const std::filesystem::path& path);
         void verifyWrittenFile();
+
+        // Caching
+        uint32_t _signature;
+        static inline ClusterCache cache{ 8095 }; // 1023
 
         static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; 
 

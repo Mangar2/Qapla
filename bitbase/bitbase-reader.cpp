@@ -65,7 +65,7 @@ void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uin
 		return;
 	}
 	BitbaseIndex index(pieceString);
-	Bitbase bitbase(index);
+	Bitbase bitbase(index, sig);
 	_bitbases[sig] = bitbase;
 	_bitbases[sig].loadFromEmbeddedData(data);
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
@@ -86,7 +86,7 @@ std::vector<std::string> BitbaseReader::loadBitbaseRec(std::string name, bool fo
 	}
 	else if (force || !isBitbaseAvailable(name)) {
 		try {
-			loadBitbase(name, false);
+			loadBitbase(name, true);
 		}
 		catch (const std::runtime_error& e) {
 			errors.push_back("[" + name + "]: " + e.what());
@@ -162,7 +162,7 @@ void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
 	}
 	BitbaseIndex index(pieceString);
 
-	Bitbase bitbase(index);
+	Bitbase bitbase(index, signature.getPiecesSignature());
 	// Bitbase is not available is a supported situation and not an error
 	if (!bitbase.attachFromFile(pieceString, ".btb", bitbasePath)) return;
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
@@ -172,9 +172,8 @@ void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
 			std::cout << "info string loaded bitbase " << pieceString << " " << errorMessage << std::endl;
 			return; // Failed to read – do not insert
 		}
-
-		_bitbases.emplace(sig, std::move(bitbase));
 	}
+	_bitbases.emplace(sig, std::move(bitbase));
 }
 
 bool BitbaseReader::isBitbaseAvailable(std::string pieceString) {
@@ -193,7 +192,7 @@ void BitbaseReader::setBitbase(std::string pieceString, const Bitbase& bitBase) 
 Bitbase* BitbaseReader::getBitbase(PieceSignature signature) {
 	Bitbase* bitbase = 0;
 	auto it = _bitbases.find(signature.getPiecesSignature());
-	if (it != _bitbases.end() && it->second.isLoaded()) {
+	if (it != _bitbases.end() && it->second.isHeaderLoaded()) {
 		bitbase = &it->second;
 	}
 	return bitbase;

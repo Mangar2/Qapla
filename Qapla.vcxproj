@@ -1894,6 +1894,7 @@
     <ClInclude Include="bitbase\bitbaseindex.h" />
     <ClInclude Include="bitbase\bitbase-reader.h" />
     <ClInclude Include="bitbase\boardaccess.h" />
+    <ClInclude Include="bitbase\cluster-cache.h" />
     <ClInclude Include="bitbase\compress.h" />
     <ClInclude Include="bitbase\generationstate.h" />
     <ClInclude Include="bitbase\KPK.h" />

@@ -114,7 +114,14 @@ namespace QaplaSearch {
 			uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64)
 		{
 			QaplaBitbase::BitbaseGenerator generator;
-			generator.computeBitbaseRec(signature, cores, QaplaCompress::CompressionType::Miniz, generateCpp, traceLevel, debugLevel, debugIndex);
+			QaplaCompress::CompressionType compressionType = QaplaCompress::CompressionType::Miniz;
+			if (compression == "lz4") {
+				compressionType = QaplaCompress::CompressionType::LZ4;
+			}
+			else if (compression == "none") {
+				compressionType = QaplaCompress::CompressionType::None;
+			}
+			generator.computeBitbaseRec(signature, cores, compressionType, generateCpp, traceLevel, debugLevel, debugIndex);
 		}
 
 		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)

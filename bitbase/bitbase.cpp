@@ -38,13 +38,14 @@ namespace QaplaBitbase {
 
     Bitbase::Bitbase() : _loaded(false), _sizeInBits(0), _headerLoaded(false) {}
 
-    Bitbase::Bitbase(uint64_t sizeInBit) : _loaded(false), _sizeInBits(sizeInBit), _headerLoaded(false) {
-    }
+    Bitbase::Bitbase(uint64_t sizeInBit, uint32_t sig) 
+        : _loaded(false), _sizeInBits(sizeInBit), _headerLoaded(false), _signature(sig) {}
 
-    Bitbase::Bitbase(const BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {}
+    Bitbase::Bitbase(const BitbaseIndex& index, uint32_t sig) 
+        : Bitbase(index.getSizeInBit(), sig) {}
 
     void Bitbase::clear() {
-        _bitbase.clear();
+        std::fill(_bitbase.begin(), _bitbase.end(), 0);
     }
 
     void Bitbase::setBit(uint64_t index) {
@@ -59,9 +60,9 @@ namespace QaplaBitbase {
         _bitbase[index / BITS_IN_ELEMENT] &= ~(bbt_t(1) << (index % BITS_IN_ELEMENT));
     }
 
-    bool Bitbase::getBit(uint64_t index) {
+    int Bitbase::getBit(uint64_t index) {
         if (index >= _sizeInBits) return false;
-		if (_loaded) {
+  		if (_loaded) {
 			return (_bitbase[index / BITS_IN_ELEMENT] & (bbt_t(1) << (index % BITS_IN_ELEMENT))) != 0;
 		}
 
@@ -69,18 +70,36 @@ namespace QaplaBitbase {
         const uint32_t clusterIndex = static_cast<uint32_t>(index / bitsPerCluster);
         const uint32_t bitInCluster = static_cast<uint32_t>(index % bitsPerCluster);
 
-        auto cluster = BitbaseFile::readCluster(
-            _filePath.string(),
-            _sizeInBits,
-            _clusterSizeBytes,
-            clusterIndex,
-            _offsets,
-            QaplaCompress::Compress::getDecompressor(_compression)
-        );
+        // Prope cache
+		auto cacheEntry = cache.getEntry(_signature, clusterIndex);
+        static uint64_t cacheHits = 0;
+		if (cacheEntry) {
+            cacheHits++;
+			const bbt_t word = cacheEntry->data[bitInCluster / BITS_IN_ELEMENT];
+			const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
+			return (word >> bit) & 1;
+		}
+        try {
+			static uint64_t reads = 0; reads++; 
+			//if (reads % 1000 == 0) { cout << "Hits: " << (cacheHits * 100.0) / (cacheHits + reads) << "% "; cache.print(); }
+            
+            auto cluster = BitbaseFile::readCluster(
+                _filePath.string(),
+                _sizeInBits,
+                _clusterSizeBytes,
+                clusterIndex,
+                _offsets,
+                QaplaCompress::Compress::getDecompressor(_compression)
+            );
+			cache.setEntry(cluster, _signature, clusterIndex);
+            const bbt_t word = cluster[bitInCluster / BITS_IN_ELEMENT];
+            const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
+            return (word >> bit) & 1;
+        }
+		catch (...) {
+			return -1;
+		}
 
-        const bbt_t word = cluster[bitInCluster / BITS_IN_ELEMENT];
-        const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
-        return (word >> bit) & 1;
     }
 
     uint64_t Bitbase::getSizeInBit() const {
@@ -115,7 +134,8 @@ namespace QaplaBitbase {
     }
 
     void Bitbase::verifyWrittenFile() {
-        Bitbase loaded(_sizeInBits);
+		std::cout << "Verifying written file, bitbase size: " << _bitbase.size() << " path: " << _filePath.string() << std::endl;
+        Bitbase loaded(_sizeInBits, _signature);
         loaded._filePath = _filePath;
         if (!loaded.loadHeader(_filePath)) {
 			throw std::runtime_error("Error: Failed to open file to compare '" + _filePath.string() + "' ");

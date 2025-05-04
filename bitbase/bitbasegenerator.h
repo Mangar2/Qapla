@@ -58,7 +58,7 @@ namespace QaplaBitbase {
 			clock.setStartTime();
 			computeBitbase(pieceString, compress, generateCpp);
 			cout << endl << "All Bitbases generated!";
-			printTimeSpent(clock, 0);
+			printTimeSpent(clock);
 			cout << endl;
 		}
 
@@ -156,15 +156,12 @@ namespace QaplaBitbase {
 		/**
 		 * Prints the time spent so far
 		 */
-		void printTimeSpent(ClockManager& clock, int minTraceLevel, bool sameLine = false);
+		void printTimeSpent(ClockManager& clock);
 
 		/**
 		 * Prints win/loss/draw/illegal statistic
 		 */
-		void printStatistic(GenerationState& state, int minTraceLevel) {
-			if (_traceLevel < minTraceLevel) {
-				return;
-			}
+		void printStatistic(GenerationState& state) {
 			state.printStatistic();
 		}
 
