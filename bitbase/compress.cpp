@@ -24,6 +24,7 @@
 #include <array>
 #include <vector>
 #include <unordered_map>
+#include <cstring>
 #include "lz4.h"
 #include "miniz.h"
 #include "compress.h"

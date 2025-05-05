@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Workpackage for a thread in bitbase generation
  */
@@ -26,6 +26,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <optional>
 #include "compress.h"
 
 
@@ -35,7 +36,7 @@ namespace QaplaBitbase {
 
     /**
      * Static utility class for reading and writing Bitbase files.
-     * Handles raw file format only — no caching, no semantics.
+     * Handles raw file format only ï¿½ no caching, no semantics.
      */
     class BitbaseFile {
     public:
@@ -110,7 +111,7 @@ namespace QaplaBitbase {
     private:
         /**
          * Compact, binary-safe bitbase file header (32 bytes).
-         * Structured as 8× uint32_t, with explicit constructor for all fields.
+         * Structured as 8ï¿½ uint32_t, with explicit constructor for all fields.
          */
         struct BitbaseHeader {
             static constexpr size_t WordCount = 10;

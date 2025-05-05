@@ -13,13 +13,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Workpackage for a thread in bitbase generation
  */
-
-#pragma once
 
 #include <cstdint>
 #include <cstring>
@@ -140,7 +138,7 @@ namespace QaplaBitbase {
         std::ifstream in(filePath, std::ios::binary);
         if (!in) {
             if (errno == ENOENT) {
-                return std::nullopt; // Datei fehlt – erwartbarer Zustand
+                return std::nullopt; // Datei fehlt ï¿½ erwartbarer Zustand
             }
             else {
                 throw std::runtime_error("Failed to open bitbase file: " + filePath);
@@ -196,7 +194,7 @@ namespace QaplaBitbase {
             throw std::runtime_error("Failed to read cluster data");
         }
 
-        // Berechne tatsächliche unkomprimierte Größe (in Bytes) für diesen Cluster
+        // Berechne tatsï¿½chliche unkomprimierte Grï¿½ï¿½e (in Bytes) fï¿½r diesen Cluster
         const uint64_t startBit = static_cast<uint64_t>(clusterIndex) * static_cast<uint64_t>(clusterSizeBytes) * 8;
         const uint64_t remainingBits = (startBit >= sizeInBits) ? 0 : (sizeInBits - startBit);
         const uint64_t actualBits = std::min<uint64_t>(remainingBits, static_cast<uint64_t>(clusterSizeBytes) * 8);
