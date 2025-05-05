@@ -295,7 +295,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 		}
 
 		joinThreads();
-		cout << ".";
+		std::cout << "." << std::flush;
 		if (!state.hasCandidates())
 		{
 			break;
@@ -521,7 +521,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 		return;
 	}
 
-	cout << pieceString << " using " << _cores << " threads ";
+	cout << pieceString << " using " << _cores << " threads " << std::flush;
 
 	GenerationState state(pieceList, pieceSignature.getPiecesSignature());
 	ClockManager clock;
@@ -535,7 +535,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 			{ computeInitialWorkpackage(workpackage, state); });
 	}
 	joinThreads();
-	cout << ".";
+	cout << "." << std::flush;
 	computeBitbase(state, clock);
 
 	string fileName = pieceString + string(".btb");
