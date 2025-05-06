@@ -27,6 +27,7 @@
 #include "../interface/isendsearchinfo.h"
 #include "../interface/ichessboard.h"
 #include "../interface/iinputoutput.h"
+#include "../interface/movescanner.h"
 #include "../basics/move.h"
 #include "../basics/movelist.h"
 #include "../movegenerator/movegenerator.h"
@@ -345,8 +346,32 @@ namespace QaplaSearch {
 		/**
 		 * Compute a move
 		 */
-		virtual void computeMove(bool verbose = true) {
-			_computingInfo = iterativeDeepening.searchByIterativeDeepening(position, moveHistory);
+		virtual void computeMove(std::string searchMoves = "", bool verbose = true) {
+			std::vector<Move> searchMovesVector;
+			std::string currentMove;
+
+			for (size_t i = 0; i <= searchMoves.length(); ++i) {
+				if (i == searchMoves.length() || searchMoves[i] == ' ') {
+					if (!currentMove.empty()) {
+						MoveScanner scanner(currentMove);
+						if (scanner.isLegal()) {
+							Move move = findMove(position,
+								scanner.piece,
+								scanner.departureFile, scanner.departureRank,
+								scanner.destinationFile, scanner.destinationRank,
+								scanner.promote);
+							if (!move.isEmpty()) {
+								searchMovesVector.push_back(move);
+							}
+						}
+						currentMove.clear();
+					}
+				}
+				else {
+					currentMove += searchMoves[i];
+				}
+			}
+			_computingInfo = iterativeDeepening.searchByIterativeDeepening(position, searchMovesVector, moveHistory);
 		}
 
 		/**

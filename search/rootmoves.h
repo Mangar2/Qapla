@@ -136,9 +136,12 @@ namespace QaplaSearch {
 		RootMove& findMove(Move move);
 
 		/**
-		 * Sets all moves
+		 * Sets the moves to be searched
+		 * @param position the current position
+		 * @param searchMoves the moves to be searched, if empty, all moves are searched
+		 * @param butterflyBoard the butterfly board
 		 */
-		void setMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard);
+		void setMoves(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard);
 
 		/**
 		 * Stable sort algorithm sorting all moves from first to last

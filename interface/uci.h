@@ -50,12 +50,12 @@ namespace QaplaInterface {
 		/**
 		 * Starts computing a move - sets analyze mode to false
 		 */
-		void computeMove() {
+		void computeMove(std::string searchMoves) {
 			_clock.storeCalculationStartTime();
 			getBoard()->setClock(_clock);
 			setInfiniteSearch(_clock.isAnalyseMode() || _clock.isPonderMode());
-			getWorkerThread().startTask([this]() {
-				getBoard()->computeMove();
+			getWorkerThread().startTask([this, searchMoves]() {
+				getBoard()->computeMove(searchMoves);
 				ComputingInfoExchange computingInfo = getBoard()->getComputingInfo();
 				if (computingInfo.error != "") {
 					println("info string illegal go command on " + computingInfo.error);
@@ -101,6 +101,18 @@ namespace QaplaInterface {
 				token = getNextTokenBlocking(true);
 			}
 			return fen;
+		}
+
+		std::string readSearchMoves() {
+			string token = getCurrentToken();
+			string moves = "";
+			string space = "";
+			while (token != "\n" && token != "\r" && isValidMoveString(token) && !isFatalError()) {
+				moves += space + token;
+				space = " ";
+				token = getNextTokenBlocking(true);
+			}
+			return moves;
 		}
 
 		/**
@@ -152,6 +164,7 @@ namespace QaplaInterface {
 			stopCompute();
 			_clock.reset();
 			string token = "";
+			string searchMoves = "";
 			while (token != "\n" && token != "\r" && !isFatalError()) {
 				token = getNextTokenBlocking(true);
 				if (token == "\n" || token == "\r") break;
@@ -169,9 +182,13 @@ namespace QaplaInterface {
 					else if (token == "nodes") _clock.setNodeCount(param);
 					else if (token == "mate") _clock.setMate(param);
 					else if (token == "movetime") _clock.setExactTimePerMoveInMilliseconds(param);
+					else if (token == "searchmoves") {
+						searchMoves = readSearchMoves();
+						token = getCurrentToken();
+					}
 				}
 			};
-			computeMove();
+			computeMove(searchMoves);
 		}
 
 		/**

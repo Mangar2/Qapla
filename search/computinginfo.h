@@ -96,8 +96,8 @@ namespace QaplaSearch {
 		/**
 		 * initializes data before starting to search
 		 */
-		void initNewSearch(MoveGenerator& position, ButterflyBoard butterflyBoard) {
-			_rootMoves.setMoves(position, butterflyBoard);
+		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard butterflyBoard) {
+			_rootMoves.setMoves(position, searchMoves, butterflyBoard);
 			_nodesSearched = 0;
 			_tbHits = 0;
 			_timeControl.storeStartTime();

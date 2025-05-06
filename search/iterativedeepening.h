@@ -98,7 +98,8 @@ namespace QaplaSearch {
 		/**
 		 * Searches the best move by iteratively deepening the search depth
 		 */
-		ComputingInfo searchByIterativeDeepening(const MoveGenerator& position, MoveHistory& moveHistory)
+		ComputingInfo searchByIterativeDeepening(
+			const MoveGenerator& position, const std::vector<Move>& searchMoves, MoveHistory& moveHistory)
 		{
 
 			MoveGenerator searchBoard = position;
@@ -121,7 +122,7 @@ namespace QaplaSearch {
 			for (auto& window : _window) {
 				window.initSearch();
 			}	
-			_search.startNewSearch(searchBoard);
+			_search.startNewSearch(searchBoard, searchMoves);
 			_clockManager.setNewMove();
 			if (_search.getComputingInfo().getMovesAmount() == 0) {
 				return _search.getComputingInfo();

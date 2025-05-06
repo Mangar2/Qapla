@@ -64,8 +64,8 @@ namespace QaplaSearch {
 		/**
 		 * Starts a new search
 		 */
-		void startNewSearch(MoveGenerator& position) {
-			_computingInfo.initNewSearch(position, _butterflyBoard);
+		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves) {
+			_computingInfo.initNewSearch(position, searchMoves, _butterflyBoard);
 			_butterflyBoard.newSearch();
 		}
 

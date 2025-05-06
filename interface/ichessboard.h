@@ -135,7 +135,7 @@ namespace QaplaInterface {
         virtual void setClock(const ClockSetting& clockSetting) = 0;
 
         /** Starts move computation asynchronously. */
-        virtual void computeMove(bool verbose = true) = 0;
+        virtual void computeMove(std::string SearchMoves = "", bool verbose = true) = 0;
 
         /** Signals that a pondered move was hit. */
         virtual void ponderHit() {}

@@ -214,7 +214,11 @@ namespace QaplaInterface {
 			return setPositionByFen(position, _board);
 		}
 
-		bool isLegalMove(string move) { return false; }
+		bool isValidMoveString(string move) { 
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			return scanner.isLegal();
+		}
 
 		/**
 		 * Gets a move to the board
