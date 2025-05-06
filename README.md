@@ -2,7 +2,7 @@
 
 Qapla chess engine
 
-The current version 0.2 - the second pre-release version
+The current version 0.3 - the third pre-release version
 
 ## What is a chess engine?
 
@@ -14,38 +14,9 @@ Qapla is available for 64 bit windows and 64 bit linux. Qapla uses hardware supp
 
 ## Compiling it yourself
 
-- I deliver a visual studio project that can be used to compile it. Compile the "release" version.
-- You can also compile it with nmake. The make file is generated with chat-gpt but it still works :-)
+- I switched to a make file 
+- I deliver additionally a visual studio project that can be used to compile it. 
 - There is a CMakeLists.txt to compile it with cmake for linux.
-
-To compile it with linux: 
-1. Install cmake and clang++ (or g++)
-2. Create a build directory with release subdirectory
-3. Change to the release directory
-4. Run `cmake ../..`
-5. Run `make -j$(nproc)`
-
-or you can add the following to the tasks.json in the .vscode directory, if you use Visual Studio Code:
-```json
-{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Build Release",
-            "type": "shell",
-            "command": "cmake -B ${workspaceFolder}/build/release -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ && cmake --build ${workspaceFolder}/build/release",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": ["$gcc"]
-        }
-    ]
-}
-```
 
 ## Version numbering
 
@@ -59,20 +30,20 @@ Qapla's version numbers have three digits:
 
 A typical test is made with 60 seconds +0.01 second per move and 1400 games agains 14 engines of about equal playing strength. Current test set:
 
-- Ruffian 1.05
-- Glaurung 1.21
+- Amoeba 2.4
+- Counter 3.3
+- Critter 0.52b
 - Fruit 2.3.1
-- Critter 0.52
-- WildCat 8
-- Aristarch 4.50
-- Spike 0.9a
-- Spike 1.2 Turin
+- Leorik 2.4
+- Marvin 3.2
 - Midnight 5
-- Amoeba 2.1
-- Marvin 3.0
-- Laser 1.0
-- viridithas 2.7.0
-- Leorik 2.3
+- Pingu 3.0.0
+- Polaris 1.6.1
+- Qapla0.2.058
+- Spike 1.3
+- Spike 1.4
+- Viridithas 3.0.0
+- Yakka 1.1
 
 A big thank you to the engine developers to have and keep their engines and also older versions freely available. These engines are selected because they play in average with similar playing strength and because the run very stable and supports short time controls. The current version is plays slightly above the average of these engines.
 
@@ -88,12 +59,8 @@ The following features are already supported in UCI
 - Analyze
 - Pondering
 - MultiPV (needs some improvements here :-) )
-- Time per move, time per game, moves to go, fixed search depth
-
-### Not yet supported in UCI
-
-- Exact node count
-- Exclude moves in search
+- Time per move, time per game, moves to go, fixed search depth, node count limit
+- searchmoves
 
 ### The following "features" are only supported in winboard
 
@@ -110,29 +77,22 @@ Pondering is only rudimentary supported in Winboard. Instead of continuing on po
 
 ## Playing strength
 
-Qapla never played in "official tournaments". I only have some raiting according my own test with short time control. I expect it to have abount 2700 "CCRL-ELo" or 2500 "CEGT-Elo". CCRL and CEGT are very popular chess engine raiting lists.
+Qapla never played in "official tournaments". I only have some raiting according my own test with short time control. I expect it to have abount 2850 "CCRL-ELo" or 2650 "CEGT-Elo". CCRL and CEGT are very popular chess engine raiting lists.
 
-## Improvements on Qapla 0.2 (to 0.1.1)
+## Improvements on Qapla 0.3 (to 0.1.1)
 
-- Minor changes in eval, mostly rooks and queen on #7 rank
-- Implemented late move reduction
-- Implemented kind of butterfly history boards (but with piece/target square instead of source/target square)
-- Singular extension
-- IID
-- Verify on Null moves
-- More consistend aspiration window
-- Better primary variant line due to always extend the last ply on PV node search, if a transposition table entry is found
-- Refactoring many code lines left due to the first non-recursive approach
+- Many improvements on eval weights
+- Implemented 50 moves rule
+- Several new eval terms like pinned pieces, overloaded attacks, differentiation of pawn evaluation in mid- and endgame, attract king to pawns in endgame, few more endgame evaluations
 - Bug fixing
 
 ## What to expect from Qapla?
 
 My current plan is
 
-- Refactoring eval to calculate an index per piece and then retrieve the pice value from a table. This shall improve the ability to automatically improve eval weights
-- Further improve search and implement more of the "classic" functionality that is still missing (futility pruning, razoring, ...)
-- The new features (eval-refinement history, continuation history, ...) will be implemented later
-- Try to generate nnue training data with my engine and implement a nnue network and train it myself.
+- Get to Spike 1.4 level with features known before 2010
+- Implement more modern search features
+- Implement NNUE with own created training data
 
 ## More info on the chess engine
 
@@ -142,13 +102,10 @@ The chess engine is based on a bitboard move generator, which generates only leg
 
 Bitbase support is included in a basic form starting with version 0.3.
 
-⚠️ **Important:** 
-- This is a simple first version. It will load all bitbases in uncompressed format in memory once you set the bitbase path. Make sure you have good memory, if you use it.
-- It is currently limited on 5 pieces bitbases. 6 pieces may work, but it is untested.
 
 You can generate bitbases using the following command:
 
-**`bitgenerate pieces [cores n]`**
+**`bitgenerate pieces [cores n] [path p] [compression miniz || lz4 || none] [cpp]`**
 
 ⚠️ **Important:** This must be the very first command after starting the engine.  
 Any other command (e.g. `uci` or `xboard` or anything else as xboard is default) will activate one of the standard protocols, which do not support bitbase generation.  
@@ -159,6 +116,12 @@ Once you enter bitbase generation mode, the engine will remain in this mode and 
 - `pieces`: The piece signature to generate.
   - Example: `KPK` will generate the bitbase for **King and Pawn vs. King**.
 - `cores n`: (optional) Number of CPU cores to use during generation.
+- `path p`: (optional) Path to save the generated bitbase files.
+- `compression miniz || lz4 || none`: (optional) Compression method to use for the generated bitbase files.
+  - `miniz` is the default compression method.
+  - `lz4` is faster but less efficient than `miniz`.
+  - `none` will not compress the generated files.
+- `cpp`: (optional) Generate a C++ header file with the bitbase data. This is useful if you want to link the bitbase directly into your program.
 
 The bitbase will be created in the current working directory.  
 Each generated bitbase is saved as a separate file (e.g. `KPK.btb` for King–Pawn–King).
@@ -178,8 +141,8 @@ To Generate:
 
 - All 3-pieces: KPK (or just "3", eg. bitgenerate 3 cores 4)
 - All 4-pieces: KPPK, KPKP (or "4")
-- All 5-pieces: KPPKP, KPKPP, KPPPK (or "5" will also generate all 4 and all 3 pieces)
-
+- All 5-pieces: KPPKP, KPKPP, KPPPK (or "5" or "5s" (without KPPPK) both will also generate all 4 and all 3 pieces)
+ 
 #### Delete the files not needed
 
 You may delete the files that you dont want after generation or you can cherry-pick the files you want. The system only needs all files for generation, not for playing with them.
@@ -233,6 +196,8 @@ Qapla already has several eval terms
 - Rook trapped by king penalty
 - Rook on half and full open files
 - Rooks on 7th rank
+- Overloading pressure
+- Endgame pawn handling
 
 ### Endgame eval terms
 
