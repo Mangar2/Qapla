@@ -55,7 +55,7 @@ namespace QaplaBitbase {
 		 * @traceLevel current trace level (0..2)
 		 * @workList true, if a worklist is in use
 		 */
-		void printProgress(int traceLevel, bool workList) {
+		void printProgress([[maybe_unused]]int traceLevel, bool workList) {
 			uint64_t size = workList ? _workList.size() : _size;
 			uint64_t onePercent = size / 100;
 			if (_workIndex - _lastInfo >= onePercent) {

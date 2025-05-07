@@ -22,27 +22,50 @@
 #include <string>
 #include "consoleio.h"
 #include "winboard.h"
-#include "UCI.h"
+#include "winboardprintsearchinfo.h"
+#include "uci.h"
+#include "statistics.h"
+#include "bitbase-interface.h"
 #include "uciprintsearchinfo.h"
 
 using namespace std;
 
 namespace QaplaInterface {
 
+
+	bool startsWith(const std::string& str, const std::vector<std::string>& prefixes) {
+		for (const std::string& prefix : prefixes) {
+			if (str.rfind(prefix, 0) == 0) { 
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Processes any input coming from the console
 	 */
 	static void selectAndStartInterface(IChessBoard* board, IInputOutput* ioHandler) {
 		const string firstToken = ioHandler->getNextTokenBlocking();
+		const string stats = "stat";
 		if (firstToken == "uci") {
 			UCI uci;
 			UCIPrintSearchInfo sendSearchInfo(ioHandler);
-			board->setSendSerchInfo(&sendSearchInfo);
+			board->setSendSearchInfo(&sendSearchInfo);
 			uci.run(board, ioHandler);
-		} else {
+		}
+		else if (startsWith(firstToken, { "stat", "epd", "playepd", "wmtest", "train", "material"})) {
+			Statistics statistics;
+			statistics.run(board, ioHandler);
+		} 
+		else if (startsWith(firstToken, { "bitgenerate", "bitverify" })) {
+			BitbaseInterface bitboardInterface;
+			bitboardInterface.run(board, ioHandler);
+		}
+		else {
 			Winboard winboard;
 			WinboardPrintSearchInfo sendSearchInfo(ioHandler);
-			board->setSendSerchInfo(&sendSearchInfo);
+			board->setSendSearchInfo(&sendSearchInfo);
 			winboard.run(board, ioHandler);
 		}
 	}

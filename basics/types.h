@@ -22,6 +22,7 @@
 #ifndef __TYPES_H
 #define __TYPES_H
 
+#include <cstdint>
 #include <array>
 #include <string>
 #include <iostream>
@@ -34,6 +35,22 @@ namespace QaplaBasics {
 	typedef int32_t square_t;
 	typedef uint64_t bitBoard_t;
 	typedef array<bitBoard_t, 2> colorBB_t;
+
+	/**
+	 * Prints a bitboard to stdout
+	 */
+	inline void printBB(bitBoard_t bb) {
+		uint32_t lineBreak = 8;
+		for (uint64_t i = 1ULL << 63; i > 0; i /= 2) {
+			cout << ((bb & i) ? "X " : ". ");
+			lineBreak--;
+			if (lineBreak == 0) {
+				std::cout << endl;
+				lineBreak = 8;
+			}
+		}
+		std::cout << std::endl;
+	}
 
 	/**
 	 * Chess board Squares
@@ -61,16 +78,15 @@ namespace QaplaBasics {
 		NORTH_2 = NORTH * 2
 	};
 
-	constexpr Square operator*(Square a, int32_t b) { return Square(int32_t(a) * b); }
 	constexpr Square operator+(Square a, int32_t b) { return Square(int32_t(a) + b); }
 	constexpr Square operator-(Square a, int32_t b) { return Square(int32_t(a) - b); }
 	constexpr Square operator-(Square square) { return Square(-int32_t(square)); }
 	constexpr bool operator<(Square a, Square b) { return int32_t(a) < int32_t(b); }
 	inline Square operator^=(Square& square, int32_t a) { return square = Square(square ^ a); }
-	inline Square& operator++(Square& square) { return square = Square(square + 1); }
+	constexpr Square& operator++(Square& square) { return square = Square(square + 1); }
 	inline Square& operator--(Square& square) { return square = Square(square - 1); }
 	inline Square& operator+=(Square& a, int32_t b) { return a = Square(a + b); }
-	constexpr bitBoard_t posToBB(Square square) { return 1ULL << square; }
+	constexpr bitBoard_t squareToBB(Square square) { return 1ULL << square; }
 
 	/**
 	 * Names of chess board files
@@ -107,8 +123,6 @@ namespace QaplaBasics {
 		return Rank(square / NORTH);
 	}
 
-
-
 	/**
 	 * Gets the opposit rank of a square
 	 */
@@ -140,7 +154,7 @@ namespace QaplaBasics {
 	/**
 	 * Checks, wether a square is inside the board
 	 */
-	static bool isInBoard(Square square)
+	constexpr bool isInBoard(Square square)
 	{
 		return (square >= A1) && (square <= H8);
 	}
@@ -148,7 +162,7 @@ namespace QaplaBasics {
 	/**
 	 * Checks, wether a rank is inside the board
 	 */
-	static bool isRankInBoard(Rank rank)
+	constexpr bool isRankInBoard(Rank rank)
 	{
 		return (rank >= Rank::R1) && (rank <= Rank::R8);
 	}
@@ -156,7 +170,7 @@ namespace QaplaBasics {
 	/**
 	 * Checks, wether a file is inside the board
 	 */
-	static bool isFileInBoard(File file)
+	constexpr bool isFileInBoard(File file)
 	{
 		return (file >= File::A) && (file <= File::H);
 	}
@@ -164,7 +178,7 @@ namespace QaplaBasics {
 	/**
 	 * Checks, wether file and rank is inside the board
 	 */
-	static bool isInBoard(Rank rank, File file)
+	constexpr bool isInBoard(Rank rank, File file)
 	{
 		return isRankInBoard(rank) && isFileInBoard(file);
 	}
@@ -200,12 +214,15 @@ namespace QaplaBasics {
 		COLOR_COUNT = 0x02,
 		COLOR_MASK = 0x01
 	};
-	
 	constexpr Piece operator+(Piece a, int32_t b) { return Piece(int32_t(a) + b); }
 	constexpr Piece operator-(Piece a, int32_t b) { return Piece(int32_t(a) - b); }
 	inline Piece& operator++(Piece& piece) { return piece = Piece(piece + 1); }
 	inline Piece& operator+=(Piece& a, int32_t b) { return a = Piece(a + b); }
 	inline Piece& operator-=(Piece& a, int32_t b) { return a = Piece(a - b); }
+
+	template <Piece COLOR> constexpr Piece opponentColor() {
+		return COLOR == WHITE ? BLACK : WHITE;
+	}
 
 	/**
 	 * Checks, if a piece is a pawn
@@ -243,19 +260,34 @@ namespace QaplaBasics {
 	 */
 	template<Piece COLOR>
 	constexpr Rank getRank(Square square) {
-		return COLOR == WHITE ? Rank(square / NORTH) : Rank::R8 - Rank(square / NORTH);
+		if constexpr (COLOR == WHITE) {
+			return Rank(square / NORTH);
+		}
+		else {
+			return Rank::R8 - Rank(square / NORTH);
+		}
+	}
+
+	template <Piece COLOR>
+	constexpr Square switchSideToWhite(Square square) {
+		if constexpr (COLOR == WHITE) {
+			return square;
+		}
+		else {
+			return switchSide(square);
+		}
 	}
 
 	/**
 	 * Computes the string representation of a board square
 	 * @param square Square in internal representation
 	 */
-	static auto squareToString(square_t square) {
+	constexpr auto squareToString(square_t square) {
 		std::string result = "?";
 		result = "";
 		if (square >= Square::A1 && square <= Square::H8) {
-			result += ('a' + (square % NORTH));
-			result += ('1' + (square / NORTH));
+			result += ('a' + static_cast<char>(square % NORTH));
+			result += ('1' + static_cast<char>(square / NORTH));
 		}
 		return result;
 	}
@@ -265,17 +297,17 @@ namespace QaplaBasics {
 	 * @param squareAsString standard chess notation of a square
 	 * @expampe stringToSquare("e1")
 	 */
-	static auto stringToSquare(std::string squareAsString) {
+	constexpr auto stringToSquare(std::string squareAsString) {
 		square_t result =
-			squareAsString[0] * EAST +
-			squareAsString[1] * NORTH;
+			(squareAsString[0] - 'a') * EAST +
+			(squareAsString[1] - '1') * NORTH;
 		return result;
 	}
 
 	/**
 	 * Computes the char representation of a chess piece
 	 */
-	static auto pieceToChar(Piece piece) {
+	constexpr auto pieceToChar(Piece piece) {
 		switch (piece)
 		{
 		case BLACK_PAWN: return 'p';
@@ -297,7 +329,7 @@ namespace QaplaBasics {
 	/**
 	 * Computes the piece number from a piece symbol
 	 */
-	static auto charToPiece(char piece) {
+	constexpr auto charToPiece(char piece) {
 		switch (piece)
 		{
 		case 'p':return BLACK_PAWN;
@@ -319,7 +351,7 @@ namespace QaplaBasics {
 	/**
 	 * Converts a Color to a string
 	 */
-	static string colorToString(Piece color) {
+	constexpr std::string colorToString(Piece color) {
 		return color == WHITE ? "White" : "Black";
 	}
 
@@ -327,7 +359,7 @@ namespace QaplaBasics {
 	 * Computes the piece symbol for a promotion used for LAN (Long Algebraic Notation)
 	 * @example e2e1q
 	 */
-	static char pieceToPromoteChar(Piece piece) {
+	constexpr char pieceToPromoteChar(Piece piece) {
 		switch (piece)
 		{
 		case WHITE_KNIGHT:

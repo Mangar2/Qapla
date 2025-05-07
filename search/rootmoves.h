@@ -82,7 +82,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets results after the search of a move is finished
 		 */
-		void set(value_t searchResult, const SearchStack& stack);
+		void set(value_t searchResult, const SearchStack& stack, bool isPVSearched);
 
 		/**
  		 * Checks, if we need to research this root move.
@@ -136,9 +136,12 @@ namespace QaplaSearch {
 		RootMove& findMove(Move move);
 
 		/**
-		 * Sets all moves
+		 * Sets the moves to be searched
+		 * @param position the current position
+		 * @param searchMoves the moves to be searched, if empty, all moves are searched
+		 * @param butterflyBoard the butterfly board
 		 */
-		void setMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard);
+		void setMoves(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard);
 
 		/**
 		 * Stable sort algorithm sorting all moves from first to last
@@ -159,7 +162,7 @@ namespace QaplaSearch {
 		const RootMove& getMove(size_t index) const { return _moves[index]; }
 
 		/**
-		 * Retunrs the amount of moves with full pv search of current depth and a value in the search window 
+		 * Returns the amount of moves with full pv search of current depth and a value in the search window 
 		 * at the start of the move list. 
 		 */
 		uint32_t countPVSearchedMovesInWindow(ply_t depth) const {

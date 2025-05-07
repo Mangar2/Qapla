@@ -20,7 +20,7 @@
 #include "search.h"
 #include "whatIf.h"
 #include "quiescence.h"
-#include "../bitbase/bitbasereader.h"
+#include "../bitbase/bitbase-reader.h"
 
 using namespace QaplaSearch;
 
@@ -63,7 +63,7 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
 		result = false;
 	}
 	*/
-	else if (node.eval < node.beta) {
+	else if (node.adjustedEval < node.beta) {
 		return false;
 	} 
 	else if (position.getMaterialValue(position.isWhiteToMove()).midgame() + MaterialBalance::PAWN_VALUE_MG < node.beta) {
@@ -87,13 +87,13 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
 	else if (node.beta <= -MAX_VALUE + value_t(ply)) {
 		result = false;
 	}
-	else if (node.isTTValueBelowBeta(position, ply)) {
+	else if (node.ttValue != NO_VALUE && node.isTTValueBelowBeta(position, ply)) {
 		result = false;
 	}
 	else if (ply + depth < 3) {
 		result = false;
 	}
-	else if (node.isPVSearch()) {
+	else if (node.isPVNode()) {
 		result = false;
 	}
 
@@ -111,22 +111,23 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 		return false;
 	}
 	assert(!position.isInCheck());
+	SearchVariables& childNode = stack[ply + 1];
 
-	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.eval);
+	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.adjustedEval);
 
-	stack[ply + 1].doMove(position, Move::NULL_MOVE);
+	childNode.doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth - R > 2 ?
-		-negaMax<SearchRegion::INNER>(position, stack, depth - R - 1, ply + 1) :
-		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - R - 1, ply + 1);
+		-negaMax<SearchRegion::INNER>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1) :
+		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1);
 
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - R - 1, ply, node.bestValue, "null");
-	stack[ply + 1].undoMove(position);
+	childNode.undoMove(position);
 	bool isCutoff = node.bestValue >= node.beta;
 	
 	if (isCutoff && depth - R - 1 >= 0) {
 		position.computeAttackMasksForBothColors();
 		node.isVerifyingNullmove = true;
-		const auto verify = negaMaxPreSearch(position, stack, depth - R - 1, ply);
+		const auto verify = negaMaxPreSearch(position, stack, node.alpha, node.beta, depth - R - 1, ply);
 		node.isVerifyingNullmove = false;
 		isCutoff = verify >= node.beta;
 	}
@@ -157,18 +158,18 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	return lmr;
 }
 
-value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
-	node.setFromParentNode(position, stack[ply - 1], depth, false);
+	node.setFromParentNode(position, stack[ply - 1], alpha, beta, depth, false);
 	// Must be after setFromParentNode
-	node.probeTT(false, node.alpha, node.beta, depth, ply);
+	node.probeTT(false, alpha, beta, depth, ply);
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
 		childNode.doMove(position, curMove);
-		const auto result = -negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1);
+		const auto result = -negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1);
 		node.setSearchResult(result, childNode, curMove);
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, result, "PRE");
 		childNode.undoMove(position);
@@ -185,7 +186,7 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, pl
  * IID modifies variables from stack[ply] (like move counter, search depth, ...)
  * Thus it must be called before setting the stack in negamax (setFromPreviousPly).
  */
-void Search::iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	SearchVariables& node = stack[ply];
 
 	if (!SearchParameter::DO_IID) return;
@@ -193,7 +194,7 @@ void Search::iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	if (!node.getTTMove().isEmpty()) return;
 
 	ply_t iidR = SearchParameter::getIIDReduction(depth);
-	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, depth - iidR, ply);
+	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, alpha, beta, depth - iidR, ply);
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
 	position.computeAttackMasksForBothColors();
 	if (!node.bestMove.isEmpty()) {
@@ -202,10 +203,11 @@ void Search::iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 
 }
 
-ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	if (!SearchParameter::DO_SE_EXTENSION) return 0;
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
+	SearchVariables& parentNode = stack[ply - 1];
 
 	// Do not double extend check moves
 	if (SearchParameter::DO_CHECK_EXTENSIONS && node.sideToMoveIsInCheck) return 0;
@@ -216,13 +218,15 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// Limit maximal extension depth
 	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchParameter::MAX_SEARCH_DEPTH))) return 0;
 
-	node.setFromParentNode(position, stack[ply - 1], depth, false);
+	node.setFromParentNode(position, parentNode, alpha, beta, depth, false);
 	
 	// Must be after setFromParentNode
-	node.probeTT(false, node.alpha, node.beta, depth, ply);
+	node.probeTT(false, alpha, beta, depth, ply);
 
 	// No se, if tt does not have a good move value (> alpha)
 	if (node.ttValueIsUpperBound) return 0;
+	// We need a ttValue to have something to search for
+	if (node.ttValue == NO_VALUE) return 0;
 
 	// Singular extension based on tt move. Only, if the search found a value > alpha it found a "best move" in the position and is able to store it to
 	// the transposition table
@@ -232,7 +236,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 	// We require a certain search depth for the tt move to be considered for a singular extension
 	if (node.ttDepth < seDepth) return 0;
 	// No se, if the tt already shows a mate or equivalent value
-	if (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE) return 0;
+	if (node.ttValue != NO_VALUE && (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE)) return 0;
 
 	node.setSE(SearchParameter::singularExtensionMargin(depth));
 	_computingInfo._nodesSearched++;
@@ -246,7 +250,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t
 		if (curMove == ttMove) continue;
 
 		childNode.doMove(position, curMove);
-		const auto result = -negaMax<SearchRegion::INNER>(position, stack, seDepth - 1, ply + 1);
+		const auto result = -negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, seDepth - 1, ply + 1);
 		node.setSearchResult(result, childNode, curMove);
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, seDepth - 1, ply, result, "SE");
 		childNode.undoMove(position);
@@ -270,10 +274,10 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	node.cutoff = Cutoff::NONE;
 	node.setHashSignature(position);
 
-	if (alpha > MAX_VALUE - value_t(ply)) {
+	if (TYPE != SearchRegion::PV && alpha > MAX_VALUE - value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
 	}
-	else if (beta < -MAX_VALUE + value_t(ply)) {
+	else if (TYPE != SearchRegion::PV && beta < -MAX_VALUE + value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 	}
 	else if (position.drawDueToMissingMaterial()) {
@@ -282,13 +286,19 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
 		node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
 	}
+	else if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() >= 100) {
+		node.setCutoff(Cutoff::DRAW_BY_50_MOVES_RULE, 0);
+	}
 	else if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
-		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, ply));
+		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, node.getTT()->getPawnTT(), ply));
 	}
 	else if (TYPE != SearchRegion::NEAR_LEAF && hasBitbaseCutoff(position, node)) {
 		node.setCutoff(Cutoff::BITBASE);
 	}
 	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort()) {
+		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
+	}
+	else if (_clockManager->stopOnNodeTarget(_computingInfo._nodesSearched)) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
 
@@ -300,26 +310,25 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
  * Negamax algorithm for plys 1..n
  */
 template <Search::SearchRegion TYPE>
-value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 
 	SearchVariables& node = stack[ply];
-	node.pvMovesStore[ply] = Move::EMPTY_MOVE;
+	node.pvMovesStore.setEmpty(ply);
 
-	value_t alpha = -stack[ply - 1].beta;
-	value_t beta = -stack[ply - 1].alpha;
 	// 1. Detect direct cutoffs without requiring search or eval
 	// This includes checking the hash and setting the hash information like ttMove
 	if (nonSearchingCutoff<TYPE>(position, stack, node, alpha, beta, depth, ply)) return node.bestValue;
+	SearchVariables& childNode = stack[ply + 1];
+	SearchVariables& parentNode = stack[ply - 1];
 
 	// 2. Quiescense search
 	if (depth < 0) {
-		return Quiescence::search(TYPE == SearchRegion::PV, position, _computingInfo, node.previousMove, alpha, beta, ply);
+		return _quiescence.search(TYPE == SearchRegion::PV, position, _computingInfo, node.previousMove, alpha, beta, ply);
 	}
 
 	const auto nodesSearched = _computingInfo._nodesSearched;
-	
 	/*
-	if (nodesSearched == 27677402) {
+	if (nodesSearched == 161) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();
@@ -328,28 +337,29 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	*/
 	_computingInfo._nodesSearched++;
 
-
 	// 3. Probe the hash table. This will set the hash information to the node.
 	// The required hash signature is set in nonSearchingCutoff
 	if (node.probeTT(TYPE == SearchRegion::PV, alpha, beta, depth, ply)) {
 		node.setCutoff(Cutoff::HASH);
 		return node.bestValue;
 	}
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, depth, ply);
 
 	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
-	if (TYPE == SearchRegion::PV) iid(position, stack, depth, ply);
+	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
 
 	// 5. Singular extension
-	const auto seExtension = se(position, stack, depth, ply);
+	const auto seExtension = se(position, stack, alpha, beta, depth, ply);
 
 	value_t result;
 	Move curMove;
 
-	node.setFromParentNode(position, stack[ply - 1], depth, TYPE == SearchRegion::PV);
+	// 6. Setting node values from parent node, must be after seExtensions
+	// We need only stable information from parent node; the node type and the previous move.
+	node.setFromParentNode(position, parentNode, alpha, beta, depth, TYPE == SearchRegion::PV);
 	
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 
-	// Check all kind of early cutoffs including futility, nullmove, bitbase and others 
+	// 7. Check all kind of early cutoffs including futility, nullmove, bitbase and others 
 	// Additionally set eval. This is done as late as possible, as it is very time consuming. Some cutoff checks needs eval.
 	if (checkCutoffAndSetEval<TYPE>(position, stack, node, depth, ply)) {
 		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
@@ -357,28 +367,29 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 	}
 
 	node.computeMoves(position, _butterflyBoard);
-	depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
+	// 8. Calculate additional search extensions
+	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
 
+	bool isNullWindow = false;
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
 		const auto lmr = computeLMR(node, position, depth, ply, curMove);
 
 		// 1. Move count pruning
-		if (lmr > 0 && depth - lmr < 0 && node.bestValue > -MIN_MATE_VALUE) continue;
+		if (lmr > 0 && depth - lmr < 0 && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) continue;
 
-		stack[ply + 1].doMove(position, curMove);
+		childNode.doMove(position, curMove);
 
 		// 2. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
-			if (TYPE == SearchRegion::PV) node.setNullWindow();
 			result = TYPE != SearchRegion::NEAR_LEAF && depth - lmr > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, depth - 1 - lmr, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1 - lmr, ply + 1);
+				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1) :
+				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1 - lmr, ply, result, "LMR");
 			if (result <= node.alpha) {
-				stack[ply + 1].undoMove(position);
+				childNode.undoMove(position);
 				// We improve value on lmr result. Especially important to not get false mate values due to skipped escape moves
 				if (result > node.bestValue) {
 					node.bestValue = result;
@@ -393,10 +404,9 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 		// We do not return fail high from a null window search in PV node
 		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.moveNumber == 1 || depth <= 1);
 		if (!isDirectPVWindowSearch) {
-			if (TYPE == SearchRegion::PV) node.setNullWindow();
 			result = TYPE != SearchRegion::NEAR_LEAF && depth > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, depth - 1, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, depth - 1, ply + 1);
+				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1) :
+				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
 		}
 		// 4. Full window PV search or research the move with full window, if result is better than alpha
@@ -405,14 +415,13 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 			if (!isDirectPVWindowSearch) {
 				position.computeAttackMasksForBothColors();
 			}
-			node.setPVWindow();
-			result = -negaMax<SearchRegion::PV>(position, stack, adjustedDepth - 1, ply + 1);
+			result = -negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, adjustedDepth - 1, ply, result, "PV");
 		}
 
-		node.setSearchResult(result, stack[ply + 1], curMove);
+		node.setSearchResult(result, childNode, curMove);
 
-		stack[ply + 1].undoMove(position);
+		childNode.undoMove(position);
 		if (node.isFailHigh()) break;
 	}
 	// 5. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
@@ -431,6 +440,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth
 void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t skipMoves, ClockManager& clockManager) {
 	if (skipMoves >= _computingInfo.getMovesAmount()) return;
 
+	_quiescence.setTT(stack[0].getTT());
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
 	SearchVariables& node = stack[0];
@@ -441,11 +451,10 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
 	node.computeMoves(position, _butterflyBoard);
 	_computingInfo.nextIteration(node);
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::Engine::set_position(position.getFen());
 #endif
-
 	for (uint32_t triedMoves = 0; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
 
 		RootMove& rootMove = _computingInfo.getRootMoves().getMove(triedMoves);
@@ -458,19 +467,21 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		_computingInfo.setCurrentMove(triedMoves, curMove);
 
 		stack[1].doMove(position, curMove);
-		result = triedMoves <= skipMoves || depth <= 1 ?
-			-negaMax<SearchRegion::PV>(position, stack, depth - 1, 1):
-			-negaMax<SearchRegion::INNER>(position, stack, depth - 1, 1);
+		auto pvSearch = depth <= 1 || triedMoves <= skipMoves;
+		result = pvSearch ?
+			-negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, depth - 1, 1):
+			-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, 1);
 		stack[1].undoMove(position);
 
 		// AbortSearch must be checked first. If it is true, we do not have a valid search result
 		if (_clockManager->isSearchStopped()) break;
 
-		if (result > node.alpha && node.isNullWindowSearch()) {
+		if (result > node.alpha && !pvSearch) {
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, 0, result);
+			pvSearch = true;
 			node.setPVWindow();
 			stack[1].doMove(position, curMove);
-			result = -negaMax<SearchRegion::PV>(position, stack, depth - 1, 1);
+			result = -negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, depth - 1, 1);
 			stack[1].undoMove(position);
 		}
 
@@ -479,7 +490,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 			
 		// We need to set the result to the root move before we update the node variables. 
 		// The root move will check for a fail low and thus needs the alpha value not updated
-		rootMove.set(result, stack);
+		rootMove.set(result, stack, pvSearch);
 		node.setSearchResult(result, stack[1], curMove);
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, 0, result);
 
@@ -487,11 +498,13 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 			node.setNullWindow();
 		}
 
-		_clockManager->setSearchedRootMove(node.isPVFailLow(), node.bestValue);
+		_clockManager->setSearchedRootMove(node.isFailLow(), node.bestValue);
 		if (_clockManager->shouldAbort()) break;
 		_computingInfo.printNewPV(triedMoves);
 		if (node.isFailHigh()) break;
 	}
+
+	_computingInfo.setDebug(-1);
 
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);

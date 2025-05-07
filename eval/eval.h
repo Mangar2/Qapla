@@ -20,8 +20,7 @@
  * Used to evaluate in quiescense search
  */
 
-#ifndef __EVAL_H
-#define __EVAL_H
+#pragma once
 
  // Idee 1: Evaluierung in der Ruhesuche ohne positionelle Details
  // Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
@@ -32,6 +31,7 @@
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
+#include "pawntt.h"
 
 using namespace QaplaMoveGenerator;
 
@@ -44,14 +44,14 @@ namespace ChessEval {
 		/**
 		 * Checks, that eval is symmetically identical
 		 */
-		static void assertSymetry(MoveGenerator& board, value_t evalResult) {
-			MoveGenerator symBoard;
-			symBoard.setToSymetricBoard(board);
-			value_t symEvalResult = eval(symBoard, -MAX_VALUE);
+		static void assertSymetry(MoveGenerator& position, value_t evalResult, PawnTT* ttPtr) {
+			MoveGenerator symPosition;
+			symPosition.setToSymetricBoard(position);
+			value_t symEvalResult = eval(symPosition, ttPtr, -MAX_VALUE);
 
 			if (symEvalResult != evalResult) {
-				printEval(board);
-				printEval(symBoard);
+				printEval(position);
+				printEval(symPosition);
 				symEvalResult = evalResult;
 				assert(false);
 			}
@@ -60,45 +60,42 @@ namespace ChessEval {
 		/**
 		 * Calculates an evaluation for the current board position
 		 */
-		static value_t eval(MoveGenerator& board, value_t ply = 0, value_t alpha = -MAX_VALUE) {
+		static value_t eval(MoveGenerator& position, PawnTT* pawnttPtr = nullptr, value_t ply = 0,
+			[[maybe_unused]] value_t alpha = -MAX_VALUE) {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else
-			static const value_t tempo = 8;
-			EvalResults evalResults;
-			value_t positionValue = lazyEval<false>(board, evalResults, ply);
-			positionValue = board.isWhiteToMove() ? positionValue : -positionValue;
-			if (abs(positionValue) < WINNING_BONUS) {
-				positionValue += tempo;
-			}
-			// If a value == 0, the position will not be stored in hash tables
-			// Value == 0 indicates a forced draw situation like repetetive moves 
-			// or move count without pawn move or capture == 50
-			if (positionValue == 0) positionValue = 1;
-			return positionValue;
+			value_t positionValue = lazyEval<false>(position, ply, pawnttPtr);
+			return position.isWhiteToMove() ? positionValue : -positionValue;
 #endif
 		}
 
 		/**
 		 * Prints the evaluation results
 		 */
-		static void printEval(MoveGenerator& board);
+		static void printEval(MoveGenerator& position);
 
 		/**
-		 * Gets a map of relevant factors to examine eval
+		 * Fetches the list of indices calculated by the evaluation
 		 */
-		template <Piece COLOR>
-		map<string, value_t> getEvalFactors(MoveGenerator& board);
+		IndexVector computeIndexVector(MoveGenerator& position);
+		/**
+		 * Fetches the lookup map to get the value of an index value
+		 */
+		IndexLookupMap computeIndexLookupMap(MoveGenerator& position);
 
-		map<string, value_t> getEvalFactors(MoveGenerator& board);
-	
+
 	private:
+
+		static void printEvalBoard(const std::vector<PieceInfo>& details, value_t midgameInPercent);
+		static const PieceInfo* getPiece(const std::vector<PieceInfo>& details, Square square);
+		static void printPieceRow(int row, const PieceInfo& pieceInfo, value_t midgameInPercent);
 
 		/**
 		 * Calculates the midgame factor in percent
 		 */
-		static value_t computeMidgameInPercent(MoveGenerator& board) {
-			value_t pieces = board.getStaticPiecesValue<WHITE>() + board.getStaticPiecesValue<BLACK>();
+		static value_t computeMidgameInPercent(MoveGenerator& position) {
+			value_t pieces = position.getStaticPiecesValue<WHITE>() + position.getStaticPiecesValue<BLACK>();
 			if (pieces > 64) {
 				pieces = 64;
 			}
@@ -108,8 +105,8 @@ namespace ChessEval {
 		/**
 		 * Calculates the midgame factor in percent
 		 */
-		static value_t computeMidgameV2InPercent(MoveGenerator& board) {
-			value_t pieces = board.getStaticPiecesValue<WHITE>() + board.getStaticPiecesValue<BLACK>();
+		static value_t computeMidgameV2InPercent(MoveGenerator& position) {
+			value_t pieces = position.getStaticPiecesValue<WHITE>() + position.getStaticPiecesValue<BLACK>();
 			if (pieces > 64) {
 				pieces = 64;
 			}
@@ -120,20 +117,29 @@ namespace ChessEval {
 		 * Calculates an evaluation for the current board position
 		 */
 		template <bool PRINT>
-		static value_t lazyEval(MoveGenerator& board, EvalResults& evalResults, value_t ply);
+		static value_t lazyEval(MoveGenerator& position, value_t ply, PawnTT* pawnttPtr = nullptr);
 
-	
+		/**
+		 * Fetches details for the evaluation
+		 */
+		static std::vector<PieceInfo> fetchDetails(MoveGenerator& position);
+
 
 		/**
 		 * Initializes some fields of eval results
 		 */
-		static void initEvalResults(MoveGenerator& board, EvalResults& evalResults);
+		static void initEvalResults(MoveGenerator& position, EvalResults& evalResults);
 
 		/**
 		 * Determines the game phase based on a static piece value
 		 * queens = 9, rooks = 5, bishop/knights = 3, pawns +1 if >= 3.
+		 * Size is enlarged to handle extreme cases like 3 queens + 3 rooks + ...
 		 */
-		static constexpr array<value_t, 65> midgameV2InPercent = {
+		static constexpr std::array<value_t, 123> midgameV2InPercent = [] {
+			std::array<value_t, 123> arr{};
+			arr.fill(100); // alles auf 100 setzen
+			
+			constexpr std::array<value_t, 65> base = {
 			0, 0,  0,  0,  0,  0,  0,  0,  0,
 			0,  0,  0,  3,  6,  9,  12,  12,
 			12, 16, 20, 24, 28, 32, 36, 40,
@@ -142,12 +148,23 @@ namespace ChessEval {
 			84, 86, 88, 90, 92, 94, 96, 98,
 			100, 100, 100, 100, 100, 100, 100, 100,
 			100, 100, 100, 100, 100, 100, 100, 100 };
+			
+			for (uint32_t i = 0; i < base.size(); ++i) {
+				arr[i] = base[i];
+			}
+			return arr;
+			}();
 
 		/** 
 		 * Determines the game phase based on a static piece value 
 		 * queens = 9, rooks = 5, bishop/knights = 3, pawns +1 if >= 3.
+		 * Size is enlarged to handle extreme cases like 3 queens + 3 rooks + ...
 		 */
-		static constexpr array<value_t, 65> midgameInPercent = {
+		static constexpr std::array<value_t, 123> midgameInPercent = [] {
+			std::array<value_t, 123> arr{};
+			arr.fill(100); 
+
+			constexpr std::array<value_t, 65> base = {
 			0,  0,  0,  0,  0,  0,  4,  8,
 			12, 16, 20, 24, 28, 32, 36, 40,
 			44, 47, 50, 53, 56, 60, 64, 66,
@@ -157,9 +174,15 @@ namespace ChessEval {
 			100, 100, 100, 100, 100, 100, 100, 100,
 			100, 100, 100, 100, 100, 100, 100, 100, 100 };
 
-		
+			for (uint32_t i = 0; i < base.size(); ++i) {
+				arr[i] = base[i];
+			}
+			return arr;
+			}();
+
+
+		static const value_t tempo = 8;
 
 	};
 }
 
-#endif

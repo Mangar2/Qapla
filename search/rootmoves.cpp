@@ -40,12 +40,12 @@ void RootMove::init() {
 	_isExcluded = false;
 }
 
-void RootMove::set(value_t searchResult, const SearchStack& stack)
+void RootMove::set(value_t searchResult, const SearchStack& stack, bool isPVSearched)
 {
 	_valueOfLastSearch = searchResult;
 	_alphaOfLastSearch = stack[0].alpha;
 	_betaOfLastSearch = stack[0].beta;
-	_isPVSearched = stack[0].isPVSearch();
+	_isPVSearched = isPVSearched;
 	_depthOfLastSearch = stack[0].remainingDepth;
 	_pvLine.setMove(0, Move::EMPTY_MOVE);
 	if (_isPVSearched) {
@@ -106,13 +106,16 @@ RootMove& RootMoves::findMove(Move move) {
 	return _moves[result];
 }
 
-void RootMoves::setMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
+void RootMoves::setMoves(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard) {
 	MoveProvider moveProvider;
 	position.computeAttackMasksForBothColors();
 	moveProvider.computeMoves(position, butterflyBoard, Move::EMPTY_MOVE, Move::EMPTY_MOVE);
 	_moves.clear();
 	Move move;
 	while (!(move = moveProvider.selectNextMove(position)).isEmpty()) {
+		if (!searchMoves.empty() && std::find(searchMoves.begin(), searchMoves.end(), move) == searchMoves.end()) {
+			continue;
+		}
 		RootMove rootMove;
 		rootMove.setMove(move);
 		_moves.push_back(rootMove);

@@ -25,7 +25,6 @@
 #include "types.h"
 #include "move.h"
 #include "boardstate.h"
-#include <array>
 #include <assert.h>
 
 namespace QaplaBasics {
@@ -58,7 +57,7 @@ public:
 	/**
 	 * Checks, if two positions are identical
 	 */
-	bool isIdenticalPosition(const BasicBoard& boardToCompare) {
+	bool isIdenticalPosition(const BasicBoard& boardToCompare) const {
 		return whiteToMove == boardToCompare.whiteToMove &&_board == boardToCompare._board;
 	}
 
@@ -155,6 +154,7 @@ public:
 		bool isMoveTwoRanks = ((departure - destination) & 0x0F) == 0;
 		if (isCapture || isPawnMove) {
 			boardState.halfmovesWithoutPawnMoveOrCapture = 0;
+			boardState.fenHalfmovesWithoutPawnMoveOrCapture = 0;
 		}
 		if (isPawnMove && isMoveTwoRanks) {
 			boardState.setEP(destination);
@@ -168,18 +168,6 @@ public:
 	inline void updateStateOnUndoMove(BoardState recentBoardState) {
 		whiteToMove = !whiteToMove;
 		boardState = recentBoardState;
-	}
-
-	/**
-	 * Undoes a move to the board
-	 * @param departure departure position of the move
-	 * @param destination destination position of the move
-	 * @param boardState boardState to recover
-	 */
-	void undoMove(Square departure, Square destination, BoardState boardState) {
-		whiteToMove = !whiteToMove;
-		movePiece(destination, departure);
-		boardState = boardState;
 	}
 
 	/**
@@ -197,14 +185,15 @@ public:
 
 	BoardState boardState;
 
-private:
+protected:
 	bool isInBoard(Square square) { return square >= A1 && square <= H8; }
 
 	array<Piece, BOARD_SIZE> _board;
-	array<uint16_t, BOARD_SIZE> _clearCastleFlagMask;
+	array<uint16_t, 64> _clearCastleFlagMask;
 
 	// Amount of half moves played befor fen
-	int16_t _startHalfmoves;
+	int32_t _startHalfmoves;
+
 };
 
 }

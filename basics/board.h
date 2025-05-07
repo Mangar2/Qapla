@@ -30,6 +30,7 @@
 #include "boardstate.h"
 #include "piecesignature.h"
 #include "materialbalance.h"
+#include "pst.h"
 
 namespace QaplaBasics {
 
@@ -141,11 +142,20 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Gets the amount of half moves without pawn move or capture to implement
-		 * the 50-moves-draw rule
+		 * Gets the amount of half moves without pawn move or capture to implement the repetitive moves draw rule
+		 * Note: the fen value is not included as there are no corresponding moves stored
 		 */
 		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
 			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture;
+		}
+
+		/**
+		 * Gets the amount of half moves without pawn move or capture including the start value from fen to implement
+		 * the 50-moves-draw rule
+		 */
+		inline auto getTotalHalfmovesWithoutPawnMoveOrCapture() const {
+			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture 
+				+ _basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
@@ -153,6 +163,13 @@ namespace QaplaBasics {
 		 */
 		void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
 			_basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture = number;
+		}
+
+		/**
+		 * Sets the number of half moves without pawn move or capture from initial fen
+		 */
+		void setFenHalfmovesWihtoutPawnMoveOrCapture(uint16_t number) {
+			_basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
@@ -178,6 +195,13 @@ namespace QaplaBasics {
 		}
 
 		/**
+		 * @return true, if side to move has more that pawns
+		 */
+		auto hasMoreThanPawns() const {
+			return isWhiteToMove() ? _pieceSignature.hasMoreThanPawns<WHITE>() : _pieceSignature.hasMoreThanPawns<BLACK>();
+		}
+
+		/**
 		 * Computes if futility pruning should be applied based on the captured piece
 		 */
 		inline auto doFutilityOnCapture(Piece capturedPiece) const {
@@ -189,6 +213,11 @@ namespace QaplaBasics {
 		 */
 		inline auto getPiecesSignature() const {
 			return _pieceSignature.getPiecesSignature();
+		}
+
+		template <Piece COLOR>
+			constexpr pieceSignature_t getPiecesSignature() const {
+			return _pieceSignature.getSignature<COLOR>();
 		}
 
 		/**
@@ -226,6 +255,10 @@ namespace QaplaBasics {
 			return _materialBalance.getMaterialValue();
 		}
 
+		inline const auto& getPieceValues() const {
+			return _materialBalance.getPieceValues();
+		}
+
 		/**
 		 * Gets the material balance value of the board
 		 */
@@ -238,6 +271,20 @@ namespace QaplaBasics {
 		 */
 		inline auto getPstBonus() const {
 			return _pstBonus;
+		}
+
+		/**
+		 * Debugging, recompute the piece square table bonus
+		 */
+		auto computePstBonus() const {
+			EvalValue bonus = 0;
+			for (Square square = A1; square <= H8; ++square) {
+				const auto piece = operator[](square);
+				if (piece == NO_PIECE) continue;
+				bonus += PST::getValue(square, piece);
+				// std::cout << squareToString(square) << " " << pieceToChar(piece) << " " << PST::getValue(square, piece) << std::endl;
+			}
+			return bonus;
 		}
 
 		/**
@@ -291,7 +338,7 @@ namespace QaplaBasics {
 		template <Piece COLOR>
 		inline auto getQueenRookStartSquare() const { return _basicBoard.queenRookStartSquare[COLOR]; }
 
-		BoardState getBoardState() { return _basicBoard.boardState; }
+		BoardState getBoardState() const { return _basicBoard.boardState; }
 
 		/**
 		 * Gets the board in Fen representation
@@ -312,6 +359,20 @@ namespace QaplaBasics {
 		 * Prints the pst values of the current board
 		 */
 		void printPst() const;
+
+		uint32_t getEvalVersion() const {
+			return evalVersion;
+		}
+		void setEvalVersion(uint32_t version) { 
+			evalVersion = version; 
+		}
+
+		value_t getRandomBonus() const {
+			return randomBonus;
+		}
+		void setRandomBonus(value_t bonus) {
+			randomBonus = bonus;
+		}
 
 	protected:
 		array<Square, COLOR_COUNT> kingSquares;
@@ -386,10 +447,12 @@ namespace QaplaBasics {
 
 		void printPst(Piece piece) const;
 
+		value_t randomBonus = 0;
+		uint32_t evalVersion = 0;
 		EvalValue _pstBonus;
-
 		PieceSignature _pieceSignature;
 		MaterialBalance _materialBalance;
+
 
 	};
 }

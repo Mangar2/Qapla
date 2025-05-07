@@ -22,6 +22,7 @@
 #ifndef __PST_H
 #define __PST_H
 
+#include <vector>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 
@@ -33,6 +34,7 @@ namespace QaplaBasics {
 		 * Gets a value from the piece square tables
 		 */
 		static EvalValue getValue(Square square, Piece piece) { return _pst[piece][square]; }
+		static std::vector<EvalValue> getPSTLookup(Piece piece) { return std::vector<EvalValue>(_pst[piece], _pst[piece] + BOARD_SIZE); }
 	private:
 
 		/**

@@ -36,6 +36,10 @@ namespace QaplaInterface {
 	public:
 		ConsoleIO() : fatalReadError(false) { token[0] = 0; buffer[0] = 0; }
 
+		virtual bool isFatalReadError() {
+			return fatalReadError;
+		}
+
 		/**
 		 * Waits until a token is avaiable and returns it
 		 */

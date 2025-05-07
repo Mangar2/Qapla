@@ -133,7 +133,7 @@ namespace QaplaSearch {
 		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			board.genNonSilentMovesOfMovingColor(moveList);
-			computeAllCaptureWeight(board, false);
+			computeAllCaptureWeight(board);
 			curMoveNo = 0;
 			triedMovesAmount = 0;
 		}
@@ -173,34 +173,34 @@ namespace QaplaSearch {
 				currentStage = selectStage;
 				switch (selectStage) {
 				case MoveType::PV:
-					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove, moveList);
+					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove);
 					pvMove.setEmpty();
 					++selectStage;
 					break;
 				case MoveType::KILLER1:
-					selectedMoveNo = selectProposedMove(killerMove[0], moveList);
+					selectedMoveNo = selectProposedMove(killerMove[0]);
 					++selectStage;
 					break;
 				case MoveType::KILLER2:
-					selectedMoveNo = selectProposedMove(killerMove[1], moveList);
+					selectedMoveNo = selectProposedMove(killerMove[1]);
 					++selectStage;
 					break;
 				case MoveType::WEIGHT_CAPTURES:
-					computeAllCaptureWeight(board, false);
+					computeAllCaptureWeight(board);
 					++selectStage;
 					break;
 				case MoveType::GOOD_CAPTURES:
 					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures(board);
 					break;
 				case MoveType::CAPTURES_ONLY:
-					selectedMoveNo = selectNextCaptureMove(board);
+					selectedMoveNo = selectNextCaptureMove();
 					break;
 				case MoveType::SORT_MOVES:
 					sortNonCaptures();
 					++selectStage;
 					break;
 				case  MoveType::ALL:
-					selectedMoveNo = selectNextSilentMove(moveList);
+					selectedMoveNo = selectNextSilentMove();
 					break;
 				default: break;
 				}
@@ -231,10 +231,10 @@ namespace QaplaSearch {
 		/**
 		 * Select the next capture move
 		 */
-		Move selectNextCapture(const MoveGenerator& board) {
-			int16_t selectedMoveNo = -1;
+		Move selectNextCapture() {
+			int32_t selectedMoveNo = -1;
 			Move move;
-			selectedMoveNo = selectNextCaptureMove(board);
+			selectedMoveNo = selectNextCaptureMove();
 
 			if (selectedMoveNo != -1) {
 				move = moveList[selectedMoveNo];
@@ -249,7 +249,7 @@ namespace QaplaSearch {
 				return selectNextMove(board);
 			}
 			else {
-				return selectNextCapture(board);
+				return selectNextCapture();
 			}
 		}
 
@@ -274,7 +274,7 @@ namespace QaplaSearch {
 		/**
 		 * Calculate the weight (winning material in centi-pawn) of a capture move for more ordering
 		 */
-		value_t computeCaptureWeight(const MoveGenerator& board, Move move, bool underWeightLoosingCaptures) {
+		value_t computeCaptureWeight(const MoveGenerator& board, Move move) {
 			value_t weight = board.getAbsolutePieceValue(move.getCapture());
 			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
 				// order recaptures to the front
@@ -286,11 +286,11 @@ namespace QaplaSearch {
 		/**
 		 * Computes the weight of all captures
 		 */
-		void computeAllCaptureWeight(const MoveGenerator& board, bool underWeightLoosingCaptures) {
+		void computeAllCaptureWeight(const MoveGenerator& board) {
 			for (uint32_t moveNo = 0; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
 				Move move = moveList[moveNo];
 				if (move != Move::EMPTY_MOVE) {
-					moveList.setWeight(moveNo, computeCaptureWeight(board, move, underWeightLoosingCaptures));
+					moveList.setWeight(moveNo, computeCaptureWeight(board, move));
 				}
 			}
 		}
@@ -298,18 +298,18 @@ namespace QaplaSearch {
 		/**
 		 * searches the next best capture move according his weight
 		 */
-		int16_t findNextBestCaptureMove(const MoveGenerator& board) {
-			int16_t bestMoveNo = -1;
+		int32_t findNextBestCaptureMove() {
+			int32_t bestMoveNo = -1;
 			value_t maxWeight = -MAX_VALUE;
 			value_t curWeight;
 			Move move;
-			for (uint8_t moveNo = curMoveNo; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
+			for (uint32_t moveNo = curMoveNo; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
 				move = moveList[moveNo];
 				if (move != Move::EMPTY_MOVE) {
 					curWeight = moveList.getWeight(moveNo);
 					if (curWeight > maxWeight) {
 						maxWeight = curWeight;
-						bestMoveNo = moveNo;
+						bestMoveNo = static_cast<int32_t>(moveNo);
 					}
 				}
 			}
@@ -319,12 +319,12 @@ namespace QaplaSearch {
 		/**
 		 * Select the next capture move scipping loosing captures according SEE
 		 */
-		int16_t selectNextCaptureMoveHandlingLoosingCaptures(const MoveGenerator& board) {
-			int16_t moveNo;
-			moveNo = findNextBestCaptureMove(board);
+		int32_t selectNextCaptureMoveHandlingLoosingCaptures(const MoveGenerator& board) {
+			int32_t moveNo;
+			moveNo = findNextBestCaptureMove();
 			while (moveNo != -1 && moveList.getWeight(moveNo) >= 0 && sEE.isLoosingCapture(board, moveList[moveNo])) {
 				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - LOOSING_CAPTURE_MALUS);
-				moveNo = findNextBestCaptureMove(board);
+				moveNo = findNextBestCaptureMove();
 			}
 			if (moveNo == -1) {
 				++selectStage;
@@ -340,8 +340,8 @@ namespace QaplaSearch {
 		/**
 		 * Gets the index of the next capture move
 		 */
-		int16_t selectNextCaptureMove(const MoveGenerator& board) {
-			int16_t bestMoveNo = findNextBestCaptureMove(board);
+		int32_t selectNextCaptureMove() {
+			int32_t bestMoveNo = findNextBestCaptureMove();
 			if (bestMoveNo == -1) {
 				++selectStage;
 			}
@@ -356,7 +356,7 @@ namespace QaplaSearch {
 		/**
 		 * searches for a proposed move and if available - selet it
 		 */
-		int16_t selectProposedMove(Move move, MoveList& moveList) {
+		int16_t selectProposedMove(Move move) {
 			int16_t foundMoveNo = -1;
 			if (!move.isEmpty()) {
 				for (uint8_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
@@ -372,20 +372,20 @@ namespace QaplaSearch {
 		/**
 		 * Select the next non-capture move
 		 */
-		int16_t selectNextSilentMove(MoveList& moveList) {
+		int32_t selectNextSilentMove() {
 			while (curMoveNo < moveList.getTotalMoveAmount() && moveList[curMoveNo].isEmpty())
 			{
 				curMoveNo++;
 			}
 			curMoveNo++;
-			return curMoveNo - 1;
+			return static_cast<int32_t>(curMoveNo - 1);
 		}
 
 		void sortNonCaptures() {
 			if (_butterflyBoard == 0) {
 				return;
 			}
-			for (uint8_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
+			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				moveList.setWeight(moveNo, _butterflyBoard->getValue(moveList.getMove(moveNo)));
 			}
 			moveList.sortFirstSilentMoves(SearchParameter::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);

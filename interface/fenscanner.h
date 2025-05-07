@@ -39,25 +39,37 @@ namespace QaplaInterface {
 
 		bool setBoard(string fen, IChessBoard* chessBoard) {
 			chessBoard->clearBoard();
-			string::iterator fenIterator = fen.begin();
+			std::string::iterator fenIterator = fen.begin();
 			error = false;
+
 			scanPieceSector(fen, fenIterator, chessBoard);
 			skipBlank(fen, fenIterator);
 			scanSideToMove(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanCastlingRights(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanEPField(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, chessBoard);
-			if (!skipBlank(fen, fenIterator)) return !error;
-			scanPlayedMovesInGame(fen, fenIterator, chessBoard);
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanCastlingRights(fen, fenIterator, chessBoard);
+			}
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanEPField(fen, fenIterator, chessBoard);
+			}
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, chessBoard);
+			}
+
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanPlayedMovesInGame(fen, fenIterator, chessBoard);
+			}
+
+			if (!error) {
+				chessBoard->finishBoardSetup();
+			}
+
 			return !error;
 		}
 
 	private:
-
-		string::iterator fenIterator;
 
 		bool error;
 
@@ -177,16 +189,24 @@ namespace QaplaInterface {
 		void scanEPField(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {
 			uint32_t epFile = -1;
 			uint32_t epRank = -1;
+			if (fenIterator != fen.end() && *fenIterator == '-') {
+				++fenIterator;
+				return;
+			}
 			if (fenIterator != fen.end() && *fenIterator >= 'a' && *fenIterator <= 'h') {
 				epFile = *fenIterator - 'a';
 				++fenIterator;
 			}
-			if (fenIterator != fen.end() && *fenIterator >= '1' && *fenIterator <= '8') {
+			if (fenIterator != fen.end() && (*fenIterator == '3' || *fenIterator == '6')) {
 				epRank = *fenIterator - '1';
 				++fenIterator;
 			}
 			if (epFile != -1 && epRank != -1) {
 				chessBoard->setEPSquare(epFile, epRank);
+			}
+			else {
+				// No legal EN-Passant-Field found
+				error = true;
 			}
 		}
 
@@ -204,7 +224,7 @@ namespace QaplaInterface {
 		}
 
 		void scanHalfMovesWithouthPawnMoveOrCapture(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {
-			chessBoard->setHalfmovesWithouthPawnMoveOrCapture((uint8_t)scanInteger(fen, fenIterator));
+			chessBoard->setHalfmovesWithoutPawnMoveOrCapture((uint8_t)scanInteger(fen, fenIterator));
 		}
 
 		void scanPlayedMovesInGame(const string& fen, string::iterator& fenIterator, IChessBoard* chessBoard) {

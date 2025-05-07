@@ -40,6 +40,9 @@
     <Filter Include="nnue">
       <UniqueIdentifier>{ac4400ea-9b03-4962-b270-fd2c4fa4b157}</UniqueIdentifier>
     </Filter>
+    <Filter Include="training">
+      <UniqueIdentifier>{f351d389-c3ba-4b6d-b322-81eb295d645f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="search\perft.cpp">
@@ -72,9 +75,6 @@
     <ClCompile Include="interface\stdtimecontrol.cpp">
       <Filter>interface</Filter>
     </ClCompile>
-    <ClCompile Include="eval\kingAttack.cpp">
-      <Filter>eval</Filter>
-    </ClCompile>
     <ClCompile Include="search\search.cpp">
       <Filter>search</Filter>
     </ClCompile>
@@ -90,11 +90,8 @@
     <ClCompile Include="bitbase\bitbaseindex.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
-    <ClCompile Include="bitbase\bitbasereader.cpp">
+    <ClCompile Include="bitbase\bitbase-reader.cpp">
       <Filter>bitbase</Filter>
-    </ClCompile>
-    <ClCompile Include="eval\rook.cpp">
-      <Filter>eval</Filter>
     </ClCompile>
     <ClCompile Include="eval\eval.cpp">
       <Filter>eval</Filter>
@@ -109,9 +106,6 @@
       <Filter>basics</Filter>
     </ClCompile>
     <ClCompile Include="basics\basicboard.cpp">
-      <Filter>basics</Filter>
-    </ClCompile>
-    <ClCompile Include="basics\piecesignature.cpp">
       <Filter>basics</Filter>
     </ClCompile>
     <ClCompile Include="eval\pawn.cpp">
@@ -132,11 +126,41 @@
     <ClCompile Include="basics\hashconstants.cpp">
       <Filter>basics</Filter>
     </ClCompile>
-    <ClCompile Include="eval\eval-helper.cpp">
-      <Filter>eval</Filter>
+    <ClCompile Include="interface\statistics.cpp">
+      <Filter>interface</Filter>
     </ClCompile>
-    <ClCompile Include="eval\eval-map.cpp">
-      <Filter>Quelldateien</Filter>
+    <ClCompile Include="interface\optimizer.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\candidate-trainer.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\bitbase-interface.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\lz4.c">
+      <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\bitbase.cpp">
+      <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\miniz.c">
+      <Filter>bitbase</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\self-play-manager.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
+    <ClCompile Include="training\piece-signature-statistic.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="training\signature-eval-adjuster.cpp">
+      <Filter>training</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\piecesignature.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
+    <ClCompile Include="bitbase\bitbase-file.cpp">
+      <Filter>bitbase</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -212,7 +236,7 @@
     <ClInclude Include="bitbase\bitbase.h">
       <Filter>bitbase</Filter>
     </ClInclude>
-    <ClInclude Include="bitbase\bitbasereader.h">
+    <ClInclude Include="bitbase\bitbase-reader.h">
       <Filter>bitbase</Filter>
     </ClInclude>
     <ClInclude Include="bitbase\bitbaseindex.h">
@@ -230,7 +254,7 @@
     <ClInclude Include="eval\kingpawnattack.h">
       <Filter>eval</Filter>
     </ClInclude>
-    <ClInclude Include="eval\kingattack.h">
+    <ClInclude Include="eval\king-attack.h">
       <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="search\search.h">
@@ -292,9 +316,6 @@
     </ClInclude>
     <ClInclude Include="search\clockmanager.h">
       <Filter>search</Filter>
-    </ClInclude>
-    <ClInclude Include="bitbase\huffmancode.h">
-      <Filter>bitbase</Filter>
     </ClInclude>
     <ClInclude Include="eval\queen.h">
       <Filter>eval</Filter>
@@ -374,20 +395,11 @@
     <ClInclude Include="bitbase\verify.h">
       <Filter>bitbase</Filter>
     </ClInclude>
-    <ClInclude Include="bitbase\try.h">
-      <Filter>bitbase</Filter>
-    </ClInclude>
     <ClInclude Include="bitbase\reverseindex.h">
-      <Filter>bitbase</Filter>
-    </ClInclude>
-    <ClInclude Include="bitbase\deflate.h">
       <Filter>bitbase</Filter>
     </ClInclude>
     <ClInclude Include="basics\hashconstants.h">
       <Filter>basics</Filter>
-    </ClInclude>
-    <ClInclude Include="eval\print-eval.h">
-      <Filter>eval</Filter>
     </ClInclude>
     <ClInclude Include="eval\eval-helper.h">
       <Filter>eval</Filter>
@@ -404,9 +416,6 @@
     <ClInclude Include="basics\movelist.h">
       <Filter>basics</Filter>
     </ClInclude>
-    <ClInclude Include="eval\eval-map.h">
-      <Filter>eval</Filter>
-    </ClInclude>
     <ClInclude Include="search\movehistory.h">
       <Filter>search</Filter>
     </ClInclude>
@@ -418,6 +427,66 @@
     </ClInclude>
     <ClInclude Include="search\threadpool.h">
       <Filter>search</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\statistics.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\eval-exchange-structures.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\candidate-trainer.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\optimizer.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\king.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\king-attack-spike.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\square-table.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\bitbase-interface.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\KPK.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\miniz.h">
+      <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\self-play-manager.h">
+      <Filter>interface</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\piece-signature-lookup.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="eval\piece-signature-def.h">
+      <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="training\piece-signature-statistic.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="training\game-record.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="training\game-replay-engine.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="training\signature-eval-adjuster.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\hashed-lookup.h">
+      <Filter>basics</Filter>
+    </ClInclude>
+    <ClInclude Include="training\position-filter.h">
+      <Filter>training</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\bitbase-file.h">
+      <Filter>bitbase</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

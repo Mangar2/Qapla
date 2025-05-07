@@ -34,6 +34,7 @@
 #include "tt.h"
 #include "aspirationwindow.h"
 #include "searchstate.h"
+#include "../eval/pawn.h"
 
 namespace QaplaSearch {
 
@@ -42,7 +43,7 @@ namespace QaplaSearch {
 	public:
 		IterativeDeepening() { 
 			_tt.setSizeInKilobytes(32736); 
-			Quiescence::setTT(&_tt);
+			clearMemories();
 		}
 
 		static const uint64_t ESTIMATED_TIME_FACTOR_FOR_NEXT_DEPTH = 4;
@@ -53,8 +54,7 @@ namespace QaplaSearch {
 		 * Starts a new game or sets a new position e.g. by fen
 		 */
 		void startNewGame() {
-			_tt.clear();
-			_search.startNewGame();
+			clearMemories();
 		}
 
 		/**
@@ -98,22 +98,35 @@ namespace QaplaSearch {
 		/**
 		 * Searches the best move by iteratively deepening the search depth
 		 */
-		ComputingInfo searchByIterativeDeepening(const MoveGenerator& position, MoveHistory& moveHistory)
+		ComputingInfo searchByIterativeDeepening(
+			const MoveGenerator& position, const std::vector<Move>& searchMoves, MoveHistory& moveHistory)
 		{
 
 			MoveGenerator searchBoard = position;
 			if (_clockManager.isAnalyzeMode()) {
 				clearMemories();
+				/*
+				auto fen = position.getFen();
+				std::replace(fen.begin(), fen.end(), '/', '_');
+				_tt.read("tt_in_" + fen + ".bin");
+				*/
 			}
 			else {
 				_tt.setNextSearch();
+				/*
+				auto fen = position.getFen();
+				std::replace(fen.begin(), fen.end(), '/', '_');
+				_tt.write("tt_out_" + fen + ".bin");
+				*/
 			}
 			for (auto& window : _window) {
 				window.initSearch();
 			}	
-			_search.startNewSearch(searchBoard);
+			_search.startNewSearch(searchBoard, searchMoves);
 			_clockManager.setNewMove();
-
+			if (_search.getComputingInfo().getMovesAmount() == 0) {
+				return _search.getComputingInfo();
+			}
 			ply_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
 			const ply_t depthLimit = _clockSetting.getSearchDepthLimit();
 			if (depthLimit > 0 && depthLimit < maxDepth) {
@@ -214,6 +227,7 @@ namespace QaplaSearch {
 				_window[i].newDepth(searchDepth);
 			}
 			uint32_t numberOfPVSearchedMoves = 0;
+			//uint32_t iterations = 0;
 			do {
 				const auto alphaRed = std::max(0, int32_t(multiPV) - int32_t(numberOfPVSearchedMoves) - 1) * 5;
 				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
@@ -226,7 +240,14 @@ namespace QaplaSearch {
 				_clockManager.setIterationResult(_window[multiPVPos].getAlpha(), _window[multiPVPos].getBeta(), positionValue);
 				isInWindow = _window[multiPVPos].isInside(positionValue);
 				_window[multiPVPos].setSearchResult(positionValue);
-
+				/*
+				iterations++;
+				if (iterations > 10) {
+					cout << numberOfPVSearchedMoves << " " << multiPVPos << " " << positionValue << endl;
+					_window[multiPVPos].print();
+					position.print();
+				}
+				*/
 			} while (!_clockManager.shouldAbort() && numberOfPVSearchedMoves < multiPV);
 
 		}
@@ -237,6 +258,7 @@ namespace QaplaSearch {
 		TT _tt;
 		Search _search;
 		array<AspirationWindow, MAX_PV> _window;
+		uint32_t ttDebug = 0;
 	};
 
 }

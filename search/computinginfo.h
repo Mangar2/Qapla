@@ -43,7 +43,7 @@ using namespace QaplaInterface;
 namespace QaplaSearch {
 	class ComputingInfo {
 	public:
-		ComputingInfo() : _sendSearchInfo(0), _multiPV(1) {
+		ComputingInfo() : _sendSearchInfo(0), _multiPV(1), _debug(-1), _excludeFromWhatIf(false) {
 			clear();
 		}
 
@@ -85,7 +85,6 @@ namespace QaplaSearch {
 			_searchDepth = 0;
 			_nodesSearched = 0;
 			_tbHits = 0;
-			_debug = false;
 			_totalAmountOfMovesToConcider = 0;
 			_currentMoveNoSearched = 0;
 			_positionValueInCentiPawn = 0;
@@ -97,8 +96,8 @@ namespace QaplaSearch {
 		/**
 		 * initializes data before starting to search
 		 */
-		void initNewSearch(MoveGenerator& position, ButterflyBoard butterflyBoard) {
-			_rootMoves.setMoves(position, butterflyBoard);
+		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard butterflyBoard) {
+			_rootMoves.setMoves(position, searchMoves, butterflyBoard);
 			_nodesSearched = 0;
 			_tbHits = 0;
 			_timeControl.storeStartTime();
@@ -207,6 +206,7 @@ namespace QaplaSearch {
 			return _searchDepth;
 		}
 
+
 		/**
 		 * Sets the current concidered move
 		 */
@@ -238,6 +238,10 @@ namespace QaplaSearch {
 	     */
 		ComputingInfoExchange getExchangeStructure() const {
 			ComputingInfoExchange exchange;
+			if (getMovesAmount() == 0) {
+				exchange.error = "stalemate or mate";
+				return exchange;
+			}
 			const PV& pv = getPV();
 			exchange.currentConsideredMove = pv.getMove(0).getLAN();
 			Move ponderMove = pv.getMove(1);
@@ -247,6 +251,7 @@ namespace QaplaSearch {
 			exchange.elapsedTimeInMilliseconds = _timeControl.getTimeSpentInMilliseconds();
 			exchange.totalAmountOfMovesToConcider = _totalAmountOfMovesToConcider;
 			exchange.movesLeftToConcider = _totalAmountOfMovesToConcider - _currentMoveNoSearched - 1;
+			exchange.valueInCentiPawn = _positionValueInCentiPawn;
 			return exchange;
 		}
 
@@ -270,6 +275,26 @@ namespace QaplaSearch {
 		uint64_t _nodesSearched;
 		uint64_t _tbHits;
 
+		void print() {
+			cout << "Nodes searched: " << _nodesSearched << " TB hits: " << _tbHits << endl;
+			_rootMoves.print();
+		}
+
+		void setDebug(int32_t debug) {
+			_debug = debug;
+		}
+
+		int32_t getDebug() const {
+			return _debug;
+		}
+
+		void setExcludeFromWhatIf(bool exclude) {
+			_excludeFromWhatIf = exclude;
+		}
+		bool isExcludedFromWhatIf() const {
+			return _excludeFromWhatIf;
+		}
+
 	private:
 		RootMoves _rootMoves;
 		static const uint32_t MAX_PV = 40;
@@ -284,7 +309,8 @@ namespace QaplaSearch {
 		uint32_t _searchDepth;
 		volatile bool _printRequest;
 		uint32_t _multiPV;
-		bool _debug;
+		int32_t _debug;
+		bool _excludeFromWhatIf;
 		bool _verbose;
 	};
 

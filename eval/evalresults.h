@@ -26,8 +26,12 @@
  // Idee 2: Zugsortierung nach lookup Tabelle aus reduziertem Board-Hash
  // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
+#include <vector>
+#include <map>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
+#include "eval-exchange-structures.h"
+#include "../interface/candidate-trainer.h"
 
 using namespace QaplaBasics;
 
@@ -69,10 +73,6 @@ namespace ChessEval {
 		// The midgame factor in percent
 		value_t midgameInPercent;
 		value_t midgameInPercentV2;
-		// Amount of non defended attacks on squares near king
-		value_t kingPressureCount[2];
-		// Evaluation of the king attack
-		value_t kingAttackValue[2];
 	};
 
 }

@@ -25,9 +25,10 @@
 #include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
 #include "../search/moveprovider.h"
+#include "bitbase.h"
 #include "bitbaseindex.h"
 #include "generationstate.h"
-#include "bitbasereader.h"
+#include "bitbase-reader.h"
 #include "bitbasegenerator.h"
 
 using namespace std;
@@ -39,7 +40,7 @@ using namespace QaplaBitbase;
  * Computes a position value by probing all moves and lookup the result in this bitmap
  * Captures are excluded, they have been tested in the initial search.
  */
-bool BitbaseGenerator::computeValue(MoveGenerator &position, const Bitbase &bitbase, bool verbose)
+bool BitbaseGenerator::computeValue(MoveGenerator &position, Bitbase &bitbase, bool verbose)
 {
 	MoveList moveList;
 	Move move;
@@ -106,51 +107,11 @@ uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &positi
 }
 
 /**
- * Prints the difference of two bitbases
- */
-void BitbaseGenerator::compareBitbases(string pieceString, Bitbase &newBitbase, Bitbase &oldBitbase)
-{
-	MoveGenerator position;
-	PieceList pieceList(pieceString);
-	uint64_t sizeInBit = newBitbase.getSizeInBit();
-	uint64_t differences = 0;
-	for (uint64_t index = 0; index < sizeInBit; index++)
-	{
-		bool newResult = newBitbase.getBit(index);
-		bool oldResult = oldBitbase.getBit(index);
-		if (newResult != oldResult)
-		{
-			ReverseIndex reverseIndex(index, pieceList);
-			addPiecesToPosition(position, reverseIndex, pieceList);
-			differences++;
-			if (differences < 10)
-			{
-				printf("new: %s, old: %s\n", newResult ? "won" : "not won", oldResult ? "won" : "not won");
-				printDebugInfo(position, index);
-			}
-			position.clear();
-		}
-	}
-	if (differences > 0 || _traceLevel > 0)
-	{
-		cout << "Compare for " << pieceString << " amount of differences: " << differences << endl;
-	}
-}
-
-/**
  * Prints the time spent so far
  */
-void BitbaseGenerator::printTimeSpent(ClockManager &clock, int minTraceLevel, bool sameLine)
+void BitbaseGenerator::printTimeSpent(ClockManager &clock)
 {
-	if (_traceLevel < minTraceLevel)
-	{
-		return;
-	}
 	uint64_t timeInMilliseconds = clock.computeTimeSpentInMilliseconds();
-	if (!sameLine)
-		cout << endl;
-	else
-		cout << " ";
 	cout << "Time spent: " << (timeInMilliseconds / (60 * 60 * 1000))
 		 << ":" << ((timeInMilliseconds / (60 * 1000)) % 60)
 		 << ":" << ((timeInMilliseconds / 1000) % 60)
@@ -323,11 +284,8 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
  */
 void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &clock)
 {
-	const uint64_t bitbaseSizeInBit = state.getSizeInBit();
 	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++)
 	{
-		uint64_t index = 0;
-		uint32_t threadNo = 0;
 		Workpackage workpackage(state);
 		state.clearAllCandidates();
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
@@ -337,8 +295,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 		}
 
 		joinThreads();
-		cout << ".";
-		printTimeSpent(clock, 3);
+		std::cout << "." << std::flush;
 		if (!state.hasCandidates())
 		{
 			break;
@@ -505,6 +462,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 {
 	MoveGenerator position;
 	vector<uint64_t> candidates;
+	uint64_t sizeInBit = state.getSizeInBit();
 
 	uint64_t packageSize = min(static_cast<uint64_t>(50000), (state.getSizeInBit() + 5) / 5);
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
@@ -512,6 +470,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 	{
 		for (uint64_t index = package.first; index < package.second; ++index)
 		{
+			assert(index < sizeInBit);
 			ReverseIndex reverseIndex(index, state.getPieceList());
 			if (!reverseIndex.isLegal())
 			{
@@ -536,29 +495,35 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 		}
 		if (state.setCandidatesTreadSafe(candidates, false))
 		{
+			for (uint64_t index : candidates) {
+				assert(index < sizeInBit);
+			}
 			candidates.clear();
 		}
 		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	}
 	state.setCandidatesTreadSafe(candidates);
+	for (uint64_t index : candidates) {
+		assert(index < sizeInBit);
+	}
 }
 
 /**
  * Computes a bitbase for a set of pieces described by a piece list.
  */
-void BitbaseGenerator::computeBitbase(PieceList &pieceList)
+void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
 {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
+	PieceSignature pieceSignature(pieceString.c_str());
 	if (pieceString.substr(0, 2) == "KK")
 	{
 		return;
 	}
-	if (_traceLevel > 1)
-		cout << endl;
-	cout << pieceString << " using " << _cores << " threads ";
 
-	GenerationState state(pieceList);
+	cout << pieceString << " using " << _cores << " threads " << std::flush;
+
+	GenerationState state(pieceList, pieceSignature.getPiecesSignature());
 	ClockManager clock;
 	clock.setStartTime();
 
@@ -567,22 +532,28 @@ void BitbaseGenerator::computeBitbase(PieceList &pieceList)
 	for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 	{
 		_threads[threadNo] = thread([this, &workpackage, &state]()
-									{ computeInitialWorkpackage(workpackage, state); });
+			{ computeInitialWorkpackage(workpackage, state); });
 	}
 	joinThreads();
-	cout << ".";
-	printTimeSpent(clock, 2);
-	printStatistic(state, 2);
+	cout << "." << std::flush;
 	computeBitbase(state, clock);
 
-	printTimeSpent(clock, 2);
 	string fileName = pieceString + string(".btb");
-	cout << "c";
-	state.storeToFile(fileName, _uncompressed, _debugLevel > 1, _traceLevel > 1);
-	printTimeSpent(clock, 0, _traceLevel == 0);
-	printStatistic(state, 1);
-	cout << endl;
-	BitbaseReader::setBitbase(pieceString, state.getWonPositions());
+	cout << "c" << std::endl;
+	try {
+		state.storeToFile(fileName, pieceString, compression);
+		if (generateCpp)
+		{
+			state.generateCpp(pieceString);
+		}
+		printTimeSpent(clock);
+		printStatistic(state);
+		std::cout << std::endl;
+		BitbaseReader::setBitbase(pieceString, state.getWonPositions());
+	}
+	catch (const std::runtime_error& e) {
+		std::cerr << "Error: " << e.what() << '\n';
+	}
 }
 
 /**
@@ -590,19 +561,15 @@ void BitbaseGenerator::computeBitbase(PieceList &pieceList)
  * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
  * so that any bitbase KQKP can get to is available
  */
-void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first)
+void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
 {
 	if (pieceList.getNumberOfPieces() <= 2)
 		return;
 	string pieceString = pieceList.getPieceString();
-	if (!first && !BitbaseReader::isBitbaseAvailable(pieceString))
-	{
-		BitbaseReader::loadBitbase(pieceString);
-		if (_debugLevel > 1)
-		{
-			compareFiles(pieceString);
-		}
-	}
+	if (pieceString.substr(0, 2) == "KK") return;
+	if (!first && BitbaseReader::isBitbaseAvailable(pieceString)) return;
+	BitbaseReader::loadBitbase(pieceString, false);
+
 	for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++)
 	{
 		PieceList newPieceList(pieceList);
@@ -611,25 +578,16 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first)
 			for (Piece piece = QUEEN; piece >= KNIGHT; piece -= 2)
 			{
 				newPieceList.promotePawn(pieceNo, piece);
-				computeBitbaseRec(newPieceList, false);
+				computeBitbaseRec(newPieceList, false, compression, generateCpp);
 				newPieceList = pieceList;
 			}
 		}
 		newPieceList.removePiece(pieceNo);
-		computeBitbaseRec(newPieceList, false);
+		computeBitbaseRec(newPieceList, false, compression, generateCpp);
 	}
 
 	if (first || !BitbaseReader::isBitbaseAvailable(pieceString))
 	{
-		computeBitbase(pieceList);
-		if (_debugLevel > 1)
-		{
-			compareFiles(pieceString);
-		}
-	}
-
-	if (first && DO_DEBUG)
-	{
-		compareFiles(pieceString);
+		computeBitbase(pieceList, first, compression, generateCpp);
 	}
 }

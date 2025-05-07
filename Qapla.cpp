@@ -19,22 +19,10 @@
 
 
 #include <iostream>
-#include "movegenerator/bitboardmasks.h"
-#include "search/boardadapter.h"
-#include "interface/fenscanner.h"
-#include "interface/movescanner.h"
-#include "interface/stdtimecontrol.h"
-#include "interface/winboard.h"
-#include "interface/winboardprintsearchinfo.h"
+#include <cstdlib>
+#include <ctime>
+#include <cstdint>  // Added for uint64_t definition
 #include "interface/selectinterface.h"
-#include "search/searchparameter.h"
-
-#include "search/search.h"
-#include "pgn/pgnfiletokenizer.h"
-#include "pgn/pgngame.h"
-
-#include "bitbase/bitbasegenerator.h"
-#include "bitbase/bitbasereader.h"
 
 #ifdef USE_STOCKFISH_EVAL
 #include "nnue/engine.h"
@@ -42,37 +30,12 @@
 
 using namespace QaplaInterface;
 
-QaplaSearch::BoardAdapter adapter;
-
-
 namespace QaplaSearch {
 	value_t SearchParameter::cmdLineParam[10];
 
 	class ChessEnvironment {
 	public:
-		ChessEnvironment() {
-			setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-		}
-
-		bool setFen(const char* fen) {
-			FenScanner scanner;
-			return scanner.setBoard(fen, &adapter);
-		}
-
-		bool setMove(string move) {
-			MoveScanner scanner(move);
-			bool res = false;
-			if (scanner.isLegal()) {
-				res = adapter.doMove(scanner.piece, scanner.departureFile,
-					scanner.departureRank, scanner.destinationFile, scanner.destinationRank, scanner.promote);
-			}
-			assert(res == true);
-			return res;
-		}
-
-
-		MoveGenerator& getBoard() { return adapter.getBoard(); }
-
+	
 		void run() {
 			selectAndStartInterface(&adapter, &ioHandler);
 		}
@@ -126,174 +89,32 @@ FenTests fenTests = {
 	}
 };
 
-void runPerftTests(const FenTests& tests, uint64_t maxNodes = 1000000000) {
-	FenScanner scanner;
-	StdTimeControl timeControl;
-	bool testResult = true;
-	timeControl.storeStartTime();
-	uint64_t totalNodes = 0;
-	for (auto const& test : tests) {
-		auto depth = 1;
-		cout << "Fen: " << test.fen << endl;
-		scanner.setBoard(test.fen, &adapter);
-		for (auto const& expectedNodes : test.nodes) {
-			if (expectedNodes > maxNodes) {
-				continue;
-			}
-			const uint64_t calculatedNodes = adapter.perft(depth, 0);
-			totalNodes += calculatedNodes;
-			bool resultOK = expectedNodes == calculatedNodes;
-			if (!resultOK) {
-				cout << "**************************************************************" << endl;
-				cout << "ERROR Expected: " << expectedNodes << " found: " << calculatedNodes << endl;
-				testResult = false;
-			}
-			cout << depth << ": " << calculatedNodes << " end positions found " << (resultOK? "OK" : "ERROR") << endl;
-			depth++;
-		}
-		cout << endl;
-	}
-	uint64_t timeSpent = timeControl.getTimeSpentInMilliseconds();
-	double nodesPerSecond = double(totalNodes) / 1000 / timeSpent;
-	if (testResult) {
-		cout << "All tests finished without error. Million nodes per second:  " << nodesPerSecond << endl;
-	}
-	else {
-		cout << "Test finished with errors" << endl;
-	}
-}
 
-#include "search/threadpool.h"
-
-void checkThreadPoolSpeed() {
-	StdTimeControl timeControl;
-	atomic<int> i = 0;
-	atomic<int> j = 0;
-	static const auto WORKER_AMOUNT = 3;
-	ChessSearch::ThreadPool<2 * WORKER_AMOUNT> pool;
-	ChessSearch::WorkPackage worki;
-	worki.setFunction([&i]() { i++; });
-	ChessSearch::WorkPackage workj;
-	workj.setFunction([&j]() { j++; });
-	pool.startWorker(2 * WORKER_AMOUNT);
-	this_thread::sleep_for(chrono::milliseconds(10));
-	timeControl.storeStartTime();
-	for (int count = 0; count < 100000; count++) {
-		pool.assignWork(&worki, WORKER_AMOUNT);
-		pool.assignWork(&workj, WORKER_AMOUNT);
-		worki.waitUntilFinished();
-		workj.waitUntilFinished();
-		i -= WORKER_AMOUNT;
-	}
-	uint64_t timeSpent = timeControl.getTimeSpentInMilliseconds();
-	cout << "i: " << i << " j: " << j << ": " << timeSpent << endl;
-}
-
-void checkThreadSpeed() {
-	StdTimeControl timeControl;
-	int i = 0;
-	timeControl.storeStartTime();
-	for (int count = 0; count < 10000; count++) {
-		thread th = thread([&i]() { i++; });
-		th.join();
-	}
-	uint64_t timeSpent = timeControl.getTimeSpentInMilliseconds();
-	cout << i << ": " << timeSpent << endl;
-}
 */
-
-void runTests() {
-}
-
-void createStatistic() {
-	QaplaSearch::ChessEnvironment environment;
-	ChessPGN::PGNFileTokenizer fileTokenizer("quabla_all.pgn");
-	ChessPGN::PGNGame game;
-	array<value_t, 30> win;
-	array<value_t, 30> loss;
-	array<value_t, 30> draw;
-	win.fill(0);
-	loss.fill(0);
-	draw.fill(0);
-	while (game.setGame(fileTokenizer)) {
-		cout << '.';
-		const string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-		FenScanner scanner;
-		scanner.setBoard(fen, &environment.adapter);
-		for (auto& move : game.getMoves()) {
-			const MoveGenerator& board = environment.adapter.getBoard();
-			environment.setMove(move);
-			auto white = environment.adapter.getEvalFactors<WHITE>();
-			auto black = environment.adapter.getEvalFactors<BLACK>();
-			const string tag = "Knight attack";
-			if (white.find(tag) != white.end()) {
-				// if (white[tag] == 0) { environment.adapter.getBoard().print(); }
-				if (game.getTag("Result") == "1-0") {
-					win[white[tag]] ++; 
-					loss[black[tag]] ++;
-				}
-				else if (game.getTag("Result") == "0-1") {
-					loss[white[tag]] ++;
-					win[black[tag]] ++;
-				}
-				else if (game.getTag("Result") == "1/2-1/2") {
-					draw[white[tag]] ++;
-					draw[black[tag]] ++;
-				}
-			}
-		}
-	};
-	cout << endl;
-	for (uint32_t i = 0; i < 30; i++) {
-		uint32_t total = win[i] + loss[i] + draw[i];
-		if (total > 0) {
-			cout << i
-				<< " score: " << ((win[i] * 100 + draw[i] * 50) / total) << "% (" << win[i] << ")"
-				<< " win: " << (win[i] * 100 / total) << "% (" << win[i] << ")"
-				<< " loss: " << (loss[i] * 100 / total) << "% (" << loss[i] << ")"
-				<< " draw: " << (draw[i] * 100 / total) << "% (" << draw[i] << ")"
-				<< endl;
-		}
-	}
-}
 
 int main(int argc, char* argv[])
 {
-	
-	// checkThreadPoolSpeed();
-	// checkThreadSpeed();
-	/*
-	StdTimeControl timeControl;
-	for (uint32_t workerAmount = 1; workerAmount <= 1; workerAmount++) {
-		adapter.setWorkerAmount(workerAmount);
-		timeControl.storeStartTime();
-		uint64_t totalNodes = adapter.perft(7);
-		uint64_t timeSpent = timeControl.getTimeSpentInMilliseconds();
-		double nodesPerSecond = double(totalNodes) / 1000 / timeSpent;
-		cout << totalNodes << " end positions found, NPS: " << nodesPerSecond 
-			<< " threads: " << workerAmount + 1 << endl;
-	}
-	*/
-	// ChessEval::Eval::initStatics();
-	// adapter.printEvalInfo();
 
-	// adapter.setWorkerAmount(1);
-	// runPerftTests(fenTests, 10000000000);
-	// std::this_thread::sleep_for(std::chrono::seconds(20));
-	//Stockfish::Engine::load_network("./nnue/nn-1111cefa1111.nnue", "./nnue/nn-37f18f62d772.nnue");
+	/*
+	 * This engine can be run testing itself with stockfish evaluation by the nnue network.
+	 * The nnue branch contains the neccesary files. Still the required stockfish integration is part of
+	 * the main branch and requires to define USE_STOCKFISH_EVAL to use it.
+	 */
 #ifdef USE_STOCKFISH_EVAL
+	//Stockfish::Engine::load_network("./nnue/nn-1111cefa1111.nnue", "./nnue/nn-37f18f62d772.nnue");
 	Stockfish::Engine::initialize();
 	Stockfish::Engine::load_network("NNUE1", "NNUE2");
 #endif
-	//Stockfish::Engine::set_position("5k2/5p2/4p3/3bP2P/n2P1PP1/4K3/1p6/1R6 b - - 1 42");
-	//const auto eval = Stockfish::Engine::evaluate();
-	//std::cout << "Evaluation: " << eval << std::endl;
-	//std::cout << Stockfish::Engine::trace() << std::endl;
-	std::cout << "Qapla 0.2.058 (C) 2025 Volker Boehm" << std::endl;
+
+	std::cout << "Qapla 0.3.0 (C) 2025 Volker Boehm (build 018)" << std::endl;
+	// This enables setting search parameters to a static object. The search parameters are set as name, value pairs
+	// Currently this is used for testing only
 	SearchParameter::parseCommandLine(argc, argv);
 	QaplaSearch::ChessEnvironment environment;
+	// The environment collates the interface with the chess engine. Both are separated by an adapter interface to be
+	// reusable for other engines. 
+	// Qapla supports winboard, uci and a "statistic" interface providing additional functionality. The interface
+	// is selected by the first command - e.g. "uci" for the uci interface. Winboard is default as it is best for debugging.
 	environment.run();
-	// createStatistic();
-	// runTests();
 }
 

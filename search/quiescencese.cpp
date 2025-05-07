@@ -29,9 +29,6 @@ using namespace QaplaInterface;
 using namespace ChessEval;
 using namespace QaplaSearch;
 
-TT* Quiescence::_tt;
-
-
 /**
  * Computes the maximal value a capture move can gain + safety margin
  * If this value is not enough to make it a valuable move, the move is skipped
@@ -55,18 +52,19 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
  * Gets an entry from the transposition table
  * @returns hash value and hash move or -MAX_VALUE, if no value found
  */
-std::tuple<value_t, uint32_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
+std::tuple<value_t, value_t, uint32_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
 	bool cutoff = false;
 	uint32_t ttIndex = _tt->getTTEntryIndex(position.computeBoardHash());
 
 	if (ttIndex != TT::INVALID_INDEX) {
 		TTEntry entry = _tt->getEntry(ttIndex);
+		const auto eval = entry.getEval();
 		const auto bestValue = entry.getTTCutoffValue(alpha, beta, 0, ply);
 		const auto move = entry.getMove();
 		const auto precision = entry.getComputedPrecision();
-		return std::make_tuple(bestValue, precision, move);
+		return std::make_tuple(eval, bestValue, precision, move);
 	}
-	return std::make_tuple(NO_VALUE, TTEntry::INVALID, Move::EMPTY_MOVE);
+	return std::make_tuple(NO_VALUE, NO_VALUE, TTEntry::INVALID, Move::EMPTY_MOVE);
 }
 
 
@@ -78,7 +76,7 @@ value_t Quiescence::search(bool isPvNode,
 	value_t alpha, value_t beta, ply_t ply)
 {
 	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
-		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, ply);
+		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
 	if (alpha > MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
@@ -93,8 +91,8 @@ value_t Quiescence::search(bool isPvNode,
 	Move move;
 	computingInfo._nodesSearched++;
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
-
-	auto [ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
+	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
+	
 	moveProvider.setTTMove(ttMove);
 	if (/*alpha + 1 == beta && */ ttValue != NO_VALUE) return ttValue;
 
@@ -104,7 +102,7 @@ value_t Quiescence::search(bool isPvNode,
 		bestValue = standPatValue = -MAX_VALUE + ply;
 	}
 	else {
-		bestValue = standPatValue = Eval::eval(position, ply, alpha);
+		bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, _tt->getPawnTT(), ply, alpha);
 		if (std::abs(ttValue) < MIN_MATE_VALUE && (ttPrecision == TTEntry::EXACT || 
 			(ttPrecision == (standPatValue < ttValue ? TTEntry::GREATER_OR_EQUAL : TTEntry::LESSER_OR_EQUAL))))
 		{

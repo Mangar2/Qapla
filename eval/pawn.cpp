@@ -21,120 +21,34 @@
 
 using namespace ChessEval;
 
-value_t Pawn::isolatedPawnAmountLookup[Pawn::LOOKUP_TABLE_SIZE];
-bitBoard_t Pawn::kingInfluenceTable[COLOR_COUNT][COLOR_COUNT][BOARD_SIZE];
-bitBoard_t Pawn::kingSupportPawnTable[COLOR_COUNT][BOARD_SIZE];
-PawnTT Pawn::_tt;
+/*
+ * Computes a lookup table where for each 8-bit file occupancy (pawnPresenceMask),
+ * we get a bitboard marking all isolated pawn files (all ranks of that file set to 1).
+ */
+std::array<bitBoard_t, Pawn::LOOKUP_TABLE_SIZE> Pawn::computeIsolatedPawnLookupTable() {
+	std::array<bitBoard_t, LOOKUP_TABLE_SIZE> table{};
+	const bitBoard_t FILE_MASK_A = 0x0101010101010101ULL;
+	table[0] = 0;  // No pawns -> no isolated files
 
-Pawn::InitStatics Pawn::_staticConstructor;
+	for (uint32_t pawnPresenceMask = 1; pawnPresenceMask < LOOKUP_TABLE_SIZE; pawnPresenceMask++) {
+		bitBoard_t result = 0;
 
-Pawn::InitStatics::InitStatics() {
-	computeKingInfluenceTable();
-	computeIsolatedPawnLookupTable();
-	computeKingSupportTable();
-	_tt.setSizeInKilobytes(1024);
-}
+		for (int file = 0; file < 8; file++) {
+			bool hasPawn = (pawnPresenceMask >> file) & 1;
 
-bool Pawn::kingReachesPawn(Square kingPos, Square pawnPos, bool atMove) {
-	Rank kingRankAfterFirstHalfmove = getRank(kingPos);
-	int32_t distanceToPromote = int32_t(Rank::R8 - uint32_t(getRank(pawnPos)));
-	int32_t colKingPawnDistance = abs(int32_t(getFile(kingPos)) - int32_t(getFile(pawnPos)));
-	if (atMove) {
-		colKingPawnDistance--;
-		++kingRankAfterFirstHalfmove;
-	}
-	bool result = kingRankAfterFirstHalfmove >= getRank(pawnPos) && colKingPawnDistance <= distanceToPromote;
-	return result;
-}
+			if (!hasPawn)
+				continue;
 
-bool Pawn::kingSupportsPassedPawn(Square kingPos, Square pawnPos, bool atMove) {
-	bool result = false;
-	if (getRank(kingPos) >= Rank::R7) {
-		bool kingOnAdjacentFileOfPawn = getFile(kingPos) == getFile(pawnPos) + 1 || getFile(kingPos) == getFile(pawnPos) - 1;
-		bool kingInFrontOfPawn = getRank(kingPos) > getRank(pawnPos) && getRank(kingPos) <= getRank(pawnPos) + 2;
-		bool pawnOnRow6AndKingAdjacent = getRank(kingPos) == Rank::R7 && getRank(pawnPos) == Rank::R7;
-		result = kingOnAdjacentFileOfPawn && (pawnOnRow6AndKingAdjacent || kingInFrontOfPawn);
-	}
+			bool leftHasPawn = (file > 0) && ((pawnPresenceMask >> (file - 1)) & 1);
+			bool rightHasPawn = (file < 7) && ((pawnPresenceMask >> (file + 1)) & 1);
 
-	return result;
-}
-
-bitBoard_t Pawn::computeKingInfluence(Square kingPos, bool atMove, testFunction_t testFunction) {
-	bitBoard_t kingInfluence = 1ULL << kingPos;
-	for (Square pawnPos = A3; pawnPos <= H8; ++pawnPos) {
-		if (testFunction(kingPos, pawnPos, atMove)) {
-			kingInfluence |= 1ULL << pawnPos;
-			if (pawnPos < A4) {
-				kingInfluence |= 1ULL << (pawnPos );
+			if (!leftHasPawn && !rightHasPawn) {
+				// Isolated pawn on this file
+				result |= (FILE_MASK_A << file);
 			}
 		}
+		table[pawnPresenceMask] = result;
 	}
-	return kingInfluence;
+	return table;
 }
 
-void Pawn::computeKingInfluenceTable() {
-	for (Square kingPos = A1; kingPos <= H8; ++kingPos) {
-		kingInfluenceTable[BLACK][WHITE][kingPos] = computeKingInfluence(kingPos, false, kingReachesPawn);
-		kingInfluenceTable[BLACK][BLACK][kingPos] = computeKingInfluence(kingPos, true, kingReachesPawn);
-	}
-	for (Square kingPos = A1; kingPos <= H8; ++kingPos) {
-		kingInfluenceTable[WHITE][WHITE][kingPos] = BitBoardMasks::axialReflection(kingInfluenceTable[BLACK][BLACK][kingPos ^ 0x38]);
-		kingInfluenceTable[WHITE][BLACK][kingPos] = BitBoardMasks::axialReflection(kingInfluenceTable[BLACK][WHITE][kingPos ^ 0x38]);
-	}
-}
-
-void Pawn::computeKingSupportTable() {
-	for (Square kingPos = A1; kingPos <= H8; ++kingPos) {
-		kingSupportPawnTable[WHITE][kingPos] = computeKingInfluence(kingPos, false, kingSupportsPassedPawn);
-	}
-	for (Square kingPos = A1; kingPos <= H8; ++kingPos) {
-		kingSupportPawnTable[BLACK][kingPos] = BitBoardMasks::axialReflection(kingSupportPawnTable[WHITE][kingPos ^ 0x38]);
-	}
-}
-
-void Pawn::computeIsolatedPawnLookupTable() {
-	uint32_t pawnMask;
-	isolatedPawnAmountLookup[0] = 0;
-	for (pawnMask = 1; pawnMask < LOOKUP_TABLE_SIZE; pawnMask++) {
-		uint32_t leftPawnMask = pawnMask / 2;
-		value_t isolatedPawnAmount = isolatedPawnAmountLookup[leftPawnMask];
-		if ((pawnMask & 1) == 1) {
-			if ((leftPawnMask & 1) == 0) {
-				isolatedPawnAmount++;
-			}
-			else if ((leftPawnMask & 2) == 0) {
-				isolatedPawnAmount--;
-			}
-		}
-		isolatedPawnAmountLookup[pawnMask] = isolatedPawnAmount;
-	}
-}
-
-template <Piece COLOR>
-value_t Pawn::computeKingSupport(const Board& position) {
-	const auto OPPONENT_COLOR = switchColor(COLOR);
-	const auto kingPos = position.getKingSquare<COLOR>();
-	const auto opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
-	auto pawnBB = position.getPieceBB(PAWN + COLOR);
-	auto opponentPawnBB = position.getPieceBB(PAWN + OPPONENT_COLOR);
-	const value_t result = 0;
-
-	while (pawnBB) {
-		const auto pawnPos = lsb(pawnBB);
-		const auto kingDistance = computeDistance(kingPos, pawnPos);
-		const auto opponentKingDistance = computeDistance(opponentKingPos, pawnPos);
-		const auto rank = getRank<COLOR>(pawnPos);
-		result += EvalPawnValues::KING_SUPPORT_VALUE[rank][kingDistance] - EvalPawnValues::KING_SUPPORT_VALUE[rank][opponentKingDistance];
-		pawnBB &= pawnBB - 1;
-	}
-
-	while (opponentPawnBB) {
-		const auto pawnPos = lsb(opponentPawnBB);
-		const auto kingDistance = computeDistance(kingPos, pawnPos);
-		const auto opponentKingDistance = computeDistance(opponentKingPos, pawnPos);
-		const auto rank = getRank<OPPONENT_COLOR>(pawnPos);
-		result += EvalPawnValues::KING_SUPPORT_VALUE[rank][kingDistance] - EvalPawnValues::KING_SUPPORT_VALUE[rank][opponentKingDistance];
-		opponentPawnBB &= opponentPawnBB - 1;
-	}
-
-}

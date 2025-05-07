@@ -674,7 +674,7 @@ std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitma
 	bitBoard_t discoveredCheckMask = 0;
 	const auto OPPONENT_COLOR = switchColor(COLOR);
 	const auto kingPos = kingSquares[COLOR];
-	const auto kingBB = posToBB(kingPos);
+	const auto kingBB = squareToBB(kingPos);
 	// Compute all squares where a piece can check the king
 	result[PAWN >> 1] = BitBoardMasks::shiftColor<COLOR, NW>(kingBB) | BitBoardMasks::shiftColor<COLOR, NE>(kingBB);
 	result[KNIGHT >> 1] = BitBoardMasks::knightMoves[kingPos];
@@ -731,14 +731,14 @@ std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitma
 
 bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2>& checkBitmaps) {
 	const auto piece = move.getMovingPiece();
-	const auto destinationBit = posToBB(move.getDestination());
+	const auto destinationBit = squareToBB(move.getDestination());
 	// First, check if the target position of the move is a check square for the piece
 	if (checkBitmaps[piece >> 1] & destinationBit) {
 		return true;
 	}
 	// Second, check, if the move is leaving the dicovered check mask
 	const auto discoveredCheckMask = checkBitmaps[0];
-	const auto departureBit = posToBB(move.getDeparture());
+	const auto departureBit = squareToBB(move.getDeparture());
 	if ((discoveredCheckMask & departureBit) && !(discoveredCheckMask & destinationBit)) {
 		return true;
 	}
@@ -754,7 +754,7 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	case Move::WHITE_EP:
 	{
 		const auto kingPos = kingSquares[BLACK];
-		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~posToBB(move.getDestination() + SOUTH)) | destinationBit;
+		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + SOUTH)) | destinationBit;
 		const auto attack =
 			Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + WHITE] | bitBoardsPiece[QUEEN + WHITE]) |
 			Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + WHITE] | bitBoardsPiece[QUEEN + WHITE]);
@@ -763,7 +763,7 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	case Move::BLACK_EP:
 	{
 		const auto kingPos = kingSquares[WHITE];
-		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~posToBB(move.getDestination() + NORTH)) | destinationBit;
+		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + NORTH)) | destinationBit;
 		const auto attack =
 			Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + BLACK] | bitBoardsPiece[QUEEN + BLACK]) |
 			Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + BLACK] | bitBoardsPiece[QUEEN + BLACK]);
@@ -774,13 +774,13 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	// 2. The king's movement uncovers a discovered check from the rook. 
 	//    This can only happen if the king moves to reveal the rook's attack during castling.
 	case Move::WHITE_CASTLES_KING_SIDE:
-		return (checkBitmaps[ROOK >> 1] & posToBB(F1)) | (discoveredCheckMask & departureBit);
+		return (checkBitmaps[ROOK >> 1] & squareToBB(F1)) | (discoveredCheckMask & departureBit);
 	case Move::WHITE_CASTLES_QUEEN_SIDE:
-		return (checkBitmaps[ROOK >> 1] & posToBB(D1)) | (discoveredCheckMask & departureBit);
+		return (checkBitmaps[ROOK >> 1] & squareToBB(D1)) | (discoveredCheckMask & departureBit);
 	case Move::BLACK_CASTLES_KING_SIDE:
-		return (checkBitmaps[ROOK >> 1] & posToBB(F8)) | (discoveredCheckMask & departureBit);
+		return (checkBitmaps[ROOK >> 1] & squareToBB(F8)) | (discoveredCheckMask & departureBit);
 	case Move::BLACK_CASTLES_QUEEN_SIDE:
-		return (checkBitmaps[ROOK >> 1] & posToBB(D8)) | (discoveredCheckMask & departureBit);
+		return (checkBitmaps[ROOK >> 1] & squareToBB(D8)) | (discoveredCheckMask & departureBit);
 	}
 
 	return false;

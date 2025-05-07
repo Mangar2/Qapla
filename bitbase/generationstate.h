@@ -19,13 +19,13 @@
  * State of the generation for a single piece combination
  */
 
-#ifndef __GENERATIONSTATE_H
-#define __GENERATIONSTATE_H
+#pragma once
 
 #include <mutex>
 #include <atomic>
 #include "bitbase.h"
 #include "bitbaseindex.h"
+#include "compress.h"
 
 namespace QaplaBitbase {
 
@@ -36,14 +36,17 @@ namespace QaplaBitbase {
 		 * Creates a generation state object holding information which positions are already decided
 		 * and where to look further
 		 */
-		GenerationState(PieceList& pieceList) 
-			: _wonPositions(true), _computedPositions(true), _candidates(true)
+		GenerationState(PieceList& pieceList, uint32_t sig) 
+			: _wonPositions(true, sig), _computedPositions(true, sig), _candidates(true, sig)
 		{
 			BitbaseIndex bitbaseIndexType(pieceList);
 			_sizeInBit = bitbaseIndexType.getSizeInBit();
-			_wonPositions.setSize(_sizeInBit);
-			_computedPositions.setSize(_sizeInBit);
-			_candidates.setSize(_sizeInBit);
+			_wonPositions.resize(_sizeInBit);
+			_wonPositions.setLoaded();
+			_computedPositions.resize(_sizeInBit);
+			_computedPositions.setLoaded();
+			_candidates.resize(_sizeInBit);
+			_candidates.setLoaded();
 			_pieceList = pieceList;
 			_illegal = 0;
 			_loss = 0;
@@ -62,7 +65,7 @@ namespace QaplaBitbase {
 		 * @param index index of the position
 		 * @param onlyCandidates if true, only candidates are provided to be checked
 		 */
-		bool isPositionToCheck(uint64_t index, bool onlyCandidates) const {
+		bool isPositionToCheck(uint64_t index, bool onlyCandidates) {
 			return !_computedPositions.getBit(index) &&
 				(!onlyCandidates || _candidates.getBit(index));
 		}
@@ -90,6 +93,7 @@ namespace QaplaBitbase {
 		 * Retrieves the won positions bitbase
 		 */
 		const Bitbase& getWonPositions() const { return _wonPositions; }
+		Bitbase& getWonPositions() { return _wonPositions; }
 
 		/**
 		 * Sets a list of candidates 
@@ -182,23 +186,37 @@ namespace QaplaBitbase {
 		 */
 		void printStatistic() {
 			uint64_t drawOrLoss = _sizeInBit - _won - _illegal;
-			cout 
-				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%) " << _wonPositions.computeWonPositions()
-				<< " Not Won: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
-				<< " Mated: " << _loss 
-				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)";
+			cout
+				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%) " 
+				<< " Draw or loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
+				<< " Loss in 0: " << _loss
+				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)"
+				<< " Uncompressed memory size " << _wonPositions.getSize()
+				<< std:: endl;
+			if (_won != _wonPositions.computeWonPositions()) {
+				std::cout << "Error, won positions do not match!" << std::endl;
+			}
 		}
 
 		/**
 		 * Stores the result (bitbase with winning positions) to a file
 		 */
-		void storeToFile(string fileName, bool uncompressed, bool test = false, bool verbose = false) { 
-			if (uncompressed) {
-				_wonPositions.storeUncompressed(fileName);
-			}
-			else {
-				_wonPositions.storeToFile(fileName, test, verbose);
-			}
+		void storeToFile(string fileName, string signature, QaplaCompress::CompressionType compression) {
+			_wonPositions.setFilename(signature, ".btb");
+			_wonPositions.storeToFile(fileName, compression);
+		}
+
+		void generateCpp(string signature) {
+			_wonPositions.writeAsCppFile(signature, signature + ".h");
+		}
+
+		void print() {
+			std::cout << "Won positions: " << std::endl;
+			_wonPositions.print();
+			std::cout << "Computed positions: " << std::endl;
+			_computedPositions.print();
+			std::cout << "Candidates: " << std::endl;
+			_candidates.print();
 		}
 
 	private:
@@ -224,5 +242,3 @@ namespace QaplaBitbase {
 	};
 
 }
-
-#endif // __GENERATIONSTATE_H

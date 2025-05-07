@@ -18,7 +18,7 @@
  */
 
 #include "basicboard.h"
-#include <assert.h>
+
 
 using namespace QaplaBasics;
 
@@ -28,19 +28,19 @@ void BasicBoard::clear() {
 	kingRookStartSquare = { H1, H8 };
 	boardState.initialize();
 	_board.fill(NO_PIECE);
+	_startHalfmoves = 0;
 }
 
 void BasicBoard::initClearCastleMask() {
 	_clearCastleFlagMask.fill(0xFFFF);
-
-	_clearCastleFlagMask[queenRookStartSquare[WHITE]] = ~BoardState::WHITE_QUEEN_SIDE_CASTLE_BIT;
-	_clearCastleFlagMask[kingRookStartSquare[WHITE]] = ~BoardState::WHITE_KING_SIDE_CASTLE_BIT;
-	_clearCastleFlagMask[queenRookStartSquare[BLACK]] = ~BoardState::BLACK_QUEEN_SIDE_CASTLE_BIT;
-	_clearCastleFlagMask[kingRookStartSquare[BLACK]] = ~BoardState::BLACK_KING_SIDE_CASTLE_BIT;
+	_clearCastleFlagMask[queenRookStartSquare[WHITE]] = static_cast<uint16_t>(~BoardState::WHITE_QUEEN_SIDE_CASTLE_BIT);
+	_clearCastleFlagMask[kingRookStartSquare[WHITE]] = static_cast<uint16_t>(~BoardState::WHITE_KING_SIDE_CASTLE_BIT);
+	_clearCastleFlagMask[queenRookStartSquare[BLACK]] = static_cast<uint16_t>(~BoardState::BLACK_QUEEN_SIDE_CASTLE_BIT);
+	_clearCastleFlagMask[kingRookStartSquare[BLACK]] = static_cast<uint16_t>(~BoardState::BLACK_KING_SIDE_CASTLE_BIT);
 	_clearCastleFlagMask[kingStartSquare[WHITE]] = 
-		~(BoardState::WHITE_QUEEN_SIDE_CASTLE_BIT + BoardState::WHITE_KING_SIDE_CASTLE_BIT);
+		static_cast<uint16_t>(~(BoardState::WHITE_QUEEN_SIDE_CASTLE_BIT + BoardState::WHITE_KING_SIDE_CASTLE_BIT));
 	_clearCastleFlagMask[kingStartSquare[BLACK]] = 
-		~(BoardState::BLACK_QUEEN_SIDE_CASTLE_BIT + BoardState::BLACK_KING_SIDE_CASTLE_BIT);
+		static_cast<uint16_t>(~(BoardState::BLACK_QUEEN_SIDE_CASTLE_BIT + BoardState::BLACK_KING_SIDE_CASTLE_BIT));
 }
 
 bool BasicBoard::assertMove(Move move) const {

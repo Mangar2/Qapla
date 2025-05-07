@@ -29,7 +29,7 @@
 #include "boardaccess.h"
 #include "workpackage.h"
 #include "generationstate.h"
-#include "bitbasereader.h"
+#include "bitbase-reader.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -46,46 +46,49 @@ namespace QaplaBitbase {
 		 * Computes a bitbase for a piece string (example KPK) and
 		 * all other bitbases needed
 		 */
-		void computeBitbaseRec(string pieceString, uint32_t cores = 1, bool uncompressed = false,
-				int traceLevel = 0, int debugLevel = 0, uint64_t debugIndex = 64)
+		void computeBitbaseRec(string pieceString, uint32_t cores = 1, 
+			QaplaCompress::CompressionType compress = QaplaCompress::CompressionType::Miniz,
+			bool generateCpp = false, int traceLevel = 0, int debugLevel = 0, uint64_t debugIndex = 64)
 		{
 			_cores = std::min(MAX_THREADS, cores);
-			_uncompressed = uncompressed;
 			_traceLevel = traceLevel;
 			_debugIndex = debugIndex;
 			_debugLevel = debugLevel;
 			ClockManager clock;
 			clock.setStartTime();
-			computeBitbase(pieceString);
+			computeBitbase(pieceString, compress, generateCpp);
 			cout << endl << "All Bitbases generated!";
-			printTimeSpent(clock, 0);
+			printTimeSpent(clock);
 			cout << endl;
 		}
 
 
 	private:
 
-		void computeBitbase(string pieceString) {
+		void computeBitbase(string pieceString, QaplaCompress::CompressionType compression, bool generateCpp) {
 			if (pieceString == "3") {
-				computeBitbase("KPK");
+				computeBitbase("KPK", compression, generateCpp);
 			} 
 			else if (pieceString == "4") {
-				computeBitbase("KPPK");
-				computeBitbase("KPKP");
+				computeBitbase("KPPK", compression, generateCpp);
+				computeBitbase("KPKP", compression, generateCpp);
+			}
+			else if (pieceString == "5s") {
+				computeBitbase("KPPKP", compression, generateCpp);
+				computeBitbase("KPKPP", compression, generateCpp);
 			}
 			else if (pieceString == "5") {
-				computeBitbase("KPPKP");
-				computeBitbase("KPKPP");
-				computeBitbase("KPPPK");
+				computeBitbase("KPPKP", compression, generateCpp);
+				computeBitbase("KPKPP", compression, generateCpp);
+				computeBitbase("KPPPK", compression, generateCpp);
 			}
 			else if (pieceString == "6") {
-				computeBitbase("KPPKPP");
-				computeBitbase("KPKPPP");
-				computeBitbase("KPPPKP");
-				computeBitbase("KPPPPK");
+				computeBitbase("KPPKPP", compression, generateCpp);
+				computeBitbase("KPKPPP", compression, generateCpp);
+				computeBitbase("KPPPKP", compression, generateCpp);
 			}
 			PieceList list(pieceString);
-			computeBitbaseRec(list, true);
+			computeBitbaseRec(list, true, compression, generateCpp);
 		}
 
 
@@ -142,7 +145,7 @@ namespace QaplaBitbase {
 		 * Computes a position value by probing all moves and lookup the result in this bitmap
 		 * Captures are excluded, they have been tested in the initial search. 
 		 */
-		bool computeValue(MoveGenerator& position, const Bitbase& bitbase, bool verbose);
+		bool computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose);
 
 		/**
 		 * Sets the bitbase index for a position by computing the position value from the bitbase itself
@@ -151,51 +154,14 @@ namespace QaplaBitbase {
 		uint32_t computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
-		 * Prints the difference of two bitbases
-		 */
-		void compareBitbases(string pieceString, Bitbase& bitbase1, Bitbase& bitbase2);
-
-		/**
-		 * Prints the differences of two bitbases in files
-		 */
-		void compareToFile(string pieceString, Bitbase& won) {
-			Bitbase bitbase2;
-			bitbase2.readFromFile("generated\\" + pieceString);
-			compareBitbases(pieceString, won, bitbase2);
-		}
-
-		/**
-		 * Prints the differences of two bitbases in files
-		 */
-		void compareFiles(string pieceString) {
-			Bitbase bitbase1;
-			Bitbase bitbase2;
-			bool found1 = bitbase1.readFromFile(pieceString, ".btb", "./", false);
-			if (found1 == false) {
-				cout << "Missing file ./" << pieceString << ".btb compare not possible " << endl;
-			}
-			bool found2 = bitbase2.readFromFile(pieceString, ".btb", "./generated/", false);
-			if (found2 == false) {
-				cout << "Missing file ./generated/" << pieceString << ".btb compare not possible " << endl;
-			}
-			if (found1 && found2) {
-				compareBitbases(pieceString, bitbase1, bitbase2);
-			}
-			
-		}
-
-		/**
 		 * Prints the time spent so far
 		 */
-		void printTimeSpent(ClockManager& clock, int minTraceLevel, bool sameLine = false);
+		void printTimeSpent(ClockManager& clock);
 
 		/**
 		 * Prints win/loss/draw/illegal statistic
 		 */
-		void printStatistic(GenerationState& state, int minTraceLevel) {
-			if (_traceLevel < minTraceLevel) {
-				return;
-			}
+		void printStatistic(GenerationState& state) {
 			state.printStatistic();
 		}
 
@@ -247,22 +213,25 @@ namespace QaplaBitbase {
 		/**
 		 * Computes a bitbase for a set of pieces described by a piece list.
 		 * @param pieceList list of pieces in the bitbase
+		 * @param first true, if this is a primary bitbase and not an additionally required and recursively identified bitbase
+		 * @param compression compression type
+		 * @param generateCpp true, if a cpp file should be generated
 		 */
-		void computeBitbase(PieceList& pieceList);
+		void computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp);
 
 		/**
 		 * Recursively computes bitbases based on a bitbase string
 		 * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
 		 * so that any bitbase KQKP can get to is available
 		 */
-		void computeBitbaseRec(PieceList& pieceList, bool first);
+		void computeBitbaseRec(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp);
 
+		const bool debug = false;
 		uint64_t _numberOfIllegalPositions;
 		uint64_t _numberOfDirectLoss;
 		uint64_t _numberOfDirectDraw;
 
 		uint32_t _cores;
-		bool _uncompressed;
 		int _traceLevel;
 		uint64_t _debugIndex;
 		int _debugLevel;

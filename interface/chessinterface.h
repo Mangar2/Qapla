@@ -23,6 +23,7 @@
 #define __CHESSINTERFACE_H
 
 #include <string>
+#include <cstdint>  // Added for uint64_t definition
 #include "ichessboard.h"
 #include "iinputoutput.h"
 #include "clocksetting.h"
@@ -35,6 +36,8 @@
 #include <atomic>
 #include <condition_variable>
 
+#include "../bitbase/bitbase-reader.h"
+
 using namespace std;
 
 namespace QaplaInterface {
@@ -46,6 +49,27 @@ namespace QaplaInterface {
 			worker = std::thread(&WorkerThread::run, this);
 		}
 
+		// Move-Konstruktor
+		WorkerThread(WorkerThread&& other) noexcept
+			: stop_thread(other.stop_thread.load()), task_running(other.task_running.load()) {
+			if (other.worker.joinable()) {
+				worker = std::move(other.worker);
+			}
+		}
+
+		// Move-Zuweisungsoperator
+		WorkerThread& operator=(WorkerThread&& other) noexcept {
+			if (this != &other) {
+				shutdown();
+				stop_thread = other.stop_thread.load();
+				task_running = other.task_running.load();
+				if (other.worker.joinable()) {
+					worker = std::move(other.worker);
+				}
+			}
+			return *this;
+		}
+
 		~WorkerThread() {
 			shutdown();
 		}
@@ -54,7 +78,10 @@ namespace QaplaInterface {
 		void startTask(std::function<void()> task) {
 			{
 				std::unique_lock<std::mutex> lock(mutex);
-				this->task = task;
+				if (task_running) {
+					return;
+				}
+				this->task = std::move(task);
 				task_running = true;
 			}
 			cv.notify_one();
@@ -73,6 +100,7 @@ namespace QaplaInterface {
 				stop_thread = true;
 			}
 			cv.notify_one();
+			waitForTaskCompletion();
 			if (worker.joinable()) {
 				worker.join();
 			}
@@ -127,7 +155,45 @@ namespace QaplaInterface {
 		void run(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 			_ioHandler = ioHandler;
 			_board = chessBoard;
+			QaplaBitbase::BitbaseReader::registerBitbaseFromHeader();
 			runLoop();
+		}
+
+		static bool setPositionByFen(std::string position, IChessBoard* board) {
+			FenScanner scanner;
+			bool success = scanner.setBoard(position, board);
+			return success;
+		}
+
+		/**
+		 * Gets a move to the board
+		 */
+		static bool setMove(string move, IChessBoard* board) {
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			bool res = false;
+			if (scanner.isLegal()) {
+				res = board->doMove(
+					scanner.piece,
+					scanner.departureFile, scanner.departureRank,
+					scanner.destinationFile, scanner.destinationRank,
+					scanner.promote);
+			}
+			return res;
+		}
+
+		static bool isCapture(string move, IChessBoard* board) {
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			bool res = false;
+			if (scanner.isLegal()) {
+				res = board->isCapture(
+					scanner.piece,
+					scanner.departureFile, scanner.departureRank,
+					scanner.destinationFile, scanner.destinationRank,
+					scanner.promote);
+			}
+			return res;
 		}
 
 
@@ -145,28 +211,24 @@ namespace QaplaInterface {
 			if (position == "") {
 				position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 			}
-			FenScanner scanner;
-			bool success = scanner.setBoard(position, _board);
-			return success;
+			return setPositionByFen(position, _board);
 		}
 
-		bool isLegalMove(string move) {}
+		bool isValidMoveString(string move) { 
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			return scanner.isLegal();
+		}
 
 		/**
 		 * Gets a move to the board
 		 */
 		bool setMove(string move) {
-			if (move == "") return false;
-			MoveScanner scanner(move);
-			bool res = false;
-			if (scanner.isLegal()) {
-				res = _board->doMove(
-					scanner.piece,
-					scanner.departureFile, scanner.departureRank,
-					scanner.destinationFile, scanner.destinationRank,
-					scanner.promote);
-			}
-			return res;
+			return setMove(move, _board);
+		}
+
+		bool isCapture(string move) {
+			return isCapture(move, _board);
 		}
 
 		/**
@@ -240,7 +302,7 @@ namespace QaplaInterface {
 		}
 
 	protected:
-		enum class Mode { WAIT, COMPUTE, ANALYZE, EDIT, PONDER };
+		enum class Mode { WAIT, COMPUTE, ANALYZE, EDIT, PONDER, QUIT };
 		void println(const string& output) { _ioHandler->println(output); }
 		void print(const string& output) { _ioHandler->print(output); }
 		string getCurrentToken() { return _ioHandler->getCurrentToken(); }
@@ -248,16 +310,22 @@ namespace QaplaInterface {
 		string getNextTokenNonBlocking(string separators = "") { return _ioHandler->getNextTokenNonBlocking(separators); }
 		string getToEOLBlocking() { return _ioHandler->getToEOLBlocking(); }
 		uint64_t getCurrentTokenAsUnsignedInt() { return _ioHandler->getCurrentTokenAsUnsignedInt(); }
+		bool isFatalError() { return _ioHandler->isFatalReadError(); }
+		IChessBoard* getBoard() { return _board; }
+		WorkerThread& getWorkerThread() { return _computeThread; }
+
+	private:
 		IChessBoard* _board;
 		IInputOutput* _ioHandler;
-		ClockSetting _clock;
 		condition_variable _protectSearchTermination;
 		mutex _protectWorkerAccess;
 		bool _isInfiniteSearch;
 		bool _stopRequested;
 		WorkerThread _computeThread;
-		uint32_t _maxTheadCount; 
-		uint32_t _maxMemory;
+	
+	protected:
+		ClockSetting _clock;
+		uint32_t _maxTheadCount;
 		string _egtPath;
 		string _bitbasePath;
 	};

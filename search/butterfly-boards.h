@@ -67,7 +67,6 @@ namespace QaplaSearch {
 		}
 
 		void print() {
-			constexpr int cellWidth = 10; // Breite der einzelnen Felder
 			constexpr int valueWidth = 5; // Breite f�r die rechtsb�ndige Werteanzeige
 
 			std::cout << "       A         B         C         D         E         F         G         H\n";

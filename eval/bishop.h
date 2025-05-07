@@ -27,6 +27,7 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "../basics/evalvalue.h"
+#include "../basics/pst.h"
 #include "evalresults.h"
 
 using namespace QaplaBasics;
@@ -35,50 +36,75 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 	class Bishop {
 	public:
-		template <bool PRINT>
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
-			return eval<WHITE, PRINT>(position, results) - eval<BLACK, PRINT>(position, results);
+			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
+		}
+
+		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
+		}
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["bMobility"] = std::vector<EvalValue>{ BISHOP_MOBILITY_MAP.begin(), BISHOP_MOBILITY_MAP.end()};
+			indexLookup["bProperty"] = std::vector<EvalValue>{ BISHOP_PROPERTY_MAP.begin(), BISHOP_PROPERTY_MAP.end()};
+			indexLookup["bPST"] = PST::getPSTLookup(BISHOP);
+			return indexLookup;
 		}
 	private:
 
 		/**
 		 * Evaluates Bishops
 		 */
-		template<Piece COLOR, bool PRINT>
-		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
+		template<Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			EvalValue value;
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t bishops = position.getPieceBB(BISHOP + COLOR);
 			results.bishopAttack[COLOR] = 0;
 			if (bishops == 0) {
 				return 0;
 			}
-			uint32_t index = 0;
-			index += hasDoubleBishop(bishops);
-			value = getFromIndexMap(index);
-			if (PRINT && index > 0) cout << colorToString(COLOR) << " double bishop: "
-				<< std::right << std::setw(12) << value << endl;
 
-			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + OPPONENT);
+			uint32_t allBishopsIndex = hasDoubleBishop(bishops) * DOUBLE_BISHOP_INDEX;
+
+			bitBoard_t passThroughBB = results.queensBB | position.getPieceBB(ROOK + opponentColor<COLOR>());
 			bitBoard_t occupiedBB = position.getAllPiecesBB();
 			bitBoard_t removeMask = (~position.getPiecesOfOneColorBB<COLOR>() | passThroughBB)
-				& ~position.pawnAttack[OPPONENT];
+				& ~position.pawnAttack[opponentColor<COLOR>()];
 			occupiedBB &= ~passThroughBB;
 
 			while (bishops)
 			{
-				const Square bishopSquare = lsb(bishops);
-				bishops &= bishops - 1;
-				value += calcMobility<COLOR, PRINT>(results, bishopSquare, occupiedBB, removeMask);
-				if (isPinned(position.pinnedMask[COLOR], bishopSquare)) {
-					value += EvalValue(_pinned);
-					if (PRINT) cout << "<pin>";
+				const Square bishopSquare = popLSB(bishops);
+				const auto mobilityIndex = calcMobilityIndex<COLOR>(results, bishopSquare, occupiedBB, removeMask);
+				const auto mobilityValue = EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]);
+				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(1)[mobilityIndex];
+
+				const auto propertyIndex = allBishopsIndex | (isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
+				const auto propertyValue = EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]);
+				//const auto propertyValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
+
+				const auto totalValue = mobilityValue + propertyValue;
+				value += totalValue;
+
+				if constexpr (STORE_DETAILS) {
+					const auto materialValue = position.getPieceValue(BISHOP + COLOR);
+					const auto pstValue = PST::getValue(bishopSquare, BISHOP + COLOR);
+					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
+					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+					IndexVector indexVector{ 
+						{ "bMobility", mobilityIndex, COLOR }, 
+						{ "bPST", uint32_t(switchSideToWhite<COLOR>(bishopSquare)), COLOR },
+						{ "material", BISHOP, COLOR } };
+					if (propertyIndex) {
+						indexVector.push_back({ "bProperty", propertyIndex, COLOR });
+					}
+					const auto value = materialValue + pstValue + mobility + property;
+					details->push_back({ BISHOP + COLOR, bishopSquare, indexVector, BISHOP_PROPERTY_INFO[propertyIndex], value });
 				}
-				if (PRINT) cout << endl;
+				
 			}
 
-			if (PRINT) cout << colorToString(COLOR) << " bishops: " 
-				<< std::right << std::setw(18) << value << endl;
 			return value;
 		}
 
@@ -92,9 +118,8 @@ namespace ChessEval {
 		/**
 		 * Calculates the mobility of a bishop
 		 */
-		template<Piece COLOR, bool PRINT>
-		static EvalValue calcMobility(
-			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
+		template<Piece COLOR>
+		static inline uint32_t calcMobilityIndex(EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
 			bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
 			results.bishopAttack[COLOR] |= attackBB;
@@ -102,24 +127,14 @@ namespace ChessEval {
 			results.piecesAttack[COLOR] |= attackBB;
 
 			attackBB &= removeBB;
-
-			const EvalValue value = BISHOP_MOBILITY_MAP[popCount(attackBB)];
-			if (PRINT) cout << colorToString(COLOR)
-				<< " bishop (" << squareToString(square) << ") mobility: "
-				<< std::right << std::setw(5) << value;
-			return value;
-		}
-
-
-		static inline EvalValue getFromIndexMap(uint32_t index) {
-			return EvalValue(_indexToValue[index * 2], _indexToValue[index * 2 + 1]);
+			return popCount(attackBB);
 		}
 
 		/**
 		 * Returns true, if the bishop is pinned
 		 */
 		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & (1ULL << square)) != 0;
+			return (pinnedBB & squareToBB(square)) != 0;
 		}
 
 		/**
@@ -127,21 +142,30 @@ namespace ChessEval {
 		 */
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
 
+		static const uint32_t DOUBLE_BISHOP_INDEX = 1;
+		static const uint32_t PINNED_INDEX = 2;
+
 		/**
 		 * Additional value for two bishops on different colors
 		 */
-		static constexpr value_t _doubleBishop[2] = { 20, 10 };
+		static constexpr value_t _doubleBishop[2] = { 5, 15 };
 		static constexpr value_t _pinned[2] = { 0, 0 };
-		static constexpr value_t _indexToValue[4] = { 0, 0, _doubleBishop[0], _doubleBishop[1] };
+
+		static constexpr std::array<EvalValue, 4> BISHOP_PROPERTY_MAP = { {
+			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} 
+		} };
+		static inline std::string BISHOP_PROPERTY_INFO[4] = {
+			"", "<par>", "<pin>", "<pin><par>"
+		};
 
 		/**
 		 * Mobility of a bishop. Having negative values for 0 or 1 fields to move to did not bring ELO
 		 * Still I kept it.
 		 */
-		static constexpr value_t BISHOP_MOBILITY_MAP[15][2] = {
+		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = { {
 			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
-		};
+		} };
 
 	};
 }

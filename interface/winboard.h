@@ -47,8 +47,18 @@ namespace QaplaInterface {
 		 */
 		void readMemory() {
 			getNextTokenBlocking();
-			_maxMemory = uint32_t(getCurrentTokenAsUnsignedInt());
+			getBoard()->setOption("Hash", getCurrentToken());
 		}
+
+		/**
+		 * @brief Loads the EGTB or bitbases
+		 */
+		void loadEgtb();
+
+		/**
+		 * Sets a winboard option
+		 */
+		void setOption();
 
 		/**
 		 * Manages a move
@@ -69,16 +79,6 @@ namespace QaplaInterface {
 		 * Processes any input coming from the console
 		 */
 		virtual void runLoop();
-
-		/**
-		 * handles a generate EGTB command
-		 */
-		void generateEGTB();
-
-		/**
-		 * handles a verify EGTB command
-		 */
-		void verifyEGTB();
 
 		/**
 		 * Sets xBoard mode 
@@ -121,6 +121,11 @@ namespace QaplaInterface {
 		 * Answers to a ping (with a pong)
 		 */
 		void handlePing();
+
+		/**
+		 * Handles a new game command
+		 */
+		void newGame();
 
 		/**
 		 * Sets the board from fen

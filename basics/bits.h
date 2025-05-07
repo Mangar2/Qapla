@@ -66,14 +66,14 @@ namespace QaplaBasics {
 
 #if defined(__GNUC__) && !defined(__OLD_HW__)
 
-	inline static Square lsb(bitBoard_t bitBoard) {
+	constexpr Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
 		return Square(__builtin_ctzll(bitBoard));
 	}
 
 #elif defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)
 	
-	inline static Square lsb(bitBoard_t bitBoard) {
+	static inline Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
 		unsigned long pos;
 		_BitScanForward64(&pos, bitBoard);
@@ -90,9 +90,9 @@ namespace QaplaBasics {
 	/**
 	 * Removes the least significant bit
 	 */
-	inline static uint32_t popLSB(bitBoard_t& bitBoard)
+	inline static Square popLSB(bitBoard_t& bitBoard)
 	{
-		uint32_t res = lsb(bitBoard);
+		auto res = lsb(bitBoard);
 		bitBoard &= bitBoard - 1;
 		return res;
 	}
@@ -107,8 +107,8 @@ namespace QaplaBasics {
 	  * Counts the amout of set bits in a 64 bit variables - only performant for
 	  * sparcely populated bitboards. (1-3 bits set).
 	  */
-	static int32_t popCountBrianKernighan(bitBoard_t bitBoard) {
-		int32_t popCount = 0;
+	constexpr uint32_t popCountBrianKernighan(bitBoard_t bitBoard) {
+		uint32_t popCount = 0;
 		for (; bitBoard != 0; bitBoard &= bitBoard - 1) {
 			popCount++;
 		}
@@ -134,31 +134,31 @@ namespace QaplaBasics {
 
 #if (defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)) || defined(__INTEL_COMPILER)
 
-	inline static int32_t popCount(bitBoard_t bitBoard) {
+	inline uint32_t popCount(bitBoard_t bitBoard) {
 		//const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
 		return (int)_mm_popcnt_u64(bitBoard);
 	}
 
-	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+	inline uint32_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
 		//const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
 		return popCount(bitBoard);
 	}
 
 #elif defined(__GNUC__) && !defined(__OLD_HW__)
-	inline static int32_t popCount(bitBoard_t bitBoard) {
+	constexpr int32_t popCount(bitBoard_t bitBoard) {
 		return __builtin_popcountll(bitBoard);
 	}
 
-	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+	constexpr uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
 		return popCount(bitBoard);
 	}
 
 #else
-	inline static int32_t popCount(bitBoard_t bitBoard) {
+	constexpr uint32_t popCount(bitBoard_t bitBoard) {
 		return SWARPopcount(bitBoard);
 	}
 	
-	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+	constexpr uint32_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
 		return popCountBrianKernighan(bitBoard);
 	}
 #endif

@@ -145,7 +145,7 @@ namespace QaplaBasics {
 		Square getEP() const { return Square(_info & EP_MASK); }
 		void setEP(Square epSquare) { clearEP(); _info |= uint32_t(epSquare); }
 
-		bool hasEP() { return (_info & EP_MASK) != 0; }
+		bool hasEP() const { return (_info & EP_MASK) != 0; }
 		void clearEP() { _info &= ~EP_MASK; }
 
 		/**
@@ -179,6 +179,7 @@ namespace QaplaBasics {
 			setCastlingRight(BLACK, true, false);
 			setCastlingRight(BLACK, false, false);
 			halfmovesWithoutPawnMoveOrCapture = 0;
+			fenHalfmovesWithoutPawnMoveOrCapture = 0;
 			pawnHash = 0;
 			boardHash = 0;
 		}
@@ -189,6 +190,7 @@ namespace QaplaBasics {
 		static uint16_t const BLACK_KING_SIDE_CASTLE_BIT = 0x0800;
 
 		uint16_t halfmovesWithoutPawnMoveOrCapture;
+		uint16_t fenHalfmovesWithoutPawnMoveOrCapture;
 		uint64_t boardHash;
 		uint64_t pawnHash;
 

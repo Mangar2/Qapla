@@ -1,7 +1,44 @@
-# Quabla Change log
-Quabla chess engine
+# Qapla Change log
+Qapla chess engine
 
-## 0.2.0 2025-05-09
+## 0.3.0 2025-05-06
+
+- Playing strength: + 100 ELO to 0.2.57 (about 2800 - 2850 ELO on CCRL)
+- Github repository renamed to "Qapla"
+- Features
+    - UCI supports node count on "go" command. It will be "nearly" reached, not exactly. It is additional to other limits so you might limit depth, time and nodes.
+	- UCI now supports searchmoves to search only a given set of moves
+	- Trial feature:
+		- Support of Qapla Bitbases (trial version). Should you use it? No!! But you may, if you want. It is tested for 5 picees but 6 pieces should work too. It has two design flaws that needs to be changed: Only WD instead of WDL (Win Draw Loss). So you need as example KRPKR and KRKRP bitbase to find out, if side to move is winning, play draw or loose. Additionally 50 moves draw is currently ignored.
+	- Developer feature:
+		- Support of Qapla Bitbases (trial version). Should you use it? No!! But you may, if you want. It is tested for 5 picees but 6 pieces should work too. It has two design flaws that needs to be changed: Only WD instead of WDL (Win Draw Loss). So you need as example KRPKR and KRKRP bitbase to find out, if side to move is winning, play draw or loose. Additionally 50 moves draw is currently ignored.- Some statistic features I use to improve the engine (you will see lots of code for it, but it is just for me :-). 
+		- Ability to generate games in a dense file format for future NNUE training. 
+		- Ability to evaluate fen positions from a file - I use this to check, if a new build did not change the behaviour of the engine.
+		- Ability to run statistics agains itself to optimize eval parameters
+- Fixes
+	- Memory usage now really shrinks after setting smaller tt size
+	- Fixed that last move in pv was sometimes not a legal move due to uninitialized variable
+	- Fixed that fail low situation now always leads to longer time usage
+	- Pawn hash and transposition tables are now only cleared on new game
+	- Code improvements - many warnings fixed, many to go
+- Eval
+	- Many changes in eval weights
+	- Added term for pinned pieces
+	- Added term for overloaded attacks
+	- Added differentiation of pawn evaluation in mid- adn endgame
+	- Added term to attract King to pawns in endgame
+	- Added few more endgame evaluations
+	- Added linked bitbase for KPK
+	- Added eval reduction to handle 50 move rule after 20 "silent" halfmoves
+- Search
+	- Added 50 move rule cutoff 
+	- Changed foreward futility pruning return value to be more near to current eval
+- Outlook
+    - Working on playing strength with "classic" (< 2010) features until gaining Spike 1.4 strength
+	- Then adding new search ideas from the past 15 years (like move continuation history) that are not in spike
+	- Then generating test games and implement NNUE
+
+## 0.2.57 2025-02-09
 
 - Playing strength: About 2700 ELO
 - Eval

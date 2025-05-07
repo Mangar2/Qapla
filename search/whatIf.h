@@ -68,7 +68,7 @@ namespace QaplaSearch {
 			_searchType = computeSearchType(searchType, node);
 			
 			_nodesSearched = info._nodesSearched;
-			_pv = node.isPVSearch() ? node.pvMovesStore.toString() : "";
+			_pv = node.isPVNode() && (_alpha + 1 < _beta) ? node.pvMovesStore.toString() : "";
 			_curValue = curValue;
 			if (_remainingDepth >= 0) {
 				if (!stack[ply + 1].getTTMove().isEmpty()) {
@@ -163,7 +163,7 @@ namespace QaplaSearch {
 		string _pv;
 		const SearchStack& _stack;
 		static constexpr array<const char*, int(Cutoff::COUNT)> 
-			_cutoffString = { "NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL", "BITB", "LOST", "MAXD", "ABOR"};
+			_cutoffString = { "NONE", "REPT", "50MO", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL", "BITB", "LOST", "MAXD", "ABOR"};
 	};
 
 #if (DOWHATIF == false) 
@@ -176,7 +176,7 @@ namespace QaplaSearch {
 		void startSearch(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply) {};
 
 		void moveSelected(const Board& board, const ComputingInfo& computingInfo, Move currentMove, ply_t ply, bool inQsearch) {};
-		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply) {};
+		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply) {};
 
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack,
 			Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType = "") {};
@@ -207,7 +207,7 @@ namespace QaplaSearch {
 		void startSearch(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, ply_t ply);
 
 		void moveSelected(const Board& board, const ComputingInfo& computingInfo, Move currentMove, ply_t ply, bool inQsearch);
-		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t ply);
+		void moveSelected(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, Move currentMove, ply_t depth, ply_t ply);
 
 		void moveSearched(const Board& board, const ComputingInfo& computingInfo, const SearchStack& stack, 
 			Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType = "");

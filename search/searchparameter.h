@@ -43,7 +43,11 @@ namespace QaplaSearch {
 			return reduction + (depthRed > 0 ? depth / depthRed : 0);
 		}
 #else
-		constexpr static uint32_t getNullmoveReduction(ply_t ply, int32_t depth, value_t beta, value_t staticEval) {
+		constexpr static uint32_t getNullmoveReduction(
+			[[maybe_unused]]ply_t ply, 
+			[[maybe_unused]]int32_t depth, 
+			[[maybe_unused]]value_t beta, 
+			[[maybe_unused]]value_t staticEval) {
 			return 4;
 		}
 #endif
@@ -51,14 +55,16 @@ namespace QaplaSearch {
 		/**
 		 * Calculates the depth for nullmove verification searches
 		 */
-		constexpr static uint32_t getNullmoveVerificationDepthReduction(ply_t ply, int32_t remainingSearchDepth) {
+		constexpr static uint32_t getNullmoveVerificationDepthReduction(
+			[[maybe_unused]]ply_t ply, 
+			[[maybe_unused]]int32_t remainingSearchDepth) {
 			return 5;
 		}
 
 		/**
 		 * Calculates the reduction for internal iterative deepening
 		 */
-		constexpr static ply_t getIIDReduction(int32_t remainingSearchDepth)
+		constexpr static ply_t getIIDReduction([[maybe_unused]]int32_t remainingSearchDepth)
 		{
 			return 2;
 		}

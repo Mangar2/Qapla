@@ -62,12 +62,13 @@ namespace QaplaSearch {
 		 * @param movesToGo amount of moves to play in the time provided by clockSetting
 		 * @param clockSetting the time available to play the chess game
 		 */
-		void startCalculatingMove(int32_t movesToGo, const ClockSetting& clockSetting)
+		void startCalculatingMove([[maybe_unused]]int32_t movesToGo, const ClockSetting& clockSetting)
 		{
 			setStartTime();
 			_clockSetting = clockSetting;
 			_nextInfoTime = getSystemTimeInMilliseconds() + clockSetting.getTimeBetweenInfoInMilliseconds();
 			_maxTimePerMove = computeMaxTime();
+			_nodeTarget = clockSetting.getNodeTarget();
 			_mode = clockSetting.getMode();
 			// must be last!
 			setNewMove();
@@ -77,12 +78,21 @@ namespace QaplaSearch {
 			_depth = depth;
 		}
 
+		bool stopOnNodeTarget(uint64_t nodeCount) {
+			if (_mode == ClockMode::stopped) return true;
+			if (_nodeTarget == 0) return false;
+			if (nodeCount > _nodeTarget) {
+				stopSearch();
+				return true;
+			}
+			return false;
+		}
+
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
 		bool emergencyAbort() {
-			int64_t timeSpent = computeTimeSpentInMilliseconds();
-			if (_mode == ClockMode::stopped && _depth >= 1) {
+			if (_mode == ClockMode::stopped) {
 				return true;
 			}
 			if (_depth <= MIN_DEPTH) {
@@ -91,7 +101,7 @@ namespace QaplaSearch {
 			if (_mode != ClockMode::search) {
 				return false;
 			}
-			if (timeSpent > _maxTimePerMove) {
+			if (computeTimeSpentInMilliseconds() > _maxTimePerMove) {
 				stopSearch();
 				return true;
 			}
@@ -102,8 +112,7 @@ namespace QaplaSearch {
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
 		bool shouldAbort() {
-			int64_t timeSpent = computeTimeSpentInMilliseconds();
-			if (_mode == ClockMode::stopped && _depth >= 1) {
+			if (_mode == ClockMode::stopped) {
 				return true;
 			}
 			if (_depth <= MIN_DEPTH) {
@@ -112,7 +121,7 @@ namespace QaplaSearch {
 			if (_mode != ClockMode::search) {
 				return false;
 			}
-			if (timeSpent > (_averageTimePerMove / 10) * 8) {
+			if (computeTimeSpentInMilliseconds() > (_averageTimePerMove / 10) * 8) {
 				stopSearch();
 				return true;
 			}
@@ -125,7 +134,7 @@ namespace QaplaSearch {
 		 * @returns true, if calculation of next depth is ok
 		 */
 		bool mayComputeNextDepth(ply_t depth) const {
-			if (_mode == ClockMode::stopped && depth >= 1) {
+			if (_mode == ClockMode::stopped) {
 				return false;
 			}
 			if (depth <= MIN_DEPTH) {
@@ -264,7 +273,7 @@ namespace QaplaSearch {
 		bool isInfiniteSearch() {
 			return _clockSetting.isAnalyseMode() || 
 				_clockSetting.getSearchDepthLimit() > 0 || 
-				_clockSetting.getNodeCount() > 0;
+				_clockSetting.getNodeTarget() > 0;
 		}
 
 		/**
@@ -350,6 +359,7 @@ namespace QaplaSearch {
 		int64_t _averageTimePerMove;
 		int64_t _maxTimePerMove;
 		int64_t _nextInfoTime;
+		uint64_t _nodeTarget;
 
 		ClockMode _mode;
 		

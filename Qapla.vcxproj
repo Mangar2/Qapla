@@ -228,13 +228,6 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Deploy|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -352,13 +345,6 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Deploy|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -464,13 +450,6 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|ARM'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Deploy|ARM'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -569,6 +548,16 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='OLD_HW|Win32'">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='OLD_HW|x64'">
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='OLD_HW|ARM'">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -579,10 +568,6 @@
     <Import Project="PropertySheet.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="PropertySheet.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="PropertySheet.props" />
   </ImportGroup>
@@ -654,10 +639,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="PropertySheet.props" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="PropertySheet.props" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Deploy|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="PropertySheet.props" />
@@ -718,10 +699,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="PropertySheet.props" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|ARM'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="PropertySheet.props" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Deploy|ARM'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="PropertySheet.props" />
@@ -778,14 +755,20 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="PropertySheet.props" />
   </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='OLD_HW|Win32'">
+    <Import Project="PropertySheet.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='OLD_HW|ARM'">
+    <Import Project="PropertySheet.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='OLD_HW|x64'">
+    <Import Project="PropertySheet.props" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Deploy|Win32'">
@@ -837,10 +820,6 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <TargetName>$(ProjectName)</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|x64'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>
@@ -915,10 +894,6 @@
     <LinkIncremental>false</LinkIncremental>
     <TargetName>$(ProjectName)1</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|ARM'">
-    <LinkIncremental>false</LinkIncremental>
-    <TargetName>$(ProjectName)1</TargetName>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Deploy|ARM'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>$(ProjectName)1</TargetName>
@@ -988,23 +963,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <Profile>true</Profile>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -1262,17 +1220,18 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_T0;_DEBUG;_CONSOLE;USE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <StackReserveSize>2500000</StackReserveSize>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <StackCommitSize>2500000</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -1293,31 +1252,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;USE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <PreprocessToFile>false</PreprocessToFile>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <Profile>true</Profile>
-      <StackReserveSize>2500000</StackReserveSize>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__OLD_HW__;NDEBUG;_CONSOLE;USE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_T0;NDEBUG;_CONSOLE;USE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -1341,7 +1276,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;USE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_T0;NDEBUG;_CONSOLE;USE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -1368,7 +1303,7 @@
       <PreprocessorDefinitions>_T0;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1388,7 +1323,7 @@
       <PreprocessorDefinitions>_TEST5;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1408,7 +1343,7 @@
       <PreprocessorDefinitions>_TEST10;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1428,7 +1363,7 @@
       <PreprocessorDefinitions>_TEST9;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1448,7 +1383,7 @@
       <PreprocessorDefinitions>_TEST8;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1468,7 +1403,7 @@
       <PreprocessorDefinitions>_TEST7;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1488,7 +1423,7 @@
       <PreprocessorDefinitions>_TEST6;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1508,7 +1443,7 @@
       <PreprocessorDefinitions>_T4;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1549,7 +1484,7 @@
       <PreprocessorDefinitions>_TEST2;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1570,7 +1505,7 @@
       <PreprocessorDefinitions>_TEST1;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1584,14 +1519,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Test0|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_TEST0;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1609,11 +1544,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>__OLD_HW__;NDEBUG;_CONSOLE;WHATIF_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;WHATIF_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -1625,23 +1560,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <Profile>true</Profile>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|ARM'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -1896,26 +1814,49 @@
       <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='OLD_HW|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>__OLD_HW__</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <StackReserveSize>2500000</StackReserveSize>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="basics\basicboard.cpp" />
     <ClCompile Include="basics\board.cpp" />
     <ClCompile Include="basics\hashconstants.cpp" />
     <ClCompile Include="basics\piecesignature.cpp" />
     <ClCompile Include="basics\pst.cpp" />
+    <ClCompile Include="bitbase\bitbase-file.cpp" />
+    <ClCompile Include="bitbase\bitbase.cpp" />
     <ClCompile Include="bitbase\bitbasegenerator.cpp" />
     <ClCompile Include="bitbase\bitbaseindex.cpp" />
-    <ClCompile Include="bitbase\bitbasereader.cpp" />
+    <ClCompile Include="bitbase\bitbase-reader.cpp" />
     <ClCompile Include="bitbase\compress.cpp" />
+    <ClCompile Include="bitbase\lz4.c" />
+    <ClCompile Include="bitbase\miniz.c" />
     <ClCompile Include="bitbase\reverseindex.cpp" />
-    <ClCompile Include="eval\eval-helper.cpp" />
-    <ClCompile Include="eval\eval-map.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\pawn.cpp" />
-    <ClCompile Include="eval\kingAttack.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
-    <ClCompile Include="eval\rook.cpp" />
+    <ClCompile Include="interface\bitbase-interface.cpp" />
+    <ClCompile Include="interface\candidate-trainer.cpp" />
+    <ClCompile Include="interface\optimizer.cpp" />
+    <ClCompile Include="interface\self-play-manager.cpp" />
+    <ClCompile Include="interface\statistics.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
     <ClCompile Include="interface\winboard.cpp" />
     <ClCompile Include="movegenerator\bitboardmasks.cpp" />
@@ -1929,6 +1870,8 @@
     <ClCompile Include="search\rootmoves.cpp" />
     <ClCompile Include="search\search.cpp" />
     <ClCompile Include="search\whatif.cpp" />
+    <ClCompile Include="training\piece-signature-statistic.cpp" />
+    <ClCompile Include="training\signature-eval-adjuster.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basics\basicboard.h" />
@@ -1942,38 +1885,46 @@
     <ClInclude Include="basics\movelist.h" />
     <ClInclude Include="basics\piecesignature.h" />
     <ClInclude Include="basics\pst.h" />
+    <ClInclude Include="basics\hashed-lookup.h" />
+    <ClInclude Include="basics\square-table.h" />
     <ClInclude Include="basics\types.h" />
+    <ClInclude Include="bitbase\bitbase-file.h" />
     <ClInclude Include="bitbase\bitbase.h" />
     <ClInclude Include="bitbase\bitbasegenerator.h" />
     <ClInclude Include="bitbase\bitbaseindex.h" />
-    <ClInclude Include="bitbase\bitbasereader.h" />
+    <ClInclude Include="bitbase\bitbase-reader.h" />
     <ClInclude Include="bitbase\boardaccess.h" />
+    <ClInclude Include="bitbase\cluster-cache.h" />
     <ClInclude Include="bitbase\compress.h" />
     <ClInclude Include="bitbase\generationstate.h" />
-    <ClInclude Include="bitbase\huffmancode.h" />
-    <ClInclude Include="bitbase\deflate.h" />
+    <ClInclude Include="bitbase\KPK.h" />
+    <ClInclude Include="bitbase\miniz.h" />
     <ClInclude Include="bitbase\piecelist.h" />
     <ClInclude Include="bitbase\generateresult.h" />
     <ClInclude Include="bitbase\reverseindex.h" />
-    <ClInclude Include="bitbase\try.h" />
     <ClInclude Include="bitbase\verify.h" />
     <ClInclude Include="bitbase\workpackage.h" />
     <ClInclude Include="eval\bishop.h" />
+    <ClInclude Include="eval\eval-exchange-structures.h" />
     <ClInclude Include="eval\eval-helper.h" />
-    <ClInclude Include="eval\eval-map.h" />
     <ClInclude Include="eval\eval.h" />
     <ClInclude Include="eval\evalendgame.h" />
+    <ClInclude Include="eval\king.h" />
+    <ClInclude Include="eval\king-attack-spike.h" />
     <ClInclude Include="eval\pawntt.h" />
-    <ClInclude Include="eval\print-eval.h" />
+    <ClInclude Include="eval\piece-signature-def.h" />
+    <ClInclude Include="eval\piece-signature-lookup.h" />
     <ClInclude Include="eval\queen.h" />
     <ClInclude Include="eval\pawn.h" />
     <ClInclude Include="eval\evalresults.h" />
-    <ClInclude Include="eval\kingattack.h" />
+    <ClInclude Include="eval\king-attack.h" />
     <ClInclude Include="eval\kingpawnattack.h" />
     <ClInclude Include="eval\knight.h" />
     <ClInclude Include="eval\pawnrace.h" />
     <ClInclude Include="eval\rook.h" />
     <ClInclude Include="eval\threat.h" />
+    <ClInclude Include="interface\bitbase-interface.h" />
+    <ClInclude Include="interface\candidate-trainer.h" />
     <ClInclude Include="interface\chessinterface.h" />
     <ClInclude Include="interface\clocksetting.h" />
     <ClInclude Include="interface\computinginfoexchange.h" />
@@ -1984,7 +1935,10 @@
     <ClInclude Include="interface\isendsearchinfo.h" />
     <ClInclude Include="interface\iwhatIf.h" />
     <ClInclude Include="interface\movescanner.h" />
+    <ClInclude Include="interface\optimizer.h" />
     <ClInclude Include="interface\selectinterface.h" />
+    <ClInclude Include="interface\self-play-manager.h" />
+    <ClInclude Include="interface\statistics.h" />
     <ClInclude Include="interface\stdtimecontrol.h" />
     <ClInclude Include="interface\uci.h" />
     <ClInclude Include="interface\uciprintsearchinfo.h" />
@@ -2024,6 +1978,11 @@
     <ClInclude Include="search\whatIf.h" />
     <ClInclude Include="tests\evalmobilitytest.h" />
     <ClInclude Include="tests\evalpawntest.h" />
+    <ClInclude Include="training\game-record.h" />
+    <ClInclude Include="training\game-replay-engine.h" />
+    <ClInclude Include="training\piece-signature-statistic.h" />
+    <ClInclude Include="training\position-filter.h" />
+    <ClInclude Include="training\signature-eval-adjuster.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.md" />

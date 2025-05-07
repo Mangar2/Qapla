@@ -24,14 +24,16 @@
 
 #include <map>
 #include <cstring>
+#include <vector>
+#include <tuple>
 #include "../basics/types.h"
 #include "../basics/move.h"
+#include "../basics/pst.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "pawnrace.h"
 #include "pawntt.h"
-#include "print-eval.h"
 #include "eval-helper.h"
 
 using namespace std;
@@ -41,39 +43,10 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 
 	struct EvalPawnValues {
-		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
-		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
-
-		/**
-		 * For rank 2 to 6, ignored for rank 7
-		 * Double isolated pawn are counted as one isolated pawn and a double pawn
-		 */
-		const static value_t ISOLATED_PAWN_PENALTY = -15;
-
-		const static value_t MOBILITY_VALUE = 2;
-
-		const static value_t DOUBLE_PAWN_PENALTY = -20;
+		using RankArray_t = array<value_t, uint32_t(Rank::COUNT)>;
+		using  FileArray_t = array<value_t, uint32_t(File::COUNT)>;
 
 		static constexpr RankArray_t ADVANCED_PAWN_VALUE = { 0,  0,   0,   0,  0,  0,  0, 0 };
-		static constexpr RankArray_t PASSED_PAWN_VALUE = { 0, 10,  20,  30,  40,  50, 60, 0 };
-		static constexpr FileArray_t PROTECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
-		static constexpr FileArray_t PASSED_PAWN_THREAT_VALUE = { 0, 0,  0,  10, 20, 40, 80, 0 };
-		static constexpr FileArray_t CONNECTED_PASSED_PAWN_VALUE = { 0, 10,  20,  30, 40, 50, 60, 0 };
-		static constexpr RankArray_t DISTANT_PASSED_PAWN_VALUE = { 0, 25,  50,  60,  80, 100, 150, 0 };
-
-		// Bonus for supported pawns multiplied by 2 to 4 depending on the support and if it has an opponent
-		static constexpr RankArray_t PAWN_SUPPORT = { 0, 5, 6, 10, 20, 30, 30, 0 };
-		static constexpr value_t KING_SUPPORT_VALUE[uint32_t(Rank::COUNT)][uint32_t(File::COUNT)] =
-		{
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0, 0, 0 }
-		};
 	};
 
 	class Pawn {
@@ -83,27 +56,45 @@ namespace ChessEval {
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
 		typedef array<value_t, uint32_t(File::COUNT)> FileArray_t;
 
-
-		/**
-		 * Calculates the evaluation for the pawn values on the position
-		 */
-		template <bool PRINT>
-		static value_t eval(MoveGenerator& position, EvalResults& results) {
-			value_t value = probeTT(position, results);
-			if (!PRINT && value != NO_VALUE) {
-				return value;
+		static EvalValue eval(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
+			
+			EvalValue ttValue = probeTT(position, results, pawnttPtr);
+			if (ttValue.midgame() != NO_VALUE) {
+				return ttValue;
 			}
+			
+			colorBB_t moveRay{
+				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)),
+				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK))
+			};
 
-			colorBB_t moveRay{};
-			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
-			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
-
-			value =
-				eval<WHITE, PRINT>(position, results, moveRay)
-				- eval<BLACK, PRINT>(position, results, moveRay);
-
-			_tt.setEntry(position.getPawnHash(), value, results.passedPawns);
+			EvalValue value =
+				evalColor<WHITE, false>(position, results, moveRay, nullptr)
+				- evalColor<BLACK, false>(position, results, moveRay, nullptr);
+			if (pawnttPtr != nullptr) {
+				pawnttPtr->setEntry(position.getPawnHash(), value, results.passedPawns);
+			}
 			return value;
+		}
+
+		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+			colorBB_t moveRay{ 
+				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)), 
+				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK)) 
+			};
+
+			EvalValue value = 
+				evalColor<WHITE, true>(position, results, moveRay, &details)
+				- evalColor<BLACK, true>(position, results, moveRay, &details);
+			return value;
+		}
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["pProperty"] = std::vector<EvalValue>{ evalValueMap.begin(), evalValueMap.end() };
+			indexLookup["pPST"] = PST::getPSTLookup(PAWN);
+			indexLookup["ppThreat"] = std::vector<EvalValue>{ ppThreatMap.begin(), ppThreatMap.end() };
+			return indexLookup;
 		}
 
 		/**
@@ -129,150 +120,147 @@ namespace ChessEval {
 			return result;
 		}
 
-		template <bool PRINT>
 		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
-			return
-				evalPassedPawnThreats<WHITE, PRINT>(position, results)
-				- evalPassedPawnThreats<BLACK, PRINT>(position, results);
-
+			return evalPassedPawnThreats<WHITE, false>(position, results, nullptr) - evalPassedPawnThreats<BLACK, false>(position, results, nullptr);
 		}
 
-		template <Piece COLOR, bool PRINT>
-		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results) {
-			value_t value = 0;
-			const Piece OPPONENT = switchColor(COLOR);
-			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
-			bitBoard_t pp = results.passedPawns[COLOR];
-			if (pp == 0) return 0;
-			bitBoard_t supported = position.attackMask[COLOR] & ~position.attackMask[OPPONENT];
-			bitBoard_t stopped = position.getPiecesOfOneColorBB<OPPONENT>() | 
-				(position.attackMask[OPPONENT] & ~position.attackMask[COLOR]);  
+		static EvalValue evalPassedPawnThreatsWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+			return evalPassedPawnThreats<WHITE, true>(position, results, &details) - evalPassedPawnThreats<BLACK, true>(position, results, &details);
+		}
 
-			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
-				Square square = lsb(pp);
-				value_t threatValue = EvalPawnValues::PASSED_PAWN_THREAT_VALUE[int(getRank<COLOR>(square))];
-				bool isAttacked = (position.attackMask[OPPONENT] & (1ULL << square)) != 0;
-				if (threatValue == 0) continue;
-				threatValue /= (1 + isAttacked);
-				value_t divisor = 1;
-				for (Square square = lsb(pp) + dir; divisor <= 2; square += dir) {
-					bitBoard_t pawn = 1ULL << square;
-					if (stopped & pawn) break;
-					bool isSupported = (supported & pawn) != 0;
-					value += threatValue * (2 + isSupported) / divisor;
-					divisor++;
-					if (COLOR == WHITE && square > Square::H7) break;
-					if (COLOR == BLACK && square < Square::A2) break;
-				}
-			}
-			if (PRINT) cout << colorToString(COLOR) << " passed pawn threat: "
-				<< std::right << std::setw(10) << value << endl;
-			return value;
+		static void computePassedPawns(const MoveGenerator& position, EvalResults& results) {
+			colorBB_t moveRay{};
+			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
+			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
+			results.passedPawns[WHITE] = computePassedPawnBB(position.getPieceBB(PAWN + WHITE), moveRay[BLACK]);
+			results.passedPawns[BLACK] = computePassedPawnBB(position.getPieceBB(PAWN + BLACK), moveRay[WHITE]);
 		}
 
 	private:
 
-		template <Piece COLOR>
-		static value_t getKingDistance(const Board& position, Square square, Square kingPos) {
-			const Piece OPPONENT_COLOR = switchColor(COLOR);
-			Square opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
-			Square myKingPos = position.getKingSquare<COLOR>();
-		}
-
-		template <Piece COLOR>
-		static value_t computeKingSupport(const Board& position);
 
 		/**
 		 * Tries to get the pawn evaluation from a transposition table
 		 */
-		static value_t probeTT(MoveGenerator& position, EvalResults& results) {
-			value_t value = NO_VALUE;
-			hash_t key = position.getPawnHash();
-			uint32_t index = _tt.getTTEntryIndex(key);
-			if (index != _tt.INVALID_INDEX) {
-				const PawnTTEntry& entry = _tt.getEntry(index);
-				results.passedPawns = entry._passedPawns;
-				value = entry._mgValue;
+		static EvalValue probeTT(const MoveGenerator& position, EvalResults& results, PawnTT* pawnttPtr) {
+			constexpr hash_t NO_PAWNS_KEY = 0;
+			EvalValue value = NO_VALUE;
+			if (pawnttPtr == nullptr) {
+				return value;
 			}
-			return value;
-		}
-
-		/**
-		 * Prints a pawn value information
-		 */
-		template <Piece COLOR, bool PRINT>
-		inline static value_t printValue(const char* topic, value_t value) {
-			if (PRINT) cout << " " << colorToString(COLOR) << " " << topic << ":" << std::right
-				<< std::setw(28 - strlen(topic)) << value << endl;
+			hash_t key = position.getPawnHash();
+			if (key == NO_PAWNS_KEY) return NO_VALUE;
+			uint32_t index = pawnttPtr->getTTEntryIndex(key);
+			if (index != pawnttPtr->INVALID_INDEX) {
+				const PawnTTEntry& entry = pawnttPtr->getEntry(index);
+				if (!entry.isEmpty()) {
+					results.passedPawns = entry._passedPawns;
+					value = EvalValue(entry._mgValue, entry._egValue);
+				}
+			}
 			return value;
 		}
 
 		/**
 		 * Evaluates pawns per color
 		 */
-		template <Piece COLOR, bool PRINT>
-		inline static value_t eval(MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
-			value_t value = 0;
-			bitBoard_t pawnBB = position.getPieceBB(PAWN + COLOR);
+		template<Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalColor(const MoveGenerator & position, EvalResults & results, colorBB_t moveRay, std::vector<PieceInfo>*details) {
+			EvalValue value = 0;
+
+			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
 			results.passedPawns[COLOR] = 0;
-			if (pawnBB != 0) {
-				value += printValue<COLOR, PRINT>("isolated", computeIsolatedPawnValue<COLOR>(moveRay[COLOR]));
-				value += printValue<COLOR, PRINT>("double", computeDoublePawnValue<COLOR>(pawnBB, moveRay[COLOR]));
-				value += printValue<COLOR, PRINT>("passed", computePassedPawnValue<COLOR>(position, results, moveRay));
-				value += printValue<COLOR, PRINT>("connected", computeConnectedPawnValue<COLOR>(position));
+			if (pawns == 0) return 0;
+
+			const bitBoard_t doubleBB = pawns & moveRay[COLOR];
+			const auto [singleConnect, doubleConnect] = computeConnectedPawnIndex<COLOR>(position);
+			const bitBoard_t passedPawnBB = computePassedPawnBB(pawns, moveRay[opponentColor<COLOR>()]);
+			const bitBoard_t isolatedPawnBB = computeIsolatedPawnBB<COLOR>(moveRay[COLOR]);
+			const bitBoard_t unopposedPawnBB = pawns & ~moveRay[opponentColor<COLOR>()];
+			results.passedPawns[COLOR] = passedPawnBB;
+
+			while (pawns)
+			{
+				const Square pawnSquare = popLSB(pawns);
+				const uint32_t pawnRank = uint32_t(getRank<COLOR>(pawnSquare));
+				const bitBoard_t pawnBB = squareToBB(pawnSquare);
+				uint32_t propertyIndex = pawnRank
+					| ((pawnBB & doubleBB) != 0) * DOUBLE_PAWN_INDEX
+					| ((pawnBB & singleConnect) != 0) * SINGLE_CONNECT_INDEX
+					| ((pawnBB & doubleConnect) != 0) * DOUBLE_CONNECT_INDEX
+					| ((pawnBB & isolatedPawnBB) != 0) * ISOLATED_PAWN_INDEX
+					| ((pawnBB & unopposedPawnBB) != 0) * UNOPPOSED_PAWN_INDEX;
+
+				if (passedPawnBB & pawnBB) {
+					propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
+				}
+				//value_t propertyValue = evalMap[propertyIndex];
+				EvalValue propertyValue = evalValueMap[propertyIndex];
+								
+				value += propertyValue;
+
+				if constexpr (STORE_DETAILS) {
+					const auto materialValue = EvalValue(position.getPieceValue(PAWN + COLOR));
+					const auto pstValue = PST::getValue(pawnSquare, PAWN + COLOR);
+					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+					IndexVector indexVector{ 
+						 { "pPST", uint32_t(switchSideToWhite<COLOR>(pawnSquare)), COLOR },
+						 { "material", PAWN, COLOR } };
+					if (propertyIndex > RANK_MASK) {
+						indexVector.push_back({ "pProperty", propertyIndex, COLOR });
+					}
+					details->push_back({
+						PAWN + COLOR,
+						pawnSquare,
+						indexVector,
+						propertyIndexToString(propertyIndex),
+						materialValue + pstValue + property });
+				}
 			}
-			printValue<COLOR, PRINT>("pawn total", value);
 			return value;
+		}
+
+		/**
+		 * Gets a pawn string to explain the index
+		 */
+		static string propertyIndexToString(uint16_t pawnIndex) {
+			string result = "";
+			const auto passedPawnIndex = pawnIndex & PASSED_PAWN_MASK;
+			const bool weakPawn = ((pawnIndex & NON_WEAK_PAWN_MASK) == 0) && ((pawnIndex & UNOPPOSED_PAWN_INDEX) != 0);
+			if (pawnIndex & DOUBLE_PAWN_INDEX) { result += "dub,"; }
+			if (pawnIndex & SINGLE_CONNECT_INDEX) { result += "sc,"; }
+			if (pawnIndex & DOUBLE_CONNECT_INDEX) { result += "dc,"; }
+			if (pawnIndex & ISOLATED_PAWN_INDEX) { result += "iso,"; }
+			if (weakPawn) { result += "weak"; }
+			if (passedPawnIndex == PASSED_PAWN_INDEX) { result += "pp,"; }
+			if (passedPawnIndex == DISTANT_PASSED_PAWN_INDEX) { result += "dpp,"; }
+			if (passedPawnIndex == PROTECTED_PASSED_PAWN_INDEX) { result += "ppp,"; }
+			if (passedPawnIndex == CONNECTED_PASSED_PAWN_INDEX) { result += "cpp,"; }
+
+			if (!result.empty() && result.back() == ',') result.pop_back();
+			return result;
 		}
 
 		/**
 		 * Computes the pawn value for a position with no piece but pawns
 		 */
 		template<Piece COLOR>
-		static value_t computePawnValueNoPieceButPawn(MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
+		static value_t computePawnValueNoPieceButPawn(const MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
 			const bool NO_PIECES_BUT_PAWNS_ON_BOARD = true;
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
-			bitBoard_t passedPawns = computePassedPawns<COLOR>(pawns, moveRay[switchColor(COLOR)]);
+			bitBoard_t passedPawns = computePassedPawnBB(pawns, moveRay[switchColor(COLOR)]);
 
 			value_t pawnValue = computePawnValueForSparcelyPolulatedBitboards<COLOR>(pawns & 
 				~passedPawns, EvalPawnValues::ADVANCED_PAWN_VALUE);
-			pawnValue += computePassedPawnValue<COLOR>(position, passedPawns, NO_PIECES_BUT_PAWNS_ON_BOARD);
+			bitBoard_t pp = passedPawns;
+			while (pp) {
+				const Square pawnSquare = popLSB(pp);
+				pawnValue += computePassedPawnValue<COLOR>(pawnSquare, position, passedPawns, NO_PIECES_BUT_PAWNS_ON_BOARD).endgame();
+			}
 			results.passedPawns[COLOR] = passedPawns;
 			return pawnValue;
 		}
 
-		/**
-		 * Computes a value for running pawn - use only if there are only pawns on the position
-		 */
-		template<Piece COLOR>
-		static value_t computeRunnerPace(Board& position, bitBoard_t passedPawns) {
-			const Piece OPPONENT_COLOR = switchColor(COLOR);
-			const Square CHANGE_SIDE = Square(COLOR == WHITE ? 0 : 0x38);
-
-			Square opponentKingPos = position.getKingSquare<OPPONENT_COLOR>();
-			Square myKingPos = position.getKingSquare<COLOR>();
-			Piece colorAtMove = position.isWhiteToMove() ? WHITE : BLACK;
-
-			bitBoard_t kingSupport = kingSupportPawnTable[COLOR][myKingPos];
-			bitBoard_t opponentInfluence = kingInfluenceTable[OPPONENT_COLOR][colorAtMove][opponentKingPos];
-
-			bitBoard_t runner = (passedPawns & ~opponentInfluence) | (passedPawns & kingSupport);
-			value_t smallestDistance = value_t(Rank::COUNT);
-
-			for (; runner != 0; runner &= runner - 1) {
-				Square pawnPos = switchSide(lsb(runner));
-				value_t curDistance = value_t(getOppositRank(pawnPos));
-				bool ownKingBlocksPawn = myKingPos > pawnPos && getFile(myKingPos) == getFile(pawnPos);
-				if (ownKingBlocksPawn) {
-					++curDistance;
-				}
-				if (curDistance < smallestDistance) {
-					smallestDistance = curDistance;
-				}
-			}
-
-			return smallestDistance;
-		}
 
 
 		/**
@@ -289,124 +277,42 @@ namespace ChessEval {
 			return result;
 		}
 
-		/**
-		 * Computes the value for passed pawn
-		 */
-		template <Piece COLOR>
-		static value_t computePassedPawnValue(MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
-			value_t result = 0;
-			for (bitBoard_t pawns = passedPawns; pawns != 0; pawns &= pawns - 1) {
-				Square pawnPos = lsb(pawns);
-				uint32_t rank = uint32_t(getRank<COLOR>(pawnPos));
-				if (isConnectedPassedPawn(pawnPos, passedPawns)) {
-					result += EvalPawnValues::CONNECTED_PASSED_PAWN_VALUE[rank];
-				}
-				else if (noPieces && isDistantPassedPawn(pawnPos, position.getPieceBB(PAWN + COLOR), 
-						position.getPieceBB(PAWN + switchColor(COLOR))))
-				{
-					result += EvalPawnValues::DISTANT_PASSED_PAWN_VALUE[rank];
-				}
-				else if (isProtectedPassedPawn(pawnPos, position.pawnAttack[COLOR])) {
-					result += EvalPawnValues::PROTECTED_PASSED_PAWN_VALUE[rank];
-				}
-				else {
-					result += EvalPawnValues::PASSED_PAWN_VALUE[rank];
-				}
-			}
-			return result;
-		}
+		/* ---------------------------------------------------------------------------------------------------------------------
+		 * PASSED_PAWNS
+		 * --------------------------------------------------------------------------------------------------------------------- */
 
-		/**
-		 * Computes bonus value for connected and phalanx (adjacent) pawns
-		 */
-		template <Piece COLOR>
-		static value_t computeConnectedPawnValue(const MoveGenerator& position) {
-			value_t result = 0;
-			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
-			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
-			bitBoard_t connectWest = BitBoardMasks::shiftColor<COLOR, WEST>(pawnsNorth) & pawns;
-			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) & pawns;
-			bitBoard_t doubleConnect = connectWest & connectEast;
-			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
-			for (; doubleConnect != 0; doubleConnect &= doubleConnect - 1) {
-				Square square = lsb(doubleConnect);
-				result += 2 * EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
-			}
-			for (; singleConnect != 0; singleConnect &= singleConnect - 1) {
-				Square square = lsb(singleConnect);
-				result += EvalPawnValues::PAWN_SUPPORT[int32_t(getRank<COLOR>(square))];
-			}
-
-			return result;
-
-		}
-
-
-		/**
-		 * Compute the passed pawn vaues using precomputed bitboards stored in this class
-		 */
-		template <Piece COLOR>
-		static value_t computePassedPawnValue(MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
-			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
-			bitBoard_t passedPawnBB = computePassedPawns<COLOR>(pawns, moveRay[switchColor(COLOR)]);
-			value_t result = computePassedPawnValue<COLOR>(position, passedPawnBB);
-			results.passedPawns[COLOR] = passedPawnBB;
-			return result;
-		}
-
-
-		/**
-		 * Checks, if a passed pawn is a distant passed pawn (having no opponents further outside)
-		 */
+		 /**
+		  * Checks, if a passed pawn is a distant passed pawn (having no opponents further outside)
+		  */
 		static bool isDistantPassedPawn(Square pawnPos, bitBoard_t ownPawns, bitBoard_t opponentPawns) {
-			bool noOpponentPawnsFurtherOutside = 
+			bool noOpponentPawnsFurtherOutside =
 				(opponentPawns & distantPassedPawnCheckNoOpponentPawn[uint32_t(getFile(pawnPos))]) == 0;
-			bool ownPawnsOnOtherSideOfBoard = 
+			bool ownPawnsOnOtherSideOfBoard =
 				(ownPawns & distantPassedPawnCheckOwnPawn[uint32_t(getFile(pawnPos))]) != 0;
 			return noOpponentPawnsFurtherOutside && ownPawnsOnOtherSideOfBoard;
 		}
 
 		/**
 		 * Checks, if a passed pawn is connected to another passed pawn
+		 * The other passed pawn must be in an adjacent row - the file is not relevant.
 		 */
-		static bool isConnectedPassedPawn(Square pawnPos, bitBoard_t passedPawns) {
-			bool connectedPassedPawn = 
-				(passedPawns & connectedPassedPawnCheckMap[uint32_t(getFile(pawnPos))]) != 0;
-			return connectedPassedPawn;
+		static inline bool isConnectedPassedPawn(Square pawnPos, bitBoard_t passedPawns) {
+			return (passedPawns & connectedPassedPawnCheckMap[uint32_t(getFile(pawnPos))]) != 0;
 		}
 
 		/**
 		 * Checks, if a passed pawn is protected by another pawn
 		 */
-		static bool isProtectedPassedPawn(Square pawnPos, bitBoard_t pawnAttack) {
-			bool protectedPassedPawn = (1ULL << pawnPos & pawnAttack) != 0;
-			return protectedPassedPawn;
-		}
-
-		/** 
-		 * Computes the isolated pawn penalty
-		 */
-		template <Piece COLOR>
-		inline static value_t computeIsolatedPawnValue(bitBoard_t pawnMoveRay) {
-			const uint64_t SHIFT = COLOR == WHITE ? 6 : 1;
-			return isolatedPawnAmountLookup[(pawnMoveRay >> SHIFT * NORTH) & LOOKUP_TABLE_MASK]
-				* EvalPawnValues::ISOLATED_PAWN_PENALTY;
-		}
-
-		/**
-		 * Computes the double pawn penalty
-		 */
-		template <Piece COLOR>
-		inline static value_t computeDoublePawnValue(bitBoard_t pawnBB, bitBoard_t pawnMoveRay) {
-			value_t result = computeAmountOfDoublePawns(pawnBB, pawnMoveRay) * EvalPawnValues::DOUBLE_PAWN_PENALTY;
-			return result;
+		static constexpr bool isProtectedPassedPawn(Square pawnPos, bitBoard_t pawnAttack) {
+			return (squareToBB(pawnPos) & pawnAttack) != 0;
 		}
 
 		/**
 		 * Computes the bitboard for passed pawns
+		 * How it works: if a pawn is not in front of an opponent pawn or an opponent pawn on the left/right columns, it
+		 * is a passed pawn.
 		 */
-		template<Piece COLOR>
-		inline static bitBoard_t computePassedPawns(bitBoard_t pawns, bitBoard_t opponentPawnMoveRay) {
+		inline static bitBoard_t computePassedPawnBB(bitBoard_t pawns, bitBoard_t opponentPawnMoveRay) {
 			bitBoard_t nonPasserMask = opponentPawnMoveRay;
 			nonPasserMask |= BitBoardMasks::shift<WEST>(opponentPawnMoveRay);
 			nonPasserMask |= BitBoardMasks::shift<EAST>(opponentPawnMoveRay);
@@ -414,52 +320,164 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Computes the amount of double pawns, not counting the first pawn. Triple pawns are counted as two double pawns.
-		 * It works for black and white
+		 * Computes the value for passed pawn
 		 */
-		inline static value_t computeAmountOfDoublePawns(bitBoard_t pawns, bitBoard_t pawnMoveRay) {
-			bitBoard_t doublePawns = pawns & pawnMoveRay;
-			value_t doublePawnAmount = popCountForSparcelyPopulatedBitBoards(doublePawns);
-			return doublePawnAmount;
+		template <Piece COLOR>
+		static value_t computePassedPawnIndex(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
+			value_t result = PASSED_PAWN_INDEX;
+			if (isConnectedPassedPawn(pawnSquare, passedPawns)) {
+				result = CONNECTED_PASSED_PAWN_INDEX;
+			}
+			else if (noPieces && isDistantPassedPawn(pawnSquare, position.getPieceBB(PAWN + COLOR),
+				position.getPieceBB(PAWN + switchColor(COLOR))))
+			{
+				result = DISTANT_PASSED_PAWN_INDEX;
+			}
+			else if (isProtectedPassedPawn(pawnSquare, position.pawnAttack[COLOR])) {
+				result = PROTECTED_PASSED_PAWN_INDEX;
+			}
+			return result;
+		}
+
+		/**
+		 * Computes the value for passed pawn
+		 */
+		template <Piece COLOR>
+		static EvalValue computePassedPawnValue(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
+			uint32_t rank = uint32_t(getRank<COLOR>(pawnSquare));
+			uint32_t index = computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawns, noPieces) + rank;
+			return evalValueMap[index];
+		}
+
+		template <Piece COLOR>
+		static inline EvalValue kingNearPassedPawn(const MoveGenerator& position, Square frontOfPP) {
+			// 52,09 -> 10, 10
+			// 52,65 -> rank * 3
+			// 52,38 -> rank * 4
+			// 51,10 -> rank * 3, 5 - distance
+			EvalValue result = 0;
+			const value_t rank = value_t(getRank<COLOR>(frontOfPP));
+			Square ownKingSquare = position.getKingSquare<COLOR>();
+			Square opponentKingSquare = position.getKingSquare<opponentColor<COLOR>()>();
+			value_t ownDistance = EvalHelper::computeDistance(ownKingSquare, frontOfPP);
+			value_t opponentDistance = EvalHelper::computeDistance(opponentKingSquare, frontOfPP);
+			if (ownDistance < 4) {
+				if (ownDistance == 0) ownDistance = 2; // Blocking
+				result += EvalValue(0, (4 - ownDistance) * rank * 3);
+			}
+			if (opponentDistance < 4) {
+				result -= EvalValue(0, (4 - opponentDistance) * rank * 3);
+			}
+			return result;
+		}
+
+		template <Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalPassedPawnThreats(const MoveGenerator& position, const EvalResults& results, std::vector<PieceInfo>* details) {
+			EvalValue value = 0;
+
+			const Piece OPPONENT = switchColor(COLOR);
+			const Square dir = COLOR == WHITE ? NORTH : SOUTH;
+			bitBoard_t pp = results.passedPawns[COLOR];
+			if (pp == 0) return 0;
+			bitBoard_t supported = position.attackMask[COLOR] & ~position.attackMask[OPPONENT];
+			bitBoard_t stopped = position.getPiecesOfOneColorBB<OPPONENT>() |
+				(position.attackMask[OPPONENT] & ~position.attackMask[COLOR]);
+
+			for (bitBoard_t pp = results.passedPawns[COLOR]; pp != 0; pp &= pp - 1) {
+				Square pawnSquare = lsb(pp);
+				Rank rank = getRank<COLOR>(pawnSquare);
+				if (rank <= Rank::R3) continue;
+				uint32_t index = uint32_t(rank);
+				bool isAttacked = (position.attackMask[OPPONENT] & squareToBB(pawnSquare)) != 0;
+				index += isAttacked * PP_IS_ATTACKED_INDEX;
+				value_t i = 1;
+				Square frontOfPawn = pawnSquare + dir;
+				for (Square square = frontOfPawn; i <= 2; square += dir, i++) {
+					bitBoard_t pawn = squareToBB(square);
+					if (stopped & pawn) break;
+					index += PP_NOT_BLOCKED_INDEX * i;
+					index += ((supported & pawn) != 0) * PP_IS_SUPPORTED_INDEX * i;
+					if (rank + i > Rank::R7) break;
+				}
+				EvalValue propertyValue = ppThreatMap[index];
+				propertyValue += kingNearPassedPawn<COLOR>(position, frontOfPawn);
+				value += propertyValue;
+
+				if constexpr (STORE_DETAILS) {
+					if (index > RANK_MASK) {
+						const IndexVector indexVector{ { "ppThreat", index, COLOR } };
+						const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+						details->push_back({ PAWN + COLOR, pawnSquare, indexVector, "", property });
+					}
+				}
+			}
+			return value;
+		}
+
+		/**
+		 * Computes bonus index for connected and phalanx (adjacent) pawns
+		 */
+		template <Piece COLOR>
+		static inline std::tuple<bitBoard_t, bitBoard_t> computeConnectedPawnIndex(const MoveGenerator& position) {
+			value_t result = 0;
+			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
+			bitBoard_t pawnsNorth = pawns | BitBoardMasks::shiftColor<COLOR, NORTH>(pawns);
+			bitBoard_t connectWest = BitBoardMasks::shiftColor<COLOR, WEST>(pawnsNorth) & pawns;
+			bitBoard_t connectEast = BitBoardMasks::shiftColor<COLOR, EAST>(pawnsNorth) & pawns;
+			bitBoard_t doubleConnect = connectWest & connectEast;
+			bitBoard_t singleConnect = (connectWest | connectEast) & ~doubleConnect;
+			return std::make_tuple(singleConnect, doubleConnect);
+		}
+
+		/**
+		 * Computes the bitboard of isolated pawns (excluding those already on rank 7 or rank 1).
+		 *
+		 * How it works:
+		 * - `pawnMoveRay` is a bitboard with all squares in front of pawns (toward promotion) set to 1,
+		 *   stopping before the final rank (rank 8 for white, rank 1 for black).
+		 *
+		 * - This mask is used to index into a lookup table (`isolatedPawnBB`) that returns a bitboard
+		 *   marking all isolated pawn files.
+		 *
+		 * Template parameter:
+		 *   - COLOR: either WHITE or BLACK, determines the shift direction.
+		 *
+		 * @param pawnMoveRay Bitboard with all forward rays of pawns (excluding final rank)
+		 * @return Bitboard marking files with isolated pawns (bits set on all ranks of isolated files)
+		 */
+		template <Piece COLOR>
+		inline static bitBoard_t computeIsolatedPawnBB(bitBoard_t pawnMoveRay) {
+			const uint64_t SHIFT = COLOR == WHITE ? 6 : 1;
+			return isolatedPawnBB[(pawnMoveRay >> SHIFT * NORTH) & LOOKUP_TABLE_MASK];
 		}
 
 		template <Piece COLOR>
 		inline static bitBoard_t computePawnMoveRay(const bitBoard_t pawnBB) {
 			bitBoard_t pawnMoveRay = 0;
-			if (COLOR == WHITE && pawnBB != 0) {
-				pawnMoveRay = pawnBB << NORTH | pawnBB << 2 * NORTH | pawnBB << 3 * NORTH |
-					pawnBB << 4 * NORTH | pawnBB << 5 * NORTH;
-			}
-			if (COLOR == BLACK && pawnBB != 0) {
-				pawnMoveRay = pawnBB >> NORTH | pawnBB >> 2 * NORTH | pawnBB >> 3 * NORTH |
-					pawnBB >> 4 * NORTH | pawnBB >> 5 * NORTH;
+
+			if (pawnBB != 0) {
+				if constexpr (COLOR == WHITE) {
+					pawnMoveRay = pawnBB << NORTH | pawnBB << 2 * NORTH | pawnBB << 3 * NORTH |
+							pawnBB << 4 * NORTH | pawnBB << 5 * NORTH;
+				}
+				else {
+					pawnMoveRay = pawnBB >> NORTH | pawnBB >> 2 * NORTH | pawnBB >> 3 * NORTH |
+							pawnBB >> 4 * NORTH | pawnBB >> 5 * NORTH;
+				}
 			}
 
 			return pawnMoveRay;
+
 		}
 
-		static PawnTT _tt;
-
-		static struct InitStatics {
-			InitStatics();
-		} _staticConstructor;
-
-		typedef bool testFunction_t(Square kingPos, Square pawnPos, bool atMove);
-		static bool kingSupportsPassedPawn(Square kingPos, Square pawnPos, bool atMove);
-		static bool kingReachesPawn(Square kingPos, Square pawnPos, bool atMove);
-
-		static bitBoard_t computeKingInfluence(Square kingPos, bool atMove, testFunction_t testFunction);
-
-		static void computeKingInfluenceTable();
-		static void computeKingSupportTable();
-		static void computeIsolatedPawnLookupTable();
-
 		static const value_t RUNNER_BONUS = 300;
-
-
+		
 		static const uint32_t LOOKUP_TABLE_SIZE = 1 << NORTH;
 		static const bitBoard_t LOOKUP_TABLE_MASK = LOOKUP_TABLE_SIZE - 1;
-		static value_t isolatedPawnAmountLookup[LOOKUP_TABLE_SIZE];
+
+		static std::array<bitBoard_t, LOOKUP_TABLE_SIZE> computeIsolatedPawnLookupTable();
+		static inline std::array<bitBoard_t, LOOKUP_TABLE_SIZE> isolatedPawnBB = computeIsolatedPawnLookupTable();
+
 		static bitBoard_t kingInfluenceTable[COLOR_COUNT][COLOR_COUNT][BOARD_SIZE];
 		static bitBoard_t kingSupportPawnTable[COLOR_COUNT][BOARD_SIZE];
 
@@ -478,7 +496,87 @@ namespace ChessEval {
 			0x2828282828282828ULL, 0x5050505050505050ULL, 0xA0A0A0A0A0A0A0A0ULL, 0x4040404040404040ULL
 		};
 
+		static const uint32_t RANK_MASK = 0x07;
+		static const uint32_t PP_IS_ATTACKED_INDEX			= 0x08;
+		static const uint32_t PP_IS_SUPPORTED_INDEX			= 0x10;
+		static const uint32_t PP_NOT_BLOCKED_INDEX			= 0x40;
+		static const uint32_t PP_INDEX_SIZE					= 0x100;
 
+		static constexpr array<value_t, PP_INDEX_SIZE> ppThreatMap = [] {
+			array<value_t, PP_INDEX_SIZE> map{};
+			for (uint32_t bitmask = 0; bitmask < PP_INDEX_SIZE; ++bitmask) {
+				value_t value = 0;
+				map[bitmask] = value;
+				const value_t rank = bitmask & RANK_MASK;
+				//value_t threatValue = std::array{ 0, 0,  0,  7, 15, 25, 60, 0 }[rank];
+				value_t threatValue = std::array{ 0, 0,  0,  10, 20, 40, 80, 0 }[rank];
+				if (threatValue == 0) continue;
+				bool isAttacked = bitmask & PP_IS_ATTACKED_INDEX;
+				threatValue /= (1 + isAttacked);
+				for (value_t divisor = 1; divisor <= 2 && rank + divisor <= 7; divisor++) {
+					bool isNotBlocked = bitmask & (PP_NOT_BLOCKED_INDEX * divisor);
+					if (!isNotBlocked) break;
+					bool isSupported = bitmask & (PP_IS_SUPPORTED_INDEX * divisor);
+					value += threatValue * (2 + isSupported) / divisor;
+				}
+				map[bitmask] = value;
+			}
+			return map;
+			} ();
+
+		static const uint32_t DOUBLE_PAWN_INDEX				= 0x08;
+		static const uint32_t SINGLE_CONNECT_INDEX			= 0x10;
+		static const uint32_t DOUBLE_CONNECT_INDEX			= 0x20;
+		static const uint32_t PASSED_PAWN_INDEX				= 0x40;
+		static const uint32_t DISTANT_PASSED_PAWN_INDEX		= 0x80;
+		static const uint32_t PROTECTED_PASSED_PAWN_INDEX	= 0xC0;
+		static const uint32_t CONNECTED_PASSED_PAWN_INDEX	= 0x100;
+		static const uint32_t PASSED_PAWN_MASK				= 0x1C0;
+		static const uint32_t ISOLATED_PAWN_INDEX			= 0x200;
+		static const uint32_t UNOPPOSED_PAWN_INDEX			= 0x400;
+		static const uint32_t NON_WEAK_PAWN_MASK = SINGLE_CONNECT_INDEX | DOUBLE_CONNECT_INDEX | PASSED_PAWN_MASK;
+		static const uint32_t INDEX_SIZE					= 0x800;
+
+		using RankEvalArray_t = array<EvalValue, uint32_t(Rank::COUNT)>;
+
+		static constexpr array<EvalValue, INDEX_SIZE> evalValueMap = [] {
+
+			array<EvalValue, INDEX_SIZE> map;
+			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
+				EvalValue value;
+				const value_t rank = bitmask & RANK_MASK;
+				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
+				const bool weakPawn = ((bitmask & NON_WEAK_PAWN_MASK) == 0) && ((bitmask & UNOPPOSED_PAWN_INDEX) != 0);
+				// 50.6, 
+				if (bitmask & DOUBLE_PAWN_INDEX)            
+					value += RankEvalArray_t{ { { 0, 0 }, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {0, 0} } }[rank];
+				// 50.9
+				if (bitmask & SINGLE_CONNECT_INDEX)
+					value += RankEvalArray_t{ { { 0, 0 }, {5, 0}, {6, 3}, {10, 10}, {16, 20}, {25, 40}, {30, 50}, {0, 0} } }[rank];
+				if (bitmask & DOUBLE_CONNECT_INDEX)         
+					value += RankEvalArray_t{ { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } }[rank];
+				if (bitmask & ISOLATED_PAWN_INDEX)          
+					value += RankEvalArray_t{ { { 0, 0 }, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {0, 0} } }[rank];
+				//51.29
+				if (weakPawn)                                
+					value += RankEvalArray_t{ { { 0, 0 }, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {0, 0} } }[rank];
+				//51.35
+				if (ppIndex == PASSED_PAWN_INDEX)           
+					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {80, 80}, {0, 0} } }[rank];
+				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) 
+					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {100, 100}, {0, 0} } }[rank];
+				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) 
+					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {120, 120}, {0, 0} } }[rank];
+				if (ppIndex == DISTANT_PASSED_PAWN_INDEX)   
+					value += RankEvalArray_t{ { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } }[rank];
+
+				map[bitmask] = value;
+			}
+			return map;
+		} ();
+
+		// Test position: 3r1r2/p1Pqn1bk/pPn1PPpp/2p5/3p2P1/p2P1NNQ/1pPB3P/1R3R1K w - - 0 1
+		// Isolated pawns: 4k3/1p1p1ppp/8/8/8/8/1PPP1P1P/4K3 w KQkq - 0 1
 
 	};
 

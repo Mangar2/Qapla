@@ -60,21 +60,19 @@ struct Signatures {
 namespace QaplaSearch {
 
 	class Quiescence {
-
-	private:
-		Quiescence() {}
-
 	public:
+
+		Quiescence() {}
 
 		/**
 		 * Sets a pointer to the transposition table for later use
 		 */
-		static void setTT(TT* tt) { _tt = tt; }
+		void setTT(TT* tt) { _tt = tt; }
 
 		/**
 	     * Performs the quiescense search
 	     */
-		static value_t search(
+		value_t search(
 			bool isPvNode,
 			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove,
 			value_t alpha, value_t beta, ply_t ply);
@@ -86,17 +84,17 @@ namespace QaplaSearch {
 		 * Computes the maximal value a capture move can gain + safety margin
 		 * If this value is not enough to make it a valuable move, the move is skipped
 		 */
-		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move);
+		value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move);
 
 		/**
 		 * Gets an entry from the transposition table
-		 * @returns hash value or -MAX_VALUE, if no value found
+		 * @returns eval, hash value, precision, move
 		 */
-		static std::tuple<value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
+		std::tuple<value_t, value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
 				
 	public:
 
-		static TT* _tt;
+		TT* _tt;
 
 	};
 

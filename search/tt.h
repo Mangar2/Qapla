@@ -28,7 +28,10 @@
 #include <vector>
 #include <fstream>
 #include <iterator>
+#include <type_traits>
+#include <cassert>
 #include "ttentry.h"
+#include "../eval/pawntt.h"
 // #include "FileClass.h"
 
 using namespace std;
@@ -38,7 +41,10 @@ namespace QaplaSearch {
 	{
 	public:
 
-		TT() { clear(); }
+		TT() { 
+			clear(); 
+			_pawnTT.setSizeInKilobytes(1024);
+		}
 
 		/**
 		 * Clears the transposition table
@@ -50,6 +56,12 @@ namespace QaplaSearch {
 			}
 			_ageIndicator = 0;
 			_entries = 0;
+			_pawnTT.clear();
+			
+		}
+
+		ChessEval::PawnTT* getPawnTT() {
+			return &_pawnTT;
 		}
 
 		/**
@@ -83,14 +95,14 @@ namespace QaplaSearch {
 		 * Gets the size of the transposition table in bytes
 		 */
 		size_t getSizeInBytes() const { 
-			return _tt.capacity() * sizeof(TTEntry); 
+			return _tt.size() * sizeof(TTEntry); 
 		}
 
 		/**
 		 * Computes the hash index of a hash key 
 		 */
 		int32_t	computeEntryIndex(hash_t hashKey) const {
-			return int32_t(hashKey % _tt.capacity()) & ~1;
+			return int32_t(hashKey % _tt.size()) & ~1;
 		}
 
 		/**
@@ -98,8 +110,8 @@ namespace QaplaSearch {
 		 */
 		void setSizeInKilobytes(int32_t sizeInKiloBytes)
 		{
-			uint64_t newCapacitiy = ( 1024ULL * sizeInKiloBytes) / sizeof(TTEntry);
-			setCapacity(newCapacitiy);
+			uint64_t newSize = ( 1024ULL * sizeInKiloBytes) / sizeof(TTEntry);
+			setSize(newSize);
 		}
 
 		/**
@@ -108,14 +120,18 @@ namespace QaplaSearch {
 		 */
 		uint32_t setEntry(
 			hash_t hashKey, bool isPV, int32_t computedDepth, ply_t ply, Move move,
-			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
+			value_t eval, value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
-
+			/*
+			if (hashKey == 7541197627045278876) {
+				printHash(hashKey);
+			}
+			*/
 			if (_tt[index].isEmpty())
 			{
 				_entries++;
-				set(index, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+				set(index, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);
 				return index;
 			}
 
@@ -128,49 +144,16 @@ namespace QaplaSearch {
 					if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
 					_tt[index + 1] = _tt[index];
 				}
-				set(index, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+				set(index, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);
 			}
 			else if (_tt[index + 1].doOverwriteAlwaysReplaceEntry(positionValue, alpha, beta, computedDepth))
 			{
 				if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
-				set(index + 1, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
+				set(index + 1, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);
 			}
-
 			return index;
 		}
 
-		/**
-		 * Sets the secondary hash entry (always replace entry) or
-		 * the primary entry, if it is empty
-		 */
-		void setOverwriteAlwaysHashEntry(
-			int32_t hashKey, bool isPV, int32_t computedDepth, ply_t ply, Move move, 
-			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
-		{
-			uint32_t index = computeEntryIndex(hashKey);
-			if (_tt[index].isEmpty())
-			{
-				_entries++;
-			}
-			else {
-				++index;
-				if (isEntryFromFormerSearch(_tt[index])) _entries++;
-			}
-			set(index, isPV, hashKey, computedDepth, ply, move, positionValue, alpha, beta, nullmoveThreat);
-		}
-
-		/**
-		 * Sets the primary hash entry (largest search depth entry)
-		 */
-		void setPrimaryHashEntry(
-			int32_t hashKey, bool isPV, int32_t computedDepth, ply_t ply, Move move, 
-			value_t positionValue, value_t alpha, value_t beta, int32_t nullmoveThreat)
-		{
-			uint32_t index = computeEntryIndex(hashKey);
-			if (isEntryFromFormerSearch(_tt[index])) _entries++;
-			set(index, isPV, hashKey, computedDepth, ply, move, 
-				positionValue, alpha, beta, nullmoveThreat);
-		}
 
 		/**
 		 * Gets a valid tt entry index
@@ -248,44 +231,7 @@ namespace QaplaSearch {
 			}
 			return newEntryAmount;
 		}
-
-		/**
-		void storeHashToFile(char* fileName)
-		{
-			FileClass file;
-			file.open(fileName, "bw+");
-			if (!file.isOpen())
-			{
-				printf("Could not open file to store hash %s\n", fileName);
-			}
-			else {
-				file.write(&entryAmount, sizeof(entryAmount), 1);
-				file.write(entry, sizeof(hash_t), entryAmount * ELEMENTS_PER_HASH_ENTRY);
-			}
-		}
-
-		void loadHashFromFile(char* fileName)
-		{
-			FileClass file;
-			// �ffnet eine Datei im Bin�rmodus zum lesen
-			file.open(fileName, "br");
-
-			if (!file.isOpen())
-			{
-				printf("Could not read hash file %s\n", fileName);
-			}
-			else {
-				printf("Loading hash file %s ... \n", fileName);
-				int32_t newEntryAmount = 0;
-				// Anzahl der Elemente lesen
-				file.read(&newEntryAmount, sizeof(newEntryAmount), 1);
-				setCapacity(newEntryAmount);
-				file.read(entry, sizeof(hash_t), entryAmount * ELEMENTS_PER_HASH_ENTRY);
-				printf("Hash file _loaded\n");
-			}
-		}
-		*/
-
+	
 		/**
 		 * Gets the age indicator of the current search
 		 */
@@ -306,6 +252,7 @@ namespace QaplaSearch {
 						  << "[idx:" << index << "]"
 						  << "[dpt:" << entry.getComputedDepth() << "]"
 						  << "[val:" << entry.getPositionValue(0) << "]"
+						  << "[eval:" << entry.getEval() << "]"
 						  << "[pre:" << entry.getComputedPrecision() << "]"
 						  << "[mov:" << entry.getMove().getLAN() << "]\n";
 			}
@@ -315,34 +262,49 @@ namespace QaplaSearch {
 		 * Gets the fill rate in percent only counting entries of current search
 		 */
 		uint32_t getHashFillRateInPermill() const {
-			return uint32_t(uint64_t(_entries) * 1000ULL / _tt.capacity());
+			return uint32_t(uint64_t(_entries) * 1000ULL / _tt.size());
 		}
 
 		/**
-		 * Writes the tt to a file
+		 * Writes the current transposition table to the provided file.
+		 * @param filename Name of the file to write the transposition table to.
 		 */
-		bool writeToFile(std::string fileName) {
-			ofstream oFile(fileName, ios::binary | ios::trunc);
-			if (!oFile.is_open()) {
+		bool write(const std::string& filename) const {
+			std::ofstream ofs(filename, std::ios::binary);
+			if (!ofs) {
 				return false;
 			}
-			for (const auto& entry : _tt) {
-				oFile.write((char*)(&entry), sizeof(entry));
+
+			int64_t size = static_cast<int64_t>(_tt.size());
+			ofs.write(reinterpret_cast<const char*>(&size), sizeof(size));
+			ofs.write(reinterpret_cast<const char*>(&_ageIndicator), sizeof(_ageIndicator));
+			ofs.write(reinterpret_cast<const char*>(&_entries), sizeof(_entries));
+
+			if (!_tt.empty()) {
+				ofs.write(reinterpret_cast<const char*>(_tt.data()), sizeof(TTEntry) * _tt.size());
 			}
 			return true;
 		}
 
 		/**
-		 * Reads the tt to a file
+ 		 * Reads a transposition table from the provided file.
+		 * @param filename Name of the file to read the transposition table from.
 		 */
-		bool readFromFile(string fileName) {
-			ifstream iFile(fileName, ios::binary);
-			if (!iFile.is_open()) {
-				cerr << "Error: " << errno << endl;
+		bool read(const std::string& filename) {
+			std::ifstream ifs(filename, std::ios::binary);
+			if (!ifs) {
 				return false;
 			}
-			for (auto& entry : _tt) {
-				iFile.read((char*)(&entry), sizeof(entry));
+
+			int64_t size = 0;
+			ifs.read(reinterpret_cast<char*>(&size), sizeof(size));
+			ifs.read(reinterpret_cast<char*>(&_ageIndicator), sizeof(_ageIndicator));
+			ifs.read(reinterpret_cast<char*>(&_entries), sizeof(_entries));
+
+			_tt.resize(size);
+
+			if (!_tt.empty()) {
+				ifs.read(reinterpret_cast<char*>(_tt.data()), sizeof(TTEntry) * _tt.size());
 			}
 			return true;
 		}
@@ -357,10 +319,11 @@ namespace QaplaSearch {
 		void set(
 			uint32_t index, bool isPV, hash_t hashKey, 
 			uint32_t computedDepth, ply_t ply, Move move, 
-			value_t positionValue, value_t alpha, value_t beta, uint32_t nullmoveThreat)
+			value_t eval, value_t positionValue, value_t alpha, value_t beta, uint32_t nullmoveThreat)
 		{
 			auto& entry = _tt[index];
 			entry.setInfo(computedDepth, _ageIndicator, nullmoveThreat);
+			entry.setEval(eval);
 			entry.setValue(positionValue, alpha, beta, ply);
 			entry.setPV(isPV);
 			// Keep the hash move, if the hash keys are identical and the new entry does not provide a move
@@ -371,10 +334,10 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sets the transposition table capacity
+		 * Sets the transposition table size
 		 */
-		void setCapacity(uint64_t newCapacity) {
-			_tt.resize(newCapacity);
+		void setSize(uint64_t newSize) {
+			_tt = std::vector<TTEntry>(newSize);
 			clear();
 		}
 
@@ -387,9 +350,12 @@ namespace QaplaSearch {
 
 		// Transposition table
 		vector<TTEntry> _tt;
-
 		int32_t _ageIndicator;
 		int32_t _entries;
+
+
+		// Pawn hash
+		ChessEval::PawnTT _pawnTT;
 
 	};
 

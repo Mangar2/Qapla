@@ -34,6 +34,7 @@
 #include "tt.h"
 #include "butterfly-boards.h"
 #include "whatIf.h"
+#include "quiescence.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif
@@ -63,8 +64,8 @@ namespace QaplaSearch {
 		/**
 		 * Starts a new search
 		 */
-		void startNewSearch(MoveGenerator& position) {
-			_computingInfo.initNewSearch(position, _butterflyBoard);
+		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves) {
+			_computingInfo.initNewSearch(position, searchMoves, _butterflyBoard);
 			_butterflyBoard.newSearch();
 		}
 
@@ -118,17 +119,20 @@ namespace QaplaSearch {
 		 */
 		template <SearchRegion TYPE>
 		bool checkCutoffAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
-			const auto evalBefore = ply > 1 ? stack[ply - 2].eval : NO_VALUE;
+			const auto evalBefore = ply > 1 ? stack[ply - 2].adjustedEval : NO_VALUE;
 			if (position.isInCheck()) {
-				node.eval = evalBefore;
+				node.adjustedEval = evalBefore;
 				return false;
 			}
-			if (node.eval == NO_VALUE) {
-				node.eval = Eval::eval(position);
-				node.isImproving = node.eval > evalBefore && evalBefore != NO_VALUE;
+			if (node.adjustedEval == NO_VALUE) {
+				if (node.eval == NO_VALUE) {
+					node.eval = Eval::eval(position, node.getTT()->getPawnTT());
+				}
+				node.adjustedEval = node.eval;
+				node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
 			}
 			// Must be after node.probeTT, because futility uses the information from TT
-			if (node.futility(position)) {
+			if (node.forewardFutility(position)) {
 				node.setCutoff(Cutoff::FUTILITY);
 				return true;
 			} 
@@ -140,9 +144,9 @@ namespace QaplaSearch {
 		}
 
 
-		void iid(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
+		void iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
-		ply_t se(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
+		ply_t se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		ply_t computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move);
 
@@ -160,9 +164,9 @@ namespace QaplaSearch {
 		 * Do a full search using the negaMax algorithm
 		 */
 		template <SearchRegion TYPE>
-		value_t negaMax(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
+		value_t negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
-		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
+		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves
@@ -171,13 +175,15 @@ namespace QaplaSearch {
 			return _computingInfo.getRootMoves();
 		}
 
-
+		void setTT(TT* tt) {
+			_quiescence.setTT(tt);
+		}
 
 	private:
+		Quiescence _quiescence;
 		Eval eval;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
-
 		// RootMoves _rootMoves;
 	public:
 		ButterflyBoard _butterflyBoard;

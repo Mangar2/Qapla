@@ -37,21 +37,36 @@ namespace ChessEval {
 	class Threat
 	{
 	public:
-		template<bool PRINT>
 		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
-			return eval<WHITE, PRINT>(position, result) -
-				eval<BLACK, PRINT>(position, result);
+			return eval<WHITE>(position, result) - eval<BLACK>(position, result);
 		}
-	private:
-		template<Piece COLOR, bool PRINT>
-		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["threat"] = std::vector<EvalValue>{ THREAT_LOOKUP.begin(), THREAT_LOOKUP.end() };
+			return indexLookup;
+		}
+
+		static void addToIndexVector(MoveGenerator& position, const EvalResults& result, IndexVector& indexVector) {
+			uint32_t wIndex = computeThreatIndex<WHITE>(position, result);
+			uint32_t bIndex = computeThreatIndex<BLACK>(position, result);
+			if (wIndex) {
+				indexVector.push_back(IndexInfo{ "threat", wIndex, WHITE });
+			}
+			if (bIndex) {
+				indexVector.push_back(IndexInfo{ "threat", bIndex, BLACK });
+			}
+		}
+
+		template<Piece COLOR>
+		static uint32_t computeThreatIndex(MoveGenerator& position, const EvalResults& result) {
 			constexpr Piece OPPONENT = switchColor(COLOR);
 			const bitBoard_t opponentPieces = position.getPiecesOfOneColorBB<OPPONENT>() &
 				~position.getPieceBB(OPPONENT + PAWN);
 			const bitBoard_t nonProtectedPieces = opponentPieces & ~position.attackMask[OPPONENT];
 			const bitBoard_t minorAttack = result.bishopAttack[COLOR] | result.knightAttack[COLOR];
 			const bitBoard_t minorOrRookAttack = minorAttack | result.rookAttack[COLOR];
-			
+
 			const bitBoard_t threats =
 				position.pawnAttack[COLOR] & opponentPieces
 				| nonProtectedPieces & position.attackMask[COLOR]
@@ -63,17 +78,21 @@ namespace ChessEval {
 			if (threatAmout > 10) {
 				threatAmout = 10;
 			}
-			const EvalValue evThreats = THREAT_LOOKUP[threatAmout];
-			if (PRINT) cout
-				<< colorToString(COLOR) << " threats (" << threatAmout << "): " << std::right << std::setw(14) << evThreats << endl;
-			return evThreats;
+			return threatAmout;
 		}
 
-		static constexpr value_t THREAT_LOOKUP[11][2] =
-		{
-			{ 0, 0 }, { 25, 20 }, { 70, 60 }, { 120, 100 }, { 200, 180 }, { 300, 300 },
-			{ 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }
-		};
+
+	private:
+		template<Piece COLOR>
+		static EvalValue eval(MoveGenerator& position, const EvalResults& result) {
+			const auto threatAmount = computeThreatIndex<COLOR>(position, result);
+			const EvalValue evThreats = THREAT_LOOKUP[threatAmount];
+			return evThreats;
+		}
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
+			{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 250, 250 }, 
+			{400, 400}, {400, 400}, {400, 400}, {400, 400}, {400, 400}
+		} };
 
 	};
 }

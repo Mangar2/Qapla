@@ -41,7 +41,7 @@ namespace QaplaInterface {
 				println("error (uci command expected): " + getCurrentToken());
 				return;
 			}
-			while (getCurrentToken() != "quit") {
+			while (getCurrentToken() != "quit" && !isFatalError()) {
 				processCommand();
 			}
 			stopCompute();
@@ -50,19 +50,24 @@ namespace QaplaInterface {
 		/**
 		 * Starts computing a move - sets analyze mode to false
 		 */
-		void computeMove() {
+		void computeMove(std::string searchMoves) {
 			_clock.storeCalculationStartTime();
-			_board->setClock(_clock);
+			getBoard()->setClock(_clock);
 			setInfiniteSearch(_clock.isAnalyseMode() || _clock.isPonderMode());
-			_computeThread.startTask([this]() {
-				_board->computeMove();
-				ComputingInfoExchange computingInfo = _board->getComputingInfo();
-				waitIfInfiniteSearchFinishedEarly();
-				print("bestmove " + computingInfo.currentConsideredMove);
-				if (computingInfo.ponderMove != "") {
-					print(" ponder " + computingInfo.ponderMove);
+			getWorkerThread().startTask([this, searchMoves]() {
+				getBoard()->computeMove(searchMoves);
+				ComputingInfoExchange computingInfo = getBoard()->getComputingInfo();
+				if (computingInfo.error != "") {
+					println("info string illegal go command on " + computingInfo.error);
 				}
-				println("");
+				else {
+					waitIfInfiniteSearchFinishedEarly();
+					print("bestmove " + computingInfo.currentConsideredMove);
+					if (computingInfo.ponderMove != "") {
+						print(" ponder " + computingInfo.ponderMove);
+					}
+					println("");
+				}
 			});
 		}
 
@@ -71,13 +76,15 @@ namespace QaplaInterface {
 		 */
 		void uciCommand() {
 			_clock.setTimeBetweenInfoInMilliseconds(1000);
-			println("id name " + _board->getEngineInfo()["name"]);
-			println("id author " + _board->getEngineInfo()["author"]);
-			println("option name Hash type spin default 32 min 1 max 16000");
+			println("id name " + getBoard()->getEngineInfo()["name"]);
+			println("id author " + getBoard()->getEngineInfo()["author"]);
+			println("option name Hash type spin default 32 min 1 max 32000");
 			println("option name ponder type check");
 			println("option name MultiPV type spin default 1 min 1 max 40");
-			println("option name UCI_EngineAbout type string default " + _board->getEngineInfo()["engine-about"]);
-			_board->initialize();
+			println("option name UCI_EngineAbout type string default " + getBoard()->getEngineInfo()["engine-about"]);
+			println("option name qaplaBitbasePath type string");
+			println("option name qaplaBitbaseCache type spin default 8 min 1 max 32000");
+			getBoard()->initialize();
 			println("uciok");
 		}
 
@@ -88,12 +95,24 @@ namespace QaplaInterface {
 			string token = getNextTokenBlocking(true);
 			string fen = "";
 			string space = "";
-			while (token != "moves" && token != "\n" && token != "\r") {
+			while (token != "moves" && token != "\n" && token != "\r" && !isFatalError()) {
 				fen += space + token;
 				space = " ";
 				token = getNextTokenBlocking(true);
 			}
 			return fen;
+		}
+
+		std::string readSearchMoves() {
+			string token = getCurrentToken();
+			string moves = "";
+			string space = "";
+			while (token != "\n" && token != "\r" && isValidMoveString(token) && !isFatalError()) {
+				moves += space + token;
+				space = " ";
+				token = getNextTokenBlocking(true);
+			}
+			return moves;
 		}
 
 		/**
@@ -110,10 +129,14 @@ namespace QaplaInterface {
 			}
 			if (getCurrentToken() == "moves") {
 				debug += " moves";
+				bool illegalMoveFound = false;
 				string token = getNextTokenBlocking(true);
-				while (token != "\n" && token != "\r") {
+				while (token != "\n" && token != "\r" && !isFatalError()) {
 					debug += " " + token;
-					setMove(token);
+					if (!illegalMoveFound) {
+						illegalMoveFound = !setMove(token);
+						println("info string Illegal move encountered, remaining moves ignored");
+					}
 					token = getNextTokenBlocking(true);
 				}
 			}
@@ -131,7 +154,7 @@ namespace QaplaInterface {
 			if (getNextTokenBlocking() == "value") {
 				value = getNextTokenBlocking();
 			}
-			_board->setOption(name, value);
+			getBoard()->setOption(name, value);
 		}
 
 		/**
@@ -141,7 +164,8 @@ namespace QaplaInterface {
 			stopCompute();
 			_clock.reset();
 			string token = "";
-			while (token != "\n" && token != "\r") {
+			string searchMoves = "";
+			while (token != "\n" && token != "\r" && !isFatalError()) {
 				token = getNextTokenBlocking(true);
 				if (token == "\n" || token == "\r") break;
 				if (token == "infinite") _clock.setAnalyseMode();
@@ -158,9 +182,13 @@ namespace QaplaInterface {
 					else if (token == "nodes") _clock.setNodeCount(param);
 					else if (token == "mate") _clock.setMate(param);
 					else if (token == "movetime") _clock.setExactTimePerMoveInMilliseconds(param);
+					else if (token == "searchmoves") {
+						searchMoves = readSearchMoves();
+						token = getCurrentToken();
+					}
 				}
 			};
-			computeMove();
+			computeMove(searchMoves);
 		}
 
 		/**
@@ -169,7 +197,7 @@ namespace QaplaInterface {
 		 */
 		void newGame() {
 			stopCompute();
-			_board->newGame();
+			getBoard()->newGame();
 		}
 
 		/**
