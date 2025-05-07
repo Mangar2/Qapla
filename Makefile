@@ -2,19 +2,19 @@ CXX := clang++
 CC := clang
 
 CXXFLAGS := -std=c++20 -Wno-unused-variable -Wno-unused-parameter \
-    -flto -ffunction-sections -fdata-sections
+	-flto -ffunction-sections -fdata-sections
 
 CFLAGS := -std=c99 -Wno-unused-variable -Wno-unused-parameter \
-    -flto -ffunction-sections -fdata-sections
+	-flto -ffunction-sections -fdata-sections
 
 LDFLAGS := -flto -Wl,--gc-sections -fuse-ld=lld
 
 ifeq ($(OS), Windows_NT)
-    LDFLAGS += -mconsole \
-               -static -static-libgcc -static-libstdc++ \
-               -lgcc -lgcc_eh -lsupc++
+	LDFLAGS += -mconsole \
+				-static -static-libgcc -static-libstdc++ \
+				-lgcc -lgcc_eh -lsupc++
 else
-    CXXFLAGS += -pthread
+	CXXFLAGS += -pthread
 endif
 
 BUILD_TYPE ?= Release
@@ -34,23 +34,23 @@ OBJ := $(OBJ_CPP) $(OBJ_C)
 EXE := $(BUILD_DIR)/Qapla
 
 ifeq ($(BUILD_TYPE), Debug)
-    CXXFLAGS += -D_DEBUG -g
-    CFLAGS   += -D_DEBUG -g
+	CXXFLAGS += -D_DEBUG -g
+	CFLAGS   += -D_DEBUG -g
 endif
 
 ifeq ($(BUILD_TYPE), Release)
-    CXXFLAGS += -DNDEBUG -O3 -march=x86-64-v3 -funroll-loops -fno-rtti
-    CFLAGS   += -DNDEBUG -O3 -march=x86-64-v3 -funroll-loops
+	CXXFLAGS += -DNDEBUG -O3 -march=x86-64-v2 -funroll-loops -fno-rtti
+	CFLAGS   += -DNDEBUG -O3 -march=x86-64-v2 -funroll-loops
 endif
 
 ifeq ($(BUILD_TYPE), WhatifRelease)
-    CXXFLAGS += -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64-v3 -funroll-loops -fno-rtti
-    CFLAGS   += -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64-v3 -funroll-loops
+	CXXFLAGS += -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64 -funroll-loops -fno-rtti
+	CFLAGS   += -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64 -funroll-loops
 endif
 
 ifeq ($(BUILD_TYPE), Release_NO_POPCOUNT)
-    CXXFLAGS += -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops -fno-rtti
-    CFLAGS   += -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops
+	CXXFLAGS += -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops -fno-rtti
+	CFLAGS   += -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops
 endif
 
 all: $(EXE)
@@ -74,7 +74,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 clan-all:
-    rm -rf $(BUILD_BASE) 
+	rm -rf $(BUILD_BASE) 
 
 Debug:
 	$(MAKE) BUILD_TYPE=Debug
