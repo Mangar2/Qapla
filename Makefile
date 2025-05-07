@@ -17,8 +17,9 @@ else
     CXXFLAGS += -pthread
 endif
 
-BUILD_DIR := build
 BUILD_TYPE ?= Release
+BUILD_BASE := build
+BUILD_DIR := $(BUILD_BASE)/$(BUILD_TYPE)
 
 MKDIR := mkdir -p
 
@@ -71,6 +72,9 @@ $(BUILD_DIR):
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+clan-all:
+    rm -rf $(BUILD_BASE) 
 
 Debug:
 	$(MAKE) BUILD_TYPE=Debug
