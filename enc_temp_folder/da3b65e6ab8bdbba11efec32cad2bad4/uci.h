@@ -135,9 +135,7 @@ namespace QaplaInterface {
 					debug += " " + token;
 					if (!illegalMoveFound) {
 						illegalMoveFound = !setMove(token);
-						if (illegalMoveFound) {
-							println("info string Illegal move encountered, remaining moves ignored");
-						}
+						println("info string Illegal move encountered, remaining moves ignored");
 					}
 					token = getNextTokenBlocking(true);
 				}

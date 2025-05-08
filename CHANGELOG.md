@@ -3,7 +3,7 @@ Qapla chess engine
 
 ## 0.3.0 2025-05-06
 
-- Playing strength: + 100 ELO to 0.2.57 (about 2800 - 2850 ELO on CCRL)
+- Playing strength: + 100 ELO to 0.2.57 (about 2850 - 2900 ELO on CCRL)
 - Github repository renamed to "Qapla"
 - Features
     - UCI supports node count on "go" command. It will be "nearly" reached, not exactly. It is additional to other limits so you might limit depth, time and nodes.
