@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 	Stockfish::Engine::load_network("NNUE1", "NNUE2");
 #endif
 
-	std::cout << "Qapla 0.3.0 (C) 2025 Volker Boehm (build 018)" << std::endl;
+	std::cout << "Qapla 0.3.1 (C) 2025 Volker Boehm (build 018)" << std::endl;
 	// This enables setting search parameters to a static object. The search parameters are set as name, value pairs
 	// Currently this is used for testing only
 	SearchParameter::parseCommandLine(argc, argv);

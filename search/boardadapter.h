@@ -67,9 +67,9 @@ namespace QaplaSearch {
 		 */
 		virtual map<string, string> getEngineInfo() { 
 			return map<string, string>{
-				{ "name", "Qapla 0.3.0" },
-				{ "author", "Volker B<F6>hm"},
-				{ "engine-about", "Qapla by Volker B<F6>hm, see github.com/Mangar2/Quabla"}
+				{ "name", "Qapla 0.3.1" },
+				{ "author", "Volker Boehm"},
+				{ "engine-about", "Qapla by Volker Boehm, see github.com/Mangar2/Quabla"}
 			};
 		}
 
