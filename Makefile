@@ -15,6 +15,7 @@ ifeq ($(OS), Windows_NT)
 			   -lgcc -lgcc_eh -lsupc++
 else
 	CXXFLAGS += -pthread
+	LDFLAGS += -static -static-libgcc -static-libstdc++ -pthread
 endif
 
 BUILD_TYPE ?= Release
