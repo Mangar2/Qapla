@@ -16,6 +16,8 @@
 *.o
 *.7z
 *.bin
+*.epd
+.editorconfig
 
 !CMakeLists.txt
 
