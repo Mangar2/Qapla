@@ -326,6 +326,7 @@ namespace QaplaSearch {
 				maxTime = _clockSetting.getExactTimePerMoveInMilliseconds();
 			}
 			else {
+				const int64_t MIN_REMAINING_TIME = 2000;
 				const int64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
 				const int64_t timeIncrement = _clockSetting.getTimeIncrementPerMoveInMilliseconds();
 				const int32_t movesToGo = computeMovesToGo();
@@ -333,12 +334,14 @@ namespace QaplaSearch {
 
 				// Not less than the fair share
 				maxTime = std::max(maxTime, timeLeft / (movesToGo + 1));
-				// Keep at least two seconds
-				maxTime = std::min(maxTime, timeLeft - 2000);
-				// Safety, not less than 1 milliseconds. Note: we have a min-depth check
+				// Keep at least: 
+				maxTime = std::min(maxTime, timeLeft - MIN_REMAINING_TIME);
+				// Take a bit more, if you have timeIncrement 
+				maxTime = std::max(maxTime, timeIncrement - 50);
+				if (timeLeft - maxTime < MIN_REMAINING_TIME) {
+					maxTime = timeLeft / 5;
+				}
 				maxTime = std::max(maxTime, static_cast<int64_t>(1));
-				// Not less than the time increment - 10 ms
-				maxTime = std::max(maxTime, timeIncrement - 10);
 			}
 
 			return maxTime;
