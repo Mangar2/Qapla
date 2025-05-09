@@ -149,7 +149,7 @@ void Board::doMove(Move move) {
 
 	Square departure = move.getDeparture();
 	Square destination = move.getDestination();
-	_basicBoard.updateStateOnDoMove(departure, destination);
+	updateStateOnDoMove(departure, destination);
 
 	if (move.isCaptureMoveButNotEP())
 	{
@@ -164,6 +164,30 @@ void Board::doMove(Move move) {
 	assert(_basicBoard[departure] == NO_PIECE || move.isCastleMove());
 	assert(_basicBoard[destination] != NO_PIECE);
 
+}
+
+
+/**
+ * Update all based for doMove
+ * @param departure departure position of the move
+ * @param destination destination position of the move
+ */
+void Board::updateStateOnDoMove(Square departure, Square destination) {
+	_basicBoard._whiteToMove = !_basicBoard._whiteToMove;
+	_basicBoard._boardState.clearEP();
+	_basicBoard._boardState.disableCastlingRightsByMask(
+		_basicBoard._clearCastleFlagMask[departure] & _basicBoard._clearCastleFlagMask[destination]);
+	_basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture++;
+	bool isCapture = _basicBoard._board[destination] != NO_PIECE;
+	bool isPawnMove = isPawn(_basicBoard._board[departure]);
+	bool isMoveTwoRanks = ((departure - destination) & 0x0F) == 0;
+	if (isCapture || isPawnMove) {
+		_basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture = 0;
+		_basicBoard._boardState.fenHalfmovesWithoutPawnMoveOrCapture = 0;
+	}
+	if (isPawnMove && isMoveTwoRanks) {
+		_basicBoard._boardState.setEP(destination);
+	}
 }
 
 void Board::undoMoveSpecialities(Move move) {
@@ -227,7 +251,7 @@ void Board::undoMoveSpecialities(Move move) {
 
 }
 
-void Board::undoMove(Move move, BoardState boardState) {
+void Board::undoMove(Move move, BoardState recentBoardState) {
 
 	Square departure = move.getDeparture();
 	Square destination = move.getDestination();
@@ -245,8 +269,8 @@ void Board::undoMove(Move move, BoardState boardState) {
 			addPiece(destination, capture);
 		}
 	}
-
-	_basicBoard.updateStateOnUndoMove(boardState);
+	_basicBoard._whiteToMove = !_basicBoard._whiteToMove;
+	_basicBoard._boardState = recentBoardState;
 	assert(_basicBoard[departure] != NO_PIECE);
 }
 

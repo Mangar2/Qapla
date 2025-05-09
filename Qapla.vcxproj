@@ -1873,7 +1873,6 @@
     <ClCompile Include="training\signature-eval-adjuster.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="basics\basicboard.h" />
     <ClInclude Include="basics\bits.h" />
     <ClInclude Include="basics\board.h" />
     <ClInclude Include="basics\boardstate.h" />

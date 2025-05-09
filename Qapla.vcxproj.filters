@@ -323,9 +323,6 @@
     <ClInclude Include="basics\pst.h">
       <Filter>basics</Filter>
     </ClInclude>
-    <ClInclude Include="basics\basicboard.h">
-      <Filter>basics</Filter>
-    </ClInclude>
     <ClInclude Include="basics\board.h">
       <Filter>basics</Filter>
     </ClInclude>

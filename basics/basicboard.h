@@ -33,51 +33,13 @@ class BasicBoard
 {
 public:
 
-	/**
-	 * Checks, if two positions are identical
-	 */
-	bool isIdenticalPosition(const BasicBoard& boardToCompare) const {
-		return _whiteToMove == boardToCompare._whiteToMove &&_board == boardToCompare._board;
-	}
+
 
 	/**
 	 * Access a single spot on the board
 	 */
 	inline Piece operator[] (Square square) const {
 		return _board[square];
-	}
-
-	
-	/**
-	 * Update all based for doMove
-	 * @param departure departure position of the move
-	 * @param destination destination position of the move
-	 */
-	inline void updateStateOnDoMove(Square departure, Square destination) {
-		_whiteToMove = !_whiteToMove;
-		_boardState.clearEP();
-		_boardState.disableCastlingRightsByMask(
-			_clearCastleFlagMask[departure] & _clearCastleFlagMask[destination]);
-		_boardState.halfmovesWithoutPawnMoveOrCapture++;
-		bool isCapture = _board[destination] != NO_PIECE;
-		bool isPawnMove = isPawn(_board[departure]);
-		bool isMoveTwoRanks = ((departure - destination) & 0x0F) == 0;
-		if (isCapture || isPawnMove) {
-			_boardState.halfmovesWithoutPawnMoveOrCapture = 0;
-			_boardState.fenHalfmovesWithoutPawnMoveOrCapture = 0;
-		}
-		if (isPawnMove && isMoveTwoRanks) {
-			_boardState.setEP(destination);
-		}
-	}
-
-	/**
-	 * Update all states for undo move
-	 * @param recentBoardState the board state stored before doMove
-	 */
-	inline void updateStateOnUndoMove(BoardState recentBoardState) {
-		_whiteToMove = !_whiteToMove;
-		_boardState = recentBoardState;
 	}
 
 	// Current color to move

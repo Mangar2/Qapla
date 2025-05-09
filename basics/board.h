@@ -41,6 +41,8 @@ namespace QaplaBasics {
 		 * Sets a move on the board
 		 */
 		void doMove(Move move);
+		void updateStateOnDoMove(Square departure, Square destination);
+
 		/*
 		 * Undoes a previously made move on the move
 		 * @param move move previously made
@@ -56,7 +58,7 @@ namespace QaplaBasics {
 		 * Checks, if two positions are identical
 		 */
 		bool isIdenticalPosition(const Board& boardToCompare) {
-			return _basicBoard.isIdenticalPosition(boardToCompare._basicBoard);
+			return _basicBoard._whiteToMove == boardToCompare._basicBoard._whiteToMove && _basicBoard._board == boardToCompare._basicBoard._board;
 		}
 
 		/**
@@ -478,8 +480,6 @@ namespace QaplaBasics {
 
 		// Amount of half moves played befor fen
 		int32_t _startHalfmoves;
-
-
 	};
 }
 
