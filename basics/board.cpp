@@ -30,7 +30,6 @@ Board::Board() {
 }
 
 void Board::clear() {
-	_basicBoard.clear();
 	clearBB();
 	_pieceSignature.clear();
 	_materialBalance.clear();
@@ -40,6 +39,9 @@ void Board::clear() {
 	_kingStartSquare = { E1, E8 };
 	_queenRookStartSquare = { A1, A8 };
 	_kingRookStartSquare = { H1, H8 };
+	_startHalfmoves = 0;
+	_basicBoard._boardState.initialize();
+	_basicBoard._board.fill(NO_PIECE);
 }
 
 void Board::initClearCastleMask() {
@@ -66,14 +68,15 @@ void Board::setToSymetricBoard(const Board& board) {
 	setCastlingRight(WHITE, false, isQueenSideCastleAllowed<WHITE>());
 	setCastlingRight(BLACK, true, isKingSideCastleAllowed<BLACK>());
 	setCastlingRight(BLACK, false, isQueenSideCastleAllowed<BLACK>());
-	_basicBoard.setEP(Square(getEP() ^ 0x38));
+	setEP(Square(getEP() ^ 0x38));
 	setWhiteToMove(!board.isWhiteToMove());
 }
 
 void Board::removePiece(Square squareOfPiece) {
 	Piece pieceToRemove = _basicBoard[squareOfPiece];
 	removePieceBB(squareOfPiece, pieceToRemove);
-	_basicBoard.removePiece(squareOfPiece);
+	_basicBoard._boardState.updateHash(squareOfPiece, pieceToRemove);
+	_basicBoard._board[squareOfPiece] = NO_PIECE;
 	_pieceSignature.removePiece(pieceToRemove, bitBoardsPiece[pieceToRemove]);
 	_materialBalance.removePiece(pieceToRemove);
 	_pstBonus -= PST::getValue(squareOfPiece, pieceToRemove);
@@ -82,7 +85,8 @@ void Board::removePiece(Square squareOfPiece) {
 void Board::addPiece(Square squareOfPiece, Piece pieceToAdd) {
 	_pieceSignature.addPiece(pieceToAdd);
 	addPieceBB(squareOfPiece, pieceToAdd);
-	_basicBoard.addPiece(squareOfPiece, pieceToAdd);
+	_basicBoard._boardState.updateHash(squareOfPiece, pieceToAdd);
+	_basicBoard._board[squareOfPiece] = pieceToAdd;
 	_materialBalance.addPiece(pieceToAdd);
 	_pstBonus += PST::getValue(squareOfPiece, pieceToAdd);
 }
@@ -95,7 +99,10 @@ void Board::movePiece(Square departure, Square destination) {
 	_pstBonus += PST::getValue(destination, pieceToMove) -
 		PST::getValue(departure, pieceToMove);
 	movePieceBB(departure, destination, pieceToMove);
-	_basicBoard.movePiece(departure, destination);
+	_basicBoard._boardState.updateHash(departure, pieceToMove);
+	_basicBoard._board[departure] = NO_PIECE;
+	_basicBoard._boardState.updateHash(destination, pieceToMove);
+	_basicBoard._board[destination] = pieceToMove;
 }
 
 void Board::doMoveSpecialities(Move move) {
@@ -138,7 +145,7 @@ void Board::doMoveSpecialities(Move move) {
 }
 
 void Board::doMove(Move move) {
-	assert(_basicBoard.assertMove(move));
+	assert(assertMove(move));
 
 	Square departure = move.getDeparture();
 	Square destination = move.getDestination();
@@ -327,4 +334,15 @@ void Board::print() const {
 	std::cout << "hash: " << computeBoardHash() << std::endl;
 	printFen();
 	//printf("White King: %ld, Black King: %ld\n", kingPos[WHITE], kingPos[BLACK]);
+}
+
+bool Board::assertMove(Move move) const {
+	assert(move.getMovingPiece() != NO_PIECE);
+	assert(move.getDeparture() != move.getDestination());
+	if (!(move.getMovingPiece() == operator[](move.getDeparture()))) {
+		move.print();
+	}
+	assert(move.getMovingPiece() == operator[](move.getDeparture()));
+	assert((move.getCapture() == operator[](move.getDestination())) || move.isCastleMove() || move.isEPMove());
+	return true;
 }

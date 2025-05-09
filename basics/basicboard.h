@@ -32,27 +32,6 @@ namespace QaplaBasics {
 class BasicBoard
 {
 public:
-	BasicBoard() { clear(); }
-
-	/**
-	 * Clears the Board
-	 */
-	void clear();
-
-	/**
-	 * Checks that moving piece and captured piece of the move matches the board
-	 */
-	bool assertMove(Move move) const;
-
-	/**
-	 * Moves a piece on the board
-	 */
-	inline void movePiece(Square departure, Square destination) {
-		assert(isInBoard(departure));
-		assert(isInBoard(destination));
-		addPiece(destination, operator[](departure));
-		removePiece(departure);
-	}
 
 	/**
 	 * Checks, if two positions are identical
@@ -62,82 +41,13 @@ public:
 	}
 
 	/**
-	 * Adds a piece to the board
-	 */
-	inline void addPiece(Square square, Piece piece) {
-		_boardState.updateHash(square, piece);
-		_board[square] = piece;
-	}
-
-	/**
-	 * Removes a piece from the board
-	 */
-	inline void removePiece(Square square) {
-		_boardState.updateHash(square, _board[square]);
-		_board[square] = NO_PIECE;
-	}
-
-	/**
 	 * Access a single spot on the board
 	 */
 	inline Piece operator[] (Square square) const {
 		return _board[square];
 	}
 
-	/**
-	 * Sets the capture square for an en passant move
-	 */
-	inline void setEP(Square destination) { _boardState.setEP(destination); }
 	
-	/**
-	 * Clears the capture square for an en passant move
-	 */
-	inline void clearEP() { _boardState.clearEP(); }
-
-	/**
-	 * Gets the EP square
-	 */
-	inline auto getEP() const {
-		return _boardState.getEP();
-	}
-
-	/**
-	 * Checks, if king side castling is allowed
-	 */
-	template <Piece COLOR>
-	inline bool isKingSideCastleAllowed() {
-		return _boardState.isKingSideCastleAllowed<COLOR>();
-	}
-
-	/**
-	 * Checks, if queen side castling is allowed
-	 */
-	template <Piece COLOR>
-	inline bool isQueenSideCastleAllowed() {
-		return _boardState.isQueenSideCastleAllowed<COLOR>();
-	}
-
-	/**
-	 * Enable/Disable castling right
-	 */
-	inline void setCastlingRight(Piece color, bool kingSide, bool allow) {
-		_boardState.setCastlingRight(color, kingSide, allow);
-	}
-
-	/**
-	 * Computes the current board hash
-	 */
-	inline hash_t computeBoardHash() const {
-		return _boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)_whiteToMove];
-	}
-
-	/**
-	 * Gets the hash key for the pawn structure
-	 */
-	inline hash_t getPawnHash() const {
-		return _boardState.pawnHash;
-	}
-
 	/**
 	 * Update all based for doMove
 	 * @param departure departure position of the move
@@ -181,8 +91,6 @@ public:
 
 	array<Piece, BOARD_SIZE> _board;
 
-	// Amount of half moves played befor fen
-	int32_t _startHalfmoves;
 
 };
 

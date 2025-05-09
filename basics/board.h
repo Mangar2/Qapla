@@ -48,7 +48,6 @@ namespace QaplaBasics {
 		 */
 		void undoMove(Move move, BoardState boardState);
 		void clear();
-		inline auto getEP() const { return _basicBoard.getEP(); }
 		inline auto operator[](Square square) const { return _basicBoard[square]; }
 		inline auto isWhiteToMove() const { return _basicBoard._whiteToMove; }
 		inline void setWhiteToMove(bool whiteToMove) { _basicBoard._whiteToMove = whiteToMove; }
@@ -70,7 +69,7 @@ namespace QaplaBasics {
 		 * person to move does nothing and hand over the moving right to the opponent.
 		 */
 		inline void doNullmove() {
-			_basicBoard.clearEP();
+			clearEP();
 			setWhiteToMove(!isWhiteToMove());
 		}
 
@@ -81,36 +80,6 @@ namespace QaplaBasics {
 		inline void undoNullmove(BoardState boardState) {
 			setWhiteToMove(!isWhiteToMove());
 			_basicBoard._boardState = boardState;
-		}
-
-		/**
-		 * Checks, if king side castling is allowed
-		 */
-		template <Piece COLOR>
-		inline bool isKingSideCastleAllowed() {
-			return _basicBoard.isKingSideCastleAllowed<COLOR>();
-		}
-
-		/**
-		 * Checks, if queen side castling is allowed
-		 */
-		template <Piece COLOR>
-		inline bool isQueenSideCastleAllowed() {
-			return _basicBoard.isQueenSideCastleAllowed<COLOR>();
-		}
-
-		/**
-		 * Enable/Disable castling right
-		 */
-		void setCastlingRight(Piece color, bool kingSide, bool allow) {
-			_basicBoard.setCastlingRight(color, kingSide, allow);
-		}
-
-		/**
-		 * Sets the destination of the pawn to capture
-		 */
-		void setEP(Square destination) {
-			_basicBoard.setEP(destination);
 		}
 
 		/**
@@ -131,15 +100,9 @@ namespace QaplaBasics {
 		 * @returns board hash for the current position
 		 */
 		inline auto computeBoardHash() const {
-			return _basicBoard.computeBoardHash();
+			return _basicBoard._boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)_basicBoard._whiteToMove];
 		}
 
-		/**
-		 * Gets the hash key for the pawn structure
-		 */
-		inline hash_t getPawnHash() const {
-			return _basicBoard.getPawnHash();
-		}
 
 		/**
 		 * Gets the amount of half moves without pawn move or capture to implement the repetitive moves draw rule
@@ -374,6 +337,54 @@ namespace QaplaBasics {
 			randomBonus = bonus;
 		}
 
+		/**
+	 * Sets the capture square for an en passant move
+	 */
+		inline void setEP(Square destination) { _basicBoard._boardState.setEP(destination); }
+
+		/**
+		 * Clears the capture square for an en passant move
+		 */
+		inline void clearEP() { _basicBoard._boardState.clearEP(); }
+
+		/**
+		 * Gets the EP square
+		 */
+		inline auto getEP() const {
+			return _basicBoard._boardState.getEP();
+		}
+
+		/**
+		 * Checks, if king side castling is allowed
+		 */
+		template <Piece COLOR>
+		inline bool isKingSideCastleAllowed() {
+			return _basicBoard._boardState.isKingSideCastleAllowed<COLOR>();
+		}
+
+		/**
+		 * Checks, if queen side castling is allowed
+		 */
+		template <Piece COLOR>
+		inline bool isQueenSideCastleAllowed() {
+			return _basicBoard._boardState.isQueenSideCastleAllowed<COLOR>();
+		}
+
+		/**
+		 * Enable/Disable castling right
+		 */
+		inline void setCastlingRight(Piece color, bool kingSide, bool allow) {
+			_basicBoard._boardState.setCastlingRight(color, kingSide, allow);
+		}
+
+		/**
+		 * Gets the hash key for the pawn structure
+		 */
+		inline hash_t getPawnHash() const {
+			return _basicBoard._boardState.pawnHash;
+		}
+
+
 	protected:
 		array<Square, COLOR_COUNT> kingSquares;
 
@@ -447,6 +458,11 @@ namespace QaplaBasics {
 		}
 
 		/**
+		 * Checks that moving piece and captured piece of the move matches the board
+		 */
+		bool assertMove(Move move) const;
+
+		/**
 		 * handles EP, Castling, Promotion 
 		 */
 		void doMoveSpecialities(Move move);
@@ -459,6 +475,9 @@ namespace QaplaBasics {
 		EvalValue _pstBonus;
 		PieceSignature _pieceSignature;
 		MaterialBalance _materialBalance;
+
+		// Amount of half moves played befor fen
+		int32_t _startHalfmoves;
 
 
 	};

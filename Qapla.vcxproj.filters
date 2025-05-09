@@ -105,9 +105,6 @@
     <ClCompile Include="basics\board.cpp">
       <Filter>basics</Filter>
     </ClCompile>
-    <ClCompile Include="basics\basicboard.cpp">
-      <Filter>basics</Filter>
-    </ClCompile>
     <ClCompile Include="eval\pawn.cpp">
       <Filter>eval</Filter>
     </ClCompile>
@@ -487,6 +484,9 @@
     </ClInclude>
     <ClInclude Include="bitbase\bitbase-file.h">
       <Filter>bitbase</Filter>
+    </ClInclude>
+    <ClInclude Include="bitbase\cluster-cache.h">
+      <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
