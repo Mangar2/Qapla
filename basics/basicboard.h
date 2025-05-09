@@ -33,27 +33,7 @@ class BasicBoard
 {
 public:
 
-
-
-	/**
-	 * Access a single spot on the board
-	 */
-	inline Piece operator[] (Square square) const {
-		return _board[square];
-	}
-
-	// Current color to move
-	bool _whiteToMove;
-
-
-	BoardState _boardState;
-	array<uint16_t, 64> _clearCastleFlagMask;
-
-	bool isInBoard(Square square) { return square >= A1 && square <= H8; }
-
 	array<Piece, BOARD_SIZE> _board;
-
-
 };
 
 }

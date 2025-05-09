@@ -21,8 +21,7 @@
  * undoMove
  */
 
-#ifndef __BOARD_H
-#define __BOARD_H
+#pragma once
 
 #include "types.h"
 #include "move.h"
@@ -50,15 +49,15 @@ namespace QaplaBasics {
 		 */
 		void undoMove(Move move, BoardState boardState);
 		void clear();
-		inline auto operator[](Square square) const { return _basicBoard[square]; }
-		inline auto isWhiteToMove() const { return _basicBoard._whiteToMove; }
-		inline void setWhiteToMove(bool whiteToMove) { _basicBoard._whiteToMove = whiteToMove; }
+		inline auto operator[](Square square) const { return _basicBoard._board[square]; }
+		inline auto isWhiteToMove() const { return _whiteToMove; }
+		inline void setWhiteToMove(bool whiteToMove) { _whiteToMove = whiteToMove; }
 
 		/**
 		 * Checks, if two positions are identical
 		 */
 		bool isIdenticalPosition(const Board& boardToCompare) {
-			return _basicBoard._whiteToMove == boardToCompare._basicBoard._whiteToMove && _basicBoard._board == boardToCompare._basicBoard._board;
+			return _whiteToMove == boardToCompare._whiteToMove && _basicBoard._board == boardToCompare._basicBoard._board;
 		}
 
 		/**
@@ -79,9 +78,9 @@ namespace QaplaBasics {
 		 * Undoes a previously made nullmove
 		 * @param boardState a stored state from the board before doing the nullmove incl. EP-Position
 		 */
-		inline void undoNullmove(BoardState boardState) {
+		inline void undoNullmove(BoardState recentBoardState) {
 			setWhiteToMove(!isWhiteToMove());
-			_basicBoard._boardState = boardState;
+			_boardState = recentBoardState;
 		}
 
 		/**
@@ -102,7 +101,7 @@ namespace QaplaBasics {
 		 * @returns board hash for the current position
 		 */
 		inline auto computeBoardHash() const {
-			return _basicBoard._boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)_basicBoard._whiteToMove];
+			return _boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)_whiteToMove];
 		}
 
 
@@ -111,7 +110,7 @@ namespace QaplaBasics {
 		 * Note: the fen value is not included as there are no corresponding moves stored
 		 */
 		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
-			return _basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture;
+			return _boardState.halfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
@@ -119,22 +118,22 @@ namespace QaplaBasics {
 		 * the 50-moves-draw rule
 		 */
 		inline auto getTotalHalfmovesWithoutPawnMoveOrCapture() const {
-			return _basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture 
-				+ _basicBoard._boardState.fenHalfmovesWithoutPawnMoveOrCapture;
+			return _boardState.halfmovesWithoutPawnMoveOrCapture 
+				+ _boardState.fenHalfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture
 		 */
 		void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
-			_basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture = number;
+			_boardState.halfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture from initial fen
 		 */
 		void setFenHalfmovesWihtoutPawnMoveOrCapture(uint16_t number) {
-			_basicBoard._boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
+			_boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
@@ -303,7 +302,7 @@ namespace QaplaBasics {
 		template <Piece COLOR>
 		inline auto getQueenRookStartSquare() const { return _queenRookStartSquare[COLOR]; }
 
-		BoardState getBoardState() const { return _basicBoard._boardState; }
+		BoardState getBoardState() const { return _boardState; }
 
 		/**
 		 * Gets the board in Fen representation
@@ -342,18 +341,18 @@ namespace QaplaBasics {
 		/**
 	 * Sets the capture square for an en passant move
 	 */
-		inline void setEP(Square destination) { _basicBoard._boardState.setEP(destination); }
+		inline void setEP(Square destination) { _boardState.setEP(destination); }
 
 		/**
 		 * Clears the capture square for an en passant move
 		 */
-		inline void clearEP() { _basicBoard._boardState.clearEP(); }
+		inline void clearEP() { _boardState.clearEP(); }
 
 		/**
 		 * Gets the EP square
 		 */
 		inline auto getEP() const {
-			return _basicBoard._boardState.getEP();
+			return _boardState.getEP();
 		}
 
 		/**
@@ -361,7 +360,7 @@ namespace QaplaBasics {
 		 */
 		template <Piece COLOR>
 		inline bool isKingSideCastleAllowed() {
-			return _basicBoard._boardState.isKingSideCastleAllowed<COLOR>();
+			return _boardState.isKingSideCastleAllowed<COLOR>();
 		}
 
 		/**
@@ -369,21 +368,21 @@ namespace QaplaBasics {
 		 */
 		template <Piece COLOR>
 		inline bool isQueenSideCastleAllowed() {
-			return _basicBoard._boardState.isQueenSideCastleAllowed<COLOR>();
+			return _boardState.isQueenSideCastleAllowed<COLOR>();
 		}
 
 		/**
 		 * Enable/Disable castling right
 		 */
 		inline void setCastlingRight(Piece color, bool kingSide, bool allow) {
-			_basicBoard._boardState.setCastlingRight(color, kingSide, allow);
+			_boardState.setCastlingRight(color, kingSide, allow);
 		}
 
 		/**
 		 * Gets the hash key for the pawn structure
 		 */
 		inline hash_t getPawnHash() const {
-			return _basicBoard._boardState.pawnHash;
+			return _boardState.pawnHash;
 		}
 
 
@@ -395,11 +394,7 @@ namespace QaplaBasics {
 		bitBoard_t bitBoardAllPieces;
 
 	private:
-		BasicBoard _basicBoard;
-		// Chess 960 variables
-		array<Square, 2> _kingStartSquare;
-		array<Square, 2> _queenRookStartSquare;
-		array<Square, 2> _kingRookStartSquare;
+
 
 		
 		void initClearCastleMask();
@@ -472,6 +467,7 @@ namespace QaplaBasics {
 
 		void printPst(Piece piece) const;
 
+
 		value_t randomBonus = 0;
 		uint32_t evalVersion = 0;
 		EvalValue _pstBonus;
@@ -480,8 +476,17 @@ namespace QaplaBasics {
 
 		// Amount of half moves played befor fen
 		int32_t _startHalfmoves;
+		BasicBoard _basicBoard;
+		// Current color to move
+		bool _whiteToMove;	
+		// Board properties put on the search stack
+		BoardState _boardState;
+
+		// Chess 960 variables
+		array<Square, 2> _kingStartSquare;
+		array<Square, 2> _queenRookStartSquare;
+		array<Square, 2> _kingRookStartSquare;
+		array<uint16_t, static_cast<uint32_t>(BOARD_SIZE)> _clearCastleFlagMask;
 	};
 }
-
-#endif // __BOARD_H
 
