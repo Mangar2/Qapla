@@ -19,8 +19,7 @@
  * Defines a list of standard constants for calculating transposition table hashes
  */
 
-#ifndef __HASHCONSTANTS_H
-#define __HASHCONSTANTS_H
+#pragma once
 
 #include <cstdint>
 #include "types.h"
@@ -43,5 +42,5 @@ namespace QaplaBasics {
 	};
 
 }
-#endif
+
 

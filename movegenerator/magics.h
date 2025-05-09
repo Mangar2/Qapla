@@ -19,8 +19,7 @@
  * Provides magic numbers for a bitboard move generator
  */
 
-#ifndef __MAGICS_H
-#define __MAGICS_H
+#pragma once
 
 #include "../basics/types.h"
 #include "../basics/move.h"
@@ -32,8 +31,8 @@ namespace QaplaMoveGenerator {
 	class Magics
 	{
 	public:
-		Magics(void) {};
-		~Magics(void) {};
+		Magics() = delete;
+		~Magics() = delete;
 
 		/** 
 		 * Generates the attack mask for rooks
@@ -67,6 +66,21 @@ namespace QaplaMoveGenerator {
 
 	private:
 		/**
+		 * Magic number entry structure
+		 */
+		struct tMagicEntry
+		{
+			// Pointer to the attack table holding attack vectors
+			bitBoard_t* _attackMap;
+			// Occupancy mask (no outer squares)
+			bitBoard_t  mask;
+			// Magic number (64-bit factor)
+			bitBoard_t magic;
+			// Amount of bits to shift right to get the relevant bits
+			int32_t shift;
+		};
+
+		/**
 		 * Generates a mask with relevant bits for a rook attack mask
 		 * relevant bits are every bits possibly holding a piece that prevents the
 		 * rook from moving behind the piece. Thus the row and the column of the
@@ -99,20 +113,7 @@ namespace QaplaMoveGenerator {
 		 */
 		static const bitBoard_t _bishopMagic[BOARD_SIZE];
 
-		/**
-		 * Magic number entry structure
-		 */
-		struct tMagicEntry
-		{
-			// Pointer to the attac table holding attac vectors
-			bitBoard_t* _attackMap;
-			// Mask to relevant squares (no outer squares)
-			bitBoard_t  mask;
-			// Magic number (64-bit factor)
-			bitBoard_t magic;
-			// Amount of bits to shift right to get the relevant bits
-			int32_t shift;
-		};
+
 
 		/**
 		 * Calculate the attack map of a rook, starting from pos
@@ -129,10 +130,54 @@ namespace QaplaMoveGenerator {
 		static bitBoard_t bishopAttack(Square pos, bitBoard_t board);
 
 		/**
-		 * Fills the attack table for a piece position
+		 * Computes and stores all legal attack bitboards for a given square and piece type
+		 * based on all possible blocker configurations defined by the magic index.
+		 *
+		 * This function fills the corresponding range in the global attack map array
+		 * using the magic hashing technique. For each possible blocker subset (i.e., occupancy
+		 * pattern constrained to the square's relevant mask), it computes the attack bitboard
+		 * and stores it at the corresponding magic index.
+		 *
+		 * The lookup is later performed via:
+		 *
+		 *     attacks = table[magic_index] -> precomputed attacks
+		 *
+		 * @param pos       The square the piece is placed on (0..63).
+		 * @param entry     The tMagicEntry that holds the target map location, shift value,
+		 *                  magic multiplier, and occupancy mask for the square.
+		 * @param isRook    True if generating for rook, false for bishop.
 		 */
 		static void fillAttackMap(Square pos, const tMagicEntry& aEntry, bool aIsRook);
 
+		/**
+		 * Total size of the precomputed attack map used for sliding pieces (rooks and bishops).
+		 *
+		 * The attack map stores, for each square on the board and for each possible blocker
+		 * configuration (determined via the magic index), the corresponding set of attacked squares.
+		 *
+		 * There are 64 rook entries and 64 bishop entries, one per square. Each entry has a variable
+		 * number of possible blocker configurations, which determines the number of attack bitboards
+		 * needed for that square.
+		 *
+		 * The total size is calculated as the sum of all individual index table sizes for each square.
+		 * These sizes depend on the number of relevant occupancy bits and are stored in magics.cpp
+		 * in the arrays _rookSize[] and _bishopSize[]:
+		 *
+		 *     TotalSize = sum(1 << _rookSize[sq]) + sum(1 << _bishopSize[sq]) for sq in 0..63
+		 *
+		 * For reference, the total is expanded here as a sum of known contributions:
+		 *
+		 *     ATTACK_MAP_SIZE =
+		 *         4  * (1 << 12) +   // 4 rook squares with 12 bits of relevant occupancy
+		 *        24  * (1 << 11) +
+		 *        36  * (1 << 10) +
+		 *         4  * (1 << 9)  +
+		 *        12  * (1 << 7)  +
+		 *         4  * (1 << 6)  +
+		 *        44  * (1 << 5)      // bishop squares with 5 bits
+		 *
+		 * This gives the total number of precomputed entries used for magic move generation.
+		 */
 		static const int32_t ATTACK_MAP_SIZE =
 			4 * (1 << 12) +
 			24 * (1 << 11) +
@@ -143,17 +188,31 @@ namespace QaplaMoveGenerator {
 			44 * (1 << 5);
 
 		/**
-		 * Maps magic indexes to correspondin attack masks
+		 * Maps magic indexes to corresponding attack masks
 		 */
 		static bitBoard_t _attackMap[ATTACK_MAP_SIZE];
 
 		/**
-		 * Magic number settings for rooks
+		 * Lookup table holding magic information for all rook squares.
+		 *
+		 * Each entry contains:
+		 *   - the precomputed attack bitboard map ('_attackMap' pointer),
+		 *   - the relevant occupancy mask (excluding edges and the square itself),
+		 *   - the magic multiplier (64-bit constant),
+		 *   - the shift amount used to map masked occupancies to compact indices.
+		 *
+		 * The attack generation uses:
+		 *   masked_occ = occupancy & mask
+		 *   index = (masked_occ * magic) >> shift
+		 *   attacks = _attackMap[index]
+		 *
+		 * These tables are initialized once during static initialization and used
+		 * throughout the engine to resolve rook (or bishop) attacks in constant time.
 		 */
 		static tMagicEntry _rookTable[BOARD_SIZE];
 
 		/**
-		 * Magic number settings for bishops
+		 * Analogous to '_rookTable', but for bishop moves.
 		 */
 		static tMagicEntry _bishopTable[BOARD_SIZE];
 
@@ -168,5 +227,3 @@ namespace QaplaMoveGenerator {
 	};
 
 }
-
-#endif // MAGICS_H

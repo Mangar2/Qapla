@@ -13,14 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Boehm
+ * @copyright Copyright (c) 2021 Volker Boehm
  * @Overview
  * Defines basic types for a chess engine like piece and move
  */
 
-#ifndef __TYPES_H
-#define __TYPES_H
+#pragma once
 
 #include <cstdint>
 #include <array>
@@ -28,13 +27,11 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace std;
-
 namespace QaplaBasics {
 
 	typedef int32_t square_t;
 	typedef uint64_t bitBoard_t;
-	typedef array<bitBoard_t, 2> colorBB_t;
+	typedef std::array<bitBoard_t, 2> colorBB_t;
 
 	/**
 	 * Prints a bitboard to stdout
@@ -42,10 +39,10 @@ namespace QaplaBasics {
 	inline void printBB(bitBoard_t bb) {
 		uint32_t lineBreak = 8;
 		for (uint64_t i = 1ULL << 63; i > 0; i /= 2) {
-			cout << ((bb & i) ? "X " : ". ");
+			std::cout << ((bb & i) ? "X " : ". ");
 			lineBreak--;
 			if (lineBreak == 0) {
-				std::cout << endl;
+				std::cout << std::endl;
 				lineBreak = 8;
 			}
 		}
@@ -381,4 +378,3 @@ namespace QaplaBasics {
 
 }
 
-#endif //__TYPES_H

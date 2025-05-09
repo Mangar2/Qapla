@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Boehm
+ * @copyright Copyright (c) 2021 Volker Boehm
  * @Overview
  * Defines a chess move coded in a single 32 bit integer
  * The bit code of the move is
@@ -30,15 +30,12 @@
  * N = Unused
  */
 
-#ifndef __MOVE_H
-#define __MOVE_H
+#pragma once
 
 #include "types.h"
 #include <string>
 #include <iostream>
 #include <fstream>
-
-using namespace std;
 
 namespace QaplaBasics {
 
@@ -213,18 +210,7 @@ public:
 		}
 		else {
 			result = "";
-			if (!isPawn(getMovingPiece())) {
-				// result += pieceToChar(getMovingPiece());
-			}
 			result += squareToString(getDeparture());
-			if (getCapture() != NO_PIECE) {
-				// result += 'x';
-				/*
-				if (!isPawn(getCapture())) {
-					result += pieceToChar(getCapture());
-				}
-				*/
-			}
 			result += squareToString(getDestination());
 			if (isPromote()) {
 				result += pieceToPromoteChar(getPromotion());
@@ -233,11 +219,9 @@ public:
 		return result;
 	}
 
-	// friend class ostream& operator<<(ostream& stream, const Move& move);
-
-	void print() {
-		string moveString = getLAN();
-		cout << moveString;
+	void print() const {
+		std::string moveString = getLAN();
+		std::cout << moveString;
 	}
 
 	uint32_t getData() const { return _move;  }
@@ -247,7 +231,14 @@ private:
 	uint32_t _move;
 };
 
+/**
+ * Writes the long algebraic notation of the move to an output stream.
+ */
+inline std::ostream& operator<<(std::ostream& os, const QaplaBasics::Move& move) {
+	os << move.getLAN();
+	return os;
 }
 
-#endif // __MOVE_H
+}
+
 

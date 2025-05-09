@@ -13,16 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Boehm
+ * @copyright Copyright (c) 2021 Volker Boehm
  * @Overview
  * Implements bit handling routines
  */
 
-#ifndef __BITS_H
-#define __BITS_H
+#pragma once
 
-// #include <bit>
 #include <assert.h>
 #include "types.h"
 
@@ -35,12 +33,11 @@
 #if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
 #include <__msvc_bit_utils.hpp>
 #include <intrin.h> // Microsoft header for _BitScanForward64()
-#define IS_64BIT
 #endif
 
 namespace QaplaBasics {
 
-	const int32_t index64[64] = {
+	constexpr int32_t index64[64] = {
 		0, 47,  1, 56, 48, 27,  2, 60,
 	   57, 49, 41, 37, 28, 16,  3, 61,
 	   54, 58, 35, 52, 50, 42, 21, 44,
@@ -68,7 +65,7 @@ namespace QaplaBasics {
 
 	constexpr Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
-		return Square(__builtin_ctzll(bitBoard));
+		return static_cast<Square>(__builtin_ctzll(bitBoard));
 	}
 
 #elif defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)
@@ -77,11 +74,12 @@ namespace QaplaBasics {
 		assert(bitBoard);
 		unsigned long pos;
 		_BitScanForward64(&pos, bitBoard);
-		return (Square)pos;
+		return static_cast<Square>(pos);
 	}
 
 #else 
 	inline static Square lsb(bitBoard_t bitBoard) {
+		assert(bitBoard);
 		return (Square)bitScanForward(bitBoard);
 	}
 #endif
@@ -92,7 +90,7 @@ namespace QaplaBasics {
 	 */
 	inline static Square popLSB(bitBoard_t& bitBoard)
 	{
-		auto res = lsb(bitBoard);
+		const Square res = lsb(bitBoard);
 		bitBoard &= bitBoard - 1;
 		return res;
 	}
@@ -104,7 +102,7 @@ namespace QaplaBasics {
 	 */
 
 	 /**
-	  * Counts the amout of set bits in a 64 bit variables - only performant for
+	  * Counts the amount of set bits in a 64 bit variables - only performant for
 	  * sparcely populated bitboards. (1-3 bits set).
 	  */
 	constexpr uint32_t popCountBrianKernighan(bitBoard_t bitBoard) {
@@ -165,5 +163,3 @@ namespace QaplaBasics {
 
 
 }
-
-#endif  // __BITS_H

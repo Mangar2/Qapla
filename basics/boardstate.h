@@ -31,8 +31,7 @@
  * k = Black King side castleing allowed
  */
 
-#ifndef __BOARDSTATE_H
-#define __BOARDSTATE_H
+#pragma once
 
 #include "types.h"
 #include "hashconstants.h"
@@ -44,15 +43,11 @@ namespace QaplaBasics {
 
 		BoardState() { initialize(); };
 
-		bool operator==(const BoardState& boardInfo) const {
-			return _info == boardInfo._info;
-		}
-
 		/**
 		 * Checks, if castling king side is allowed
 		 */
 		template <Piece COLOR>
-		bool isKingSideCastleAllowed() {
+		bool isKingSideCastleAllowed() const {
 			return (_info & (COLOR == WHITE ? WHITE_KING_SIDE_CASTLE_BIT : BLACK_KING_SIDE_CASTLE_BIT)) != 0;
 		}
 
@@ -60,7 +55,7 @@ namespace QaplaBasics {
 		 * Checks, if castling queen side is allowed
 		 */
 		template <Piece COLOR>
-		bool isQueenSideCastleAllowed() {
+		bool isQueenSideCastleAllowed() const {
 			return (_info & (COLOR == WHITE ? WHITE_QUEEN_SIDE_CASTLE_BIT : BLACK_QUEEN_SIDE_CASTLE_BIT)) != 0;
 		}
 
@@ -143,13 +138,13 @@ namespace QaplaBasics {
 		 * Retrieves the EP square = the square the opponent pawn moved to
 		 */
 		Square getEP() const { return Square(_info & EP_MASK); }
-		void setEP(Square epSquare) { clearEP(); _info |= uint32_t(epSquare); }
+		void setEP(Square epSquare) { _info = (_info & ~EP_MASK) | static_cast<uint32_t>(epSquare); }
 
 		bool hasEP() const { return (_info & EP_MASK) != 0; }
 		void clearEP() { _info &= ~EP_MASK; }
 
 		/**
-		 * computes the curren board hash
+		 * computes the current board hash
 		 */
 		inline hash_t computeBoardHash() const {
 			hash_t result = boardHash
@@ -184,10 +179,10 @@ namespace QaplaBasics {
 			boardHash = 0;
 		}
 
-		static uint16_t const WHITE_QUEEN_SIDE_CASTLE_BIT = 0x0100;
-		static uint16_t const WHITE_KING_SIDE_CASTLE_BIT = 0x0200;
-		static uint16_t const BLACK_QUEEN_SIDE_CASTLE_BIT = 0x0400;
-		static uint16_t const BLACK_KING_SIDE_CASTLE_BIT = 0x0800;
+		static constexpr uint16_t WHITE_QUEEN_SIDE_CASTLE_BIT = 0x0100;
+		static constexpr uint16_t WHITE_KING_SIDE_CASTLE_BIT = 0x0200;
+		static constexpr uint16_t BLACK_QUEEN_SIDE_CASTLE_BIT = 0x0400;
+		static constexpr uint16_t BLACK_KING_SIDE_CASTLE_BIT = 0x0800;
 
 		uint16_t halfmovesWithoutPawnMoveOrCapture;
 		uint16_t fenHalfmovesWithoutPawnMoveOrCapture;
@@ -197,12 +192,11 @@ namespace QaplaBasics {
 	private:
 
 		uint16_t _info;
-		static uint16_t const CASTLE_MASK = 0xF00;
-		static uint16_t const CASTLE_SHIFT = 8;
-		static uint16_t const EP_MASK = 0x00FF;
+		static constexpr uint16_t CASTLE_MASK = 0xF00;
+		static constexpr uint16_t CASTLE_SHIFT = 8;
+		static constexpr uint16_t EP_MASK = 0x00FF;
 	};
 
 }
 
-#endif // __BOARDSTATE_H
 

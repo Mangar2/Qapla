@@ -19,15 +19,12 @@
  * Implements an incremental algorithm to compute the material balance of a board
  */
 
-#ifndef __MATERIALBALANCE_H
-#define __MATERIALBALANCE_H
+#pragma once
 
 #include <array>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 #include "../basics/move.h"
-
-using namespace std;
 
 namespace QaplaBasics {
 
@@ -75,21 +72,21 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Gets the value of a piece
+		 * Gets the midgame/endgame evaluation value for the specified piece
 		 */
 		inline EvalValue getPieceValue(Piece piece) const {
 			return pieceValues[piece];
 		}
 
 		/**
-		 * Gets the value of a piece
+		 * Gets the piece value used for move sorting heuristics
 		 */
 		inline value_t getPieceValueForMoveSorting(Piece piece) const {
 			return pieceValuesForMoveSorting[piece];
 		}
 
 		/**
-		 * Gets the value of a piece
+		 * Gets the absolute midgame value 
 		 */
 		inline value_t getAbsolutePieceValue(Piece piece) const {
 			return absolutePieceValues[piece];
@@ -110,16 +107,16 @@ namespace QaplaBasics {
 			return pieceValues;
 		}
 
-		const static value_t PAWN_VALUE_MG = 80;
-		const static value_t PAWN_VALUE_EG = 95;
-		const static value_t KNIGHT_VALUE_MG = 360;
-		const static value_t KNIGHT_VALUE_EG = 310;
-		const static value_t BISHOP_VALUE_MG = 360;
-		const static value_t BISHOP_VALUE_EG = 330;
-		const static value_t ROOK_VALUE_MG = 560;
-		const static value_t ROOK_VALUE_EG = 570;
-		const static value_t QUEEN_VALUE_MG = 1035;
-		const static value_t QUEEN_VALUE_EG = 1085;
+		constexpr static value_t PAWN_VALUE_MG = 80;
+		constexpr static value_t PAWN_VALUE_EG = 95;
+		constexpr static value_t KNIGHT_VALUE_MG = 360;
+		constexpr static value_t KNIGHT_VALUE_EG = 310;
+		constexpr static value_t BISHOP_VALUE_MG = 360;
+		constexpr static value_t BISHOP_VALUE_EG = 330;
+		constexpr static value_t ROOK_VALUE_MG = 560;
+		constexpr static value_t ROOK_VALUE_EG = 570;
+		constexpr static value_t QUEEN_VALUE_MG = 1035;
+		constexpr static value_t QUEEN_VALUE_EG = 1085;
 
 	
 	private:
@@ -135,4 +132,4 @@ namespace QaplaBasics {
 
 }
 
-#endif // __MATERIALBALANCE_H
+
