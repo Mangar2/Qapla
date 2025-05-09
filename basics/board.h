@@ -25,7 +25,6 @@
 
 #include "types.h"
 #include "move.h"
-#include "basicboard.h"
 #include "boardstate.h"
 #include "piecesignature.h"
 #include "materialbalance.h"
@@ -49,7 +48,7 @@ namespace QaplaBasics {
 		 */
 		void undoMove(Move move, BoardState boardState);
 		void clear();
-		inline auto operator[](Square square) const { return _basicBoard._board[square]; }
+		inline auto operator[](Square square) const { return _board[square]; }
 		inline auto isWhiteToMove() const { return _whiteToMove; }
 		inline void setWhiteToMove(bool whiteToMove) { _whiteToMove = whiteToMove; }
 
@@ -57,7 +56,7 @@ namespace QaplaBasics {
 		 * Checks, if two positions are identical
 		 */
 		bool isIdenticalPosition(const Board& boardToCompare) {
-			return _whiteToMove == boardToCompare._whiteToMove && _basicBoard._board == boardToCompare._basicBoard._board;
+			return _whiteToMove == boardToCompare._whiteToMove && _board == boardToCompare._board;
 		}
 
 		/**
@@ -476,11 +475,11 @@ namespace QaplaBasics {
 
 		// Amount of half moves played befor fen
 		int32_t _startHalfmoves;
-		BasicBoard _basicBoard;
 		// Current color to move
 		bool _whiteToMove;	
 		// Board properties put on the search stack
 		BoardState _boardState;
+		array<Piece, BOARD_SIZE> _board;
 
 		// Chess 960 variables
 		array<Square, 2> _kingStartSquare;
