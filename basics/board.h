@@ -50,8 +50,8 @@ namespace QaplaBasics {
 		void clear();
 		inline auto getEP() const { return _basicBoard.getEP(); }
 		inline auto operator[](Square square) const { return _basicBoard[square]; }
-		inline auto isWhiteToMove() const { return _basicBoard.whiteToMove; }
-		inline void setWhiteToMove(bool whiteToMove) { _basicBoard.whiteToMove = whiteToMove; }
+		inline auto isWhiteToMove() const { return _basicBoard._whiteToMove; }
+		inline void setWhiteToMove(bool whiteToMove) { _basicBoard._whiteToMove = whiteToMove; }
 
 		/**
 		 * Checks, if two positions are identical
@@ -80,7 +80,7 @@ namespace QaplaBasics {
 		 */
 		inline void undoNullmove(BoardState boardState) {
 			setWhiteToMove(!isWhiteToMove());
-			_basicBoard.boardState = boardState;
+			_basicBoard._boardState = boardState;
 		}
 
 		/**
@@ -146,7 +146,7 @@ namespace QaplaBasics {
 		 * Note: the fen value is not included as there are no corresponding moves stored
 		 */
 		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
-			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture;
+			return _basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
@@ -154,22 +154,22 @@ namespace QaplaBasics {
 		 * the 50-moves-draw rule
 		 */
 		inline auto getTotalHalfmovesWithoutPawnMoveOrCapture() const {
-			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture 
-				+ _basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture;
+			return _basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture 
+				+ _basicBoard._boardState.fenHalfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture
 		 */
 		void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
-			_basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture = number;
+			_basicBoard._boardState.halfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture from initial fen
 		 */
 		void setFenHalfmovesWihtoutPawnMoveOrCapture(uint16_t number) {
-			_basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
+			_basicBoard._boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
@@ -330,15 +330,15 @@ namespace QaplaBasics {
 		 * Gets the start square of the king rook
 		 */
 		template <Piece COLOR>
-		inline auto getKingRookStartSquare() const { return _basicBoard.kingRookStartSquare[COLOR]; }
+		inline auto getKingRookStartSquare() const { return _kingRookStartSquare[COLOR]; }
 
 		/**
 		 * Gets the start square of the king rook
 		 */
 		template <Piece COLOR>
-		inline auto getQueenRookStartSquare() const { return _basicBoard.queenRookStartSquare[COLOR]; }
+		inline auto getQueenRookStartSquare() const { return _queenRookStartSquare[COLOR]; }
 
-		BoardState getBoardState() const { return _basicBoard.boardState; }
+		BoardState getBoardState() const { return _basicBoard._boardState; }
 
 		/**
 		 * Gets the board in Fen representation
@@ -383,6 +383,13 @@ namespace QaplaBasics {
 
 	private:
 		BasicBoard _basicBoard;
+		// Chess 960 variables
+		array<Square, 2> _kingStartSquare;
+		array<Square, 2> _queenRookStartSquare;
+		array<Square, 2> _kingRookStartSquare;
+
+		
+		void initClearCastleMask();
 
 		/**
 		 * Clears the bitboards

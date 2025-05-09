@@ -32,7 +32,7 @@ namespace QaplaBasics {
 class BasicBoard
 {
 public:
-	BasicBoard() { clear(); initClearCastleMask();  }
+	BasicBoard() { clear(); }
 
 	/**
 	 * Clears the Board
@@ -58,14 +58,14 @@ public:
 	 * Checks, if two positions are identical
 	 */
 	bool isIdenticalPosition(const BasicBoard& boardToCompare) const {
-		return whiteToMove == boardToCompare.whiteToMove &&_board == boardToCompare._board;
+		return _whiteToMove == boardToCompare._whiteToMove &&_board == boardToCompare._board;
 	}
 
 	/**
 	 * Adds a piece to the board
 	 */
 	inline void addPiece(Square square, Piece piece) {
-		boardState.updateHash(square, piece);
+		_boardState.updateHash(square, piece);
 		_board[square] = piece;
 	}
 
@@ -73,7 +73,7 @@ public:
 	 * Removes a piece from the board
 	 */
 	inline void removePiece(Square square) {
-		boardState.updateHash(square, _board[square]);
+		_boardState.updateHash(square, _board[square]);
 		_board[square] = NO_PIECE;
 	}
 
@@ -87,18 +87,18 @@ public:
 	/**
 	 * Sets the capture square for an en passant move
 	 */
-	inline void setEP(Square destination) { boardState.setEP(destination); }
+	inline void setEP(Square destination) { _boardState.setEP(destination); }
 	
 	/**
 	 * Clears the capture square for an en passant move
 	 */
-	inline void clearEP() { boardState.clearEP(); }
+	inline void clearEP() { _boardState.clearEP(); }
 
 	/**
 	 * Gets the EP square
 	 */
 	inline auto getEP() const {
-		return boardState.getEP();
+		return _boardState.getEP();
 	}
 
 	/**
@@ -106,7 +106,7 @@ public:
 	 */
 	template <Piece COLOR>
 	inline bool isKingSideCastleAllowed() {
-		return boardState.isKingSideCastleAllowed<COLOR>();
+		return _boardState.isKingSideCastleAllowed<COLOR>();
 	}
 
 	/**
@@ -114,28 +114,28 @@ public:
 	 */
 	template <Piece COLOR>
 	inline bool isQueenSideCastleAllowed() {
-		return boardState.isQueenSideCastleAllowed<COLOR>();
+		return _boardState.isQueenSideCastleAllowed<COLOR>();
 	}
 
 	/**
 	 * Enable/Disable castling right
 	 */
 	inline void setCastlingRight(Piece color, bool kingSide, bool allow) {
-		boardState.setCastlingRight(color, kingSide, allow);
+		_boardState.setCastlingRight(color, kingSide, allow);
 	}
 
 	/**
 	 * Computes the current board hash
 	 */
 	inline hash_t computeBoardHash() const {
-		return boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)whiteToMove];
+		return _boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)_whiteToMove];
 	}
 
 	/**
 	 * Gets the hash key for the pawn structure
 	 */
 	inline hash_t getPawnHash() const {
-		return boardState.pawnHash;
+		return _boardState.pawnHash;
 	}
 
 	/**
@@ -144,20 +144,20 @@ public:
 	 * @param destination destination position of the move
 	 */
 	inline void updateStateOnDoMove(Square departure, Square destination) {
-		whiteToMove = !whiteToMove;
-		boardState.clearEP();
-		boardState.disableCastlingRightsByMask(
+		_whiteToMove = !_whiteToMove;
+		_boardState.clearEP();
+		_boardState.disableCastlingRightsByMask(
 			_clearCastleFlagMask[departure] & _clearCastleFlagMask[destination]);
-		boardState.halfmovesWithoutPawnMoveOrCapture++;
+		_boardState.halfmovesWithoutPawnMoveOrCapture++;
 		bool isCapture = _board[destination] != NO_PIECE;
 		bool isPawnMove = isPawn(_board[departure]);
 		bool isMoveTwoRanks = ((departure - destination) & 0x0F) == 0;
 		if (isCapture || isPawnMove) {
-			boardState.halfmovesWithoutPawnMoveOrCapture = 0;
-			boardState.fenHalfmovesWithoutPawnMoveOrCapture = 0;
+			_boardState.halfmovesWithoutPawnMoveOrCapture = 0;
+			_boardState.fenHalfmovesWithoutPawnMoveOrCapture = 0;
 		}
 		if (isPawnMove && isMoveTwoRanks) {
-			boardState.setEP(destination);
+			_boardState.setEP(destination);
 		}
 	}
 
@@ -166,30 +166,20 @@ public:
 	 * @param recentBoardState the board state stored before doMove
 	 */
 	inline void updateStateOnUndoMove(BoardState recentBoardState) {
-		whiteToMove = !whiteToMove;
-		boardState = recentBoardState;
+		_whiteToMove = !_whiteToMove;
+		_boardState = recentBoardState;
 	}
 
-	/**
-	 * Initializes the bit-mask to clear castle rights
-	 */
-	void initClearCastleMask();
-
 	// Current color to move
-	bool whiteToMove;
+	bool _whiteToMove;
 
-	// Chess 960 variables
-	array<Square, 2> kingStartSquare;
-	array<Square, 2> queenRookStartSquare;
-	array<Square, 2> kingRookStartSquare;
 
-	BoardState boardState;
+	BoardState _boardState;
+	array<uint16_t, 64> _clearCastleFlagMask;
 
-protected:
 	bool isInBoard(Square square) { return square >= A1 && square <= H8; }
 
 	array<Piece, BOARD_SIZE> _board;
-	array<uint16_t, 64> _clearCastleFlagMask;
 
 	// Amount of half moves played befor fen
 	int32_t _startHalfmoves;

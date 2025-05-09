@@ -26,6 +26,7 @@ using namespace QaplaBasics;
 
 Board::Board() {
 	clear();
+	initClearCastleMask();
 }
 
 void Board::clear() {
@@ -36,8 +37,22 @@ void Board::clear() {
 	_pstBonus = 0;
 	kingSquares[WHITE] = E1;
 	kingSquares[BLACK] = E8;
+	_kingStartSquare = { E1, E8 };
+	_queenRookStartSquare = { A1, A8 };
+	_kingRookStartSquare = { H1, H8 };
 }
 
+void Board::initClearCastleMask() {
+	_basicBoard._clearCastleFlagMask.fill(0xFFFF);
+	_basicBoard._clearCastleFlagMask[_queenRookStartSquare[WHITE]] = static_cast<uint16_t>(~BoardState::WHITE_QUEEN_SIDE_CASTLE_BIT);
+	_basicBoard._clearCastleFlagMask[_kingRookStartSquare[WHITE]] = static_cast<uint16_t>(~BoardState::WHITE_KING_SIDE_CASTLE_BIT);
+	_basicBoard._clearCastleFlagMask[_queenRookStartSquare[BLACK]] = static_cast<uint16_t>(~BoardState::BLACK_QUEEN_SIDE_CASTLE_BIT);
+	_basicBoard._clearCastleFlagMask[_kingRookStartSquare[BLACK]] = static_cast<uint16_t>(~BoardState::BLACK_KING_SIDE_CASTLE_BIT);
+	_basicBoard._clearCastleFlagMask[_kingStartSquare[WHITE]] =
+		static_cast<uint16_t>(~(BoardState::WHITE_QUEEN_SIDE_CASTLE_BIT + BoardState::WHITE_KING_SIDE_CASTLE_BIT));
+	_basicBoard._clearCastleFlagMask[_kingStartSquare[BLACK]] =
+		static_cast<uint16_t>(~(BoardState::BLACK_QUEEN_SIDE_CASTLE_BIT + BoardState::BLACK_KING_SIDE_CASTLE_BIT));
+}
 
 void Board::setToSymetricBoard(const Board& board) {
 	clear();
@@ -100,23 +115,23 @@ void Board::doMoveSpecialities(Move move) {
 		removePiece(destination + NORTH);
 		break;
 	case Move::WHITE_CASTLES_KING_SIDE:
-		if (_basicBoard.kingRookStartSquare[WHITE] != F1) {
-			movePiece(_basicBoard.kingRookStartSquare[WHITE], F1);
+		if (_kingRookStartSquare[WHITE] != F1) {
+			movePiece(_kingRookStartSquare[WHITE], F1);
 		}
 		break;
 	case Move::WHITE_CASTLES_QUEEN_SIDE:
-		if (_basicBoard.queenRookStartSquare[WHITE] != D1) {
-			movePiece(_basicBoard.queenRookStartSquare[WHITE], D1);
+		if (_queenRookStartSquare[WHITE] != D1) {
+			movePiece(_queenRookStartSquare[WHITE], D1);
 		}
 		break;
 	case Move::BLACK_CASTLES_KING_SIDE:
-		if (_basicBoard.kingRookStartSquare[BLACK] != F8) {
-			movePiece(_basicBoard.kingRookStartSquare[BLACK], F8);
+		if (_kingRookStartSquare[BLACK] != F8) {
+			movePiece(_kingRookStartSquare[BLACK], F8);
 		}
 		break;
 	case Move::BLACK_CASTLES_QUEEN_SIDE:
-		if (_basicBoard.queenRookStartSquare[BLACK] != D8) {
-			movePiece(_basicBoard.queenRookStartSquare[BLACK], D8);
+		if (_queenRookStartSquare[BLACK] != D8) {
+			movePiece(_queenRookStartSquare[BLACK], D8);
 		}
 		break;
 	}
@@ -164,38 +179,42 @@ void Board::undoMoveSpecialities(Move move) {
 		addPiece(destination + NORTH, WHITE_PAWN);
 		break;
 	case Move::WHITE_CASTLES_KING_SIDE:
+		assert(_basicBoard[G1] == WHITE_KING);
 		removePiece(G1);
-		if (_basicBoard.kingRookStartSquare[WHITE] != F1) {
-			movePiece(F1, _basicBoard.kingRookStartSquare[WHITE]);
+		if (_kingRookStartSquare[WHITE] != F1) {
+			movePiece(F1, _kingRookStartSquare[WHITE]);
 		}
-		addPiece(_basicBoard.kingStartSquare[WHITE], WHITE_KING);
-		kingSquares[WHITE] = _basicBoard.kingStartSquare[WHITE];
+		addPiece(_kingStartSquare[WHITE], WHITE_KING);
+		kingSquares[WHITE] = _kingStartSquare[WHITE];
 		break;
 	case Move::BLACK_CASTLES_KING_SIDE:
+		assert(_basicBoard[G8] == BLACK_KING);
 		removePiece(G8);
-		if (_basicBoard.kingRookStartSquare[BLACK] != F8) {
-			movePiece(F8, _basicBoard.kingRookStartSquare[BLACK]);
+		if (_kingRookStartSquare[BLACK] != F8) {
+			movePiece(F8, _kingRookStartSquare[BLACK]);
 		}
-		addPiece(_basicBoard.kingStartSquare[BLACK], BLACK_KING);
-		kingSquares[BLACK] = _basicBoard.kingStartSquare[BLACK];
+		addPiece(_kingStartSquare[BLACK], BLACK_KING);
+		kingSquares[BLACK] = _kingStartSquare[BLACK];
 		break;
 
 	case Move::WHITE_CASTLES_QUEEN_SIDE:
+		assert(_basicBoard[C1] == WHITE_KING);
 		removePiece(C1);
-		if (_basicBoard.queenRookStartSquare[WHITE] != D1) {
-			movePiece(D1, _basicBoard.queenRookStartSquare[WHITE]);
+		if (_queenRookStartSquare[WHITE] != D1) {
+			movePiece(D1, _queenRookStartSquare[WHITE]);
 		}
-		addPiece(_basicBoard.kingStartSquare[WHITE], WHITE_KING);
-		kingSquares[WHITE] = _basicBoard.kingStartSquare[WHITE];
+		addPiece(_kingStartSquare[WHITE], WHITE_KING);
+		kingSquares[WHITE] = _kingStartSquare[WHITE];
 		break;
 
 	case Move::BLACK_CASTLES_QUEEN_SIDE:
+		assert(_basicBoard[C8] == BLACK_KING);
 		removePiece(C8);
-		if (_basicBoard.queenRookStartSquare[BLACK] != D8) {
-			movePiece(D8, _basicBoard.queenRookStartSquare[BLACK]);
+		if (_queenRookStartSquare[BLACK] != D8) {
+			movePiece(D8, _queenRookStartSquare[BLACK]);
 		}
-		addPiece(_basicBoard.kingStartSquare[BLACK], BLACK_KING);
-		kingSquares[BLACK] = _basicBoard.kingStartSquare[BLACK];
+		addPiece(_kingStartSquare[BLACK], BLACK_KING);
+		kingSquares[BLACK] = _kingStartSquare[BLACK];
 		break;
 	}
 
