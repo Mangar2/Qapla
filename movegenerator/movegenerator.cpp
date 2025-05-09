@@ -78,7 +78,7 @@ void MoveGenerator::computePinnedMask()
 	// Every piece set on Ray is pinning a white piece
 	// Set every piece from pinning piece to white king
 	for (; ray; ray &= ray - 1)
-		result |= BitBoardMasks::mRay[kingSquares[COLOR] + lsb(ray) * 64];
+		result |= BitBoardMasks::Ray[kingSquares[COLOR] + lsb(ray) * 64];
 	// Now same thing with rooks
 	ray = Magics::genRookAttackMask(kingSquares[COLOR], allPieceNoPinned);
 	// Set bits on ray with white rook or queen 
@@ -86,7 +86,7 @@ void MoveGenerator::computePinnedMask()
 	// Every piece set on Ray is pinning a black piece
 	// Set every piece from pinning piece to own king
 	for (; ray; ray &= ray - 1)
-		result |= BitBoardMasks::mRay[kingSquares[COLOR] + lsb(ray) * 64];
+		result |= BitBoardMasks::Ray[kingSquares[COLOR] + lsb(ray) * 64];
 	
 	// Now every bit on result is a position with black pinned piece or a position
 	// the black piece may move to without setting the king to check
@@ -325,7 +325,7 @@ genNonSilentPawnMoves(MoveList& moveList, Square epPos)
 
 	if (epPos)
 	{
-		for(bitBoard_t epPawns = BitBoardMasks::mEPMask[epPos] & pawns; epPawns; epPawns &= epPawns - 1)
+		for(bitBoard_t epPawns = BitBoardMasks::EPMask[epPos] & pawns; epPawns; epPawns &= epPawns - 1)
 		{
 			genEPMove<COLOR>(lsb(epPawns), epPos, moveList);
 		}
@@ -413,7 +413,7 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 	{
 		departure = lsb(pieces);
 		// Assure that piece stays in ray
-		allowedRayMask = BitBoardMasks::mFullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
+		allowedRayMask = BitBoardMasks::FullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
 		Piece piece = operator[](departure);
 		switch (piece) {
 		// Pinned KNIGHTS can never move.
@@ -426,7 +426,7 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 			genPawnCaptureSinglePiece<COLOR>(departure, destination, moveList);
 
 			// En passant moves
-			if (epPos && (BitBoardMasks::mEPMask[epPos] & (1ULL << departure)))
+			if (epPos && (BitBoardMasks::EPMask[epPos] & (1ULL << departure)))
 			{
 				genEPMove<COLOR>(departure, epPos, moveList);
 			}
@@ -457,7 +457,7 @@ void MoveGenerator::genPinnedCapturesForAllPieces(MoveList& moveList, Square epP
 	{
 		departure = lsb(pieces);
 		// Assure that piece stays in ray
-		allowedRayMask = BitBoardMasks::mFullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
+		allowedRayMask = BitBoardMasks::FullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
 		Piece piece = operator[](departure);
 		switch (piece) {
 		// Pinned KNIGHTS can never move.
@@ -469,7 +469,7 @@ void MoveGenerator::genPinnedCapturesForAllPieces(MoveList& moveList, Square epP
 			genPawnCaptureSinglePiece<COLOR>(departure, destination, moveList);
 
 			// En passant moves
-			if (epPos && (BitBoardMasks::mEPMask[epPos] & (1ULL << departure)))
+			if (epPos && (BitBoardMasks::EPMask[epPos] & (1ULL << departure)))
 			{
 				genEPMove<COLOR>(departure, epPos, moveList);
 			}
@@ -547,7 +547,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 		// i.e. the ray between king and piece
 		if (rangeAttack)
 		{
-			possibleTargetPositions = BitBoardMasks::mRay[kingSquares[COLOR] + lsb(rangeAttack) * 64];
+			possibleTargetPositions = BitBoardMasks::Ray[kingSquares[COLOR] + lsb(rangeAttack) * 64];
 		}
 		// Now targetBoard contains bits any piece may move to. Thus we now may generate the moves
 		// First try pawn
@@ -574,7 +574,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 		// En passant moves
 		if (epPos)
 		{
-			for(destination = BitBoardMasks::mEPMask[epPos] & pawns; destination; destination &= destination - 1)
+			for(destination = BitBoardMasks::EPMask[epPos] & pawns; destination; destination &= destination - 1)
 			{
 				genEPMove<COLOR>(lsb(destination), epPos, moveList);
 			}
@@ -698,7 +698,7 @@ std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitma
 	// We index the ray in a way so that it will include the king position but not the discovered attacking piece position
 	for (; potentialDiagonalDiscoveredCheckers;
 		potentialDiagonalDiscoveredCheckers &= potentialDiagonalDiscoveredCheckers - 1) {
-		discoveredCheckMask |= BitBoardMasks::mRay[kingSquares[COLOR] * 64 + lsb(potentialDiagonalDiscoveredCheckers)];
+		discoveredCheckMask |= BitBoardMasks::Ray[kingSquares[COLOR] * 64 + lsb(potentialDiagonalDiscoveredCheckers)];
 	}
 
 	// Generate a mask of all potential discovered check positions on rows and columns
@@ -711,7 +711,7 @@ std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitma
 	// This ray represents the positions where a discovered check could occur along rows or columns.
 	for (; potentialHorizontalDiscoveredCheckers;
 		potentialHorizontalDiscoveredCheckers &= potentialHorizontalDiscoveredCheckers - 1) {
-		discoveredCheckMask |= BitBoardMasks::mRay[kingSquares[COLOR] * 64 + lsb(potentialHorizontalDiscoveredCheckers)];
+		discoveredCheckMask |= BitBoardMasks::Ray[kingSquares[COLOR] * 64 + lsb(potentialHorizontalDiscoveredCheckers)];
 	}
 
 	// The final discoveredCheckMask contains all squares where a discovered check could be initiated.

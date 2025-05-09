@@ -20,8 +20,7 @@
  * Generates only fully legal moves
  */
 
-#ifndef __MOVEGENERATOR_H
-#define __MOVEGENERATOR_H
+#pragma once
 
 #include "../basics/types.h"
 #include "../basics/move.h"
@@ -278,5 +277,3 @@ namespace QaplaMoveGenerator {
 	};
 
 }
-
-#endif // __MOVEGENERATOR_H

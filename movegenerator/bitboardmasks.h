@@ -19,10 +19,8 @@
  * Functions and Masks to work with bitboards for chess
  */
 
-#ifndef __BITBOARDMASKS_H
-#define __BITBOARDMASKS_H
+#pragma once 
 
-// #include <bit>
 #include <assert.h>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
@@ -38,13 +36,9 @@ namespace QaplaMoveGenerator {
 	{
 	public:
 		// CTor 
-		BitBoardMasks()
-		{
-		}
+		BitBoardMasks() = delete;
 		// DTor
-		~BitBoardMasks()
-		{
-		}
+		~BitBoardMasks() = delete;
 
 		/**
 		 * Computes the attack mask for pawns
@@ -69,7 +63,8 @@ namespace QaplaMoveGenerator {
 		}
 
 		/**
-		 * Calculate the axial reflection of a bitboard
+		 * Reflects a bitboard vertically (along the horizontal axis).
+		 * Used for mirroring between white and black perspectives.
 		 */
 		static bitBoard_t axialReflection(bitBoard_t bitBoard) {
 			bitBoard_t reflectedBitBoard = 0;
@@ -81,35 +76,39 @@ namespace QaplaMoveGenerator {
 			return reflectedBitBoard;
 		}
 
-
-	protected:
-
-		static const int32_t LOOKUP_BITS = 8;
-		static const int32_t LOOKUP_SIZE = 1 << LOOKUP_BITS;
-		static const int32_t LOOKUP_MASK = LOOKUP_SIZE - 1;
-
-		// ---------------------- Mapping tables ----------------------------------
-		static int8_t mLeastSignificantBit[LOOKUP_SIZE];
-		static const int32_t cLSB[64];
-
-		static uint8_t popCountLookup[LOOKUP_SIZE];
-
 	public:
 		// map from position to knight move bits
-		static bitBoard_t knightMoves[BOARD_SIZE];
+		inline static bitBoard_t knightMoves[BOARD_SIZE];
 		// map from position to king move bits
-		static bitBoard_t kingMoves[BOARD_SIZE];
+		inline static bitBoard_t kingMoves[BOARD_SIZE];
 		// map from position to pawn attack bits
-		static bitBoard_t pawnCaptures[2][BOARD_SIZE];
+		inline static bitBoard_t pawnCaptures[2][BOARD_SIZE];
 		//static bitBoard_t mBPawnCaptures[BOARD_SIZE];
 		// map from pawn-target position to adjacent bits on ep file
-		static bitBoard_t mEPMask[BOARD_SIZE];
-		// map holding rays from a king position to a bishop, rook or queen not including the king position, but including the piece position
-		// Index ist by KingPos + PiecePos * 64;
-		static bitBoard_t mRay[BOARD_SIZE * BOARD_SIZE];
-		// map holding a full size ray with two pieces on it
-		// Index ist by KingPos + PiecePos * 64;
-		static bitBoard_t mFullRay[BOARD_SIZE * BOARD_SIZE];
+		inline static bitBoard_t EPMask[BOARD_SIZE];
+
+		/**
+		 * Ray bitboards from any square to any other square along a line (rook or bishop direction),
+		 * excluding the origin square, including the target square.
+		 *
+		 * Indexed as: mRay[from + to * 64]
+		 */
+		inline static bitBoard_t Ray[BOARD_SIZE * BOARD_SIZE];
+
+		/**
+		 * Full ray bitboards between two squares, if they lie on the same rank, file, or diagonal.
+		 *
+		 * The full ray includes *all* squares on the line connecting the two squares, not just those
+		 * between them. This means the entire rank/file/diagonal is marked if both squares are aligned.
+		 *
+		 * Used for pin and x-ray detection, e.g. to test if a piece is between king and attacker,
+		 * or to collect all squares that must remain blocked to avoid exposing the king.
+		 *
+		 * Example: for squares B1 and D1 (same rank), the full ray is A1-H1.
+		 *
+		 * Indexed as: mFullRay[from + to * 64]
+		 */
+		inline static bitBoard_t FullRay[BOARD_SIZE * BOARD_SIZE];
 
 		// ---------------------- Helpers -----------------------------------------
 		
@@ -123,23 +122,23 @@ namespace QaplaMoveGenerator {
 		 */
 		static bitBoard_t genKingTargetBoard(Square square);
 
-		static const bitBoard_t RANK_1_BITMASK = 0x00000000000000FF;
-		static const bitBoard_t RANK_2_BITMASK = 0x000000000000FF00;
-		static const bitBoard_t RANK_3_BITMASK = 0x0000000000FF0000;
-		static const bitBoard_t RANK_4_BITMASK = 0x00000000FF000000;
-		static const bitBoard_t RANK_5_BITMASK = 0x000000FF00000000;
-		static const bitBoard_t RANK_6_BITMASK = 0x0000FF0000000000;
-		static const bitBoard_t RANK_7_BITMASK = 0x00FF000000000000;
-		static const bitBoard_t RANK_8_BITMASK = 0xFF00000000000000;
+		static constexpr bitBoard_t RANK_1_BITMASK = 0x00000000000000FF;
+		static constexpr bitBoard_t RANK_2_BITMASK = 0x000000000000FF00;
+		static constexpr bitBoard_t RANK_3_BITMASK = 0x0000000000FF0000;
+		static constexpr bitBoard_t RANK_4_BITMASK = 0x00000000FF000000;
+		static constexpr bitBoard_t RANK_5_BITMASK = 0x000000FF00000000;
+		static constexpr bitBoard_t RANK_6_BITMASK = 0x0000FF0000000000;
+		static constexpr bitBoard_t RANK_7_BITMASK = 0x00FF000000000000;
+		static constexpr bitBoard_t RANK_8_BITMASK = 0xFF00000000000000;
 
-		static const bitBoard_t FILE_A_BITMASK = 0x0101010101010101;
-		static const bitBoard_t FILE_B_BITMASK = 0x0202020202020202;
-		static const bitBoard_t FILE_C_BITMASK = 0x0404040404040404;
-		static const bitBoard_t FILE_D_BITMASK = 0x0808080808080808;
-		static const bitBoard_t FILE_E_BITMASK = 0x1010101010101010;
-		static const bitBoard_t FILE_F_BITMASK = 0x2020202020202020;
-		static const bitBoard_t FILE_G_BITMASK = 0x4040404040404040;
-		static const bitBoard_t FILE_H_BITMASK = 0x8080808080808080;
+		static constexpr bitBoard_t FILE_A_BITMASK = 0x0101010101010101;
+		static constexpr bitBoard_t FILE_B_BITMASK = 0x0202020202020202;
+		static constexpr bitBoard_t FILE_C_BITMASK = 0x0404040404040404;
+		static constexpr bitBoard_t FILE_D_BITMASK = 0x0808080808080808;
+		static constexpr bitBoard_t FILE_E_BITMASK = 0x1010101010101010;
+		static constexpr bitBoard_t FILE_F_BITMASK = 0x2020202020202020;
+		static constexpr bitBoard_t FILE_G_BITMASK = 0x4040404040404040;
+		static constexpr bitBoard_t FILE_H_BITMASK = 0x8080808080808080;
 
 		static constexpr bitBoard_t fileBB[8] = {
 			FILE_A_BITMASK, FILE_B_BITMASK, FILE_C_BITMASK, FILE_D_BITMASK,
@@ -147,9 +146,10 @@ namespace QaplaMoveGenerator {
 		};
 
 		/**
-		 * Shifts a board in a direction
-		 * @param bitBoard board to shift
-		 * @returns shifted board
+		 * Shifts all bits of the given bitboard in the specified direction,
+		 * handling edge file masking to avoid wrap-around effects.
+		 *
+		 * Template parameter DIRECTION must be one of: NORTH, SOUTH, EAST, WEST, NW, NE, SW, SE.
 		 */
 		template<Square DIRECTION>
 		constexpr static bitBoard_t shift(bitBoard_t bitBoard) {
@@ -179,7 +179,9 @@ namespace QaplaMoveGenerator {
 		}
 
 	private:
-		static void initPopCount();
+		/**
+		 * Initializes precomputed rays between all square pairs used for pin and x-ray detection.
+		 */
 		static void initAttackRay();
 
 		// Initializes masks
@@ -190,4 +192,3 @@ namespace QaplaMoveGenerator {
 	};
 }
 
-#endif // BITBOARDMASKS_H

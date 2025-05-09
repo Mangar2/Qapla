@@ -21,28 +21,6 @@
 
 using namespace QaplaMoveGenerator;
 
-// map from pawn-target position to adjacent bits on ep row
-bitBoard_t BitBoardMasks::mEPMask[BOARD_SIZE];
-
-// LSB Version 2, Lookup table
-int8_t BitBoardMasks::mLeastSignificantBit[LOOKUP_SIZE];
-
-// Knight move table
-bitBoard_t BitBoardMasks::knightMoves[BOARD_SIZE];
-
-// King move table
-bitBoard_t BitBoardMasks::kingMoves[BOARD_SIZE];
-
-// PawnAttack table
-bitBoard_t BitBoardMasks::pawnCaptures[2][BOARD_SIZE];
-//bitBoard_t BitBoardMasks::pawnCaptures[BLACK][BOARD_SIZE];
-
-// Ray tables
-bitBoard_t BitBoardMasks::mRay[BOARD_SIZE * BOARD_SIZE];
-bitBoard_t BitBoardMasks::mFullRay[BOARD_SIZE * BOARD_SIZE];
-
-uint8_t BitBoardMasks::popCountLookup[LOOKUP_SIZE];
-
 BitBoardMasks::InitStatics BitBoardMasks::_staticConstructor;
 
 
@@ -77,12 +55,6 @@ bitBoard_t BitBoardMasks::genKnightTargetBoard(Square square)
 
 // -------------------------- InitStatics -------------------------------------
 
-void BitBoardMasks::initPopCount() {
-	popCountLookup[0] = 0;
-	for (uint32_t i = 1; i < LOOKUP_SIZE; i++) {
-		popCountLookup[i] = popCountLookup[i / 2] + (i & 1);
-	}
-}
 
 void BitBoardMasks::initAttackRay() {
 	Square square;
@@ -99,9 +71,9 @@ void BitBoardMasks::initAttackRay() {
 		for (square2 = A1; square2 <= H8; ++square2)
 		{
 			// first initializes the ray, only setting target bit
-			mRay[square + square2 * 64] = 1ULL << (square + square2 * 64);
+			Ray[square + square2 * 64] = 1ULL << (square + square2 * 64);
 			// full ray ist set to zero
-			mFullRay[square + square2 * 64] = 0ULL;
+			FullRay[square + square2 * 64] = 0ULL;
 		}
 	}
 	for (square = A1; square <= H8; ++square)
@@ -115,14 +87,14 @@ void BitBoardMasks::initAttackRay() {
 			for (; isFileInBoard(file) && isRankInBoard(rank); file += MOVE_DIRECTION[dir][0], rank += MOVE_DIRECTION[dir][1])
 			{
 				aBoard |= 1ULL << computeSquare(file, rank);
-				mRay[square + computeSquare(file, rank) * 64] = aBoard;
+				Ray[square + computeSquare(file, rank) * 64] = aBoard;
 			}
 			// The board has stored the full ray to the border of the board, set it to every field in ray
 			file = getFile(square) + MOVE_DIRECTION[dir][0];
 			rank = getRank(square) + MOVE_DIRECTION[dir][1];
 			for (; isFileInBoard(file) && isRankInBoard(rank); file += MOVE_DIRECTION[dir][0], rank += MOVE_DIRECTION[dir][1])
 			{
-				mFullRay[square + computeSquare(file, rank) * 64] = aBoard;
+				FullRay[square + computeSquare(file, rank) * 64] = aBoard;
 			}
 
 		}
@@ -134,7 +106,6 @@ BitBoardMasks::InitStatics::InitStatics()
 
 	Square square;
 
-	initPopCount();
 	initAttackRay();
 	for (square = A1; square <= H8; ++square)
 	{
@@ -143,25 +114,25 @@ BitBoardMasks::InitStatics::InitStatics()
 		// Set pawn capture masks
 		pawnCaptures[WHITE][square] = 0;
 		pawnCaptures[BLACK][square] = 0;
-		mEPMask[square] = 0;
+		EPMask[square] = 0;
 		if (getRank(square) > Rank::R1 && getRank(square) < Rank::R8)
 		{
 			pawnCaptures[WHITE][square] = 5ULL << (square + 7);
 			pawnCaptures[BLACK][square] = 5ULL << (square - 9);
-			mEPMask[square] = 5ULL << (square - 1);
+			EPMask[square] = 5ULL << (square - 1);
 			if (getFile(square) == File::A || getFile(square) == File::H) 
 			{
 				pawnCaptures[WHITE][square] &= ~(FILE_H_BITMASK | FILE_A_BITMASK);
 				pawnCaptures[BLACK][square] &= ~(FILE_H_BITMASK | FILE_A_BITMASK);
-				mEPMask[square] &= ~(FILE_H_BITMASK | FILE_A_BITMASK);
+				EPMask[square] &= ~(FILE_H_BITMASK | FILE_A_BITMASK);
 			}
 		}
-		mEPMask[square] = 0ULL;
+		EPMask[square] = 0ULL;
 	}
 	for (square = A4; square < A6; ++square)
 	{
-		mEPMask[square] = 0x05ULL << (square - 1);
-		mEPMask[square] &= 0XFFULL << (square - (square % NORTH));
+		EPMask[square] = 0x05ULL << (square - 1);
+		EPMask[square] &= 0XFFULL << (square - (square % NORTH));
 	}
 
 }
