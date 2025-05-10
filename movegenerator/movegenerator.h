@@ -44,7 +44,12 @@ namespace QaplaMoveGenerator {
 		MoveGenerator(void);
 
 		/**
-		 * Returns true, if the side to move is in check
+		 * Checks if the king of the side to move is currently under attack.
+		 *
+		 * This uses the precomputed attack masks and tests whether the moving side's
+		 * king is on any square attacked by the opponent.
+		 *
+		 * @return True if the side to move is in check, false otherwise.
 		 */
 		inline bool isInCheck() {
 			bool result;
@@ -58,7 +63,10 @@ namespace QaplaMoveGenerator {
 		}
 
 		/**
-		 * Checks, if the king not on move is in check
+		 * Checks if the board state is legal: both kings exist and the king
+		 * not on move is not in check (used after move application).
+		 *
+		 * @return True if the position is legal.
 		 */
 		bool isLegal() {
 			computeAttackMasksForBothColors();
@@ -85,7 +93,8 @@ namespace QaplaMoveGenerator {
 		void initCastlingMasksForMoveGeneration();
 
 		/**
-		 * Sets a move
+		 * Applies a move and updates internal attack masks.
+		 * Null moves are handled separately and do not change attack masks.
 		 */
 		void doMove(Move move) {
 			if (move.isNullMove()) {
@@ -99,7 +108,8 @@ namespace QaplaMoveGenerator {
 		}
 
 		/**
-		 * Unset a move
+		 * Undoes a move and restores the board state.
+		 * Handles null moves as well.
 		 */
 		void undoMove(Move move, BoardState boardState) {
 			if (move.isNullMove()) {
@@ -111,8 +121,9 @@ namespace QaplaMoveGenerator {
 		}
 
 		/**
-	     * Creates a symetric board exchanging black/white side
-	     */
+		 * Sets this board to a mirrored version of the input board (white <-> black).
+		 * This can be useful for evaluation symmetry testing or engine self-play balance.
+		 */
 		void setToSymetricBoard(const MoveGenerator& board) {
 			Board::setToSymetricBoard(board);
 			computeAttackMasksForBothColors();
@@ -129,10 +140,19 @@ namespace QaplaMoveGenerator {
 
 		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> computeCheckBitmapsForMovingColor() const;
 
+		/**
+		 * Determines if a move results in check. This includes:
+		 * - Regular direct checks
+		 * - Discovered checks
+		 * - Special moves (en passant, castling, promotions)
+		 *
+		 * Uses the precomputed checkBitmaps from computeCheckBitmaps().
+		 */
 		bool isCheckMove(Move move, const std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2>& checkingBitmaps);
 
 		/**
-		 * Generates all check evade moves (silent and non silent) of the color to move
+		 * Generates all legal moves that evade a check for the side to move.
+		 * Includes captures, king moves and interpositions.
 		 */
 		void genEvadesOfMovingColor(MoveList& moveList);
 
@@ -142,7 +162,8 @@ namespace QaplaMoveGenerator {
 		void genMovesOfMovingColor(MoveList& moveList);
 
 		/**
-		 * Generates all non silent moves (captures and promotes) of the color to move
+		 * Generates all non-silent moves for the moving side.
+		 * These include captures, promotions, en passant and castling.
 		 */
 		void genNonSilentMovesOfMovingColor(MoveList& moveList);
 
@@ -167,7 +188,16 @@ namespace QaplaMoveGenerator {
 		void computeAttackMasksForBothColors();
 
 		/**
-		 * Computes a mask of pinned pieces
+		 * Computes the pinned piece mask for the given color.
+		 * A pinned piece may only move along the ray between the king and the pinning piece.
+		 *
+		 * This method works by:
+		 * - Identifying all rays from the king to potential blockers.
+		 * - Removing pinned-side pieces from the occupancy temporarily.
+		 * - Finding all sliding enemy pieces (rooks, bishops, queens) that now attack the king.
+		 * - For each such piece, the full ray to the king is added to the pinned mask.
+		 *
+		 * The result includes both the pinned piece and the allowed movement direction.
 		 */
 		template <Piece COLOR>
 		void computePinnedMask();
@@ -179,17 +209,34 @@ namespace QaplaMoveGenerator {
 	private:
 		enum moveGenType_t { SILENT, NON_SILENT, ALL };
 
+		/**
+		 * Generates moves for a single piece on a given square.
+		 *
+		 * @param piece The piece type to generate for.
+		 * @param startPos The square the piece is on.
+		 * @param destinationBB Bitboard of legal destination squares.
+		 * @param moveList Output list of generated moves.
+		 */
 		void genMovesSinglePiece(uint32_t piece, Square startPos, bitBoard_t destinationBB, MoveList& moveList);
 
 		/**
-		 * Generates all moves of multiple pieces (usually pawns) 
-		 * @param piece Piece to move
-		 * @param step destination - step = departure
-		 * @param destinationBB holding every destination bit
-		 * @param moveList Output parameter: list holding all moves
-		 */ 
+		 * Generates moves for all pieces of a certain type that move via a single step pattern,
+		 * such as pawns or knights. Often used for mass generation.
+		 *
+		 * @param piece The piece to move (e.g. WHITE_PAWN).
+		 * @param aStep Direction offset for move computation.
+		 * @param destinationBB Bitboard of target squares.
+		 * @param moveList Output list.
+		 */
 		void genMovesMultiplePieces(uint32_t piece, int32_t aStep, bitBoard_t destinationBB, MoveList& moveList);
 
+		/**
+		 * Generates en passant move if legal. Handles the edge case where the capture
+		 * may cause a discovered check (removing two pieces from a rank).
+		 *
+		 * The legality is verified by simulating the resulting position and checking
+		 * for sliding attacks on the king.
+		 */
 		template<Piece COLOR>
 		void genEPMove(Square startPos, Square epPos, MoveList& moveList);
 
@@ -228,6 +275,15 @@ namespace QaplaMoveGenerator {
 			bitBoard_t removePinnedPiecesMask,
 			bitBoard_t blockingPositions);
 
+		/**
+		 * Generates all possible moves that evade a check:
+		 * - Captures the checking piece
+		 * - Interposes along the ray
+		 * - Moves the king to safety
+		 *
+		 * If more than one piece gives check, only king moves are possible.
+		 * Handles all special cases including promotions and en passant.
+		 */
 		template <Piece COLOR>
 		void genEvades(MoveList& moveList);
 
@@ -237,6 +293,12 @@ namespace QaplaMoveGenerator {
 		template <Piece COLOR>
 		void genMoves(MoveList& moveList);
 
+		/**
+		 * Computes the attack mask of a single piece (excluding any blocking logic).
+		 *
+		 * Used for each square individually during attack map generation.
+		 * The result is stored in the per-square attack mask array.
+		 */
 		template<Piece PIECE>
 		bitBoard_t computeAttackMaskForPiece(Square square, bitBoard_t allPiecesWithoutKing);
 
@@ -249,6 +311,15 @@ namespace QaplaMoveGenerator {
 		template <Piece COLOR>
 		void computeCastlingMasksForMoveGeneration();
 
+		/**
+		 * Computes the set of squares from which each piece type could check the given king.
+		 *
+		 * This includes:
+		 * - Direct check vectors (pawn, knight, rook, bishop, queen)
+		 * - Discovered check masks: squares that, if vacated, would expose a check
+		 *
+		 * These bitboards are used to detect if a move delivers check.
+		 */
 		template <Piece COLOR>
 		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> computeCheckBitmaps() const;
 
@@ -256,10 +327,16 @@ namespace QaplaMoveGenerator {
 
 	public:
 
-		// Squares attacked by any piece
+		/**
+		 * Bitboards representing all squares attacked by each side.
+		 * Indexed by side color: attackMask[WHITE] or attackMask[BLACK].
+		 */
 		array<bitBoard_t, 2> attackMask;
 
-		// Squares where pieces are pinned
+		/**
+		 * Bitboards marking all pinned pieces for each side.
+		 * A pinned piece cannot legally move in arbitrary directions.
+		 */
 		array<bitBoard_t, 2> pinnedMask;
 
 		// Squares attacked by pawns
@@ -267,11 +344,16 @@ namespace QaplaMoveGenerator {
 
 		array<bitBoard_t, BOARD_SIZE> pieceAttackMask;
 		
-		// Bits to check against attack mask to see, if castling is possible
+		/**
+		 * Bitboards used to check if the king passes through attacked squares when castling.
+		 * Required for castling legality checks.
+		 */
 		array<bitBoard_t, 2> castleAttackMaskKingSide;
 		array<bitBoard_t, 2> castleAttackMaskQueenSide;
 
-		// Bits to check agains piece mask to see, if castling is possible
+		/**
+		 * Bitboards used to verify that the castling path is free of pieces.
+		 */
 		array<bitBoard_t, 2> castlePieceMaskKingSide;
 		array<bitBoard_t, 2> castlePieceMaskQueenSide;
 	};
