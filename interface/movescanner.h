@@ -14,227 +14,215 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Scans a move string
  */
 
-#ifndef __MOVESCANNER_H
-#define __MOVESCANNER_H
+#pragma once
 
 #include <string>
-
-using namespace std;
+#include <string_view>
+#include <cstdint>
+#include <algorithm>
 
 namespace QaplaInterface {
 
-	static bool isPieceChar(char pieceChar) {
-		return string("NnBbRrQqKk").find(pieceChar) != string::npos;
-	}
+    constexpr std::string_view kPieceChars = "NnBbRrQqKk";
 
-	static bool isCastleNotationChar(char ch) {
-		return (ch == '0' || ch == 'O');
-	}
+    constexpr bool isPieceChar(char pieceChar) noexcept {
+        return kPieceChars.find(pieceChar) != std::string_view::npos;
+    }
 
-	static bool isCheckSign(char ch) {
-		return ch == '+';
-	}
+    constexpr bool isCastleNotationChar(char ch) noexcept {
+        return ch == '0' || ch == 'O';
+    }
 
-	static bool isMateSign(char ch) {
-		return ch == '#';
-	}
+    constexpr bool isCheckSign(char ch) noexcept {
+        return ch == '+';
+    }
 
-	static bool isPromoteChar(char ch) {
-		return ch == '=';
-	}
+    constexpr bool isMateSign(char ch) noexcept {
+        return ch == '#';
+    }
 
-	static bool isRankChar(char rank) {
-		return rank >= '1' && rank <= '8';
-	}
+    constexpr bool isPromoteChar(char ch) noexcept {
+        return ch == '=';
+    }
 
-	static bool isFileChar(char file) {
-		return file >= 'a' && file <= 'h';
-	}
+    constexpr bool isRankChar(char rank) noexcept {
+        return rank >= '1' && rank <= '8';
+    }
 
-	static bool isCaptureChar(char capture) {
-		return capture == 'x' || capture == ':';
-	}
+    constexpr bool isFileChar(char file) noexcept {
+        return file >= 'a' && file <= 'h';
+    }
 
-	static uint32_t charToRank(char rank) {
-		return (uint32_t)(rank - '1');
-	}
+    constexpr bool isCaptureChar(char capture) noexcept {
+        return capture == 'x' || capture == ':';
+    }
 
-	static uint32_t charToFile(char file) {
-		return (uint32_t)(file - 'a');
-	}
+    constexpr uint32_t charToRank(char rank) noexcept {
+        return static_cast<uint32_t>(rank - '1');
+    }
 
-	class MoveScanner {
-	public:
-		MoveScanner(string move)
-		{
-			scanMove(move);
-		}
+    constexpr uint32_t charToFile(char file) noexcept {
+        return static_cast<uint32_t>(file - 'a');
+    }
 
-	private:
+    class MoveScanner {
+    public:
+        /**
+         * Constructs a MoveScanner and attempts to parse the given move string.
+         *
+         * @param move the move string in algebraic notation (e.g. "Nxe5", "e8=Q", "O-O")
+         */
+        explicit MoveScanner(const std::string& move) {
+            scanMove(move);
+        }
 
-		/*
-		 * Scans the move
-		 */
-		void scanMove(string move) {
-			piece = 0;
-			promote = 0;
-			int32_t curIndex = static_cast<int32_t>(move.size()) - 1;
-			// It is more simple to read the move from the end instead from the beginning. 
-			while (curIndex >= 0 && move[curIndex] == ' ') {
-				--curIndex;
-			}
-			if (!handleCastleNotation(move)) {
+        /**
+         * Checks whether the move is considered legal by the scanner.
+         *
+         * @return true if the move was fully parsed and valid; false otherwise
+         */
+        bool isLegal() {
+            return legal;
+        }
 
-				skipCheckAndMateSigns(move, curIndex);
-				promote = getPiece(move, curIndex);
-				skipEPInfo(move, curIndex);
-				skipCaptureChar(move, curIndex);
-				// destination rank/file is always last and mandatory
-				destinationRank = getRank(move, curIndex);
-				destinationFile = getFile(move, curIndex);
-				skipCaptureChar(move, curIndex);
-				// departure rank and file is optional
-				departureRank = getRank(move, curIndex);
-				departureFile = getFile(move, curIndex);
-				piece = getPiece(move, curIndex);
-				legal = (curIndex == -1);
-			}
+        /**
+         * The piece type involved in the move (e.g. 'N', 'B', 'Q', 'K', or 'P' for pawn).
+         * Uppercase is used for white, lowercase for black.
+         */
+        char piece = 0;
 
-			// if no piece is given and the from position is not fully qualified, it is always a pawn
-			if (piece == 0 && (departureFile == NO_POS || departureRank == NO_POS)) {
-				piece = 'P';
-			}
+        /**
+         * The piece the pawn is promoted to, if applicable (e.g. 'Q' in "e8=Q").
+         */
+        char promote = 0;
 
-		}
+        /**
+         * The file (0-based index) from which the piece moves, or NO_POS if unspecified.
+         */
+        int32_t departureFile = NO_POS;
 
-		bool handleCastleNotation(const string& move) {
+        /**
+         * The rank (0-based index) from which the piece moves, or NO_POS if unspecified.
+         */
+        int32_t departureRank = NO_POS;
 
-			// Look for castling notations
-			bool isCastleNotation = false;
-			if (isCastleNotationChar(move[0]))
-			{
-				isCastleNotation = true;
-				// We do not know the fileor to move thus always note it as white castle move
+        /**
+         * The file (0-based index) to which the piece moves.
+         */
+        int32_t destinationFile = NO_POS;
 
-				departureFile = 4;
-				departureRank = NO_POS;
-				destinationFile = NO_POS;
-				destinationRank = NO_POS;
-				piece = 'K';
+        /**
+         * The rank (0-based index) to which the piece moves.
+         */
+        int32_t destinationRank = NO_POS;
 
-				if (move[1] == '-' && isCastleNotationChar(move[2])) {
+        /**
+         * True if the move string was successfully and fully parsed.
+         */
+        bool legal = false;
 
-					// Castle Queen side
-					if (move[3] == '-' && isCastleNotationChar(move[4])) {
-						destinationFile = 2;
-					}
-					else {
-						destinationFile = 6;
-					}
-				}
+        /**
+         * Constant representing an unspecified rank or file.
+         */
+        static constexpr int32_t NO_POS = -1;
 
-			}
-			return isCastleNotation;
-		}
+    private:
+        void scanMove(const std::string& move) {
+            int32_t curIndex = static_cast<int32_t>(move.size()) - 1;
 
-		/**
-		 * Skips the optional check or mate signs, they can be ignored
-		 */
-		void skipCheckAndMateSigns(const string& move, int32_t& curIndex) {
-			while (curIndex >= 0 && (isCheckSign(move[curIndex]) || isMateSign(move[curIndex]))) {
-				--curIndex;
-			}
-		}
+            while (curIndex >= 0 && move[static_cast<size_t>(curIndex)] == ' ') {
+                --curIndex;
+            }
 
-		/**
-		 * Gets a piece from the move string
-		 * Promotion FIDE standard is "e8=Q", but it might also be noted without '=' as "e8Q"
-		 * lower case letters are also supported to align with winboard standard
-		 */
-		char getPiece(const string& move, int32_t& curIndex) {
-			char p = 0;
-			if (curIndex >= 0 && isPieceChar(move[curIndex])) {
-				p = move[curIndex];
-				curIndex--;
-				if (curIndex >= 0 && isPromoteChar(move[curIndex])) {
-					curIndex--;
-				}
-			}
-			return p;
-		}
+            if (!handleCastleNotation(move)) {
+                skipCheckAndMateSigns(move, curIndex);
+                promote = getPiece(move, curIndex);
+                skipEPInfo(move, curIndex);
+                skipCaptureChar(move, curIndex);
+                destinationRank = getRank(move, curIndex);
+                destinationFile = getFile(move, curIndex);
+                skipCaptureChar(move, curIndex);
+                departureRank = getRank(move, curIndex);
+                departureFile = getFile(move, curIndex);
+                piece = getPiece(move, curIndex);
+                legal = (curIndex == -1);
+            }
 
-		/**
-		 * Skips an en passant "e.p." notation that is optional
-		 */
-		void skipEPInfo(const string& move, int32_t& curIndex) {
-			if (curIndex > 4 &&
-				move[curIndex - 3] == 'e' &&
-				move[curIndex - 2] == '.' &&
-				move[curIndex - 1] == 'p' &&
-				move[curIndex - 0] == '.'
-				) {
-				curIndex -= 4;
-			}
-		}
+            if (piece == 0 && (departureFile == NO_POS || departureRank == NO_POS)) {
+                piece = 'P';
+            }
+        }
 
-		/**
-		 * Capture notations are optional and can be scipped
-		 * Examples "Be5:", "Bxe5", "B:e5"
-		 */
-		void skipCaptureChar(const string& move, int32_t& curIndex) {
-			
-			if (curIndex >= 0 && isCaptureChar(move[curIndex])) {
-				curIndex--;
-			}
-		}
+        bool handleCastleNotation(const std::string& move) {
+            if (move.size() < 3 || !isCastleNotationChar(move[0])) {
+                return false;
+            }
 
-		/**
-		 * Retrieves the rank of the move 
-		 */
-		int32_t getRank(const string& move, int32_t& curIndex) {
-			int32_t rank = NO_POS;
-			if (curIndex >= 0 && isRankChar(move[curIndex])) {
-				rank = charToRank(move[curIndex]);
-				curIndex--;
-			}
-			return rank;
-		}
+            departureFile = 4;
+            departureRank = NO_POS;
+            destinationFile = NO_POS;
+            destinationRank = NO_POS;
+            piece = 'K';
 
-		/**
-		 * Retrieves the file of the move
-		 */
-		int32_t getFile(const string& move, int32_t& curIndex) {
-			// the target rank is always last now like in "e8=Q". 
-			int32_t file = NO_POS;
-			if (curIndex >= 0 && isFileChar(move[curIndex])) {
-				file = charToFile(move[curIndex]);
-				curIndex--;
-			}
-			return file;
-		}
+            if (move.size() >= 5 && move[1] == '-' && isCastleNotationChar(move[2])) {
+                destinationFile = (move[3] == '-' && isCastleNotationChar(move[4])) ? 2 : 6;
+            }
+            return true;
+        }
 
-	public:
+        void skipCheckAndMateSigns(const std::string& move, int32_t& curIndex) {
+            while (curIndex >= 0 && (isCheckSign(move[static_cast<size_t>(curIndex)]) ||
+                isMateSign(move[static_cast<size_t>(curIndex)]))) {
+                --curIndex;
+            }
+        }
 
-		bool isLegal() {
-			return legal;
-		}
+        char getPiece(const std::string& move, int32_t& curIndex) {
+            if (curIndex >= 0 && isPieceChar(move[static_cast<size_t>(curIndex)])) {
+                char p = move[static_cast<size_t>(curIndex--)];
+                if (curIndex >= 0 && isPromoteChar(move[static_cast<size_t>(curIndex)])) {
+                    --curIndex;
+                }
+                return p;
+            }
+            return 0;
+        }
 
-		char piece;
-		char promote;
-		int32_t departureFile;
-		int32_t departureRank;
-		int32_t destinationFile;
-		int32_t destinationRank;
-		bool legal;
+        void skipEPInfo(const std::string& move, int32_t& curIndex) {
+            if (curIndex >= 3 &&
+                move[static_cast<size_t>(curIndex - 3)] == 'e' &&
+                move[static_cast<size_t>(curIndex - 2)] == '.' &&
+                move[static_cast<size_t>(curIndex - 1)] == 'p' &&
+                move[static_cast<size_t>(curIndex)] == '.') {
+                curIndex -= 4;
+            }
+        }
 
-		static const int32_t NO_POS = -1;
-	};
+        void skipCaptureChar(const std::string& move, int32_t& curIndex) {
+            if (curIndex >= 0 && isCaptureChar(move[static_cast<size_t>(curIndex)])) {
+                --curIndex;
+            }
+        }
 
-}
+        int32_t getRank(const std::string& move, int32_t& curIndex) {
+            if (curIndex >= 0 && isRankChar(move[static_cast<size_t>(curIndex)])) {
+                return static_cast<int32_t>(charToRank(move[static_cast<size_t>(curIndex--)]));
+            }
+            return NO_POS;
+        }
 
-#endif //__MOVESCANNER_H
+        int32_t getFile(const std::string& move, int32_t& curIndex) {
+            if (curIndex >= 0 && isFileChar(move[static_cast<size_t>(curIndex)])) {
+                return static_cast<int32_t>(charToFile(move[static_cast<size_t>(curIndex--)]));
+            }
+            return NO_POS;
+        }
+    };
+
+} // namespace QaplaInterface
+
