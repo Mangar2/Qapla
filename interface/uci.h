@@ -145,18 +145,29 @@ namespace QaplaInterface {
 		}
 
 		/**
-		 * Sets an uci option
+		 * Sets an UCI option
 		 */
 		void setOption() {
-			string name = "";
-			string value = "";
-			if (getNextTokenBlocking() == "name") {
-				name = getNextTokenBlocking();
+			string name;
+			string value;
+
+			const string first = getNextTokenBlocking(true);
+			if (first != "name") {
+				// Invalid UCI command, ignore rest
+				getToEOLBlocking();
+				return;
 			}
-			if (getNextTokenBlocking() == "value") {
-				value = getNextTokenBlocking();
+
+			name = getNextTokenBlocking(true);
+
+			const string next = getNextTokenBlocking(true);
+			if (next == "value") {
+				value = getToEOLBlocking();
 			}
-			getBoard()->setOption(name, value);
+
+			if (!name.empty()) {
+				getBoard()->setOption(name, value);
+			}
 		}
 
 		/**
