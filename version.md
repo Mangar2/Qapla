@@ -340,7 +340,7 @@
 ## 0.2.017 2025-01-18
 
 - raiting 52
-- IID, seems to be not working for Quabla
+- IID, seems to be not working for Qapla
 
 ## 0.2.016 2025-01-18
 

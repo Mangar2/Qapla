@@ -134,7 +134,7 @@ namespace QaplaInterface {
 
 		/**
 		 * Handles a whatif command.
-		 * WhatIf is a special function of Quabla to debug the search tree
+		 * WhatIf is a special function of Qapla to debug the search tree
 		 * The function will print the main variant for a list of moves 
 		 * "whatif e4 e5" (what did you calculate as main variant after moves e4, e5)
 		 */

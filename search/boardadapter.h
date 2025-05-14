@@ -67,9 +67,9 @@ namespace QaplaSearch {
 		 */
 		virtual map<string, string> getEngineInfo() { 
 			return map<string, string>{
-				{ "name", "Qapla 0.3.1" },
+				{ "name", "Qapla 0.3.2" },
 				{ "author", "Volker Boehm"},
-				{ "engine-about", "Qapla by Volker Boehm, see github.com/Mangar2/Quabla"}
+				{ "engine-about", "Qapla by Volker Boehm, see github.com/Mangar2/Qapla"}
 			};
 		}
 
@@ -88,9 +88,11 @@ namespace QaplaSearch {
 				if (name == "qaplaBitbasePath") {
 					if (value != "" && QaplaBitbase::BitbaseReader::setBitbasePath(value)) {
 						auto messages = QaplaBitbase::BitbaseReader::loadBitbase();
-						for (const auto& message : messages) {
-							cout << "info string " << message << endl;
+						const size_t MAX_MESSAGES = 5;
+						for (int index = 0; index < std::min(messages.size(), MAX_MESSAGES); index++) {
+							std::cout << "info string " << messages[index] << std::endl;
 						}
+						std::cout << "info string " << messages.size() - MAX_MESSAGES << " similar messages skipped" << std::endl;
 					}
 					return;
 				}

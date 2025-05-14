@@ -49,13 +49,18 @@ void BitbaseReader::registerBitbaseFromHeader() {
 }
 
 bool BitbaseReader::setBitbasePath(const std::string& path) {
-	const std::filesystem::path p(path);
-	bitbasePath = "";
-	if (!std::filesystem::is_directory(p)) {
+	try {
+		const std::filesystem::path p(path);
+		bitbasePath = "";
+		if (!std::filesystem::is_directory(p)) {
+			return false;
+		}
+
+		bitbasePath = std::filesystem::canonical(p).string();
+	}
+	catch (...) {
 		return false;
 	}
-
-	bitbasePath = std::filesystem::canonical(p).string();
 	return true;
 }
 

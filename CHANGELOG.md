@@ -185,7 +185,7 @@ This is a complete list, thus it does not have for example: Nullmove, Late-move-
 ### Tournament result, 100 games per Engine 
 
 Set of 50 start positions (Noomen.pgn, Ply 10, 20 sec.+1), 
-results: (6% means Quabla 0.0.1 got 6% of the points)
+results: (6% means Qapla 0.0.1 got 6% of the points)
 
 - Aristarch 6%
 - Embracer1.12 78%
