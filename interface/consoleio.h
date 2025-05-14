@@ -64,10 +64,15 @@ namespace QaplaInterface {
 		/**
 		 * Waits until a full line is available and returns it
 		 */
-		virtual string getToEOLBlocking()
+		virtual std::string getToEOLBlocking()
 		{
 			bufferSize_t tokenSize = 0;
-			string EOLString = "\n\r";
+			std::string EOLString = "\n\r";
+
+			if (buffer[0] == '\n') {
+				removeTokenFromBuffer(0, EOLString);
+				return "";
+			}
 
 			while (tokenSize == 0 && !fatalReadError) {
 

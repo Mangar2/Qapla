@@ -92,7 +92,9 @@ namespace QaplaSearch {
 						for (int index = 0; index < std::min(messages.size(), MAX_MESSAGES); index++) {
 							std::cout << "info string " << messages[index] << std::endl;
 						}
-						std::cout << "info string " << messages.size() - MAX_MESSAGES << " similar messages skipped" << std::endl;
+						if (messages.size() > MAX_MESSAGES) {
+							std::cout << "info string " << messages.size() - MAX_MESSAGES << " similar messages skipped" << std::endl;
+						}
 					}
 					return;
 				}
