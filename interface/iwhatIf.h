@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
  * Interface to a "what if" debugging interface for chess engines
- * This is a special Quabla feature not typically implemented in chess engines.
+ * This is a special Qapla feature not typically implemented in chess engines.
  * It is used to ask the engine questions on the search tree like
  * what I play "e4 d6" ?
  */
