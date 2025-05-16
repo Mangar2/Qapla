@@ -141,6 +141,9 @@ namespace QaplaSearch {
 				if (hashIsDifferent && _tt[index + 1].doOverwriteAlwaysReplaceEntry(
 					positionValue, alpha, beta, computedDepth)) 
 				{
+					// Logically equivalent to: _tt[index + 1] = new; swap(_tt[index], _tt[index + 1]);
+					// This allows checking if _tt[index + 1] was from a previous search before overwriting.
+					// If so, we can safely increment _entries only once for _tt[index + 1].
 					if (isEntryFromFormerSearch(_tt[index + 1])) _entries++;
 					_tt[index + 1] = _tt[index];
 				}

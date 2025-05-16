@@ -425,7 +425,7 @@ namespace QaplaSearch {
 		/**
 		 * Gets the hash fill rate in permill
 		 */
-		inline uint32_t getHashFullInPermill() {
+		inline uint32_t getHashFillRateInPermill() {
 			return ttPtr->getHashFillRateInPermill();
 		}
 

@@ -428,7 +428,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, TYPE == SearchRegion::PV, depth);
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF) {
-		_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
+		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	}
 	return node.bestValue;
@@ -508,7 +508,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
-	_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
+	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
 	_computingInfo.printSearchResult();
 }
 
