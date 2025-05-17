@@ -88,11 +88,9 @@ namespace QaplaSearch {
 				if (name == "qaplaBitbasePath") {
 					if (value != "" && QaplaBitbase::BitbaseReader::setBitbasePath(value)) {
 						auto messages = QaplaBitbase::BitbaseReader::loadBitbase();
-						const size_t MAX_MESSAGES = 5;
-						for (int index = 0; index < std::min(messages.size(), MAX_MESSAGES); index++) {
-							std::cout << "info string " << messages[index] << std::endl;
+						for (const auto& message : messages) {
+							std::cout << "info string " << message << std::endl;
 						}
-						std::cout << "info string " << messages.size() - MAX_MESSAGES << " similar messages skipped" << std::endl;
 					}
 					return;
 				}
