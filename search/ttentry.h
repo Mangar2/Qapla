@@ -235,7 +235,13 @@ namespace QaplaSearch {
 			return positionValue;
 		}
 
-
+		/**
+		 * Returns a bitmask to constrain the age indicator to its valid range.
+		 * Used to cycle the age indicator via bitwise AND.
+		 */
+		static int32_t getAgeIndicatorRangeMask() {
+			return ENTRY_AGE_INDICATOR_MASK >> ENTRY_AGE_INDICATOR_SHIFT;
+		}
 
 	private:
 

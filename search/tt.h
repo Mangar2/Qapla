@@ -216,6 +216,7 @@ namespace QaplaSearch {
 		void setNextSearch()
 		{
 			_ageIndicator++;
+			_ageIndicator &= TTEntry::getAgeIndicatorRangeMask();
 			_entries = 0;
 		}
 
