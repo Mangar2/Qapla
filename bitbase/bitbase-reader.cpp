@@ -47,7 +47,7 @@ std::vector<std::string> BitbaseReader::loadBitbase() {
 			}
 		}
 	}
-	messages.push_back("Read bitbases from directory: " + bitbasePath.string() + ", " + to_string(_bitbases.size()) + " bitbases read");
+	messages.push_back("Read bitbases from directory: " + bitbasePath.string() + "- " + to_string(_bitbases.size() - 1) + " bitbases read");
 	messages.push_back("Time spent to load bitbases: " + to_string(clock.computeTimeSpentInMilliseconds()) + " milliseconds ");
 	return messages;
 }
