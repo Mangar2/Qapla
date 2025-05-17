@@ -38,9 +38,17 @@ std::vector<std::string> BitbaseReader::loadBitbase() {
 	vector <std::string> messages;
 	for (const auto& name : toLoad) {
 		auto subErrors = loadBitbaseRec(name, true);
-		messages.insert(messages.end(), subErrors.begin(), subErrors.end());
+		for (const auto& error : subErrors) {
+			if (messages.size() < 5) {
+				messages.push_back(error);
+			}
+			else if (messages.size() == 5) {
+				messages.push_back("Too many errors, skipping further messages");
+			}
+		}
 	}
-	messages.push_back("time spent to load bitbases: " + to_string(clock.computeTimeSpentInMilliseconds()) + " milliseconds ");
+	messages.push_back("Read bitbases from directory: " + bitbasePath.string() + ", " + _bitbases.size() + " bitbases read");
+	messages.push_back("Time spent to load bitbases: " + to_string(clock.computeTimeSpentInMilliseconds()) + " milliseconds ");
 	return messages;
 }
 
