@@ -1,5 +1,9 @@
 # Qapla Test Versions
 
+## 0.4 002 2025-05-18
+
+- Really always replace the always replace entry.
+
 ## 0.4 001 2025-05-18
 
 - Replaces all hash results with same key and move or same or lager searchdepth now
