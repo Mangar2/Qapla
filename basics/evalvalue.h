@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a value class containing midgame and endgame evaluation components
  */
@@ -152,11 +152,11 @@ namespace QaplaBasics {
 		constexpr friend EvalValue operator-(EvalValue a, EvalValue b);
 		constexpr friend EvalValue operator-(EvalValue a);
 
-		friend constexpr EvalValue operator*(EvalValue v, value_t scale);
-		friend constexpr EvalValue operator*(value_t scale, EvalValue v);
-		friend constexpr EvalValue operator/(EvalValue v, value_t divisor);
+		inline friend EvalValue operator*(EvalValue v, value_t scale);
+		inline friend EvalValue operator*(value_t scale, EvalValue v);
+		inline friend EvalValue operator/(EvalValue v, value_t divisor);
 		
-		constexpr friend EvalValue operator*(EvalValue a, EvalValue b);
+		inline friend EvalValue operator*(EvalValue a, EvalValue b);
 
 		inline std::string toString() const {
 			return std::to_string(_midgame) + ", " + std::to_string(_endgame);
@@ -190,17 +190,17 @@ namespace QaplaBasics {
 	/**
 	 * Component-wise multiplication. 
 	 */
-	constexpr EvalValue operator*(EvalValue a, EvalValue b) {
+	inline EvalValue operator*(EvalValue a, EvalValue b) {
 		return EvalValue(value_t(a._midgame * b._midgame), value_t(a._endgame * b._endgame));
 	}
-
-	constexpr EvalValue operator*(EvalValue v, value_t scale) {
+	
+	inline EvalValue operator*(EvalValue v, value_t scale) {
 		return EvalValue(v.midgame() * scale, v.endgame() * scale);
 	}
-	constexpr EvalValue operator*(value_t scale, EvalValue v) {
+	inline EvalValue operator*(value_t scale, EvalValue v) {
 		return v * scale;
 	}
-	constexpr EvalValue operator/(EvalValue v, value_t divisor) {
+	inline EvalValue operator/(EvalValue v, value_t divisor) {
 		return EvalValue(v.midgame() / divisor, v.endgame() / divisor);
 	}
 
