@@ -9,6 +9,11 @@ CFLAGS := -std=c99 -Wno-unused-variable -Wno-unused-parameter \
 
 LDFLAGS := -flto -Wl,--gc-sections -fuse-ld=lld
 
+# Enable generation of dependency files for C++ source files.
+CXXFLAGS += -MMD -MP
+# Enable generation of dependency files for C source files.
+CFLAGS   += -MMD -MP
+
 ifeq ($(OS), Windows_NT)
 	LDFLAGS += -mconsole \
 			   -static -static-libgcc -static-libstdc++ \
@@ -88,3 +93,5 @@ Whatif:
 
 OldHW:
 	$(MAKE) BUILD_TYPE=Release_NO_POPCOUNT
+
+-include $(OBJ:.o=.d)
