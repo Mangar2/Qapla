@@ -1,6 +1,10 @@
 # Qapla Test Versions
 
-## 0.5 003 2025-05-19
+## 0.4 005 2025-05-19
+
+- Replacement strategy refactored
+
+## 0.4 004 2025-05-19
 
 - Uses 150% time as long as available
 
