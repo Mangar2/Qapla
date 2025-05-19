@@ -1,5 +1,13 @@
 # Qapla Test Versions
 
+## 0.5 003 2025-05-19
+
+- Uses 150% time as long as available
+
+## 0.4 003 2025-05-18
+
+- Uses twice as much time as long as time is available, reduced when time pressure
+
 ## 0.4 002 2025-05-18
 
 - Really always replace the always replace entry.
