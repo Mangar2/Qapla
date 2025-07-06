@@ -169,7 +169,7 @@ namespace QaplaSearch {
 		 */
 		bool probeTT(bool isPVNode, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 			assert(positionHashSignature != 0);
-			uint32_t ttIndex = ttPtr->getTTEntryIndex(positionHashSignature);
+			uint32_t ttIndex = ttPtr->getEntryIndex(positionHashSignature);
 			ttMove = Move::EMPTY_MOVE;
 			ttValue = NO_VALUE;
 			eval = NO_VALUE;
@@ -178,17 +178,17 @@ namespace QaplaSearch {
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
 			ttMove = entry.getMove();
 			eval = entry.getEval();
-			if (entry.alwaysUseValue()) {
+			if (entry.isMaxDephtEntry()) {
 				bestValue = entry.getPositionValue(ply);
 				return true;
 			}
 
-			ttValueIsUpperBound = entry.isValueUpperBound();
-			if (entry.isValueExact()) {
+			ttValueIsUpperBound = entry.isGreaterOrEqualBeta();
+			if (entry.isExact()) {
 				adjustedEval = entry.getPositionValue(ply);
 			}
 
-			ttValue = entry.getValue(ply);
+			ttValue = entry.getPositionValue(ply);
 			ttDepth = entry.getComputedDepth();
 			// We do not need to keep bestmove, as the tt will not overwrite a move with an empty move
 			// bestMove = move;

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Iteratively deepens the search ply by ply
  */
@@ -112,7 +112,7 @@ namespace QaplaSearch {
 				*/
 			}
 			else {
-				_tt.setNextSearch();
+				_tt.newSearch();
 				/*
 				auto fen = position.getFen();
 				std::replace(fen.begin(), fen.end(), '/', '_');

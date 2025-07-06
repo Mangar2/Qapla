@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a transposition table for pawns evaluations in chess
  */
@@ -102,7 +102,7 @@ namespace ChessEval {
 		 * Gets a valid tt entry index
 		 * @returns tt entry index with the correct hash signature or INVALID_INDEX
 		 */
-		uint32_t getTTEntryIndex(hash_t hashKey)
+		uint32_t getEntryIndex(hash_t hashKey)
 		{
 			uint32_t index = computeEntryIndex(hashKey);
 			return _tt[index]._hash == hashKey ? index : INVALID_INDEX;

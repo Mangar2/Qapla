@@ -32,8 +32,7 @@
  * - A is the age indicator
  */
 
-#ifndef __HASHENTRYINFO_H
-#define __HASHENTRYINFO_H
+#pragma once
 
 #include <assert.h>
 #include "../basics/hashconstants.h"
@@ -48,17 +47,36 @@ namespace QaplaSearch {
 	public:
 		TTEntry() { clear();  };
 
-		inline void setTT(hash_t hash) { _hash = uint32_t(hash >> 32); }
-		inline hash_t getHash() const { return _hash; }
+		/**
+		 * Sets the values of a single entry
+		 */
+		void initialize(
+			int32_t ageIndicator, bool isPV, hash_t hashKey, 
+			uint32_t computedDepth, ply_t ply, Move move, 
+			value_t eval, value_t positionValue, value_t alpha, value_t beta, uint32_t nullmoveThreat)
+		{
+			setInfo(computedDepth, ageIndicator, nullmoveThreat);
+			setEval(eval);
+			setValue(positionValue, alpha, beta, ply);
+			setPV(isPV);
+			// Keep the hash move, if the hash keys are identical and the new entry does not provide a move
+			if (!move.isEmpty() || !hasHash(hashKey)) {
+				setMove(move);
+			}
+			setTT(hashKey);
+		}
 
-		bool isEmpty() const { return _hash == 0; }
+		inline void setTT(hash_t hash) { _hash = uint32_t(hash >> 32); }
+		constexpr hash_t getHash() const { return _hash; }
+
+		constexpr bool isEmpty() const { return _hash == 0; }
 		void clear() { 
 			_hash = 0;  
 			_info = 0;
 			setEntryAgeIndicator(ENTRY_AGE_INDICATOR_MASK - 1);
 		}
 
-		inline bool hasHash(hash_t hash) const {
+		constexpr bool hasHash(hash_t hash) const {
 			return _hash == (hash >> 32);
 		}
 
@@ -66,7 +84,7 @@ namespace QaplaSearch {
 		 * Position evaluation
 		 */
 		inline void setEval(value_t eval) { _eval = int16_t(eval); }
-		inline value_t getEval() const { return _eval;  }
+		constexpr value_t getEval() const { return _eval;  }
 
 		/**
 		 * Sets the computed Depth, the entry age and the nullmove thread flag
@@ -130,36 +148,34 @@ namespace QaplaSearch {
 			return positionValue;
 		}
 
-		value_t getValue(value_t ply) const { return getPositionValue(ply); }
+		/**
+		 * Checks, if the stored hash value is below a beta value
+		 */
+		bool isTTCutoffValueBelowBeta(value_t probeBeta, ply_t ply) const {
+			value_t ttValue = getTTCutoffValue(probeBeta-1, probeBeta, 0, ply);
+			bool result = ttValue != NO_VALUE && (ttValue < probeBeta);
+			return result;
+		}
 
 		/**
 		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
 		 */
-		bool isValueLesserOrEqual() const {
+		constexpr bool isLessOrEqualAlpha() const {
 			return getComputedPrecision() == LESSER_OR_EQUAL;
 		}
 
 		/**
-		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
+		 * Checks, if the tt value is a a lower bound value (thus the value was >= beta)
 		 */
-		bool isValueUpperBound() const {
+		constexpr bool isGreaterOrEqualBeta() const {
 			return getComputedPrecision() == GREATER_OR_EQUAL;
 		}
 
 		/**
-		 * Checks, if the tt value is an upper bound value (thus the value was <= alpha)
+		 * Checks, if the tt value is an exact value (thus the value was > alpha and < beta)
 		 */
-		bool isValueExact() const {
+		constexpr bool isExact() const {
 			return getComputedPrecision() == EXACT;
-		}
-
-		/**
-		 * Checks, if the stored hash value is below a beta value
-		 */
-		bool isTTValueBelowBeta(value_t probeBeta, ply_t ply) const {
-			value_t ttValue = getTTCutoffValue(probeBeta-1, probeBeta, 0, ply);
-			bool result = ttValue != NO_VALUE && (ttValue < probeBeta);
-			return result;
 		}
 
 		void updateEntryAgeIndicator(hash_t _ageIndicator)
@@ -168,46 +184,66 @@ namespace QaplaSearch {
 			_info += (_ageIndicator << ENTRY_AGE_INDICATOR_SHIFT) & ENTRY_AGE_INDICATOR_MASK;
 		}
 
-		Move getMove() const { return _move;  }
+		constexpr Move getMove() const { return _move;  }
 		void setMove(Move move) { _move = move; }
 
-		uint32_t getAgeIndicator() const {
+		constexpr uint32_t getAgeIndicator() const {
 			return ((_info & ENTRY_AGE_INDICATOR_MASK) >> ENTRY_AGE_INDICATOR_SHIFT);
 		}
 
-		ply_t getComputedDepth() const {
+		constexpr ply_t getComputedDepth() const {
 			return ply_t((_info & DEPTH_MASK) >> DEPTH_SHIFT);
 		}
-		inline bool isNullmoveThreadPosition() const { 
+
+		constexpr bool isNullmoveThreadPosition() const { 
 			return (_info & NULLMOVE_THREAT_MASK) != 0; 
 		}
-		inline uint32_t getComputedPrecision() const { 
+
+		constexpr uint32_t getComputedPrecision() const { 
 			return (_info & PRECISION_MASK) >> PRECISION_SHIFT; 
 		}
 
-		bool isPV() const { return _pv != 0; }
+		constexpr bool isPV() const { return _pv != 0; }
 		void setPV(bool isPV) { _pv = isPV; }
-
-		inline bool hasExactValue() const {
-			return getComputedPrecision() == EXACT;
-		}
 
 		/**
 		 * Check, if the value stored MUST be used always
 		 */
-		inline bool alwaysUseValue() const {
+		constexpr bool isMaxDephtEntry() const {
 			return getComputedDepth() == MAX_DEPTH;
+		}
+
+		/** 
+		 * returns true, if the entry is not from the current search
+		 */ 
+		bool isEntryFromFormerSearch(int32_t ageIndicator) const {
+			return ageIndicator != getAgeIndicator();
+		}
+
+		/**
+		 * checks if the new entry is more valuable to store than the current entry
+		 * Tested, but not good: overwrite less, if no hash move is provided
+		 */
+		bool isNewBetterForPrimary(int32_t ageIndicator, ply_t computedDepth, Move move, bool isNewPV) const {
+			if (isPV()) return true;
+			if (isEntryFromFormerSearch(ageIndicator)) return true;
+			// We always overwrite on PV
+			if (isNewPV) return true;
+			if (isPV()) return false;
+			int16_t newWeight = computedDepth + !move.isEmpty() * 2;
+			int16_t oldWeight = getComputedDepth() + !getMove().isEmpty() * 2;
+			return newWeight >= oldWeight;
 		}
 
 		/**
 		 * Decides, if a value is good enough to overwrite a "always replace" entry
 		 * (It is not "always overwrite" only "mostly overwrite")
 		 */
-		inline bool doOverwriteAlwaysReplaceEntry(
+		constexpr bool isNewBetterForSecondary(
 			value_t positionValue, value_t alpha, value_t beta, ply_t computedDepth) const
 		{
 			bool result = true;
-			if (hasExactValue()) {
+			if (isExact()) {
 				bool newValueIsPVValue = beta > positionValue && positionValue > alpha;
 				if (!newValueIsPVValue || computedDepth <= getComputedDepth()) {
 					result = false;
@@ -221,7 +257,7 @@ namespace QaplaSearch {
 		 * Gets the position value and adjusts mate values according
 		 * the current calculation ply
 		 */
-		int16_t getPositionValue(int32_t ply) const
+		constexpr int16_t getPositionValue(int32_t ply) const
 		{
 			int16_t positionValue = _value;
 			if (positionValue > MIN_MATE_VALUE) {
@@ -248,7 +284,7 @@ namespace QaplaSearch {
 		/**
 		 * True, if the stored value is greater or equal to the computed value
 		 */
-		bool isValuePrecisionGreaterOrEqual() const 
+		constexpr bool isGreaterOrEqualAlpha() const 
 		{
 			auto precision = getComputedPrecision();
 			return (precision == GREATER_OR_EQUAL) || (precision == EXACT);
@@ -257,7 +293,7 @@ namespace QaplaSearch {
 		/**
 		 * True, if the stored value is less or equal to the computed value
 		 */
-		bool isValuePrecisionLesserOrEqual() const
+		constexpr bool isLessOrEqualBeta() const
 		{
 			auto precision = getComputedPrecision();
 			return (precision == LESSER_OR_EQUAL) || (precision == EXACT);
@@ -319,4 +355,3 @@ namespace QaplaSearch {
 
 }
 
-#endif // __HASHENTRYINFO_H

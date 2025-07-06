@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Stores a move history for the current game
  */
@@ -114,7 +114,7 @@ namespace QaplaSearch {
 		 */
 		void removeDrawPositionsFromHash(TT& tt) {
 			for (auto drawHash : _drawHashes) {
-				uint32_t entryIndex = tt.getTTEntryIndex(drawHash);
+				uint32_t entryIndex = tt.getEntryIndex(drawHash);
 				if (entryIndex != TT::INVALID_INDEX) {
 					tt.getEntry(entryIndex).clear();
 				}

@@ -150,7 +150,7 @@ namespace ChessEval {
 			}
 			hash_t key = position.getPawnHash();
 			if (key == NO_PAWNS_KEY) return NO_VALUE;
-			uint32_t index = pawnttPtr->getTTEntryIndex(key);
+			uint32_t index = pawnttPtr->getEntryIndex(key);
 			if (index != pawnttPtr->INVALID_INDEX) {
 				const PawnTTEntry& entry = pawnttPtr->getEntry(index);
 				if (!entry.isEmpty()) {

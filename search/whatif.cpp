@@ -146,7 +146,7 @@ void WhatIf::setTT(TT *ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move mov
 {
 	if (hashKey == hash)
 	{
-		auto ttIndex = ttPtr->getTTEntryIndex(hashKey);
+		auto ttIndex = ttPtr->getEntryIndex(hashKey);
 		if (ttPtr->isNewEntryMoreValuable(ttIndex, depth, move, true))
 		{
 			std::cout << "set hash [w" << std::setw(6) << alpha << " "
