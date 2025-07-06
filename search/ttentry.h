@@ -245,11 +245,11 @@ namespace QaplaSearch {
 		 * Note: This is not a pure always-replace policy—some weak entries are preserved.
 		 */
 		constexpr bool isNewBetterForSecondary(
-			[[maybe_unsued]] int32_t ageIndicator, 
-			[[maybe_unsued]] bool sameHash, 
-			[[maybe_unsued]] ply_t computedDepth, 
-			[[maybe_unsued]] Move move, 
-			[[maybe_unsued]] bool isNewPV) const {
+			[[maybe_unused]] int32_t ageIndicator, 
+			[[maybe_unused]] bool sameHash, 
+			[[maybe_unused]] ply_t computedDepth, 
+			[[maybe_unused]] Move move, 
+			[[maybe_unused]] bool isNewPV) const {
 			return true; // Always replace secondary entries
 		}
 
