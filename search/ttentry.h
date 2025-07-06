@@ -224,8 +224,9 @@ namespace QaplaSearch {
 		 * checks if the new entry is more valuable to store than the current entry
 		 * Tested, but not good: overwrite less, if no hash move is provided
 		 */
-		bool isNewBetterForPrimary(int32_t ageIndicator, ply_t computedDepth, Move move, bool isNewPV) const {
+		bool isNewBetterForPrimary(int32_t ageIndicator, bool sameHash, ply_t computedDepth, Move move, bool isNewPV) const {
 			if (isPV()) return true;
+			if (sameHash) return true;
 			if (isEntryFromFormerSearch(ageIndicator)) return true;
 			// We always overwrite on PV
 			if (isNewPV) return true;

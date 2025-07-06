@@ -117,12 +117,11 @@ namespace QaplaSearch {
 				return index;
 			}
 
-			bool hasDifferentHash = !primary.hasHash(hashKey);
-			bool preferNew = !hasDifferentHash || primary.isNewBetterForPrimary(_ageIndicator, computedDepth, move, isPV);
+			bool sameHash = primary.hasHash(hashKey);
 
-			if (preferNew)
+			if (primary.isNewBetterForPrimary(_ageIndicator, sameHash, computedDepth, move, isPV))
 			{
-				if (hasDifferentHash && secondary.isNewBetterForSecondary(positionValue, alpha, beta, computedDepth)) 
+				if (!sameHash && secondary.isNewBetterForSecondary(positionValue, alpha, beta, computedDepth)) 
 				{
 					// Logically equivalent to: secondary = new; swap(primary, secondary);
 					// This allows checking if secondary was from a previous search before overwriting.
