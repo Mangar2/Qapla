@@ -236,20 +236,16 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Decides, if a value is good enough to overwrite a "always replace" entry
-		 * (It is not "always overwrite" only "mostly overwrite")
+		 * Checks if the new entry is valuable enough to replace the current always-replace entry.
+		 * Note: This is not a pure always-replace policy—some weak entries are preserved.
 		 */
-		constexpr bool isNewBetterForSecondary(
-			value_t positionValue, value_t alpha, value_t beta, ply_t computedDepth) const
-		{
-			bool result = true;
-			if (isExact()) {
-				bool newValueIsPVValue = beta > positionValue && positionValue > alpha;
-				if (!newValueIsPVValue || computedDepth <= getComputedDepth()) {
-					result = false;
-				}
-			}
-			return result;
+		constexpr bool isNewBetterForSecondary(value_t positionValue, value_t alpha, value_t beta, ply_t computedDepth) const {
+			if (!isExact()) return true;
+
+			bool newIsPV = (alpha < positionValue) && (positionValue < beta);
+			if (!newIsPV) return false;
+
+			return computedDepth > getComputedDepth();
 		}
 
 
