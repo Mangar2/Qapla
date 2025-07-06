@@ -225,13 +225,17 @@ namespace QaplaSearch {
 		 * Tested, but not good: overwrite less, if no hash move is provided
 		 */
 		bool isNewBetterForPrimary(int32_t ageIndicator, bool sameHash, ply_t computedDepth, Move move, bool isNewPV) const {
-			if (isPV()) return true;
+			// A new search for the same position will always overwrite the old search result
 			if (sameHash) return true;
-			if (isEntryFromFormerSearch(ageIndicator)) return true;
-			// We always overwrite on PV
+			// We always store entries calculated by pv nodes
 			if (isNewPV) return true;
-			if (isPV()) return false;
-			int16_t newWeight = computedDepth + !move.isEmpty() * 2;
+			// We never overwrite pv entries without fail high/fail low with a new non-pv entry
+			if (isExact()) return false;
+			// Former search entries are always overwritten
+			if (isEntryFromFormerSearch(ageIndicator)) return true;
+			// We always keep positions with a best move - having best moves gives a big advantage
+			if (!move.isEmpty()) return true;
+			int16_t newWeight = computedDepth; 
 			int16_t oldWeight = getComputedDepth() + !getMove().isEmpty() * 2;
 			return newWeight >= oldWeight;
 		}
@@ -240,13 +244,13 @@ namespace QaplaSearch {
 		 * Checks if the new entry is valuable enough to replace the current always-replace entry.
 		 * Note: This is not a pure always-replace policy—some weak entries are preserved.
 		 */
-		constexpr bool isNewBetterForSecondary(value_t positionValue, value_t alpha, value_t beta, ply_t computedDepth) const {
-			if (!isExact()) return true;
-
-			bool newIsPV = (alpha < positionValue) && (positionValue < beta);
-			if (!newIsPV) return false;
-
-			return computedDepth > getComputedDepth();
+		constexpr bool isNewBetterForSecondary(
+			[[maybe_unsued]] int32_t ageIndicator, 
+			[[maybe_unsued]] bool sameHash, 
+			[[maybe_unsued]] ply_t computedDepth, 
+			[[maybe_unsued]] Move move, 
+			[[maybe_unsued]] bool isNewPV) const {
+			return true; // Always replace secondary entries
 		}
 
 

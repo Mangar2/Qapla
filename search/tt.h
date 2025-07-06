@@ -121,7 +121,7 @@ namespace QaplaSearch {
 
 			if (primary.isNewBetterForPrimary(_ageIndicator, sameHash, computedDepth, move, isPV))
 			{
-				if (!sameHash && secondary.isNewBetterForSecondary(positionValue, alpha, beta, computedDepth)) 
+				if (!sameHash && secondary.isNewBetterForSecondary(_ageIndicator, sameHash, computedDepth, move, isPV)) 
 				{
 					// Logically equivalent to: secondary = new; swap(primary, secondary);
 					// This allows checking if secondary was from a previous search before overwriting.
@@ -131,7 +131,7 @@ namespace QaplaSearch {
 				}
 				primary.initialize(_ageIndicator, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);
 			}
-			else if (secondary.isNewBetterForSecondary(positionValue, alpha, beta, computedDepth))
+			else if (secondary.isNewBetterForSecondary(_ageIndicator, sameHash, computedDepth, move, isPV))
 			{
 				if (secondary.isEntryFromFormerSearch(_ageIndicator)) _numEntries++;
 				secondary.initialize(_ageIndicator, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);
