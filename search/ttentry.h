@@ -224,12 +224,26 @@ namespace QaplaSearch {
 		 * checks if the new entry is more valuable to store than the current entry
 		 * Tested, but not good: overwrite less, if no hash move is provided
 		 */
-		bool isNewBetterForPrimary([[maybe_unused]] int32_t ageIndicator, 
-			[[maybe_unused]] bool sameHash, 
-			[[maybe_unused]] ply_t computedDepth, 
-			[[maybe_unused]] Move move, 
-			[[maybe_unused]] bool isNewPV) const {
-			return true;
+		bool isNewBetterForPrimary(int32_t ageIndicator, bool sameHash, ply_t computedDepth, Move move, bool isNewPV) const {
+			// We always store entries calculated by pv nodes
+			if (isNewPV) {
+				if (!isExact()) return true;
+				if (!sameHash) return true;
+				if (computedDepth >= getComputedDepth()) return true;
+				// Try to not replace a pv entry for a position if it is computed shallower
+				return false;
+			} 			
+			// A new search for the same position will always overwrite the old search result
+			if (sameHash) return true;
+			// We never overwrite pv entries without fail high/fail low with a new non-pv entry
+			if (isExact()) return false;
+			// Former search entries are always overwritten
+			if (isEntryFromFormerSearch(ageIndicator)) return true;
+			// We always keep positions with a best move - having best moves gives a big advantage
+			if (!move.isEmpty()) return true;
+			int16_t newWeight = computedDepth; 
+			int16_t oldWeight = getComputedDepth() + !getMove().isEmpty() * 2;
+			return newWeight >= oldWeight;
 		}
 
 		/**
@@ -242,19 +256,7 @@ namespace QaplaSearch {
 			[[maybe_unused]] ply_t computedDepth, 
 			[[maybe_unused]] Move move, 
 			[[maybe_unused]] bool isNewPV) const {
-			// A new search for the same position will always overwrite the old search result
-			if (sameHash) return true;
-			// We always store entries calculated by pv nodes
-			if (isNewPV) return true;
-			// We never overwrite pv entries without fail high/fail low with a new non-pv entry
-			if (isExact()) return false;
-			// Former search entries are always overwritten
-			if (isEntryFromFormerSearch(ageIndicator)) return true;
-			// We always keep positions with a best move - having best moves gives a big advantage
-			if (!move.isEmpty()) return true;
-			int16_t newWeight = computedDepth; 
-			int16_t oldWeight = getComputedDepth() + !getMove().isEmpty() * 2;
-			return newWeight >= oldWeight;
+			return true; // Always replace secondary entries
 		}
 
 
