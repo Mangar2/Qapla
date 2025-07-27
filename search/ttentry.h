@@ -224,7 +224,24 @@ namespace QaplaSearch {
 		 * checks if the new entry is more valuable to store than the current entry
 		 * Tested, but not good: overwrite less, if no hash move is provided
 		 */
-		bool isNewBetterForPrimary(int32_t ageIndicator, bool sameHash, ply_t computedDepth, Move move, bool isNewPV) const {
+		bool isNewBetterForPrimary([[maybe_unused]] int32_t ageIndicator, 
+			[[maybe_unused]] bool sameHash, 
+			[[maybe_unused]] ply_t computedDepth, 
+			[[maybe_unused]] Move move, 
+			[[maybe_unused]] bool isNewPV) const {
+			return true;
+		}
+
+		/**
+		 * Checks if the new entry is valuable enough to replace the current always-replace entry.
+		 * Note: This is not a pure always-replace policy—some weak entries are preserved.
+		 */
+		constexpr bool isNewBetterForSecondary(
+			[[maybe_unused]] int32_t ageIndicator, 
+			[[maybe_unused]] bool sameHash, 
+			[[maybe_unused]] ply_t computedDepth, 
+			[[maybe_unused]] Move move, 
+			[[maybe_unused]] bool isNewPV) const {
 			// A new search for the same position will always overwrite the old search result
 			if (sameHash) return true;
 			// We always store entries calculated by pv nodes
@@ -238,19 +255,6 @@ namespace QaplaSearch {
 			int16_t newWeight = computedDepth; 
 			int16_t oldWeight = getComputedDepth() + !getMove().isEmpty() * 2;
 			return newWeight >= oldWeight;
-		}
-
-		/**
-		 * Checks if the new entry is valuable enough to replace the current always-replace entry.
-		 * Note: This is not a pure always-replace policy—some weak entries are preserved.
-		 */
-		constexpr bool isNewBetterForSecondary(
-			[[maybe_unused]] int32_t ageIndicator, 
-			[[maybe_unused]] bool sameHash, 
-			[[maybe_unused]] ply_t computedDepth, 
-			[[maybe_unused]] Move move, 
-			[[maybe_unused]] bool isNewPV) const {
-			return true; // Always replace secondary entries
 		}
 
 
