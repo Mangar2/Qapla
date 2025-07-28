@@ -13,14 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Class holding moves played at the root with multi-pv support
  */
 
-#ifndef __ROOTMOVES_H
-#define __ROOTMOVES_H
+#pragma once
 
 #include <vector>
 #include <string>
@@ -30,6 +29,7 @@
 #include "../movegenerator/movegenerator.h"
 #include "pv.h"
 #include "searchstack.h"
+#include "tt.h"
 
 using namespace std;
 using namespace QaplaBasics;
@@ -102,6 +102,7 @@ namespace QaplaSearch {
 		ply_t getDepth() const { return _depthOfLastSearch;  }
 		value_t getAlpha() const { return _alphaOfLastSearch;  }
 		value_t getBeta() const { return _betaOfLastSearch; }
+		
 	private:
 		Move _move;
 
@@ -190,5 +191,3 @@ namespace QaplaSearch {
 
 
 }
-
-#endif // __PV

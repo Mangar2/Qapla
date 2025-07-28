@@ -377,6 +377,10 @@ namespace QaplaSearch {
 			ttPtr->setEntry(hashKey, isPV, depth, ply, bestMove, eval, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 			// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
 		}
+		void setTTEntry(hash_t hashKey, bool isPV, ply_t depth, Move move, value_t eval, value_t positionValue, value_t alpha, value_t beta) 
+		{
+			ttPtr->setEntry(hashKey, isPV, depth, ply, move, eval, positionValue, alpha, beta, false);
+		}
 
 		/**
 		 * Indicates that the PV failed low

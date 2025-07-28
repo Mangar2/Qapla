@@ -130,6 +130,10 @@ namespace QaplaSearch {
 			}
 		}
 
+		int32_t size() const {
+			return _stack.size();
+		}
+
 	private:
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 

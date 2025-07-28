@@ -179,6 +179,8 @@ namespace QaplaSearch {
 			_quiescence.setTT(tt);
 		}
 
+		void storePVToTT(MoveGenerator& position, SearchStack& stack, const RootMove& rootMove, ply_t ply);
+
 	private:
 		Quiescence _quiescence;
 		Eval eval;
