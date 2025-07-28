@@ -131,7 +131,7 @@ namespace QaplaSearch {
 		}
 
 		int32_t size() const {
-			return _stack.size();
+			return static_cast<int32_t>(_stack.size());
 		}
 
 	private:

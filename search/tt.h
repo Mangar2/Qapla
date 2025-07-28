@@ -117,11 +117,11 @@ namespace QaplaSearch {
 				return index;
 			}
 
-			bool sameHash = primary.hasHash(hashKey);
+			bool samePrimaryHash = primary.hasHash(hashKey);
 
-			if (primary.isNewBetterForPrimary(_ageIndicator, sameHash, computedDepth, move, isPV))
+			if (primary.isNewBetterForPrimary(_ageIndicator, samePrimaryHash, computedDepth, move, isPV))
 			{
-				if (!sameHash && secondary.isNewBetterForSecondary(_ageIndicator, sameHash, computedDepth, move, isPV)) 
+				if (!samePrimaryHash && secondary.isNewBetterForSecondary(_ageIndicator, samePrimaryHash, computedDepth, move, isPV)) 
 				{
 					// Logically equivalent to: secondary = new; swap(primary, secondary);
 					// This allows checking if secondary was from a previous search before overwriting.
@@ -131,7 +131,8 @@ namespace QaplaSearch {
 				}
 				primary.initialize(_ageIndicator, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);
 			}
-			else if (secondary.isNewBetterForSecondary(_ageIndicator, sameHash, computedDepth, move, isPV))
+			else if (!samePrimaryHash &&
+				secondary.isNewBetterForSecondary(_ageIndicator, secondary.hasHash(hashKey), computedDepth, move, isPV))
 			{
 				if (secondary.isEntryFromFormerSearch(_ageIndicator)) _numEntries++;
 				secondary.initialize(_ageIndicator, isPV, hashKey, computedDepth, ply, move, eval, positionValue, alpha, beta, nullmoveThreat);

@@ -147,16 +147,13 @@ void WhatIf::setTT(TT *ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move mov
 	if (hashKey == hash)
 	{
 		auto ttIndex = ttPtr->getEntryIndex(hashKey);
-		if (ttPtr->isNewEntryMoreValuable(ttIndex, depth, move, true))
-		{
-			std::cout << "set hash [w" << std::setw(6) << alpha << " "
-					  << std::setw(6) << beta << "][d:" << std::setw(2) << depth << "]"
-					  << "[v:" << std::setw(6) << bestValue << "]"
-					  << "[m:" << std::setw(5) << move.getLAN() << "]"
-					  << std::endl;
+		std::cout << "set hash [w" << std::setw(6) << alpha << " "
+					<< std::setw(6) << beta << "][d:" << std::setw(2) << depth << "]"
+					<< "[v:" << std::setw(6) << bestValue << "]"
+					<< "[m:" << std::setw(5) << move.getLAN() << "]"
+					<< std::endl;
 
-			ttPtr->printHash(hashKey);
-		}
+		ttPtr->printHash(hashKey);
 	}
 }
 
