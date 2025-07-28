@@ -439,6 +439,9 @@ void Search::storePVToTT(MoveGenerator& position, SearchStack& stack, const Root
 	if (ply >= stack.size()) {
 		return; // No stack for this ply
 	}
+	if (ply == 0) {
+		std::cout << "\n\nStore PV to TT for pv: " << rootMove.getPV().toString() << std::endl;
+	}
 	SearchVariables& node = stack[ply];
 	auto move = rootMove.getPV()[ply];
 	if (move.isEmpty()) return;
@@ -447,11 +450,11 @@ void Search::storePVToTT(MoveGenerator& position, SearchStack& stack, const Root
 	auto value = ply % 2 == 0 ? rootMove.getValue() : -rootMove.getValue();
 	auto depth = rootMove.getDepth() - ply;
 	auto hashKey = position.computeBoardHash();
-	std::cout << "Store PV to TT: " << std::endl;
-	node.getTT()->printHash(hashKey);
+	//std::cout << "\nStore PV to TT: " << ply << " " << move.getLAN() << " " << value << std::endl;
+	//node.getTT()->printHash(hashKey);
 	node.setTTEntry(hashKey, true, depth, move, NO_VALUE, value, alpha, beta);
-	std::cout << "Stored PV to TT: " << ply << " " << move.getLAN() << " " << value << std::endl;
-	node.getTT()->printHash(hashKey);
+	//std::cout << "Stored PV to TT " << std::endl;
+	//node.getTT()->printHash(hashKey);
 	stack[ply + 1].doMove(position, move);
 	storePVToTT(position, stack, rootMove, ply + 1);
 	stack[ply + 1].undoMove(position);
@@ -476,7 +479,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
 	if (_computingInfo.getMovesAmount() > 0) {
-	 	storePVToTT(position, stack, _computingInfo.getRootMoves().getMove(0), 0);
+	 	// storePVToTT(position, stack, _computingInfo.getRootMoves().getMove(0), 0);
 	} 
 
 #ifdef USE_STOCKFISH_EVAL
