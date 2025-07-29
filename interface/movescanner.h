@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  * @Overview
  * Scans a move string
  */
@@ -30,43 +30,43 @@ namespace QaplaInterface {
 
     constexpr std::string_view kPieceChars = "NnBbRrQqKk";
 
-    constexpr bool isPieceChar(char pieceChar) noexcept {
+    inline constexpr bool isPieceChar(char pieceChar) noexcept {
         return kPieceChars.find(pieceChar) != std::string_view::npos;
     }
 
-    constexpr bool isCastleNotationChar(char ch) noexcept {
+    inline constexpr bool isCastleNotationChar(char ch) noexcept {
         return ch == '0' || ch == 'O';
     }
 
-    constexpr bool isCheckSign(char ch) noexcept {
+    inline constexpr bool isCheckSign(char ch) noexcept {
         return ch == '+';
     }
 
-    constexpr bool isMateSign(char ch) noexcept {
+    inline constexpr bool isMateSign(char ch) noexcept {
         return ch == '#';
     }
 
-    constexpr bool isPromoteChar(char ch) noexcept {
+    inline constexpr bool isPromoteChar(char ch) noexcept {
         return ch == '=';
     }
 
-    constexpr bool isRankChar(char rank) noexcept {
+    inline constexpr bool isRankChar(char rank) noexcept {
         return rank >= '1' && rank <= '8';
     }
 
-    constexpr bool isFileChar(char file) noexcept {
+    inline constexpr bool isFileChar(char file) noexcept {
         return file >= 'a' && file <= 'h';
     }
 
-    constexpr bool isCaptureChar(char capture) noexcept {
+    inline constexpr bool isCaptureChar(char capture) noexcept {
         return capture == 'x' || capture == ':';
     }
 
-    constexpr uint32_t charToRank(char rank) noexcept {
+    inline constexpr uint32_t charToRank(char rank) noexcept {
         return static_cast<uint32_t>(rank - '1');
     }
 
-    constexpr uint32_t charToFile(char file) noexcept {
+    inline constexpr uint32_t charToFile(char file) noexcept {
         return static_cast<uint32_t>(file - 'a');
     }
 

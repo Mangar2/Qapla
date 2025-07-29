@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a UCI - Interface
  */
@@ -23,6 +23,7 @@
 #define __UCI_H
 
 #include "chessinterface.h"
+#include "computinginfoexchange.h"
 
 using namespace std;
 
@@ -61,6 +62,7 @@ namespace QaplaInterface {
 					println("info string illegal go command on " + computingInfo.error);
 				}
 				else {
+					waitUntilExactMoveTimeElapsed(computingInfo);
 					waitIfInfiniteSearchFinishedEarly();
 					print("bestmove " + computingInfo.currentConsideredMove);
 					if (computingInfo.ponderMove != "") {
