@@ -20,6 +20,8 @@
 #include "search.h"
 #include "whatIf.h"
 #include "quiescence.h"
+#include "rootmoves.h"
+#include "../basics/materialbalance.h"
 #include "../bitbase/bitbase-reader.h"
 #include "../movegenerator/movegenerator.h"
 

@@ -18,6 +18,7 @@
 *.bin
 *.epd
 .editorconfig
+/test/log/
 
 !CMakeLists.txt
 

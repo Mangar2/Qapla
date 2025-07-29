@@ -25,6 +25,7 @@
 #include "../basics/types.h"
 #include "../basics/move.h"
 #include "../basics/movelist.h"
+#include "../basics/boardstate.h"
 #include "../basics/board.h"
 #include "magics.h"
 
