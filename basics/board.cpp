@@ -274,8 +274,8 @@ void Board::undoMove(Move move, BoardState recentBoardState) {
 	assert(_board[departure] != NO_PIECE);
 }
 
-string Board::getFen() const {
-	string result = "";
+std::string Board::getFen(int fullMoveNumber) const {
+	std::string result = "";
 	File file;
 	Rank rank;
 	int amoutOfEmptyFields;
@@ -305,6 +305,26 @@ string Board::getFen() const {
 	}
 
 	result += isWhiteToMove()? " w" : " b";
+
+	result += " ";
+	std::string castling;
+	castling += getBoardState().isKingSideCastleAllowed<WHITE>() ? "K" : "";
+	castling += getBoardState().isQueenSideCastleAllowed<WHITE>() ? "Q" : "";
+	castling += getBoardState().isKingSideCastleAllowed<BLACK>() ? "k" : "";
+	castling += getBoardState().isQueenSideCastleAllowed<BLACK>() ? "q" : "";
+	result += castling.empty() ? "-" : castling;
+
+	result += " ";
+	auto uncorrectedEp = getBoardState().getEP();
+	// adjust for the fact that we store the square of the pawn to be captured
+	auto correctedEp = Rank(uncorrectedEp) == Rank::R4 ? uncorrectedEp + SOUTH : uncorrectedEp + NORTH;
+	result += getBoardState().hasEP() ? squareToString(correctedEp) : "-";
+
+	result += " ";
+	result += std::to_string(getHalfmovesWithoutPawnMoveOrCapture());
+
+	result += " ";
+	result += std::to_string(fullMoveNumber);
 
 	return result;
 }
