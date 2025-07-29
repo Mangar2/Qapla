@@ -481,7 +481,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
 	if (_computingInfo.getMovesAmount() > 0) {
-	 	// storePVToTT(position, stack, _computingInfo.getRootMoves().getMove(0), 0);
+	 	storePVToTT(position, stack, _computingInfo.getRootMoves().getMove(0), 0);
 	} 
 
 #ifdef USE_STOCKFISH_EVAL
