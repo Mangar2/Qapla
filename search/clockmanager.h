@@ -96,7 +96,7 @@ namespace QaplaSearch {
 		}
 
 		bool stopOnNodeTarget(uint64_t nodeCount) {
-			if (_mode == ClockMode::stopped) return true;
+			if (isSearchStopped()) return true;
 			if (_nodeTarget == 0) return false;
 			if (nodeCount > _nodeTarget) {
 				stopSearch();

@@ -64,14 +64,13 @@ all: $(EXE)
 $(EXE): $(OBJ) | $(BUILD_DIR)
 	$(CXX) $(OBJ) -o $@ $(LDFLAGS)
 
-$(BUILD_DIR)/%.o: %.cpp | create-dirs
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/%.o: %.c | create-dirs
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
-
-create-dirs:
-	@find . -type d ! -path "./$(BUILD_DIR)" | sed 's|^./|$(BUILD_DIR)/|' | xargs -I {} $(MKDIR) {}
 
 $(BUILD_DIR):
 	$(MKDIR) $(BUILD_DIR)
