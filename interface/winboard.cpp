@@ -20,6 +20,7 @@
 
 #include "winboard.h"
 #include "winboardprintsearchinfo.h"
+#include "computinginfoexchange.h"
 #include <thread>
 
 using namespace std;
@@ -353,7 +354,7 @@ void Winboard::setOption() {
  */
 void Winboard::runLoop() {
 	_mode = Mode::WAIT;
-	string token = "";
+	string token = getCurrentToken();
 	getBoard()->initialize();
 	setPositionByFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	while (token != "quit" && !isFatalError()) {
@@ -438,6 +439,7 @@ void Winboard::handleInputWhileInPonderMode() {
 
 void Winboard::handleInput() {
 	const string token = getCurrentToken();
+	if (token == "quit") return;
 	if (token == "analyze") analyzeMove();
 	else if (token == "force") _forceMode = true;
 	else if (token == "go") computeMove();
