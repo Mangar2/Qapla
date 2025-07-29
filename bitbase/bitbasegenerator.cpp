@@ -25,8 +25,11 @@
 #include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
 #include "../search/moveprovider.h"
+#include "piecelist.h"
+#include "boardaccess.h"
 #include "bitbase.h"
 #include "bitbaseindex.h"
+#include "reverseindex.h"
 #include "generationstate.h"
 #include "bitbase-reader.h"
 #include "bitbasegenerator.h"
@@ -369,7 +372,7 @@ Result BitbaseGenerator::setMateOrStalemate(QaplaMoveGenerator::MoveGenerator &p
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is win by mate (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is win by mate (move generator) " << endl;
 		}
 		state.setWin(index);
 		result = Result::Win;
@@ -378,7 +381,7 @@ Result BitbaseGenerator::setMateOrStalemate(QaplaMoveGenerator::MoveGenerator &p
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is loss by mate (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is loss by mate (move generator) " << endl;
 		}
 		state.setLoss(index);
 		result = Result::Loss;
@@ -387,7 +390,7 @@ Result BitbaseGenerator::setMateOrStalemate(QaplaMoveGenerator::MoveGenerator &p
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is stalemate (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is stalemate (move generator) " << endl;
 		}
 		state.setDraw(index);
 		result = Result::Draw;
@@ -413,7 +416,7 @@ Result BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator &p
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is illegal (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is illegal (move generator) " << endl;
 		}
 		state.setIllegal(index);
 		return Result::IllegalIndex;
@@ -433,7 +436,7 @@ Result BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator &p
 		{
 			if (DO_DEBUG && index == _debugIndex)
 			{
-				cout << _debugIndex << " , Fen: " << position.getFen() << " is a win (initial search) " << endl;
+				cout << _debugIndex << " , Fen: " << position.getFen(0) << " is a win (initial search) " << endl;
 			}
 			state.setWin(index);
 			result = positionValue;
@@ -442,7 +445,7 @@ Result BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator &p
 		{
 			if (DO_DEBUG && index == _debugIndex)
 			{
-				cout << _debugIndex << " , Fen: " << position.getFen() << " is a loss or draw (initial search) " << endl;
+				cout << _debugIndex << " , Fen: " << position.getFen(0) << " is a loss or draw (initial search) " << endl;
 			}
 			state.setDraw(index);
 			result = positionValue;
