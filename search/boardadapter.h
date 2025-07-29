@@ -139,7 +139,7 @@ namespace QaplaSearch {
 		/**
 	     * Returns the current position in FEN format
 		 */
-		virtual std::string getFen() { return position.getFen(); }
+		virtual std::string getFen() { return position.getFen(moveHistory.getHalfMoveCount() / 2); }
 
 		/**
 		 * Retrieves the what if object

@@ -28,6 +28,7 @@
 #include "boardstate.h"
 #include "piecesignature.h"
 #include "materialbalance.h"
+#include "hashconstants.h"
 #include "pst.h"
 
 namespace QaplaBasics {
@@ -306,7 +307,7 @@ namespace QaplaBasics {
 		/**
 		 * Gets the board in Fen representation
 		 */
-		string getFen() const;
+		string getFen(int fullMoveNumber) const;
 
 		/**
 		 * Prints the board as fen to std-out

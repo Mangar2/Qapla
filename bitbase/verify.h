@@ -180,7 +180,7 @@ namespace QaplaBitbase {
 				}
 
 				if (cur == Result::Unknown) {
-					throw "Bitbase not available for fen:  " + position.getFen();
+					throw "Bitbase not available for fen:  " + position.getFen(0);
 				}
 				position.undoMove(move, boardState);
 

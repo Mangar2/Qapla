@@ -129,8 +129,12 @@ namespace QaplaSearch {
 			for (auto drawHash : _drawHashes) {
 				cout << drawHash << " ";
 			}
-			cout << startPosition.getFen() << endl;
+			cout << startPosition.getFen(_history.size() / 2) << endl;
 			cout << endl;
+		}
+
+		int getHalfMoveCount() const {
+			return _history.size();
 		}
 
 	private:

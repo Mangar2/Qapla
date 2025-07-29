@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements the evaluation of a king attack based on attack bitboards
  * The king attack area is two rows to north, one row to south and one file east and west,
@@ -82,6 +82,7 @@ namespace ChessEval {
 		}
 
 	private:
+		static constexpr uint32_t MAX_WEIGHT_COUNT = 32;
 
 		/**
 		 * Computes an index for the pawn shield
@@ -187,20 +188,19 @@ namespace ChessEval {
 			results.piecesAttack[COLOR] |= pawnAttack;
 		}
 
-		static const uint32_t MAX_ATTACK_COUNT = 0x0F;
-		static const uint32_t QUEEN_AVAILABLE_INDEX = 0x10;
+		static constexpr uint32_t MAX_ATTACK_COUNT = 0x0F;
+		static constexpr uint32_t QUEEN_AVAILABLE_INDEX = 0x10;
 
 		
-		static const uint32_t QUEEN_INDEX = 0x01;
-		static const uint32_t PRESSURE_INDEX = 0x2;
-		static const uint32_t PRESSURE_MASK = 0x1F;
-		static const uint32_t INDEX_SIZE = 0x40;
+		static constexpr uint32_t QUEEN_INDEX = 0x01;
+		static constexpr uint32_t PRESSURE_INDEX = 0x2;
+		static constexpr uint32_t PRESSURE_MASK = 0x1F;
+		static constexpr uint32_t INDEX_SIZE = 0x40;
 
 		static struct InitStatics {
 			InitStatics();
 		} _staticConstructor;
 
-		static const uint32_t MAX_WEIGHT_COUNT = 32;
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
 		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900,

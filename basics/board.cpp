@@ -324,7 +324,7 @@ std::string Board::getFen(int fullMoveNumber) const {
 	result += std::to_string(getHalfmovesWithoutPawnMoveOrCapture());
 
 	result += " ";
-	result += std::to_string(fullMoveNumber);
+	result += std::to_string(fullMoveNumber + 1);
 
 	return result;
 }
@@ -364,7 +364,7 @@ void Board::printPst() const {
 
 
 void Board::printFen() const {
-	cout << getFen() << endl;
+	cout << getFen(0) << endl;
 }
 
 void Board::print() const {

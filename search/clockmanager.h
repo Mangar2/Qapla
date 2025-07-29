@@ -78,6 +78,23 @@ namespace QaplaSearch {
 			_depth = depth;
 		}
 
+				/**
+		 * Call to stop the search immediately
+		 */
+		void stopSearch() { 
+			_mode = ClockMode::stopped; 
+		}
+
+		/**
+		 * Checks, if search has been stopped
+		 */
+		bool isSearchStopped() const {
+			if (_depth <= MIN_DEPTH_EXTERNAL_STOP) {
+				return false;
+			}
+			return _mode == ClockMode::stopped;
+		}
+
 		bool stopOnNodeTarget(uint64_t nodeCount) {
 			if (_mode == ClockMode::stopped) return true;
 			if (_nodeTarget == 0) return false;
@@ -92,7 +109,7 @@ namespace QaplaSearch {
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
 		bool emergencyAbort() {
-			if (_mode == ClockMode::stopped) {
+			if (isSearchStopped()) {
 				return true;
 			}
 			if (_depth <= MIN_DEPTH) {
@@ -112,7 +129,7 @@ namespace QaplaSearch {
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
 		bool shouldAbort() {
-			if (_mode == ClockMode::stopped) {
+			if (isSearchStopped()) {
 				return true;
 			}
 			if (_depth <= MIN_DEPTH) {
@@ -134,7 +151,7 @@ namespace QaplaSearch {
 		 * @returns true, if calculation of next depth is ok
 		 */
 		bool mayComputeNextDepth(ply_t depth) const {
-			if (_mode == ClockMode::stopped) {
+			if (isSearchStopped()) {
 				return false;
 			}
 			if (depth <= MIN_DEPTH) {
@@ -162,20 +179,6 @@ namespace QaplaSearch {
 				_nextInfoTime = getSystemTimeInMilliseconds() + timeBetweenInfoInMilliseconds;
 			}
 			return sendInfo;
-		}
-
-		/**
-		 * Call to stop the search immediately
-		 */
-		void stopSearch() { 
-			_mode = ClockMode::stopped; 
-		}
-
-		/**
-		 * Checks, if search has been stopped
-		 */
-		bool isSearchStopped() const {
-			return _mode == ClockMode::stopped;
 		}
 
 		/**
@@ -373,6 +376,7 @@ namespace QaplaSearch {
 		static constexpr int32_t KEEP_TIME_FOR_MOVES = 35;
 		static const int32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
 		static const ply_t MIN_DEPTH = 5;
+		static const ply_t MIN_DEPTH_EXTERNAL_STOP = 2;
 	};
 }
 
