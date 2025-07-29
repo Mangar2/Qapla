@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Scans a fen string
  */
@@ -202,6 +202,15 @@ namespace QaplaInterface {
 				++fenIterator;
 			}
 			if (epFile != -1 && epRank != -1) {
+				auto rank = static_cast<QaplaBasics::Rank>(epRank);
+				// we use the position of the pawn to be captured and not the target square of the capturing pawn
+				if (rank == QaplaBasics::Rank::R3) {
+					rank = QaplaBasics::Rank::R4; 
+				}
+				else if (rank == QaplaBasics::Rank::R6) {
+					rank = QaplaBasics::Rank::R5; 
+				}
+				auto epSquare = computeSquare(static_cast<QaplaBasics::File>(epFile), rank);
 				chessBoard->setEPSquare(epFile, epRank);
 			}
 			else {
