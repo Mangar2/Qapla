@@ -202,15 +202,7 @@ namespace QaplaInterface {
 				++fenIterator;
 			}
 			if (epFile != -1 && epRank != -1) {
-				auto rank = static_cast<QaplaBasics::Rank>(epRank);
-				// we use the position of the pawn to be captured and not the target square of the capturing pawn
-				if (rank == QaplaBasics::Rank::R3) {
-					rank = QaplaBasics::Rank::R4; 
-				}
-				else if (rank == QaplaBasics::Rank::R6) {
-					rank = QaplaBasics::Rank::R5; 
-				}
-				auto epSquare = computeSquare(static_cast<QaplaBasics::File>(epFile), rank);
+				// epRank adjustment to qapla is made in setEPSquare
 				chessBoard->setEPSquare(epFile, epRank);
 			}
 			else {

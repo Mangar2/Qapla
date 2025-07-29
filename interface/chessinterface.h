@@ -30,6 +30,7 @@
 #include "stdtimecontrol.h"
 #include "movescanner.h"
 #include "fenscanner.h"
+#include "computinginfoexchange.h"
 #include <functional>
 #include <thread>
 #include <mutex>
@@ -260,6 +261,19 @@ namespace QaplaInterface {
 			_protectSearchTermination.wait(lock, [this] {
 					return !_isInfiniteSearch;
 			});
+		}
+
+		void waitUntilExactMoveTimeElapsed(const ComputingInfoExchange& info) {
+			if (_clock.getExactTimePerMoveInMilliseconds() == 0) {
+				return;
+			}
+			constexpr uint64_t EXPECTED_DELAY = 2;
+			const uint64_t elapsed = info.elapsedTimeInMilliseconds;
+			const uint64_t target = _clock.getExactTimePerMoveInMilliseconds() - EXPECTED_DELAY;
+			if (elapsed >= target) {
+				return;
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(target - elapsed));
 		}
 
 		/**

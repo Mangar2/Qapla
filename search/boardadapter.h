@@ -73,11 +73,19 @@ namespace QaplaSearch {
 			};
 		}
 
+		std::string to_lowercase(const std::string& input) {
+			std::string result = input;
+			std::transform(result.begin(), result.end(), result.begin(),
+				[](unsigned char c) { return std::tolower(c); });
+			return result;
+		}
+
 		/**
 		 * Sets an option of the engine
 		 */
 		virtual void setOption(string name, string value) {
 			int32_t intValue = 0;
+			name = to_lowercase(name);
 			if (value == "false") {
 				intValue = 0;
 			}
@@ -85,7 +93,7 @@ namespace QaplaSearch {
 				intValue = 1;
 			}
 			else {
-				if (name == "qaplaBitbasePath") {
+				if (name == "qaplabitbasepath") {
 					if (value != "" && QaplaBitbase::BitbaseReader::setBitbasePath(value)) {
 						auto messages = QaplaBitbase::BitbaseReader::loadBitbase();
 						for (const auto& message : messages) {
@@ -94,7 +102,7 @@ namespace QaplaSearch {
 					}
 					return;
 				}
-				if (name == "qaplaBitbasePathNL") {
+				if (name == "qaplabitbasepathnl") {
 					QaplaBitbase::BitbaseReader::setBitbasePath(value);
 					return;
 				}
@@ -102,9 +110,9 @@ namespace QaplaSearch {
 				if (ec != std::errc()) {
 					return;
 				}
-				if (name == "Hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
-				if (name == "MultiPV") iterativeDeepening.setMultiPV(std::clamp(intValue, 1, 40));
-				if (name == "qaplaBitbaseCache") QaplaBitbase::Bitbase::setCacheSize(intValue);
+				if (name == "hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
+				if (name == "multipv") iterativeDeepening.setMultiPV(std::clamp(intValue, 1, 40));
+				if (name == "qaplabitbasecache") QaplaBitbase::Bitbase::setCacheSize(intValue);
 			}
 		}
 
@@ -278,7 +286,9 @@ namespace QaplaSearch {
 		 */
 		virtual void setEPSquare(uint32_t epFile, uint32_t epRank) {
 			// Adjust ep, beause it is stored as postion of the pawn to capture
-			epRank = epRank == 3 ? 4 : 5;
+			epRank = epRank == static_cast<uint32_t>(QaplaBasics::Rank::R3) ? 
+				static_cast<uint32_t>(QaplaBasics::Rank::R4) : 
+				static_cast<uint32_t>(QaplaBasics::Rank::R5);
 			position.setEP(computeSquare(File(epFile), Rank(epRank)));
 		}
 
