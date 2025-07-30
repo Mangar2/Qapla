@@ -21,8 +21,7 @@
  * a quiet position is reached.
  */
 
-#ifndef __QUIESCENCESEARCH_H
-#define __QUIESCENCESEARCH_H
+#pragma once
 
 #include <tuple>
 #include "../basics/evalvalue.h"
@@ -100,4 +99,3 @@ namespace QaplaSearch {
 
 }
 
-#endif // __QUIESCENCESEARCH_H
