@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a static class to evaluate knights 
  */
@@ -66,7 +66,7 @@ namespace ChessEval {
 		 * @param pawns A bitboard with all pawn positions set
 		 * @return The distance to the closest pawn:
 		 *         0 = adjacent pawn,
-		 *         1–6 = increasing distance,
+		 *         1ï¿½6 = increasing distance,
 		 *         0 also if no pawns are present
 		 */
 		static value_t minDistance(Square kingSquare, bitBoard_t pawns) {

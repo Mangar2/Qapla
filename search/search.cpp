@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 #include "search.h"

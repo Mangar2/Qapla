@@ -3,8 +3,8 @@
 #include <array>
 #include <cstdint>
 #include "../basics/piecesignature.h"
-static inline std::array<int16_t, QaplaBasics::PieceSignature::PIECE_SIGNATURE_SIZE> EVAL_CORRECTION = []() {
-    std::array<int16_t, QaplaBasics::PieceSignature::PIECE_SIGNATURE_SIZE> result{};
+static inline std::array<int16_t, static_cast<size_t>(QaplaBasics::SignatureMask::SIZE)> EVAL_CORRECTION = []() {
+    std::array<int16_t, static_cast<size_t>(QaplaBasics::SignatureMask::SIZE)> result{};
     result[1] = 67; // KPK
     result[2] = 472; // KPPK
     result[3] = 394; // KPPPK

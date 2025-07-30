@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Boehm
- * @copyright Copyright (c) 2021 Volker Boehm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Defines a chess move coded in a single 32 bit integer
  * The bit code of the move is

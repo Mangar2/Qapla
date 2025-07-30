@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Volker Boehm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Defines a bitmap representing the available pieces at the board
  */

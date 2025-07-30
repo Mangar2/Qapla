@@ -5,8 +5,8 @@
  * any purpose.
  *
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2020 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2020 Volker BÃ¶hm
  * @Overview
  * Provides mappings and functions used for chess notation
  */

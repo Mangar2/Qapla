@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include <map>
@@ -185,7 +185,7 @@ void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
 		auto [success, errorMessage] = bitbase.readAll();
 		if (!success) {
 			std::cout << "info string loaded bitbase " << pieceString << " " << errorMessage << std::endl;
-			return; // Failed to read – do not insert
+			return; // Failed to read ï¿½ do not insert
 		}
 	}
 	_bitbases.emplace(sig, std::move(bitbase));
