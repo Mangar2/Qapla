@@ -133,12 +133,9 @@ namespace QaplaSearch {
 				maxDepth = depthLimit;
 			}
 
-			Move result;
-
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, _tt);
 
-			static const uint8_t DEPTH_BUFFER = 0;
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
 				searchOneIteration(searchBoard, curDepth);
 				_clockManager.setSearchResult(curDepth, _search.getComputingInfo().getPVMoveValueInCentiPawn(0));
@@ -221,7 +218,6 @@ namespace QaplaSearch {
 		void searchOneIteration(MoveGenerator& position, uint32_t searchDepth)
 		{
 			SearchStack stack(&_tt);
-			bool isInWindow = false;
 			const auto multiPV = _search.getMultiPV();
 			for (uint32_t i = 0; i < multiPV; ++i) {
 				_window[i].newDepth(searchDepth);
@@ -238,7 +234,6 @@ namespace QaplaSearch {
 				const auto multiPVPos = std::min(numberOfPVSearchedMoves, multiPV - 1);
 				const value_t positionValue = computingInfo.getPVMoveValueInCentiPawn(multiPVPos);
 				_clockManager.setIterationResult(_window[multiPVPos].getAlpha(), _window[multiPVPos].getBeta(), positionValue);
-				isInWindow = _window[multiPVPos].isInside(positionValue);
 				_window[multiPVPos].setSearchResult(positionValue);
 				/*
 				iterations++;
@@ -258,7 +253,6 @@ namespace QaplaSearch {
 		TT _tt;
 		Search _search;
 		array<AspirationWindow, MAX_PV> _window;
-		uint32_t ttDebug = 0;
 	};
 
 }

@@ -101,8 +101,6 @@ namespace ChessEval {
 
 		bitBoard_t legalPositions[COLOR_COUNT];
 		bitBoard_t kingPositions[COLOR_COUNT];
-		bitBoard_t formerPositions[COLOR_COUNT];
-		bitBoard_t kingAttack[COLOR_COUNT];
 		bitBoard_t passedPawns[COLOR_COUNT];
 		bitBoard_t pawnPositions[COLOR_COUNT];
 		uint32_t bestPassedPawnDistanceInHalfmoves[COLOR_COUNT];

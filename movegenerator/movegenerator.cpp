@@ -214,7 +214,6 @@ genSilentPawnMoves(MoveList& moveList)
 	const Piece PIECE = PAWN + COLOR;
 	const bitBoard_t LAST_ROW = COLOR == WHITE ? BitBoardMasks::RANK_8_BITMASK : BitBoardMasks::RANK_1_BITMASK;
 	const bitBoard_t RANK_4 = COLOR == WHITE ? BitBoardMasks::RANK_4_BITMASK : BitBoardMasks::RANK_5_BITMASK;
-	const Square MOVE_UP = COLOR == WHITE ? NORTH : SOUTH;
 	const Square MOVE_DOWN = COLOR == WHITE ? SOUTH : NORTH;
 
 	bitBoard_t pawnTarget = (bitBoardsPiece[PIECE] & ~pinnedMask[COLOR]);
@@ -756,8 +755,8 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 		const auto kingPos = kingSquares[BLACK];
 		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + SOUTH)) | destinationBit;
 		const auto attack =
-			Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + WHITE] | bitBoardsPiece[QUEEN + WHITE]) |
-			Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + WHITE] | bitBoardsPiece[QUEEN + WHITE]);
+			(Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + WHITE] | bitBoardsPiece[QUEEN + WHITE])) |
+			(Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + WHITE] | bitBoardsPiece[QUEEN + WHITE]));
 		return attack ? true : false;
 	}
 	case Move::BLACK_EP:
@@ -765,8 +764,8 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 		const auto kingPos = kingSquares[WHITE];
 		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + NORTH)) | destinationBit;
 		const auto attack =
-			Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + BLACK] | bitBoardsPiece[QUEEN + BLACK]) |
-			Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + BLACK] | bitBoardsPiece[QUEEN + BLACK]);
+			(Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + BLACK] | bitBoardsPiece[QUEEN + BLACK])) |
+			(Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + BLACK] | bitBoardsPiece[QUEEN + BLACK]));
 		return attack ? true : false;
 	}
 	// Check if the rook delivers check to the king after castling. There are two scenarios:

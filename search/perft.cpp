@@ -46,7 +46,6 @@ void PerftSearch::perftRecHelper(SplitPoint& splitPoint, WorkPackage &work, bool
 	Move move;
 	uint64_t result = 0;
 	while(!(move = splitPoint.selectNextMove()).isEmpty()) {
-		uint32_t workerCount = threadPool.assignWork(&work, 0);
 		// if (splitPoint.getCurDepth() > 1 && workerCount > 0) cout << "depth " << splitPoint.getCurDepth() << endl;
 		const BoardState boardState = board.getBoardState();
 		board.doMove(move);
@@ -96,7 +95,7 @@ uint64_t PerftSearch::perftRec(
 				board.print();
 				cout << move.getLAN() << endl;
 				cout << std::hex << checkingBitmaps[0] << endl;
-				const auto isCheckingMove = board.isCheckMove(move, checkingBitmaps);
+				//const auto isCheckingMove = board.isCheckMove(move, checkingBitmaps);
 				exit(1);
 			}
 			

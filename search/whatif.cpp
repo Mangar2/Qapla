@@ -32,7 +32,7 @@ WhatIf WhatIf::whatIf;
 
 #if (DOWHATIF == true)
 
-WhatIf::WhatIf() : maxPly(0), searchDepth(0), count(0)
+WhatIf::WhatIf() : searchDepth(0), count(0)
 {
 	clear();
 }
@@ -167,7 +167,7 @@ void WhatIf::setTT(TT *ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move mov
 {
 	if (hashKey == hash)
 	{
-		auto ttIndex = ttPtr->getEntryIndex(hashKey);
+		[[maybe_unused]] auto ttIndex = ttPtr->getEntryIndex(hashKey);
 		std::cout << "set hash [w" << std::setw(6) << alpha << " "
 					<< std::setw(6) << beta << "][d:" << std::setw(2) << depth << "]"
 					<< "[v:" << std::setw(6) << bestValue << "]"

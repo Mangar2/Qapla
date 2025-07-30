@@ -102,7 +102,6 @@ namespace QaplaTraining {
 
     private:
         value_t threshold_;
-        QaplaInterface::GameResult currentResult_;
         std::vector<std::string> suspiciousPositions_;
         bool newGame_ = false;
 		std::string suspiciousPosition_;

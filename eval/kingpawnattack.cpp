@@ -57,7 +57,6 @@ value_t KingPawnAttack::computeKingRace(MoveGenerator& board) {
 	initRace<BLACK>(board);
 	bool wtm = board.isWhiteToMove();
 	value_t pawnCaptured = 0;
-	Piece winningColor = NO_PIECE;
 
 	while (kingPositions[WHITE] != 0 || kingPositions[BLACK] != 0) {
 		if (wtm) {

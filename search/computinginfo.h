@@ -177,7 +177,6 @@ namespace QaplaSearch {
 			if (_multiPV == 1) {
 				printSearchResult(0);
 			} else {
-				const auto& timeSinceLastInfo = _timeControl.getTimeSpentInMilliseconds() - _lastMultiPVInfo;
 				const auto& pvCount = _rootMoves.countPVSearchedMovesInWindow(_searchDepth);
 				if (pvCount >= _multiPV) {
 					_lastMultiPVInfo = _timeControl.getTimeSpentInMilliseconds();

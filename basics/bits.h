@@ -134,7 +134,7 @@ namespace QaplaBasics {
 
 	inline uint32_t popCount(bitBoard_t bitBoard) {
 		//const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
-		return (int)_mm_popcnt_u64(bitBoard);
+		return static_cast<uint32_t>(_mm_popcnt_u64(bitBoard));
 	}
 
 	inline uint32_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {

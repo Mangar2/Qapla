@@ -334,7 +334,6 @@ namespace QaplaInterface {
 		condition_variable _protectSearchTermination;
 		mutex _protectWorkerAccess;
 		bool _isInfiniteSearch;
-		bool _stopRequested;
 		WorkerThread _computeThread;
 	
 	protected:

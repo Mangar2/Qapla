@@ -204,7 +204,7 @@ namespace QaplaSearch {
 	/**
 	 * Prints the window
 	 */
-	static ostream& operator<<(ostream& stream, AspirationWindow& window) {
+	[[maybe_unused]] static ostream& operator<<(ostream& stream, AspirationWindow& window) {
 		stream
 			<< "[" << window.getAlpha() << ", " << window.getBeta() << "]"
 			<< " [" << window.getState() << "]"

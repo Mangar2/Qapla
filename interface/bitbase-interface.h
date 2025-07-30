@@ -67,10 +67,7 @@ namespace QaplaInterface {
 		 */
 		void handleInput();
 		volatile Mode _mode;
-		bool _xBoardMode;
-		bool _computerIsWhite;
 		std::vector<std::string> _startPositions;
-		ISendSearchInfo* _sendSearchInfo;
 	};
 
 }

@@ -117,7 +117,7 @@ void Statistics::printGameResult(GameResult result) {
 	}
 }
 
-Statistics::Statistics() : _sendSearchInfo(0) {
+Statistics::Statistics() {
 	_mode = Mode::WAIT;
 	_computerIsWhite = false;
 	_xBoardMode = false;
@@ -148,7 +148,7 @@ void Statistics::analyzeMove() {
 }
 
 void Statistics::WMTest() {
-	uint32_t numThreads = 16;
+	[[maybe_unused]] uint32_t numThreads{};
 	uint32_t depthLimit = 10;
 	uint64_t totalNodesSearched = 0;
 	while (getNextTokenNonBlocking() != "") {
@@ -227,7 +227,6 @@ std::tuple<EvalValue, value_t> Statistics::computeEval(
 	std::map<std::string, EvalValue> aggregatedValues;
 
 	EvalValue evalCalculated = 0;
-	int32_t midgame = indexVector[0].index;
 	int32_t midgameV2 = indexVector[1].index;
 	assert(indexVector[0].name == "midgame" && indexVector[1].name == "midgamev2");
 	for (auto& indexInfo : indexVector) {
@@ -253,7 +252,6 @@ std::tuple<EvalValue, value_t> Statistics::computeEval(
 void Statistics::trainPosition(ChessEval::IndexLookupMap& lookupMap, int32_t evalDiff) {
 	auto indexVector = getBoard()->computeEvalIndexVector();
 
-	int32_t midgame = indexVector[0].index;
 	int32_t midgameV2 = indexVector[1].index;
 	assert(indexVector[0].name == "midgame" && indexVector[1].name == "midgamev2");
 	int32_t eta = std::clamp(evalDiff, -100, 100);
@@ -408,7 +406,6 @@ void Statistics::trainCandidates(uint32_t numThreads) {
 	CandidateTrainer::initializePopulation();
 
 	while (!CandidateTrainer::finished()) {
-		Candidate& c = CandidateTrainer::getCurrentCandidate();
 		epdTasks.start(numThreads, _clock, _startPositions, getBoard());
 		epdTasks.waitForEnd();
 		CandidateTrainer::nextStep();
@@ -436,7 +433,6 @@ void Statistics::handleWhatIf(std::string whatif) {
 	}
 	if (!token.empty()) tokens.push_back(token);
 	
-	int32_t searchDepth = 5;
 	for (int32_t ply = 0; getNextTokenNonBlocking() != ""; ply++) {
 		if (getCurrentToken() == "null") {
 			whatIf->setNullmove(ply);

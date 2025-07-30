@@ -150,15 +150,14 @@ namespace QaplaSearch {
 		static array<TTEntry, TT_SIZE> tt;
 	};
 
-	static uint64_t doPerftRec(MoveGenerator& board, uint32_t maxDepth, 
+	[[maybe_unused]] static uint64_t doPerftRec(MoveGenerator& board, uint32_t maxDepth,
 		uint32_t workerCount,  bool scipLastPly = true, bool verbose = false) {
 		board.computeAttackMasksForBothColors();
 		PerftSearch search(workerCount);
 		return search.perftRec(board, maxDepth, 0, scipLastPly, verbose);
 	}
 
-#pragma warning(suppress: 6262)
-	static uint64_t doPerftIter(MoveGenerator& board, uint32_t depth, uint32_t verbose = 1) {
+	[[maybe_unused]] static uint64_t doPerftIter(MoveGenerator& board, uint32_t depth, uint32_t verbose = 1) {
 
 		const uint32_t MAX_DEPTH = 32;
 		uint32_t curDepth = 0;

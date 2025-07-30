@@ -36,7 +36,7 @@ namespace QaplaSearch {
 
 	class WorkPackage {
 	public:
-		WorkPackage() : _workerCount(0), _work(0), _lastToReserve(false) {}
+		WorkPackage() : _work(0), _workerCount(0), _lastToReserve(false) {}
 		
 		/**
 		 * Sets the working function

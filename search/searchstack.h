@@ -102,7 +102,6 @@ namespace QaplaSearch {
 		 */
 		bool isDrawByRepetitionInSearchTree(const Board& board, ply_t ply) {
 			bool drawByRepetition = false;
-			ply_t checkPly = ply - 4;
 			ply_t minPly = ply - board.getHalfmovesWithoutPawnMoveOrCapture();
 			if (minPly < 0) { minPly = 0; }
 			for (ply_t checkPly = ply - 4; checkPly >= minPly; checkPly -= 2) {

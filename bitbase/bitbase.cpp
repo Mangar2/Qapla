@@ -36,10 +36,10 @@ using namespace std;
 
 namespace QaplaBitbase {
 
-    Bitbase::Bitbase() : _loaded(false), _sizeInBits(0), _headerLoaded(false) {}
+    Bitbase::Bitbase() : _sizeInBits(0), _loaded(false), _headerLoaded(false) {}
 
     Bitbase::Bitbase(uint64_t sizeInBit, uint32_t sig) 
-        : _loaded(false), _sizeInBits(sizeInBit), _headerLoaded(false), _signature(sig) {}
+        : _signature(sig), _sizeInBits(sizeInBit), _loaded(false), _headerLoaded(false) {}
 
     Bitbase::Bitbase(const BitbaseIndex& index, uint32_t sig) 
         : Bitbase(index.getSizeInBit(), sig) {}
@@ -72,15 +72,13 @@ namespace QaplaBitbase {
 
         // Prope cache
 		auto cacheEntry = cache.getEntry(_signature, clusterIndex);
-        static uint64_t cacheHits = 0;
 		if (cacheEntry) {
-            cacheHits++;
 			const bbt_t word = cacheEntry->data[bitInCluster / BITS_IN_ELEMENT];
 			const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
 			return (word >> bit) & 1;
 		}
         try {
-			static uint64_t reads = 0; reads++; 
+			//static uint64_t reads = 0; reads++; 
 			//if (reads % 1000 == 0) { cout << "Hits: " << (cacheHits * 100.0) / (cacheHits + reads) << "% "; cache.print(); }
             
             auto cluster = BitbaseFile::readCluster(

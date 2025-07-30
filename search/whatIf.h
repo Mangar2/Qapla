@@ -238,7 +238,6 @@ namespace QaplaSearch {
 		static const uint32_t MAX_PLY = 255;
 		array<Move, MAX_PLY> movesToSearch;
 		int32_t amountOfMovesToSearch;
-		ply_t maxPly;
 		ply_t hashFoundPly;
 		int32_t searchDepth;
 		int32_t count;

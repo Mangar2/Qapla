@@ -53,7 +53,7 @@ void Winboard::printGameResult(GameResult result) {
 	}
 }
 
-Winboard::Winboard() : _sendSearchInfo(0) {
+Winboard::Winboard() {
 	_mode = Mode::WAIT;
 	_forceMode = false;
 	_computerIsWhite = false;

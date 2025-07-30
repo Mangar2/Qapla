@@ -226,11 +226,6 @@ namespace QaplaBitbase {
 		 */
 		void computeBitbaseRec(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp);
 
-		const bool debug = false;
-		uint64_t _numberOfIllegalPositions;
-		uint64_t _numberOfDirectLoss;
-		uint64_t _numberOfDirectDraw;
-
 		uint32_t _cores;
 		int _traceLevel;
 		uint64_t _debugIndex;

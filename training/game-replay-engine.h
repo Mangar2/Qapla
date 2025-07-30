@@ -103,7 +103,6 @@ namespace QaplaTraining {
 
                 // Notify start of new game
                 if (moveCallback_) {
-                    value_t eval = chessEngine_->eval();
                     moveCallback_(moveInfo);
                 }
 				moveInfo.gameStarting = false;

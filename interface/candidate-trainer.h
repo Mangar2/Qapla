@@ -36,6 +36,7 @@ using namespace QaplaBasics;
 class Candidate {
 public:
 	Candidate() :wins(0), draws(0), losses(0), bestValue(0.5) {}
+    virtual ~Candidate() = default;
 
 	void clear() {
 		wins = 0;

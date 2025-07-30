@@ -112,7 +112,6 @@ namespace QaplaTraining {
 	 */
 	std::vector<int32_t> PieceSignatureStatistic::computeResultTable() {
 		std::vector<int32_t> resultTable(PieceSignature::SIG_SIZE);
-		constexpr int MAX_DEVIATION = 30;		 // max. derivation in centipawn to check consistence
 		constexpr int TRUST_THRESHOLD = 1000;    // full usage of resultn
 		constexpr int MIN_RELIABLE_TOTAL = 100;  // no input, if below
 
@@ -223,7 +222,6 @@ namespace QaplaTraining {
 				if (wsig < bsig) {
 					continue;
 				}
-				bool any = false;
 				const pieceSignature_t sig = (bsig << PieceSignature::SIG_SHIFT_BLACK) + wsig;
 				if (computeTotalForPieceOnlySignature(wsig, bsig) < 5000) {
 					continue;

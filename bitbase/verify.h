@@ -171,7 +171,6 @@ namespace QaplaBitbase {
 				move = moveList.getMove(moveNo);
 
 				position.doMove(move);
-				uint64_t index = BoardAccess::getIndex<0>(position);
 				Result cur = BitbaseReader::getValueFromSingleBitbase(position);
 				
 				if (verbose) {
@@ -353,7 +352,6 @@ namespace QaplaBitbase {
 		uint32_t _cores;
 		bool _uncompressed;
 		int _traceLevel;
-		uint64_t _debugIndex;
 		int _debugLevel;
 		uint64_t _errors;
 		vector<string> _verified;

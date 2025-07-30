@@ -138,7 +138,6 @@ namespace QaplaInterface {
 				if (wsig < bsig) {
 					continue;
 				}
-				bool any = false;
 				const pieceSignature_t sig = (bsig << PieceSignature::SIG_SHIFT_BLACK) + wsig;
 				if (computeTotalForPieceOnlySignature(wsig, bsig) < 5000) {
 					continue;
@@ -346,7 +345,6 @@ namespace QaplaInterface {
 		gamePairing.newGame();
 		gamePairing.setPositionByFen(fen);
 		GameResult gameResult = gamePairing.getGameResult();
-		bool captureBefore = false;
 		auto moveNo = 2;
 		while (gameResult == GameResult::NOT_ENDED && !stopped) {
 			const auto [result, move, value, capture] = gamePairing.computeMove(curIsWhite);

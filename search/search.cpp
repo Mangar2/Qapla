@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -329,7 +329,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		return _quiescence.search(TYPE == SearchRegion::PV, position, _computingInfo, node.previousMove, alpha, beta, ply);
 	}
 
-	const auto nodesSearched = _computingInfo._nodesSearched;
+	[[maybe_unused]] const auto nodesSearched = _computingInfo._nodesSearched;
 	/*
 	if (nodesSearched == 161) {
 		position.print();
@@ -373,7 +373,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// 8. Calculate additional search extensions
 	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
 
-	bool isNullWindow = false;
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 

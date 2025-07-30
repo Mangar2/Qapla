@@ -193,7 +193,6 @@ namespace QaplaInterface {
 		bool _forceMode;
 		bool _easy;
 		string ponderMove;
-		ISendSearchInfo* _sendSearchInfo;
 	};
 
 }
