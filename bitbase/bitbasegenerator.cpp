@@ -293,7 +293,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 		state.clearAllCandidates();
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 		{
-			_threads[threadNo] = thread([this, &workpackage, loopCount, &state]()
+			_threads[threadNo] = thread([this, &workpackage, &state]()
 										{ computeWorkpackage(workpackage, state); });
 		}
 
@@ -405,11 +405,6 @@ Result BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator &p
 {
 	MoveList moveList;
 	Result result = Result::Unknown;
-	bool kingInCheck = false;
-	if (DO_DEBUG && index == _debugIndex)
-	{
-		kingInCheck = false;
-	}
 
 	// Exclude all illegal positions (king not to move is in check) from future search
 	if (!position.isLegal())

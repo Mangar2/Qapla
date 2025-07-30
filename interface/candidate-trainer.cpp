@@ -178,7 +178,6 @@ KingAttackCandidate::KingAttackCandidate() {
 
 
 void KingAttackCandidate::scaleIndex(uint32_t index, double scale, bool noScale) {
-    uint32_t baseIndex = 0;
     uint32_t weightIndex = 0;
     if (index >= 0 && index <= 1) {
 		weightIndex = 0;
@@ -235,7 +234,6 @@ PawnShieldCandidate::PawnShieldCandidate() {
 }
 
 void PawnShieldCandidate::scaleIndex(uint32_t index, double scale, bool noScale) {
-    uint32_t baseIndex = 0;
     uint32_t weightIndex = 0;
     if (index >= 0 && index <= 7) {
         weightIndex = 0;
@@ -480,7 +478,6 @@ bool CandidateTrainer::shallTerminate() {
     const Candidate& c = getCurrentCandidate();
     if (c.isWorse() && c.numGames() > 1000) return true;
 	if (c.score() > c.getLastBestValue()) return c.numGames() >= c.maxGames;
-	auto numPoints = optimizer.numPoints();
     return c.numGames() >= c.maxGames;
 }
 

@@ -250,11 +250,8 @@ namespace QaplaTraining {
      */
     std::vector<SignatureEvalAdjuster::AdjustResult> SignatureEvalAdjuster::computeResultTable(int32_t minAdjust) {
         std::vector<AdjustResult> resultTable(PieceSignature::SIG_SIZE);
-        constexpr int MAX_DEVIATION = 30;		 // max. derivation in centipawn to check consistence
         constexpr int TRUST_THRESHOLD = 1000;    // full usage of resultn
         constexpr int MIN_RELIABLE_TOTAL = 100;  // no input, if below
-		constexpr int MIN_ADJUSTMENT = 5;	// minimum adjustment in centipawn
-		constexpr int MIN_REL_ADJUSTMENT_DIVIDER = 10; // minimum relative adjustment in centipawn
 		constexpr int MAX_EVAL_VALUE = 800; // max. eval value to check, larger values indicates endgame eval bonus functions
 		// PrintVectorStats(valTotal, valSum);
 		// std::vector<int> centipawnByWinProbability = ComputeCentipawnByWinProbability();

@@ -53,7 +53,6 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
  * @returns hash value and hash move or -MAX_VALUE, if no value found
  */
 std::tuple<value_t, value_t, uint32_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
-	bool cutoff = false;
 	uint32_t ttIndex = _tt->getEntryIndex(position.computeBoardHash());
 
 	if (ttIndex != TT::INVALID_INDEX) {

@@ -97,9 +97,7 @@ namespace ChessEval {
 			const value_t kingDistance = minDistance(kingSquare, position.getPieceBB(PAWN + COLOR));
 			const EvalValue propertyValue = EvalValue(0, kingDistance * DISTANCE_PENALTY);
 			if constexpr (STORE_DETAILS) {
-				const auto materialValue = 0;
 				const auto pstValue = PST::getValue(kingSquare, KING + COLOR);
-				const auto mobility = 0;
 				const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
 				details->push_back({ KING + COLOR, kingSquare, {}, "", property + pstValue });
 			}

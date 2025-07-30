@@ -188,7 +188,6 @@ namespace QaplaInterface {
 		uint64_t fiftyMovesRule = 0;
 		std::vector<std::string> startPositions;
 		std::vector<std::unique_ptr<WorkerThread>> workers;
-		std::array<int32_t, 1024> gameResults;
 		std::map<GameResult, uint32_t> gameStatistics;
 		std::mutex statsMutex;
 		std::mutex positionMutex;

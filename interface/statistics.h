@@ -147,7 +147,6 @@ namespace QaplaInterface {
 		bool _computerIsWhite;
 		std::vector<std::string> _startPositions;
 		std::vector<ChessGame> _games;
-		ISendSearchInfo* _sendSearchInfo;
 		SelfPlayManager epdTasks;
 	};
 

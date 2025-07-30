@@ -465,7 +465,6 @@ namespace QaplaSearch {
 			MoveList moveList;
 			Move foundMove;
 
-			uint16_t moveNoFound = 0;
 			position.genMovesOfMovingColor(moveList);
 			const bool whiteToMove = position.isWhiteToMove();
 			Piece promotePiece = charToPiece(whiteToMove ? toupper(promotePieceChar) : tolower(promotePieceChar));

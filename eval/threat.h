@@ -68,11 +68,11 @@ namespace ChessEval {
 			const bitBoard_t minorOrRookAttack = minorAttack | result.rookAttack[COLOR];
 
 			const bitBoard_t threats =
-				position.pawnAttack[COLOR] & opponentPieces
-				| nonProtectedPieces & position.attackMask[COLOR]
-				| position.getPieceBB(OPPONENT + ROOK) & minorAttack
-				| position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack
-				| position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR];
+				(position.pawnAttack[COLOR] & opponentPieces)
+				| (nonProtectedPieces & position.attackMask[COLOR])
+				| (position.getPieceBB(OPPONENT + ROOK) & minorAttack)
+				| (position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack)
+				| (position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR]);
 
 			value_t threatAmout = popCountForSparcelyPopulatedBitBoards(threats);
 			if (threatAmout > 10) {

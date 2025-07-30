@@ -117,10 +117,7 @@ namespace ChessEval {
 			uint32_t rookOnRow7Index, Square rookSquare)
 		{
 			uint32_t rookIndex = 0;
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			const bitBoard_t ourPawnBB = position.getPieceBB(PAWN + COLOR);
-			const bitBoard_t theirPawnBB = position.getPieceBB(PAWN + OPPONENT);
-			const Square rank8Destination = (COLOR == WHITE ? A8 : A1) + Square(getFile(rookSquare));
 			const bitBoard_t moveRay = BitBoardMasks::fileBB[int(getFile(rookSquare))];
 			rookIndex += isOnOpenFile(results.pawnsBB, moveRay) * OPEN_FILE;
 			rookIndex += isOnHalfOpenFile(ourPawnBB, moveRay) * HALF_OPEN_FILE;

@@ -37,7 +37,7 @@ using namespace QaplaMoveGenerator;
 
 struct Signatures {
 	Signatures(Signatures* lastSignature, Board& position) 
-		: lastPly(lastSignature), hashSignature(position.computeBoardHash()) {}
+		: hashSignature(position.computeBoardHash()), lastPly(lastSignature) {}
 	QaplaBasics::hash_t hashSignature;
 	Signatures* lastPly;
 

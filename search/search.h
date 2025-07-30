@@ -183,7 +183,6 @@ namespace QaplaSearch {
 
 	private:
 		Quiescence _quiescence;
-		Eval eval;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
 		// RootMoves _rootMoves;

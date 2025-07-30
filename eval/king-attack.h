@@ -144,7 +144,6 @@ namespace ChessEval {
 		template <Piece COLOR, bool STORE_DETAILS>
 		inline static value_t computeAttackValue(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			Square kingSquare = position.getKingSquare<COLOR>();
-			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
 			const Piece OPPONENT = opponentColor<COLOR>();
 			bitBoard_t attackArea = _kingAttackBB[COLOR][kingSquare];
 
@@ -182,7 +181,6 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		inline static void computeAttacks(const MoveGenerator& position, EvalResults& results) {
-			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t pawnAttack = position.pawnAttack[COLOR];
 			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & pawnAttack;
 			results.piecesAttack[COLOR] |= pawnAttack;

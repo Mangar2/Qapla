@@ -256,7 +256,6 @@ void Board::undoMove(Move move, BoardState recentBoardState) {
 	Square departure = move.getDeparture();
 	Square destination = move.getDestination();
 	Piece capture = move.getCapture();
-	static uint64_t amount = 0;
 	if (move.getAction() != 0) {
 		undoMoveSpecialities(move);
 	} 
