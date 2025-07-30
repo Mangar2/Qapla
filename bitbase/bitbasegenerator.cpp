@@ -460,7 +460,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 {
 	MoveGenerator position;
 	vector<uint64_t> candidates;
-	uint64_t sizeInBit = state.getSizeInBit();
+	[[maybe_unused]] uint64_t sizeInBit = state.getSizeInBit();
 
 	uint64_t packageSize = min(static_cast<uint64_t>(50000), (state.getSizeInBit() + 5) / 5);
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
@@ -493,7 +493,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 		}
 		if (state.setCandidatesTreadSafe(candidates, false))
 		{
-			for (uint64_t index : candidates) {
+			for ([[maybe_unused]] uint64_t index : candidates) {
 				assert(index < sizeInBit);
 			}
 			candidates.clear();
@@ -501,7 +501,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
 	}
 	state.setCandidatesTreadSafe(candidates);
-	for (uint64_t index : candidates) {
+	for ([[maybe_unused]] uint64_t index : candidates) {
 		assert(index < sizeInBit);
 	}
 }
