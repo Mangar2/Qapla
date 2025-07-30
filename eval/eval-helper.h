@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2024 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2024 Volker BÃ¶hm
  * @Overview
  * Implements helper functions for eval
  */

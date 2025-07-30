@@ -13,20 +13,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements piece square table for static evaluation for the piece placement
  */
 
-#ifndef __PST_H
-#define __PST_H
+#pragma once
 
 #include <vector>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
 
 namespace QaplaBasics {
+
 	class PST
 	{
 	public:
@@ -115,4 +115,4 @@ namespace QaplaBasics {
 	};
 }
 
-#endif  // __PST_H
+

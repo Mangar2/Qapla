@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a UCI - Interface
  */
@@ -52,7 +52,7 @@ void Optimizer::updateEstimates(double radius)
         double sumWeights = 0.0;
         double sumValues = 0.0;
 
-        // Wir bilden ein gewichtetes Mittel über alle Punkte
+        // Wir bilden ein gewichtetes Mittel Ã¼ber alle Punkte
         for (const auto& nbr : points) {
             double dist = std::fabs(center.x - nbr.x);
             // Gewicht z.B. exponentiell abnehmend

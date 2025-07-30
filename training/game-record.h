@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a Winboard - Interface
  */
@@ -200,8 +200,8 @@ namespace QaplaTraining {
         /**
          * Encodes a move string into 13 bits:
          * - Bit 12: promotion flag (1 if promotion to queen, 0 otherwise)
-         * - Bits 11–6: from-square (0–63)
-         * - Bits 5–0:  to-square   (0–63)
+         * - Bits 11ï¿½6: from-square (0ï¿½63)
+         * - Bits 5ï¿½0:  to-square   (0ï¿½63)
          *
          * Only queen promotions are allowed. Underpromotions are rejected.
          *
