@@ -267,13 +267,19 @@ namespace QaplaInterface {
 			if (_clock.getExactTimePerMoveInMilliseconds() == 0) {
 				return;
 			}
+			//if (_clock.)
 			constexpr uint64_t EXPECTED_DELAY = 2;
 			const uint64_t elapsed = info.elapsedTimeInMilliseconds;
 			const uint64_t target = _clock.getExactTimePerMoveInMilliseconds() - EXPECTED_DELAY;
 			if (elapsed >= target) {
 				return;
 			}
-			std::this_thread::sleep_for(std::chrono::milliseconds(target - elapsed));
+			std::unique_lock<std::mutex> lock(_protectWorkerAccess);
+			_protectSearchTermination.wait_for(
+				lock,
+				std::chrono::milliseconds(target - elapsed),
+				[this] { return _isStopped; }
+			);
 		}
 
 		/**
@@ -283,6 +289,11 @@ namespace QaplaInterface {
 			_computeThread.waitForTaskCompletion();
 		}
 
+		void startCompute() {
+			const lock_guard<mutex> lock(_protectWorkerAccess);
+			_isStopped = false;
+		}
+
 		/**
 		 * Stop current computing
 		 */
@@ -290,6 +301,7 @@ namespace QaplaInterface {
 			{
 				const lock_guard<mutex> lock(_protectWorkerAccess);
 				_isInfiniteSearch = false;
+				_isStopped = true;
 				_board->moveNow();
 				_protectSearchTermination.notify_one();
 			}
@@ -333,7 +345,8 @@ namespace QaplaInterface {
 		IInputOutput* _ioHandler;
 		condition_variable _protectSearchTermination;
 		mutex _protectWorkerAccess;
-		bool _isInfiniteSearch;
+		bool _isInfiniteSearch = false;
+		bool _isStopped = false;
 		WorkerThread _computeThread;
 	
 	protected:

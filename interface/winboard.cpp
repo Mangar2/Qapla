@@ -144,6 +144,7 @@ void Winboard::computeMove() {
 		_clock.setSearchMode();
 		setInfiniteSearch(false);
 		getBoard()->setClock(_clock);
+		startCompute();
 		getWorkerThread().startTask([this]() {
 			getBoard()->computeMove();
 			_mode = Mode::WAIT;

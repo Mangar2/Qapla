@@ -187,7 +187,7 @@ namespace QaplaBitbase {
             std::vector<bbt_t> data = BitbaseFile::readAll(_filePath.string(), _sizeInBits, _clusterSizeBytes, _offsets, decompressFn);
 
             _bitbase = std::move(data);
-            _loaded = true;
+            setLoaded();
 
             return { true, "" };
         }
@@ -283,7 +283,7 @@ namespace QaplaBitbase {
 
         _bitbase.resize(expectedSize);
         std::memcpy(_bitbase.data(), decompressed.data(), decompressed.size());
-        _loaded = true;
+        setLoaded();
 
         if (verbose) {
             cout << "Bitbase loaded from embedded data, sizeInBit = " << _sizeInBits << endl;
