@@ -27,6 +27,24 @@
 
 using namespace QaplaSearch;
 
+#include <pthread.h>
+#include <iostream>
+
+void printStackInfo(const char* msg) {
+    pthread_t self = pthread_self();
+
+    void* base   = pthread_get_stackaddr_np(self);   // oberes Ende des Stacks
+    size_t size  = pthread_get_stacksize_np(self);   // maximale Größe
+
+    void* sp     = __builtin_frame_address(0);       // aktueller Stackpointer
+    std::ptrdiff_t used = (char*)base - (char*)sp;   // Stack wächst abwärts
+
+    std::cout << msg
+              << " stack base=" << base
+              << " size=" << size/1024 << " KB"
+              << " used≈" << used/1024 << " KB\n";
+}
+
 bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& node) {
 	return false;
 	// We only look into the bitbases, if we had a capture or a promote. This avoids "non-searching" on
@@ -472,7 +490,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	node.computeMoves(position, _butterflyBoard);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
-
+    //printStackInfo("stack size: ");
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::Engine::set_position(position.getFen());
 #endif
