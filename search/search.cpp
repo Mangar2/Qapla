@@ -27,10 +27,13 @@
 
 using namespace QaplaSearch;
 
+#ifdef __APPLE__
 #include <pthread.h>
+#endif
 #include <iostream>
 
 void printStackInfo(const char* msg) {
+#ifdef __APPLE__
     pthread_t self = pthread_self();
 
     void* base   = pthread_get_stackaddr_np(self);   // oberes Ende des Stacks
@@ -43,6 +46,10 @@ void printStackInfo(const char* msg) {
               << " stack base=" << base
               << " size=" << size/1024 << " KB"
               << " used≈" << used/1024 << " KB\n";
+#else
+    // Stack info not implemented on this platform
+    (void)msg;
+#endif
 }
 
 bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& node) {
