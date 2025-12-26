@@ -52,6 +52,12 @@ namespace QaplaSearch {
 		~SearchStack() {
 		}
 
+		void clear() {
+			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
+				_stack[ply].clearMoveProvider();
+			}
+		}
+
 		inline const SearchVariables& operator[](uint32_t index) const { return *searchVariablePtr[index]; }
 		inline  SearchVariables& operator[](uint32_t index) { return *searchVariablePtr[index]; }
 		TT* getTT() const { return ttPtr; }

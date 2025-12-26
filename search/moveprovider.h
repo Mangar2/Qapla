@@ -91,6 +91,14 @@ namespace QaplaSearch {
 		}
 
 		/**
+	 	 * Clears the killer moves
+	  	 */
+		void clear() {
+			killerMove.clear();
+			pvMove.setEmpty();
+		}
+
+		/**
 		 * Sets the PV move
 		 */
 		void setPVMove(Move move) {

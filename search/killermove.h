@@ -70,6 +70,16 @@ namespace QaplaSearch {
 			return captureKiller;
 		}
 
+		/**
+		 * Clears all killer moves
+		 */
+		void clear() {
+			for (auto& killer : _killer) {
+				killer.setEmpty();
+			}
+			captureKiller.setEmpty();
+		}
+
 	private:
 		static const uint32_t MAX_KILLER_PER_PLY = 2;
 		array<Move, MAX_KILLER_PER_PLY> _killer;

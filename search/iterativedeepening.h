@@ -138,11 +138,13 @@ namespace QaplaSearch {
 			}
 
 			auto stack = std::make_unique<SearchStack>(&_tt);
-
+			
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, _tt);
 
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
+				// auto stack = std::make_unique<SearchStack>(&_tt);
+				stack->clear();
 				searchOneIteration(searchBoard, *stack, curDepth);
 				_clockManager.setSearchResult(curDepth, _search->getComputingInfo().getPVMoveValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth(curDepth)) {

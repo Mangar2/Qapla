@@ -70,6 +70,11 @@ namespace QaplaSearch {
 			moveProvider.setPVMove(pvMove);
 		}
 
+		void clearMoveProvider() {
+			moveProvider.clear();
+			//moveProvider = MoveProvider();
+		}
+
 		/**
 		 * @returns true, if the current search is a PV search
 		 */
