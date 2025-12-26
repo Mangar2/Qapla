@@ -36,29 +36,29 @@ LDFLAGS_THREAD  :=
 # Build-type flags (including runtime library selection)
 ifeq ($(BUILD_TYPE),Debug)
   # Debug: use debug runtime library (-MTd) and debug flags
-  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MTd -EHsc
-  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MTd
+  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MTd -EHsc /clang:-MMD /clang:-MP 
+  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MTd /clang:-MMD /clang:-MP 
   CXXFLAGS_BT   := -D_DEBUG -Od -Zi -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2
   CFLAGS_BT     := -D_DEBUG -Od -Zi
   LDFLAGS_PLAT  := -MTd -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 else ifeq ($(BUILD_TYPE),WhatifRelease)
   # Release: use release runtime library (-MT)
-  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc
-  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT
+  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP 
+  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP 
   CXXFLAGS_BT   := -DNDEBUG -DWHATIF_RELEASE -O2 -arch:AVX2
   CFLAGS_BT     := -DNDEBUG -DWHATIF_RELEASE -O2
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 else ifeq ($(BUILD_TYPE),Release_NO_POPCOUNT)
   # Release: use release runtime library (-MT)
-  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc
-  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT
+  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP 
+  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP 
   CXXFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O2
   CFLAGS_BT     := -DNDEBUG -D__OLD_HW__ -O2
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 else # Release
   # Release: use release runtime library (-MT)
-  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc
-  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT
+  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP 
+  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP 
   CXXFLAGS_BT   := -DNDEBUG -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2
   CFLAGS_BT     := -DNDEBUG -O2 -Oi -Ot -flto
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
@@ -151,12 +151,12 @@ $(EXE): $(OBJ) | $(BUILD_DIR)
 
 $(BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) /clang:-MF$@.d -c $< -o $@
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $< -o $@
-
+	$(CC) $(CFLAGS) /clang:-MF$@.d -c $< -o $@
+  
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
