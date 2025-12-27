@@ -253,7 +253,7 @@ namespace QaplaSearch {
 		 * Examine, if we can do a futility pruning based on an evaluation score
 		 */
 		inline bool forewardFutility(MoveGenerator& position) {
-			if (SearchParameter::DO_FUTILITY_DEPTH <= remainingDepth) return false;
+			if (SearchParameter::FOREWARD_FUTILITY_DEPTH <= remainingDepth) return false;
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
 			if (adjustedEval < beta) return false;
 			// We do not prune in PV nodes. 
@@ -266,11 +266,33 @@ namespace QaplaSearch {
 			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
 			if (alpha > MIN_MATE_VALUE) return false;
 
-			const bool doFutility = adjustedEval - SearchParameter::futilityMargin(remainingDepth, isImproving) >= beta;
+			const bool doFutility = adjustedEval - SearchParameter::forewardFutilityMargin(remainingDepth, isImproving) >= beta;
 			if (doFutility) {
 				bestValue = beta + (adjustedEval - beta) / 2;
 			}
 			return doFutility;
+		}
+
+		/**
+		 * Check if a quiet move can be pruned via futility pruning (in move loop)
+		 * Futility pruning predicts that forward futility will prune after this move
+		 * 
+		 * @param move The move to check (must be quiet, no capture/promotion/check)
+		 * @param capturedPieceValue Value of captured piece (should be 0 for quiet moves)
+		 * @return true if move should be pruned
+		 */
+		inline bool canPruneFutility(const Move& move, value_t capturedPieceValue) {
+			// Only at low depths (more conservative than forward futility)
+			if (SearchParameter::FUTILITY_DEPTH <= remainingDepth) return false;
+			// Only after trying some moves first
+			if (moveNumber < SearchParameter::FUTILITY_PRUNING_MIN_MOVE_NUMBER) return false;
+			
+			// Predict forward futility will prune: eval + moveValue + margin < alpha
+			// More conservative margin because opponent will improve position
+			const value_t margin = SearchParameter::futilityMargin(remainingDepth);
+			const bool canPrune = adjustedEval + capturedPieceValue + margin < alpha;
+			
+			return canPrune;
 		}
 
 		/**
