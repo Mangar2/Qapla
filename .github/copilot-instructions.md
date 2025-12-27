@@ -1,5 +1,7 @@
 # Qapla Chess Engine - AI Coding Guidelines
 
+Never mention changes to copilot-instructions.md in the checkin messages.
+
 ### Response Discipline
 - Answer the specific question asked
 - When evaluating ("Does this work?", "Is this clear?"), provide only your assessment
@@ -7,9 +9,9 @@
 
 ### Check in a new test version
 When I ask you to "check in a new test version", follow these steps:
-- Check in the current changes to git
+- First add a version info to version.md with date and brief description of changes
+- Check in the current changes to git, please use one command `git commit -a -m "Description of changes"`
 - Create a new tag with incremented test number to the current patch version (e.g., 0.4.0-005 → 0.4.0-006)
-- Add a version info to version.md with date and brief description of changes
 
 ## Project Overview
 Qapla is a UCI/WinBoard chess engine written in C++20, featuring bitboard-based move generation, alpha-beta search with transposition tables, and both classical evaluation and optional NNUE (neural network) evaluation. Target strength: ~2850 CCRL Elo.
