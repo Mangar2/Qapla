@@ -1,5 +1,12 @@
 # Qapla Test Versions
 
+## 0.4.015 2025-12-27
+
+- Added futility pruning in main search loop
+- Optimized common calculations (isCheckingMove, LMR) to avoid redundant computation
+- Added automated testing workflow with compare-wmtest.ps1 script
+- Versions 0.4.006 to 0.4.014: Code cleanup and refactoring (not documented individually)
+
 ## 0.4 005 2025-05-19
 
 - Replacement strategy refactored

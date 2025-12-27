@@ -52,6 +52,32 @@ void printStackInfo(const char* msg) {
 #endif
 }
 
+template <Search::SearchRegion TYPE>
+bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
+	const auto evalBefore = ply > 1 ? stack[ply - 2].adjustedEval : NO_VALUE;
+	if (position.isInCheck()) {
+		node.adjustedEval = evalBefore;
+		return false;
+	}
+	if (node.adjustedEval == NO_VALUE) {
+		if (node.eval == NO_VALUE) {
+			node.eval = Eval::eval(position, node.getTT()->getPawnTT());
+		}
+		node.adjustedEval = node.eval;
+		node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
+	}
+	// Must be after node.probeTT, because futility uses the information from TT
+	if (node.forewardFutility(position)) {
+		node.setCutoff(Cutoff::FUTILITY);
+		return true;
+	} 
+	if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, depth, ply)) {
+		node.setCutoff(Cutoff::NULL_MOVE);
+		return true;
+	}
+	return false;
+}
+
 bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& node) {
 	return false;
 	// We only look into the bitbases, if we had a capture or a promote. This avoids "non-searching" on
@@ -177,8 +203,6 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 
 	if (ply <= 1) return 0;
 	if (move.isCapture()) return 0;
-	if (moveNo <= 3) return 0;
-	if (node.isCheckMove(position, move)) return 0;
 	ply_t moveCountLmr = std::clamp(moveNo <= 7 ? 16 + (moveNo - 3) * 16 / 4 : 32 + (moveNo - 7) / 2, 16, 3 * 16);
 	ply_t moveCountDepth = std::clamp(16 + (depth - 3) * 2, 16, 3 * 16);
 	ply_t lmr = moveCountLmr * moveCountDepth / 256;
@@ -270,7 +294,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
-	if (checkCutoffAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, seDepth, ply)) return 0;
+	if (checkEvalReleatedCutoffsAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, seDepth, ply)) return 0;
 
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
@@ -389,7 +413,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 	// 7. Check all kind of early cutoffs including futility, nullmove, bitbase and others 
 	// Additionally set eval. This is done as late as possible, as it is very time consuming. Some cutoff checks needs eval.
-	if (checkCutoffAndSetEval<TYPE>(position, stack, node, depth, ply)) {
+	if (checkEvalReleatedCutoffsAndSetEval<TYPE>(position, stack, node, depth, ply)) {
 		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
 		return node.bestValue;
 	}
@@ -401,14 +425,27 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
-		const auto lmr = computeLMR(node, position, depth, ply, curMove);
+		bool doMovePrunings = node.moveNumber > 3 && !node.isCheckMove(position, curMove);
+		// lmr is needed for move count pruning and late move reduction search
+		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
+		// Never skip moves when escaping from mate and in positions with pawns only.
+		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
+			
+			// 1. Futility pruning: skip quiet moves in late move loop when position is too bad
+			const value_t capturedPieceValue = position.getPieceValueForMoveSorting(curMove.getCapture());
+			if (node.canPruneFutility(curMove, capturedPieceValue)) {
+				continue;
+			}
 
-		// 1. Move count pruning
-		if (lmr > 0 && depth - lmr < 0 && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) continue;
+			// 2. Move count pruning
+			if (lmr > 0 && depth - lmr < 0) {
+				continue;
+			}
+		}
 
 		childNode.doMove(position, curMove);
 
-		// 2. Late move reduction search
+		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
 			result = TYPE != SearchRegion::NEAR_LEAF && depth - lmr > 2 ?
@@ -426,7 +463,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 			// searching modifies the attack masks. But they are required for the next move generation
 			position.computeAttackMasksForBothColors();
 		}
-		// 3. Searching with null window either because of non pv search or because it is not the first move in pv.
+		// 4. Searching with null window either because of non pv search or because it is not the first move in pv.
 		// Additionally we do not go to null window search on PV, if depth is 1 or 0
 		// We do not return fail high from a null window search in PV node
 		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.moveNumber == 1 || depth <= 1);
@@ -436,7 +473,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
 		}
-		// 4. Full window PV search or research the move with full window, if result is better than alpha
+		// 5. Full window PV search or research the move with full window, if result is better than alpha
 		if (TYPE == SearchRegion::PV && (isDirectPVWindowSearch || result > node.alpha)) {
 			const ply_t adjustedDepth = depth <= 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : depth;
 			if (!isDirectPVWindowSearch) {
@@ -451,7 +488,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		childNode.undoMove(position);
 		if (node.isFailHigh()) break;
 	}
-	// 5. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
+	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, TYPE == SearchRegion::PV, depth);
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF) {

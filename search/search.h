@@ -115,34 +115,31 @@ namespace QaplaSearch {
 		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-		 * Check for cutoffs
+		 * @brief Checks evaluation-related cutoffs and initializes node evaluation values
+		 * 
+		 * Evaluates the current position and tests for pruning opportunities based on static evaluation.
+		 * Handles special cases like check positions and computes the "improving" flag by comparing
+		 * to the evaluation two plies earlier.
+		 * Cutoff tests:
+		 * - futility pruning for non-check positions
+		 * - null move pruning (if applicable)
+		 * 
+		 * @template TYPE The search region (INNER, NEAR_LEAF, PV) - null move pruning only in INNER
+		 * @param position Current board position to evaluate
+		 * @param stack Search stack containing evaluation history
+		 * @param node Current search node variables (eval, adjustedEval, isImproving)
+		 * @param depth Remaining search depth
+		 * @param ply Current distance from root (0 at root)
+		 * 
+		 * @return true if a cutoff occurred (futility pruning or null move), false otherwise
+		 * 
+		 * @note In check positions, evaluation is set to previous ply's eval and no cutoffs occur
+		 * @note Forward futility pruning is attempted after TT probe (requires TT information)
+		 * @note Null move cutoff is only attempted when TYPE == SearchRegion::INNER
+		 * @note Sets node.adjustedEval, node.eval, and node.isImproving as side effects
 		 */
 		template <SearchRegion TYPE>
-		bool checkCutoffAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply) {
-			const auto evalBefore = ply > 1 ? stack[ply - 2].adjustedEval : NO_VALUE;
-			if (position.isInCheck()) {
-				node.adjustedEval = evalBefore;
-				return false;
-			}
-			if (node.adjustedEval == NO_VALUE) {
-				if (node.eval == NO_VALUE) {
-					node.eval = Eval::eval(position, node.getTT()->getPawnTT());
-				}
-				node.adjustedEval = node.eval;
-				node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
-			}
-			// Must be after node.probeTT, because futility uses the information from TT
-			if (node.forewardFutility(position)) {
-				node.setCutoff(Cutoff::FUTILITY);
-				return true;
-			} 
-			if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, depth, ply)) {
-				node.setCutoff(Cutoff::NULL_MOVE);
-				return true;
-			}
-			return false;
-		}
-
+		bool checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply);
 
 		void iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
