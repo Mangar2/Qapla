@@ -1,5 +1,16 @@
 # Qapla Chess Engine - AI Coding Guidelines
 
+### Response Discipline
+- Answer the specific question asked
+- When evaluating ("Does this work?", "Is this clear?"), provide only your assessment
+- Do NOT propose or implement changes unless explicitly requested
+
+### Check in a new test version
+When I ask you to "check in a new test version", follow these steps:
+- Check in the current changes to git
+- Create a new tag with incremented test number to the current patch version (e.g., 0.4.0-005 → 0.4.0-006)
+- Add a version info to version.md with date and brief description of changes
+
 ## Project Overview
 Qapla is a UCI/WinBoard chess engine written in C++20, featuring bitboard-based move generation, alpha-beta search with transposition tables, and both classical evaluation and optional NNUE (neural network) evaluation. Target strength: ~2850 CCRL Elo.
 
@@ -190,6 +201,18 @@ The `compare-wmtest.ps1` script automatically:
 - `value_t` (int32_t): Centipawn units (100 = 1 pawn)
 - `EvalValue`: Midgame/endgame tapered pair (see [evalvalue.h](basics/evalvalue.h))
 - Position eval always from white's perspective; negated for black to move
+
+### Piece Values
+ The position has a method to get piece values, a complexe method with two values (midgame and endgame) and 
+ a simple method to get the traditional single value used for move ordering. 
+- `getPieceValueForEval(piece_t piece)`: Returns `EvalValue` (midgame/endgame)
+- `getPieceValueForMoveSorting(piece_t piece)`: Returns single `value_t`
+Important:
+Calculating gains/material changes from a move → use absolute values (use `getPieceType()` to extract piece type) to calculate absolute values do not use Math.abs().
+Evaluating positions (who's winning) → keep signed values
+
+### Move gain
+If we calculate a move gain we need to consider both the captured piece and the promoted piece (if any).
 
 ### Search Conventions
 - Alpha-beta bounds: `[-MAX_VALUE, +MAX_VALUE]`

@@ -432,8 +432,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
 			
 			// 1. Futility pruning: skip quiet moves in late move loop when position is too bad
-			const value_t capturedPieceValue = position.getPieceValueForMoveSorting(curMove.getCapture());
-			if (node.canPruneFutility(curMove, capturedPieceValue)) {
+			if (node.canPruneFutility(position, curMove)) {
 				continue;
 			}
 
