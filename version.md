@@ -1,5 +1,11 @@
 # Qapla Test Versions
 
+## 0.4.016 2025-12-27
+
+- Fixed bug in futility pruning: now correctly uses absolute piece values for black pieces
+- Added promotion value consideration in futility pruning gain calculation
+- Enhanced copilot-instructions.md with Response Discipline guidelines
+
 ## 0.4.015 2025-12-27
 
 - Added futility pruning in main search loop

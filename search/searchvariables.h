@@ -277,11 +277,11 @@ namespace QaplaSearch {
 		 * Check if a quiet move can be pruned via futility pruning (in move loop)
 		 * Futility pruning predicts that forward futility will prune after this move
 		 * 
+		 * @param position The current position
 		 * @param move The move to check (must be quiet, no capture/promotion/check)
-		 * @param capturedPieceValue Value of captured piece (should be 0 for quiet moves)
 		 * @return true if move should be pruned
 		 */
-		inline bool canPruneFutility(const Move& move, value_t capturedPieceValue) {
+		inline bool canPruneFutility(MoveGenerator& position, const Move& move) {
 			// Only at low depths (more conservative than forward futility)
 			if (SearchParameter::FUTILITY_DEPTH <= remainingDepth) return false;
 			// Only after trying some moves first
@@ -290,7 +290,13 @@ namespace QaplaSearch {
 			// Predict forward futility will prune: eval + moveValue + margin < alpha
 			// More conservative margin because opponent will improve position
 			const value_t margin = SearchParameter::futilityMargin(remainingDepth);
-			const bool canPrune = adjustedEval + capturedPieceValue + margin < alpha;
+			const value_t capturedPieceValue = position.getPieceValueForMoveSorting(
+				getPieceType(move.getCapture())
+			);
+			const value_t promotedPieceValue = position.getPieceValueForMoveSorting(
+				getPieceType(move.getPromotion())
+			);
+			const bool canPrune = adjustedEval + capturedPieceValue + promotedPieceValue + margin < alpha;
 			
 			return canPrune;
 		}
