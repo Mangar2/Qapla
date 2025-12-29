@@ -4,6 +4,7 @@
 
 - Added stack->clear() in iterative deepening loop for consistent state
 - Made futility margins tunable via command line parameters (ffut, fut)
+- Set standard futility factors to 75cp per depth for ffut and fut
 - Added isImproving parameter to futility margin calculations
 
 ## 0.4.016 2025-12-27
