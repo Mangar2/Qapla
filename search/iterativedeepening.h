@@ -144,7 +144,7 @@ namespace QaplaSearch {
 
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
 				// auto stack = std::make_unique<SearchStack>(&_tt);
-				// stack->clear();
+				stack->clear();
 				searchOneIteration(searchBoard, *stack, curDepth);
 				_clockManager.setSearchResult(curDepth, _search->getComputingInfo().getPVMoveValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth(curDepth)) {

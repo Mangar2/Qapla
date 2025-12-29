@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -289,7 +289,7 @@ namespace QaplaSearch {
 			
 			// Predict forward futility will prune: eval + moveValue + margin < alpha
 			// More conservative margin because opponent will improve position
-			const value_t margin = SearchParameter::futilityMargin(remainingDepth);
+			const value_t margin = SearchParameter::futilityMargin(remainingDepth, isImproving);
 			const value_t capturedPieceValue = position.getPieceValueForMoveSorting(
 				getPieceType(move.getCapture())
 			);
