@@ -69,6 +69,9 @@ CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT)
 CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
 
+# Dependency file flag (target-specific)
+DEPFILE_FLAG = /clang:-MF$@.d
+
 # ============================================================================
 # UNIX/LINUX/MACOS SECTION
 # ============================================================================
@@ -112,14 +115,14 @@ ifeq ($(BUILD_TYPE),Debug)
   CFLAGS_BT   := -D_DEBUG -g -O0 -fno-omit-frame-pointer \
                  -fdebug-compilation-dir=$(PROJECT_ROOT)
 else ifeq ($(BUILD_TYPE),WhatifRelease)
-  CXXFLAGS_BT := -DNDEBUG -DWHATIF_RELEASE -O3 -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -DWHATIF_RELEASE -O3 -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64 -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64 -funroll-loops
 else ifeq ($(BUILD_TYPE),Release_NO_POPCOUNT)
-  CXXFLAGS_BT := -DNDEBUG -D__OLD_HW__ -O3 -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O3 -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops
 else # Release
-  CXXFLAGS_BT := -DNDEBUG -O3 -flto -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -O3 -flto -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -O3 -flto -march=x86-64-v2 -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -O3 -flto -march=x86-64-v2 -funroll-loops
 endif
 
 # Platform-specific link flags
@@ -128,13 +131,16 @@ ifeq ($(UNAME_S),Darwin)
   LDFLAGS_PLAT := -static-libgcc -static-libstdc++
 else
   # Linux: static linking to avoid runtime dependencies
-  LDFLAGS_PLAT := -Wl,--gc-sections -flto -static -static-libgcc -static-libstdc++
+  LDFLAGS_PLAT := -Wl,--gc-sections -flto -fuse-ld=lld -static -static-libgcc -static-libstdc++
 endif
 
 # Final flags
 CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT)
 CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
+
+# Dependency file flag (target-specific)
+DEPFILE_FLAG = -MF$@.d
 
 endif
 # ============================================================================
@@ -151,11 +157,11 @@ $(EXE): $(OBJ) | $(BUILD_DIR)
 
 $(BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) /clang:-MF$@.d -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFILE_FLAG) -c $< -o $@
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) /clang:-MF$@.d -c $< -o $@
+	$(CC) $(CFLAGS) $(DEPFILE_FLAG) -c $< -o $@
   
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
