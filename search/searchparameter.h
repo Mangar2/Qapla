@@ -150,16 +150,18 @@ namespace QaplaSearch {
 		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;
 		static value_t cmdLineParam[10];
 		static value_t forewardFutilityMargin(ply_t depth, bool isImproving) {
-			// const auto improvingReduction = getParameter("rf", 0);
-			return 100 * (depth + 1) - 100 * isImproving;
+			const auto forewardFutilityFactor = getParameter("ffut", 75);
+			return forewardFutilityFactor * (depth + 1) - 100 * isImproving;
 		}
 
 		// Futility Pruning (in move loop) - predicts forward futility will prune
 		static const ply_t FUTILITY_DEPTH = 7;
 		static const uint32_t FUTILITY_PRUNING_MIN_MOVE_NUMBER = 3;
-		static value_t futilityMargin(ply_t depth) {
-			// More conservative than forward futility: opponent will improve position
-			return 150 * (depth + 1);
+		static value_t futilityMargin(ply_t depth, bool isImproving) {
+			// 1.6 100, 25: 50,9%, 50: 51,8%, 60: 51,1% 75: 51,6%
+			// 50 vs. 100: 50,9%, 50 vs. 75%: 50%
+			const auto futilityFactor = getParameter("fut", 75);
+			return futilityFactor * (depth + 1) + 100 * isImproving; 
 		}
 
 		static const bool DO_RAZORING = false;

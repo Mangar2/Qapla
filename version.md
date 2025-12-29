@@ -1,5 +1,11 @@
 # Qapla Test Versions
 
+## 0.4.017 2025-12-29
+
+- Added stack->clear() in iterative deepening loop for consistent state
+- Made futility margins tunable via command line parameters (ffut, fut)
+- Added isImproving parameter to futility margin calculations
+
 ## 0.4.016 2025-12-27
 
 - Fixed bug in futility pruning: now correctly uses absolute piece values for black pieces
