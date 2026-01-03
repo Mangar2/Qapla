@@ -145,6 +145,9 @@ namespace QaplaSearch {
 
 		ply_t se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
+		/**
+	 	 * @brief   
+		 */
 		ply_t computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move);
 
 		/**

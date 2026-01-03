@@ -33,24 +33,33 @@ namespace QaplaSearch {
 	class SearchParameter {
 	public:
 
+#define OPTIMIZING
+
+#ifdef OPTIMIZING
+		static int32_t getParameter(const std::string& key, int32_t defaultValue) {
+			auto it = parameters.find(key);
+			if (it == parameters.end()) {
+				return defaultValue;
+			}
+			return it->second;
+		}
+#else 
+		constexpr static int32_t getParameter(const std::string& key, int32_t defaultValue) {
+			return defaultValue;
+		}
+#endif
+
 		/**
 		 * Calculates the reduction by nullmove
 		 */
-#ifdef _OPTIMIZE
-		static uint32_t getNullmoveReduction(ply_t ply, int32_t depth, value_t beta, value_t staticEval) {
-			const uint32_t reduction = getParameter("rnm", 3);
-			const uint32_t depthRed = getParameter("dnm", 0);
-			return reduction + (depthRed > 0 ? depth / depthRed : 0);
-		}
-#else
 		constexpr static uint32_t getNullmoveReduction(
 			[[maybe_unused]]ply_t ply, 
 			[[maybe_unused]]int32_t depth, 
 			[[maybe_unused]]value_t beta, 
-			[[maybe_unused]]value_t staticEval) {
+			[[maybe_unused]]value_t staticEval,
+			[[maybe_unused]]bool isImproving) {
 			return 4;
 		}
-#endif
 
 		/**
 		 * Calculates the depth for nullmove verification searches
@@ -111,13 +120,7 @@ namespace QaplaSearch {
 			}
 		}
 
-		static int32_t getParameter(const std::string& key, int32_t defaultValue) {
-			auto it = parameters.find(key);
-			if (it == parameters.end()) {
-				return defaultValue;
-			}
-			return it->second;
-		}
+
 
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
@@ -130,7 +133,7 @@ namespace QaplaSearch {
 		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
-		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50;
+		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50; // 100: 49%, 35:50,3%, 40:49,3%
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
@@ -163,10 +166,6 @@ namespace QaplaSearch {
 			const auto futilityFactor = getParameter("fut", 75);
 			return futilityFactor * (depth + 1) + 100 * isImproving; 
 		}
-
-		static const bool DO_RAZORING = false;
-		static const ply_t RAZORING_DEPTH = 3;
-		static constexpr value_t RAZORING_MARGIN[RAZORING_DEPTH + 1] = { 200, 250, 300, 400 };
 
 		static const Rank PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK = Rank::R7;
 		static const Rank PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK = Rank::R2;

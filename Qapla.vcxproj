@@ -1877,6 +1877,7 @@
     <ClCompile Include="bitbase\reverseindex.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
+    <ClCompile Include="eval\king-attack.cpp" />
     <ClCompile Include="eval\pawn.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
@@ -1886,6 +1887,7 @@
     <ClCompile Include="interface\self-play-manager.cpp" />
     <ClCompile Include="interface\statistics.cpp" />
     <ClCompile Include="interface\stdtimecontrol.cpp" />
+    <ClCompile Include="interface\uci.cpp" />
     <ClCompile Include="interface\winboard.cpp" />
     <ClCompile Include="movegenerator\bitboardmasks.cpp" />
     <ClCompile Include="movegenerator\magics.cpp" />
@@ -1967,6 +1969,7 @@
     <ClInclude Include="interface\self-play-manager.h" />
     <ClInclude Include="interface\statistics.h" />
     <ClInclude Include="interface\stdtimecontrol.h" />
+    <ClInclude Include="interface\uci-parameter-provider.h" />
     <ClInclude Include="interface\uci.h" />
     <ClInclude Include="interface\uciprintsearchinfo.h" />
     <ClInclude Include="interface\winboard.h" />

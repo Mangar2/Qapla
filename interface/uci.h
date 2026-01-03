@@ -77,19 +77,7 @@ namespace QaplaInterface {
 		/**
 		 * Reply on an "UCI" command
 		 */
-		void uciCommand() {
-			_clock.setTimeBetweenInfoInMilliseconds(1000);
-			println("id name " + getBoard()->getEngineInfo()["name"]);
-			println("id author " + getBoard()->getEngineInfo()["author"]);
-			println("option name Hash type spin default 32 min 1 max 32000");
-			println("option name ponder type check");
-			println("option name MultiPV type spin default 1 min 1 max 40");
-			println("option name UCI_EngineAbout type string default " + getBoard()->getEngineInfo()["engine-about"]);
-			println("option name qaplaBitbasePath type string");
-			println("option name qaplaBitbaseCache type spin default 8 min 1 max 32000");
-			getBoard()->initialize();
-			println("uciok");
-		}
+		void uciCommand();
 
 		/**
 		 * Reads a fen -input
@@ -150,28 +138,7 @@ namespace QaplaInterface {
 		/**
 		 * Sets an UCI option
 		 */
-		void setOption() {
-			string name;
-			string value;
-
-			const string first = getNextTokenBlocking(true);
-			if (first != "name") {
-				// Invalid UCI command, ignore rest
-				getToEOLBlocking();
-				return;
-			}
-
-			name = getNextTokenBlocking(true);
-
-			const string next = getNextTokenBlocking(true);
-			if (next == "value") {
-				value = getToEOLBlocking();
-			}
-
-			if (!name.empty()) {
-				getBoard()->setOption(name, value);
-			}
-		}
+		void setOption();
 
 		/**
 		 * handles a uci go command
