@@ -159,6 +159,12 @@
     <ClCompile Include="bitbase\bitbase-file.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
+    <ClCompile Include="eval\king-attack.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
+    <ClCompile Include="interface\uci.cpp">
+      <Filter>interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tests\evalpawntest.h">
@@ -484,6 +490,9 @@
     </ClInclude>
     <ClInclude Include="bitbase\cluster-cache.h">
       <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="interface\uci-parameter-provider.h">
+      <Filter>interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

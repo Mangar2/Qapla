@@ -25,12 +25,16 @@
 
 #include <map>
 #include <algorithm>
+#include <iostream>
 #include "../basics/types.h"
 #include "../basics/square-table.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "evalendgame.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
+#include "../search/searchparameter.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -40,6 +44,14 @@ namespace ChessEval {
 	class KingAttack {
 
 	public:
+		// Forward declaration of UCI parameter handler
+		class UciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
 
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
@@ -65,14 +77,9 @@ namespace ChessEval {
 		static EvalValue eval(MoveGenerator& position, EvalResults& results) {
 			computeAttacks<WHITE>(position, results);
 			computeAttacks<BLACK>(position, results);
-			/*
-			if (position.getEvalVersion() == 1) {
-				auto result = computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
-				result += computePawnShieldValue<WHITE>(position, results) - computePawnShieldValue<BLACK>(position, results);
-				return result;
-			}
-			*/
-			return computeAttackValue<WHITE, false>(position, results, nullptr) - computeAttackValue<BLACK, false>(position, results, nullptr);
+
+			auto attackValue =  computeAttackValue<WHITE, false>(position, results, nullptr) - computeAttackValue<BLACK, false>(position, results, nullptr);
+			return attackValue;
 		}
 
 		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
@@ -162,12 +169,9 @@ namespace ChessEval {
 
 			attackIndex = std::min(MAX_WEIGHT_COUNT, attackIndex);
 			value_t attackValue = 0;
-			attackValue = attackWeight2[attackIndex];
+			attackValue = attackWeight[attackIndex];
 			attackValue = (attackValue * results.midgameInPercentV2) / 100;
 			
-			//uint32_t pawnShieldIndex = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			//attackValue += (pawnIndexFactor[pawnShieldIndex] * results.midgameInPercentV2) / 100;
-
 			if constexpr (STORE_DETAILS) {
 				const IndexVector indexVector{ { "kingAttack", attackIndex, COLOR } };
 				details->push_back({ KING + COLOR, kingSquare, indexVector, "a<" + std::to_string(attackIndex) + ">", COLOR == WHITE ? attackValue : -attackValue });
@@ -195,18 +199,37 @@ namespace ChessEval {
 		static constexpr uint32_t PRESSURE_MASK = 0x1F;
 		static constexpr uint32_t INDEX_SIZE = 0x40;
 
-		static struct InitStatics {
-			InitStatics();
-		} _staticConstructor;
+		// Default values for UCI parameters (scaled by 10 for integer UCI, range 0-1000)
+		static constexpr int32_t DEFAULT_KATTACK_LINEAR = 600;      
+		static constexpr int32_t DEFAULT_KATTACK_QUADRATIC = 800;   
+		static constexpr int32_t DEFAULT_KATTACK_ACTIVATION = 360;   
+		static constexpr int32_t DEFAULT_KATTACK_DAMPENING = 650;    
 
-		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
-		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900,
-		-900, -900, -900, -900, -900, -900, -900 };
-		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight2 =
-		{ 0,  0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
-		  -530, -560, -590, -620, -650, -680, -710 };
-		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
+		/**
+		 * Generates attackWeight array using normalized polynomial growth
+		 * Size-invariant formula - parameters have same effect regardless of array size
+		 * Parameters can be optimized using SPSA
+		 */
+		static array<value_t, MAX_WEIGHT_COUNT + 1> generateAttackWeight(
+			double linearTerm,
+			double quadraticTerm,
+			double activationSpeed,
+			double dampeningRate)
+		{
+			auto result = generateArrayPolynomialDampened<MAX_WEIGHT_COUNT + 1>(
+				linearTerm, quadraticTerm, activationSpeed, dampeningRate);
+
+			return result;
+		}
+
+		// Generated attack weight values - modern C++17 inline static initialization
+		inline static array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = 
+			generateAttackWeight(
+				DEFAULT_KATTACK_LINEAR,
+				DEFAULT_KATTACK_QUADRATIC,
+				DEFAULT_KATTACK_ACTIVATION,
+				DEFAULT_KATTACK_DAMPENING
+			);
 
 		static constexpr SquareTable<value_t> initialKingThreat = SquareTable<value_t>(
 			std::array<value_t, 64>{
@@ -268,5 +291,28 @@ namespace ChessEval {
 			return kingAttackBB;
 		} ();
 
+		// Original reference values for attackWeight
+		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeightReference =
+		{ 0,  0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
+		  -530, -560, -590, -620, -650, -680, -710 };
+		
+		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
+
+	};
+
+	/**
+	 * UCI parameter access implementation for KingAttack
+	 */
+	class KingAttack::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override;
+		bool setUciParameter(const std::string& name, int32_t value) override;
+
+	private:
+		int32_t _linearTerm = DEFAULT_KATTACK_LINEAR;
+		int32_t _quadraticTerm = DEFAULT_KATTACK_QUADRATIC;
+		int32_t _activationSpeed = DEFAULT_KATTACK_ACTIVATION;
+		int32_t _dampeningRate = DEFAULT_KATTACK_DAMPENING;
 	};
 }

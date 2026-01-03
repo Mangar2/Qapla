@@ -167,7 +167,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	assert(!position.isInCheck());
 	SearchVariables& childNode = stack[ply + 1];
 
-	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.adjustedEval);
+	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.adjustedEval, node.isImproving);
 
 	childNode.doMove(position, Move::NULL_MOVE);
 	node.bestValue = depth - R > 2 ?
@@ -205,6 +205,7 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	if (move.isCapture()) return 0;
 	ply_t moveCountLmr = std::clamp(moveNo <= 7 ? 16 + (moveNo - 3) * 16 / 4 : 32 + (moveNo - 7) / 2, 16, 3 * 16);
 	ply_t moveCountDepth = std::clamp(16 + (depth - 3) * 2, 16, 3 * 16);
+	// Any omitization attempt was bad, seems to be optimal already
 	ply_t lmr = moveCountLmr * moveCountDepth / 256;
 	if (node.isPVNode()) lmr /= 2;
 	return lmr;
