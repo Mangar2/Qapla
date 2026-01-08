@@ -1933,6 +1933,7 @@
     <ClInclude Include="bitbase\reverseindex.h" />
     <ClInclude Include="bitbase\verify.h" />
     <ClInclude Include="bitbase\workpackage.h" />
+    <ClInclude Include="eval\array-generator.h" />
     <ClInclude Include="eval\bishop.h" />
     <ClInclude Include="eval\eval-exchange-structures.h" />
     <ClInclude Include="eval\eval-helper.h" />

@@ -22,9 +22,12 @@
 
 #pragma once
 
+#include "../basics/types.h"
+#include "../basics/evalvalue.h"
+
 #include <array>
 #include <cmath>
-#include "../basics/types.h"
+#include <algorithm>
 
 namespace ChessEval {
 
@@ -48,12 +51,16 @@ namespace ChessEval {
 	 * @param dampeningRate How much growth slows down at high indices, quadratically (0-100 typical)
 	 * @param negate If true, returns negative values (for penalties)
 	 */
+	using QaplaBasics::value_t;
+
 	template<size_t SIZE>
 	std::array<value_t, SIZE> generateArrayPolynomialDampened(
 		double linearTerm,
 		double quadraticTerm,
 		double activationSpeed,
 		double dampeningRate,
+		double scale = 500.0,
+		double add = 0.0,
 		bool negate = true)
 	{
 		// Internal scaling factors - adjust these to make parameters work in 0-100 range
@@ -61,9 +68,11 @@ namespace ChessEval {
 		constexpr double QUADRATIC_SCALE = 1.0;
 		constexpr double ACTIVATION_SCALE = 0.005;
 		constexpr double DAMPENING_SCALE = 0.001;
+		constexpr double SCALE = 1.0 / 500.0;
+		constexpr double DAMPENING_MOVE = 0.3;
 		
 		std::array<value_t, SIZE> result{};
-		constexpr double MAX_SAFE_VALUE = MAX_VALUE / 10.0; // Chess centipawn max safety limit
+		constexpr double MAX_SAFE_VALUE = QaplaBasics::MAX_VALUE / 10.0; // Chess centipawn max safety limit
 
 		for (size_t index = 0; index < SIZE; ++index) {
 			if (index == 0 || index == 1) {
@@ -82,15 +91,15 @@ namespace ChessEval {
 			// Provides smooth ramp-up from 0
 			double activationFactor = 1.0 - std::exp(-ACTIVATION_SCALE * activationSpeed * x_norm);
 
-			// Dampening factor: 1 / (1 + scaled_rate * x_norm²)
-			// Quadratic dampening - weak at start, strong at end
-			double dampeningFactor = 1.0 / (1.0 + DAMPENING_SCALE * dampeningRate * x_norm * x_norm);
+			// Quadratic dampening - weak at start, strong at end, using extra move - to avoid the redundancy of 1/quadratic = ca. damping.
+			double x_damp = std::max(0.0, x_norm - DAMPENING_MOVE) / (1.0 - DAMPENING_MOVE);
+			double dampeningFactor = 1.0 / (1.0 + DAMPENING_SCALE * dampeningRate * x_damp * x_damp);
 
 			// Combine all factors with overflow protection
-			double value = polynomial * activationFactor * dampeningFactor;
-			value = std::min(value, MAX_SAFE_VALUE);
+			double value = (polynomial * activationFactor * dampeningFactor * scale * SCALE) + add;
+			value = std::clamp(value, -MAX_SAFE_VALUE, MAX_SAFE_VALUE) + 0.5;
 
-			result[index] = negate ? -static_cast<value_t>(value + 0.5) : static_cast<value_t>(value + 0.5);
+			result[index] = static_cast<value_t>(negate ? -value : value);
 		}
 
 		return result;

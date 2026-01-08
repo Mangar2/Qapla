@@ -30,22 +30,29 @@ UciParameterProvider& KingAttack::getUciAccess() {
 
 std::vector<UciParam> KingAttack::UciAccess::getUciParameters() const {
 	return {
-		{"kAttackLinear", DEFAULT_KATTACK_LINEAR, 0, 1000},
-		{"kAttackQuadratic", DEFAULT_KATTACK_QUADRATIC, 0, 1000},
-		{"kAttackActivation", DEFAULT_KATTACK_ACTIVATION, 0, 1000},
-		{"kAttackDampening", DEFAULT_KATTACK_DAMPENING, 0, 1000}
+		{"kAttackLinear", DEFAULT_KATTACK_LINEAR, 0, 2000},
+		{"kAttackQuadratic", DEFAULT_KATTACK_QUADRATIC, 0, 2000},
+		{"kAttackActivation", DEFAULT_KATTACK_ACTIVATION, 0, 2000},
+		{"kAttackDampening", DEFAULT_KATTACK_DAMPENING, 0, 2000},
+		{"kAttackScale", DEFAULT_KATTACK_SCALE, 0, 2000}
 	};
 }
 
 bool KingAttack::UciAccess::setUciParameter(const std::string& name, int32_t value) {
 	if (name == "kAttackLinear") {
 		_linearTerm = value;
-	} else if (name == "kAttackQuadratic") {
+	} 
+	else if (name == "kAttackQuadratic") {
 		_quadraticTerm = value;
-	} else if (name == "kAttackActivation") {
+	} 
+	else if (name == "kAttackActivation") {
 		_activationSpeed = value;
-	} else if (name == "kAttackDampening") {
+	}
+	else if (name == "kAttackDampening") {
 		_dampeningRate = value;
+	} 
+	else if (name == "kAttackScale") {
+		_scale = value;
 	} else {
 		return false;
 	}
@@ -55,7 +62,8 @@ bool KingAttack::UciAccess::setUciParameter(const std::string& name, int32_t val
 		_linearTerm,
 		_quadraticTerm,
 		_activationSpeed,
-		_dampeningRate
+		_dampeningRate,
+		_scale
 	);
 
 	return true;

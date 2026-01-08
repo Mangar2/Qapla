@@ -494,6 +494,9 @@
     <ClInclude Include="interface\uci-parameter-provider.h">
       <Filter>interface</Filter>
     </ClInclude>
+    <ClInclude Include="eval\array-generator.h">
+      <Filter>eval</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

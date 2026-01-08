@@ -200,10 +200,11 @@ namespace ChessEval {
 		static constexpr uint32_t INDEX_SIZE = 0x40;
 
 		// Default values for UCI parameters (scaled by 10 for integer UCI, range 0-1000)
-		static constexpr int32_t DEFAULT_KATTACK_LINEAR = 600;      
-		static constexpr int32_t DEFAULT_KATTACK_QUADRATIC = 800;   
-		static constexpr int32_t DEFAULT_KATTACK_ACTIVATION = 360;   
+		static constexpr int32_t DEFAULT_KATTACK_LINEAR = 600;
+		static constexpr int32_t DEFAULT_KATTACK_QUADRATIC = 800;
+		static constexpr int32_t DEFAULT_KATTACK_ACTIVATION = 250;   
 		static constexpr int32_t DEFAULT_KATTACK_DAMPENING = 650;    
+		static constexpr int32_t DEFAULT_KATTACK_SCALE = 500;
 
 		/**
 		 * Generates attackWeight array using normalized polynomial growth
@@ -214,10 +215,17 @@ namespace ChessEval {
 			double linearTerm,
 			double quadraticTerm,
 			double activationSpeed,
-			double dampeningRate)
+			double dampeningRate,
+			double scale)
 		{
 			auto result = generateArrayPolynomialDampened<MAX_WEIGHT_COUNT + 1>(
-				linearTerm, quadraticTerm, activationSpeed, dampeningRate);
+				linearTerm, quadraticTerm, activationSpeed, dampeningRate, scale);
+
+			// print result to std:out
+			for (auto i : result) {
+				std::cout << i << ",";
+			}
+			std::cout << std::endl;
 
 			return result;
 		}
@@ -228,7 +236,8 @@ namespace ChessEval {
 				DEFAULT_KATTACK_LINEAR,
 				DEFAULT_KATTACK_QUADRATIC,
 				DEFAULT_KATTACK_ACTIVATION,
-				DEFAULT_KATTACK_DAMPENING
+				DEFAULT_KATTACK_DAMPENING,
+				DEFAULT_KATTACK_SCALE
 			);
 
 		static constexpr SquareTable<value_t> initialKingThreat = SquareTable<value_t>(
@@ -294,8 +303,15 @@ namespace ChessEval {
 		// Original reference values for attackWeight
 		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeightReference =
-		{ 0,  0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
+		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
 		  -530, -560, -590, -620, -650, -680, -710 };
+		// Optimized, using quadratic damping factor:
+		// Starting parameters, 600, 800, 360, 650
+		// Optimized parameters, 470, 1060, 306, 460
+		// SPRT parameters, 600, 800, 250, 650
+		// 0, 0, -3,  -7, -13, -21, -31, -43, -57, -73, -91, -111, -133, -157, -183, -211, -240, -270, -302, -335, -369, -405, -441, -477, -514, -552, -590, -629, -667, -706, -744, -783, -821,
+		// New array generation formular with "moved" dampening
+		// 0, 0, -3,  -7, -13, -21, -31, -44, -58, -76, -95, -117, -141, -168, -196, -226, -258, -291, -325, -360, -396, -433, -470, -507, -544, -581, -617, -653, -689, -723, -757, -789, -821
 		
 		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
 
@@ -314,5 +330,6 @@ namespace ChessEval {
 		int32_t _quadraticTerm = DEFAULT_KATTACK_QUADRATIC;
 		int32_t _activationSpeed = DEFAULT_KATTACK_ACTIVATION;
 		int32_t _dampeningRate = DEFAULT_KATTACK_DAMPENING;
+		int32_t _scale = DEFAULT_KATTACK_SCALE;
 	};
 }
