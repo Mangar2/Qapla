@@ -1,5 +1,12 @@
 # Qapla Test Versions
 
+## 0.4.018 2026-01-08
+
+- Enhanced array-generator.h with scale and add parameters
+- Added kAttackScale UCI parameter for king attack tuning
+- Improved dampening calculation in generateArrayPolynomialDampened
+- Updated default kAttackActivation from 360 to 250
+
 ## 0.4.017 2025-12-29
 
 - Added stack->clear() in iterative deepening loop for consistent state
