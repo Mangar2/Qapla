@@ -19,6 +19,7 @@
 
 #include "uci.h"
 #include "../eval/king-attack.h"
+#include "../eval/threat.h"
 
 using namespace QaplaInterface;
 using namespace ChessEval;
@@ -29,6 +30,7 @@ using namespace ChessEval;
 static std::vector<UciParameterProvider*> collectUciProviders() {
 	std::vector<UciParameterProvider*> providers;
 	providers.push_back(&KingAttack::getUciAccess());
+	providers.push_back(&Threat::getUciAccess());
 	return providers;
 }
 

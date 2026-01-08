@@ -1881,6 +1881,7 @@
     <ClCompile Include="eval\pawn.cpp" />
     <ClCompile Include="eval\kingpawnattack.cpp" />
     <ClCompile Include="eval\pawnrace.cpp" />
+    <ClCompile Include="eval\threat.cpp" />
     <ClCompile Include="interface\bitbase-interface.cpp" />
     <ClCompile Include="interface\candidate-trainer.cpp" />
     <ClCompile Include="interface\optimizer.cpp" />

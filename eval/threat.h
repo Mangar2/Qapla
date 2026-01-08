@@ -26,6 +26,8 @@
 #include "../basics/evalvalue.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
 
 #include "evalresults.h"
 
@@ -37,6 +39,14 @@ namespace ChessEval {
 	class Threat
 	{
 	public:
+		// Forward declaration of UCI parameter handler
+		class UciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
 		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
 			return eval<WHITE>(position, result) - eval<BLACK>(position, result);
 		}
@@ -89,11 +99,76 @@ namespace ChessEval {
 			const EvalValue evThreats = THREAT_LOOKUP[threatAmount];
 			return evThreats;
 		}
-		static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
-			{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 250, 250 }, 
-			{400, 400}, {400, 400}, {400, 400}, {400, 400}, {400, 400}
-		} };
 
+		// Default values for UCI parameters (scaled for 0-2000 range)
+		static constexpr int32_t DEFAULT_THREAT_LINEAR_MG = 400;
+		static constexpr int32_t DEFAULT_THREAT_QUADRATIC_MG = 400;
+		static constexpr int32_t DEFAULT_THREAT_DAMPENING_MG = 700;
+		static constexpr int32_t DEFAULT_THREAT_LINEAR_EG = 400;
+		static constexpr int32_t DEFAULT_THREAT_QUADRATIC_EG = 400;
+		static constexpr int32_t DEFAULT_THREAT_DAMPENING_EG = 700;
+		static constexpr int32_t DEFAULT_THREAT_SCALE = 500;
+
+		/**
+		 * Generates THREAT_LOOKUP array using normalized polynomial growth without activation
+		 * Separate generation for midgame and endgame values
+		 */
+		static array<EvalValue, 11> generateThreatLookup(
+			double linearTermMg,
+			double quadraticTermMg,
+			double dampeningRateMg,
+			double linearTermEg,
+			double quadraticTermEg,
+			double dampeningRateEg,
+			double scale)
+		{
+			auto midgameValues = generateArrayPolynomial<11>(
+				linearTermMg, quadraticTermMg, dampeningRateMg, scale, 0.0, 1, false, true);
+			auto endgameValues = generateArrayPolynomial<11>(
+				linearTermEg, quadraticTermEg, dampeningRateEg, scale, 0.0, 1, false, true);
+
+			array<EvalValue, 11> result;
+			for (size_t i = 0; i < 11; ++i) {
+				result[i] = EvalValue(midgameValues[i], endgameValues[i]);
+			}
+			return result;
+		}
+
+		// Generated threat lookup values - modern C++17 inline static initialization
+		inline static array<EvalValue, 11> THREAT_LOOKUP = 
+			generateThreatLookup(
+				DEFAULT_THREAT_LINEAR_MG,
+				DEFAULT_THREAT_QUADRATIC_MG,
+				DEFAULT_THREAT_DAMPENING_MG,
+				DEFAULT_THREAT_LINEAR_EG,
+				DEFAULT_THREAT_QUADRATIC_EG,
+				DEFAULT_THREAT_DAMPENING_EG,
+				DEFAULT_THREAT_SCALE
+			);
+
+		// Original reference values for THREAT_LOOKUP (kept for comparison)
+		// static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
+		// 	{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 250, 250 }, 
+		// 	{400, 400}, {400, 400}, {400, 400}, {400, 400}, {400, 400}
+		// } };
+	};
+
+	/**
+	 * UCI parameter access implementation for Threat
+	 */
+	class Threat::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override;
+		bool setUciParameter(const std::string& name, int32_t value) override;
+
+	private:
+		int32_t _linearTermMg = DEFAULT_THREAT_LINEAR_MG;
+		int32_t _quadraticTermMg = DEFAULT_THREAT_QUADRATIC_MG;
+		int32_t _dampeningRateMg = DEFAULT_THREAT_DAMPENING_MG;
+		int32_t _linearTermEg = DEFAULT_THREAT_LINEAR_EG;
+		int32_t _quadraticTermEg = DEFAULT_THREAT_QUADRATIC_EG;
+		int32_t _dampeningRateEg = DEFAULT_THREAT_DAMPENING_EG;
+		int32_t _scale = DEFAULT_THREAT_SCALE;
 	};
 }
 

@@ -221,12 +221,6 @@ namespace ChessEval {
 			auto result = generateArrayPolynomialDampened<MAX_WEIGHT_COUNT + 1>(
 				linearTerm, quadraticTerm, activationSpeed, dampeningRate, scale);
 
-			// print result to std:out
-			for (auto i : result) {
-				std::cout << i << ",";
-			}
-			std::cout << std::endl;
-
 			return result;
 		}
 

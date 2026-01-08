@@ -165,6 +165,9 @@
     <ClCompile Include="interface\uci.cpp">
       <Filter>interface</Filter>
     </ClCompile>
+    <ClCompile Include="eval\threat.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tests\evalpawntest.h">

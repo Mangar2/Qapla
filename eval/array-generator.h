@@ -60,8 +60,10 @@ namespace ChessEval {
 		double activationSpeed,
 		double dampeningRate,
 		double scale = 500.0,
+		int minIndex = 2,
 		double add = 0.0,
-		bool negate = true)
+		bool negate = true,
+		bool verbose = false)
 	{
 		// Internal scaling factors - adjust these to make parameters work in 0-100 range
 		constexpr double LINEAR_SCALE = 1.0;
@@ -75,7 +77,7 @@ namespace ChessEval {
 		constexpr double MAX_SAFE_VALUE = QaplaBasics::MAX_VALUE / 10.0; // Chess centipawn max safety limit
 
 		for (size_t index = 0; index < SIZE; ++index) {
-			if (index == 0 || index == 1) {
+			if (index < minIndex) {
 				result[index] = 0;
 				continue;
 			}
@@ -100,6 +102,91 @@ namespace ChessEval {
 			value = std::clamp(value, -MAX_SAFE_VALUE, MAX_SAFE_VALUE) + 0.5;
 
 			result[index] = static_cast<value_t>(negate ? -value : value);
+		}
+	
+		if (verbose) {
+			// print result to std:out
+			for (auto i : result) {
+				std::cout << i << ",";
+			}
+			std::cout << std::endl;
+		}
+
+		return result;
+	}
+
+	/**
+	 * Generates array values using polynomial growth with dampening (no activation)
+	 * Simplified version without activation factor for cases where immediate growth is desired
+	 * 
+	 * Formula: 
+	 *   x_norm = x / (SIZE - 1)  [normalized to 0..1]
+	 *   poly = (linearScale * linearTerm * x_norm) + (quadraticScale * quadraticTerm * x_norm²)
+	 *   dampening = 1 / (1 + dampeningScale * dampeningRate * x_norm²)
+	 *   value = poly * dampening
+	 * 
+	 * @param SIZE Size of the array to generate
+	 * @param linearTerm Linear growth component (0-100 typical)
+	 * @param quadraticTerm Quadratic growth component (0-100 typical)
+	 * @param dampeningRate How much growth slows down at high indices, quadratically (0-100 typical)
+	 * @param scale Overall scaling factor
+	 * @param add Value to add to result
+	 * @param negate If true, returns negative values (for penalties)
+	 * @param verbose If true, prints the array to stdout
+	 */
+	template<size_t SIZE>
+	std::array<value_t, SIZE> generateArrayPolynomial(
+		double linearTerm,
+		double quadraticTerm,
+		double dampeningRate,
+		double scale = 500.0,
+		double add = 0.0,
+		int minIndex = 2,
+		bool negate = true,
+		bool verbose = false)
+	{
+		// Internal scaling factors
+		constexpr double LINEAR_SCALE = 1.0;
+		constexpr double QUADRATIC_SCALE = 1.0;
+		constexpr double DAMPENING_SCALE = 0.001;
+		constexpr double SCALE = 1.0 / 500.0;
+		constexpr double DAMPENING_MOVE = 0.3;
+		
+		std::array<value_t, SIZE> result{};
+		constexpr double MAX_SAFE_VALUE = QaplaBasics::MAX_VALUE / 10.0; // Chess centipawn max safety limit
+
+		for (size_t index = 0; index < SIZE; ++index) {
+			if (index < minIndex) {
+				result[index] = 0;
+				continue;
+			}
+
+			// Normalize x to [0, 1] range - makes function size-invariant
+			double x_norm = static_cast<double>(index) / (SIZE - 1);
+
+			// Polynomial growth: scaled linear and quadratic terms
+			double polynomial = (LINEAR_SCALE * linearTerm * x_norm) + 
+			                   (QUADRATIC_SCALE * quadraticTerm * x_norm * x_norm);
+
+			// No activation factor - immediate growth from start
+
+			// Quadratic dampening - weak at start, strong at end, using extra move
+			double x_damp = std::max(0.0, x_norm - DAMPENING_MOVE) / (1.0 - DAMPENING_MOVE);
+			double dampeningFactor = 1.0 / (1.0 + DAMPENING_SCALE * dampeningRate * x_damp * x_damp);
+
+			// Combine all factors with overflow protection
+			double value = (polynomial * dampeningFactor * scale * SCALE) + add;
+			value = std::clamp(value, -MAX_SAFE_VALUE, MAX_SAFE_VALUE) + 0.5;
+
+			result[index] = static_cast<value_t>(negate ? -value : value);
+		}
+	
+		if (verbose) {
+			// print result to std:out
+			for (auto i : result) {
+				std::cout << i << ",";
+			}
+			std::cout << std::endl;
 		}
 
 		return result;
