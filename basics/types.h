@@ -279,7 +279,7 @@ namespace QaplaBasics {
 	 * Computes the string representation of a board square
 	 * @param square Square in internal representation
 	 */
-	constexpr auto squareToString(square_t square) {
+	auto squareToString(square_t square) {
 		std::string result = "?";
 		result = "";
 		if (square >= Square::A1 && square <= Square::H8) {
@@ -294,7 +294,7 @@ namespace QaplaBasics {
 	 * @param squareAsString standard chess notation of a square
 	 * @expampe stringToSquare("e1")
 	 */
-	constexpr auto stringToSquare(std::string squareAsString) {
+	auto stringToSquare(std::string squareAsString) {
 		square_t result =
 			(squareAsString[0] - 'a') * EAST +
 			(squareAsString[1] - '1') * NORTH;
@@ -348,7 +348,7 @@ namespace QaplaBasics {
 	/**
 	 * Converts a Color to a string
 	 */
-	constexpr std::string colorToString(Piece color) {
+	std::string colorToString(Piece color) {
 		return color == WHITE ? "White" : "Black";
 	}
 
