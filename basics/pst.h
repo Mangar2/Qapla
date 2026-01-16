@@ -24,27 +24,88 @@
 #include <vector>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
+#include "../interface/uci-parameter-provider.h"
 
 namespace QaplaBasics {
 
 	class PST
 	{
 	public:
+		// Forward declaration of UCI parameter handler
+		class UciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static ChessEval::UciParameterProvider& getUciAccess() noexcept;
+
 		/**
 		 * Gets a value from the piece square tables
 		 */
-		static EvalValue getValue(Square square, Piece piece) { return _pst[piece][square]; }
-		static std::vector<EvalValue> getPSTLookup(Piece piece) { return std::vector<EvalValue>(_pst[piece], _pst[piece] + BOARD_SIZE); }
+		[[nodiscard]] static EvalValue getValue(Square square, Piece piece) noexcept { return _pst[piece][square]; }
+		
+		[[nodiscard]] static std::vector<EvalValue> getPSTLookup(Piece piece) noexcept { return std::vector<EvalValue>(_pst[piece], _pst[piece] + BOARD_SIZE); }
+
+
 	private:
+
+		// Type definition for PST array
+		using PSTArray = EvalValue[PIECE_AMOUNT][BOARD_SIZE];
+
+		// Default values for UCI parameters (normalized: 500 keeps values unchanged)
+		// Midgame scales
+		static constexpr int32_t DEFAULT_PST_PAWN_MG   = 500;
+		static constexpr int32_t DEFAULT_PST_KNIGHT_MG = 500;
+		static constexpr int32_t DEFAULT_PST_BISHOP_MG = 500;
+		static constexpr int32_t DEFAULT_PST_ROOK_MG   = 500;
+		static constexpr int32_t DEFAULT_PST_QUEEN_MG  = 500;
+		static constexpr int32_t DEFAULT_PST_KING_MG   = 500;
+		// Endgame scales
+		static constexpr int32_t DEFAULT_PST_PAWN_EG   = 500;
+		static constexpr int32_t DEFAULT_PST_KNIGHT_EG = 500;
+		static constexpr int32_t DEFAULT_PST_BISHOP_EG = 500;
+		static constexpr int32_t DEFAULT_PST_ROOK_EG   = 500;
+		static constexpr int32_t DEFAULT_PST_QUEEN_EG  = 500;
+		static constexpr int32_t DEFAULT_PST_KING_EG   = 500;
+
+		/**
+		 * Generate PST array with given scales
+		 */
+		static void generatePST(
+			PSTArray& result,
+			int32_t pawnMg, int32_t pawnEg,
+			int32_t knightMg, int32_t knightEg,
+			int32_t bishopMg, int32_t bishopEg,
+			int32_t rookMg, int32_t rookEg,
+			int32_t queenMg, int32_t queenEg,
+			int32_t kingMg, int32_t kingEg
+		) noexcept;
 
 		/**
 		 * Initializes the piece square table
 		 */
 		static struct InitStatics {
-			InitStatics();
+			InitStatics() noexcept;
 		} _staticConstructor;
 
-		static EvalValue _pst[PIECE_AMOUNT][BOARD_SIZE];
+		static PSTArray _pst;
+
+
+		// Current scales (UCI-configurable) - Midgame
+		inline static int32_t _pawnMg   = DEFAULT_PST_PAWN_MG;
+		inline static int32_t _knightMg = DEFAULT_PST_KNIGHT_MG;
+		inline static int32_t _bishopMg = DEFAULT_PST_BISHOP_MG;
+		inline static int32_t _rookMg   = DEFAULT_PST_ROOK_MG;
+		inline static int32_t _queenMg  = DEFAULT_PST_QUEEN_MG;
+		inline static int32_t _kingMg   = DEFAULT_PST_KING_MG;
+		// Current scales (UCI-configurable) - Endgame
+		inline static int32_t _pawnEg   = DEFAULT_PST_PAWN_EG;
+		inline static int32_t _knightEg = DEFAULT_PST_KNIGHT_EG;
+		inline static int32_t _bishopEg = DEFAULT_PST_BISHOP_EG;
+		inline static int32_t _rookEg   = DEFAULT_PST_ROOK_EG;
+		inline static int32_t _queenEg  = DEFAULT_PST_QUEEN_EG;
+		inline static int32_t _kingEg   = DEFAULT_PST_KING_EG;
 
 		constexpr static value_t PAWN_PST[][int(File::COUNT)][2] = {
 			{ {   0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {   0,  0 }, {   0,  0 } },
@@ -112,6 +173,15 @@ namespace QaplaBasics {
 			{ {  0,  0 }, {  0,  2 }, {  0,  5 }, {  0,  5 } },
 		};
 
+	};
+
+	/**
+	 * UCI parameter access implementation for PST scales
+	 */
+	class PST::UciAccess : public ChessEval::UciParameterProvider {
+	public:
+		std::vector<ChessEval::UciParam> getUciParameters() const override;
+		bool setUciParameter(const std::string& name, int32_t value) override;
 	};
 }
 
