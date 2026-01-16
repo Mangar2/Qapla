@@ -113,23 +113,13 @@ namespace ChessEval {
 		 * Generates THREAT_LOOKUP array using normalized polynomial growth without activation
 		 * Separate generation for midgame and endgame values
 		 */
-		static array<EvalValue, 11> generateThreatLookup(
-			double linearTermMg,
-			double quadraticTermMg,
-			double dampeningRateMg,
-			double linearTermEg,
-			double quadraticTermEg,
-			double dampeningRateEg,
-			double scale)
+		static array<EvalValue, 11> generateThreatLookup(double scale)
 		{
-			auto midgameValues = generateArrayPolynomial<11>(
-				linearTermMg, quadraticTermMg, dampeningRateMg, scale, 0.0, 1, false, true);
-			auto endgameValues = generateArrayPolynomial<11>(
-				linearTermEg, quadraticTermEg, dampeningRateEg, scale, 0.0, 1, false, true);
-
 			array<EvalValue, 11> result;
 			for (size_t i = 0; i < 11; ++i) {
-				result[i] = EvalValue(midgameValues[i], endgameValues[i]);
+				value_t midgame = static_cast<value_t>(((THREAT_LOOKUP_BASE[i].midgame() * scale) / 500.0) + 0.5);
+				value_t endgame = static_cast<value_t>(((THREAT_LOOKUP_BASE[i].endgame() * scale) / 500.0) + 0.5);
+				result[i] = EvalValue(midgame, endgame);
 			}
 			return result;
 		}
@@ -137,20 +127,13 @@ namespace ChessEval {
 		// Generated threat lookup values - modern C++17 inline static initialization
 		inline static array<EvalValue, 11> THREAT_LOOKUP = 
 			generateThreatLookup(
-				DEFAULT_THREAT_LINEAR_MG,
-				DEFAULT_THREAT_QUADRATIC_MG,
-				DEFAULT_THREAT_DAMPENING_MG,
-				DEFAULT_THREAT_LINEAR_EG,
-				DEFAULT_THREAT_QUADRATIC_EG,
-				DEFAULT_THREAT_DAMPENING_EG,
 				DEFAULT_THREAT_SCALE
 			);
 
-		// Original reference values for THREAT_LOOKUP (kept for comparison)
-		// static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
-		// 	{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 250, 250 }, 
-		// 	{400, 400}, {400, 400}, {400, 400}, {400, 400}, {400, 400}
-		// } };
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP_BASE = { {
+			{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 200, 200 },
+			{ 200, 200}, {200, 200}, {200, 200}, {200, 200}, {200, 200}
+		} };
 	};
 
 	/**
@@ -162,12 +145,6 @@ namespace ChessEval {
 		bool setUciParameter(const std::string& name, int32_t value) override;
 
 	private:
-		int32_t _linearTermMg = DEFAULT_THREAT_LINEAR_MG;
-		int32_t _quadraticTermMg = DEFAULT_THREAT_QUADRATIC_MG;
-		int32_t _dampeningRateMg = DEFAULT_THREAT_DAMPENING_MG;
-		int32_t _linearTermEg = DEFAULT_THREAT_LINEAR_EG;
-		int32_t _quadraticTermEg = DEFAULT_THREAT_QUADRATIC_EG;
-		int32_t _dampeningRateEg = DEFAULT_THREAT_DAMPENING_EG;
 		int32_t _scale = DEFAULT_THREAT_SCALE;
 	};
 }

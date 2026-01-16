@@ -30,36 +30,12 @@ UciParameterProvider& Threat::getUciAccess() {
 
 std::vector<UciParam> Threat::UciAccess::getUciParameters() const {
 	return {
-		{"threatLinearMg", DEFAULT_THREAT_LINEAR_MG, 0, 2000},
-		{"threatQuadraticMg", DEFAULT_THREAT_QUADRATIC_MG, 0, 2000},
-		{"threatDampeningMg", DEFAULT_THREAT_DAMPENING_MG, 0, 2000},
-		{"threatLinearEg", DEFAULT_THREAT_LINEAR_EG, 0, 2000},
-		{"threatQuadraticEg", DEFAULT_THREAT_QUADRATIC_EG, 0, 2000},
-		{"threatDampeningEg", DEFAULT_THREAT_DAMPENING_EG, 0, 2000},
 		{"threatScale", DEFAULT_THREAT_SCALE, 0, 2000}
 	};
 }
 
 bool Threat::UciAccess::setUciParameter(const std::string& name, int32_t value) {
-	if (name == "threatLinearMg") {
-		_linearTermMg = value;
-	} 
-	else if (name == "threatQuadraticMg") {
-		_quadraticTermMg = value;
-	} 
-	else if (name == "threatDampeningMg") {
-		_dampeningRateMg = value;
-	}
-	else if (name == "threatLinearEg") {
-		_linearTermEg = value;
-	} 
-	else if (name == "threatQuadraticEg") {
-		_quadraticTermEg = value;
-	} 
-	else if (name == "threatDampeningEg") {
-		_dampeningRateEg = value;
-	}
-	else if (name == "threatScale") {
+	if (name == "threatScale") {
 		_scale = value;
 	} else {
 		return false;
@@ -67,12 +43,6 @@ bool Threat::UciAccess::setUciParameter(const std::string& name, int32_t value) 
 
 	// Regenerate THREAT_LOOKUP array with new parameters
 	Threat::THREAT_LOOKUP = Threat::generateThreatLookup(
-		_linearTermMg,
-		_quadraticTermMg,
-		_dampeningRateMg,
-		_linearTermEg,
-		_quadraticTermEg,
-		_dampeningRateEg,
 		_scale
 	);
 
