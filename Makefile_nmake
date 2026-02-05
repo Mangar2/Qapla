@@ -1,5 +1,5 @@
 # NMAKE-kompatibles Makefile ohne GNU-spezifische Features
-# Erstellt sämtliche Objekte im Unterverzeichnis "build" und linkt zu qapla.exe.
+# Erstellt sï¿½mtliche Objekte im Unterverzeichnis "build" und linkt zu qapla.exe.
 
 # ---------------------------------------------------------
 # Compiler-Konfiguration
@@ -30,6 +30,7 @@ OBJS = \
   $(BUILD_DIR)\reverseindex.obj \
   $(BUILD_DIR)\eval-helper.obj \
   $(BUILD_DIR)\eval-map.obj \
+  $(BUILD_DIR)\array-generator.obj \
   $(BUILD_DIR)\eval.obj \
   $(BUILD_DIR)\evalendgame.obj \
   $(BUILD_DIR)\kingAttack.obj \
@@ -116,6 +117,9 @@ $(BUILD_DIR)\eval-map.obj: eval\eval-map.cpp
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	$(CC) $(CFLAGS) /c eval\eval-map.cpp /Fo$(BUILD_DIR)\eval-map.obj
 
+$(BUILD_DIR)\array-generator.obj: eval\array-generator.cpp
+	$(CC) $(CFLAGS) /c eval\array-generator.cpp /Fo$(BUILD_DIR)\array-generator.obj
+
 $(BUILD_DIR)\eval.obj: eval\eval.cpp
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	$(CC) $(CFLAGS) /c eval\eval.cpp /Fo$(BUILD_DIR)\eval.obj
@@ -193,7 +197,7 @@ $(BUILD_DIR)\whatif.obj: search\whatif.cpp
 	$(CC) $(CFLAGS) /c search\whatif.cpp /Fo$(BUILD_DIR)\whatif.obj
 
 # ---------------------------------------------------------
-# Aufräumen
+# Aufrï¿½umen
 # ---------------------------------------------------------
 clean:
 	if exist $(BUILD_DIR) rmdir /S /Q $(BUILD_DIR)

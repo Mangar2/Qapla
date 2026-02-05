@@ -22,13 +22,15 @@
 #ifndef __BISHOP_H
 #define __BISHOP_H
 
-#include <cstdint>
+#include "evalresults.h"
+
 #include "../basics/types.h"
-#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
-#include "evalresults.h"
+#include "../movegenerator/magics.h"
+
+#include <cstdint>
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
