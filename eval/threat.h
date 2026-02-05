@@ -24,7 +24,6 @@
 
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
-#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "array-generator.h"
 #include "../interface/uci-parameter-provider.h"
@@ -47,6 +46,7 @@ namespace ChessEval {
 		 * @return Reference to UCI parameter provider
 		 */
 		static UciParameterProvider& getUciAccess();
+
 		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
 			return eval<WHITE>(position, result) - eval<BLACK>(position, result);
 		}
@@ -109,6 +109,7 @@ namespace ChessEval {
 		static constexpr int32_t DEFAULT_THREAT_DAMPENING_EG = 700;
 		static constexpr int32_t DEFAULT_THREAT_SCALE = 500;
 
+#ifdef PARAM_OPTIMIZE
 		/**
 		 * Generates THREAT_LOOKUP array using normalized polynomial growth without activation
 		 * Separate generation for midgame and endgame values
@@ -134,6 +135,12 @@ namespace ChessEval {
 			{  0,   0}, { 60,  60}, { 120,  120 }, { 150, 150 }, { 150, 150 }, { 150, 150 },
 			{ 150, 150}, {150, 150}, {150, 150}, {150, 150}, {150, 150}
 		} };
+#else
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
+			{  0,   0}, { 60,  60}, { 120,  120 }, { 150, 150 }, { 150, 150 }, { 150, 150 },
+			{ 150, 150}, {150, 150}, {150, 150}, {150, 150}, {150, 150}
+		} };
+#endif
 	};
 
 	/**

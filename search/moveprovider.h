@@ -25,13 +25,12 @@
 #include "../basics/move.h"
 #include "../basics/movelist.h"
 #include "searchdef.h"
-#include "../eval/eval.h"
-//#include "EvalBoard.h"
 #include "killermove.h"
 #include "see.h"
 #include "searchparameter.h"
 #include "butterfly-boards.h"
 #include "../movegenerator/movegenerator.h"
+
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;

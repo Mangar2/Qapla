@@ -28,6 +28,7 @@ UciParameterProvider& Threat::getUciAccess() {
 	return _uciAccessInstance;
 }
 
+#ifdef PARAM_OPTIMIZE
 std::vector<UciParam> Threat::UciAccess::getUciParameters() const {
 	return {
 		{"threatScale", DEFAULT_THREAT_SCALE, 0, 2000}
@@ -48,3 +49,7 @@ bool Threat::UciAccess::setUciParameter(const std::string& name, int32_t value) 
 
 	return true;
 }
+#else
+std::vector<UciParam> Threat::UciAccess::getUciParameters() const { return {}; }
+bool Threat::UciAccess::setUciParameter(const std::string& name, int32_t value) { return false; }
+#endif

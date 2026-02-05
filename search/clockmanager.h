@@ -22,11 +22,9 @@
 #ifndef _CLOCKMANAGER_H
 #define _CLOCKMANAGER_H
 
-#include <time.h>
 #include <algorithm>
 #include <limits>
 #include <sys/timeb.h>
-#include "../basics/types.h"
 #include "../interface/clocksetting.h"
 #include "searchstate.h"
 

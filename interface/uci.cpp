@@ -19,6 +19,7 @@
 
 #include "uci.h"
 #include "../eval/king-attack.h"
+
 #include "../eval/threat.h"
 #include "../basics/pst.h"
 
