@@ -18,8 +18,14 @@
  */
 
 #include "uci.h"
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include "../eval/king-attack.h"
-
+#include "../eval/bishop.h"
+#include "../eval/knight.h"
+#include "../eval/rook.h"
+#include "../eval/queen.h"
 #include "../eval/threat.h"
 #include "../basics/pst.h"
 
@@ -32,6 +38,10 @@ using namespace ChessEval;
 static std::vector<UciParameterProvider*> collectUciProviders() {
 	std::vector<UciParameterProvider*> providers;
 	providers.push_back(&KingAttack::getUciAccess());
+	providers.push_back(&Bishop::getUciAccess());
+	providers.push_back(&Knight::getUciAccess());
+	providers.push_back(&Rook::getUciAccess());
+	providers.push_back(&Queen::getUciAccess());
 	providers.push_back(&Threat::getUciAccess());
 	providers.push_back(&QaplaBasics::PST::getUciAccess());
 	return providers;
@@ -94,13 +104,15 @@ void UCI::setOption() {
 	// Try to set parameter via UCI parameter providers
 	auto providers = collectUciProviders();
 	for (auto* provider : providers) {
-		try {
-			int32_t intValue = std::stoi(value);
+		// Check if the value is a number (simple check)
+		bool isNumber = !value.empty() && std::find_if(value.begin(), 
+			value.end(), [](unsigned char c) { return !std::isdigit(c) && c != '-'; }) == value.end();
+		
+		if (isNumber) {
+			int32_t intValue = std::atoi(value.c_str());
 			if (provider->setUciParameter(name, intValue)) {
 				return; // Parameter was handled
 			}
-		} catch (...) {
-			// Not an integer or parameter not found, try next provider
 		}
 	}
 

@@ -21,13 +21,19 @@
 
 #ifndef __QUEEN_H
 #define __QUEEN_H
+#define PARAM_OPTIMIZE
 
+#include <cstdint>
+#include <vector>
 #include "evalresults.h"
 
 #include "../movegenerator/movegenerator.h"
 #include "../basics/types.h"
 #include "../basics/pst.h"
 #include "../movegenerator/magics.h"
+#include "../basics/evalvalue.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
 
 #include <map>
 
@@ -38,6 +44,15 @@ namespace ChessEval {
 
 	class Queen {
 	public:
+		// Forward declaration of UCI parameter handler
+		class UciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		/**
 		 * Evaluates the evaluation value for queens
 		 */
@@ -136,11 +151,67 @@ namespace ChessEval {
 			"", "<pin>"
 		};
 
-		static constexpr array<value_t, 30> QUEEN_MOBILITY_MAP = { {
+		// Default values for queen mobility optimization
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_MG_P0 = -100;
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_MG_P3 = -50;
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_MG_P6 = 40;
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_MG_P15 = 100;
+
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_EG_P0 = -100;
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_EG_P3 = -50;
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_EG_P6 = 40;
+		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_EG_P15 = 100;
+
+#ifdef PARAM_OPTIMIZE
+		/**
+		 * Generates QUEEN_MOBILITY_MAP array using B-spline interpolation
+		 */
+		static std::array<EvalValue, 30> generateMobilityMap(
+			double mg0, double mg3, double mg6, double mg15,
+			double eg0, double eg3, double eg6, double eg15)
+		{
+			std::array<EvalValue, 30> result;
+			std::vector<std::pair<int, double>> ptsMg = { {0, mg0}, {3, mg3}, {6, mg6}, {15, mg15} };
+			std::vector<std::pair<int, double>> ptsEg = { {0, eg0}, {3, eg3}, {6, eg6}, {15, eg15} };
+			auto mg = generateArrayBSpline<30>(ptsMg, false);
+			auto eg = generateArrayBSpline<30>(ptsEg, false);
+			for (size_t i = 0; i < 30; ++i) {
+				result[i] = EvalValue(mg[i], eg[i]);
+			}
+			return result;
+		}
+
+		inline static std::array<EvalValue, 30> QUEEN_MOBILITY_MAP = 
+			generateMobilityMap(
+				DEFAULT_QUEEN_MOBILITY_MG_P0 / 10.0, DEFAULT_QUEEN_MOBILITY_MG_P3 / 10.0, DEFAULT_QUEEN_MOBILITY_MG_P6 / 10.0, DEFAULT_QUEEN_MOBILITY_MG_P15 / 10.0,
+				DEFAULT_QUEEN_MOBILITY_EG_P0 / 10.0, DEFAULT_QUEEN_MOBILITY_EG_P3 / 10.0, DEFAULT_QUEEN_MOBILITY_EG_P6 / 10.0, DEFAULT_QUEEN_MOBILITY_EG_P15 / 10.0
+			);
+#else
+		static constexpr std::array<value_t, 30> QUEEN_MOBILITY_MAP = { {
 			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
 			10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
 		} };
+#endif
 
+	};
+
+	/**
+	 * UCI parameter access implementation for Queen
+	 */
+	class Queen::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override;
+		bool setUciParameter(const std::string& name, int32_t value) override;
+
+	private:
+		[[maybe_unused]] int32_t _mgP0 = DEFAULT_QUEEN_MOBILITY_MG_P0;
+		[[maybe_unused]] int32_t _mgP3 = DEFAULT_QUEEN_MOBILITY_MG_P3;
+		[[maybe_unused]] int32_t _mgP6 = DEFAULT_QUEEN_MOBILITY_MG_P6;
+		[[maybe_unused]] int32_t _mgP15 = DEFAULT_QUEEN_MOBILITY_MG_P15;
+		[[maybe_unused]] int32_t _egP0 = DEFAULT_QUEEN_MOBILITY_EG_P0;
+		[[maybe_unused]] int32_t _egP3 = DEFAULT_QUEEN_MOBILITY_EG_P3;
+		[[maybe_unused]] int32_t _egP6 = DEFAULT_QUEEN_MOBILITY_EG_P6;
+		[[maybe_unused]] int32_t _egP15 = DEFAULT_QUEEN_MOBILITY_EG_P15;
 	};
 };
 

@@ -29,15 +29,26 @@
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "../movegenerator/magics.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
 
 #include <cstdint>
-
+#define PARAM_OPTIMIZE
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 	class Bishop {
 	public:
+		// Forward declaration of UCI parameter handler
+		class UciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
 		}
@@ -160,6 +171,42 @@ namespace ChessEval {
 			"", "<par>", "<pin>", "<pin><par>"
 		};
 
+		// Default values for bishop mobility optimization
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P0 = -150;
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P2 = 0;
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P5 = 130;
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P12 = 250;
+
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P0 = -250;
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P2 = 0;
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P5 = 130;
+		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P12 = 250;
+
+#ifdef PARAM_OPTIMIZE
+		/**
+		 * Generates BISHOP_MOBILITY_MAP array using B-spline interpolation
+		 */
+		static std::array<EvalValue, 15> generateMobilityMap(
+			double mg0, double mg2, double mg5, double mg12,
+			double eg0, double eg2, double eg5, double eg12)
+		{
+			std::array<EvalValue, 15> result;
+			std::vector<std::pair<int, double>> ptsMg = { {0, mg0}, {2, mg2}, {5, mg5}, {12, mg12} };
+			std::vector<std::pair<int, double>> ptsEg = { {0, eg0}, {2, eg2}, {5, eg5}, {12, eg12} };
+			auto mg = generateArrayBSpline<15>(ptsMg, false);
+			auto eg = generateArrayBSpline<15>(ptsEg, false);
+			for (size_t i = 0; i < 15; ++i) {
+				result[i] = EvalValue(mg[i], eg[i]);
+			}
+			return result;
+		}
+
+		inline static std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = 
+			generateMobilityMap(
+				DEFAULT_BISHOP_MOBILITY_MG_P0 / 10.0, DEFAULT_BISHOP_MOBILITY_MG_P2 / 10.0, DEFAULT_BISHOP_MOBILITY_MG_P5 / 10.0, DEFAULT_BISHOP_MOBILITY_MG_P12 / 10.0,
+				DEFAULT_BISHOP_MOBILITY_EG_P0 / 10.0, DEFAULT_BISHOP_MOBILITY_EG_P2 / 10.0, DEFAULT_BISHOP_MOBILITY_EG_P5 / 10.0, DEFAULT_BISHOP_MOBILITY_EG_P12 / 10.0
+			);
+#else
 		/**
 		 * Mobility of a bishop. Having negative values for 0 or 1 fields to move to did not bring ELO
 		 * Still I kept it.
@@ -168,10 +215,31 @@ namespace ChessEval {
 			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
+#endif
 
+	};
+
+	/**
+	 * UCI parameter access implementation for Bishop
+	 */
+	class Bishop::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override;
+		bool setUciParameter(const std::string& name, int32_t value) override;
+
+	private:
+		[[maybe_unused]] int32_t _mgP0 = DEFAULT_BISHOP_MOBILITY_MG_P0;
+		[[maybe_unused]] int32_t _mgP2 = DEFAULT_BISHOP_MOBILITY_MG_P2;
+		[[maybe_unused]] int32_t _mgP5 = DEFAULT_BISHOP_MOBILITY_MG_P5;
+		[[maybe_unused]] int32_t _mgP12 = DEFAULT_BISHOP_MOBILITY_MG_P12;
+		[[maybe_unused]] int32_t _egP0 = DEFAULT_BISHOP_MOBILITY_EG_P0;
+		[[maybe_unused]] int32_t _egP2 = DEFAULT_BISHOP_MOBILITY_EG_P2;
+		[[maybe_unused]] int32_t _egP5 = DEFAULT_BISHOP_MOBILITY_EG_P5;
+		[[maybe_unused]] int32_t _egP12 = DEFAULT_BISHOP_MOBILITY_EG_P12;
 	};
 }
 
 
 #endif
+
 

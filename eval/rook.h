@@ -21,15 +21,19 @@
 
 #ifndef __ROOK_H
 #define __ROOK_H
+#define PARAM_OPTIMIZE
 
 #include <cstdint>
 #include <vector>
 #include "../basics/types.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "../movegenerator/magics.h"
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "evalresults.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
@@ -37,6 +41,15 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 	class Rook {
 	public:
+		// Forward declaration of UCI parameter handler
+		class UciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
 		}
@@ -235,11 +248,48 @@ namespace ChessEval {
 				{ 0, 0 }, { 10, 0 }, { 10, 0 }, { 0, 0 }, { 0, 0 }, { 20, 0 }, { 20, 0 }, { 0, 0 }
 			} };
 
+		// Default values for rook mobility optimization
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P0 = 0;
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P2 = 0;
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P5 = 80;
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P12 = 250;
+
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P0 = 0;
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P2 = 0;
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P5 = 80;
+		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P12 = 250;
+
+#ifdef PARAM_OPTIMIZE
+		/**
+		 * Generates ROOK_MOBILITY_MAP array using B-spline interpolation
+		 */
+		static std::array<EvalValue, 15> generateMobilityMap(
+			double mg0, double mg2, double mg5, double mg12,
+			double eg0, double eg2, double eg5, double eg12)
+		{
+			std::array<EvalValue, 15> result;
+			std::vector<std::pair<int, double>> ptsMg = { {0, mg0}, {2, mg2}, {5, mg5}, {12, mg12} };
+			std::vector<std::pair<int, double>> ptsEg = { {0, eg0}, {2, eg2}, {5, eg5}, {12, eg12} };
+			auto mg = generateArrayBSpline<15>(ptsMg, false);
+			auto eg = generateArrayBSpline<15>(ptsEg, false);
+			for (size_t i = 0; i < 15; ++i) {
+				result[i] = EvalValue(mg[i], eg[i]);
+			}
+			return result;
+		}
+
+		inline static std::array<EvalValue, 15> ROOK_MOBILITY_MAP = 
+			generateMobilityMap(
+				DEFAULT_ROOK_MOBILITY_MG_P0 / 10.0, DEFAULT_ROOK_MOBILITY_MG_P2 / 10.0, DEFAULT_ROOK_MOBILITY_MG_P5 / 10.0, DEFAULT_ROOK_MOBILITY_MG_P12 / 10.0,
+				DEFAULT_ROOK_MOBILITY_EG_P0 / 10.0, DEFAULT_ROOK_MOBILITY_EG_P2 / 10.0, DEFAULT_ROOK_MOBILITY_EG_P5 / 10.0, DEFAULT_ROOK_MOBILITY_EG_P12 / 10.0
+			);
+#else
 		// Mobility Map
 		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP = { {
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
+#endif
 
 		static const uint32_t INDEX_SIZE = 0x40 * 8;
 		static const uint32_t TRAPPED = 1;
@@ -271,6 +321,25 @@ namespace ChessEval {
 			}
 			return map;
 		} ();
+	};
+
+	/**
+	 * UCI parameter access implementation for Rook
+	 */
+	class Rook::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override;
+		bool setUciParameter(const std::string& name, int32_t value) override;
+
+	private:
+		[[maybe_unused]] int32_t _mgP0 = DEFAULT_ROOK_MOBILITY_MG_P0;
+		[[maybe_unused]] int32_t _mgP2 = DEFAULT_ROOK_MOBILITY_MG_P2;
+		[[maybe_unused]] int32_t _mgP5 = DEFAULT_ROOK_MOBILITY_MG_P5;
+		[[maybe_unused]] int32_t _mgP12 = DEFAULT_ROOK_MOBILITY_MG_P12;
+		[[maybe_unused]] int32_t _egP0 = DEFAULT_ROOK_MOBILITY_EG_P0;
+		[[maybe_unused]] int32_t _egP2 = DEFAULT_ROOK_MOBILITY_EG_P2;
+		[[maybe_unused]] int32_t _egP5 = DEFAULT_ROOK_MOBILITY_EG_P5;
+		[[maybe_unused]] int32_t _egP12 = DEFAULT_ROOK_MOBILITY_EG_P12;
 	};
 }
 

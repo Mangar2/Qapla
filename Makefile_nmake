@@ -31,13 +31,16 @@ OBJS = \
   $(BUILD_DIR)\eval-helper.obj \
   $(BUILD_DIR)\eval-map.obj \
   $(BUILD_DIR)\array-generator.obj \
+  $(BUILD_DIR)\bishop.obj \
   $(BUILD_DIR)\eval.obj \
   $(BUILD_DIR)\evalendgame.obj \
   $(BUILD_DIR)\kingAttack.obj \
   $(BUILD_DIR)\kingpawnattack.obj \
   $(BUILD_DIR)\pawn.obj \
   $(BUILD_DIR)\pawnrace.obj \
+  $(BUILD_DIR)\knight.obj \
   $(BUILD_DIR)\rook.obj \
+  $(BUILD_DIR)\queen.obj \
   $(BUILD_DIR)\stdtimecontrol.obj \
   $(BUILD_DIR)\winboard.obj \
   $(BUILD_DIR)\bitboardmasks.obj \
@@ -120,6 +123,9 @@ $(BUILD_DIR)\eval-map.obj: eval\eval-map.cpp
 $(BUILD_DIR)\array-generator.obj: eval\array-generator.cpp
 	$(CC) $(CFLAGS) /c eval\array-generator.cpp /Fo$(BUILD_DIR)\array-generator.obj
 
+$(BUILD_DIR)\bishop.obj: eval\bishop.cpp
+	$(CC) $(CFLAGS) /c eval\bishop.cpp /Fo$(BUILD_DIR)\bishop.obj
+
 $(BUILD_DIR)\eval.obj: eval\eval.cpp
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	$(CC) $(CFLAGS) /c eval\eval.cpp /Fo$(BUILD_DIR)\eval.obj
@@ -144,9 +150,17 @@ $(BUILD_DIR)\pawnrace.obj: eval\pawnrace.cpp
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	$(CC) $(CFLAGS) /c eval\pawnrace.cpp /Fo$(BUILD_DIR)\pawnrace.obj
 
+$(BUILD_DIR)\knight.obj: eval\knight.cpp
+	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
+	$(CC) $(CFLAGS) /c eval\knight.cpp /Fo$(BUILD_DIR)\knight.obj
+
 $(BUILD_DIR)\rook.obj: eval\rook.cpp
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	$(CC) $(CFLAGS) /c eval\rook.cpp /Fo$(BUILD_DIR)\rook.obj
+
+$(BUILD_DIR)\queen.obj: eval\queen.cpp
+	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
+	$(CC) $(CFLAGS) /c eval\queen.cpp /Fo$(BUILD_DIR)\queen.obj
 
 $(BUILD_DIR)\stdtimecontrol.obj: interface\stdtimecontrol.cpp
 	if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)

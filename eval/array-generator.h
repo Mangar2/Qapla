@@ -145,5 +145,29 @@ namespace ChessEval {
 		return result;
 	}
 
+	/**
+	 * Prints an array to stdout in a format suitable for debugging or copying into code
+	 */
+	template<size_t SIZE>
+	void printArray(const std::string& name, const std::array<value_t, SIZE>& arr) {
+		std::cout << name << " = {";
+		for (size_t i = 0; i < SIZE; ++i) {
+			std::cout << arr[i] << (i == SIZE - 1 ? "" : ", ");
+		}
+		std::cout << "};" << std::endl;
+	}
+
+	/**
+	 * Prints an array of EvalValue to stdout
+	 */
+	template<size_t SIZE>
+	void printEvalArray(const std::string& name, const std::array<QaplaBasics::EvalValue, SIZE>& arr) {
+		std::cout << name << " = {" << std::endl;
+		for (size_t i = 0; i < SIZE; ++i) {
+			std::cout << "  {" << arr[i].midgame() << ", " << arr[i].endgame() << "}" << (i == SIZE - 1 ? "" : ",") << std::endl;
+		}
+		std::cout << "};" << std::endl;
+	}
+
 }
 

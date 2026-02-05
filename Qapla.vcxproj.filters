@@ -96,6 +96,9 @@
     <ClCompile Include="eval\array-generator.cpp">
       <Filter>eval</Filter>
     </ClCompile>
+    <ClCompile Include="eval\bishop.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
     <ClCompile Include="eval\eval.cpp">
       <Filter>eval</Filter>
     </ClCompile>
