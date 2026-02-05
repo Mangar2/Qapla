@@ -21,8 +21,6 @@
 #include "eval-helper.h"
 #include "evalendgame.h"
 #include "kingpawnattack.h"
-#include "../bitbase/bitbase.h"
-#include "../bitbase/bitbaseindex.h"
 #include "../bitbase/bitbase-reader.h"
 #include "pawn.h"
 #include "king.h"
