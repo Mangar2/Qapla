@@ -21,6 +21,7 @@
 
 #ifndef __KNIGHT_H
 #define __KNIGHT_H
+#define PARAM_OPTIMIZE
 
 #include <cstdint>
 #include "../basics/types.h"
@@ -29,6 +30,9 @@
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "evalresults.h"
+#include "../interface/uci-parameter-provider.h"
+
+#include "array-generator.h"
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
@@ -38,6 +42,14 @@ namespace ChessEval {
 
 	class Knight {
 	public:
+		// Forward declaration of UCI parameter handler
+		class UciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
 
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
@@ -152,11 +164,48 @@ namespace ChessEval {
 			return knightIndex;
 		}
 
+		// Default values for knight mobility optimization
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_MG_P0 = -300;
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_MG_P1 = -200;
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_MG_P3 = 0;
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_MG_P6 = 250;
+
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_EG_P0 = -300;
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_EG_P1 = -200;
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_EG_P3 = 0;
+		static constexpr int32_t DEFAULT_KNIGHT_MOBILITY_EG_P6 = 250;
+
+#ifdef PARAM_OPTIMIZE
+		/**
+		 * Generates KNIGHT_MOBILITY_MAP array using B-spline interpolation
+		 */
+		static std::array<EvalValue, 9> generateMobilityMap(
+			double mg0, double mg1, double mg3, double mg6,
+			double eg0, double eg1, double eg3, double eg6)
+		{
+			std::array<EvalValue, 9> result;
+			std::vector<std::pair<int, double>> ptsMg = { {0, mg0}, {1, mg1}, {3, mg3}, {6, mg6} };
+			std::vector<std::pair<int, double>> ptsEg = { {0, eg0}, {1, eg1}, {3, eg3}, {6, eg6} };
+			auto mg = generateArrayBSpline<9>(ptsMg, false);
+			auto eg = generateArrayBSpline<9>(ptsEg, false);
+			for (size_t i = 0; i < 9; ++i) {
+				result[i] = EvalValue(mg[i], eg[i]);
+			}
+			return result;
+		}
+
+		inline static std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP = 
+			generateMobilityMap(
+				DEFAULT_KNIGHT_MOBILITY_MG_P0 / 10.0, DEFAULT_KNIGHT_MOBILITY_MG_P1 / 10.0, DEFAULT_KNIGHT_MOBILITY_MG_P3 / 10.0, DEFAULT_KNIGHT_MOBILITY_MG_P6 / 10.0,
+				DEFAULT_KNIGHT_MOBILITY_EG_P0 / 10.0, DEFAULT_KNIGHT_MOBILITY_EG_P1 / 10.0, DEFAULT_KNIGHT_MOBILITY_EG_P3 / 10.0, DEFAULT_KNIGHT_MOBILITY_EG_P6 / 10.0
+			);
+#else
 		// Mobility Map for knights
 		static constexpr std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP = { {
 			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
+#endif
 
 		static const uint32_t OUTPOST = 1;
 		static const uint32_t PINNED = 2;
@@ -171,8 +220,28 @@ namespace ChessEval {
 
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };
 	};
+
+	/**
+	 * UCI parameter access implementation for Knight
+	 */
+	class Knight::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override;
+		bool setUciParameter(const std::string& name, int32_t value) override;
+
+	private:
+		[[maybe_unused]] int32_t _mgP0 = DEFAULT_KNIGHT_MOBILITY_MG_P0;
+		[[maybe_unused]] int32_t _mgP1 = DEFAULT_KNIGHT_MOBILITY_MG_P1;
+		[[maybe_unused]] int32_t _mgP3 = DEFAULT_KNIGHT_MOBILITY_MG_P3;
+		[[maybe_unused]] int32_t _mgP6 = DEFAULT_KNIGHT_MOBILITY_MG_P6;
+		[[maybe_unused]] int32_t _egP0 = DEFAULT_KNIGHT_MOBILITY_EG_P0;
+		[[maybe_unused]] int32_t _egP1 = DEFAULT_KNIGHT_MOBILITY_EG_P1;
+		[[maybe_unused]] int32_t _egP3 = DEFAULT_KNIGHT_MOBILITY_EG_P3;
+		[[maybe_unused]] int32_t _egP6 = DEFAULT_KNIGHT_MOBILITY_EG_P6;
+	};
 }
 
 
 #endif
+
 

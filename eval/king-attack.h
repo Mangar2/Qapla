@@ -319,10 +319,10 @@ namespace ChessEval {
 		bool setUciParameter(const std::string& name, int32_t value) override;
 
 	private:
-		int32_t _linearTerm = DEFAULT_KATTACK_LINEAR;
-		int32_t _quadraticTerm = DEFAULT_KATTACK_QUADRATIC;
-		int32_t _activationSpeed = DEFAULT_KATTACK_ACTIVATION;
-		int32_t _dampeningRate = DEFAULT_KATTACK_DAMPENING;
-		int32_t _scale = DEFAULT_KATTACK_SCALE;
+		[[maybe_unused]] int32_t _linearTerm = DEFAULT_KATTACK_LINEAR;
+		[[maybe_unused]] int32_t _quadraticTerm = DEFAULT_KATTACK_QUADRATIC;
+		[[maybe_unused]] int32_t _activationSpeed = DEFAULT_KATTACK_ACTIVATION;
+		[[maybe_unused]] int32_t _dampeningRate = DEFAULT_KATTACK_DAMPENING;
+		[[maybe_unused]] int32_t _scale = DEFAULT_KATTACK_SCALE;
 	};
 }

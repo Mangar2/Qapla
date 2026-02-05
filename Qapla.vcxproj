@@ -1876,6 +1876,10 @@
     <ClCompile Include="bitbase\miniz.c" />
     <ClCompile Include="bitbase\reverseindex.cpp" />
     <ClCompile Include="eval\array-generator.cpp" />
+    <ClCompile Include="eval\bishop.cpp" />
+    <ClCompile Include="eval\knight.cpp" />
+    <ClCompile Include="eval\rook.cpp" />
+    <ClCompile Include="eval\queen.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\king-attack.cpp" />

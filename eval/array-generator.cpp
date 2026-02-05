@@ -139,10 +139,54 @@ namespace ChessEval {
 	}
 
     /**
-     * Catmull-Rom cubic interpolation between p1 and p2 using points p0 and p3 as tangents
+     * Solves a tridiagonal matrix system for cubic spline interpolation.
+     * Uses Thomas algorithm to find the second derivatives at each point.
      */
-    static double cubicInterpolate(double p0, double p1, double p2, double p3, double t) {
-        return p1 + 0.5 * t * (p2 - p0 + t * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3 + t * (3.0 * (p1 - p2) + p3 - p0)));
+    void solveCubicSpline(const std::vector<double>& x, const std::vector<double>& y, std::vector<double>& m) {
+        size_t n = x.size();
+        if (n < 2) return;
+        
+        std::vector<double> h(n - 1);
+        for (size_t i = 0; i < n - 1; ++i) h[i] = x[i + 1] - x[i];
+
+        std::vector<double> d(n);
+        std::vector<double> a(n), b(n), c(n);
+
+        // Natural spline boundary conditions: second derivative at ends is 0
+        // Or "Clamped" at the end if we want slope 0 into the plateau.
+        // Let's use Natural for the start and Clamped (slope=0) for the end transition.
+        
+        // Equation for i=1 to n-2: h[i-1]*m[i-1] + 2*(h[i-1]+h[i])*m[i] + h[i]*m[i+1] = 6*((y[i+1]-y[i])/h[i] - (y[i]-y[i-1])/h[i-1])
+        
+        // Start: Natural boundary (m[0] = 0)
+        b[0] = 1.0; c[0] = 0.0; d[0] = 0.0;
+        
+        for (size_t i = 1; i < n - 1; ++i) {
+            a[i] = h[i - 1];
+            b[i] = 2.0 * (h[i - 1] + h[i]);
+            c[i] = h[i];
+            d[i] = 6.0 * ((y[i + 1] - y[i]) / h[i] - (y[i] - y[i - 1]) / h[i - 1]);
+        }
+
+        // End: Clamped boundary (y' = 0 at last point) to ensure smooth transition to constant
+        // 1st derivative at n-1: (y[n-1]-y[n-2])/h[n-2] + h[n-2]*m[n-2]/6 + h[n-2]*m[n-1]/3 = 0
+        a[n - 1] = h[n - 2];
+        b[n - 1] = 2.0 * h[n - 2];
+        d[n - 1] = 6.0 * (0.0 - (y[n - 1] - y[n - 2]) / h[n - 2]);
+
+        // Thomas Algorithm (Forward Sweep)
+        for (size_t i = 1; i < n; ++i) {
+            double w = a[i] / b[i - 1];
+            b[i] = b[i] - w * c[i - 1];
+            d[i] = d[i] - w * d[i - 1];
+        }
+
+        // Back substitution
+        m.resize(n);
+        m[n - 1] = d[n - 1] / b[n - 1];
+        for (int i = static_cast<int>(n) - 2; i >= 0; --i) {
+            m[i] = (d[i] - c[i] * m[i + 1]) / b[i];
+        }
     }
 
 	void fillArrayBSpline(
@@ -155,57 +199,53 @@ namespace ChessEval {
 		if (size == 0) return;
 
 		std::vector<std::pair<int, double>> pts = points;
-		
-		// 1. Ensure index 0 exists
 		bool hasZero = false;
 		for (const auto& p : pts) if (p.first == 0) hasZero = true;
 		if (!hasZero) pts.push_back({ 0, 0.0 });
 
-		// 2. Sort by index
 		std::sort(pts.begin(), pts.end(), [](const auto& a, const auto& b) {
 			return a.first < b.first;
 		});
 
-		// 3. Remove duplicates (take last)
 		auto last = std::unique(pts.begin(), pts.end(), [](const auto& a, const auto& b) {
 			return a.first == b.first;
 		});
 		pts.erase(last, pts.end());
 
-		// 4. Fill result
-		for (size_t i = 0; i < size; ++i) {
-			int targetIdx = static_cast<int>(i);
-			
-			// Find interval: targetIdx is in [pts[pIdx-1].first, pts[pIdx].first]
-			size_t pIdx = 0;
-			while (pIdx < pts.size() && pts[pIdx].first < targetIdx) {
-				pIdx++;
-			}
+        size_t n = pts.size();
+        std::vector<double> x(n), y(n), m;
+        for (size_t i = 0; i < n; ++i) {
+            x[i] = pts[i].first;
+            y[i] = pts[i].second;
+        }
 
+        if (n >= 2) {
+            solveCubicSpline(x, y, m);
+        }
+
+		for (size_t i = 0; i < size; ++i) {
+			double targetX = static_cast<double>(i);
 			double value = 0;
-			if (pIdx == 0) {
-				// targetIdx <= pts[0].first (always true if 0 is earliest)
-				value = pts[0].second;
+
+			if (targetX <= x[0]) {
+				value = y[0];
 			}
-			else if (pIdx >= pts.size()) {
-				// targetIdx > pts.back().first
-				value = pts.back().second;
+			else if (targetX >= x[n - 1]) {
+				value = y[n - 1];
 			}
 			else {
-				// Interpolate between pts[pIdx-1] and pts[pIdx]
-				const auto& pA = pts[pIdx - 1];
-				const auto& pB = pts[pIdx];
-				
-                double t = static_cast<double>(targetIdx - pA.first) / (pB.first - pA.first);
+                // Find segment
+				size_t j = 0;
+				while (j < n - 1 && x[j + 1] < targetX) j++;
                 
-                // For a smooth curve passing through points, we need neighboring points.
-                // Indices of points: pIdx-2, pIdx-1, pIdx, pIdx+1
-                int i0 = std::max(0, (int)pIdx - 2);
-                int i1 = (int)pIdx - 1;
-                int i2 = (int)pIdx;
-                int i3 = std::min((int)pts.size() - 1, (int)pIdx + 1);
+                double h = x[j + 1] - x[j];
+                double t = (targetX - x[j]) / h;
                 
-                value = cubicInterpolate(pts[i0].second, pts[i1].second, pts[i2].second, pts[i3].second, t);
+                // Cubic spline formula using second derivatives m[j] and m[j+1]
+                value = m[j] * std::pow(h, 2) / 6.0 * (std::pow(1 - t, 3) - (1 - t)) +
+                        m[j + 1] * std::pow(h, 2) / 6.0 * (std::pow(t, 3) - t) +
+                        y[j] * (1 - t) +
+                        y[j + 1] * t;
 			}
 
 			result[i] = static_cast<value_t>(value + (value >= 0 ? 0.5 : -0.5)) * (negate ? -1 : 1);
