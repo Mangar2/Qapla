@@ -24,11 +24,9 @@
 #include <thread>
 #include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
-#include "../search/moveprovider.h"
 #include "piecelist.h"
 #include "boardaccess.h"
 #include "bitbase.h"
-#include "bitbaseindex.h"
 #include "reverseindex.h"
 #include "generationstate.h"
 #include "bitbase-reader.h"

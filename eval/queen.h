@@ -22,11 +22,15 @@
 #ifndef __QUEEN_H
 #define __QUEEN_H
 
-#include <map>
+#include "evalresults.h"
+
 #include "../movegenerator/movegenerator.h"
 #include "../basics/types.h"
 #include "../basics/pst.h"
-#include "evalresults.h"
+#include "../movegenerator/magics.h"
+
+#include <map>
+
 
 using namespace QaplaMoveGenerator;
 

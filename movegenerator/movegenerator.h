@@ -27,8 +27,6 @@
 #include "../basics/movelist.h"
 #include "../basics/boardstate.h"
 #include "../basics/board.h"
-#include "magics.h"
-
 
 
 // ----------------------------------------------------------------------------

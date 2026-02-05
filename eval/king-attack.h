@@ -25,16 +25,15 @@
 
 #include <map>
 #include <algorithm>
-#include <iostream>
 #include "../basics/types.h"
 #include "../basics/square-table.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
-#include "evalendgame.h"
 #include "array-generator.h"
 #include "../interface/uci-parameter-provider.h"
-#include "../search/searchparameter.h"
+#include "../movegenerator/magics.h"
+
 
 using namespace std;
 using namespace QaplaMoveGenerator;

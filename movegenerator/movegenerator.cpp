@@ -19,6 +19,7 @@
 
 #include "movegenerator.h"
 #include "bitboardmasks.h"
+#include "magics.h"
 
 using namespace QaplaMoveGenerator;
 

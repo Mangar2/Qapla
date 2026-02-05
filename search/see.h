@@ -45,9 +45,9 @@
 #ifndef __SEE_H
 #define __SEE_H
 
-#include "searchdef.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "../movegenerator/magics.h"
 
 using namespace QaplaMoveGenerator;
 
