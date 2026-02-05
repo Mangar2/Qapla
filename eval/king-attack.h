@@ -205,6 +205,7 @@ namespace ChessEval {
 		static constexpr int32_t DEFAULT_KATTACK_DAMPENING = 650;    
 		static constexpr int32_t DEFAULT_KATTACK_SCALE = 500;
 
+#ifdef PARAM_OPTIMIZE
 		/**
 		 * Generates attackWeight array using normalized polynomial growth
 		 * Size-invariant formula - parameters have same effect regardless of array size
@@ -232,6 +233,11 @@ namespace ChessEval {
 				DEFAULT_KATTACK_DAMPENING,
 				DEFAULT_KATTACK_SCALE
 			);
+#else
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
+		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
+		  -530, -560, -590, -620, -650, -680, -710 };
+#endif
 
 		static constexpr SquareTable<value_t> initialKingThreat = SquareTable<value_t>(
 			std::array<value_t, 64>{
@@ -293,23 +299,11 @@ namespace ChessEval {
 			return kingAttackBB;
 		} ();
 
-		// Original reference values for attackWeight
-		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
-		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeightReference =
-		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
-		  -530, -560, -590, -620, -650, -680, -710 };
-		// Optimized, using quadratic damping factor:
-		// Starting parameters, 600, 800, 360, 650
-		// Optimized parameters, 470, 1060, 306, 460
-		// SPRT parameters, 600, 800, 250, 650
-		// 0, 0, -3,  -7, -13, -21, -31, -43, -57, -73, -91, -111, -133, -157, -183, -211, -240, -270, -302, -335, -369, -405, -441, -477, -514, -552, -590, -629, -667, -706, -744, -783, -821,
-		// New array generation formular with "moved" dampening
-		// 0, 0, -3,  -7, -13, -21, -31, -44, -58, -76, -95, -117, -141, -168, -196, -226, -258, -291, -325, -360, -396, -433, -470, -507, -544, -581, -617, -653, -689, -723, -757, -789, -821
-		
 		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
 
 	};
 
+#ifdef PARAM_OPTIMIZE
 	/**
 	 * UCI parameter access implementation for KingAttack
 	 */
@@ -325,4 +319,11 @@ namespace ChessEval {
 		[[maybe_unused]] int32_t _dampeningRate = DEFAULT_KATTACK_DAMPENING;
 		[[maybe_unused]] int32_t _scale = DEFAULT_KATTACK_SCALE;
 	};
+#else
+	class KingAttack::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override { return {}; }
+		bool setUciParameter(const std::string&, int32_t) override { return false; }
+	};
+#endif
 }

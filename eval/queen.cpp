@@ -31,45 +31,30 @@ UciParameterProvider& Queen::getUciAccess() {
 #ifdef PARAM_OPTIMIZE
 std::vector<UciParam> Queen::UciAccess::getUciParameters() const {
 	return {
-		{"queenMobilityMgP0", DEFAULT_QUEEN_MOBILITY_MG_P0, -1000, 1000},
-		{"queenMobilityMgP3", DEFAULT_QUEEN_MOBILITY_MG_P3, -1000, 1000},
-		{"queenMobilityMgP6", DEFAULT_QUEEN_MOBILITY_MG_P6, -1000, 1000},
-		{"queenMobilityMgP15", DEFAULT_QUEEN_MOBILITY_MG_P15, -1000, 1000},
-		{"queenMobilityEgP0", DEFAULT_QUEEN_MOBILITY_EG_P0, -1000, 1000},
-		{"queenMobilityEgP3", DEFAULT_QUEEN_MOBILITY_EG_P3, -1000, 1000},
-		{"queenMobilityEgP6", DEFAULT_QUEEN_MOBILITY_EG_P6, -1000, 1000},
-		{"queenMobilityEgP15", DEFAULT_QUEEN_MOBILITY_EG_P15, -1000, 1000}
+		{"queenMobilityP0", DEFAULT_QUEEN_MOBILITY_P0, -1000, 1000},
+		{"queenMobilityP3", DEFAULT_QUEEN_MOBILITY_P3, -1000, 1000},
+		{"queenMobilityP6", DEFAULT_QUEEN_MOBILITY_P6, -1000, 1000},
+		{"queenMobilityP15", DEFAULT_QUEEN_MOBILITY_P15, -1000, 1000}
 	};
 }
 
 bool Queen::UciAccess::setUciParameter(const std::string& name, int32_t value) {
-	if (name == "queenMobilityMgP0") {
-		_mgP0 = value;
-	} else if (name == "queenMobilityMgP3") {
-		_mgP3 = value;
-	} else if (name == "queenMobilityMgP6") {
-		_mgP6 = value;
-	} else if (name == "queenMobilityMgP15") {
-		_mgP15 = value;
-	} else if (name == "queenMobilityEgP0") {
-		_egP0 = value;
-	} else if (name == "queenMobilityEgP3") {
-		_egP3 = value;
-	} else if (name == "queenMobilityEgP6") {
-		_egP6 = value;
-	} else if (name == "queenMobilityEgP15") {
-		_egP15 = value;
+	if (name == "queenMobilityP0") {
+		_p0 = value;
+	} else if (name == "queenMobilityP3") {
+		_p3 = value;
+	} else if (name == "queenMobilityP6") {
+		_p6 = value;
+	} else if (name == "queenMobilityP15") {
+		_p15 = value;
 	} else {
 		return false;
 	}
 
 	// Regenerate QUEEN_MOBILITY_MAP array with new parameters
 	Queen::QUEEN_MOBILITY_MAP = Queen::generateMobilityMap(
-		_mgP0 / 10.0, _mgP3 / 10.0, _mgP6 / 10.0, _mgP15 / 10.0,
-		_egP0 / 10.0, _egP3 / 10.0, _egP6 / 10.0, _egP15 / 10.0
+		_p0 / 10.0, _p3 / 10.0, _p6 / 10.0, _p15 / 10.0
 	);
-
-	printEvalArray("QUEEN_MOBILITY_MAP", Queen::QUEEN_MOBILITY_MAP);
 
 	return true;
 }
