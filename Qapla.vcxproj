@@ -1875,6 +1875,7 @@
     <ClCompile Include="bitbase\lz4.c" />
     <ClCompile Include="bitbase\miniz.c" />
     <ClCompile Include="bitbase\reverseindex.cpp" />
+    <ClCompile Include="eval\array-generator.cpp" />
     <ClCompile Include="eval\eval.cpp" />
     <ClCompile Include="eval\evalendgame.cpp" />
     <ClCompile Include="eval\king-attack.cpp" />

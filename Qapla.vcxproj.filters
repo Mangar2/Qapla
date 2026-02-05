@@ -93,6 +93,9 @@
     <ClCompile Include="bitbase\bitbase-reader.cpp">
       <Filter>bitbase</Filter>
     </ClCompile>
+    <ClCompile Include="eval\array-generator.cpp">
+      <Filter>eval</Filter>
+    </ClCompile>
     <ClCompile Include="eval\eval.cpp">
       <Filter>eval</Filter>
     </ClCompile>
