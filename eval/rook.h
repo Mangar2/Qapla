@@ -323,6 +323,7 @@ namespace ChessEval {
 		} ();
 	};
 
+#ifdef PARAM_OPTIMIZE
 	/**
 	 * UCI parameter access implementation for Rook
 	 */
@@ -332,15 +333,22 @@ namespace ChessEval {
 		bool setUciParameter(const std::string& name, int32_t value) override;
 
 	private:
-		[[maybe_unused]] int32_t _mgP0 = DEFAULT_ROOK_MOBILITY_MG_P0;
-		[[maybe_unused]] int32_t _mgP2 = DEFAULT_ROOK_MOBILITY_MG_P2;
-		[[maybe_unused]] int32_t _mgP5 = DEFAULT_ROOK_MOBILITY_MG_P5;
-		[[maybe_unused]] int32_t _mgP12 = DEFAULT_ROOK_MOBILITY_MG_P12;
-		[[maybe_unused]] int32_t _egP0 = DEFAULT_ROOK_MOBILITY_EG_P0;
-		[[maybe_unused]] int32_t _egP2 = DEFAULT_ROOK_MOBILITY_EG_P2;
-		[[maybe_unused]] int32_t _egP5 = DEFAULT_ROOK_MOBILITY_EG_P5;
-		[[maybe_unused]] int32_t _egP12 = DEFAULT_ROOK_MOBILITY_EG_P12;
+		int32_t _mgP0 = DEFAULT_ROOK_MOBILITY_MG_P0;
+		int32_t _mgP2 = DEFAULT_ROOK_MOBILITY_MG_P2;
+		int32_t _mgP5 = DEFAULT_ROOK_MOBILITY_MG_P5;
+		int32_t _mgP12 = DEFAULT_ROOK_MOBILITY_MG_P12;
+		int32_t _egP0 = DEFAULT_ROOK_MOBILITY_EG_P0;
+		int32_t _egP2 = DEFAULT_ROOK_MOBILITY_EG_P2;
+		int32_t _egP5 = DEFAULT_ROOK_MOBILITY_EG_P5;
+		int32_t _egP12 = DEFAULT_ROOK_MOBILITY_EG_P12;
 	};
+#else
+	class Rook::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override { return {}; }
+		bool setUciParameter(const std::string&, int32_t) override { return false; }
+	};
+#endif
 }
 
 // Rook Test positions

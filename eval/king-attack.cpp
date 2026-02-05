@@ -24,6 +24,7 @@ using namespace ChessEval;
 // Static instance of UCI access
 static KingAttack::UciAccess _uciAccessInstance;
 
+#ifdef PARAM_OPTIMIZE
 UciParameterProvider& KingAttack::getUciAccess() {
 	return _uciAccessInstance;
 }
@@ -66,5 +67,12 @@ bool KingAttack::UciAccess::setUciParameter(const std::string& name, int32_t val
 		_scale
 	);
 
+	printEvalArray("attackWeight", KingAttack::attackWeight);
+
 	return true;
 }
+#else
+UciParameterProvider& KingAttack::getUciAccess() {
+	return _uciAccessInstance;
+}
+#endif

@@ -219,6 +219,7 @@ namespace ChessEval {
 
 	};
 
+#ifdef PARAM_OPTIMIZE
 	/**
 	 * UCI parameter access implementation for Bishop
 	 */
@@ -237,6 +238,13 @@ namespace ChessEval {
 		[[maybe_unused]] int32_t _egP5 = DEFAULT_BISHOP_MOBILITY_EG_P5;
 		[[maybe_unused]] int32_t _egP12 = DEFAULT_BISHOP_MOBILITY_EG_P12;
 	};
+#else
+	class Bishop::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override { return {}; }
+		bool setUciParameter(const std::string&, int32_t) override { return false; }
+	};
+#endif
 }
 
 

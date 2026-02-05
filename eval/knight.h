@@ -221,6 +221,7 @@ namespace ChessEval {
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };
 	};
 
+#ifdef PARAM_OPTIMIZE
 	/**
 	 * UCI parameter access implementation for Knight
 	 */
@@ -239,6 +240,13 @@ namespace ChessEval {
 		[[maybe_unused]] int32_t _egP3 = DEFAULT_KNIGHT_MOBILITY_EG_P3;
 		[[maybe_unused]] int32_t _egP6 = DEFAULT_KNIGHT_MOBILITY_EG_P6;
 	};
+#else
+	class Knight::UciAccess : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override { return {}; }
+		bool setUciParameter(const std::string&, int32_t) override { return false; }
+	};
+#endif
 }
 
 
