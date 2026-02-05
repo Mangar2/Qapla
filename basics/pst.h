@@ -107,6 +107,7 @@ namespace QaplaBasics {
 		inline static int32_t _queenEg  = DEFAULT_PST_QUEEN_EG;
 		inline static int32_t _kingEg   = DEFAULT_PST_KING_EG;
 
+		// 0 => 48,9%; EG700=>49,74%; PMG700=>49,2%
 		constexpr static value_t PAWN_PST[][int(File::COUNT)][2] = {
 			{ {   0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {   0,  0 }, {   0,  0 } },
 			{ {   0,  0 }, {  0,  0 }, {  5,  0 }, {  5,  0 }, {  5,  0 }, {  5,  0 }, {   0,  0 }, {   0,  0 } },
@@ -118,6 +119,7 @@ namespace QaplaBasics {
 			{ {   0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {  0,  0 }, {   0,  0 }, {   0,  0 } }
 		};
 
+		// 0 => 48,9%; 700EG=>49,7%; 700MG=>47,7%; 
 		constexpr static value_t KNIGHT_PST[][int(File::COUNT) / 2][2] = {
 			{ { -100, -50 }, { -50, -30 }, { -40, -20 }, { -40, -10 } },
 			{ {  -30, -40 }, { -20, -25 }, { -10, -10 }, {  -5,   2 } },
@@ -129,6 +131,7 @@ namespace QaplaBasics {
 			{ { -100, -50 }, { -40, -40 }, { -25, -25 }, { -10, -10 } }
 		};
 
+		// 0 => 47,6%; 700EG => 49,9%; 700MG => 49,8%
 		constexpr static value_t BISHOP_PST[][int(File::COUNT) / 2][2] = {
 			{ { -20, -20 }, {  0, -15 }, { -5, -15 }, { -10, -10 } },
 			{ { -10, -15 }, {  5,  -5 }, { 10,  -5 }, {   0,   0 } },
@@ -140,6 +143,7 @@ namespace QaplaBasics {
 			{ { -20, -20 }, { -5, -15 }, { -5, -15 }, { -10, -10 } }
 		};
 
+		// 0 => 47,5%; REG700 =>50%
 		constexpr static value_t ROOK_PST[][int(File::COUNT) / 2][2] = {
 			{ { -15, -5 }, { -10, -5 }, {  -5, -5 }, { -2, -5 } },
 			{ { -10, -5 }, {  -5, -5 }, {  -2,  0 }, {  2,  0 } },
@@ -151,6 +155,7 @@ namespace QaplaBasics {
 			{ { -10,  5 }, { -10,  5 }, {   0,  5 }, {  0,  5 } },
 		};
 
+		// Set to zero => 49,5% (MG, EG) MG700=>49,6%; EG700=>49,25%
 		constexpr static value_t QUEEN_PST[][int(File::COUNT) / 2][2] = {
 			{ { 0, -20 }, { 0, -20 }, { 0, -15 }, { 0, -10 } },
 			{ { 0, -20 }, { 2, -15 }, { 5, -10 }, { 5,   0 } },
@@ -162,6 +167,7 @@ namespace QaplaBasics {
 			{ { 0, -20 }, { 0, -20 }, { 0, -15 }, { 0, -15 } },
 		};
 
+		// 0 => 42,1%, EG 0: 46,7%, MG 300: 49,7%, EG 300: 48,0%; EG700 = 51,5%; MG700=>49,9%
 		constexpr static value_t KING_PST[][int(File::COUNT) / 2][2] = {
 			{ { 50,  0 }, { 60,  2 }, { 40,  5 }, { 30,  5 } },
 			{ { 55,  5 }, { 55, 10 }, { 30, 25 }, { 25, 25 } },

@@ -1,0 +1,32 @@
+[
+  {
+    "directory": "C:/Development/Qapla2",
+    "command": "clang-cl -std:c++20 -W3 -D_DEBUG -DUSE_AVX2 -DUSE_POPCNT -I. -Ibasics -Ibitbase -Ieval -Iinterface -Imovegenerator -Isearch -Itraining -c Qapla.cpp",
+    "file": "Qapla.cpp"
+  },
+  {
+    "directory": "C:/Development/Qapla2",
+    "command": "clang-cl -std:c++20 -W3 -D_DEBUG -DUSE_AVX2 -DUSE_POPCNT -I. -Ibasics -Ibitbase -Ieval -Iinterface -Imovegenerator -Isearch -Itraining -c basics/board.cpp",
+    "file": "basics/board.cpp"
+  },
+  {
+    "directory": "C:/Development/Qapla2",
+    "command": "clang-cl -std:c++20 -W3 -D_DEBUG -DUSE_AVX2 -DUSE_POPCNT -I. -Ibasics -Ibitbase -Ieval -Iinterface -Imovegenerator -Isearch -Itraining -c basics/piecesignature.cpp",
+    "file": "basics/piecesignature.cpp"
+  },
+  {
+    "directory": "C:/Development/Qapla2",
+    "command": "clang-cl -std:c++20 -W3 -D_DEBUG -DUSE_AVX2 -DUSE_POPCNT -I. -Ibasics -Ibitbase -Ieval -Iinterface -Imovegenerator -Isearch -Itraining -c search/search.cpp",
+    "file": "search/search.cpp"
+  },
+  {
+    "directory": "C:/Development/Qapla2",
+    "command": "clang-cl -std:c++20 -W3 -D_DEBUG -DUSE_AVX2 -DUSE_POPCNT -I. -Ibasics -Ibitbase -Ieval -Iinterface -Imovegenerator -Isearch -Itraining -c eval/eval.cpp",
+    "file": "eval/eval.cpp"
+  },
+  {
+    "directory": "C:/Development/Qapla2",
+    "command": "clang-cl -std:c++20 -W3 -D_DEBUG -DUSE_AVX2 -DUSE_POPCNT -I. -Ibasics -Ibitbase -Ieval -Iinterface -Imovegenerator -Isearch -Itraining -c movegenerator/movegenerator.cpp",
+    "file": "movegenerator/movegenerator.cpp"
+  }
+]
