@@ -152,7 +152,7 @@ namespace ChessEval {
 		bool setUciParameter(const std::string& name, int32_t value) override;
 
 	private:
-		int32_t _scale = DEFAULT_THREAT_SCALE;
+		[[maybe_unused]] int32_t _scale = DEFAULT_THREAT_SCALE;
 	};
 }
 
