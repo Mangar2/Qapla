@@ -38,11 +38,10 @@ using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
+
 	class Bishop {
 	public:
-		// Forward declaration of UCI parameter handler
-		class UciAccess;
-
+		friend class UciAccess;
 		/**
 		 * Get UCI parameter access interface
 		 * @return Reference to UCI parameter provider
@@ -155,6 +154,7 @@ namespace ChessEval {
 		 */
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
 
+		static const uint32_t BISHOP_PROPERTY_SIZE = 4;
 		static const uint32_t DOUBLE_BISHOP_INDEX = 1;
 		static const uint32_t PINNED_INDEX = 2;
 
@@ -164,90 +164,31 @@ namespace ChessEval {
 		static constexpr value_t _doubleBishop[2] = { 5, 15 };
 		static constexpr value_t _pinned[2] = { 0, 0 };
 
-		static constexpr std::array<EvalValue, 4> BISHOP_PROPERTY_MAP = { {
-			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} 
-		} };
-		static inline std::string BISHOP_PROPERTY_INFO[4] = {
+		static inline std::string BISHOP_PROPERTY_INFO[BISHOP_PROPERTY_SIZE] = {
 			"", "<par>", "<pin>", "<pin><par>"
 		};
 
-		// Default values for bishop mobility optimization
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P0 = -150;
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P2 = 0;
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P5 = 130;
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_MG_P12 = 250;
-
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P0 = -250;
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P2 = 0;
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P5 = 130;
-		static constexpr int32_t DEFAULT_BISHOP_MOBILITY_EG_P12 = 250;
-
-#ifdef PARAM_OPTIMIZE
-		/**
-		 * Generates BISHOP_MOBILITY_MAP array using B-spline interpolation
-		 */
-		static std::array<EvalValue, 15> generateMobilityMap(
-			double mg0, double mg2, double mg5, double mg12,
-			double eg0, double eg2, double eg5, double eg12)
-		{
-			std::array<EvalValue, 15> result;
-			std::vector<std::pair<int, double>> ptsMg = { {0, mg0}, {2, mg2}, {5, mg5}, {12, mg12} };
-			std::vector<std::pair<int, double>> ptsEg = { {0, eg0}, {2, eg2}, {5, eg5}, {12, eg12} };
-			auto mg = generateArrayBSpline<15>(ptsMg, false);
-			auto eg = generateArrayBSpline<15>(ptsEg, false);
-			for (size_t i = 0; i < 15; ++i) {
-				result[i] = EvalValue(mg[i], eg[i]);
-			}
-			return result;
-		}
-
-		inline static std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = 
-			generateMobilityMap(
-				DEFAULT_BISHOP_MOBILITY_MG_P0 / 10.0, DEFAULT_BISHOP_MOBILITY_MG_P2 / 10.0, DEFAULT_BISHOP_MOBILITY_MG_P5 / 10.0, DEFAULT_BISHOP_MOBILITY_MG_P12 / 10.0,
-				DEFAULT_BISHOP_MOBILITY_EG_P0 / 10.0, DEFAULT_BISHOP_MOBILITY_EG_P2 / 10.0, DEFAULT_BISHOP_MOBILITY_EG_P5 / 10.0, DEFAULT_BISHOP_MOBILITY_EG_P12 / 10.0
-			);
-#else
-		/**
-		 * Mobility of a bishop. Having negative values for 0 or 1 fields to move to did not bring ELO
-		 * Still I kept it.
-		 */
-		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = { {
+		static constexpr std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP_DEFAULT = { {
+			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14}
+		} };
+		
+		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP_DEFAULT = { {
 			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
-#endif
 
-	};
-
-#ifdef PARAM_OPTIMIZE
-	/**
-	 * UCI parameter access implementation for Bishop
-	 */
-	class Bishop::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override;
-		bool setUciParameter(const std::string& name, int32_t value) override;
-
-	private:
-		[[maybe_unused]] int32_t _mgP0 = DEFAULT_BISHOP_MOBILITY_MG_P0;
-		[[maybe_unused]] int32_t _mgP2 = DEFAULT_BISHOP_MOBILITY_MG_P2;
-		[[maybe_unused]] int32_t _mgP5 = DEFAULT_BISHOP_MOBILITY_MG_P5;
-		[[maybe_unused]] int32_t _mgP12 = DEFAULT_BISHOP_MOBILITY_MG_P12;
-		[[maybe_unused]] int32_t _egP0 = DEFAULT_BISHOP_MOBILITY_EG_P0;
-		[[maybe_unused]] int32_t _egP2 = DEFAULT_BISHOP_MOBILITY_EG_P2;
-		[[maybe_unused]] int32_t _egP5 = DEFAULT_BISHOP_MOBILITY_EG_P5;
-		[[maybe_unused]] int32_t _egP12 = DEFAULT_BISHOP_MOBILITY_EG_P12;
-	};
+#ifndef PARAM_OPTIMIZE
+		static constexpr std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP = BISHOP_PROPERTY_MAP_DEFAULT;
+		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = BISHOP_MOBILITY_MAP_DEFAULT;
 #else
-	class Bishop::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override { return {}; }
-		bool setUciParameter(const std::string&, int32_t) override { return false; }
-	};
+		inline static std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP = BISHOP_PROPERTY_MAP_DEFAULT;
+		inline static std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = BISHOP_MOBILITY_MAP_DEFAULT;
 #endif
+
+	};
+
 }
 
 
 #endif
-
 

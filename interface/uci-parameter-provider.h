@@ -23,7 +23,6 @@
 
 #include <string>
 #include <vector>
-#include "../basics/types.h"
 
 namespace ChessEval {
 
@@ -58,6 +57,12 @@ namespace ChessEval {
 		 * @return true if parameter was found and set, false otherwise
 		 */
 		virtual bool setUciParameter(const std::string& name, int32_t value) = 0;
+	};
+
+	class EmptyParameterProvider : public UciParameterProvider {
+	public:
+		std::vector<UciParam> getUciParameters() const override { return {}; }
+		bool setUciParameter(const std::string&, int32_t) override { return false; }
 	};
 
 }
