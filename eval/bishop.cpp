@@ -19,62 +19,110 @@
 
 
 #include "bishop.h"
+#include <cstdint>
 
-using namespace ChessEval;
-
-// Static instance of UCI access
-static Bishop::UciAccess _uciAccessInstance;
-
-UciParameterProvider& Bishop::getUciAccess() {
-	return _uciAccessInstance;
-}
+namespace ChessEval {
 
 #ifdef PARAM_OPTIMIZE
-std::vector<UciParam> Bishop::UciAccess::getUciParameters() const {
-	return {
-		{"bishopMobilityMgP0", DEFAULT_BISHOP_MOBILITY_MG_P0, -1000, 1000},
-		{"bishopMobilityMgP2", DEFAULT_BISHOP_MOBILITY_MG_P2, -1000, 1000},
-		{"bishopMobilityMgP5", DEFAULT_BISHOP_MOBILITY_MG_P5, -1000, 1000},
-		{"bishopMobilityMgP12", DEFAULT_BISHOP_MOBILITY_MG_P12, -1000, 1000},
-		{"bishopMobilityEgP0", DEFAULT_BISHOP_MOBILITY_EG_P0, -1000, 1000},
-		{"bishopMobilityEgP2", DEFAULT_BISHOP_MOBILITY_EG_P2, -1000, 1000},
-		{"bishopMobilityEgP5", DEFAULT_BISHOP_MOBILITY_EG_P5, -1000, 1000},
-		{"bishopMobilityEgP12", DEFAULT_BISHOP_MOBILITY_EG_P12, -1000, 1000}
-	};
+
+/**
+ * Generates BISHOP_MOBILITY_MAP array using B-spline interpolation
+ */
+static std::array<EvalValue, 15> generateMobilityMap(EvalValue mob0, EvalValue mob2, EvalValue mob5, EvalValue mob12)
+{
+	std::array<EvalValue, 15> result;
+	std::vector<std::pair<int, double>> ptsMg = { {0, mob0.midgame() }, { 2, mob2.midgame() }, { 5, mob5.midgame() }, {12, mob12.midgame() }};
+	std::vector<std::pair<int, double>> ptsEg = { {0, mob0.endgame() }, { 2, mob2.endgame() }, { 5, mob5.endgame() }, {12, mob12.endgame() }};
+	auto mg = generateArrayBSpline<15>(ptsMg, false);
+	auto eg = generateArrayBSpline<15>(ptsEg, false);
+	for (size_t i = 0; i < 15; ++i) {
+		result[i] = EvalValue(mg[i], eg[i]);
+	}
+	return result;
 }
 
-bool Bishop::UciAccess::setUciParameter(const std::string& name, int32_t value) {
-	if (name == "bishopMobilityMgP0") {
-		_mgP0 = value;
-	} else if (name == "bishopMobilityMgP2") {
-		_mgP2 = value;
-	} else if (name == "bishopMobilityMgP5") {
-		_mgP5 = value;
-	} else if (name == "bishopMobilityMgP12") {
-		_mgP12 = value;
-	} else if (name == "bishopMobilityEgP0") {
-		_egP0 = value;
-	} else if (name == "bishopMobilityEgP2") {
-		_egP2 = value;
-	} else if (name == "bishopMobilityEgP5") {
-		_egP5 = value;
-	} else if (name == "bishopMobilityEgP12") {
-		_egP12 = value;
-	} else {
-		return false;
+/**
+* UCI parameter access implementation for Bishop
+*/
+class UciAccess : public UciParameterProvider {
+public:
+	std::vector<UciParam> getUciParameters() const override {
+		return {
+			{ .name = "bishopMobilityMgP0", .defaultValue = mobP0_.midgame() },
+			{ .name = "bishopMobilityMgP2", .defaultValue = mobP2_.midgame() },
+			{ .name = "bishopMobilityMgP5", .defaultValue = mobP5_.midgame() },
+			{ .name = "bishopMobilityMgP12", .defaultValue = mobP12_.midgame() },
+			{ .name = "bishopMobilityEgP0", .defaultValue = mobP0_.endgame() },
+			{ .name = "bishopMobilityEgP2", .defaultValue = mobP2_.endgame() },
+			{ .name = "bishopMobilityEgP5", .defaultValue = mobP5_.endgame() },
+			{ .name = "bishopMobilityEgP12", .defaultValue = mobP12_.endgame() }
+		};
+	};
+
+	bool setUciParameter(const std::string& name, int32_t value) override {
+			
+		if (name == "bishopMobilityMgP0") {
+			mobP0_.midgame() = value;
+		} else if (name == "bishopMobilityMgP2") {
+			mobP2_.midgame() = value;
+		} else if (name == "bishopMobilityMgP5") {
+			mobP5_.midgame() = value;
+		} else if (name == "bishopMobilityMgP12") {
+			mobP12_.midgame() = value;
+		} else if (name == "bishopMobilityEgP0") {
+			mobP0_.endgame() = value;
+		} else if (name == "bishopMobilityEgP2") {
+			mobP2_.endgame() = value;
+		} else if (name == "bishopMobilityEgP5") {
+			mobP5_.endgame() = value;
+		} else if (name == "bishopMobilityEgP12") {
+			mobP12_.endgame() = value;
+		} else {
+			return false;
+		}
+
+		// Regenerate BISHOP_MOBILITY_MAP array with new parameters
+		Bishop::BISHOP_MOBILITY_MAP = generateMobilityMap(
+			mobP0_, mobP2_, mobP5_, mobP12_
+		);
+
+		Bishop::BISHOP_PROPERTY_MAP = generateBishopLookup();
+
+		//printEvalArray("BISHOP_MOBILITY_MAP", Bishop::BISHOP_MOBILITY_MAP);
+
+		return true;
 	}
 
-	// Regenerate BISHOP_MOBILITY_MAP array with new parameters
-	Bishop::BISHOP_MOBILITY_MAP = Bishop::generateMobilityMap(
-		_mgP0 / 10.0, _mgP2 / 10.0, _mgP5 / 10.0, _mgP12 / 10.0,
-		_egP0 / 10.0, _egP2 / 10.0, _egP5 / 10.0, _egP12 / 10.0
-	);
+private:
+	std::array<EvalValue, Bishop::BISHOP_PROPERTY_SIZE> generateBishopLookup() {
+		std::array<EvalValue, Bishop::BISHOP_PROPERTY_SIZE> result;
+		for (uint32_t bitmask = 0; bitmask < Bishop::BISHOP_PROPERTY_SIZE; ++bitmask) {
+			EvalValue value;
+			if (bitmask & Bishop::DOUBLE_BISHOP_INDEX) { value += Bishop::_doubleBishop; }
+			if (bitmask & Bishop::PINNED_INDEX) { value += Bishop::_pinned; }
+			result[bitmask] = value;
+		}
+		return result;
+	}
 
-	printEvalArray("BISHOP_MOBILITY_MAP", Bishop::BISHOP_MOBILITY_MAP);
+	EvalValue mobP0_ = Bishop::BISHOP_MOBILITY_MAP_DEFAULT[0];
+	EvalValue mobP2_ = Bishop::BISHOP_MOBILITY_MAP_DEFAULT[2];
+	EvalValue mobP5_ = Bishop::BISHOP_MOBILITY_MAP_DEFAULT[5];
+	EvalValue mobP12_ = Bishop::BISHOP_MOBILITY_MAP_DEFAULT[12];
 
-	return true;
-}
-#else
-std::vector<UciParam> Bishop::UciAccess::getUciParameters() const { return {}; }
-bool Bishop::UciAccess::setUciParameter(const std::string& name, int32_t value) { return false; }
+	EvalValue pinned_ = Bishop::_pinned;
+	EvalValue doubleBishop_ = Bishop::_doubleBishop;
+
+};
 #endif
+
+UciParameterProvider& Bishop::getUciAccess() {
+#ifdef PARAM_OPTIMIZE
+	static UciAccess instance;
+#else 
+	static EmptyParameterProvider instance;
+#endif	
+	return instance;
+}
+
+}
