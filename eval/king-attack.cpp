@@ -19,60 +19,83 @@
 
 #include "king-attack.h"
 
-using namespace ChessEval;
+namespace ChessEval {
 
-// Static instance of UCI access
-static KingAttack::UciAccess _uciAccessInstance;
+#ifdef PARAM_OPTIMIZE_KING_ATTACK
 
-#ifdef PARAM_OPTIMIZE
-UciParameterProvider& KingAttack::getUciAccess() {
-	return _uciAccessInstance;
-}
-
-std::vector<UciParam> KingAttack::UciAccess::getUciParameters() const {
-	return {
-		{"kAttackLinear", DEFAULT_KATTACK_LINEAR, 0, 2000},
-		{"kAttackQuadratic", DEFAULT_KATTACK_QUADRATIC, 0, 2000},
-		{"kAttackActivation", DEFAULT_KATTACK_ACTIVATION, 0, 2000},
-		{"kAttackDampening", DEFAULT_KATTACK_DAMPENING, 0, 2000},
-		{"kAttackScale", DEFAULT_KATTACK_SCALE, 0, 2000}
+/**
+ * Generates attackWeight array using B-spline interpolation
+ */
+static std::array<value_t, KingAttack::MAX_WEIGHT_COUNT + 1> generateAttackWeight(
+	value_t p0,
+	value_t p4,
+	value_t p10,
+	value_t p15,
+	value_t p32)
+{
+	std::vector<std::pair<int, double>> points = {
+		{ 0, p0 },
+		{ 4, p4 },
+		{ 10, p10 },
+		{ 15, p15 },
+		{ 32, p32 }
 	};
+	return generateArrayBSpline<KingAttack::MAX_WEIGHT_COUNT + 1>(points, false);
 }
 
-bool KingAttack::UciAccess::setUciParameter(const std::string& name, int32_t value) {
-	if (name == "kAttackLinear") {
-		_linearTerm = value;
-	} 
-	else if (name == "kAttackQuadratic") {
-		_quadraticTerm = value;
-	} 
-	else if (name == "kAttackActivation") {
-		_activationSpeed = value;
-	}
-	else if (name == "kAttackDampening") {
-		_dampeningRate = value;
-	} 
-	else if (name == "kAttackScale") {
-		_scale = value;
-	} else {
-		return false;
+/**
+* UCI parameter access implementation for KingAttack
+*/
+class UciAccess : public UciParameterProvider {
+public:
+	std::vector<UciParam> getUciParameters() const override {
+		return {
+			{ .name = "kAttackP0", .defaultValue = p0_ },
+			{ .name = "kAttackP4", .defaultValue = p4_ },
+			{ .name = "kAttackP10", .defaultValue = p10_ },
+			{ .name = "kAttackP15", .defaultValue = p15_ },
+			{ .name = "kAttackP32", .defaultValue = p32_ }
+		};
 	}
 
-	// Regenerate attackWeight array with new parameters
-	KingAttack::attackWeight = KingAttack::generateAttackWeight(
-		_linearTerm,
-		_quadraticTerm,
-		_activationSpeed,
-		_dampeningRate,
-		_scale
-	);
+	bool setUciParameter(const std::string& name, int32_t value) override {
+		if (name == "kAttackP0") {
+			p0_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP4") {
+			p4_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP10") {
+			p10_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP15") {
+			p15_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP32") {
+			p32_ = static_cast<value_t>(value);
+		} else {
+			return false;
+		}
 
-	printEvalArray("attackWeight", KingAttack::attackWeight);
+		KingAttack::attackWeight = generateAttackWeight(p0_, p4_, p10_, p15_, p32_);
 
-	return true;
-}
-#else
-UciParameterProvider& KingAttack::getUciAccess() {
-	return _uciAccessInstance;
-}
+		printArray("attackWeight", KingAttack::attackWeight);
+
+		return true;
+	}
+
+private:
+	value_t p0_ = KingAttack::ATTACK_WEIGHT_DEFAULT[0];
+	value_t p4_ = KingAttack::ATTACK_WEIGHT_DEFAULT[4];
+	value_t p10_ = KingAttack::ATTACK_WEIGHT_DEFAULT[10];
+	value_t p15_ = KingAttack::ATTACK_WEIGHT_DEFAULT[15];
+	value_t p32_ = KingAttack::ATTACK_WEIGHT_DEFAULT[32];
+};
 #endif
+
+UciParameterProvider& KingAttack::getUciAccess() {
+#ifdef PARAM_OPTIMIZE_KING_ATTACK
+	static UciAccess instance;
+#else
+	static EmptyParameterProvider instance;
+#endif
+	return instance;
+}
+
+}
