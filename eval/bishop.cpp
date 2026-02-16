@@ -23,7 +23,7 @@
 
 namespace ChessEval {
 
-#ifdef PARAM_OPTIMIZE
+#ifdef PARAM_OPTIMIZE_BISHOP
 
 /**
  * Generates BISHOP_MOBILITY_MAP array using B-spline interpolation
@@ -55,7 +55,11 @@ public:
 			{ .name = "bishopMobilityEgP0", .defaultValue = mobP0_.endgame() },
 			{ .name = "bishopMobilityEgP2", .defaultValue = mobP2_.endgame() },
 			{ .name = "bishopMobilityEgP5", .defaultValue = mobP5_.endgame() },
-			{ .name = "bishopMobilityEgP12", .defaultValue = mobP12_.endgame() }
+			{ .name = "bishopMobilityEgP12", .defaultValue = mobP12_.endgame() },
+			{ .name = "bishopPinnedMg", .defaultValue = pinned_.midgame() },
+			{ .name = "bishopPinnedEg", .defaultValue = pinned_.endgame() },
+			{ .name = "bishopDoubleBishopMg", .defaultValue = doubleBishop_.midgame() },
+			{ .name = "bishopDoubleBishopEg", .defaultValue = doubleBishop_.endgame() }
 		};
 	};
 
@@ -77,6 +81,14 @@ public:
 			mobP5_.endgame() = value;
 		} else if (name == "bishopMobilityEgP12") {
 			mobP12_.endgame() = value;
+		} else if (name == "bishopPinnedMg") {
+			pinned_.midgame() = value;
+		} else if (name == "bishopPinnedEg") {
+			pinned_.endgame() = value;
+		} else if (name == "bishopDoubleBishopMg") {
+			doubleBishop_.midgame() = value;
+		} else if (name == "bishopDoubleBishopEg") {
+			doubleBishop_.endgame() = value;
 		} else {
 			return false;
 		}
@@ -98,8 +110,8 @@ private:
 		std::array<EvalValue, Bishop::BISHOP_PROPERTY_SIZE> result;
 		for (uint32_t bitmask = 0; bitmask < Bishop::BISHOP_PROPERTY_SIZE; ++bitmask) {
 			EvalValue value;
-			if (bitmask & Bishop::DOUBLE_BISHOP_INDEX) { value += Bishop::_doubleBishop; }
-			if (bitmask & Bishop::PINNED_INDEX) { value += Bishop::_pinned; }
+			if (bitmask & Bishop::DOUBLE_BISHOP_INDEX) { value += doubleBishop_; }
+			if (bitmask & Bishop::PINNED_INDEX) { value += pinned_; }
 			result[bitmask] = value;
 		}
 		return result;
@@ -117,7 +129,7 @@ private:
 #endif
 
 UciParameterProvider& Bishop::getUciAccess() {
-#ifdef PARAM_OPTIMIZE
+#ifdef PARAM_OPTIMIZE_BISHOP
 	static UciAccess instance;
 #else 
 	static EmptyParameterProvider instance;
