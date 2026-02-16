@@ -5,6 +5,7 @@ PROJECT_ROOT := $(abspath .)
 BUILD_TYPE   ?= Debug
 BUILD_BASE   := build
 BUILD_DIR    := $(BUILD_BASE)/$(BUILD_TYPE)
+EXTRA_DEFINES ?=
 
 # ============================================================================
 # WINDOWS SECTION
@@ -65,8 +66,8 @@ else # Release
 endif
 
 # Final flags
-CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT)
-CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT)
+CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT) $(EXTRA_DEFINES)
+CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT) $(EXTRA_DEFINES)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
 
 # Dependency file flag (target-specific)
@@ -135,8 +136,8 @@ else
 endif
 
 # Final flags
-CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT)
-CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT)
+CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT) $(EXTRA_DEFINES)
+CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT) $(EXTRA_DEFINES)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
 
 # Dependency file flag (target-specific)
@@ -148,7 +149,7 @@ endif
 # ============================================================================
 
 # Targets
-.PHONY: all clean distclean Debug Release Whatif OldHW
+.PHONY: all clean distclean Debug Release ReleaseOpt Whatif OldHW
 
 all: $(EXE)
 
@@ -177,6 +178,9 @@ Debug:
 
 Release:
 	$(MAKE) BUILD_TYPE=Release
+
+ReleaseOpt:
+	$(MAKE) BUILD_TYPE=Release EXTRA_DEFINES=-DPARAM_OPTIMIZE
 
 Whatif:
 	$(MAKE) BUILD_TYPE=WhatifRelease

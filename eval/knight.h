@@ -36,7 +36,6 @@
 #ifdef PARAM_OPTIMIZE
 #define PARAM_OPTIMIZE_KNIGHT
 #endif
-#define PARAM_OPTIMIZE_KNIGHT
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;

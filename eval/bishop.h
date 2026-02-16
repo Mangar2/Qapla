@@ -37,7 +37,6 @@
 #ifdef PARAM_OPTIMIZE
 #define PARAM_OPTIMIZE_BISHOP
 #endif
-#define PARAM_OPTIMIZE_BISHOP
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
