@@ -30,6 +30,10 @@
 
 #include "evalresults.h"
 
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_THREAT
+#endif
+
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
@@ -38,8 +42,7 @@ namespace ChessEval {
 	class Threat
 	{
 	public:
-		// Forward declaration of UCI parameter handler
-		class UciAccess;
+		friend class UciAccess;
 
 		/**
 		 * Get UCI parameter access interface
@@ -100,59 +103,16 @@ namespace ChessEval {
 			return evThreats;
 		}
 
-		// Default values for UCI parameters (scaled for 0-2000 range)
-		static constexpr int32_t DEFAULT_THREAT_LINEAR_MG = 400;
-		static constexpr int32_t DEFAULT_THREAT_QUADRATIC_MG = 400;
-		static constexpr int32_t DEFAULT_THREAT_DAMPENING_MG = 700;
-		static constexpr int32_t DEFAULT_THREAT_LINEAR_EG = 400;
-		static constexpr int32_t DEFAULT_THREAT_QUADRATIC_EG = 400;
-		static constexpr int32_t DEFAULT_THREAT_DAMPENING_EG = 700;
-		static constexpr int32_t DEFAULT_THREAT_SCALE = 500;
-
-#ifdef PARAM_OPTIMIZE
-		/**
-		 * Generates THREAT_LOOKUP array using normalized polynomial growth without activation
-		 * Separate generation for midgame and endgame values
-		 */
-		static array<EvalValue, 11> generateThreatLookup(double scale)
-		{
-			array<EvalValue, 11> result;
-			for (size_t i = 0; i < 11; ++i) {
-				value_t midgame = static_cast<value_t>(((THREAT_LOOKUP_BASE[i].midgame() * scale) / 500.0) + 0.5);
-				value_t endgame = static_cast<value_t>(((THREAT_LOOKUP_BASE[i].endgame() * scale) / 500.0) + 0.5);
-				result[i] = EvalValue(midgame, endgame);
-			}
-			return result;
-		}
-
-		// Generated threat lookup values - modern C++17 inline static initialization
-		inline static array<EvalValue, 11> THREAT_LOOKUP = 
-			generateThreatLookup(
-				DEFAULT_THREAT_SCALE
-			);
-
-		static constexpr array<EvalValue, 11> THREAT_LOOKUP_BASE = { {
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP_DEFAULT = { {
 			{  0,   0}, { 60,  60}, { 120,  120 }, { 150, 150 }, { 150, 150 }, { 150, 150 },
 			{ 150, 150}, {150, 150}, {150, 150}, {150, 150}, {150, 150}
 		} };
+
+#ifndef PARAM_OPTIMIZE_THREAT
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP = THREAT_LOOKUP_DEFAULT;
 #else
-		static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
-			{  0,   0}, { 60,  60}, { 120,  120 }, { 150, 150 }, { 150, 150 }, { 150, 150 },
-			{ 150, 150}, {150, 150}, {150, 150}, {150, 150}, {150, 150}
-		} };
+		inline static array<EvalValue, 11> THREAT_LOOKUP = THREAT_LOOKUP_DEFAULT;
 #endif
-	};
-
-	/**
-	 * UCI parameter access implementation for Threat
-	 */
-	class Threat::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override;
-		bool setUciParameter(const std::string& name, int32_t value) override;
-
-	private:
-		[[maybe_unused]] int32_t _scale = DEFAULT_THREAT_SCALE;
 	};
 }
 
