@@ -21,7 +21,6 @@
 
 #ifndef __QUEEN_H
 #define __QUEEN_H
-#define PARAM_OPTIMIZE
 
 #include <cstdint>
 #include <vector>
@@ -37,6 +36,9 @@
 
 #include <map>
 
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_QUEEN
+#endif
 
 using namespace QaplaMoveGenerator;
 
@@ -44,8 +46,7 @@ namespace ChessEval {
 
 	class Queen {
 	public:
-		// Forward declaration of UCI parameter handler
-		class UciAccess;
+		friend class UciAccess;
 
 		/**
 		 * Get UCI parameter access interface
@@ -146,69 +147,28 @@ namespace ChessEval {
 			return (pinnedBB & squareToBB(square)) != 0;
 		};
 
-		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = { { { 0, 0 }, { 0, 0 } } };
+		static constexpr value_t _pinned[2] = { 0, 0 };
+
+		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP_DEFAULT = { { { 0, 0 }, { 0, 0 } } };
 		static inline std::string QUEEN_PROPERTY_INFO[2] = {
 			"", "<pin>"
 		};
 
-		// Default values for queen mobility optimization
-		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_P0 = -100;
-		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_P3 = -50;
-		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_P6 = 40;
-		static constexpr int32_t DEFAULT_QUEEN_MOBILITY_P15 = 100;
-
-#ifdef PARAM_OPTIMIZE
-		/**
-		 * Generates QUEEN_MOBILITY_MAP array using B-spline interpolation
-		 */
-		static std::array<value_t, 30> generateMobilityMap(
-			double p0, double p3, double p6, double p15)
-		{
-			std::array<value_t, 30> result;
-			std::vector<std::pair<int, double>> pts = { {0, p0}, {3, p3}, {6, p6}, {15, p15} };
-			auto values = generateArrayBSpline<30>(pts, false);
-			for (size_t i = 0; i < 30; ++i) {
-				result[i] = static_cast<value_t>(values[i]);
-			}
-			return result;
-		}
-
-		inline static std::array<value_t, 30> QUEEN_MOBILITY_MAP = 
-			generateMobilityMap(
-				DEFAULT_QUEEN_MOBILITY_P0 / 10.0, DEFAULT_QUEEN_MOBILITY_P3 / 10.0, 
-				DEFAULT_QUEEN_MOBILITY_P6 / 10.0, DEFAULT_QUEEN_MOBILITY_P15 / 10.0
-			);
-#else
-		static constexpr std::array<value_t, 30> QUEEN_MOBILITY_MAP = { {
-			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
-			10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
+		static constexpr std::array<EvalValue, 30> QUEEN_MOBILITY_MAP_DEFAULT = { {
+			{ -10, -10 }, { -10, -10 }, { -10, -10 }, { -5, -5 }, { 0, 0 }, { 2, 2 }, { 4, 4 }, { 5, 5 }, { 6, 6 }, { 10, 10 },
+			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 },
+			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }
 		} };
-#endif
 
-	};
-
-#ifdef PARAM_OPTIMIZE
-	/**
-	 * UCI parameter access implementation for Queen
-	 */
-	class Queen::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override;
-		bool setUciParameter(const std::string& name, int32_t value) override;
-
-	private:
-		[[maybe_unused]] int32_t _p0 = DEFAULT_QUEEN_MOBILITY_P0;
-		[[maybe_unused]] int32_t _p3 = DEFAULT_QUEEN_MOBILITY_P3;
-		[[maybe_unused]] int32_t _p6 = DEFAULT_QUEEN_MOBILITY_P6;
-		[[maybe_unused]] int32_t _p15 = DEFAULT_QUEEN_MOBILITY_P15;
-	};
+#ifndef PARAM_OPTIMIZE_QUEEN
+		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = QUEEN_PROPERTY_MAP_DEFAULT;
+		static constexpr std::array<EvalValue, 30> QUEEN_MOBILITY_MAP = QUEEN_MOBILITY_MAP_DEFAULT;
 #else
-	class Queen::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override { return {}; }
-		bool setUciParameter(const std::string&, int32_t) override { return false; }
-	};
+		inline static std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = QUEEN_PROPERTY_MAP_DEFAULT;
+		inline static std::array<EvalValue, 30> QUEEN_MOBILITY_MAP = QUEEN_MOBILITY_MAP_DEFAULT;
 #endif
+
+	};
 }
 
 #endif // __QUEEN_H

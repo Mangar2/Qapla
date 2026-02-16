@@ -19,46 +19,105 @@
 
 #include "queen.h"
 
-using namespace ChessEval;
+namespace ChessEval {
 
-// Static instance of UCI access
-static Queen::UciAccess _uciAccessInstance;
+#ifdef PARAM_OPTIMIZE_QUEEN
 
-UciParameterProvider& Queen::getUciAccess() {
-	return _uciAccessInstance;
+/**
+ * Generates QUEEN_MOBILITY_MAP array using B-spline interpolation
+ */
+static std::array<EvalValue, 30> generateMobilityMap(EvalValue mob0, EvalValue mob3, EvalValue mob6, EvalValue mob15)
+{
+	std::array<EvalValue, 30> result;
+	std::vector<std::pair<int, double>> ptsMg = { {0, mob0.midgame() }, {3, mob3.midgame() }, {6, mob6.midgame() }, {15, mob15.midgame() } };
+	std::vector<std::pair<int, double>> ptsEg = { {0, mob0.endgame() }, {3, mob3.endgame() }, {6, mob6.endgame() }, {15, mob15.endgame() } };
+	auto mg = generateArrayBSpline<30>(ptsMg, false);
+	auto eg = generateArrayBSpline<30>(ptsEg, false);
+	for (size_t i = 0; i < 30; ++i) {
+		result[i] = EvalValue(mg[i], eg[i]);
+	}
+	return result;
 }
 
-#ifdef PARAM_OPTIMIZE
-std::vector<UciParam> Queen::UciAccess::getUciParameters() const {
-	return {
-		{"queenMobilityP0", DEFAULT_QUEEN_MOBILITY_P0, -1000, 1000},
-		{"queenMobilityP3", DEFAULT_QUEEN_MOBILITY_P3, -1000, 1000},
-		{"queenMobilityP6", DEFAULT_QUEEN_MOBILITY_P6, -1000, 1000},
-		{"queenMobilityP15", DEFAULT_QUEEN_MOBILITY_P15, -1000, 1000}
+/**
+* UCI parameter access implementation for Queen
+*/
+class UciAccess : public UciParameterProvider {
+public:
+	std::vector<UciParam> getUciParameters() const override {
+		return {
+			{ .name = "queenMobilityMgP0", .defaultValue = mobP0_.midgame() },
+			{ .name = "queenMobilityMgP3", .defaultValue = mobP3_.midgame() },
+			{ .name = "queenMobilityMgP6", .defaultValue = mobP6_.midgame() },
+			{ .name = "queenMobilityMgP15", .defaultValue = mobP15_.midgame() },
+			{ .name = "queenMobilityEgP0", .defaultValue = mobP0_.endgame() },
+			{ .name = "queenMobilityEgP3", .defaultValue = mobP3_.endgame() },
+			{ .name = "queenMobilityEgP6", .defaultValue = mobP6_.endgame() },
+			{ .name = "queenMobilityEgP15", .defaultValue = mobP15_.endgame() },
+			{ .name = "queenPinnedMg", .defaultValue = pinned_.midgame() },
+			{ .name = "queenPinnedEg", .defaultValue = pinned_.endgame() }
+		};
 	};
-}
 
-bool Queen::UciAccess::setUciParameter(const std::string& name, int32_t value) {
-	if (name == "queenMobilityP0") {
-		_p0 = value;
-	} else if (name == "queenMobilityP3") {
-		_p3 = value;
-	} else if (name == "queenMobilityP6") {
-		_p6 = value;
-	} else if (name == "queenMobilityP15") {
-		_p15 = value;
-	} else {
-		return false;
+	bool setUciParameter(const std::string& name, int32_t value) override {
+		if (name == "queenMobilityMgP0") {
+			mobP0_.midgame() = value;
+		} else if (name == "queenMobilityMgP3") {
+			mobP3_.midgame() = value;
+		} else if (name == "queenMobilityMgP6") {
+			mobP6_.midgame() = value;
+		} else if (name == "queenMobilityMgP15") {
+			mobP15_.midgame() = value;
+		} else if (name == "queenMobilityEgP0") {
+			mobP0_.endgame() = value;
+		} else if (name == "queenMobilityEgP3") {
+			mobP3_.endgame() = value;
+		} else if (name == "queenMobilityEgP6") {
+			mobP6_.endgame() = value;
+		} else if (name == "queenMobilityEgP15") {
+			mobP15_.endgame() = value;
+		} else if (name == "queenPinnedMg") {
+			pinned_.midgame() = value;
+		} else if (name == "queenPinnedEg") {
+			pinned_.endgame() = value;
+		} else {
+			return false;
+		}
+
+		// Regenerate QUEEN_MOBILITY_MAP array with new parameters
+		Queen::QUEEN_MOBILITY_MAP = generateMobilityMap(
+			mobP0_, mobP3_, mobP6_, mobP15_
+		);
+
+		Queen::QUEEN_PROPERTY_MAP = generateQueenLookup();
+
+		return true;
 	}
 
-	// Regenerate QUEEN_MOBILITY_MAP array with new parameters
-	Queen::QUEEN_MOBILITY_MAP = Queen::generateMobilityMap(
-		_p0 / 10.0, _p3 / 10.0, _p6 / 10.0, _p15 / 10.0
-	);
+private:
+	std::array<EvalValue, 2> generateQueenLookup() {
+		std::array<EvalValue, 2> result;
+		result[0] = EvalValue(0, 0);
+		result[1] = pinned_;
+		return result;
+	}
 
-	return true;
-}
-#else
-std::vector<UciParam> Queen::UciAccess::getUciParameters() const { return {}; }
-bool Queen::UciAccess::setUciParameter(const std::string& name, int32_t value) { return false; }
+	EvalValue mobP0_ = Queen::QUEEN_MOBILITY_MAP_DEFAULT[0];
+	EvalValue mobP3_ = Queen::QUEEN_MOBILITY_MAP_DEFAULT[3];
+	EvalValue mobP6_ = Queen::QUEEN_MOBILITY_MAP_DEFAULT[6];
+	EvalValue mobP15_ = Queen::QUEEN_MOBILITY_MAP_DEFAULT[15];
+
+	EvalValue pinned_ = Queen::_pinned;
+};
 #endif
+
+UciParameterProvider& Queen::getUciAccess() {
+#ifdef PARAM_OPTIMIZE_QUEEN
+	static UciAccess instance;
+#else
+	static EmptyParameterProvider instance;
+#endif
+	return instance;
+}
+
+}
