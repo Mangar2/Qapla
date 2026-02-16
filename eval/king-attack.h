@@ -34,6 +34,10 @@
 #include "../interface/uci-parameter-provider.h"
 #include "../movegenerator/magics.h"
 
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_KING_ATTACK
+#endif
+
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -43,8 +47,7 @@ namespace ChessEval {
 	class KingAttack {
 
 	public:
-		// Forward declaration of UCI parameter handler
-		class UciAccess;
+		friend class UciAccess;
 
 		/**
 		 * Get UCI parameter access interface
@@ -86,9 +89,9 @@ namespace ChessEval {
 			computeAttacks<BLACK>(position, results);
 			return computeAttackValue<WHITE, true>(position, results, &details) - computeAttackValue<BLACK, true>(position, results, &details);
 		}
+		static constexpr uint32_t MAX_WEIGHT_COUNT = 32;
 
 	private:
-		static constexpr uint32_t MAX_WEIGHT_COUNT = 32;
 
 		/**
 		 * Computes an index for the pawn shield
@@ -198,45 +201,14 @@ namespace ChessEval {
 		static constexpr uint32_t PRESSURE_MASK = 0x1F;
 		static constexpr uint32_t INDEX_SIZE = 0x40;
 
-		// Default values for UCI parameters (scaled by 10 for integer UCI, range 0-1000)
-		static constexpr int32_t DEFAULT_KATTACK_LINEAR = 600;
-		static constexpr int32_t DEFAULT_KATTACK_QUADRATIC = 800;
-		static constexpr int32_t DEFAULT_KATTACK_ACTIVATION = 250;   
-		static constexpr int32_t DEFAULT_KATTACK_DAMPENING = 650;    
-		static constexpr int32_t DEFAULT_KATTACK_SCALE = 500;
-
-#ifdef PARAM_OPTIMIZE
-		/**
-		 * Generates attackWeight array using normalized polynomial growth
-		 * Size-invariant formula - parameters have same effect regardless of array size
-		 * Parameters can be optimized using SPSA
-		 */
-		static array<value_t, MAX_WEIGHT_COUNT + 1> generateAttackWeight(
-			double linearTerm,
-			double quadraticTerm,
-			double activationSpeed,
-			double dampeningRate,
-			double scale)
-		{
-			auto result = generateArrayPolynomialDampened<MAX_WEIGHT_COUNT + 1>(
-				linearTerm, quadraticTerm, activationSpeed, dampeningRate, scale);
-
-			return result;
-		}
-
-		// Generated attack weight values - modern C++17 inline static initialization
-		inline static array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = 
-			generateAttackWeight(
-				DEFAULT_KATTACK_LINEAR,
-				DEFAULT_KATTACK_QUADRATIC,
-				DEFAULT_KATTACK_ACTIVATION,
-				DEFAULT_KATTACK_DAMPENING,
-				DEFAULT_KATTACK_SCALE
-			);
-#else
-		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> ATTACK_WEIGHT_DEFAULT =
 		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
 		  -530, -560, -590, -620, -650, -680, -710 };
+
+#ifndef PARAM_OPTIMIZE_KING_ATTACK
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = ATTACK_WEIGHT_DEFAULT;
+#else
+		inline static array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = ATTACK_WEIGHT_DEFAULT;
 #endif
 
 		static constexpr SquareTable<value_t> initialKingThreat = SquareTable<value_t>(
@@ -302,28 +274,4 @@ namespace ChessEval {
 		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
 
 	};
-
-#ifdef PARAM_OPTIMIZE
-	/**
-	 * UCI parameter access implementation for KingAttack
-	 */
-	class KingAttack::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override;
-		bool setUciParameter(const std::string& name, int32_t value) override;
-
-	private:
-		[[maybe_unused]] int32_t _linearTerm = DEFAULT_KATTACK_LINEAR;
-		[[maybe_unused]] int32_t _quadraticTerm = DEFAULT_KATTACK_QUADRATIC;
-		[[maybe_unused]] int32_t _activationSpeed = DEFAULT_KATTACK_ACTIVATION;
-		[[maybe_unused]] int32_t _dampeningRate = DEFAULT_KATTACK_DAMPENING;
-		[[maybe_unused]] int32_t _scale = DEFAULT_KATTACK_SCALE;
-	};
-#else
-	class KingAttack::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override { return {}; }
-		bool setUciParameter(const std::string&, int32_t) override { return false; }
-	};
-#endif
 }
