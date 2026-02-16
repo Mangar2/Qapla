@@ -33,7 +33,12 @@
 #include "../interface/uci-parameter-provider.h"
 
 #include <cstdint>
-#define PARAM_OPTIMIZE
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_BISHOP
+#endif
+#define PARAM_OPTIMIZE_BISHOP
+
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
@@ -161,15 +166,15 @@ namespace ChessEval {
 		/**
 		 * Additional value for two bishops on different colors
 		 */
-		static constexpr value_t _doubleBishop[2] = { 5, 15 };
-		static constexpr value_t _pinned[2] = { 0, 0 };
+		static constexpr value_t _doubleBishop[2] = { 26, 14 };
+		static constexpr value_t _pinned[2] = { -10,  -0 };
 
 		static inline std::string BISHOP_PROPERTY_INFO[BISHOP_PROPERTY_SIZE] = {
 			"", "<par>", "<pin>", "<pin><par>"
 		};
 
 		static constexpr std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP_DEFAULT = { {
-			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14}
+			{  0,   0}, { 26,  14}, {-10,   0}, { 16,  14}
 		} };
 		
 		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP_DEFAULT = { {
@@ -177,7 +182,7 @@ namespace ChessEval {
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
-#ifndef PARAM_OPTIMIZE
+#ifndef PARAM_OPTIMIZE_BISHOP
 		static constexpr std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP = BISHOP_PROPERTY_MAP_DEFAULT;
 		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = BISHOP_MOBILITY_MAP_DEFAULT;
 #else
