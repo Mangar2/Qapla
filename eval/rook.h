@@ -21,7 +21,6 @@
 
 #ifndef __ROOK_H
 #define __ROOK_H
-#define PARAM_OPTIMIZE
 
 #include <cstdint>
 #include <vector>
@@ -35,14 +34,17 @@
 #include "array-generator.h"
 #include "../interface/uci-parameter-provider.h"
 
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_ROOK
+#endif
+
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 	class Rook {
 	public:
-		// Forward declaration of UCI parameter handler
-		class UciAccess;
+		friend class UciAccess;
 
 		/**
 		 * Get UCI parameter access interface
@@ -248,48 +250,11 @@ namespace ChessEval {
 				{ 0, 0 }, { 10, 0 }, { 10, 0 }, { 0, 0 }, { 0, 0 }, { 20, 0 }, { 20, 0 }, { 0, 0 }
 			} };
 
-		// Default values for rook mobility optimization
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P0 = 0;
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P2 = 0;
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P5 = 80;
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_MG_P12 = 250;
-
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P0 = 0;
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P2 = 0;
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P5 = 80;
-		static constexpr int32_t DEFAULT_ROOK_MOBILITY_EG_P12 = 250;
-
-#ifdef PARAM_OPTIMIZE
-		/**
-		 * Generates ROOK_MOBILITY_MAP array using B-spline interpolation
-		 */
-		static std::array<EvalValue, 15> generateMobilityMap(
-			double mg0, double mg2, double mg5, double mg12,
-			double eg0, double eg2, double eg5, double eg12)
-		{
-			std::array<EvalValue, 15> result;
-			std::vector<std::pair<int, double>> ptsMg = { {0, mg0}, {2, mg2}, {5, mg5}, {12, mg12} };
-			std::vector<std::pair<int, double>> ptsEg = { {0, eg0}, {2, eg2}, {5, eg5}, {12, eg12} };
-			auto mg = generateArrayBSpline<15>(ptsMg, false);
-			auto eg = generateArrayBSpline<15>(ptsEg, false);
-			for (size_t i = 0; i < 15; ++i) {
-				result[i] = EvalValue(mg[i], eg[i]);
-			}
-			return result;
-		}
-
-		inline static std::array<EvalValue, 15> ROOK_MOBILITY_MAP = 
-			generateMobilityMap(
-				DEFAULT_ROOK_MOBILITY_MG_P0 / 10.0, DEFAULT_ROOK_MOBILITY_MG_P2 / 10.0, DEFAULT_ROOK_MOBILITY_MG_P5 / 10.0, DEFAULT_ROOK_MOBILITY_MG_P12 / 10.0,
-				DEFAULT_ROOK_MOBILITY_EG_P0 / 10.0, DEFAULT_ROOK_MOBILITY_EG_P2 / 10.0, DEFAULT_ROOK_MOBILITY_EG_P5 / 10.0, DEFAULT_ROOK_MOBILITY_EG_P12 / 10.0
-			);
-#else
 		// Mobility Map
-		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP = { {
+		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP_DEFAULT = { {
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
-#endif
 
 		static const uint32_t INDEX_SIZE = 0x40 * 8;
 		static const uint32_t TRAPPED = 1;
@@ -299,14 +264,15 @@ namespace ChessEval {
 		static const uint32_t PINNED = 0x10;
 		static const uint32_t DOUBLE_ROOK_INDEX = 0x20;
 		static const uint32_t ROW_7_INDEX = 0x40;
-		
-		inline static array<EvalValue, INDEX_SIZE> evalMap = [] {
-			const value_t _trapped[2] = { -50, -16 };
-			const value_t _openFile[2] = { 18, 6 };
-			const value_t _halfOpenFile[2] = { 10, 0 };
-			const value_t _protectsPP[2] = { 25, 0 };
-			const value_t _pinned[2] = { -23, 0 };
 
+		static constexpr value_t _trapped[2] = { -50, -16 };
+		static constexpr value_t _openFile[2] = { 18, 6 };
+		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
+		static constexpr value_t _protectsPP[2] = { 25, 0 };
+		static constexpr value_t _pinned[2] = { -23, 0 };
+		static constexpr value_t _doubleRook[2] = { -13, 0 };
+
+		static constexpr array<EvalValue, INDEX_SIZE> EVAL_MAP_DEFAULT = [] {
 			array<EvalValue, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
 				EvalValue value;
@@ -315,40 +281,21 @@ namespace ChessEval {
 				if (bitmask & HALF_OPEN_FILE) { value += _halfOpenFile; }
 				if (bitmask & PROTECTS_PP) { value += _protectsPP; }
 				if (bitmask & PINNED) { value += _pinned; }
-				if (bitmask & DOUBLE_ROOK_INDEX) { value += { -13, 0 }; }
+				if (bitmask & DOUBLE_ROOK_INDEX) { value += _doubleRook; }
 				if (bitmask / ROW_7_INDEX) { value += ROOK_ROW_7_MAP[bitmask / ROW_7_INDEX]; }
 				map[bitmask] = value;
 			}
 			return map;
-		} ();
-	};
+		}();
 
-#ifdef PARAM_OPTIMIZE
-	/**
-	 * UCI parameter access implementation for Rook
-	 */
-	class Rook::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override;
-		bool setUciParameter(const std::string& name, int32_t value) override;
-
-	private:
-		int32_t _mgP0 = DEFAULT_ROOK_MOBILITY_MG_P0;
-		int32_t _mgP2 = DEFAULT_ROOK_MOBILITY_MG_P2;
-		int32_t _mgP5 = DEFAULT_ROOK_MOBILITY_MG_P5;
-		int32_t _mgP12 = DEFAULT_ROOK_MOBILITY_MG_P12;
-		int32_t _egP0 = DEFAULT_ROOK_MOBILITY_EG_P0;
-		int32_t _egP2 = DEFAULT_ROOK_MOBILITY_EG_P2;
-		int32_t _egP5 = DEFAULT_ROOK_MOBILITY_EG_P5;
-		int32_t _egP12 = DEFAULT_ROOK_MOBILITY_EG_P12;
-	};
+#ifndef PARAM_OPTIMIZE_ROOK
+		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP = ROOK_MOBILITY_MAP_DEFAULT;
+		static constexpr array<EvalValue, INDEX_SIZE> evalMap = EVAL_MAP_DEFAULT;
 #else
-	class Rook::UciAccess : public UciParameterProvider {
-	public:
-		std::vector<UciParam> getUciParameters() const override { return {}; }
-		bool setUciParameter(const std::string&, int32_t) override { return false; }
-	};
+		inline static std::array<EvalValue, 15> ROOK_MOBILITY_MAP = ROOK_MOBILITY_MAP_DEFAULT;
+		inline static array<EvalValue, INDEX_SIZE> evalMap = EVAL_MAP_DEFAULT;
 #endif
+	};
 }
 
 // Rook Test positions
