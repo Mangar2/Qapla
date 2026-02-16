@@ -19,37 +19,85 @@
 
 #include "threat.h"
 
-using namespace ChessEval;
+namespace ChessEval {
 
-// Static instance of UCI access
-static Threat::UciAccess _uciAccessInstance;
+#ifdef PARAM_OPTIMIZE_THREAT
 
-UciParameterProvider& Threat::getUciAccess() {
-	return _uciAccessInstance;
+/**
+ * Generates THREAT_LOOKUP array using B-spline interpolation
+ */
+static std::array<EvalValue, 11> generateThreatLookup(EvalValue p0, EvalValue p1, EvalValue p2, EvalValue p10)
+{
+	std::array<EvalValue, 11> result;
+	std::vector<std::pair<int, double>> ptsMg = { {0, p0.midgame() }, {1, p1.midgame() }, {2, p2.midgame() }, {10, p10.midgame() } };
+	std::vector<std::pair<int, double>> ptsEg = { {0, p0.endgame() }, {1, p1.endgame() }, {2, p2.endgame() }, {10, p10.endgame() } };
+	auto mg = generateArrayBSpline<11>(ptsMg, false);
+	auto eg = generateArrayBSpline<11>(ptsEg, false);
+	for (size_t i = 0; i < 11; ++i) {
+		result[i] = EvalValue(mg[i], eg[i]);
+	}
+	return result;
 }
 
-#ifdef PARAM_OPTIMIZE
-std::vector<UciParam> Threat::UciAccess::getUciParameters() const {
-	return {
-		{"threatScale", DEFAULT_THREAT_SCALE, 0, 2000}
-	};
-}
-
-bool Threat::UciAccess::setUciParameter(const std::string& name, int32_t value) {
-	if (name == "threatScale") {
-		_scale = value;
-	} else {
-		return false;
+/**
+* UCI parameter access implementation for Threat
+*/
+class UciAccess : public UciParameterProvider {
+public:
+	std::vector<UciParam> getUciParameters() const override {
+		return {
+			{ .name = "threatMgP0", .defaultValue = p0_.midgame() },
+			{ .name = "threatMgP1", .defaultValue = p1_.midgame() },
+			{ .name = "threatMgP2", .defaultValue = p2_.midgame() },
+			{ .name = "threatMgP10", .defaultValue = p10_.midgame() },
+			{ .name = "threatEgP0", .defaultValue = p0_.endgame() },
+			{ .name = "threatEgP1", .defaultValue = p1_.endgame() },
+			{ .name = "threatEgP2", .defaultValue = p2_.endgame() },
+			{ .name = "threatEgP10", .defaultValue = p10_.endgame() }
+		};
 	}
 
-	// Regenerate THREAT_LOOKUP array with new parameters
-	Threat::THREAT_LOOKUP = Threat::generateThreatLookup(
-		_scale
-	);
+	bool setUciParameter(const std::string& name, int32_t value) override {
+		if (name == "threatMgP0") {
+			p0_.midgame() = value;
+		} else if (name == "threatMgP1") {
+			p1_.midgame() = value;
+		} else if (name == "threatMgP2") {
+			p2_.midgame() = value;
+		} else if (name == "threatMgP10") {
+			p10_.midgame() = value;
+		} else if (name == "threatEgP0") {
+			p0_.endgame() = value;
+		} else if (name == "threatEgP1") {
+			p1_.endgame() = value;
+		} else if (name == "threatEgP2") {
+			p2_.endgame() = value;
+		} else if (name == "threatEgP10") {
+			p10_.endgame() = value;
+		} else {
+			return false;
+		}
 
-	return true;
-}
-#else
-std::vector<UciParam> Threat::UciAccess::getUciParameters() const { return {}; }
-bool Threat::UciAccess::setUciParameter(const std::string& name, int32_t value) { return false; }
+		Threat::THREAT_LOOKUP = generateThreatLookup(p0_, p1_, p2_, p10_);
+
+		return true;
+	}
+
+private:
+	EvalValue p0_ = Threat::THREAT_LOOKUP_DEFAULT[0];
+	EvalValue p1_ = Threat::THREAT_LOOKUP_DEFAULT[1];
+	EvalValue p2_ = Threat::THREAT_LOOKUP_DEFAULT[2];
+	EvalValue p10_ = Threat::THREAT_LOOKUP_DEFAULT[10];
+};
 #endif
+
+UciParameterProvider& Threat::getUciAccess() {
+#ifdef PARAM_OPTIMIZE_THREAT
+	static UciAccess instance;
+#else
+	static EmptyParameterProvider instance;
+#endif
+	return instance;
+}
+
+}
