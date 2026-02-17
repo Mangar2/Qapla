@@ -199,4 +199,4 @@ OldHW:
 	$(MAKE) BUILD_TYPE=Release_NO_POPCOUNT
 
 # Auto dependencies
--include $(OBJ:.o=.d)
+-include $(OBJ:=.d)
