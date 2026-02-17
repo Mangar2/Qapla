@@ -50,11 +50,11 @@ class KingAttackUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
-			{ .name = "kAttackP0", .defaultValue = p0_ },
-			{ .name = "kAttackP4", .defaultValue = p4_ },
-			{ .name = "kAttackP10", .defaultValue = p10_ },
-			{ .name = "kAttackP15", .defaultValue = p15_ },
-			{ .name = "kAttackP32", .defaultValue = p32_ }
+			{ .name = "kAttackP0", .defaultValue = p0_, .minValue = -1000, .maxValue = 0 },
+			{ .name = "kAttackP4", .defaultValue = p4_, .minValue = -1000, .maxValue = 0 },
+			{ .name = "kAttackP10", .defaultValue = p10_, .minValue = -1000, .maxValue = 0 },
+			{ .name = "kAttackP15", .defaultValue = p15_, .minValue = -1000, .maxValue = 0 },
+			{ .name = "kAttackP32", .defaultValue = p32_, .minValue = -1000, .maxValue = 0 }
 		};
 	}
 

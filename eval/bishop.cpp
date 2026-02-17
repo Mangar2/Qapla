@@ -48,18 +48,18 @@ class BishopUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
-			{ .name = "bishopMobilityMgP0", .defaultValue = mobP0_.midgame() },
-			{ .name = "bishopMobilityMgP2", .defaultValue = mobP2_.midgame() },
-			{ .name = "bishopMobilityMgP5", .defaultValue = mobP5_.midgame() },
-			{ .name = "bishopMobilityMgP12", .defaultValue = mobP12_.midgame() },
-			{ .name = "bishopMobilityEgP0", .defaultValue = mobP0_.endgame() },
-			{ .name = "bishopMobilityEgP2", .defaultValue = mobP2_.endgame() },
-			{ .name = "bishopMobilityEgP5", .defaultValue = mobP5_.endgame() },
-			{ .name = "bishopMobilityEgP12", .defaultValue = mobP12_.endgame() },
-			{ .name = "bishopPinnedMg", .defaultValue = pinned_.midgame() },
-			{ .name = "bishopPinnedEg", .defaultValue = pinned_.endgame() },
-			{ .name = "bishopDoubleBishopMg", .defaultValue = doubleBishop_.midgame() },
-			{ .name = "bishopDoubleBishopEg", .defaultValue = doubleBishop_.endgame() }
+			{ .name = "bishopMobilityMgP0", .defaultValue = mobP0_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopMobilityMgP2", .defaultValue = mobP2_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopMobilityMgP5", .defaultValue = mobP5_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopMobilityMgP12", .defaultValue = mobP12_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopMobilityEgP0", .defaultValue = mobP0_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopMobilityEgP2", .defaultValue = mobP2_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopMobilityEgP5", .defaultValue = mobP5_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopMobilityEgP12", .defaultValue = mobP12_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "bishopPinnedMg", .defaultValue = pinned_.midgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "bishopPinnedEg", .defaultValue = pinned_.endgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "bishopDoubleBishopMg", .defaultValue = doubleBishop_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "bishopDoubleBishopEg", .defaultValue = doubleBishop_.endgame(), .minValue = 0, .maxValue = 1000 }
 		};
 	};
 

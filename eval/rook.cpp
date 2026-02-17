@@ -46,26 +46,26 @@ class RookUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
-			{ .name = "rookMobilityMgP0", .defaultValue = mobP0_.midgame() },
-			{ .name = "rookMobilityMgP2", .defaultValue = mobP2_.midgame() },
-			{ .name = "rookMobilityMgP5", .defaultValue = mobP5_.midgame() },
-			{ .name = "rookMobilityMgP12", .defaultValue = mobP12_.midgame() },
-			{ .name = "rookMobilityEgP0", .defaultValue = mobP0_.endgame() },
-			{ .name = "rookMobilityEgP2", .defaultValue = mobP2_.endgame() },
-			{ .name = "rookMobilityEgP5", .defaultValue = mobP5_.endgame() },
-			{ .name = "rookMobilityEgP12", .defaultValue = mobP12_.endgame() },
-			{ .name = "rookTrappedMg", .defaultValue = trapped_.midgame() },
-			{ .name = "rookTrappedEg", .defaultValue = trapped_.endgame() },
-			{ .name = "rookOpenFileMg", .defaultValue = openFile_.midgame() },
-			{ .name = "rookOpenFileEg", .defaultValue = openFile_.endgame() },
-			{ .name = "rookHalfOpenFileMg", .defaultValue = halfOpenFile_.midgame() },
-			{ .name = "rookHalfOpenFileEg", .defaultValue = halfOpenFile_.endgame() },
-			{ .name = "rookProtectsPassedPawnMg", .defaultValue = protectsPP_.midgame() },
-			{ .name = "rookProtectsPassedPawnEg", .defaultValue = protectsPP_.endgame() },
-			{ .name = "rookPinnedMg", .defaultValue = pinned_.midgame() },
-			{ .name = "rookPinnedEg", .defaultValue = pinned_.endgame() },
-			{ .name = "rookDoubleRookMg", .defaultValue = doubleRook_.midgame() },
-			{ .name = "rookDoubleRookEg", .defaultValue = doubleRook_.endgame() }
+			{ .name = "rookMobilityMgP0", .defaultValue = mobP0_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookMobilityMgP2", .defaultValue = mobP2_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookMobilityMgP5", .defaultValue = mobP5_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookMobilityMgP12", .defaultValue = mobP12_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookMobilityEgP0", .defaultValue = mobP0_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookMobilityEgP2", .defaultValue = mobP2_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookMobilityEgP5", .defaultValue = mobP5_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookMobilityEgP12", .defaultValue = mobP12_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "rookTrappedMg", .defaultValue = trapped_.midgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "rookTrappedEg", .defaultValue = trapped_.endgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "rookOpenFileMg", .defaultValue = openFile_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "rookOpenFileEg", .defaultValue = openFile_.endgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "rookHalfOpenFileMg", .defaultValue = halfOpenFile_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "rookHalfOpenFileEg", .defaultValue = halfOpenFile_.endgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "rookProtectsPassedPawnMg", .defaultValue = protectsPP_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "rookProtectsPassedPawnEg", .defaultValue = protectsPP_.endgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "rookPinnedMg", .defaultValue = pinned_.midgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "rookPinnedEg", .defaultValue = pinned_.endgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "rookDoubleRookMg", .defaultValue = doubleRook_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "rookDoubleRookEg", .defaultValue = doubleRook_.endgame(), .minValue = 0, .maxValue = 1000 }
 		};
 	}
 
