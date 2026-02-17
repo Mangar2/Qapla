@@ -56,6 +56,13 @@ else ifeq ($(BUILD_TYPE),Release_NO_POPCOUNT)
   CXXFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O2
   CFLAGS_BT     := -DNDEBUG -D__OLD_HW__ -O2
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
+else ifeq ($(BUILD_TYPE),ReleaseOpt)
+  # ReleaseOpt: release flags + PARAM_OPTIMIZE define
+  CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP 
+  CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP 
+  CXXFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2
+  CFLAGS_BT     := -DNDEBUG -DPARAM_OPTIMIZE -O2 -Oi -Ot -flto
+  LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 else # Release
   # Release: use release runtime library (-MT)
   CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP 
@@ -121,6 +128,9 @@ else ifeq ($(BUILD_TYPE),WhatifRelease)
 else ifeq ($(BUILD_TYPE),Release_NO_POPCOUNT)
   CXXFLAGS_BT := -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops -fno-rtti
   CFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops
+else ifeq ($(BUILD_TYPE),ReleaseOpt)
+  CXXFLAGS_BT := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto -march=x86-64-v2 -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto -march=x86-64-v2 -funroll-loops
 else # Release
   CXXFLAGS_BT := -DNDEBUG -O3 -flto -march=x86-64-v2 -funroll-loops -fno-rtti
   CFLAGS_BT   := -DNDEBUG -O3 -flto -march=x86-64-v2 -funroll-loops
@@ -180,7 +190,7 @@ Release:
 	$(MAKE) BUILD_TYPE=Release
 
 ReleaseOpt:
-	$(MAKE) BUILD_TYPE=Release EXTRA_DEFINES=-DPARAM_OPTIMIZE
+	$(MAKE) BUILD_TYPE=ReleaseOpt
 
 Whatif:
 	$(MAKE) BUILD_TYPE=WhatifRelease

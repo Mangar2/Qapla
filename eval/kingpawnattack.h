@@ -22,7 +22,6 @@
 #ifndef __KINGPAWNATTACK_H
 #define __KINGPAWNATTACK_H
 
-#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 
 using namespace QaplaMoveGenerator;
