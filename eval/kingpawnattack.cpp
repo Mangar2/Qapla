@@ -18,6 +18,7 @@
  */
 
 #include "kingpawnattack.h"
+#include "../movegenerator/bitboardmasks.h"
 
 using namespace ChessEval;
 
