@@ -78,7 +78,7 @@ CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT) $(EXTRA_DEFINES)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
 
 # Dependency file flag (target-specific)
-DEPFILE_FLAG = /clang:-MF$@.d
+DEPFILE_FLAG = /clang:-MT$@ /clang:-MF$@.d
 
 # ============================================================================
 # UNIX/LINUX/MACOS SECTION
@@ -151,7 +151,7 @@ CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT) $(EXTRA_DEFINES)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
 
 # Dependency file flag (target-specific)
-DEPFILE_FLAG = -MF$@.d
+DEPFILE_FLAG = -MT$@ -MF$@.d
 
 endif
 # ============================================================================

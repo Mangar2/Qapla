@@ -27,7 +27,7 @@
 #include "../interface/uci-parameter-provider.h"
 
 #ifdef PARAM_OPTIMIZE
-// #define PARAM_OPTIMIZE_PST
+//#define PARAM_OPTIMIZE_PST
 #endif
 
 namespace QaplaBasics {
