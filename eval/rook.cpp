@@ -42,7 +42,7 @@ static std::array<EvalValue, 15> generateMobilityMap(EvalValue mob0, EvalValue m
 /**
 * UCI parameter access implementation for Rook
 */
-class UciAccess : public UciParameterProvider {
+class RookUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
@@ -156,7 +156,7 @@ private:
 
 UciParameterProvider& Rook::getUciAccess() {
 #ifdef PARAM_OPTIMIZE_ROOK
-	static UciAccess instance;
+	static RookUciAccess instance;
 #else
 	static EmptyParameterProvider instance;
 #endif

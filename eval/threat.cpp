@@ -42,7 +42,7 @@ static std::array<EvalValue, 11> generateThreatLookup(EvalValue p0, EvalValue p1
 /**
 * UCI parameter access implementation for Threat
 */
-class UciAccess : public UciParameterProvider {
+class ThreatUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
@@ -93,7 +93,7 @@ private:
 
 UciParameterProvider& Threat::getUciAccess() {
 #ifdef PARAM_OPTIMIZE_THREAT
-	static UciAccess instance;
+	static ThreatUciAccess instance;
 #else
 	static EmptyParameterProvider instance;
 #endif

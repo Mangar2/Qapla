@@ -46,7 +46,7 @@ static std::array<value_t, KingAttack::MAX_WEIGHT_COUNT + 1> generateAttackWeigh
 /**
 * UCI parameter access implementation for KingAttack
 */
-class UciAccess : public UciParameterProvider {
+class KingAttackUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
@@ -91,7 +91,7 @@ private:
 
 UciParameterProvider& KingAttack::getUciAccess() {
 #ifdef PARAM_OPTIMIZE_KING_ATTACK
-	static UciAccess instance;
+	static KingAttackUciAccess instance;
 #else
 	static EmptyParameterProvider instance;
 #endif

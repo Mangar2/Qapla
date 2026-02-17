@@ -44,7 +44,7 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 	class Rook {
 	public:
-		friend class UciAccess;
+		friend class RookUciAccess;
 
 		/**
 		 * Get UCI parameter access interface
