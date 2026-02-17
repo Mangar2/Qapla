@@ -42,7 +42,7 @@ static std::array<EvalValue, 30> generateMobilityMap(EvalValue mob0, EvalValue m
 /**
 * UCI parameter access implementation for Queen
 */
-class UciAccess : public UciParameterProvider {
+class QueenUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
@@ -113,7 +113,7 @@ private:
 
 UciParameterProvider& Queen::getUciAccess() {
 #ifdef PARAM_OPTIMIZE_QUEEN
-	static UciAccess instance;
+	static QueenUciAccess instance;
 #else
 	static EmptyParameterProvider instance;
 #endif

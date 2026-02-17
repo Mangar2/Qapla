@@ -45,7 +45,7 @@ namespace ChessEval {
 
 	class Knight {
 	public:
-		friend class UciAccess;
+		friend class KnightUciAccess;
 
 		/**
 		 * Get UCI parameter access interface

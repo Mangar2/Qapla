@@ -44,7 +44,7 @@ static std::array<EvalValue, 15> generateMobilityMap(EvalValue mob0, EvalValue m
 /**
 * UCI parameter access implementation for Bishop
 */
-class UciAccess : public UciParameterProvider {
+class BishopUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
@@ -130,7 +130,7 @@ private:
 
 UciParameterProvider& Bishop::getUciAccess() {
 #ifdef PARAM_OPTIMIZE_BISHOP
-	static UciAccess instance;
+	static BishopUciAccess instance;
 #else 
 	static EmptyParameterProvider instance;
 #endif	

@@ -42,7 +42,7 @@ namespace ChessEval {
 	class Threat
 	{
 	public:
-		friend class UciAccess;
+		friend class ThreatUciAccess;
 
 		/**
 		 * Get UCI parameter access interface

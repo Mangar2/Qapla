@@ -45,7 +45,7 @@ namespace ChessEval {
 
 	class Bishop {
 	public:
-		friend class UciAccess;
+		friend class BishopUciAccess;
 		/**
 		 * Get UCI parameter access interface
 		 * @return Reference to UCI parameter provider

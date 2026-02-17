@@ -43,7 +43,7 @@ static std::array<EvalValue, 9> generateMobilityMap(EvalValue mob0, EvalValue mo
 /**
 * UCI parameter access implementation for Knight
 */
-class UciAccess : public UciParameterProvider {
+class KnightUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
@@ -125,7 +125,7 @@ private:
 
 UciParameterProvider& Knight::getUciAccess() {
 #ifdef PARAM_OPTIMIZE_KNIGHT
-	static UciAccess instance;
+	static KnightUciAccess instance;
 #else
 	static EmptyParameterProvider instance;
 #endif
