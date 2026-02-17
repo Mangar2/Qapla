@@ -46,14 +46,14 @@ class ThreatUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
-			{ .name = "threatMgP0", .defaultValue = p0_.midgame() },
-			{ .name = "threatMgP1", .defaultValue = p1_.midgame() },
-			{ .name = "threatMgP2", .defaultValue = p2_.midgame() },
-			{ .name = "threatMgP10", .defaultValue = p10_.midgame() },
-			{ .name = "threatEgP0", .defaultValue = p0_.endgame() },
-			{ .name = "threatEgP1", .defaultValue = p1_.endgame() },
-			{ .name = "threatEgP2", .defaultValue = p2_.endgame() },
-			{ .name = "threatEgP10", .defaultValue = p10_.endgame() }
+			{ .name = "threatMgP0", .defaultValue = p0_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "threatMgP1", .defaultValue = p1_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "threatMgP2", .defaultValue = p2_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "threatMgP10", .defaultValue = p10_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "threatEgP0", .defaultValue = p0_.endgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "threatEgP1", .defaultValue = p1_.endgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "threatEgP2", .defaultValue = p2_.endgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "threatEgP10", .defaultValue = p10_.endgame(), .minValue = 0, .maxValue = 1000 }
 		};
 	}
 

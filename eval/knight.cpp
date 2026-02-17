@@ -47,18 +47,18 @@ class KnightUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
-			{ .name = "knightMobilityMgP0", .defaultValue = mobP0_.midgame() },
-			{ .name = "knightMobilityMgP1", .defaultValue = mobP1_.midgame() },
-			{ .name = "knightMobilityMgP3", .defaultValue = mobP3_.midgame() },
-			{ .name = "knightMobilityMgP6", .defaultValue = mobP6_.midgame() },
-			{ .name = "knightMobilityEgP0", .defaultValue = mobP0_.endgame() },
-			{ .name = "knightMobilityEgP1", .defaultValue = mobP1_.endgame() },
-			{ .name = "knightMobilityEgP3", .defaultValue = mobP3_.endgame() },
-			{ .name = "knightMobilityEgP6", .defaultValue = mobP6_.endgame() },
-			{ .name = "knightOutpostMg", .defaultValue = outpost_.midgame() },
-			{ .name = "knightOutpostEg", .defaultValue = outpost_.endgame() },
-			{ .name = "knightPinnedMg", .defaultValue = pinned_.midgame() },
-			{ .name = "knightPinnedEg", .defaultValue = pinned_.endgame() }
+			{ .name = "knightMobilityMgP0", .defaultValue = mobP0_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightMobilityMgP1", .defaultValue = mobP1_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightMobilityMgP3", .defaultValue = mobP3_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightMobilityMgP6", .defaultValue = mobP6_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightMobilityEgP0", .defaultValue = mobP0_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightMobilityEgP1", .defaultValue = mobP1_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightMobilityEgP3", .defaultValue = mobP3_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightMobilityEgP6", .defaultValue = mobP6_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "knightOutpostMg", .defaultValue = outpost_.midgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "knightOutpostEg", .defaultValue = outpost_.endgame(), .minValue = 0, .maxValue = 1000 },
+			{ .name = "knightPinnedMg", .defaultValue = pinned_.midgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "knightPinnedEg", .defaultValue = pinned_.endgame(), .minValue = -1000, .maxValue = 0 }
 		};
 	};
 

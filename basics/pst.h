@@ -26,6 +26,9 @@
 #include "../basics/evalvalue.h"
 #include "../interface/uci-parameter-provider.h"
 
+#ifdef PARAM_OPTIMIZE
+// #define PARAM_OPTIMIZE_PST
+#endif
 
 namespace QaplaBasics {
 
@@ -41,7 +44,7 @@ namespace QaplaBasics {
 		 */
 		static ChessEval::UciParameterProvider& getUciAccess() noexcept;
 
-#ifdef PARAM_OPTIMIZE
+#ifdef PARAM_OPTIMIZE_PST
 		// Default values for UCI parameters (normalized: 500 keeps values unchanged)
 		// Midgame scales
 		static constexpr int32_t DEFAULT_PST_PAWN_MG   = 500;

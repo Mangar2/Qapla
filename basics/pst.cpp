@@ -38,7 +38,7 @@ PST::InitStatics::InitStatics() noexcept {
 	generatePST();
 }
 
-#ifdef PARAM_OPTIMIZE
+#ifdef PARAM_OPTIMIZE_PST
 static EvalValue scaleEvalValue(EvalValue base, Piece piece) noexcept {
 	const int32_t scaleMgVal =
 		(piece == PAWN)   ? PST::_pawnMg :
@@ -136,7 +136,7 @@ void PST::generatePST() noexcept {
 			default:     base = 0; break;
 			}
 
-#ifdef PARAM_OPTIMIZE
+#ifdef PARAM_OPTIMIZE_PST
 			const EvalValue value = scaleEvalValue(base, piece);
 #else
 			const EvalValue value = base;

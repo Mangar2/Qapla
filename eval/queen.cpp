@@ -46,16 +46,16 @@ class QueenUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
-			{ .name = "queenMobilityMgP0", .defaultValue = mobP0_.midgame() },
-			{ .name = "queenMobilityMgP3", .defaultValue = mobP3_.midgame() },
-			{ .name = "queenMobilityMgP6", .defaultValue = mobP6_.midgame() },
-			{ .name = "queenMobilityMgP15", .defaultValue = mobP15_.midgame() },
-			{ .name = "queenMobilityEgP0", .defaultValue = mobP0_.endgame() },
-			{ .name = "queenMobilityEgP3", .defaultValue = mobP3_.endgame() },
-			{ .name = "queenMobilityEgP6", .defaultValue = mobP6_.endgame() },
-			{ .name = "queenMobilityEgP15", .defaultValue = mobP15_.endgame() },
-			{ .name = "queenPinnedMg", .defaultValue = pinned_.midgame() },
-			{ .name = "queenPinnedEg", .defaultValue = pinned_.endgame() }
+			{ .name = "queenMobilityMgP0", .defaultValue = mobP0_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenMobilityMgP3", .defaultValue = mobP3_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenMobilityMgP6", .defaultValue = mobP6_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenMobilityMgP15", .defaultValue = mobP15_.midgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenMobilityEgP0", .defaultValue = mobP0_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenMobilityEgP3", .defaultValue = mobP3_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenMobilityEgP6", .defaultValue = mobP6_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenMobilityEgP15", .defaultValue = mobP15_.endgame(), .minValue = -1000, .maxValue = 1000 },
+			{ .name = "queenPinnedMg", .defaultValue = pinned_.midgame(), .minValue = -1000, .maxValue = 0 },
+			{ .name = "queenPinnedEg", .defaultValue = pinned_.endgame(), .minValue = -1000, .maxValue = 0 }
 		};
 	};
 
