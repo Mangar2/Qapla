@@ -27,6 +27,7 @@
 #include "../eval/rook.h"
 #include "../eval/queen.h"
 #include "../eval/threat.h"
+#include "../eval/pawn.h"
 #include "../basics/pst.h"
 
 using namespace QaplaInterface;
@@ -43,6 +44,7 @@ static std::vector<UciParameterProvider*> collectUciProviders() {
 	providers.push_back(&Rook::getUciAccess());
 	providers.push_back(&Queen::getUciAccess());
 	providers.push_back(&Threat::getUciAccess());
+	providers.push_back(&Pawn::getUciAccess());
 	providers.push_back(&QaplaBasics::PST::getUciAccess());
 	return providers;
 }
