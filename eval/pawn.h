@@ -23,24 +23,29 @@
 #define __PAWN_H
 
 #include <map>
-#include <cstring>
 #include <vector>
 #include <tuple>
 #include "../basics/types.h"
-#include "../basics/move.h"
 #include "../basics/pst.h"
+#include "../basics/evalvalue.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "pawnrace.h"
 #include "pawntt.h"
 #include "eval-helper.h"
+#include "../interface/uci-parameter-provider.h"
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_PAWN
+#endif
 
 using namespace std;
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
+
 
 	struct EvalPawnValues {
 		using RankArray_t = array<value_t, uint32_t(Rank::COUNT)>;
@@ -51,6 +56,14 @@ namespace ChessEval {
 
 	class Pawn {
 	public:
+		friend class PawnUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		Pawn() {}
 
 		typedef array<value_t, uint32_t(Rank::COUNT)> RankArray_t;
@@ -501,27 +514,62 @@ namespace ChessEval {
 		static const uint32_t PP_NOT_BLOCKED_INDEX			= 0x40;
 		static const uint32_t PP_INDEX_SIZE					= 0x100;
 
-		static constexpr array<value_t, PP_INDEX_SIZE> ppThreatMap = [] {
+		static const int64_t RANK_MULTIPLIER = 20;
+		static const int64_t ATTACK_MULTIPLIER = 5;
+		static const int64_t SUPPORT_MULTIPLIER = 30;
+		static const int64_t NOT_BLOCKED_MULTIPLIER = 20;
+		static const int64_t ADVANCE_MULTIPLIER = 5;
+	
+		static constexpr array<value_t, PP_INDEX_SIZE> ppThreatMapDefault = [] {
+
+			auto computeRankValue = [](uint32_t rank) -> int64_t {
+				if (rank < 3) {
+					return 0;
+				}
+				int64_t result = 10;
+				for (auto rankIndex = 4; rankIndex <= rank; ++rankIndex) {
+					result *= RANK_MULTIPLIER;
+					result /= 10;
+				}
+				return result;
+			};
+			
 			array<value_t, PP_INDEX_SIZE> map{};
 			for (uint32_t bitmask = 0; bitmask < PP_INDEX_SIZE; ++bitmask) {
-				value_t value = 0;
-				map[bitmask] = value;
+				int64_t value = 0;
 				const value_t rank = bitmask & RANK_MASK;
-				//value_t threatValue = std::array{ 0, 0,  0,  7, 15, 25, 60, 0 }[rank];
-				value_t threatValue = std::array{ 0, 0,  0,  10, 20, 40, 80, 0 }[rank];
-				if (threatValue == 0) continue;
-				bool isAttacked = bitmask & PP_IS_ATTACKED_INDEX;
-				threatValue /= (1 + isAttacked);
-				for (value_t divisor = 1; divisor <= 2 && rank + divisor <= 7; divisor++) {
-					bool isNotBlocked = bitmask & (PP_NOT_BLOCKED_INDEX * divisor);
+				int64_t newThreatValue = computeRankValue(rank);
+
+				bool isAttacked = static_cast<bool>(bitmask & PP_IS_ATTACKED_INDEX);
+				newThreatValue *= isAttacked ? ATTACK_MULTIPLIER : 10;
+
+				value_t maxAdvance = std::min(2, 7 - rank);
+				for (value_t advance = 1; advance <= maxAdvance; advance++) {
+					bool isNotBlocked = bitmask & (PP_NOT_BLOCKED_INDEX * advance);
 					if (!isNotBlocked) break;
-					bool isSupported = bitmask & (PP_IS_SUPPORTED_INDEX * divisor);
-					value += threatValue * (2 + isSupported) / divisor;
+					bool isSupported = bitmask & (PP_IS_SUPPORTED_INDEX * advance);
+					
+					int64_t multiplier = isSupported ? SUPPORT_MULTIPLIER : NOT_BLOCKED_MULTIPLIER;
+					multiplier *= advance == 1 ? 10 : ADVANCE_MULTIPLIER;
+					value += newThreatValue * multiplier; 
 				}
-				map[bitmask] = value;
+				value /= 1000;
+				map[bitmask] = static_cast<value_t>(value);
 			}
 			return map;
 			} ();
+
+#ifndef PARAM_OPTIMIZE_PAWN
+		static constexpr array<value_t, PP_INDEX_SIZE> ppThreatMap = ppThreatMapDefault;
+#else
+		inline static array<value_t, PP_INDEX_SIZE> ppThreatMap = ppThreatMapDefault;
+		static std::array<value_t, PP_INDEX_SIZE> generatePPThreatMap(
+			int64_t rankMultiplier,
+			int64_t attackMultiplier,
+			int64_t supportMultiplier,
+			int64_t notBlockedMultiplier,
+			int64_t advanceMultiplier);
+#endif
 
 		static const uint32_t DOUBLE_PAWN_INDEX				= 0x08;
 		static const uint32_t SINGLE_CONNECT_INDEX			= 0x10;
@@ -538,41 +586,85 @@ namespace ChessEval {
 
 		using RankEvalArray_t = array<EvalValue, uint32_t(Rank::COUNT)>;
 
-		static constexpr array<EvalValue, INDEX_SIZE> evalValueMap = [] {
+		static constexpr EvalValue DOUBLE_PAWN_VALUE { -10, -30 };
+		static constexpr EvalValue ISOLATED_PAWN_VALUE { -15, -15 };
+		static constexpr EvalValue WEAK_PAWN_VALUE { -10, 0 };
+		static constexpr RankEvalArray_t SINGLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {6, 3}, {10, 10}, {16, 20}, {25, 40}, {30, 50}, {0, 0} } };
+		static constexpr RankEvalArray_t DOUBLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } };
+		static constexpr RankEvalArray_t PASSED_VALUES = { { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {80, 80}, {0, 0} } };
+		static constexpr RankEvalArray_t PROTECTED_PASSED_VALUES = { { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {100, 100}, {0, 0} } };
+		static constexpr RankEvalArray_t CONNECTED_PASSED_VALUES = { { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {120, 120}, {0, 0} } };
+		static constexpr RankEvalArray_t DISTANT_PASSED_VALUES = { { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } };
+
+		static constexpr array<EvalValue, INDEX_SIZE> evalValueMapDefault = [] {
 
 			array<EvalValue, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
 				EvalValue value;
 				const value_t rank = bitmask & RANK_MASK;
+				if (rank == 0 || rank == 7) {
+					map[bitmask] = value;
+					continue;
+				}
 				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
 				const bool weakPawn = ((bitmask & NON_WEAK_PAWN_MASK) == 0) && ((bitmask & UNOPPOSED_PAWN_INDEX) != 0);
-				// 50.6, 
-				if (bitmask & DOUBLE_PAWN_INDEX)            
-					value += RankEvalArray_t{ { { 0, 0 }, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {-10, -30}, {0, 0} } }[rank];
-				// 50.9
+				if (bitmask & DOUBLE_PAWN_INDEX) { value += DOUBLE_PAWN_VALUE; }
 				if (bitmask & SINGLE_CONNECT_INDEX)
-					value += RankEvalArray_t{ { { 0, 0 }, {5, 0}, {6, 3}, {10, 10}, {16, 20}, {25, 40}, {30, 50}, {0, 0} } }[rank];
+					value += SINGLE_CONNECT_VALUES[rank];
 				if (bitmask & DOUBLE_CONNECT_INDEX)         
-					value += RankEvalArray_t{ { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } }[rank];
-				if (bitmask & ISOLATED_PAWN_INDEX)          
-					value += RankEvalArray_t{ { { 0, 0 }, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {-15, -15}, {0, 0} } }[rank];
-				//51.29
-				if (weakPawn)                                
-					value += RankEvalArray_t{ { { 0, 0 }, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {-10, 0}, {0, 0} } }[rank];
-				//51.35
+					value += DOUBLE_CONNECT_VALUES[rank];
+				if (bitmask & ISOLATED_PAWN_INDEX) { value += ISOLATED_PAWN_VALUE; }
+				if (weakPawn) { value += WEAK_PAWN_VALUE; }
 				if (ppIndex == PASSED_PAWN_INDEX)           
-					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {80, 80}, {0, 0} } }[rank];
+					value += PASSED_VALUES[rank];
 				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) 
-					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {100, 100}, {0, 0} } }[rank];
+					value += PROTECTED_PASSED_VALUES[rank];
 				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) 
-					value += RankEvalArray_t{ { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {120, 120}, {0, 0} } }[rank];
+					value += CONNECTED_PASSED_VALUES[rank];
 				if (ppIndex == DISTANT_PASSED_PAWN_INDEX)   
-					value += RankEvalArray_t{ { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } }[rank];
+					value += DISTANT_PASSED_VALUES[rank];
 
 				map[bitmask] = value;
 			}
 			return map;
 		} ();
+
+#ifndef PARAM_OPTIMIZE_PAWN
+		static constexpr array<EvalValue, INDEX_SIZE> evalValueMap = evalValueMapDefault;
+#else
+		inline static array<EvalValue, INDEX_SIZE> evalValueMap = evalValueMapDefault;
+		static std::array<EvalValue, INDEX_SIZE> generateEvalValueMap(
+			int32_t singleConnectFactorMg,
+			int32_t singleConnectFactorEg,
+			int32_t singleConnectRank6Mg,
+			int32_t singleConnectRank6Eg,
+			int32_t doubleConnectFactorMg,
+			int32_t doubleConnectFactorEg,
+			int32_t doubleConnectRank6Mg,
+			int32_t doubleConnectRank6Eg,
+			int32_t passedFactorMg,
+			int32_t passedFactorEg,
+			int32_t passedRank6Mg,
+			int32_t passedRank6Eg,
+			int32_t protectedPassedFactorMg,
+			int32_t protectedPassedFactorEg,
+			int32_t protectedPassedRank6Mg,
+			int32_t protectedPassedRank6Eg,
+			int32_t connectedPassedFactorMg,
+			int32_t connectedPassedFactorEg,
+			int32_t connectedPassedRank6Mg,
+			int32_t connectedPassedRank6Eg,
+			int32_t distantPassedFactorMg,
+			int32_t distantPassedFactorEg,
+			int32_t distantPassedRank6Mg,
+			int32_t distantPassedRank6Eg,
+			int32_t doublePawnFactorMg,
+			int32_t doublePawnFactorEg,
+			int32_t isolatedPawnFactorMg,
+			int32_t isolatedPawnFactorEg,
+			int32_t weakPawnFactorMg,
+			int32_t weakPawnFactorEg);
+#endif
 
 		// Test position: 3r1r2/p1Pqn1bk/pPn1PPpp/2p5/3p2P1/p2P1NNQ/1pPB3P/1R3R1K w - - 0 1
 		// Isolated pawns: 4k3/1p1p1ppp/8/8/8/8/1PPP1P1P/4K3 w KQkq - 0 1

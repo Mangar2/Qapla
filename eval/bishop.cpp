@@ -19,7 +19,10 @@
 
 
 #include "bishop.h"
+
+#ifdef PARAM_OPTIMIZE_BISHOP
 #include <cstdint>
+#endif
 
 namespace ChessEval {
 
