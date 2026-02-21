@@ -19,12 +19,7 @@
 
 
 #include "statistics.h"
-#include "../training/piece-signature-statistic.h"
 #include "../training/signature-eval-adjuster.h"
-#include "../training/position-filter.h"
-#include "../eval/eval.h"
-#include "winboardprintsearchinfo.h"
-#include <thread>
 #include <vector>
 #include <algorithm>
 
@@ -147,40 +142,6 @@ void Statistics::analyzeMove() {
 	}
 }
 
-void Statistics::WMTest() {
-	[[maybe_unused]] uint32_t numThreads{};
-	uint32_t depthLimit = 10;
-	uint64_t totalNodesSearched = 0;
-	while (getNextTokenNonBlocking() != "") {
-		if (getCurrentToken() == "threads") {
-			if (getNextTokenNonBlocking() != "") {
-				numThreads = (uint32_t)getCurrentTokenAsUnsignedInt();
-			}
-		}
-		else if (getCurrentToken() == "sd") {
-			if (getNextTokenNonBlocking() != "") {
-				depthLimit = (uint32_t)getCurrentTokenAsUnsignedInt();
-			}
-		}
-
-	}
-	loadEPD("wmtest.epd");
-	_clock.setSearchDepthLimit(depthLimit);
-	getBoard()->setClock(_clock);
-	StdTimeControl timeControl;
-	timeControl.storeStartTime();
-	for (auto& epd : _startPositions) {
-		getBoard()->newGame();
-		ChessInterface::setPositionByFen(epd, getBoard());
-		getBoard()->computeMove();
-		auto info = getBoard()->getComputingInfo();
-		totalNodesSearched += info.nodesSearched;
-		std::cout << epd << " nodes: " << info.nodesSearched << " total: " << totalNodesSearched << std::endl;
-	}
-	std::cout << "Positions searched: " << _startPositions.size() 
-		<< " Total nodes searched: " << totalNodesSearched 
-		<< " Time used (s): " << (timeControl.getTimeSpentInMilliseconds() * 1.0 / 1000.0) << std::endl;
-}
 
 void Statistics::loadGamesFromFile(const std::string& filename) {
 	std::ifstream file(filename);
@@ -583,34 +544,6 @@ void Statistics::computeMaterialDifference() {
 	else {
 		adjuster.computeFromFile("signature-eval-adjuster.bin");
 	}
-}
-
-void Statistics::loadEPD() {
-	std::string fileName = getNextTokenNonBlocking();
-	if (fileName == "") {
-		std::cerr << "Error: No EPD file specified." << std::endl;
-		return;
-	}
-	loadEPD(fileName);
-}
-void Statistics::loadEPD(const std::string & filename) {
-	std::ifstream file(filename);
-
-	if (!file) {
-		std::cerr << "Error: Could not open file " << filename << std::endl;
-		return;
-	}
-
-	_startPositions.clear();
-	std::string line;
-	while (std::getline(file, line)) {
-		if (!line.empty()) {
-			_startPositions.push_back(line);
-		}
-	}
-
-	file.close();
-	std::cout << "Loaded " << _startPositions.size() << " positions from EPD file." << std::endl;
 }
 
 /**

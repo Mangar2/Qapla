@@ -196,6 +196,7 @@ namespace QaplaInterface {
 			else if (token == "position") setPosition();
 			else if (token == "setoption") setOption();
 			else if (token == "stop") stopCompute();
+			else if (token == "wmtest") WMTest();
 			getNextTokenBlocking(true);
 		}
 

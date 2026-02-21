@@ -33,6 +33,12 @@
 using namespace QaplaInterface;
 using namespace ChessEval;
 
+static std::string toLowerString(std::string value) {
+	std::transform(value.begin(), value.end(), value.begin(),
+		[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	return value;
+}
+
 /**
  * Collects all UCI parameter providers from evaluation components
  */
@@ -97,6 +103,14 @@ void UCI::setOption() {
 	const string next = getNextTokenBlocking(true);
 	if (next == "value") {
 		value = getToEOLBlocking();
+		const auto firstNonSpace = value.find_first_not_of(" \t");
+		if (firstNonSpace == string::npos) {
+			value.clear();
+		}
+		else {
+			const auto lastNonSpace = value.find_last_not_of(" \t");
+			value = value.substr(firstNonSpace, lastNonSpace - firstNonSpace + 1);
+		}
 	}
 
 	if (name.empty()) {
@@ -105,6 +119,7 @@ void UCI::setOption() {
 
 	// Try to set parameter via UCI parameter providers
 	auto providers = collectUciProviders();
+	const std::string lowerName = toLowerString(name);
 	for (auto* provider : providers) {
 		// Check if the value is a number (simple check)
 		bool isNumber = !value.empty() && std::find_if(value.begin(), 
@@ -114,6 +129,11 @@ void UCI::setOption() {
 			int32_t intValue = std::atoi(value.c_str());
 			if (provider->setUciParameter(name, intValue)) {
 				return; // Parameter was handled
+			}
+			for (const auto& param : provider->getUciParameters()) {
+				if (toLowerString(param.name) == lowerName && provider->setUciParameter(param.name, intValue)) {
+					return;
+				}
 			}
 		}
 	}

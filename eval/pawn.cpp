@@ -19,6 +19,9 @@
 
 #include "pawn.h"
 #include <cstdint>
+#ifdef PARAM_OPTIMIZE_PAWN
+#include <fstream>
+#endif
 
 using namespace ChessEval;
 
@@ -177,6 +180,29 @@ std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 	return map;
 }
 
+template <size_t PP_SIZE, size_t EV_SIZE>
+static void dumpPawnParameterMaps(
+	const std::string& changedName,
+	int32_t changedValue,
+	const std::array<value_t, PP_SIZE>& ppThreatMap,
+	const std::array<EvalValue, EV_SIZE>& evalValueMap)
+{
+	std::ofstream out("pawn-uci-dump.txt", std::ios::app);
+	if (!out.is_open()) {
+		return;
+	}
+	out << "param=" << changedName << " value=" << changedValue << "\n";
+	out << "ppThreatMap\n";
+	for (size_t index = 0; index < ppThreatMap.size(); ++index) {
+		out << index << ":" << ppThreatMap[index] << "\n";
+	}
+	out << "evalValueMap\n";
+	for (size_t index = 0; index < evalValueMap.size(); ++index) {
+		out << index << ":" << evalValueMap[index].midgame() << "," << evalValueMap[index].endgame() << "\n";
+	}
+	out << "---\n";
+}
+
 class PawnUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
@@ -332,6 +358,8 @@ public:
 			isolatedPawnFactorEg_,
 			weakPawnFactorMg_,
 			weakPawnFactorEg_);
+
+		// dumpPawnParameterMaps(name, value, Pawn::ppThreatMap, Pawn::evalValueMap);
 		return true;
 	}
 
