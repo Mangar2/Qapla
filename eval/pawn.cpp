@@ -20,7 +20,7 @@
 #include "pawn.h"
 #include <cstdint>
 #ifdef PARAM_OPTIMIZE_PAWN
-#include <fstream>
+#include <iostream>
 #endif
 
 using namespace ChessEval;
@@ -73,6 +73,9 @@ std::array<value_t, Pawn::PP_INDEX_SIZE> Pawn::generatePPThreatMap(
 		}
 		value /= 1000;
 		map[bitmask] = static_cast<value_t>(value);
+		if (map[bitmask] != ppThreatMapDefault[bitmask]) {
+			std::cout << "info string pawn ppThreatMap[" << bitmask << "] " << ppThreatMapDefault[bitmask] << " -> " << map[bitmask] << std::endl;
+		}
 	}
 	return map;
 }
@@ -80,28 +83,28 @@ std::array<value_t, Pawn::PP_INDEX_SIZE> Pawn::generatePPThreatMap(
 std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 	int32_t singleConnectFactorMg,
 	int32_t singleConnectFactorEg,
-	int32_t singleConnectRank6Mg,
-	int32_t singleConnectRank6Eg,
+	int32_t singleConnectRank7Mg,
+	int32_t singleConnectRank7Eg,
 	int32_t doubleConnectFactorMg,
 	int32_t doubleConnectFactorEg,
-	int32_t doubleConnectRank6Mg,
-	int32_t doubleConnectRank6Eg,
+	int32_t doubleConnectRank7Mg,
+	int32_t doubleConnectRank7Eg,
 	int32_t passedFactorMg,
 	int32_t passedFactorEg,
-	int32_t passedRank6Mg,
-	int32_t passedRank6Eg,
+	int32_t passedRank7Mg,
+	int32_t passedRank7Eg,
 	int32_t protectedPassedFactorMg,
 	int32_t protectedPassedFactorEg,
-	int32_t protectedPassedRank6Mg,
-	int32_t protectedPassedRank6Eg,
+	int32_t protectedPassedRank7Mg,
+	int32_t protectedPassedRank7Eg,
 	int32_t connectedPassedFactorMg,
 	int32_t connectedPassedFactorEg,
-	int32_t connectedPassedRank6Mg,
-	int32_t connectedPassedRank6Eg,
+	int32_t connectedPassedRank7Mg,
+	int32_t connectedPassedRank7Eg,
 	int32_t distantPassedFactorMg,
 	int32_t distantPassedFactorEg,
-	int32_t distantPassedRank6Mg,
-	int32_t distantPassedRank6Eg,
+	int32_t distantPassedRank7Mg,
+	int32_t distantPassedRank7Eg,
 	int32_t doublePawnFactorMg,
 	int32_t doublePawnFactorEg,
 	int32_t isolatedPawnFactorMg,
@@ -117,10 +120,10 @@ std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 		const RankEvalArray_t& values,
 		int32_t factorMg,
 		int32_t factorEg,
-		int32_t rank6Mg,
-		int32_t rank6Eg) -> EvalValue {
-		if (rank == Rank::R6) {
-			return EvalValue(rank6Mg, rank6Eg);
+		int32_t rank7Mg,
+		int32_t rank7Eg) -> EvalValue {
+		if (rank == Rank::R7) {
+			return EvalValue(rank7Mg, rank7Eg);
 		}
 		return applyFactor(values[uint32_t(rank)], factorMg, factorEg);
 	};
@@ -145,62 +148,42 @@ std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 		if (bitmask & SINGLE_CONNECT_INDEX) {
 			value += getRankValue(rank, SINGLE_CONNECT_VALUES,
 				singleConnectFactorMg, singleConnectFactorEg,
-				singleConnectRank6Mg, singleConnectRank6Eg);
+				singleConnectRank7Mg, singleConnectRank7Eg);
 		}
 		if (bitmask & DOUBLE_CONNECT_INDEX) {
 			value += getRankValue(rank, DOUBLE_CONNECT_VALUES,
 				doubleConnectFactorMg, doubleConnectFactorEg,
-				doubleConnectRank6Mg, doubleConnectRank6Eg);
+				doubleConnectRank7Mg, doubleConnectRank7Eg);
 		}
 		if (bitmask & ISOLATED_PAWN_INDEX) { value += isolatedPawnValue; }
 		if (weakPawn) { value += weakPawnValue; }
 		if (ppIndex == PASSED_PAWN_INDEX) {
 			value += getRankValue(rank, PASSED_VALUES,
 				passedFactorMg, passedFactorEg,
-				passedRank6Mg, passedRank6Eg);
+				passedRank7Mg, passedRank7Eg);
 		}
 		if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) {
 			value += getRankValue(rank, PROTECTED_PASSED_VALUES,
 				protectedPassedFactorMg, protectedPassedFactorEg,
-				protectedPassedRank6Mg, protectedPassedRank6Eg);
+				protectedPassedRank7Mg, protectedPassedRank7Eg);
 		}
 		if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) {
 			value += getRankValue(rank, CONNECTED_PASSED_VALUES,
 				connectedPassedFactorMg, connectedPassedFactorEg,
-				connectedPassedRank6Mg, connectedPassedRank6Eg);
+				connectedPassedRank7Mg, connectedPassedRank7Eg);
 		}
 		if (ppIndex == DISTANT_PASSED_PAWN_INDEX) {
 			value += getRankValue(rank, DISTANT_PASSED_VALUES,
 				distantPassedFactorMg, distantPassedFactorEg,
-				distantPassedRank6Mg, distantPassedRank6Eg);
+				distantPassedRank7Mg, distantPassedRank7Eg);
 		}
 
 		map[bitmask] = value;
+		if (map[bitmask].midgame() != evalValueMapDefault[bitmask].midgame() || map[bitmask].endgame() != evalValueMapDefault[bitmask].endgame()) {
+			std::cout << "info string pawn evalValueMap[" << bitmask << "] " << evalValueMapDefault[bitmask].midgame() << "," << evalValueMapDefault[bitmask].endgame() << " -> " << map[bitmask].midgame() << "," << map[bitmask].endgame() << std::endl;
+		}
 	}
 	return map;
-}
-
-template <size_t PP_SIZE, size_t EV_SIZE>
-static void dumpPawnParameterMaps(
-	const std::string& changedName,
-	int32_t changedValue,
-	const std::array<value_t, PP_SIZE>& ppThreatMap,
-	const std::array<EvalValue, EV_SIZE>& evalValueMap)
-{
-	std::ofstream out("pawn-uci-dump.txt", std::ios::app);
-	if (!out.is_open()) {
-		return;
-	}
-	out << "param=" << changedName << " value=" << changedValue << "\n";
-	out << "ppThreatMap\n";
-	for (size_t index = 0; index < ppThreatMap.size(); ++index) {
-		out << index << ":" << ppThreatMap[index] << "\n";
-	}
-	out << "evalValueMap\n";
-	for (size_t index = 0; index < evalValueMap.size(); ++index) {
-		out << index << ":" << evalValueMap[index].midgame() << "," << evalValueMap[index].endgame() << "\n";
-	}
-	out << "---\n";
 }
 
 class PawnUciAccess : public UciParameterProvider {
@@ -214,28 +197,28 @@ public:
 			{ .name = "ppThreatAdvanceMultiplier", .defaultValue = static_cast<int32_t>(advanceMultiplier_), .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnSingleConnectFactorMg", .defaultValue = singleConnectFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnSingleConnectFactorEg", .defaultValue = singleConnectFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnSingleConnectRank6Mg", .defaultValue = singleConnectRank6Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnSingleConnectRank6Eg", .defaultValue = singleConnectRank6Eg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnSingleConnectRank7Mg", .defaultValue = singleConnectRank7Mg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnSingleConnectRank7Eg", .defaultValue = singleConnectRank7Eg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnDoubleConnectFactorMg", .defaultValue = doubleConnectFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnDoubleConnectFactorEg", .defaultValue = doubleConnectFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnDoubleConnectRank6Mg", .defaultValue = doubleConnectRank6Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnDoubleConnectRank6Eg", .defaultValue = doubleConnectRank6Eg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnDoubleConnectRank7Mg", .defaultValue = doubleConnectRank7Mg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnDoubleConnectRank7Eg", .defaultValue = doubleConnectRank7Eg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnPassedFactorMg", .defaultValue = passedFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnPassedFactorEg", .defaultValue = passedFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnPassedRank6Mg", .defaultValue = passedRank6Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnPassedRank6Eg", .defaultValue = passedRank6Eg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnPassedRank7Mg", .defaultValue = passedRank7Mg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnPassedRank7Eg", .defaultValue = passedRank7Eg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnProtectedPassedFactorMg", .defaultValue = protectedPassedFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnProtectedPassedFactorEg", .defaultValue = protectedPassedFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnProtectedPassedRank6Mg", .defaultValue = protectedPassedRank6Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnProtectedPassedRank6Eg", .defaultValue = protectedPassedRank6Eg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnProtectedPassedRank7Mg", .defaultValue = protectedPassedRank7Mg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnProtectedPassedRank7Eg", .defaultValue = protectedPassedRank7Eg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnConnectedPassedFactorMg", .defaultValue = connectedPassedFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnConnectedPassedFactorEg", .defaultValue = connectedPassedFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnConnectedPassedRank6Mg", .defaultValue = connectedPassedRank6Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnConnectedPassedRank6Eg", .defaultValue = connectedPassedRank6Eg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnConnectedPassedRank7Mg", .defaultValue = connectedPassedRank7Mg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnConnectedPassedRank7Eg", .defaultValue = connectedPassedRank7Eg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnDistantPassedFactorMg", .defaultValue = distantPassedFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnDistantPassedFactorEg", .defaultValue = distantPassedFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnDistantPassedRank6Mg", .defaultValue = distantPassedRank6Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnDistantPassedRank6Eg", .defaultValue = distantPassedRank6Eg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnDistantPassedRank7Mg", .defaultValue = distantPassedRank7Mg_, .minValue = 0, .maxValue = 1000 },
+			{ .name = "pawnDistantPassedRank7Eg", .defaultValue = distantPassedRank7Eg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnDoublePawnFactorMg", .defaultValue = doublePawnFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnDoublePawnFactorEg", .defaultValue = doublePawnFactorEg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnIsolatedPawnFactorMg", .defaultValue = isolatedPawnFactorMg_, .minValue = 0, .maxValue = 100 },
@@ -260,50 +243,50 @@ public:
 			singleConnectFactorMg_ = value;
 		} else if (name == "pawnSingleConnectFactorEg") {
 			singleConnectFactorEg_ = value;
-		} else if (name == "pawnSingleConnectRank6Mg") {
-			singleConnectRank6Mg_ = value;
-		} else if (name == "pawnSingleConnectRank6Eg") {
-			singleConnectRank6Eg_ = value;
+		} else if (name == "pawnSingleConnectRank7Mg") {
+			singleConnectRank7Mg_ = value;
+		} else if (name == "pawnSingleConnectRank7Eg") {
+			singleConnectRank7Eg_ = value;
 		} else if (name == "pawnDoubleConnectFactorMg") {
 			doubleConnectFactorMg_ = value;
 		} else if (name == "pawnDoubleConnectFactorEg") {
 			doubleConnectFactorEg_ = value;
-		} else if (name == "pawnDoubleConnectRank6Mg") {
-			doubleConnectRank6Mg_ = value;
-		} else if (name == "pawnDoubleConnectRank6Eg") {
-			doubleConnectRank6Eg_ = value;
+		} else if (name == "pawnDoubleConnectRank7Mg") {
+			doubleConnectRank7Mg_ = value;
+		} else if (name == "pawnDoubleConnectRank7Eg") {
+			doubleConnectRank7Eg_ = value;
 		} else if (name == "pawnPassedFactorMg") {
 			passedFactorMg_ = value;
 		} else if (name == "pawnPassedFactorEg") {
 			passedFactorEg_ = value;
-		} else if (name == "pawnPassedRank6Mg") {
-			passedRank6Mg_ = value;
-		} else if (name == "pawnPassedRank6Eg") {
-			passedRank6Eg_ = value;
+		} else if (name == "pawnPassedRank7Mg") {
+			passedRank7Mg_ = value;
+		} else if (name == "pawnPassedRank7Eg") {
+			passedRank7Eg_ = value;
 		} else if (name == "pawnProtectedPassedFactorMg") {
 			protectedPassedFactorMg_ = value;
 		} else if (name == "pawnProtectedPassedFactorEg") {
 			protectedPassedFactorEg_ = value;
-		} else if (name == "pawnProtectedPassedRank6Mg") {
-			protectedPassedRank6Mg_ = value;
-		} else if (name == "pawnProtectedPassedRank6Eg") {
-			protectedPassedRank6Eg_ = value;
+		} else if (name == "pawnProtectedPassedRank7Mg") {
+			protectedPassedRank7Mg_ = value;
+		} else if (name == "pawnProtectedPassedRank7Eg") {
+			protectedPassedRank7Eg_ = value;
 		} else if (name == "pawnConnectedPassedFactorMg") {
 			connectedPassedFactorMg_ = value;
 		} else if (name == "pawnConnectedPassedFactorEg") {
 			connectedPassedFactorEg_ = value;
-		} else if (name == "pawnConnectedPassedRank6Mg") {
-			connectedPassedRank6Mg_ = value;
-		} else if (name == "pawnConnectedPassedRank6Eg") {
-			connectedPassedRank6Eg_ = value;
+		} else if (name == "pawnConnectedPassedRank7Mg") {
+			connectedPassedRank7Mg_ = value;
+		} else if (name == "pawnConnectedPassedRank7Eg") {
+			connectedPassedRank7Eg_ = value;
 		} else if (name == "pawnDistantPassedFactorMg") {
 			distantPassedFactorMg_ = value;
 		} else if (name == "pawnDistantPassedFactorEg") {
 			distantPassedFactorEg_ = value;
-		} else if (name == "pawnDistantPassedRank6Mg") {
-			distantPassedRank6Mg_ = value;
-		} else if (name == "pawnDistantPassedRank6Eg") {
-			distantPassedRank6Eg_ = value;
+		} else if (name == "pawnDistantPassedRank7Mg") {
+			distantPassedRank7Mg_ = value;
+		} else if (name == "pawnDistantPassedRank7Eg") {
+			distantPassedRank7Eg_ = value;
 		} else if (name == "pawnDoublePawnFactorMg") {
 			doublePawnFactorMg_ = value;
 		} else if (name == "pawnDoublePawnFactorEg") {
@@ -330,28 +313,28 @@ public:
 		Pawn::evalValueMap = Pawn::generateEvalValueMap(
 			singleConnectFactorMg_,
 			singleConnectFactorEg_,
-			singleConnectRank6Mg_,
-			singleConnectRank6Eg_,
+			singleConnectRank7Mg_,
+			singleConnectRank7Eg_,
 			doubleConnectFactorMg_,
 			doubleConnectFactorEg_,
-			doubleConnectRank6Mg_,
-			doubleConnectRank6Eg_,
+			doubleConnectRank7Mg_,
+			doubleConnectRank7Eg_,
 			passedFactorMg_,
 			passedFactorEg_,
-			passedRank6Mg_,
-			passedRank6Eg_,
+			passedRank7Mg_,
+			passedRank7Eg_,
 			protectedPassedFactorMg_,
 			protectedPassedFactorEg_,
-			protectedPassedRank6Mg_,
-			protectedPassedRank6Eg_,
+			protectedPassedRank7Mg_,
+			protectedPassedRank7Eg_,
 			connectedPassedFactorMg_,
 			connectedPassedFactorEg_,
-			connectedPassedRank6Mg_,
-			connectedPassedRank6Eg_,
+			connectedPassedRank7Mg_,
+			connectedPassedRank7Eg_,
 			distantPassedFactorMg_,
 			distantPassedFactorEg_,
-			distantPassedRank6Mg_,
-			distantPassedRank6Eg_,
+			distantPassedRank7Mg_,
+			distantPassedRank7Eg_,
 			doublePawnFactorMg_,
 			doublePawnFactorEg_,
 			isolatedPawnFactorMg_,
@@ -372,33 +355,33 @@ private:
 
 	int32_t singleConnectFactorMg_ = 10;
 	int32_t singleConnectFactorEg_ = 10;
-	int32_t singleConnectRank6Mg_ = Pawn::SINGLE_CONNECT_VALUES[6].midgame();
-	int32_t singleConnectRank6Eg_ = Pawn::SINGLE_CONNECT_VALUES[6].endgame();
+	int32_t singleConnectRank7Mg_ = Pawn::SINGLE_CONNECT_VALUES[6].midgame();
+	int32_t singleConnectRank7Eg_ = Pawn::SINGLE_CONNECT_VALUES[6].endgame();
 
 	int32_t doubleConnectFactorMg_ = 10;
 	int32_t doubleConnectFactorEg_ = 10;
-	int32_t doubleConnectRank6Mg_ = Pawn::DOUBLE_CONNECT_VALUES[6].midgame();
-	int32_t doubleConnectRank6Eg_ = Pawn::DOUBLE_CONNECT_VALUES[6].endgame();
+	int32_t doubleConnectRank7Mg_ = Pawn::DOUBLE_CONNECT_VALUES[6].midgame();
+	int32_t doubleConnectRank7Eg_ = Pawn::DOUBLE_CONNECT_VALUES[6].endgame();
 
 	int32_t passedFactorMg_ = 10;
 	int32_t passedFactorEg_ = 10;
-	int32_t passedRank6Mg_ = Pawn::PASSED_VALUES[6].midgame();
-	int32_t passedRank6Eg_ = Pawn::PASSED_VALUES[6].endgame();
+	int32_t passedRank7Mg_ = Pawn::PASSED_VALUES[6].midgame();
+	int32_t passedRank7Eg_ = Pawn::PASSED_VALUES[6].endgame();
 
 	int32_t protectedPassedFactorMg_ = 10;
 	int32_t protectedPassedFactorEg_ = 10;
-	int32_t protectedPassedRank6Mg_ = Pawn::PROTECTED_PASSED_VALUES[6].midgame();
-	int32_t protectedPassedRank6Eg_ = Pawn::PROTECTED_PASSED_VALUES[6].endgame();
+	int32_t protectedPassedRank7Mg_ = Pawn::PROTECTED_PASSED_VALUES[6].midgame();
+	int32_t protectedPassedRank7Eg_ = Pawn::PROTECTED_PASSED_VALUES[6].endgame();
 
 	int32_t connectedPassedFactorMg_ = 10;
 	int32_t connectedPassedFactorEg_ = 10;
-	int32_t connectedPassedRank6Mg_ = Pawn::CONNECTED_PASSED_VALUES[6].midgame();
-	int32_t connectedPassedRank6Eg_ = Pawn::CONNECTED_PASSED_VALUES[6].endgame();
+	int32_t connectedPassedRank7Mg_ = Pawn::CONNECTED_PASSED_VALUES[6].midgame();
+	int32_t connectedPassedRank7Eg_ = Pawn::CONNECTED_PASSED_VALUES[6].endgame();
 
 	int32_t distantPassedFactorMg_ = 10;
 	int32_t distantPassedFactorEg_ = 10;
-	int32_t distantPassedRank6Mg_ = Pawn::DISTANT_PASSED_VALUES[6].midgame();
-	int32_t distantPassedRank6Eg_ = Pawn::DISTANT_PASSED_VALUES[6].endgame();
+	int32_t distantPassedRank7Mg_ = Pawn::DISTANT_PASSED_VALUES[6].midgame();
+	int32_t distantPassedRank7Eg_ = Pawn::DISTANT_PASSED_VALUES[6].endgame();
 
 	int32_t doublePawnFactorMg_ = 10;
 	int32_t doublePawnFactorEg_ = 10;
