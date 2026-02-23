@@ -29,6 +29,7 @@
 #include "../eval/threat.h"
 #include "../eval/pawn.h"
 #include "../basics/pst.h"
+#include "../basics/materialbalance.h"
 
 using namespace QaplaInterface;
 using namespace ChessEval;
@@ -52,6 +53,7 @@ static std::vector<UciParameterProvider*> collectUciProviders() {
 	providers.push_back(&Threat::getUciAccess());
 	providers.push_back(&Pawn::getUciAccess());
 	providers.push_back(&QaplaBasics::PST::getUciAccess());
+	providers.push_back(&QaplaBasics::MaterialBalance::getUciAccess());
 	return providers;
 }
 
