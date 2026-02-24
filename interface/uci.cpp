@@ -28,6 +28,7 @@
 #include "../eval/queen.h"
 #include "../eval/threat.h"
 #include "../eval/pawn.h"
+#include "../eval/imbalance.h"
 #include "../basics/pst.h"
 #include "../basics/materialbalance.h"
 
@@ -52,6 +53,7 @@ static std::vector<UciParameterProvider*> collectUciProviders() {
 	providers.push_back(&Queen::getUciAccess());
 	providers.push_back(&Threat::getUciAccess());
 	providers.push_back(&Pawn::getUciAccess());
+	providers.push_back(&Imbalance::getUciAccess());
 	providers.push_back(&QaplaBasics::PST::getUciAccess());
 	providers.push_back(&QaplaBasics::MaterialBalance::getUciAccess());
 	return providers;

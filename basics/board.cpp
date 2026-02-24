@@ -33,6 +33,7 @@ void Board::clear() {
 	clearBB();
 	_pieceSignature.clear();
 	_materialBalance.clear();
+	_imbalance.clear();
 	_pstBonus = 0;
 	kingSquares[WHITE] = E1;
 	kingSquares[BLACK] = E8;
@@ -78,12 +79,14 @@ void Board::removePiece(Square squareOfPiece) {
 	_boardState.updateHash(squareOfPiece, pieceToRemove);
 	_board[squareOfPiece] = NO_PIECE;
 	_pieceSignature.removePiece(pieceToRemove, bitBoardsPiece[pieceToRemove]);
+	_imbalance.removePiece(pieceToRemove, _pieceSignature);
 	_materialBalance.removePiece(pieceToRemove);
 	_pstBonus -= PST::getValue(squareOfPiece, pieceToRemove);
 }
 
 void Board::addPiece(Square squareOfPiece, Piece pieceToAdd) {
 	_pieceSignature.addPiece(pieceToAdd);
+	_imbalance.addPiece(pieceToAdd, _pieceSignature);
 	addPieceBB(squareOfPiece, pieceToAdd);
 	_boardState.updateHash(squareOfPiece, pieceToAdd);
 	_board[squareOfPiece] = pieceToAdd;

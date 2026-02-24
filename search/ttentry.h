@@ -37,6 +37,7 @@
 #include <assert.h>
 #include "../basics/hashconstants.h"
 #include "../basics/move.h"
+#include "../basics/evalvalue.h"
 #include "searchdef.h"
 
 using namespace QaplaBasics;

@@ -30,6 +30,7 @@
 #include "materialbalance.h"
 #include "hashconstants.h"
 #include "pst.h"
+#include "../eval/imbalance.h"
 
 namespace QaplaBasics {
 
@@ -228,6 +229,10 @@ namespace QaplaBasics {
 		 */
 		inline auto getMaterialAndPSTValue() const {
 			return _materialBalance.getMaterialValue() + _pstBonus;
+		}
+
+		inline auto getImbalanceValue() const {
+			return _imbalance.getValue();
 		}
 
 		/**
@@ -473,6 +478,7 @@ namespace QaplaBasics {
 		EvalValue _pstBonus;
 		PieceSignature _pieceSignature;
 		MaterialBalance _materialBalance;
+		ChessEval::Imbalance _imbalance;
 
 		// Amount of half moves played befor fen
 		int32_t _startHalfmoves;

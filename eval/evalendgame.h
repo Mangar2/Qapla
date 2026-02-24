@@ -23,8 +23,6 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include "../basics/move.h"
 #include "../basics/hashed-lookup.h"
 #include "../movegenerator/movegenerator.h"
 #include "piece-signature-lookup.h"
