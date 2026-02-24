@@ -117,6 +117,9 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	
 	// Add material to the evaluation
 	EvalValue evalValue = position.getMaterialAndPSTValue();
+	EvalValue imbalanceValue = position.getImbalanceValue();
+	evalValue += imbalanceValue;
+
 
 	// Add paw value to the evaluation
 	evalValue += Pawn::eval(position, evalResults, pawnttPtr);
@@ -148,17 +151,10 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			<< std::right << std::setw(21) << evalResults.midgameInPercentV2 << endl;
 		cout << "Piece based eval:" 
 			<< std::right << std::setw(19) << result << std::endl;
+		cout << "Imbalance Correction:"
+			<< std::right << std::setw(14) << imbalanceValue << std::endl;
 	}
 
-	/*
-	if (position.getEvalVersion() == 1) {
-		result += EVAL_CORRECTION[position.getPiecesSignature()] / 2;
-	}
-	*/
-	if constexpr (PRINT) {
-		cout << "Piece Signature Correction:"
-			<< std::right << std::setw(9) << result << std::endl;
-	}
 
 	value_t endgameCorrection = EvalEndgame::eval(position, result);
 	if (endgameCorrection != result) {
