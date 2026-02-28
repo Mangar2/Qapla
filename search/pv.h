@@ -23,10 +23,12 @@
 #ifndef __PV_H
 #define __PV_H
 
-#include <array>
-#include <string>
 #include "searchdef.h"
 #include "../basics/move.h"
+
+#include <array>
+#include <string>
+#include <iomanip>
 
 using namespace std;
 using namespace QaplaBasics;

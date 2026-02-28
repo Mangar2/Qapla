@@ -31,6 +31,8 @@
 #include "../basics/evalvalue.h"
 #include "optimizer.h"
 
+#include <iomanip>
+
 using namespace QaplaBasics;
 
 class Candidate {

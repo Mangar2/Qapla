@@ -28,15 +28,16 @@
 #ifndef __COMPUTINGINFO_H
 #define __COMPUTINGINFO_H
 
-#include <array>
+
+#include "pv.h"
+#include "rootmoves.h"
+
 #include "../basics/move.h"
 #include "../interface/stdtimecontrol.h"
-#include "pv.h"
 #include "../interface/isendsearchinfo.h"
 #include "../interface/computinginfoexchange.h"
-#include "rootmoves.h"
-#include "searchparameter.h"
-#include "searchstack.h"
+
+
 
 using namespace QaplaInterface;
 

@@ -21,11 +21,13 @@
 
 #pragma once
 
+#include "../basics/types.h"
+
 #include <cstdint>
 #include <ostream>
 #include <cmath>
 #include <array>
-#include "../basics/types.h"
+#include <iomanip>
 
 using namespace std;
 
