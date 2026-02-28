@@ -39,6 +39,8 @@
 #include "../nnue/engine.h"
 #endif
 
+#include <iomanip>
+
 using namespace std;
 using namespace QaplaMoveGenerator;
 using namespace ChessEval;

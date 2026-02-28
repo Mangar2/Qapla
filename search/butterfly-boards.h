@@ -25,6 +25,10 @@
 #include "searchdef.h"
 #include "../basics/move.h"
 
+#include <iomanip>
+
+using namespace QaplaBasics;
+
 namespace QaplaSearch {
 
 	using statistic_t = int32_t;

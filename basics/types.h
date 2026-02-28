@@ -25,7 +25,6 @@
 #include <array>
 #include <string>
 #include <iostream>
-#include <iomanip>
 
 namespace QaplaBasics {
 

@@ -18,8 +18,11 @@
  */
 
 #include "magics.h"
-#include "bitboardmasks.h"
+
+#include "../basics/bits.h"
+
 #include <assert.h>
+
 
 using namespace QaplaMoveGenerator;
 using namespace QaplaBasics;

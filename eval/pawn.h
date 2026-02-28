@@ -78,8 +78,8 @@ namespace ChessEval {
 			}
 			
 			colorBB_t moveRay{
-				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)),
-				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK))
+				computePawnsMoveRays<WHITE>(position.getPieceBB(PAWN + WHITE)),
+				computePawnsMoveRays<BLACK>(position.getPieceBB(PAWN + BLACK))
 			};
 
 			EvalValue value =
@@ -93,8 +93,8 @@ namespace ChessEval {
 
 		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
 			colorBB_t moveRay{ 
-				computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE)), 
-				computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK)) 
+				computePawnsMoveRays<WHITE>(position.getPieceBB(PAWN + WHITE)), 
+				computePawnsMoveRays<BLACK>(position.getPieceBB(PAWN + BLACK)) 
 			};
 
 			EvalValue value = 
@@ -117,8 +117,8 @@ namespace ChessEval {
 		 */
 		static value_t computePawnValueNoPiece(MoveGenerator& position, EvalResults& results) {
 			colorBB_t moveRay{};
-			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
-			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
+			moveRay[WHITE] = computePawnsMoveRays<WHITE>(position.getPieceBB(PAWN + WHITE));
+			moveRay[BLACK] = computePawnsMoveRays<BLACK>(position.getPieceBB(PAWN + BLACK));
 
 			value_t result = position.getMaterialAndPSTValue().endgame();
 			result += computePawnValueNoPieceButPawn<WHITE>(position, results, moveRay);
@@ -144,8 +144,8 @@ namespace ChessEval {
 
 		static void computePassedPawns(const MoveGenerator& position, EvalResults& results) {
 			colorBB_t moveRay{};
-			moveRay[WHITE] = computePawnMoveRay<WHITE>(position.getPieceBB(PAWN + WHITE));
-			moveRay[BLACK] = computePawnMoveRay<BLACK>(position.getPieceBB(PAWN + BLACK));
+			moveRay[WHITE] = computePawnsMoveRays<WHITE>(position.getPieceBB(PAWN + WHITE));
+			moveRay[BLACK] = computePawnsMoveRays<BLACK>(position.getPieceBB(PAWN + BLACK));
 			results.passedPawns[WHITE] = computePassedPawnBB(position.getPieceBB(PAWN + WHITE), moveRay[BLACK]);
 			results.passedPawns[BLACK] = computePassedPawnBB(position.getPieceBB(PAWN + BLACK), moveRay[WHITE]);
 		}
@@ -326,10 +326,11 @@ namespace ChessEval {
 		 * How it works: if a pawn is not in front of an opponent pawn or an opponent pawn on the left/right columns, it
 		 * is a passed pawn.
 		 */
-		inline static bitBoard_t computePassedPawnBB(bitBoard_t pawns, bitBoard_t opponentPawnMoveRay) {
-			bitBoard_t nonPasserMask = opponentPawnMoveRay;
-			nonPasserMask |= BitBoardMasks::shift<WEST>(opponentPawnMoveRay);
-			nonPasserMask |= BitBoardMasks::shift<EAST>(opponentPawnMoveRay);
+		inline static bitBoard_t computePassedPawnBB(bitBoard_t pawns, bitBoard_t opponentPawnsMoveRays) {
+			bitBoard_t nonPasserMask = opponentPawnsMoveRays;
+			nonPasserMask |= BitBoardMasks::shift<WEST>(opponentPawnsMoveRays);
+			nonPasserMask |= BitBoardMasks::shift<EAST>(opponentPawnsMoveRays);
+			// auto onlyLevers = pawns & ~BitBoardMasks::shift<SOUTH>(nonPasserMask) & opponentPawnsMoveRays;
 			return pawns & ~nonPasserMask;
 		}
 
@@ -465,7 +466,7 @@ namespace ChessEval {
 		}
 
 		template <Piece COLOR>
-		inline static bitBoard_t computePawnMoveRay(const bitBoard_t pawnBB) {
+		inline static bitBoard_t computePawnsMoveRays(const bitBoard_t pawnBB) {
 			bitBoard_t pawnMoveRay = 0;
 
 			if (pawnBB != 0) {

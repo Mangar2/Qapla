@@ -23,9 +23,6 @@
 
 #include <assert.h>
 #include "../basics/types.h"
-#include "../basics/evalvalue.h"
-#include "../basics/move.h"
-#include "../basics/bits.h"
 
 using namespace QaplaBasics;
 
@@ -54,7 +51,7 @@ namespace QaplaMoveGenerator {
 		 */
 		template<uint32_t COLOR, Square DIRECTION>
 		inline static bitBoard_t shiftColor(bitBoard_t bitboard) {
-			if (COLOR == WHITE) {
+			if constexpr (COLOR == WHITE) {
 				return shift<DIRECTION>(bitboard);
 			}
 			else {
