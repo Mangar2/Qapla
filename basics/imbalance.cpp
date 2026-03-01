@@ -21,6 +21,38 @@
 
 namespace ChessEval {
 
+value_t Imbalance::computeValueFromBoard(const std::array<Piece, BOARD_SIZE>& board) {
+	PieceSignature pieceSignature;
+	value_t imbalance = 0;
+
+	for (Square square = A1; square <= H8; ++square) {
+		const Piece piece = board[square];
+		const Piece pieceType = getPieceType(piece);
+
+		if (pieceType == KING || pieceType == NO_PIECE) {
+			continue;
+		}
+
+		const uint32_t pieceIndex = pieceToIndex(pieceType);
+		const pieceSignature_t whiteSignature = pieceSignature.getSignature<WHITE>();
+		const pieceSignature_t blackSignature = pieceSignature.getSignature<BLACK>();
+		const Piece color = getPieceColor(piece);
+		const pieceSignature_t ownSignature = color == WHITE ? whiteSignature : blackSignature;
+		const pieceSignature_t oppSignature = color == WHITE ? blackSignature : whiteSignature;
+
+		value_t delta = OWN_ADD_LOOKUP[pieceIndex][ownSignature]
+			+ OPP_ADD_LOOKUP[pieceIndex][oppSignature];
+		if (color == BLACK) {
+			delta = -delta;
+		}
+
+		imbalance += delta;
+		pieceSignature.addPiece(piece);
+	}
+
+	return imbalance;
+}
+
 value_t Imbalance::getPieceCount(pieceSignature_t signature, uint32_t kind) {
 	switch (kind) {
 	case 0: return (signature & SignatureMask::PAWN) / Signature::PAWN;

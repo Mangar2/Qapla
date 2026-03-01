@@ -183,6 +183,12 @@
     <ClCompile Include="eval\queen.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="basics\materialbalance.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
+    <ClCompile Include="basics\imbalance.cpp">
+      <Filter>basics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tests\evalpawntest.h">
@@ -514,6 +520,9 @@
     </ClInclude>
     <ClInclude Include="eval\array-generator.h">
       <Filter>eval</Filter>
+    </ClInclude>
+    <ClInclude Include="basics\imbalance.h">
+      <Filter>basics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

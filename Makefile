@@ -41,7 +41,7 @@ ifeq ($(BUILD_TYPE),Debug)
   CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MTd /clang:-MMD /clang:-MP 
   CXXFLAGS_BT   := -D_DEBUG -Od -Zi -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2
   CFLAGS_BT     := -D_DEBUG -Od -Zi
-  LDFLAGS_PLAT  := -MTd -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
+  LDFLAGS_PLAT  := -MTd -fuse-ld=lld -link -DEBUG -PDB:$(BUILD_DIR)/Qapla.pdb -SUBSYSTEM:CONSOLE
 else ifeq ($(BUILD_TYPE),WhatifRelease)
   # Release: use release runtime library (-MT)
   CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP 

@@ -18,9 +18,7 @@
  */
 
 #include "uci.h"
-#include <algorithm>
-#include <cctype>
-#include <cstdlib>
+
 #include "../eval/king-attack.h"
 #include "../eval/bishop.h"
 #include "../eval/knight.h"
@@ -28,9 +26,14 @@
 #include "../eval/queen.h"
 #include "../eval/threat.h"
 #include "../eval/pawn.h"
-#include "../eval/imbalance.h"
+
+#include "../basics/imbalance.h"
 #include "../basics/pst.h"
 #include "../basics/materialbalance.h"
+
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 
 using namespace QaplaInterface;
 using namespace ChessEval;

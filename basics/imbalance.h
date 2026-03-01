@@ -116,6 +116,7 @@ namespace ChessEval {
 		}
 
 		static value_t getPieceCount(pieceSignature_t signature, uint32_t kind);
+		static value_t computeValueFromBoard(const std::array<Piece, BOARD_SIZE>& board);
 		static uint32_t pieceToIndex(Piece pieceType);
 		static DeltaLookup generateOwnAddLookup(const CoeffMatrix& coeff);
 		static DeltaLookup generateOppAddLookup(const CoeffMatrix& coeff);
@@ -124,12 +125,13 @@ namespace ChessEval {
 		static void rebuildLookups();
 	#endif
 
+		// PP, PN, PB, PR, PQ, NP, NN, NB, NR, NQ, BP, BN, BB, BR, BQ, RP, RN, RB, RR, RQ, QP, QN, QB, QR, QQ
 		static constexpr CoeffMatrix OWN_COEFF_DEFAULT = {{
-			{{ 1, 0, 0, 0, 0 }},
-			{{ 1, 1, 0, 0, 0 }},
-			{{ 1, 1, 1, 0, 0 }},
-			{{ 1, 1, 1, 1, 0 }},
-			{{ 1, 1, 1, 1, 1 }}
+			{{ 15, 0, 0, 0, 0 }},
+			{{ 86, -13, 0, 0, 0 }},
+			{{ 9, 40, 14, 0, 0 }},
+			{{ 60, 42, 83, 64, 0 }},
+			{{ 2, -36, -23, -46, 80 }}
 		}};
 
 		// Opponent diagonal entries (PP, NN, BB, RR, QQ) are set to 0 intentionally.
@@ -137,10 +139,10 @@ namespace ChessEval {
 		// so exposing/tuning them has no effect.
 		static constexpr CoeffMatrix OPP_COEFF_DEFAULT = {{
 			{{ 0, 0, 0, 0, 0 }},
-			{{ 1, 0, 0, 0, 0 }},
-			{{ 1, 1, 0, 0, 0 }},
-			{{ 1, 1, 1, 0, 0 }},
-			{{ 1, 1, 1, 1, 0 }}
+			{{ 23, 0, 0, 0, 0 }},
+			{{ 51, 49, 0, 0, 0 }},
+			{{ 30, -18, -47, 0, 0 }},
+			{{ 106, 27, -4, 21, 0 }}
 		}};
 
 	#ifdef PARAM_OPTIMIZE_IMBALANCE
