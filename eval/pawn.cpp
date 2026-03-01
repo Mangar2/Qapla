@@ -27,6 +27,101 @@ using namespace ChessEval;
 
 namespace ChessEval {
 
+namespace {
+
+Square mapWhiteViewToBoardSquare(Piece color, int x, int y) {
+	if (x < 0 || x > 7 || y < 0 || y > 7) {
+		return NO_SQUARE;
+	}
+	const Square whiteViewSquare = computeSquare(File(x), Rank(y));
+	if (color == WHITE) {
+		return switchSide(whiteViewSquare);
+	}
+	return whiteViewSquare;
+}
+
+char board(const MoveGenerator& pos, Piece color, int x, int y) {
+	const Square square = mapWhiteViewToBoardSquare(color, x, y);
+	if (square == NO_SQUARE) {
+		return '.';
+	}
+	const Piece piece = pos[square];
+	if (piece == Piece(PAWN + color)) {
+		return 'P';
+	}
+	if (piece == Piece(PAWN + switchColor(color))) {
+		return 'p';
+	}
+	return '.';
+}
+
+int supported(const MoveGenerator& pos, Piece color, int x, int y) {
+	return (board(pos, color, x - 1, y + 1) == 'P' ? 1 : 0)
+		+ (board(pos, color, x + 1, y + 1) == 'P' ? 1 : 0);
+}
+
+int candidate_passed(const MoveGenerator& pos, Piece color, int x, int y) {
+	if (board(pos, color, x, y) != 'P') return 0;
+	int ty1 = 8;
+	int ty2 = 8;
+	for (int yy = y - 1; yy >= 0; yy--) {
+		if (board(pos, color, x    , yy) == 'P') return 0;
+		if (board(pos, color, x    , yy) == 'p') ty1 = yy;
+		if (board(pos, color, x - 1, yy) == 'p'
+		 || board(pos, color, x + 1, yy) == 'p') ty2 = yy;
+	}
+	if (ty1 == 8 && ty2 >= y - 1) return 1;
+	if (ty2 < y - 2 || ty1 < y - 1) return 0;
+	if (ty2 >= y && ty1 == y - 1 && y < 4) {
+		if (board(pos, color, x - 1, y + 1) == 'P'
+		 && board(pos, color, x - 1, y    ) != 'p'
+		 && board(pos, color, x - 2, y - 1) != 'p') return 1;
+		if (board(pos, color, x + 1, y + 1) == 'P'
+		 && board(pos, color, x + 1, y    ) != 'p'
+		 && board(pos, color, x + 2, y - 1) != 'p') return 1;
+	}
+	if (board(pos, color, x, y - 1) == 'p') return 0;
+	int lever = (board(pos, color, x - 1, y - 1) == 'p' ? 1 : 0)
+		      + (board(pos, color, x + 1, y - 1) == 'p' ? 1 : 0);
+	int leverpush = (board(pos, color, x - 1, y - 2) == 'p' ? 1 : 0)
+		          + (board(pos, color, x + 1, y - 2) == 'p' ? 1 : 0);
+	int phalanx = (board(pos, color, x - 1, y) == 'P' ? 1 : 0)
+		      + (board(pos, color, x + 1, y) == 'P' ? 1 : 0);
+	if (lever - supported(pos, color, x, y) > 1) return 0;
+	if (leverpush - phalanx  > 0) return 0;
+	if (lever > 0 && leverpush > 0) return 0;
+	return 1;
+}
+
+bitBoard_t candidate_passed(const MoveGenerator& pos, Piece color) {
+	bitBoard_t result = 0;
+	for (int y = 0; y < 8; ++y) {
+		for (int x = 0; x < 8; ++x) {
+			if (candidate_passed(pos, color, x, y) != 0) {
+				const Square square = mapWhiteViewToBoardSquare(color, x, y);
+				if (square != NO_SQUARE) {
+					result |= squareToBB(square);
+				}
+			}
+		}
+	}
+	return result;
+}
+
+}
+
+void Pawn::verifyPassedPawnBBAlternative(const MoveGenerator& position, Piece color, bitBoard_t passedPawns) {
+	const bitBoard_t alternativePassedPawns = candidate_passed(position, color);
+	if (alternativePassedPawns != passedPawns) {
+		std::cout << "Passed pawn mismatch in computePassedPawnBB" << (color == WHITE ? " WHITE" : " BLACK") << std::endl;
+		std::cout << "Current algorithm:" << std::endl;
+		printBB(passedPawns);
+		std::cout << "Alternative algorithm:" << std::endl;
+		printBB(alternativePassedPawns);
+		position.print();
+	}
+}
+
 #ifdef PARAM_OPTIMIZE_PAWN
 
 std::array<value_t, Pawn::PP_INDEX_SIZE> Pawn::generatePPThreatMap(
