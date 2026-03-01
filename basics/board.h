@@ -30,7 +30,7 @@
 #include "materialbalance.h"
 #include "hashconstants.h"
 #include "pst.h"
-#include "../eval/imbalance.h"
+#include "imbalance.h"
 
 namespace QaplaBasics {
 
