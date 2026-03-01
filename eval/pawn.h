@@ -25,9 +25,7 @@
 #include <map>
 #include <vector>
 #include <tuple>
-#include "../basics/types.h"
-#include "../basics/pst.h"
-#include "../basics/evalvalue.h"
+
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
@@ -35,6 +33,10 @@
 #include "pawntt.h"
 #include "eval-helper.h"
 #include "../interface/uci-parameter-provider.h"
+
+#include "../basics/types.h"
+#include "../basics/pst.h"
+#include "../basics/evalvalue.h"
 
 #ifdef PARAM_OPTIMIZE
 #define PARAM_OPTIMIZE_PAWN
@@ -145,11 +147,74 @@ namespace ChessEval {
 			colorBB_t moveRay{};
 			moveRay[WHITE] = computePawnsMoveRays<WHITE>(position.getPieceBB(PAWN + WHITE));
 			moveRay[BLACK] = computePawnsMoveRays<BLACK>(position.getPieceBB(PAWN + BLACK));
-			results.passedPawns[WHITE] = computePassedPawnBB(position.getPieceBB(PAWN + WHITE), moveRay[BLACK]);
-			results.passedPawns[BLACK] = computePassedPawnBB(position.getPieceBB(PAWN + BLACK), moveRay[WHITE]);
+			results.passedPawns[WHITE] = computePassedPawnBB<WHITE>(position, moveRay[BLACK]);
+			results.passedPawns[BLACK] = computePassedPawnBB<BLACK>(position, moveRay[WHITE]);
 		}
 
 	private:
+
+	/**
+		 * Computes the bitboard for passed pawns
+		 * How it works: if a pawn is not in front of an opponent pawn or an opponent pawn on the left/right columns, it
+		 * is a passed pawn.
+		 */
+		template<Piece COLOR>
+		inline static bitBoard_t computePassedPawnBB(const MoveGenerator& position, bitBoard_t opponentPawnsMoveRays) 
+		{
+			constexpr bitBoard_t ADVANCED_RANKS[2] = {
+				BitBoardMasks::RANK_5_BITMASK | BitBoardMasks::RANK_6_BITMASK | BitBoardMasks::RANK_7_BITMASK,  // White advanced pawns are on ranks 5-7
+				BitBoardMasks::RANK_1_BITMASK | BitBoardMasks::RANK_2_BITMASK | BitBoardMasks::RANK_3_BITMASK  // Black advanced pawns are on ranks 2-4
+			};
+			constexpr Piece OPPONENT_COLOR = QaplaBasics::switchColor(COLOR);
+
+			auto pawns = position.getPieceBB(PAWN + COLOR);
+			auto opponentPawns = position.getPieceBB(PAWN + OPPONENT_COLOR);
+			bitBoard_t passerMask = opponentPawnsMoveRays;
+			passerMask |= BitBoardMasks::shift<WEST>(opponentPawnsMoveRays);
+			passerMask |= BitBoardMasks::shift<EAST>(opponentPawnsMoveRays);
+			passerMask = ~passerMask;
+			
+			auto southPasserMask = BitBoardMasks::shiftColor<COLOR, SOUTH>(passerMask);
+			// Case 1: Unblocked pawns facing only levers. Advancing bypasses the last line of defense.
+			auto onlyLevers = pawns & southPasserMask & ~opponentPawnsMoveRays;
+
+			// Case 2: Advanced blocked pawns with safe flank support to force the blocker away.
+			auto baseBlockedPassers = pawns & ADVANCED_RANKS[COLOR] & southPasserMask;
+			auto blockedWestDistractors = BitBoardMasks::shiftColor<COLOR, EAST>(opponentPawns);
+			blockedWestDistractors |= BitBoardMasks::shiftColor<COLOR, SOUTH>(blockedWestDistractors) | BitBoardMasks::shiftColor<COLOR, SE>(blockedWestDistractors);
+			auto westSupport = pawns & BitBoardMasks::shiftColor<COLOR, NE>(pawns) & ~blockedWestDistractors;
+			auto blockedEastDistractors = BitBoardMasks::shiftColor<COLOR, WEST>(opponentPawns);
+			blockedEastDistractors |= BitBoardMasks::shiftColor<COLOR, SOUTH>(blockedEastDistractors) | BitBoardMasks::shiftColor<COLOR, SW>(blockedEastDistractors);
+			auto eastSupport = pawns & BitBoardMasks::shiftColor<COLOR, NW>(pawns) & ~blockedEastDistractors;
+			auto blockedPassers = baseBlockedPassers & (westSupport | eastSupport);
+
+			// Case 3: Phalanx support to bypass the last line of defense. 
+			auto attacked = position.pawnAttack[OPPONENT_COLOR];
+			// Need to ensure that pawn advancing by two would be a passer
+			auto doubleSouthPasserMask = BitBoardMasks::shiftColor<COLOR, SOUTH>(southPasserMask);
+			// Need to ensure that pawn is not blocked and not attacked
+			auto basePhalanxPassers = pawns & ~opponentPawnsMoveRays & doubleSouthPasserMask & ~attacked;
+			auto distractors = BitBoardMasks::shiftColor<COLOR, SOUTH_2>(opponentPawns);
+			auto phalanxEastDistractors = BitBoardMasks::shiftColor<COLOR, WEST>(distractors);
+			auto phalanxWestDistractors = BitBoardMasks::shiftColor<COLOR, EAST>(distractors);
+			auto doubleDistractors = phalanxEastDistractors & phalanxWestDistractors;
+			auto eastPhalanx = pawns & BitBoardMasks::shiftColor<COLOR, WEST>(pawns);
+			auto westPhalanx = pawns & BitBoardMasks::shiftColor<COLOR, EAST>(pawns);
+			auto doublePhalanx = eastPhalanx & westPhalanx;
+			// A single phalanx is sufficient, if there is only one distractor.
+			auto singlePhalanxSufficient = (eastPhalanx | westPhalanx) & ~doubleDistractors;
+			//A double phalanx is always sufficient
+			auto phalanxPassers = basePhalanxPassers & (doublePhalanx | singlePhalanxSufficient);
+			auto candidatePassers = onlyLevers | blockedPassers | phalanxPassers;
+			auto passedPawns = pawns & (passerMask | candidatePassers);
+
+			// Call alternative checker (no logic here) for debugging purposes
+			verifyPassedPawnBBAlternative(position, COLOR, passedPawns);
+
+			return passedPawns;
+		}
+
+		static void verifyPassedPawnBBAlternative(const MoveGenerator& position, Piece color, bitBoard_t passedPawns);
 
 
 		/**
@@ -187,7 +252,7 @@ namespace ChessEval {
 
 			const bitBoard_t doubleBB = pawns & moveRay[COLOR];
 			const auto [singleConnect, doubleConnect] = computeConnectedPawnIndex<COLOR>(position);
-			const bitBoard_t passedPawnBB = computePassedPawnBB(pawns, moveRay[opponentColor<COLOR>()]);
+			const bitBoard_t passedPawnBB = computePassedPawnBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
 			const bitBoard_t isolatedPawnBB = computeIsolatedPawnBB<COLOR>(moveRay[COLOR]);
 			const bitBoard_t unopposedPawnBB = pawns & ~moveRay[opponentColor<COLOR>()];
 			results.passedPawns[COLOR] = passedPawnBB;
@@ -261,7 +326,7 @@ namespace ChessEval {
 		static value_t computePawnValueNoPieceButPawn(const MoveGenerator& position, EvalResults& results, colorBB_t moveRay) {
 			const bool NO_PIECES_BUT_PAWNS_ON_BOARD = true;
 			bitBoard_t pawns = position.getPieceBB(PAWN + COLOR);
-			bitBoard_t passedPawns = computePassedPawnBB(pawns, moveRay[switchColor(COLOR)]);
+			bitBoard_t passedPawns = computePassedPawnBB<COLOR>(position, moveRay[switchColor(COLOR)]);
 
 			value_t pawnValue = computePawnValueForSparcelyPolulatedBitboards<COLOR>(pawns & 
 				~passedPawns, EvalPawnValues::ADVANCED_PAWN_VALUE);
@@ -318,55 +383,6 @@ namespace ChessEval {
 		 */
 		static constexpr bool isProtectedPassedPawn(Square pawnPos, bitBoard_t pawnAttack) {
 			return (squareToBB(pawnPos) & pawnAttack) != 0;
-		}
-
-		/**
-		 * Computes the bitboard for passed pawns
-		 * How it works: if a pawn is not in front of an opponent pawn or an opponent pawn on the left/right columns, it
-		 * is a passed pawn.
-		 */
-		inline static bitBoard_t computePassedPawnBB(bitBoard_t pawns, bitBoard_t opponentPawnsMoveRays) {
-			bitBoard_t passerMask = opponentPawnsMoveRays;
-			passerMask |= BitBoardMasks::shift<WEST>(opponentPawnsMoveRays);
-			passerMask |= BitBoardMasks::shift<EAST>(opponentPawnsMoveRays);
-			passerMask = ~passerMask;
-			
-			// auto southPasserMask = BitBoardMasks::shiftColor<COLOR, SOUTH>(passerMask);
-			// Case 1: Unblocked pawns facing only levers. Advancing bypasses the last line of defense.
-			// auto onlyLevers = pawns & southPasserMask & opponentPawnsMoveRays;
-
-			// Case 2: Advanced blocked pawns with safe flank support to force the blocker away.
-			// auto baseBlockedPassers = pawns & ADVANCED_RANKS<COLOR> & southPasserMask;
-			// auto westDistractors = BitBoardMasks::shiftColor<COLOR, E>(opponentPawns);
-			// westDistractors |= BitBoardMasks::shiftColor<COLOR, S>(westDistractors) | BitBoardMasks::shiftColor<COLOR, SE>(westDistractors);
-			// auto westSupport = pawns & BitBoardMasks::shiftColor<COLOR, NE>(pawns) & ~westDistractors;
-			// auto eastDistractors = BitBoardMasks::shiftColor<COLOR, W>(opponentPawns);
-			// eastDistractors |= BitBoardMasks::shiftColor<COLOR, S>(eastDistractors) | BitBoardMasks::shiftColor<COLOR, SW>(eastDistractors);
-			// auto eastSupport = pawns & BitBoardMasks::shiftColor<COLOR, NW>(pawns) & ~eastDistractors;
-			// auto blockedPassers = baseBlockedPassers & (westSupport | eastSupport);
-
-			// Case 3: Phalanx support to bypass the last line of defense. 
-			// constexpr OPPONENT_COLOR = switchColor<COLOR>();
-			// auto attacked = position.pawnAttack[OPPONENT_COLOR];
-			// Need to ensure that pawn advancing by two would be a passer
-			// auto doubleSouthPasserMask = BitBoardMasks::shiftColor<COLOR, SOUTH>(southPasserMask);
-			// Need to ensure that pawn is not blocked and not attacked
-			// auto basePhalanxPassers = pawns & ~opponentPawnsMoveRays & doubleSouthPasserMask & ~attacked;
-			// auto distractors = BitBoardMasks::shiftColor<COLOR, SOUTH_2>(opponentPawns);
-			// auto eastDistractors = BitBoardMasks::shiftColor<COLOR, W>(distractors);
-			// auto westDistractors = BitBoardMasks::shiftColor<COLOR, E>(distractors);
-			// auto doubleDistractors = eastDistractors & westDistractors;
-			// auto eastPhalanx = pawns & BitBoardMasks::shiftColor<COLOR, W>(pawns);
-			// auto westPhalanx = pawns & BitBoardMasks::shiftColor<COLOR, E>(pawns);
-			// auto doublePhalanx = eastPhalanx & westPhalanx;
-			// A single phalanx is sufficient, if there is only one distractor.
-			// auto singlePhalanxSufficient = (eastPhalanx | westPhalanx) & ~doubleDistractors;
-			// A double phalanx is always sufficient
-			// auto phalanxPassers = basePhalanxPassers & (doublePhalanx | singlePhalanxSufficient);
-			// auto candidatePassers = onlyLevers | blockedPassers | phalanxPassers;
-			// return pawns & (passerMask | candidatePassers);
-
-			return pawns & passerMask;
 		}
 
 		/**

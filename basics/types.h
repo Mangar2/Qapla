@@ -36,14 +36,13 @@ namespace QaplaBasics {
 	 * Prints a bitboard to stdout
 	 */
 	inline void printBB(bitBoard_t bb) {
-		uint32_t lineBreak = 8;
-		for (uint64_t i = 1ULL << 63; i > 0; i /= 2) {
-			std::cout << ((bb & i) ? "X " : ". ");
-			lineBreak--;
-			if (lineBreak == 0) {
-				std::cout << std::endl;
-				lineBreak = 8;
+		for (int rank = 7; rank >= 0; --rank) {
+			for (int file = 0; file < 8; ++file) {
+				const int square = rank * 8 + file;
+				const bitBoard_t mask = 1ULL << square;
+				std::cout << ((bb & mask) ? "X " : ". ");
 			}
+			std::cout << std::endl;
 		}
 		std::cout << std::endl;
 	}
