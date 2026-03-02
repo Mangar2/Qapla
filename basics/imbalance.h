@@ -60,8 +60,8 @@ namespace ChessEval {
 		}
 
 		inline value_t getValue() const {
-			//return _imbalance / 16;
-			return 0;
+			return _imbalance / 16;
+			//return 0;
 		}
 
 	private:
