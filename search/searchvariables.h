@@ -125,6 +125,7 @@ namespace QaplaSearch {
 		 * Initializes all variables to start search
 		 */
 		void initSearchAtRoot(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, ply_t searchDepth) {
+			position.computeAttackMasksForBothColors();
 			remainingDepthAtPlyStart = remainingDepth = searchDepth;
 			moveNumber = 0;
 			alpha = initialAlpha;

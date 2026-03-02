@@ -153,7 +153,7 @@ namespace ChessEval {
 
 	private:
 
-	/**
+		/**
 		 * Computes the bitboard for passed pawns
 		 * How it works: if a pawn is not in front of an opponent pawn or an opponent pawn on the left/right columns, it
 		 * is a passed pawn.
@@ -161,13 +161,30 @@ namespace ChessEval {
 		template<Piece COLOR>
 		inline static bitBoard_t computePassedPawnBB(const MoveGenerator& position, bitBoard_t opponentPawnsMoveRays) 
 		{
+			auto pawns = position.getPieceBB(PAWN + COLOR);
+			bitBoard_t passerMask = opponentPawnsMoveRays;
+			passerMask |= BitBoardMasks::shift<WEST>(opponentPawnsMoveRays);
+			passerMask |= BitBoardMasks::shift<EAST>(opponentPawnsMoveRays);
+			passerMask = ~passerMask;
+			auto passedPawns = pawns & passerMask;
+
+			// Call alternative checker (no logic here) for debugging purposes
+			// verifyPassedPawnBBAlternative(position, COLOR, passedPawns);
+
+			return passedPawns;
+		}
+
+		template<Piece COLOR>
+		inline static bitBoard_t computePassedPawnCandidateBB(const MoveGenerator& position, bitBoard_t opponentPawnsMoveRays)
+		{
 			constexpr bitBoard_t ADVANCED_RANKS[2] = {
-				BitBoardMasks::RANK_5_BITMASK | BitBoardMasks::RANK_6_BITMASK | BitBoardMasks::RANK_7_BITMASK,  // White advanced pawns are on ranks 5-7
-				BitBoardMasks::RANK_1_BITMASK | BitBoardMasks::RANK_2_BITMASK | BitBoardMasks::RANK_3_BITMASK  // Black advanced pawns are on ranks 2-4
+				BitBoardMasks::RANK_5_BITMASK | BitBoardMasks::RANK_6_BITMASK | BitBoardMasks::RANK_7_BITMASK,
+				BitBoardMasks::RANK_2_BITMASK | BitBoardMasks::RANK_3_BITMASK | BitBoardMasks::RANK_4_BITMASK
 			};
 			constexpr Piece OPPONENT_COLOR = QaplaBasics::switchColor(COLOR);
 
 			auto pawns = position.getPieceBB(PAWN + COLOR);
+			
 			auto opponentPawns = position.getPieceBB(PAWN + OPPONENT_COLOR);
 			bitBoard_t passerMask = opponentPawnsMoveRays;
 			passerMask |= BitBoardMasks::shift<WEST>(opponentPawnsMoveRays);
@@ -178,8 +195,10 @@ namespace ChessEval {
 			// Case 1: Unblocked pawns facing only levers. Advancing bypasses the last line of defense.
 			auto onlyLevers = pawns & southPasserMask & ~opponentPawnsMoveRays;
 
+			auto attacked = position.pawnAttack[OPPONENT_COLOR];
+
 			// Case 2: Advanced blocked pawns with safe flank support to force the blocker away.
-			auto baseBlockedPassers = pawns & ADVANCED_RANKS[COLOR] & southPasserMask;
+			auto baseBlockedPassers = pawns & ADVANCED_RANKS[COLOR] & southPasserMask & ~attacked;
 			auto blockedWestDistractors = BitBoardMasks::shiftColor<COLOR, EAST>(opponentPawns);
 			blockedWestDistractors |= BitBoardMasks::shiftColor<COLOR, SOUTH>(blockedWestDistractors) | BitBoardMasks::shiftColor<COLOR, SE>(blockedWestDistractors);
 			auto westSupport = pawns & BitBoardMasks::shiftColor<COLOR, NE>(pawns) & ~blockedWestDistractors;
@@ -189,7 +208,6 @@ namespace ChessEval {
 			auto blockedPassers = baseBlockedPassers & (westSupport | eastSupport);
 
 			// Case 3: Phalanx support to bypass the last line of defense. 
-			auto attacked = position.pawnAttack[OPPONENT_COLOR];
 			// Need to ensure that pawn advancing by two would be a passer
 			auto doubleSouthPasserMask = BitBoardMasks::shiftColor<COLOR, SOUTH>(southPasserMask);
 			// Need to ensure that pawn is not blocked and not attacked
@@ -206,12 +224,8 @@ namespace ChessEval {
 			//A double phalanx is always sufficient
 			auto phalanxPassers = basePhalanxPassers & (doublePhalanx | singlePhalanxSufficient);
 			auto candidatePassers = onlyLevers | blockedPassers | phalanxPassers;
-			auto passedPawns = pawns & (passerMask | candidatePassers);
 
-			// Call alternative checker (no logic here) for debugging purposes
-			verifyPassedPawnBBAlternative(position, COLOR, passedPawns);
-
-			return passedPawns;
+			return candidatePassers;
 		}
 
 		static void verifyPassedPawnBBAlternative(const MoveGenerator& position, Piece color, bitBoard_t passedPawns);
@@ -253,6 +267,7 @@ namespace ChessEval {
 			const bitBoard_t doubleBB = pawns & moveRay[COLOR];
 			const auto [singleConnect, doubleConnect] = computeConnectedPawnIndex<COLOR>(position);
 			const bitBoard_t passedPawnBB = computePassedPawnBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
+			// const bitBoard_t passedPawnCandidateBB = computePassedPawnCandidateBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
 			const bitBoard_t isolatedPawnBB = computeIsolatedPawnBB<COLOR>(moveRay[COLOR]);
 			const bitBoard_t unopposedPawnBB = pawns & ~moveRay[opponentColor<COLOR>()];
 			results.passedPawns[COLOR] = passedPawnBB;
@@ -272,7 +287,10 @@ namespace ChessEval {
 				if (passedPawnBB & pawnBB) {
 					propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
 				}
-				//value_t propertyValue = evalMap[propertyIndex];
+				// else if (passedPawnCandidateBB & pawnBB) {
+					//propertyIndex |= PASSED_PAWN_INDEX;
+				//}
+
 				EvalValue propertyValue = evalValueMap[propertyIndex];
 								
 				value += propertyValue;

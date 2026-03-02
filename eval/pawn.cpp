@@ -65,7 +65,6 @@ int candidate_passed(const MoveGenerator& pos, Piece color, int x, int y) {
 	int ty1 = 8;
 	int ty2 = 8;
 	for (int yy = y - 1; yy >= 0; yy--) {
-		if (board(pos, color, x    , yy) == 'P') return 0;
 		if (board(pos, color, x    , yy) == 'p') ty1 = yy;
 		if (board(pos, color, x - 1, yy) == 'p'
 		 || board(pos, color, x + 1, yy) == 'p') ty2 = yy;
