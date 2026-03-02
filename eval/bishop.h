@@ -173,7 +173,7 @@ namespace ChessEval {
 		};
 
 		static constexpr std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP_DEFAULT = { {
-			{  0,   0}, { 26,  14}, {-10,   0}, { 16,  14}
+			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14}
 		} };
 		
 		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP_DEFAULT = { {
