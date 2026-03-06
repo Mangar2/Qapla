@@ -304,7 +304,6 @@ public:
 			{ .name = "pawnPassedFactorEg", .defaultValue = passedFactorEg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnPassedRank7Mg", .defaultValue = passedRank7Mg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnPassedRank7Eg", .defaultValue = passedRank7Eg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnProtedctedPassedFactor", .defaultValue = protectedPassedFactor_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnProtectedPassedFactor", .defaultValue = protectedPassedFactor_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnProtectedPassedFactorMg", .defaultValue = protectedPassedFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnProtectedPassedFactorEg", .defaultValue = protectedPassedFactorEg_, .minValue = 0, .maxValue = 100 },
@@ -373,7 +372,7 @@ public:
 			passedRank7Mg_ = value;
 		} else if (name == "pawnPassedRank7Eg") {
 			passedRank7Eg_ = value;
-		} else if (name == "pawnProtedctedPassedFactor" || name == "pawnProtectedPassedFactor") {
+		} else if (name == "pawnProtectedPassedFactor") {
 			protectedPassedFactor_ = value;
 		} else if (name == "pawnProtectedPassedFactorMg") {
 			protectedPassedFactorMg_ = value;

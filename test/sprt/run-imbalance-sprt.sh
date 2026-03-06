@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 TESTER_BIN="/home/mangar/bin/qet"
 SETTINGS_TEMPLATE="test/sprt/imbalance-sprt-linux.ini"
 LOG_DIR="test/log/imbalance-sprt"
