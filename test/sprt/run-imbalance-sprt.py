@@ -93,7 +93,7 @@ def load_engine_cmd(settings_file: Path) -> str:
     raise RuntimeError(f"Missing [engine] cmd in settings file: {settings_file}")
 
 
-def run_and_tee(command: list[str], run_log: Path) -> list[str]:
+def run_and_tee(command: list[str], run_log: Path) -> tuple[list[str], int]:
     output_lines: list[str] = []
     with run_log.open("w", encoding="utf-8", newline="") as log_handle:
         process = subprocess.Popen(
@@ -111,10 +111,8 @@ def run_and_tee(command: list[str], run_log: Path) -> list[str]:
             sys.stdout.write(line)
 
         return_code = process.wait()
-        if return_code != 0:
-            raise subprocess.CalledProcessError(return_code, command)
 
-    return output_lines
+    return output_lines, return_code
 
 
 def get_summary_lines(output_lines: list[str]) -> tuple[str, str | None]:
@@ -180,7 +178,7 @@ def main() -> int:
                     f"option.{parameter_name}={test_value}",
                 ]
 
-                output_lines = run_and_tee(command, run_log)
+                output_lines, _ = run_and_tee(command, run_log)
                 sprt_line, decision_line = get_summary_lines(output_lines)
 
                 with collect_file.open("a", encoding="utf-8", newline="") as summary_handle:
