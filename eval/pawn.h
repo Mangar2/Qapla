@@ -41,6 +41,7 @@
 #ifdef PARAM_OPTIMIZE
 #define PARAM_OPTIMIZE_PAWN
 #endif
+#define PARAM_OPTIMIZE_PAWN
 
 using namespace std;
 using namespace QaplaBasics;
@@ -408,19 +409,23 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		static value_t computePassedPawnIndex(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
+			/*
 			value_t result = PASSED_PAWN_INDEX;
 			if (isConnectedPassedPawn(pawnSquare, passedPawns)) {
-				result = CONNECTED_PASSED_PAWN_INDEX;
+				return CONNECTED_PASSED_PAWN_INDEX;
 			}
-			else if (noPieces && isDistantPassedPawn(pawnSquare, position.getPieceBB(PAWN + COLOR),
+			*/
+			if (noPieces && isDistantPassedPawn(pawnSquare, position.getPieceBB(PAWN + COLOR),
 				position.getPieceBB(PAWN + switchColor(COLOR))))
 			{
-				result = DISTANT_PASSED_PAWN_INDEX;
+				return DISTANT_PASSED_PAWN_INDEX;
 			}
-			else if (isProtectedPassedPawn(pawnSquare, position.pawnAttack[COLOR])) {
-				result = PROTECTED_PASSED_PAWN_INDEX;
+			/*
+			if (isProtectedPassedPawn(pawnSquare, position.pawnAttack[COLOR])) {
+				return PROTECTED_PASSED_PAWN_INDEX;
 			}
-			return result;
+			*/
+			return PASSED_PAWN_INDEX;
 		}
 
 		/**
@@ -717,14 +722,6 @@ namespace ChessEval {
 			int32_t passedFactorEg,
 			int32_t passedRank6Mg,
 			int32_t passedRank6Eg,
-			int32_t protectedPassedFactorMg,
-			int32_t protectedPassedFactorEg,
-			int32_t protectedPassedRank6Mg,
-			int32_t protectedPassedRank6Eg,
-			int32_t connectedPassedFactorMg,
-			int32_t connectedPassedFactorEg,
-			int32_t connectedPassedRank6Mg,
-			int32_t connectedPassedRank6Eg,
 			int32_t distantPassedFactorMg,
 			int32_t distantPassedFactorEg,
 			int32_t distantPassedRank6Mg,
