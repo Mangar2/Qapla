@@ -187,14 +187,6 @@ std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 	int32_t passedFactorEg,
 	int32_t passedRank7Mg,
 	int32_t passedRank7Eg,
-	int32_t protectedPassedFactorMg,
-	int32_t protectedPassedFactorEg,
-	int32_t protectedPassedRank7Mg,
-	int32_t protectedPassedRank7Eg,
-	int32_t connectedPassedFactorMg,
-	int32_t connectedPassedFactorEg,
-	int32_t connectedPassedRank7Mg,
-	int32_t connectedPassedRank7Eg,
 	int32_t distantPassedFactorMg,
 	int32_t distantPassedFactorEg,
 	int32_t distantPassedRank7Mg,
@@ -255,16 +247,6 @@ std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 			value += getRankValue(rank, PASSED_VALUES,
 				passedFactorMg, passedFactorEg,
 				passedRank7Mg, passedRank7Eg);
-		}
-		if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) {
-			value += getRankValue(rank, PROTECTED_PASSED_VALUES,
-				protectedPassedFactorMg, protectedPassedFactorEg,
-				protectedPassedRank7Mg, protectedPassedRank7Eg);
-		}
-		if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) {
-			value += getRankValue(rank, CONNECTED_PASSED_VALUES,
-				connectedPassedFactorMg, connectedPassedFactorEg,
-				connectedPassedRank7Mg, connectedPassedRank7Eg);
 		}
 		if (ppIndex == DISTANT_PASSED_PAWN_INDEX) {
 			value += getRankValue(rank, DISTANT_PASSED_VALUES,
@@ -444,14 +426,6 @@ public:
 			passedFactorEg_ * passedFactor_ / 10,
 			passedRank7Mg_ * passedFactor_ / 10,
 			passedRank7Eg_ * passedFactor_ / 10,
-			protectedPassedFactorMg_ * protectedPassedFactor_ / 10,
-			protectedPassedFactorEg_ * protectedPassedFactor_ / 10,
-			protectedPassedRank7Mg_ * protectedPassedFactor_ / 10,
-			protectedPassedRank7Eg_ * protectedPassedFactor_ / 10,
-			connectedPassedFactorMg_ * connectedPassedFactor_ / 10,
-			connectedPassedFactorEg_ * connectedPassedFactor_ / 10,
-			connectedPassedRank7Mg_ * connectedPassedFactor_ / 10,
-			connectedPassedRank7Eg_ * connectedPassedFactor_ / 10,
 			distantPassedFactorMg_ * distantPassedFactor_ / 10,
 			distantPassedFactorEg_ * distantPassedFactor_ / 10,
 			distantPassedRank7Mg_ * distantPassedFactor_ / 10,
