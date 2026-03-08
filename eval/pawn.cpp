@@ -286,16 +286,6 @@ public:
 			{ .name = "pawnPassedFactorEg", .defaultValue = passedFactorEg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnPassedRank7Mg", .defaultValue = passedRank7Mg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnPassedRank7Eg", .defaultValue = passedRank7Eg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnProtectedPassedFactor", .defaultValue = protectedPassedFactor_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnProtectedPassedFactorMg", .defaultValue = protectedPassedFactorMg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnProtectedPassedFactorEg", .defaultValue = protectedPassedFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnProtectedPassedRank7Mg", .defaultValue = protectedPassedRank7Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnProtectedPassedRank7Eg", .defaultValue = protectedPassedRank7Eg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnConnectedPassedFactor", .defaultValue = connectedPassedFactor_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnConnectedPassedFactorMg", .defaultValue = connectedPassedFactorMg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnConnectedPassedFactorEg", .defaultValue = connectedPassedFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnConnectedPassedRank7Mg", .defaultValue = connectedPassedRank7Mg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnConnectedPassedRank7Eg", .defaultValue = connectedPassedRank7Eg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnDistantPassedFactor", .defaultValue = distantPassedFactor_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnDistantPassedFactorMg", .defaultValue = distantPassedFactorMg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnDistantPassedFactorEg", .defaultValue = distantPassedFactorEg_, .minValue = 0, .maxValue = 100 },
@@ -354,26 +344,6 @@ public:
 			passedRank7Mg_ = value;
 		} else if (name == "pawnPassedRank7Eg") {
 			passedRank7Eg_ = value;
-		} else if (name == "pawnProtectedPassedFactor") {
-			protectedPassedFactor_ = value;
-		} else if (name == "pawnProtectedPassedFactorMg") {
-			protectedPassedFactorMg_ = value;
-		} else if (name == "pawnProtectedPassedFactorEg") {
-			protectedPassedFactorEg_ = value;
-		} else if (name == "pawnProtectedPassedRank7Mg") {
-			protectedPassedRank7Mg_ = value;
-		} else if (name == "pawnProtectedPassedRank7Eg") {
-			protectedPassedRank7Eg_ = value;
-		} else if (name == "pawnConnectedPassedFactor") {
-			connectedPassedFactor_ = value;
-		} else if (name == "pawnConnectedPassedFactorMg") {
-			connectedPassedFactorMg_ = value;
-		} else if (name == "pawnConnectedPassedFactorEg") {
-			connectedPassedFactorEg_ = value;
-		} else if (name == "pawnConnectedPassedRank7Mg") {
-			connectedPassedRank7Mg_ = value;
-		} else if (name == "pawnConnectedPassedRank7Eg") {
-			connectedPassedRank7Eg_ = value;
 		} else if (name == "pawnDistantPassedFactor") {
 			distantPassedFactor_ = value;
 		} else if (name == "pawnDistantPassedFactorMg") {
@@ -465,18 +435,6 @@ private:
 	int32_t passedFactor_ = 10;
 	int32_t passedRank7Mg_ = Pawn::PASSED_VALUES[6].midgame();
 	int32_t passedRank7Eg_ = Pawn::PASSED_VALUES[6].endgame();
-
-	int32_t protectedPassedFactorMg_ = 10;
-	int32_t protectedPassedFactorEg_ = 10;
-	int32_t protectedPassedFactor_ = 10;
-	int32_t protectedPassedRank7Mg_ = Pawn::PROTECTED_PASSED_VALUES[6].midgame();
-	int32_t protectedPassedRank7Eg_ = Pawn::PROTECTED_PASSED_VALUES[6].endgame();
-
-	int32_t connectedPassedFactorMg_ = 10;
-	int32_t connectedPassedFactorEg_ = 10;
-	int32_t connectedPassedFactor_ = 10;
-	int32_t connectedPassedRank7Mg_ = Pawn::CONNECTED_PASSED_VALUES[6].midgame();
-	int32_t connectedPassedRank7Eg_ = Pawn::CONNECTED_PASSED_VALUES[6].endgame();
 
 	int32_t distantPassedFactorMg_ = 10;
 	int32_t distantPassedFactorEg_ = 10;

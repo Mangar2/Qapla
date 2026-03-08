@@ -331,8 +331,6 @@ namespace ChessEval {
 			if (weakPawn) { result += "weak"; }
 			if (passedPawnIndex == PASSED_PAWN_INDEX) { result += "pp,"; }
 			if (passedPawnIndex == DISTANT_PASSED_PAWN_INDEX) { result += "dpp,"; }
-			if (passedPawnIndex == PROTECTED_PASSED_PAWN_INDEX) { result += "ppp,"; }
-			if (passedPawnIndex == CONNECTED_PASSED_PAWN_INDEX) { result += "cpp,"; }
 
 			if (!result.empty() && result.back() == ',') result.pop_back();
 			return result;
@@ -409,22 +407,11 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		static value_t computePassedPawnIndex(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
-			/*
-			value_t result = PASSED_PAWN_INDEX;
-			if (isConnectedPassedPawn(pawnSquare, passedPawns)) {
-				return CONNECTED_PASSED_PAWN_INDEX;
-			}
-			*/
 			if (noPieces && isDistantPassedPawn(pawnSquare, position.getPieceBB(PAWN + COLOR),
 				position.getPieceBB(PAWN + switchColor(COLOR))))
 			{
 				return DISTANT_PASSED_PAWN_INDEX;
 			}
-			/*
-			if (isProtectedPassedPawn(pawnSquare, position.pawnAttack[COLOR])) {
-				return PROTECTED_PASSED_PAWN_INDEX;
-			}
-			*/
 			return PASSED_PAWN_INDEX;
 		}
 
@@ -652,13 +639,11 @@ namespace ChessEval {
 		static const uint32_t DOUBLE_CONNECT_INDEX			= 0x20;
 		static const uint32_t PASSED_PAWN_INDEX				= 0x40;
 		static const uint32_t DISTANT_PASSED_PAWN_INDEX		= 0x80;
-		static const uint32_t PROTECTED_PASSED_PAWN_INDEX	= 0xC0;
-		static const uint32_t CONNECTED_PASSED_PAWN_INDEX	= 0x100;
-		static const uint32_t PASSED_PAWN_MASK				= 0x1C0;
-		static const uint32_t ISOLATED_PAWN_INDEX			= 0x200;
-		static const uint32_t UNOPPOSED_PAWN_INDEX			= 0x400;
+		static const uint32_t PASSED_PAWN_MASK				= PASSED_PAWN_INDEX | DISTANT_PASSED_PAWN_INDEX;
+		static const uint32_t ISOLATED_PAWN_INDEX			= 0x0C0;
+		static const uint32_t UNOPPOSED_PAWN_INDEX			= 0x100;
 		static const uint32_t NON_WEAK_PAWN_MASK = SINGLE_CONNECT_INDEX | DOUBLE_CONNECT_INDEX | PASSED_PAWN_MASK;
-		static const uint32_t INDEX_SIZE					= 0x800;
+		static const uint32_t INDEX_SIZE					= UNOPPOSED_PAWN_INDEX * 2;
 
 		using RankEvalArray_t = array<EvalValue, uint32_t(Rank::COUNT)>;
 
@@ -668,8 +653,6 @@ namespace ChessEval {
 		static constexpr RankEvalArray_t SINGLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {6, 3}, {10, 10}, {16, 20}, {25, 40}, {30, 50}, {0, 0} } };
 		static constexpr RankEvalArray_t DOUBLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } };
 		static constexpr RankEvalArray_t PASSED_VALUES = { { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {80, 80}, {0, 0} } };
-		static constexpr RankEvalArray_t PROTECTED_PASSED_VALUES = { { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {100, 100}, {0, 0} } };
-		static constexpr RankEvalArray_t CONNECTED_PASSED_VALUES = { { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {120, 120}, {0, 0} } };
 		static constexpr RankEvalArray_t DISTANT_PASSED_VALUES = { { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } };
 
 		static constexpr array<EvalValue, INDEX_SIZE> evalValueMapDefault = [] {
@@ -693,10 +676,6 @@ namespace ChessEval {
 				if (weakPawn) { value += WEAK_PAWN_VALUE; }
 				if (ppIndex == PASSED_PAWN_INDEX)           
 					value += PASSED_VALUES[rank];
-				if (ppIndex == PROTECTED_PASSED_PAWN_INDEX) 
-					value += PROTECTED_PASSED_VALUES[rank];
-				if (ppIndex == CONNECTED_PASSED_PAWN_INDEX) 
-					value += CONNECTED_PASSED_VALUES[rank];
 				if (ppIndex == DISTANT_PASSED_PAWN_INDEX)   
 					value += DISTANT_PASSED_VALUES[rank];
 
