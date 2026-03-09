@@ -577,7 +577,7 @@ namespace ChessEval {
 		static const uint32_t PP_NOT_BLOCKED_INDEX			= 0x40;
 		static const uint32_t PP_INDEX_SIZE					= 0x100;
 
-		static const int64_t RANK_MULTIPLIER = 20;
+		static const int64_t THREAT_RANK_MULTIPLIER = 22;
 		static const int64_t ATTACK_MULTIPLIER = 5;
 		static const int64_t SUPPORT_MULTIPLIER = 30;
 		static const int64_t NOT_BLOCKED_MULTIPLIER = 20;
@@ -591,7 +591,7 @@ namespace ChessEval {
 				}
 				int64_t result = 10;
 				for (auto rankIndex = 4; rankIndex <= rank; ++rankIndex) {
-					result *= RANK_MULTIPLIER;
+					result *= THREAT_RANK_MULTIPLIER;
 					result /= 10;
 				}
 				return result;
@@ -652,7 +652,7 @@ namespace ChessEval {
 		static constexpr EvalValue WEAK_PAWN_VALUE { -10, 0 };
 		static constexpr RankEvalArray_t SINGLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {6, 3}, {10, 10}, {16, 20}, {25, 40}, {30, 50}, {0, 0} } };
 		static constexpr RankEvalArray_t DOUBLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } };
-		static constexpr RankEvalArray_t PASSED_VALUES = { { { 0, 0 }, {10, 10}, {10, 10}, {20, 30}, {40, 40}, {50, 50}, {80, 80}, {0, 0} } };
+		static constexpr RankEvalArray_t PASSED_VALUES = { { { 0, 0 }, {9, 10}, {9, 10}, {18, 30}, {36, 40}, {45, 50}, {80, 88}, {0, 0} } };
 		static constexpr RankEvalArray_t DISTANT_PASSED_VALUES = { { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } };
 
 		static constexpr array<EvalValue, INDEX_SIZE> evalValueMapDefault = [] {
