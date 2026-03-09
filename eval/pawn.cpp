@@ -412,7 +412,7 @@ public:
 	}
 
 private:
-	int64_t rankMultiplier_ = Pawn::RANK_MULTIPLIER;
+	int64_t rankMultiplier_ = Pawn::THREAT_RANK_MULTIPLIER;
 	int64_t attackMultiplier_ = Pawn::ATTACK_MULTIPLIER;
 	int64_t supportMultiplier_ = Pawn::SUPPORT_MULTIPLIER;
 	int64_t notBlockedMultiplier_ = Pawn::NOT_BLOCKED_MULTIPLIER;
