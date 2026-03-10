@@ -191,12 +191,12 @@ std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 	int32_t distantPassedFactorEg,
 	int32_t distantPassedRank7Mg,
 	int32_t distantPassedRank7Eg,
-	int32_t doublePawnFactorMg,
-	int32_t doublePawnFactorEg,
-	int32_t isolatedPawnFactorMg,
-	int32_t isolatedPawnFactorEg,
-	int32_t weakPawnFactorMg,
-	int32_t weakPawnFactorEg)
+	int32_t doublePawnValueMg,
+	int32_t doublePawnValueEg,
+	int32_t isolatedPawnValueMg,
+	int32_t isolatedPawnValueEg,
+	int32_t weakPawnValueMg,
+	int32_t weakPawnValueEg)
 {
 	auto applyFactor = [](EvalValue base, int32_t factorMg, int32_t factorEg) -> EvalValue {
 		return EvalValue(base.midgame() * factorMg / 10, base.endgame() * factorEg / 10);
@@ -214,9 +214,9 @@ std::array<EvalValue, Pawn::INDEX_SIZE> Pawn::generateEvalValueMap(
 		return applyFactor(values[uint32_t(rank)], factorMg, factorEg);
 	};
 
-	const EvalValue doublePawnValue = applyFactor(DOUBLE_PAWN_VALUE, doublePawnFactorMg, doublePawnFactorEg);
-	const EvalValue isolatedPawnValue = applyFactor(ISOLATED_PAWN_VALUE, isolatedPawnFactorMg, isolatedPawnFactorEg);
-	const EvalValue weakPawnValue = applyFactor(WEAK_PAWN_VALUE, weakPawnFactorMg, weakPawnFactorEg);
+	const EvalValue doublePawnValue = EvalValue(doublePawnValueMg, doublePawnValueEg);
+	const EvalValue isolatedPawnValue = EvalValue(isolatedPawnValueMg, isolatedPawnValueEg);
+	const EvalValue weakPawnValue = EvalValue(weakPawnValueMg, weakPawnValueEg);
 
 	std::array<EvalValue, INDEX_SIZE> map;
 	for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
@@ -291,15 +291,12 @@ public:
 			{ .name = "pawnDistantPassedFactorEg", .defaultValue = distantPassedFactorEg_, .minValue = 0, .maxValue = 100 },
 			{ .name = "pawnDistantPassedRank7Mg", .defaultValue = distantPassedRank7Mg_, .minValue = 0, .maxValue = 1000 },
 			{ .name = "pawnDistantPassedRank7Eg", .defaultValue = distantPassedRank7Eg_, .minValue = 0, .maxValue = 1000 },
-			{ .name = "pawnDoublePawnFactor", .defaultValue = doublePawnFactor_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnDoublePawnFactorMg", .defaultValue = doublePawnFactorMg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnDoublePawnFactorEg", .defaultValue = doublePawnFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnIsolatedPawnFactor", .defaultValue = isolatedPawnFactor_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnIsolatedPawnFactorMg", .defaultValue = isolatedPawnFactorMg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnIsolatedPawnFactorEg", .defaultValue = isolatedPawnFactorEg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnWeakPawnFactor", .defaultValue = weakPawnFactor_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnWeakPawnFactorMg", .defaultValue = weakPawnFactorMg_, .minValue = 0, .maxValue = 100 },
-			{ .name = "pawnWeakPawnFactorEg", .defaultValue = weakPawnFactorEg_, .minValue = 0, .maxValue = 100 }
+			{ .name = "pawnDoublePawnValueMg", .defaultValue = doublePawnValueMg_, .minValue = -100, .maxValue = 100 },
+			{ .name = "pawnDoublePawnValueEg", .defaultValue = doublePawnValueEg_, .minValue = -100, .maxValue = 100 },
+			{ .name = "pawnIsolatedPawnValueMg", .defaultValue = isolatedPawnValueMg_, .minValue = -100, .maxValue = 100 },
+			{ .name = "pawnIsolatedPawnValueEg", .defaultValue = isolatedPawnValueEg_, .minValue = -100, .maxValue = 100 },
+			{ .name = "pawnWeakPawnValueMg", .defaultValue = weakPawnValueMg_, .minValue = -100, .maxValue = 100 },
+			{ .name = "pawnWeakPawnValueEg", .defaultValue = weakPawnValueEg_, .minValue = -100, .maxValue = 100 }
 		};
 	}
 
@@ -354,24 +351,18 @@ public:
 			distantPassedRank7Mg_ = value;
 		} else if (name == "pawnDistantPassedRank7Eg") {
 			distantPassedRank7Eg_ = value;
-		} else if (name == "pawnDoublePawnFactor") {
-			doublePawnFactor_ = value;
-		} else if (name == "pawnDoublePawnFactorMg") {
-			doublePawnFactorMg_ = value;
-		} else if (name == "pawnDoublePawnFactorEg") {
-			doublePawnFactorEg_ = value;
-		} else if (name == "pawnIsolatedPawnFactor") {
-			isolatedPawnFactor_ = value;
-		} else if (name == "pawnIsolatedPawnFactorMg") {
-			isolatedPawnFactorMg_ = value;
-		} else if (name == "pawnIsolatedPawnFactorEg") {
-			isolatedPawnFactorEg_ = value;
-		} else if (name == "pawnWeakPawnFactor") {
-			weakPawnFactor_ = value;
-		} else if (name == "pawnWeakPawnFactorMg") {
-			weakPawnFactorMg_ = value;
-		} else if (name == "pawnWeakPawnFactorEg") {
-			weakPawnFactorEg_ = value;
+		} else if (name == "pawnDoublePawnValueMg") {
+			doublePawnValueMg_ = value;
+		} else if (name == "pawnDoublePawnValueEg") {
+			doublePawnValueEg_ = value;
+		} else if (name == "pawnIsolatedPawnValueMg") {
+			isolatedPawnValueMg_ = value;
+		} else if (name == "pawnIsolatedPawnValueEg") {
+			isolatedPawnValueEg_ = value;
+		} else if (name == "pawnWeakPawnValueMg") {
+			weakPawnValueMg_ = value;
+		} else if (name == "pawnWeakPawnValueEg") {
+			weakPawnValueEg_ = value;
 		} else {
 			return false;
 		}
@@ -400,12 +391,12 @@ public:
 			distantPassedFactorEg_ * distantPassedFactor_ / 10,
 			distantPassedRank7Mg_ * distantPassedFactor_ / 10,
 			distantPassedRank7Eg_ * distantPassedFactor_ / 10,
-			doublePawnFactorMg_ * doublePawnFactor_ / 10,
-			doublePawnFactorEg_ * doublePawnFactor_ / 10,
-			isolatedPawnFactorMg_ * isolatedPawnFactor_ / 10,
-			isolatedPawnFactorEg_ * isolatedPawnFactor_ / 10,
-			weakPawnFactorMg_ * weakPawnFactor_ / 10,
-			weakPawnFactorEg_ * weakPawnFactor_ / 10);
+			doublePawnValueMg_,
+			doublePawnValueEg_,
+			isolatedPawnValueMg_,
+			isolatedPawnValueEg_,
+			weakPawnValueMg_,
+			weakPawnValueEg_);
 
 		// dumpPawnParameterMaps(name, value, Pawn::ppThreatMap, Pawn::evalValueMap);
 		return true;
@@ -442,15 +433,12 @@ private:
 	int32_t distantPassedRank7Mg_ = Pawn::DISTANT_PASSED_VALUES[6].midgame();
 	int32_t distantPassedRank7Eg_ = Pawn::DISTANT_PASSED_VALUES[6].endgame();
 
-	int32_t doublePawnFactorMg_ = 10;
-	int32_t doublePawnFactorEg_ = 10;
-	int32_t doublePawnFactor_ = 10;
-	int32_t isolatedPawnFactorMg_ = 10;
-	int32_t isolatedPawnFactorEg_ = 10;
-	int32_t isolatedPawnFactor_ = 10;
-	int32_t weakPawnFactorMg_ = 10;
-	int32_t weakPawnFactorEg_ = 10;
-	int32_t weakPawnFactor_ = 10;
+	int32_t doublePawnValueMg_ = Pawn::DOUBLE_PAWN_VALUE.midgame();
+	int32_t doublePawnValueEg_ = Pawn::DOUBLE_PAWN_VALUE.endgame();
+	int32_t isolatedPawnValueMg_ = Pawn::ISOLATED_PAWN_VALUE.midgame();
+	int32_t isolatedPawnValueEg_ = Pawn::ISOLATED_PAWN_VALUE.endgame();
+	int32_t weakPawnValueMg_ = Pawn::WEAK_PAWN_VALUE.midgame();
+	int32_t weakPawnValueEg_ = Pawn::WEAK_PAWN_VALUE.endgame();
 };
 
 #endif
