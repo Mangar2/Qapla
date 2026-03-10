@@ -705,12 +705,12 @@ namespace ChessEval {
 			int32_t distantPassedFactorEg,
 			int32_t distantPassedRank6Mg,
 			int32_t distantPassedRank6Eg,
-			int32_t doublePawnFactorMg,
-			int32_t doublePawnFactorEg,
-			int32_t isolatedPawnFactorMg,
-			int32_t isolatedPawnFactorEg,
-			int32_t weakPawnFactorMg,
-			int32_t weakPawnFactorEg);
+			int32_t doublePawnValueMg,
+			int32_t doublePawnValueEg,
+			int32_t isolatedPawnValueMg,
+			int32_t isolatedPawnValueEg,
+			int32_t weakPawnValueMg,
+			int32_t weakPawnValueEg);
 #endif
 
 		// Test position: 3r1r2/p1Pqn1bk/pPn1PPpp/2p5/3p2P1/p2P1NNQ/1pPB3P/1R3R1K w - - 0 1
