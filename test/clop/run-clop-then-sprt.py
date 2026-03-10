@@ -120,7 +120,7 @@ def parse_order_file(order_file: Path) -> list[OptionSpec]:
 
 
 def compute_clop_bounds(option: OptionSpec) -> tuple[int, int]:
-    delta = abs(option.default) * 0.5
+    delta = max(abs(option.default) * 0.5, 10.0)
 
     raw_min = option.default - delta
     raw_max = option.default + delta
