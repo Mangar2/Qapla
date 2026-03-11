@@ -52,14 +52,17 @@ namespace ChessEval {
 		}
 
 		inline void addPiece(Piece piece, const PieceSignature& pieceSignature) {
+			return;
 			updateByDelta<true>(piece, pieceSignature);
 		}
 
 		inline void removePiece(Piece piece, const PieceSignature& pieceSignature) {
+			return;
 			updateByDelta<false>(piece, pieceSignature);
 		}
 
 		inline value_t getValue() const {
+			return 0;;
 			return _imbalance / 16;
 			//return 0;
 		}
