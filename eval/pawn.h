@@ -647,9 +647,16 @@ namespace ChessEval {
 
 		using RankEvalArray_t = array<EvalValue, uint32_t(Rank::COUNT)>;
 
+		/*
+		// Version 020-023 Parameters
 		static constexpr EvalValue DOUBLE_PAWN_VALUE { -10, -30 };
 		static constexpr EvalValue ISOLATED_PAWN_VALUE { -15, -15 };
 		static constexpr EvalValue WEAK_PAWN_VALUE { -10, 0 };
+		*/
+		static constexpr EvalValue DOUBLE_PAWN_VALUE { -12, -24 };
+		static constexpr EvalValue ISOLATED_PAWN_VALUE { -12, -10 };
+		static constexpr EvalValue WEAK_PAWN_VALUE { -10, -1 };
+		
 		static constexpr RankEvalArray_t SINGLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {6, 3}, {10, 10}, {16, 20}, {25, 40}, {30, 50}, {0, 0} } };
 		static constexpr RankEvalArray_t DOUBLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } };
 		static constexpr RankEvalArray_t PASSED_VALUES = { { { 0, 0 }, {9, 10}, {9, 10}, {18, 30}, {36, 40}, {45, 50}, {80, 88}, {0, 0} } };
