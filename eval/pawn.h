@@ -268,7 +268,7 @@ namespace ChessEval {
 			const bitBoard_t doubleBB = pawns & moveRay[COLOR];
 			const auto [singleConnect, doubleConnect] = computeConnectedPawnIndex<COLOR>(position);
 			const bitBoard_t passedPawnBB = computePassedPawnBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
-			// const bitBoard_t passedPawnCandidateBB = computePassedPawnCandidateBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
+			const bitBoard_t passedPawnCandidateBB = computePassedPawnCandidateBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
 			const bitBoard_t isolatedPawnBB = computeIsolatedPawnBB<COLOR>(moveRay[COLOR]);
 			const bitBoard_t unopposedPawnBB = pawns & ~moveRay[opponentColor<COLOR>()];
 			results.passedPawns[COLOR] = passedPawnBB;
@@ -285,12 +285,7 @@ namespace ChessEval {
 					| ((pawnBB & isolatedPawnBB) != 0) * ISOLATED_PAWN_INDEX
 					| ((pawnBB & unopposedPawnBB) != 0) * UNOPPOSED_PAWN_INDEX;
 
-				if (passedPawnBB & pawnBB) {
-					propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB);
-				}
-				// else if (passedPawnCandidateBB & pawnBB) {
-					//propertyIndex |= PASSED_PAWN_INDEX;
-				//}
+				propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB, passedPawnCandidateBB);
 
 				EvalValue propertyValue = evalValueMap[propertyIndex];
 								
@@ -331,6 +326,7 @@ namespace ChessEval {
 			if (weakPawn) { result += "weak"; }
 			if (passedPawnIndex == PASSED_PAWN_INDEX) { result += "pp,"; }
 			if (passedPawnIndex == DISTANT_PASSED_PAWN_INDEX) { result += "dpp,"; }
+			if (passedPawnIndex == CANDIDATE_PASSED_PAWN_INDEX) { result += "cpp,"; }
 
 			if (!result.empty() && result.back() == ',') result.pop_back();
 			return result;
@@ -406,13 +402,25 @@ namespace ChessEval {
 		 * Computes the value for passed pawn
 		 */
 		template <Piece COLOR>
-		static value_t computePassedPawnIndex(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
-			if (noPieces && isDistantPassedPawn(pawnSquare, position.getPieceBB(PAWN + COLOR),
-				position.getPieceBB(PAWN + switchColor(COLOR))))
-			{
-				return DISTANT_PASSED_PAWN_INDEX;
+		static value_t computePassedPawnIndex(
+			Square pawnSquare,
+			const MoveGenerator& position,
+			bitBoard_t passedPawns,
+			bitBoard_t passedPawnCandidates,
+			bool noPieces = false) 
+		{
+			if ((passedPawns & squareToBB(pawnSquare)) != 0) {
+				if (noPieces && isDistantPassedPawn(pawnSquare, position.getPieceBB(PAWN + COLOR),
+					position.getPieceBB(PAWN + switchColor(COLOR))))
+				{
+					return DISTANT_PASSED_PAWN_INDEX;
+				}
+				return PASSED_PAWN_INDEX;
 			}
-			return PASSED_PAWN_INDEX;
+			if ((passedPawnCandidates & squareToBB(pawnSquare)) != 0) {
+				return CANDIDATE_PASSED_PAWN_INDEX;
+			}
+			return 0;
 		}
 
 		/**
@@ -421,7 +429,7 @@ namespace ChessEval {
 		template <Piece COLOR>
 		static EvalValue computePassedPawnValue(Square pawnSquare, const MoveGenerator& position, bitBoard_t passedPawns, bool noPieces = false) {
 			uint32_t rank = uint32_t(getRank<COLOR>(pawnSquare));
-			uint32_t index = computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawns, noPieces) + rank;
+			uint32_t index = computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawns, 0, noPieces) + rank;
 			return evalValueMap[index];
 		}
 
@@ -638,9 +646,12 @@ namespace ChessEval {
 		static const uint32_t DOUBLE_PAWN_INDEX				= 1 << 3;
 		static const uint32_t SINGLE_CONNECT_INDEX			= 1 << 4;
 		static const uint32_t DOUBLE_CONNECT_INDEX			= 1 << 5;
+
 		static const uint32_t PASSED_PAWN_INDEX				= 1 << 6;
-		static const uint32_t DISTANT_PASSED_PAWN_INDEX		= 1 << 7;
-		static const uint32_t PASSED_PAWN_MASK				= PASSED_PAWN_INDEX | DISTANT_PASSED_PAWN_INDEX;
+		static const uint32_t DISTANT_PASSED_PAWN_INDEX		= 2 << 6;
+		static const uint32_t CANDIDATE_PASSED_PAWN_INDEX	= 3 << 6;
+		static const uint32_t PASSED_PAWN_MASK				= 3 << 6;
+
 		static const uint32_t ISOLATED_PAWN_INDEX			= 1 << 8;
 		static const uint32_t UNOPPOSED_PAWN_INDEX			= 1 << 9;
 		static const uint32_t NON_WEAK_PAWN_MASK = SINGLE_CONNECT_INDEX | DOUBLE_CONNECT_INDEX | PASSED_PAWN_MASK;
@@ -662,6 +673,7 @@ namespace ChessEval {
 		static constexpr RankEvalArray_t DOUBLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } };
 		static constexpr RankEvalArray_t PASSED_VALUES = { { { 0, 0 }, {9, 10}, {9, 10}, {18, 30}, {36, 40}, {45, 50}, {80, 88}, {0, 0} } };
 		static constexpr RankEvalArray_t DISTANT_PASSED_VALUES = { { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } };
+		static constexpr RankEvalArray_t CANDIDATE_PASSED_VALUES = { { { 0, 0 }, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0} } };
 
 		static constexpr array<EvalValue, INDEX_SIZE> evalValueMapDefault = [] {
 
@@ -673,19 +685,34 @@ namespace ChessEval {
 					map[bitmask] = value;
 					continue;
 				}
-				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
 				const bool weakPawn = ((bitmask & NON_WEAK_PAWN_MASK) == 0) && ((bitmask & UNOPPOSED_PAWN_INDEX) != 0);
-				if (bitmask & DOUBLE_PAWN_INDEX) { value += DOUBLE_PAWN_VALUE; }
-				if (bitmask & SINGLE_CONNECT_INDEX)
+				
+				if (bitmask & DOUBLE_PAWN_INDEX) { 
+					value += DOUBLE_PAWN_VALUE; 
+				}
+				if (bitmask & SINGLE_CONNECT_INDEX) {
 					value += SINGLE_CONNECT_VALUES[rank];
-				if (bitmask & DOUBLE_CONNECT_INDEX)         
+				}
+				if (bitmask & DOUBLE_CONNECT_INDEX) {
 					value += DOUBLE_CONNECT_VALUES[rank];
-				if (bitmask & ISOLATED_PAWN_INDEX) { value += ISOLATED_PAWN_VALUE; }
-				if (weakPawn) { value += WEAK_PAWN_VALUE; }
-				if (ppIndex == PASSED_PAWN_INDEX)           
+				}
+				if (bitmask & ISOLATED_PAWN_INDEX) { 
+					value += ISOLATED_PAWN_VALUE; 
+				}
+				if (weakPawn) { 
+					value += WEAK_PAWN_VALUE; 
+				}
+
+				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
+				if (ppIndex == PASSED_PAWN_INDEX) {          
 					value += PASSED_VALUES[rank];
-				if (ppIndex == DISTANT_PASSED_PAWN_INDEX)   
+				}
+				if (ppIndex == DISTANT_PASSED_PAWN_INDEX) {  
 					value += DISTANT_PASSED_VALUES[rank];
+				}
+				if (ppIndex == CANDIDATE_PASSED_PAWN_INDEX) {
+					value += CANDIDATE_PASSED_VALUES[rank];
+				}
 
 				map[bitmask] = value;
 			}
@@ -713,6 +740,10 @@ namespace ChessEval {
 			int32_t distantPassedFactorEg,
 			int32_t distantPassedRank6Mg,
 			int32_t distantPassedRank6Eg,
+			int32_t candidatePassedFactorMg,
+			int32_t candidatePassedFactorEg,
+			int32_t candidatePassedRank6Mg,
+			int32_t candidatePassedRank6Eg,
 			int32_t doublePawnValueMg,
 			int32_t doublePawnValueEg,
 			int32_t isolatedPawnValueMg,
