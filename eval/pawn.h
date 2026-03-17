@@ -634,14 +634,15 @@ namespace ChessEval {
 			int64_t advanceMultiplier);
 #endif
 
-		static const uint32_t DOUBLE_PAWN_INDEX				= 0x08;
-		static const uint32_t SINGLE_CONNECT_INDEX			= 0x10;
-		static const uint32_t DOUBLE_CONNECT_INDEX			= 0x20;
-		static const uint32_t PASSED_PAWN_INDEX				= 0x40;
-		static const uint32_t DISTANT_PASSED_PAWN_INDEX		= 0x80;
+		// static const uint32_t RANK_MASK = 0x07;
+		static const uint32_t DOUBLE_PAWN_INDEX				= 1 << 3;
+		static const uint32_t SINGLE_CONNECT_INDEX			= 1 << 4;
+		static const uint32_t DOUBLE_CONNECT_INDEX			= 1 << 5;
+		static const uint32_t PASSED_PAWN_INDEX				= 1 << 6;
+		static const uint32_t DISTANT_PASSED_PAWN_INDEX		= 1 << 7;
 		static const uint32_t PASSED_PAWN_MASK				= PASSED_PAWN_INDEX | DISTANT_PASSED_PAWN_INDEX;
-		static const uint32_t ISOLATED_PAWN_INDEX			= 0x0C0;
-		static const uint32_t UNOPPOSED_PAWN_INDEX			= 0x100;
+		static const uint32_t ISOLATED_PAWN_INDEX			= 1 << 8;
+		static const uint32_t UNOPPOSED_PAWN_INDEX			= 1 << 9;
 		static const uint32_t NON_WEAK_PAWN_MASK = SINGLE_CONNECT_INDEX | DOUBLE_CONNECT_INDEX | PASSED_PAWN_MASK;
 		static const uint32_t INDEX_SIZE					= UNOPPOSED_PAWN_INDEX * 2;
 
