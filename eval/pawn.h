@@ -685,7 +685,6 @@ namespace ChessEval {
 					map[bitmask] = value;
 					continue;
 				}
-				const bool weakPawn = ((bitmask & NON_WEAK_PAWN_MASK) == 0) && ((bitmask & UNOPPOSED_PAWN_INDEX) != 0);
 				
 				if (bitmask & DOUBLE_PAWN_INDEX) { 
 					value += DOUBLE_PAWN_VALUE; 
@@ -699,9 +698,6 @@ namespace ChessEval {
 				if (bitmask & ISOLATED_PAWN_INDEX) { 
 					value += ISOLATED_PAWN_VALUE; 
 				}
-				if (weakPawn) { 
-					value += WEAK_PAWN_VALUE; 
-				}
 
 				const auto ppIndex = bitmask & PASSED_PAWN_MASK;
 				if (ppIndex == PASSED_PAWN_INDEX) {          
@@ -712,6 +708,11 @@ namespace ChessEval {
 				}
 				if (ppIndex == CANDIDATE_PASSED_PAWN_INDEX) {
 					value += CANDIDATE_PASSED_VALUES[rank];
+				}
+
+				const bool weakPawn = ((bitmask & NON_WEAK_PAWN_MASK) == 0) && ((bitmask & UNOPPOSED_PAWN_INDEX) != 0);
+				if (weakPawn) { 
+					value += WEAK_PAWN_VALUE; 
 				}
 
 				map[bitmask] = value;
