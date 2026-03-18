@@ -41,7 +41,6 @@
 #ifdef PARAM_OPTIMIZE
 #define PARAM_OPTIMIZE_PAWN
 #endif
-#define PARAM_OPTIMIZE_PAWN
 
 using namespace std;
 using namespace QaplaBasics;
