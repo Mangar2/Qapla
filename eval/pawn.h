@@ -654,7 +654,7 @@ namespace ChessEval {
 
 		static const uint32_t ISOLATED_PAWN_INDEX			= 1 << 8;
 		static const uint32_t UNOPPOSED_PAWN_INDEX			= 1 << 9;
-		static const uint32_t NON_WEAK_PAWN_MASK = SINGLE_CONNECT_INDEX | DOUBLE_CONNECT_INDEX | PASSED_PAWN_MASK;
+		static const uint32_t NON_WEAK_PAWN_MASK = SINGLE_CONNECT_INDEX | DOUBLE_CONNECT_INDEX;
 		static const uint32_t INDEX_SIZE					= UNOPPOSED_PAWN_INDEX * 2;
 
 		using RankEvalArray_t = array<EvalValue, uint32_t(Rank::COUNT)>;
