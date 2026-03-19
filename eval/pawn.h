@@ -267,7 +267,7 @@ namespace ChessEval {
 			const bitBoard_t doubleBB = pawns & moveRay[COLOR];
 			const auto [singleConnect, doubleConnect] = computeConnectedPawnIndex<COLOR>(position);
 			const bitBoard_t passedPawnBB = computePassedPawnBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
-			const bitBoard_t passedPawnCandidateBB = computePassedPawnCandidateBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
+			//const bitBoard_t passedPawnCandidateBB = computePassedPawnCandidateBB<COLOR>(position, moveRay[opponentColor<COLOR>()]);
 			const bitBoard_t isolatedPawnBB = computeIsolatedPawnBB<COLOR>(moveRay[COLOR]);
 			const bitBoard_t unopposedPawnBB = pawns & ~moveRay[opponentColor<COLOR>()];
 			results.passedPawns[COLOR] = passedPawnBB;
@@ -284,7 +284,7 @@ namespace ChessEval {
 					| ((pawnBB & isolatedPawnBB) != 0) * ISOLATED_PAWN_INDEX
 					| ((pawnBB & unopposedPawnBB) != 0) * UNOPPOSED_PAWN_INDEX;
 
-				propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB, passedPawnCandidateBB);
+				propertyIndex |= computePassedPawnIndex<COLOR>(pawnSquare, position, passedPawnBB, /*passedPawnCandidateBB*/ 0);
 
 				EvalValue propertyValue = evalValueMap[propertyIndex];
 								
