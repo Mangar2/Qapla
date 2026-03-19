@@ -202,12 +202,14 @@ namespace ChessEval {
 		static constexpr uint32_t INDEX_SIZE = 0x40;
 
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> ATTACK_WEIGHT_DEFAULT =
-		/*
+		
 		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
 		  -530, -560, -590, -620, -650, -680, -710 };
-		*/
+		
+		/*
 		{ 0, 0, -3, -7, -13, -20, -29, -41, -54, -69, -86, -105, -125, -147, -171, -195, -221, -247, -273, -300, -327, 
 			-354, -380, -406, -432, -456, -480, -504, -526, -547, -568, -587, -605 };
+		*/
 
 #ifndef PARAM_OPTIMIZE_KING_ATTACK
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = ATTACK_WEIGHT_DEFAULT;
