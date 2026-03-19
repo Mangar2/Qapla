@@ -672,7 +672,7 @@ namespace ChessEval {
 		static constexpr RankEvalArray_t DOUBLE_CONNECT_VALUES = { { { 0, 0 }, {5, 0}, {8, 4}, {12, 12}, {20, 25}, {30, 45}, {30, 55}, {0, 0} } };
 		static constexpr RankEvalArray_t PASSED_VALUES = { { { 0, 0 }, {9, 10}, {9, 10}, {18, 30}, {36, 40}, {45, 50}, {80, 88}, {0, 0} } };
 		static constexpr RankEvalArray_t DISTANT_PASSED_VALUES = { { { 0, 0 }, {25, 25}, {50, 50}, {60, 60}, {80, 80}, {100, 100}, {150, 150}, {0, 0} } };
-		static constexpr RankEvalArray_t CANDIDATE_PASSED_VALUES = { { { 0, 0 }, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0} } };
+		static constexpr RankEvalArray_t CANDIDATE_PASSED_VALUES = { { { 0, 0 }, {5, 5}, {5, 5}, {10, 10}, {20, 20}, {25, 25}, {40, 40}, {0, 0} } };
 
 		static constexpr array<EvalValue, INDEX_SIZE> evalValueMapDefault = [] {
 
