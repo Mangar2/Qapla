@@ -18,12 +18,16 @@ DEFAULT_QET_EXE = Path(r"C:\development\bin\qet.exe")
 class OptionSpec:
     name: str
     default: int
-    engine_min: int
-    engine_max: int
+    engine_min: int | None
+    engine_max: int | None
+    clop_min: int | None
+    clop_max: int | None
 
 
 OPTION_LINE_RE = re.compile(
-    r"^\s*option\s+name\s+(?P<name>.+?)\s+type\s+spin\s+default\s+(?P<default>-?\d+)\s+min\s+(?P<min>-?\d+)\s+max\s+(?P<max>-?\d+)\s*$",
+    r"^\s*option\s+name\s+(?P<name>.+?)\s+type\s+spin\s+default\s+(?P<default>-?\d+)"
+    r"(?:\s+min\s+(?P<min>-?\d+)\s+max\s+(?P<max>-?\d+))?"
+    r"\s*$",
     re.IGNORECASE,
 )
 
@@ -79,18 +83,26 @@ def parse_order_file(order_file: Path) -> list[OptionSpec]:
 
         name = match.group("name").strip()
         default = int(match.group("default"))
-        engine_min = int(match.group("min"))
-        engine_max = int(match.group("max"))
+        min_text = match.group("min")
+        max_text = match.group("max")
+        engine_min = int(min_text) if min_text is not None else None
+        engine_max = int(max_text) if max_text is not None else None
 
-        if engine_min > engine_max:
+        if (engine_min is None) != (engine_max is None):
             raise RuntimeError(
-                f"Ungültige Grenzen für Option '{name}' in Zeile {line_no}: min > max"
+                f"Ungültige Grenzen für Option '{name}' in Zeile {line_no}: min/max müssen beide gesetzt sein"
             )
 
-        if default < engine_min or default > engine_max:
-            raise RuntimeError(
-                f"Default außerhalb Engine-Grenzen für Option '{name}' in Zeile {line_no}"
-            )
+        if engine_min is not None and engine_max is not None:
+            if engine_min > engine_max:
+                raise RuntimeError(
+                    f"Ungültige Grenzen für Option '{name}' in Zeile {line_no}: min > max"
+                )
+
+            if default < engine_min or default > engine_max:
+                raise RuntimeError(
+                    f"Default außerhalb Engine-Grenzen für Option '{name}' in Zeile {line_no}"
+                )
 
         options.append(
             OptionSpec(
@@ -98,6 +110,8 @@ def parse_order_file(order_file: Path) -> list[OptionSpec]:
                 default=default,
                 engine_min=engine_min,
                 engine_max=engine_max,
+                clop_min=engine_min,
+                clop_max=engine_max,
             )
         )
 
@@ -120,6 +134,19 @@ def parse_order_file(order_file: Path) -> list[OptionSpec]:
 
 
 def compute_clop_bounds(option: OptionSpec) -> tuple[int, int]:
+    if option.clop_min is not None and option.clop_max is not None:
+        clop_min = option.clop_min
+        clop_max = option.clop_max
+        if clop_min > clop_max:
+            raise RuntimeError(
+                f"Ungültige CLOP-Grenzen für Option '{option.name}': min > max"
+            )
+        if clop_min == clop_max:
+            raise RuntimeError(
+                f"Option '{option.name}' hat keinen optimierbaren Bereich ({clop_min})"
+            )
+        return clop_min, clop_max
+
     delta = max(abs(option.default) * 0.5, 10.0)
 
     raw_min = option.default - delta
@@ -128,13 +155,15 @@ def compute_clop_bounds(option: OptionSpec) -> tuple[int, int]:
     clop_min = math.floor(raw_min)
     clop_max = math.ceil(raw_max)
 
-    clop_min = max(clop_min, option.engine_min)
-    clop_max = min(clop_max, option.engine_max)
+    if option.engine_min is not None:
+        clop_min = max(clop_min, option.engine_min)
+    if option.engine_max is not None:
+        clop_max = min(clop_max, option.engine_max)
 
     if clop_min == clop_max:
-        if clop_min > option.engine_min:
+        if option.engine_min is None or clop_min > option.engine_min:
             clop_min -= 1
-        elif clop_max < option.engine_max:
+        elif option.engine_max is None or clop_max < option.engine_max:
             clop_max += 1
 
     if clop_min > clop_max:
@@ -259,6 +288,12 @@ def clamp(value: int, low: int, high: int) -> int:
     return max(low, min(high, value))
 
 
+def clamp_to_engine_bounds(value: int, option: OptionSpec) -> int:
+    if option.engine_min is not None and option.engine_max is not None:
+        return clamp(value, option.engine_min, option.engine_max)
+    return value
+
+
 def find_settings_file(script_dir: Path, requested_name: str, fallback_name: str | None = None) -> Path:
     direct = script_dir / requested_name
     if direct.is_file():
@@ -333,7 +368,7 @@ def main() -> int:
     for name, estimated in estimated_values.items():
         option = option_by_name[name]
         rounded = round_half_away_from_zero(estimated)
-        optimized_values[name] = clamp(rounded, option.engine_min, option.engine_max)
+        optimized_values[name] = clamp_to_engine_bounds(rounded, option)
 
     engine_cmd = load_engine_cmd_from_ini(sprt_settings)
 
