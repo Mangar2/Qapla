@@ -11,7 +11,7 @@ Never mention changes to copilot-instructions.md in the checkin messages.
 When I ask you to "check in a new test version", follow these steps:
 - First add a version info to version.md with date and brief description of changes
 - Check in the current changes to git, please use one command `git commit -a -m "Description of changes"`
-- Create a new tag with incremented test number to the current patch version (e.g., 0.4.0-005 → 0.4.0-006)
+- Create a new tag with incremented test number to the current patch version (e.g., 0.4.0-005 -> 0.4.0-006)
 
 ## Project Overview
 Qapla is a UCI/WinBoard chess engine written in C++20, featuring bitboard-based move generation, alpha-beta search with transposition tables, and both classical evaluation and optional NNUE (neural network) evaluation. Target strength: ~2850 CCRL Elo.
@@ -44,7 +44,7 @@ Qapla is a UCI/WinBoard chess engine written in C++20, featuring bitboard-based 
   - [winboard.h](interface/winboard.h): Winboard/XBoard protocol
 
 ### Data Flow
-1. Interface receives UCI/WinBoard commands → parses FEN/moves
+1. Interface receives UCI/WinBoard commands -> parses FEN/moves
 2. `IterativeDeepening` orchestrates search (time control, depth management)
 3. `Search::search()` recursively explores game tree with `MoveGenerator`
 4. `Eval::eval()` scores positions (or NNUE if `USE_STOCKFISH_EVAL` defined)
@@ -80,12 +80,12 @@ Every single line changed triggers mandatory testing (see Testing Requirements b
 #### When Adding New Features
 - **ADD new code** - don't modify existing code unless absolutely necessary
 - **Example**: Adding new parameters to a class
-  - ✓ CORRECT: Insert new members/functions, leave existing lines untouched
-  - ✗ WRONG: Reorder existing members, change formatting, move unrelated lines
+  - OK: Insert new members/functions, leave existing lines untouched
+  - WRONG: Reorder existing members, change formatting, move unrelated lines
   
 - **Example**: Adding futility pruning
-  - ✓ CORRECT: Add new function `canPruneFutility()` and new parameters
-  - ✗ WRONG: Rename `forewardFutility()` or move `cmdLineParam` declaration
+  - OK: Add new function `canPruneFutility()` and new parameters
+  - WRONG: Rename `forewardFutility()` or move `cmdLineParam` declaration
 
 #### Before Every Edit, Ask:
 1. **Is this change strictly necessary for the implementation?**
@@ -210,8 +210,8 @@ The `compare-wmtest.ps1` script automatically:
 - `getPieceValueForEval(piece_t piece)`: Returns `EvalValue` (midgame/endgame)
 - `getPieceValueForMoveSorting(piece_t piece)`: Returns single `value_t`
 Important:
-Calculating gains/material changes from a move → use absolute values (use `getPieceType()` to extract piece type) to calculate absolute values do not use Math.abs().
-Evaluating positions (who's winning) → keep signed values
+Calculating gains/material changes from a move -> use absolute values (use `getPieceType()` to extract piece type) to calculate absolute values do not use Math.abs().
+Evaluating positions (who's winning) -> keep signed values
 
 ### Move gain
 If we calculate a move gain we need to consider both the captured piece and the promoted piece (if any).
