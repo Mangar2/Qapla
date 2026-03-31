@@ -125,14 +125,14 @@ namespace QaplaBasics {
 
 		constexpr static value_t PAWN_VALUE_MG_DEFAULT = 80;
 		constexpr static value_t PAWN_VALUE_EG_DEFAULT = 95;
-		constexpr static value_t KNIGHT_VALUE_MG_DEFAULT = 360;
+		constexpr static value_t KNIGHT_VALUE_MG_DEFAULT = 365;
 		constexpr static value_t KNIGHT_VALUE_EG_DEFAULT = 310;
-		constexpr static value_t BISHOP_VALUE_MG_DEFAULT = 360;
-		constexpr static value_t BISHOP_VALUE_EG_DEFAULT = 330;
-		constexpr static value_t ROOK_VALUE_MG_DEFAULT = 560;
-		constexpr static value_t ROOK_VALUE_EG_DEFAULT = 570;
-		constexpr static value_t QUEEN_VALUE_MG_DEFAULT = 1035;
-		constexpr static value_t QUEEN_VALUE_EG_DEFAULT = 1085;		
+		constexpr static value_t BISHOP_VALUE_MG_DEFAULT = 365;
+		constexpr static value_t BISHOP_VALUE_EG_DEFAULT = 340;
+		constexpr static value_t ROOK_VALUE_MG_DEFAULT = 550;
+		constexpr static value_t ROOK_VALUE_EG_DEFAULT = 575;
+		constexpr static value_t QUEEN_VALUE_MG_DEFAULT = 1150;
+		constexpr static value_t QUEEN_VALUE_EG_DEFAULT = 1150;		
 
 	#ifndef PARAM_OPTIMIZE_MATERIALBALANCE
 		constexpr static value_t PAWN_VALUE_MG = PAWN_VALUE_MG_DEFAULT;
