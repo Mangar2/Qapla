@@ -28,14 +28,18 @@ namespace ChessEval {
  */
 static std::array<value_t, KingAttack::MAX_WEIGHT_COUNT + 1> generateAttackWeight(
 	value_t p0,
+	value_t p2,
 	value_t p4,
+	value_t p6,
 	value_t p10,
 	value_t p15,
 	value_t p32)
 {
 	std::vector<std::pair<int, double>> points = {
 		{ 0, p0 },
+		{ 2, p2 },
 		{ 4, p4 },
+		{ 6, p6 },
 		{ 10, p10 },
 		{ 15, p15 },
 		{ 32, p32 }
@@ -51,29 +55,39 @@ public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
 			{ .name = "kAttackP0", .defaultValue = p0_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP2", .defaultValue = p2_, .minValue = -2000, .maxValue = 2000 },
 			{ .name = "kAttackP4", .defaultValue = p4_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP6", .defaultValue = p6_, .minValue = -2000, .maxValue = 2000 },
 			{ .name = "kAttackP10", .defaultValue = p10_, .minValue = -2000, .maxValue = 2000 },
 			{ .name = "kAttackP15", .defaultValue = p15_, .minValue = -2000, .maxValue = 2000 },
-			{ .name = "kAttackP32", .defaultValue = p32_, .minValue = -2000, .maxValue = 2000 }
+			{ .name = "kAttackP32", .defaultValue = p32_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackQueenFactor", .defaultValue = static_cast<int32_t>(KingAttack::queenFactor), .minValue = 0, .maxValue = 10 }
 		};
 	}
 
 	bool setUciParameter(const std::string& name, int32_t value) override {
 		if (name == "kAttackP0") {
 			p0_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP2") {
+			p2_ = static_cast<value_t>(value);
 		} else if (name == "kAttackP4") {
 			p4_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP6") {
+			p6_ = static_cast<value_t>(value);
 		} else if (name == "kAttackP10") {
 			p10_ = static_cast<value_t>(value);
 		} else if (name == "kAttackP15") {
 			p15_ = static_cast<value_t>(value);
 		} else if (name == "kAttackP32") {
 			p32_ = static_cast<value_t>(value);
+		} else if (name == "kAttackQueenFactor") {
+			KingAttack::queenFactor = static_cast<uint32_t>(value);
+			return true;
 		} else {
 			return false;
 		}
 
-		KingAttack::attackWeight = generateAttackWeight(p0_, p4_, p10_, p15_, p32_);
+		KingAttack::attackWeight = generateAttackWeight(p0_, p2_, p4_, p6_, p10_, p15_, p32_);
 
 		printArray("attackWeight", KingAttack::attackWeight);
 
@@ -82,7 +96,9 @@ public:
 
 private:
 	value_t p0_ = KingAttack::ATTACK_WEIGHT_DEFAULT[0];
+	value_t p2_ = KingAttack::ATTACK_WEIGHT_DEFAULT[2];
 	value_t p4_ = KingAttack::ATTACK_WEIGHT_DEFAULT[4];
+	value_t p6_ = KingAttack::ATTACK_WEIGHT_DEFAULT[6];
 	value_t p10_ = KingAttack::ATTACK_WEIGHT_DEFAULT[10];
 	value_t p15_ = KingAttack::ATTACK_WEIGHT_DEFAULT[15];
 	value_t p32_ = KingAttack::ATTACK_WEIGHT_DEFAULT[32];
