@@ -167,7 +167,7 @@ namespace ChessEval {
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksDefended) +
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2 +
 				computeCheckMoves<COLOR>(position, results) +
-				(position.getPieceBB(QUEEN + COLOR) != 0) * 3;
+				(position.getPieceBB(QUEEN + COLOR) != 0) * queenFactor;
 
 			attackIndex = std::min(MAX_WEIGHT_COUNT, attackIndex);
 			value_t attackValue = 0;
@@ -200,6 +200,7 @@ namespace ChessEval {
 		static constexpr uint32_t PRESSURE_INDEX = 0x2;
 		static constexpr uint32_t PRESSURE_MASK = 0x1F;
 		static constexpr uint32_t INDEX_SIZE = 0x40;
+		static constexpr uint32_t QUEEN_FACTOR_DEFAULT = 3;
 
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> ATTACK_WEIGHT_DEFAULT =
 		
@@ -213,8 +214,10 @@ namespace ChessEval {
 
 #ifndef PARAM_OPTIMIZE_KING_ATTACK
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = ATTACK_WEIGHT_DEFAULT;
+		static constexpr uint32_t queenFactor = QUEEN_FACTOR_DEFAULT;
 #else
 		inline static array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = ATTACK_WEIGHT_DEFAULT;
+		inline static uint32_t queenFactor = QUEEN_FACTOR_DEFAULT;
 #endif
 
 		static constexpr SquareTable<value_t> initialKingThreat = SquareTable<value_t>(
