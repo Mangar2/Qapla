@@ -200,26 +200,17 @@ namespace ChessEval {
 		static constexpr uint32_t PRESSURE_INDEX = 0x2;
 		static constexpr uint32_t PRESSURE_MASK = 0x1F;
 		static constexpr uint32_t INDEX_SIZE = 0x40;
-		static constexpr uint32_t QUEEN_FACTOR_DEFAULT = 3;
+		static constexpr uint32_t QUEEN_FACTOR_DEFAULT = 2;
 
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> ATTACK_WEIGHT_DEFAULT =
-
-		/*
-		Parameter                | Estimated    | Min          | Max
-		-------------------------+--------------+--------------+---------------
-		kAttackP2                | -14.514      | -20          | 0
-		kAttackP4                | -22.1477     | -40          | 0
-		kAttackP6                | -25.3828     | -60          | 0
-		kAttackP10               | -97.7385     | -200         | 0
-		kAttackP15               | -244.0193    | -400         | 0
-		kAttackP32               | -791.5083    | -1000        | 0
-		kAttackQueenFactor       | 1.3398       | 0            | 10
-		*/
 		
+		{ 0, -8, -16, -19, -22, -25, -30, -42, -59, -79, -102, -126, -151, -177, -207, -239, -274, -313, -353, -396, -439, -482, -526, -568, -608, -647,
+		  -682, -713, -741, -763, -780, -791, -794 };
+		
+		/*
 		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
 		  -530, -560, -590, -620, -650, -680, -710 };
-		
-		/*
+
 		{ 0, 0, -3, -7, -13, -20, -29, -41, -54, -69, -86, -105, -125, -147, -171, -195, -221, -247, -273, -300, -327, 
 			-354, -380, -406, -432, -456, -480, -504, -526, -547, -568, -587, -605 };
 		*/
