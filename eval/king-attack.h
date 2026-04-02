@@ -203,6 +203,18 @@ namespace ChessEval {
 		static constexpr uint32_t QUEEN_FACTOR_DEFAULT = 3;
 
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> ATTACK_WEIGHT_DEFAULT =
+
+		/*
+		Parameter                | Estimated    | Min          | Max
+		-------------------------+--------------+--------------+---------------
+		kAttackP2                | -14.514      | -20          | 0
+		kAttackP4                | -22.1477     | -40          | 0
+		kAttackP6                | -25.3828     | -60          | 0
+		kAttackP10               | -97.7385     | -200         | 0
+		kAttackP15               | -244.0193    | -400         | 0
+		kAttackP32               | -791.5083    | -1000        | 0
+		kAttackQueenFactor       | 1.3398       | 0            | 10
+		*/
 		
 		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
 		  -530, -560, -590, -620, -650, -680, -710 };
