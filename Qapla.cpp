@@ -28,6 +28,10 @@
 #include "nnue/engine.h"
 #endif
 
+#ifndef QAPLA_VERSION
+#define QAPLA_VERSION "dev"
+#endif
+
 using namespace QaplaInterface;
 
 namespace QaplaSearch {
@@ -106,7 +110,7 @@ int main(int argc, char* argv[])
 	Stockfish::Engine::load_network("NNUE1", "NNUE2");
 #endif
 
-	std::cout << "Qapla 0.4.0 (C) 2025 Volker Boehm (build 000)" << std::endl;
+	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;
 	// This enables setting search parameters to a static object. The search parameters are set as name, value pairs
 	// Currently this is used for testing only
 	SearchParameter::parseCommandLine(argc, argv);

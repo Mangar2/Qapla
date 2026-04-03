@@ -7,6 +7,10 @@ BUILD_BASE   := build
 BUILD_DIR    := $(BUILD_BASE)/$(BUILD_TYPE)
 EXTRA_DEFINES ?=
 
+# Version from git tags, overridable: make QAPLA_VERSION=0.4.0 Release
+QAPLA_VERSION  ?= $(shell git describe --tags --always 2>/dev/null || echo unknown)
+VERSION_DEFINE := -DQAPLA_VERSION=\"$(QAPLA_VERSION)\"
+
 # ============================================================================
 # WINDOWS SECTION
 # ============================================================================
@@ -73,7 +77,7 @@ else # Release
 endif
 
 # Final flags
-CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT) $(EXTRA_DEFINES)
+CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT) $(VERSION_DEFINE) $(EXTRA_DEFINES)
 CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT) $(EXTRA_DEFINES)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
 
@@ -85,8 +89,9 @@ DEPFILE_FLAG = /clang:-MT$@ /clang:-MF$@.d
 # ============================================================================
 else
 
-# Detect specific Unix variant
+# Detect platform and architecture
 UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
 
 # Compilers
 CXX := clang++
@@ -104,6 +109,21 @@ SRC     := $(SRC_CPP) $(SRC_C)
 OBJ_CPP := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_CPP))
 OBJ_C   := $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRC_C))
 OBJ     := $(OBJ_CPP) $(OBJ_C)
+
+# Architecture-specific optimization flags
+ifneq ($(filter x86_64 amd64,$(UNAME_M)),)
+  # x86_64: baseline (SSE2 only) and optimized (SSE4.2, POPCNT, etc.)
+  ARCH_BASE := -march=x86-64
+  ARCH_OPT  := -march=x86-64-v2
+else ifneq ($(filter aarch64 arm64,$(UNAME_M)),)
+  # ARM64 (Apple Silicon, AWS Graviton, Ampere, etc.)
+  ARCH_BASE := -mcpu=native
+  ARCH_OPT  := -mcpu=native
+else
+  # Unknown architecture: no specific tuning
+  ARCH_BASE :=
+  ARCH_OPT  :=
+endif
 
 # Base flags
 CXXFLAGS_BASE := -std=c++20 -Wno-unused-parameter -Wno-unused-variable \
@@ -123,17 +143,17 @@ ifeq ($(BUILD_TYPE),Debug)
   CFLAGS_BT   := -D_DEBUG -g -O0 -fno-omit-frame-pointer \
                  -fdebug-compilation-dir=$(PROJECT_ROOT)
 else ifeq ($(BUILD_TYPE),WhatifRelease)
-  CXXFLAGS_BT := -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64 -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -DWHATIF_RELEASE -O3 -march=x86-64 -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -DWHATIF_RELEASE -O3 $(ARCH_BASE) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -DWHATIF_RELEASE -O3 $(ARCH_BASE) -funroll-loops
 else ifeq ($(BUILD_TYPE),Release_NO_POPCOUNT)
-  CXXFLAGS_BT := -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O3 -march=x86-64 -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -D__OLD_HW__ -O3 $(ARCH_BASE) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O3 $(ARCH_BASE) -funroll-loops
 else ifeq ($(BUILD_TYPE),ReleaseOpt)
-  CXXFLAGS_BT := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto -march=x86-64-v2 -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto -march=x86-64-v2 -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto $(ARCH_OPT) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto $(ARCH_OPT) -funroll-loops
 else # Release
-  CXXFLAGS_BT := -DNDEBUG -O3 -flto -march=x86-64-v2 -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -O3 -flto -march=x86-64-v2 -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops
 endif
 
 # Platform-specific link flags
@@ -146,7 +166,7 @@ else
 endif
 
 # Final flags
-CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT) $(EXTRA_DEFINES)
+CXXFLAGS := $(CXXFLAGS_BASE) $(CXXFLAGS_THREAD) $(CXXFLAGS_BT) $(VERSION_DEFINE) $(EXTRA_DEFINES)
 CFLAGS   := $(CFLAGS_BASE)   $(CFLAGS_THREAD)   $(CFLAGS_BT) $(EXTRA_DEFINES)
 LDFLAGS  := $(LDFLAGS_THREAD) $(LDFLAGS_PLAT)
 
