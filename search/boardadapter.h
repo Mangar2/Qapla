@@ -22,6 +22,10 @@
 #ifndef __BOARDADAPTER_H
 #define __BOARDADAPTER_H
 
+#ifndef QAPLA_VERSION
+#define QAPLA_VERSION "dev"
+#endif
+
 #include <thread>
 #include <charconv>
 #include "../interface/isendsearchinfo.h"
@@ -67,7 +71,7 @@ namespace QaplaSearch {
 		 */
 		virtual map<string, string> getEngineInfo() { 
 			return map<string, string>{
-				{ "name", "Qapla 0.4.0" },
+				{ "name", "Qapla " QAPLA_VERSION },
 				{ "author", "Volker Boehm"},
 				{ "engine-about", "Qapla by Volker Boehm, see github.com/Mangar2/Qapla"}
 			};
