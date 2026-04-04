@@ -29,6 +29,7 @@
 #include "king-attack.h"
 #include "king.h"
 #include "threat.h"
+#include "space.h"
 //#include "eval-correction.h"
 
 using namespace ChessEval;
@@ -135,6 +136,7 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	evalValue += Knight::eval(position, evalResults);
 	evalValue += Queen::eval(position, evalResults);
 	evalValue += Threat::eval(position, evalResults);
+	evalValue += Space::eval(position, evalResults);
 	evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
 	evalValue += King::eval(position, evalResults);
 
