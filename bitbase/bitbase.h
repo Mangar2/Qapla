@@ -36,7 +36,15 @@ namespace QaplaBitbase {
     /**
      * @class Bitbase
      * @brief Stores and manages bit-level data for chess endgame databases.
+     *
+     * 2-bit entry encoding (bitsPerEntry == 2):
+     *   BITBASE_UNKNOWN = 0, BITBASE_WIN = 1, BITBASE_LOSS = 2, BITBASE_DRAW = 3
      */
+    static constexpr int BITBASE_UNKNOWN = 0;
+    static constexpr int BITBASE_WIN = 1;
+    static constexpr int BITBASE_LOSS = 2;
+    static constexpr int BITBASE_DRAW = 3;
+
     class Bitbase {
     public:
         /**
@@ -45,18 +53,20 @@ namespace QaplaBitbase {
         explicit Bitbase();
 
         /**
-         * @brief Constructs a Bitbase with a given size in bits.
-         * @param sizeInBit Number of bits the bitbase should hold.
+         * @brief Constructs a Bitbase with a given entry count and bits per entry.
+         * @param entryCount Number of entries the bitbase should hold.
+         * @param bitsPerEntry Number of bits per entry (1 or 2).
 		 * @param sig Signature of the bitbase.
          */
-        explicit Bitbase(uint64_t sizeInBit, uint32_t sig);
+        explicit Bitbase(uint64_t entryCount, uint32_t bitsPerEntry, uint32_t sig);
 
         /**
          * @brief Constructs a Bitbase from a BitbaseIndex.
-         * @param index Index providing the bitbase size.
+         * @param index Index providing the entry count.
+         * @param bitsPerEntry Number of bits per entry (1 or 2).
 		 * @param sig Signature of the bitbase.
          */
-        Bitbase(const class BitbaseIndex& index, uint32_t sig);
+        Bitbase(const class BitbaseIndex& index, uint32_t bitsPerEntry, uint32_t sig);
 
         /**
          * @brief Sets the filename.
@@ -83,17 +93,19 @@ namespace QaplaBitbase {
             std::filesystem::path path = "./");
 
         /**
-         * @brief Sets the number of bits in the bitbase.
-         * @param sizeInBit New size in bits.
+         * @brief Sets the number of entries in the bitbase.
+         * @param entryCount New entry count.
          */
-        void setSize(uint64_t sizeInBit) {
-            _sizeInBits = sizeInBit;
+        void setSize(uint64_t entryCount) {
+            _entryCount = entryCount;
         }
 
-        void resize(uint64_t sizeInBit) {
-            setSize(sizeInBit);
+        void resize(uint64_t entryCount) {
+            setSize(entryCount);
 			_bitbase.resize(getSize());
         }
+
+        uint32_t getBitsPerEntry() const { return _bitsPerEntry; }
 
         /**
          * @brief Clears all bits in the bitbase (sets to 0).
@@ -142,17 +154,23 @@ namespace QaplaBitbase {
         int get2Bits(uint64_t index2);
 
         /**
-         * @brief Gets the size of the bitbase in bits.
-         * @return Bit count.
+         * @brief Gets the total number of bits in the bitbase.
+         * @return Bit count (entryCount * bitsPerEntry).
          */
-        uint64_t getSizeInBit() const;
+        uint64_t sizeInBits() const { return _entryCount * _bitsPerEntry; }
+
+        /**
+         * @brief Gets the number of entries in the bitbase.
+         * @return Entry count.
+         */
+        uint64_t getEntryCount() const { return _entryCount; }
 
 		/**
 		 * @brief Gets the size of the bitbase (internal vector structure) in Elements.
 		 * @return Size in Elements.
 		 */
         uint64_t getSize() const {
-            return (_sizeInBits + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
+            return (sizeInBits() + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
         }
 
         /**
@@ -206,11 +224,11 @@ namespace QaplaBitbase {
         void getAllIndexes(const Bitbase& andNot, std::vector<uint64_t>& indexes) const;
 
         /**
-         * @brief Counts the number of set bits (won positions).
-         * @param begin Optional starting index.
-         * @return Count of set bits.
+         * @brief Counts the number of set bits matching the given result.
+         * @param result Bit pattern to match.
+         * @return Count of matching bits.
          */
-        uint64_t computeWonPositions(uint64_t begin = 0) const;
+        uint64_t computeResults(bbt_t result) const;
 
         /**
          * @brief Writes the compressed bitbase as a C++ header file with a uint32_t array.
@@ -254,7 +272,9 @@ namespace QaplaBitbase {
         static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; 
 
         static const uint64_t BITS_IN_ELEMENT = sizeof(bbt_t) * 8;
-        uint64_t _sizeInBits;
+        uint64_t _entryCount;
+
+        uint32_t _bitsPerEntry = 1;
         
         // Fully loaded bitbase data
         bool _loaded;
@@ -266,7 +286,6 @@ namespace QaplaBitbase {
         std::vector<uint64_t> _offsets;
         uint32_t _clusterSizeBytes = DEFAULT_CLUSTER_SIZE_IN_BYTES;
         QaplaCompress::CompressionType _compression;
-        uint32_t _bitsPerEntry = 0;
     };
 
 } // namespace QaplaBitbase

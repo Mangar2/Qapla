@@ -80,7 +80,7 @@ void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uin
 		return;
 	}
 	BitbaseIndex index(pieceString);
-	Bitbase bitbase(index, sig);
+	Bitbase bitbase(index, 1, sig);
 	_bitbases[sig] = bitbase;
 	_bitbases[sig].loadFromEmbeddedData(data);
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
@@ -177,7 +177,7 @@ void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
 	}
 	BitbaseIndex index(pieceString);
 
-	Bitbase bitbase(index, signature.getPiecesSignature());
+	Bitbase bitbase(index, 1, signature.getPiecesSignature());
 	// Bitbase is not available is a supported situation and not an error
 	if (!bitbase.attachFromFile(pieceString, ".btb", bitbasePath)) return;
 	ChessEval::EvalEndgame::registerBitbase(pieceString);

@@ -27,7 +27,6 @@
 #include <ostream>
 #include <iomanip>
 #include <stdexcept>
-#include <bit>
 #include "compress.h"
 #include "bitbaseindex.h"
 
@@ -35,13 +34,13 @@ using namespace std;
 
 namespace QaplaBitbase {
 
-    Bitbase::Bitbase() : _sizeInBits(0), _loaded(false), _headerLoaded(false) {}
+    Bitbase::Bitbase() : _entryCount(0), _bitsPerEntry(1), _loaded(false), _headerLoaded(false) {}
 
-    Bitbase::Bitbase(uint64_t sizeInBit, uint32_t sig) 
-        : _signature(sig), _sizeInBits(sizeInBit), _loaded(false), _headerLoaded(false) {}
+    Bitbase::Bitbase(uint64_t entryCount, uint32_t bitsPerEntry, uint32_t sig) 
+        : _signature(sig), _entryCount(entryCount), _bitsPerEntry(bitsPerEntry), _loaded(false), _headerLoaded(false) {}
 
-    Bitbase::Bitbase(const BitbaseIndex& index, uint32_t sig) 
-        : Bitbase(index.getSizeInBit(), sig) {}
+    Bitbase::Bitbase(const BitbaseIndex& index, uint32_t bitsPerEntry, uint32_t sig) 
+        : Bitbase(index.getEntryCount(), bitsPerEntry, sig) {}
 
     void Bitbase::clear() {
         std::fill(_bitbase.begin(), _bitbase.end(), 0);
@@ -49,27 +48,27 @@ namespace QaplaBitbase {
 
     void Bitbase::setBit(uint64_t index) {
 		assert(isLoaded());
-        if (index >= _sizeInBits) return;
+        if (index >= sizeInBits()) return;
         _bitbase[index / BITS_IN_ELEMENT] |= bbt_t(1) << (index % BITS_IN_ELEMENT);
     }
 
     void Bitbase::or2Bit(uint64_t index2, int value) {
         assert(isLoaded());
         uint64_t index = index2 * 2;
-        if (index + 1 >= _sizeInBits) return;
+        if (index + 1 >= sizeInBits()) return;
         _bitbase[index / BITS_IN_ELEMENT] |= (bbt_t(value) << (index % BITS_IN_ELEMENT));
     }
 
     void Bitbase::clearBit(uint64_t index) {
         assert(isLoaded());
-        if (index >= _sizeInBits) return;
+        if (index >= sizeInBits()) return;
         _bitbase[index / BITS_IN_ELEMENT] &= ~(bbt_t(1) << (index % BITS_IN_ELEMENT));
     }
 
     void Bitbase::clear2Bits(uint64_t index2) {
         assert(isLoaded());
         uint64_t index = index2 * 2;
-        if (index + 1 >= _sizeInBits) return;
+        if (index + 1 >= sizeInBits()) return;
         uint64_t elementIndex = index / BITS_IN_ELEMENT;
         uint64_t bitOffset = index % BITS_IN_ELEMENT;
         _bitbase[elementIndex] &= ~(bbt_t(3) << bitOffset);
@@ -94,7 +93,7 @@ namespace QaplaBitbase {
         try {
             auto cluster = BitbaseFile::readCluster(
                 _filePath.string(),
-                _sizeInBits,
+                sizeInBits(),
                 _clusterSizeBytes,
                 clusterIndex,
                 _offsets,
@@ -111,7 +110,7 @@ namespace QaplaBitbase {
     }
 
     int Bitbase::getBit(uint64_t index) {
-        if (index >= _sizeInBits) return false;
+        if (index >= sizeInBits()) return false;
   		if (_loaded) {
 			return getBitsFromLoadedData(index, bbt_t(1));
 		}
@@ -122,7 +121,7 @@ namespace QaplaBitbase {
 
     int Bitbase::get2Bits(uint64_t index2) {
         auto index = index2 * 2;
-        if (index + 1 >= _sizeInBits) return false;
+        if (index + 1 >= sizeInBits()) return false;
   		if (_loaded) {
 			return getBitsFromLoadedData(index, bbt_t(3));
 		}
@@ -130,14 +129,10 @@ namespace QaplaBitbase {
         return getBitsFromClusterData(index, bbt_t(3));
     }
 
-    uint64_t Bitbase::getSizeInBit() const {
-        return _sizeInBits;
-    }
-
     std::string Bitbase::getStatistic() {
         uint64_t win = 0;
         uint64_t draw = 0;
-        for (uint64_t index = 0; index < _sizeInBits; ++index) {
+        for (uint64_t index = 0; index < sizeInBits(); ++index) {
             if (getBit(index)) win++; else draw++;
         }
         return " win: " + to_string(win) + " draw, loss or error: " + to_string(draw);
@@ -152,7 +147,7 @@ namespace QaplaBitbase {
 
         BitbaseFile::write(
             fileName,
-			_sizeInBits,
+			sizeInBits(),
             _bitbase,
             clusterElements,
             compression,
@@ -164,7 +159,7 @@ namespace QaplaBitbase {
     }
 
     void Bitbase::compactTo1BitIfPossible() {
-        if (_bitsPerEntry != 1) return;
+        if (_bitsPerEntry != 2) return;
 
         // Check if any entry uses the upper bit (value >= 2)
         // In 2-bit layout, the upper bits form a mask: 0xAA for uint8_t elements
@@ -174,12 +169,11 @@ namespace QaplaBitbase {
         }
 
         // No upper bit set anywhere — compact to 1-bit
-        const uint64_t entryCount = _sizeInBits / 2;
-        const uint64_t newSizeInBits = entryCount;
+        const uint64_t newSizeInBits = _entryCount;
         const uint64_t newSizeInElements = (newSizeInBits + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
         std::vector<bbt_t> compacted(newSizeInElements, 0);
 
-        for (uint64_t i = 0; i < entryCount; ++i) {
+        for (uint64_t i = 0; i < _entryCount; ++i) {
             const uint64_t srcBitIndex = i * 2;
             const int value = (_bitbase[srcBitIndex / BITS_IN_ELEMENT] >> (srcBitIndex % BITS_IN_ELEMENT)) & 1;
             if (value) {
@@ -188,14 +182,13 @@ namespace QaplaBitbase {
         }
 
         _bitbase = std::move(compacted);
-        _sizeInBits = newSizeInBits;
-        _bitsPerEntry = 0;
+        _bitsPerEntry = 1;
         std::cout << "Compacted 2-bit bitbase to 1-bit (no upper bits used)" << std::endl;
     }
 
     void Bitbase::verifyWrittenFile() {
 		std::cout << "Verifying written file, bitbase size: " << _bitbase.size() << " path: " << _filePath.string() << std::endl;
-        Bitbase loaded(_sizeInBits, _signature);
+        Bitbase loaded(_entryCount, _bitsPerEntry, _signature);
         loaded._filePath = _filePath;
         if (!loaded.loadHeader(_filePath)) {
 			throw std::runtime_error("Error: Failed to open file to compare '" + _filePath.string() + "' ");
@@ -206,7 +199,7 @@ namespace QaplaBitbase {
 			throw std::runtime_error("Error: Failed to read bitbase file '" + _filePath.string() + "' " + errorMessage);
 		}
 
-        if (loaded.getSizeInBit() != _sizeInBits) {
+        if (loaded.getEntryCount() != _entryCount || loaded.getBitsPerEntry() != _bitsPerEntry) {
 			throw std::runtime_error("Error: Size mismatch between original and loaded bitbase.");
         }
 
@@ -227,7 +220,7 @@ namespace QaplaBitbase {
             _clusterSizeBytes = fileInfo.clusterSize;
             _compression = fileInfo.compression;
             _bitsPerEntry = fileInfo.bitsPerEntry;
-            if (fileInfo.sizeInBits != _sizeInBits) {
+            if (fileInfo.sizeInBits != sizeInBits()) {
                 throw std::runtime_error("Error: Size mismatch between file and bitbase.");
             }
             _headerLoaded = true;
@@ -247,7 +240,7 @@ namespace QaplaBitbase {
     std::tuple<bool, std::string> Bitbase::readAll() {
         try {
             const auto decompressFn = QaplaCompress::Compress::getDecompressor(_compression);
-            std::vector<bbt_t> data = BitbaseFile::readAll(_filePath.string(), _sizeInBits, _clusterSizeBytes, _offsets, decompressFn);
+            std::vector<bbt_t> data = BitbaseFile::readAll(_filePath.string(), sizeInBits(), _clusterSizeBytes, _offsets, decompressFn);
 
             _bitbase = std::move(data);
             setLoaded();
@@ -260,7 +253,7 @@ namespace QaplaBitbase {
     }
 
     void Bitbase::getAllIndexes(const Bitbase& andNot, vector<uint64_t>& indexes) const {
-        for (uint64_t index = 0; index < _sizeInBits; index += BITS_IN_ELEMENT) {
+        for (uint64_t index = 0; index < sizeInBits(); index += BITS_IN_ELEMENT) {
             uint64_t bbIndex = index / BITS_IN_ELEMENT;
             bbt_t value = _bitbase[bbIndex] & ~andNot._bitbase[bbIndex];
             for (uint64_t sub = 0; value; ++sub, value >>= 1) {
@@ -269,12 +262,15 @@ namespace QaplaBitbase {
         }
     }
 
-    uint64_t Bitbase::computeWonPositions(uint64_t begin) const {
-        uint64_t result = 0;
-        for (uint64_t i = begin; i < _bitbase.size(); ++i) {
-            result += std::popcount(_bitbase[i]);
+    uint64_t Bitbase::computeResults(bbt_t result) const {
+        uint64_t count = 0;
+        for (uint64_t index = 0; index < sizeInBits(); index += _bitsPerEntry) {
+            auto mask = _bitsPerEntry == 1 ? bbt_t(1) : bbt_t(3);   
+            if (getBitsFromLoadedData(index, mask) == result) {
+                ++count;
+            }
         }
-        return result;
+        return count;
     }
 
     void Bitbase::writeAsCppFile(const string& varName, const string& filename) {
@@ -349,14 +345,14 @@ namespace QaplaBitbase {
         setLoaded();
 
         if (verbose) {
-            cout << "Bitbase loaded from embedded data, sizeInBit = " << _sizeInBits << endl;
+            cout << "Bitbase loaded from embedded data, sizeInBit = " << sizeInBits() << endl;
         }
     }
 
     void Bitbase::Bitbase::print() const {
         std::cout << "Bitbase Information:\n";
         std::cout << "  Loaded: " << std::boolalpha << _loaded << '\n';
-        std::cout << "  Size in bits: " << _sizeInBits << '\n';
+        std::cout << "  Size in bits: " << sizeInBits() << '\n';
 
         const uint64_t expectedSize = getSize();
         std::cout << "  Expected memory size (bytes): " << expectedSize << '\n';

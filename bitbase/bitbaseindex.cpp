@@ -104,7 +104,7 @@ BitbaseIndex::InitStatic::InitStatic() {
 void BitbaseIndex::initialize(const PieceList& pieceList, bool wtm) {
 	_wtm = wtm;
 	_index = wtm ? 0 : 1;
-	_sizeInBit = COLOR_COUNT;
+	_entryCount = COLOR_COUNT;
 	_mapType = computeSquareMapType(pieceList);
 
 	Square whiteKingSquare = mapSquare(pieceList.getSquare(0), _mapType);
@@ -212,8 +212,8 @@ void BitbaseIndex::addPawnToIndex(Square mappedSquare) {
 	const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _piecesBB & 0x00FFFFFFFFFFFF00;
 	uint64_t indexValueBasedOnPawnSquare = uint64_t(mappedSquare - A2) - popCount(belowBB);
 
-	_index += (int64_t)indexValueBasedOnPawnSquare * _sizeInBit;
-	_sizeInBit *= (NUMBER_OF_PAWN_POSITIONS - _pawnCount);
+	_index += (int64_t)indexValueBasedOnPawnSquare * _entryCount;
+	_entryCount *= (NUMBER_OF_PAWN_POSITIONS - _pawnCount);
 
 	addPawnSquare(mappedSquare);
 }
@@ -221,8 +221,8 @@ void BitbaseIndex::addPawnToIndex(Square mappedSquare) {
 void BitbaseIndex::addNonPawnPieceToIndex(Square mappedSquare) {
 	uint64_t indexValueBasedOnPieceSquare = computeSquareIndex(mappedSquare);
 
-	_index += (int64_t)indexValueBasedOnPieceSquare * _sizeInBit;
-	_sizeInBit *= (int64_t)BOARD_SIZE - getNumberOfPieces();
+	_index += (int64_t)indexValueBasedOnPieceSquare * _entryCount;
+	_entryCount *= (int64_t)BOARD_SIZE - getNumberOfPieces();
 	addPieceSquare(mappedSquare);
 }
 
@@ -286,8 +286,8 @@ void BitbaseIndex::addTwoPiecesToIndex(const PieceList& pieceList, uint32_t inde
 	Square square2 = mapSquare(pieceList.getSquare(index + 1), _mapType);
 	if (isPawn(piece)) {
 		uint64_t indexValue = mapTwoPawnsToIndex[int(square1 - A2) * NUMBER_OF_PAWN_POSITIONS + square2 - A2];
-		_index += indexValue * _sizeInBit;
-		_sizeInBit *= NUMBER_OF_DOUBLE_PAWN_POSITIONS;
+		_index += indexValue * _entryCount;
+		_entryCount *= NUMBER_OF_DOUBLE_PAWN_POSITIONS;
 		addPawnSquare(square1);
 		addPawnSquare(square2);
 	}
@@ -296,8 +296,8 @@ void BitbaseIndex::addTwoPiecesToIndex(const PieceList& pieceList, uint32_t inde
 		uint32_t squareIndex1 = computeSquareIndex(square1);
 		uint32_t squareIndex2 = computeSquareIndex(square2);
 		uint64_t indexValue = mapTwoPiecesToIndex[squareIndex1 * REMAINING_PIECE_POSITIONS + squareIndex2];
-		_index += indexValue * _sizeInBit;
-		_sizeInBit *= NUMBER_OF_DOUBLE_PIECE_POSITIONS;
+		_index += indexValue * _entryCount;
+		_entryCount *= NUMBER_OF_DOUBLE_PIECE_POSITIONS;
 		addPieceSquare(square1);
 		addPieceSquare(square2);
 	}
@@ -344,5 +344,5 @@ void BitbaseIndex::computeKingIndex(bool wtm, Square whiteKingSquare, Square bla
 	else {
 		_index += uint64_t(mapTwoKingsToIndexWithoutPawn[kingIndexNotShrinkedBySymetries]) * COLOR_COUNT;
 	}
-	_sizeInBit *= hasPawn ? NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN : NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
+	_entryCount *= hasPawn ? NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN : NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
 }
