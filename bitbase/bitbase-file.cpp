@@ -23,8 +23,6 @@
 #include <cstring>
 #include <stdexcept>
 #include <fstream>
-#include <ostream>
-#include <istream>
 #include <vector>
 #include <filesystem>
 #include "bitbase-file.h"
@@ -37,7 +35,8 @@ namespace QaplaBitbase {
         const std::vector<bbt_t>& data,
         uint32_t clusterElements,
         QaplaCompress::CompressionType compression,
-        const QaplaCompress::CompressFn& compressFn
+        const QaplaCompress::CompressFn& compressFn,
+        uint32_t bitsPerEntry
     ) {
         if (clusterElements == 0) {
             throw std::invalid_argument("Cluster size must be > 0");
@@ -51,7 +50,7 @@ namespace QaplaBitbase {
         std::vector<uint64_t> offsets;
         computeOffsets(compressedClusters, offsets, sizeof(BitbaseHeader) + (totalClusters + 1) * sizeof(uint64_t));
 
-        BitbaseHeader header(compression, clusterSizeBytes, static_cast<uint32_t>(totalClusters), sizeInBits);
+        BitbaseHeader header(compression, clusterSizeBytes, static_cast<uint32_t>(totalClusters), sizeInBits, bitsPerEntry);
 
         std::filesystem::path finalFile = fileNameWithPath;
         std::filesystem::path tempFile = finalFile;
@@ -158,7 +157,8 @@ namespace QaplaBitbase {
             .offsets = std::move(offsets), 
             .clusterSize = header.clusterSize(), 
             .compression = header.compression(),
-            .sizeInBits = header.sizeInBits() 
+            .sizeInBits = header.sizeInBits(),
+            .bitsPerEntry = header.bitsPerEntry()
         };
     }
 
