@@ -29,6 +29,7 @@
 #include "workpackage.h"
 #include "generationstate.h"
 #include "bitbase-reader.h"
+#include "../search/clockmanager.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
