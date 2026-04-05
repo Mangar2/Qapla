@@ -39,15 +39,17 @@ namespace QaplaBitbase {
 		 * @param sig Bitbase signature used for internal bitbase construction.
 		 */
 		GenerationState(PieceList& pieceList, uint32_t sig) 
-			: _wonPositions(true, sig), _computedPositions(true, sig), _candidates(true, sig)
 		{
 			BitbaseIndex bitbaseIndexType(pieceList);
-			_sizeInBit = bitbaseIndexType.getSizeInBit();
-			_wonPositions.resize(_sizeInBit);
+			_entryCount = bitbaseIndexType.getEntryCount();
+			_wonPositions = Bitbase(_entryCount, 2, sig);
+			_wonPositions.resize(_entryCount);
 			_wonPositions.setLoaded();
-			_computedPositions.resize(_sizeInBit);
+			_computedPositions = Bitbase(_entryCount, 1, sig);
+			_computedPositions.resize(_entryCount);
 			_computedPositions.setLoaded();
-			_candidates.resize(_sizeInBit);
+			_candidates = Bitbase(_entryCount, 1, sig);
+			_candidates.resize(_entryCount);
 			_candidates.setLoaded();
 			_pieceList = pieceList;
 			_illegal = 0;
@@ -90,7 +92,7 @@ namespace QaplaBitbase {
 		 *
 		 * @returns Bitbase size in bits (one bit per indexed position).
 		 */
-		uint64_t getSizeInBit() const { return _sizeInBit; }
+		uint64_t getEntryCount() const { return _entryCount; }
 
 		/**
 		 * Indicates whether new candidates were found in the previous loop.
@@ -178,7 +180,7 @@ namespace QaplaBitbase {
 		 */
 		void setWin(uint64_t index) {
 			_won++;
-			_wonPositions.setBit(index);
+			_wonPositions.or2Bit(index, BITBASE_WIN);
 			_computedPositions.setBit(index);
 		}
 
@@ -217,15 +219,15 @@ namespace QaplaBitbase {
 		 * Prints summary statistics for wins, losses/draws, illegal positions, and memory.
 		 */
 		void printStatistic() {
-			uint64_t drawOrLoss = _sizeInBit - _won - _illegal;
+			uint64_t drawOrLoss = _entryCount - _won - _illegal;
 			cout
-				<< "Won: " << _won << " (" << (_won * 100 / _sizeInBit) << "%) " 
-				<< " Draw or loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _sizeInBit) << "%)"
+				<< "Won: " << _won << " (" << (_won * 100 / _entryCount) << "%) " 
+				<< " Draw or loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _entryCount) << "%)"
 				<< " Loss in 0: " << _loss
-				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _sizeInBit) << "%)"
+				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _entryCount) << "%)"
 				<< " Uncompressed memory size " << _wonPositions.getSize()
 				<< std:: endl;
-			if (_won != _wonPositions.computeWonPositions()) {
+			if (_won != _wonPositions.computeResults(BITBASE_WIN)) {
 				std::cout << "Error, won positions do not match!" << std::endl;
 			}
 		}
@@ -273,7 +275,7 @@ namespace QaplaBitbase {
 			_candidates.setBit(index);
 		}
 
-		uint64_t _sizeInBit;
+		uint64_t _entryCount;
 		std::atomic<uint64_t> _illegal;
 		std::atomic<uint64_t> _loss;
 		std::atomic<uint64_t> _draw;

@@ -158,7 +158,7 @@ namespace QaplaBitbase {
             .clusterSize = header.clusterSize(), 
             .compression = header.compression(),
             .sizeInBits = header.sizeInBits(),
-            .bitsPerEntry = header.bitsPerEntry()
+            .bitsPerEntry = (header.entryFormat() >= 1) ? 2u : 1u
         };
     }
 

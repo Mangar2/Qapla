@@ -35,7 +35,7 @@ namespace QaplaBitbase {
 		Workpackage(const GenerationState& state) {
 			state.getWork(_workList);
 			_workIndex = 0;
-			_size = state.getSizeInBit();
+			_size = state.getEntryCount();
 			_lastInfo = 0;
 		}
 

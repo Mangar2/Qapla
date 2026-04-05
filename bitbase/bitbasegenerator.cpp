@@ -69,7 +69,7 @@ bool BitbaseGenerator::computeValue(MoveGenerator &position, Bitbase &bitbase, b
 		if (!move.isCaptureOrPromote())
 		{
 			index = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-			result = bitbase.getBit(index);
+			result = (bitbase.get2Bits(index) == BITBASE_WIN);
 			if (verbose)
 			{
 				std::cout << move.getLAN() << ", index: " << index
@@ -519,15 +519,15 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 {
 	MoveGenerator position;
 	vector<uint64_t> candidates;
-	[[maybe_unused]] uint64_t sizeInBit = state.getSizeInBit();
+	[[maybe_unused]] uint64_t entryCount = state.getEntryCount();
 
-	uint64_t packageSize = min(static_cast<uint64_t>(50000), (state.getSizeInBit() + 5) / 5);
-	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
+	uint64_t packageSize = min(static_cast<uint64_t>(50000), (state.getEntryCount() + 5) / 5);
+	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getEntryCount());
 	while (package.first < package.second)
 	{
 		for (uint64_t index = package.first; index < package.second; ++index)
 		{
-			assert(index < sizeInBit);
+			assert(index < entryCount);
 			ReverseIndex reverseIndex(index, state.getPieceList());
 			if (!reverseIndex.isLegal())
 			{
@@ -553,15 +553,15 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 		if (state.setCandidatesTreadSafe(candidates, false))
 		{
 			for ([[maybe_unused]] uint64_t index : candidates) {
-				assert(index < sizeInBit);
+				assert(index < entryCount);
 			}
 			candidates.clear();
 		}
-		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
+		package = workpackage.getNextPackageToExamine(packageSize, state.getEntryCount());
 	}
 	state.setCandidatesTreadSafe(candidates);
 	for ([[maybe_unused]] uint64_t index : candidates) {
-		assert(index < sizeInBit);
+		assert(index < entryCount);
 	}
 }
 
