@@ -53,6 +53,13 @@ namespace QaplaBitbase {
         _bitbase[index / BITS_IN_ELEMENT] |= bbt_t(1) << (index % BITS_IN_ELEMENT);
     }
 
+    void Bitbase::or2Bit(uint64_t index2, int value) {
+        assert(isLoaded());
+        uint64_t index = index2 * 2;
+        if (index + 1 >= _sizeInBits) return;
+        _bitbase[index / BITS_IN_ELEMENT] |= (bbt_t(value) << (index % BITS_IN_ELEMENT));
+    }
+
     void Bitbase::clearBit(uint64_t index) {
         assert(isLoaded());
         if (index >= _sizeInBits) return;
@@ -62,7 +69,7 @@ namespace QaplaBitbase {
     void Bitbase::clear2Bits(uint64_t index2) {
         assert(isLoaded());
         uint64_t index = index2 * 2;
-        if (index >= _sizeInBits) return;
+        if (index + 1 >= _sizeInBits) return;
         uint64_t elementIndex = index / BITS_IN_ELEMENT;
         uint64_t bitOffset = index % BITS_IN_ELEMENT;
         _bitbase[elementIndex] &= ~(bbt_t(3) << bitOffset);
@@ -115,7 +122,7 @@ namespace QaplaBitbase {
 
     int Bitbase::get2Bits(uint64_t index2) {
         auto index = index2 * 2;
-        if (index >= _sizeInBits) return false;
+        if (index + 1 >= _sizeInBits) return false;
   		if (_loaded) {
 			return getBitsFromLoadedData(index, bbt_t(3));
 		}
@@ -148,7 +155,8 @@ namespace QaplaBitbase {
             _bitbase,
             clusterElements,
             compression,
-            QaplaCompress::Compress::getCompressor(compression)
+            QaplaCompress::Compress::getCompressor(compression),
+            _bitsPerEntry
         );
 
 		verifyWrittenFile();
@@ -187,6 +195,7 @@ namespace QaplaBitbase {
             _offsets = std::move(fileInfo.offsets);
             _clusterSizeBytes = fileInfo.clusterSize;
             _compression = fileInfo.compression;
+            _bitsPerEntry = fileInfo.bitsPerEntry;
             if (fileInfo.sizeInBits != _sizeInBits) {
                 throw std::runtime_error("Error: Size mismatch between file and bitbase.");
             }

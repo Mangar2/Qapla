@@ -107,6 +107,14 @@ namespace QaplaBitbase {
         void setBit(uint64_t index);
 
         /**
+         * @brief Sets two bits as a combined integer value (for example, for win/draw/loss encoding). 
+         * Requires that the content of the two bits is currently 0 (initial or cleared state).
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
+         * @param value Integer value to set (0-3).
+         */
+        void or2Bit(uint64_t index2, int value);
+
+        /**
          * @brief Clears a specific bit (sets to 0).
          * @param index Bit index to clear.
          */
@@ -114,7 +122,7 @@ namespace QaplaBitbase {
 
         /**
          * @brief Clears two bits (sets to 0).
-         * @param index2 Two bit index to clear (index of a two bit array).
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
          */
         void clear2Bits(uint64_t index2);
 
@@ -128,7 +136,7 @@ namespace QaplaBitbase {
         /**
          * @brief Gets the value of two bits as a combined integer (for example, for win/draw/loss encoding).
          * 
-         * @param index2 Two bit index to retrieve (index of a two bit array)
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
          * @return int two bit value.
          */
         int get2Bits(uint64_t index2);
@@ -257,6 +265,7 @@ namespace QaplaBitbase {
         std::vector<uint64_t> _offsets;
         uint32_t _clusterSizeBytes = DEFAULT_CLUSTER_SIZE_IN_BYTES;
         QaplaCompress::CompressionType _compression;
+        uint32_t _bitsPerEntry = 0;
     };
 
 } // namespace QaplaBitbase

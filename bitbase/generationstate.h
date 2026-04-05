@@ -33,8 +33,10 @@ namespace QaplaBitbase {
 	{
 	public:
 		/**
-		 * Creates a generation state object holding information which positions are already decided
-		 * and where to look further
+		 * Creates generation state storage for one concrete piece configuration.
+		 *
+		 * @param pieceList Piece layout represented by this generation state.
+		 * @param sig Bitbase signature used for internal bitbase construction.
 		 */
 		GenerationState(PieceList& pieceList, uint32_t sig) 
 			: _wonPositions(true, sig), _computedPositions(true, sig), _candidates(true, sig)
@@ -56,14 +58,18 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Gets the current piece list
+		 * Returns the piece layout of this generation state.
+		 *
+		 * @returns Piece list used to map index-to-position conversions.
 		 */
 		const PieceList& getPieceList() const { return _pieceList; }
 
 		/**
-		 * Returns true, if the current position is a position to check
-		 * @param index index of the position
-		 * @param onlyCandidates if true, only candidates are provided to be checked
+		 * Checks whether a position should be processed in the current pass.
+		 *
+		 * @param index Bitbase index of the position.
+		 * @param onlyCandidates If true, accepts only positions marked as candidates.
+		 * @returns True when the position is not yet computed and passes candidate filtering.
 		 */
 		bool isPositionToCheck(uint64_t index, bool onlyCandidates) {
 			return !_computedPositions.getBit(index) &&
@@ -71,32 +77,42 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Retrieves a list of items to check
+		 * Collects all indexes that still need processing.
+		 *
+		 * @param work Output vector receiving candidate work indexes.
 		 */
 		void getWork(vector<uint64_t>& work) const {
 			_candidates.getAllIndexes(_computedPositions, work);
 		}
 
 		/**
-		 * Gets the bitbase size in bits
+		 * Returns the total number of indexed positions.
+		 *
+		 * @returns Bitbase size in bits (one bit per indexed position).
 		 */
 		uint64_t getSizeInBit() const { return _sizeInBit; }
 
 		/**
-		 * Checks, if last generation loop found candidates
+		 * Indicates whether new candidates were found in the previous loop.
+		 *
+		 * @returns True if at least one candidate is currently marked.
 		 */
 		bool hasCandidates() const {
 			return _hasCandidates;
 		}
 
 		/**
-		 * Retrieves the won positions bitbase
+		 * Returns the bitbase of positions currently classified as won.
+		 *
+		 * @returns Const or mutable reference to the won-position bitbase.
 		 */
 		const Bitbase& getWonPositions() const { return _wonPositions; }
 		Bitbase& getWonPositions() { return _wonPositions; }
 
 		/**
-		 * Sets a list of candidates 
+		 * Adds a batch of candidate indexes for future processing.
+		 *
+		 * @param candidates Candidate indexes to mark.
 		 */
 		void setCandidates(const vector<uint64_t>& candidates) {
 			_hasCandidates = true;
@@ -106,8 +122,11 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Mutex protected version of set Candidates
-		 * @param candidates candidates to add
+		 * Thread-safe variant of candidate insertion.
+		 *
+		 * @param candidates Candidate indexes to add.
+		 * @param wait If true, waits for lock; otherwise skips when another update is active.
+		 * @returns True if candidates were merged, otherwise false.
 		 */
 		bool setCandidatesTreadSafe(const vector<uint64_t>& candidates, bool wait = true) {
 			if (candidates.empty()) {
@@ -126,14 +145,17 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * True, if the position is a candidate for further investigation
+		 * Checks whether an index is currently marked as candidate.
+		 *
+		 * @param index Bitbase index to test.
+		 * @returns True if the index is marked in the candidate bitmap.
 		 */
 		bool isCandidate(uint64_t index) {
 			return _candidates.getBit(index);
 		}
 
 		/**
-		 * Clears all candidates
+		 * Clears the complete candidate bitmap and candidate flag.
 		 */
 		void clearAllCandidates() {
 			_candidates.clear();
@@ -141,14 +163,18 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Clears a position to be a candidate for lookup
+		 * Removes one index from the candidate bitmap.
+		 *
+		 * @param index Bitbase index to clear.
 		 */
 		void clearCandidate(uint64_t index) {
 			_candidates.clearBit(index);
 		}
 
 		/**
-		 * Sets a position to win
+		 * Marks one index as won and computed.
+		 *
+		 * @param index Bitbase index to mark.
 		 */
 		void setWin(uint64_t index) {
 			_won++;
@@ -157,7 +183,9 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Sets a position to loss
+		 * Marks one index as loss and computed.
+		 *
+		 * @param index Bitbase index to mark.
 		 */
 		void setLoss(uint64_t index) {
 			_loss++;
@@ -165,7 +193,9 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Sets a position to draw
+		 * Marks one index as draw and computed.
+		 *
+		 * @param index Bitbase index to mark.
 		 */
 		void setDraw(uint64_t index) {
 			_draw++;
@@ -174,7 +204,9 @@ namespace QaplaBitbase {
 
 
 		/**
-		 * Sets the position to illegal
+		 * Marks one index as illegal and computed.
+		 *
+		 * @param index Bitbase index to mark.
 		 */
 		void setIllegal(uint64_t index) {
 			_illegal++;
@@ -182,7 +214,7 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Prints a statistic 
+		 * Prints summary statistics for wins, losses/draws, illegal positions, and memory.
 		 */
 		void printStatistic() {
 			uint64_t drawOrLoss = _sizeInBit - _won - _illegal;
@@ -199,17 +231,29 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Stores the result (bitbase with winning positions) to a file
+		 * Persists the won-position bitbase to disk.
+		 *
+		 * @param fileName Output filename.
+		 * @param signature Signature used in bitbase metadata.
+		 * @param compression Compression algorithm for file storage.
 		 */
 		void storeToFile(string fileName, string signature, QaplaCompress::CompressionType compression) {
 			_wonPositions.setFilename(signature, ".btb");
 			_wonPositions.storeToFile(fileName, compression);
 		}
 
+		/**
+		 * Generates C++ source output for the won-position bitbase.
+		 *
+		 * @param signature Signature used for generated artifact names.
+		 */
 		void generateCpp(string signature) {
 			_wonPositions.writeAsCppFile(signature, signature + ".h");
 		}
 
+		/**
+		 * Prints internal bitmaps for debugging.
+		 */
 		void print() {
 			std::cout << "Won positions: " << std::endl;
 			_wonPositions.print();
@@ -221,7 +265,9 @@ namespace QaplaBitbase {
 
 	private:
 		/**
-		 * Sets a position to a candidate for lookup
+		 * Marks one index as candidate for future processing.
+		 *
+		 * @param index Bitbase index to mark.
 		 */
 		void setCandidate(uint64_t index) {
 			_candidates.setBit(index);
