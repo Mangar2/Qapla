@@ -113,11 +113,25 @@ namespace QaplaBitbase {
         void clearBit(uint64_t index);
 
         /**
+         * @brief Clears two bits (sets to 0).
+         * @param index2 Two bit index to clear (index of a two bit array).
+         */
+        void clear2Bits(uint64_t index2);
+
+        /**
          * @brief Gets the value of a specific bit.
          * @param index Bit index to retrieve.
          * @return 1 if bit is set, 0, if not and -1 on error.
          */
         int getBit(uint64_t index);
+
+        /**
+         * @brief Gets the value of two bits as a combined integer (for example, for win/draw/loss encoding).
+         * 
+         * @param index2 Two bit index to retrieve (index of a two bit array)
+         * @return int two bit value.
+         */
+        int get2Bits(uint64_t index2);
 
         /**
          * @brief Gets the size of the bitbase in bits.
@@ -221,6 +235,8 @@ namespace QaplaBitbase {
 
         bool loadHeader(const std::filesystem::path& path);
         void verifyWrittenFile();
+        int getBitsFromLoadedData(uint64_t bitIndex, bbt_t mask) const;
+        int getBitsFromClusterData(uint64_t bitIndex, bbt_t mask);
 
         // Caching
         uint32_t _signature;
