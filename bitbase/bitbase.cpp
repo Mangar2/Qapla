@@ -30,7 +30,6 @@
 #include <bit>
 #include "compress.h"
 #include "bitbaseindex.h"
-#include "piecelist.h"
 
 using namespace std;
 
@@ -60,27 +59,32 @@ namespace QaplaBitbase {
         _bitbase[index / BITS_IN_ELEMENT] &= ~(bbt_t(1) << (index % BITS_IN_ELEMENT));
     }
 
-    int Bitbase::getBit(uint64_t index) {
-        if (index >= _sizeInBits) return false;
-  		if (_loaded) {
-			return (_bitbase[index / BITS_IN_ELEMENT] & (bbt_t(1) << (index % BITS_IN_ELEMENT))) != 0;
-		}
+    void Bitbase::clear2Bits(uint64_t index2) {
+        assert(isLoaded());
+        uint64_t index = index2 * 2;
+        if (index >= _sizeInBits) return;
+        uint64_t elementIndex = index / BITS_IN_ELEMENT;
+        uint64_t bitOffset = index % BITS_IN_ELEMENT;
+        _bitbase[elementIndex] &= ~(bbt_t(3) << bitOffset);
+    }
 
+    int Bitbase::getBitsFromLoadedData(uint64_t bitIndex, bbt_t mask) const {
+        return (_bitbase[bitIndex / BITS_IN_ELEMENT] >> (bitIndex % BITS_IN_ELEMENT)) & mask;
+    }
+
+    int Bitbase::getBitsFromClusterData(uint64_t bitIndex, bbt_t mask) {
         const uint32_t bitsPerCluster = _clusterSizeBytes * 8;
-        const uint32_t clusterIndex = static_cast<uint32_t>(index / bitsPerCluster);
-        const uint32_t bitInCluster = static_cast<uint32_t>(index % bitsPerCluster);
+        const uint32_t clusterIndex = static_cast<uint32_t>(bitIndex / bitsPerCluster);
+        const uint32_t bitInCluster = static_cast<uint32_t>(bitIndex % bitsPerCluster);
 
         // Prope cache
-		auto cacheEntry = cache.getEntry(_signature, clusterIndex);
-		if (cacheEntry) {
-			const bbt_t word = cacheEntry->data[bitInCluster / BITS_IN_ELEMENT];
-			const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
-			return (word >> bit) & 1;
-		}
+        auto cacheEntry = cache.getEntry(_signature, clusterIndex);
+        if (cacheEntry) {
+            const bbt_t word = cacheEntry->data[bitInCluster / BITS_IN_ELEMENT];
+            const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
+            return (word >> bit) & mask;
+        }
         try {
-			//static uint64_t reads = 0; reads++; 
-			//if (reads % 1000 == 0) { cout << "Hits: " << (cacheHits * 100.0) / (cacheHits + reads) << "% "; cache.print(); }
-            
             auto cluster = BitbaseFile::readCluster(
                 _filePath.string(),
                 _sizeInBits,
@@ -89,15 +93,34 @@ namespace QaplaBitbase {
                 _offsets,
                 QaplaCompress::Compress::getDecompressor(_compression)
             );
-			cache.setEntry(cluster, _signature, clusterIndex);
+            cache.setEntry(cluster, _signature, clusterIndex);
             const bbt_t word = cluster[bitInCluster / BITS_IN_ELEMENT];
             const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
-            return (word >> bit) & 1;
+            return (word >> bit) & mask;
         }
-		catch (...) {
-			return -1;
+        catch (...) {
+            return -1;
+        }
+    }
+
+    int Bitbase::getBit(uint64_t index) {
+        if (index >= _sizeInBits) return false;
+  		if (_loaded) {
+			return getBitsFromLoadedData(index, bbt_t(1));
 		}
 
+        return getBitsFromClusterData(index, bbt_t(1));
+
+    }
+
+    int Bitbase::get2Bits(uint64_t index2) {
+        auto index = index2 * 2;
+        if (index >= _sizeInBits) return false;
+  		if (_loaded) {
+			return getBitsFromLoadedData(index, bbt_t(3));
+		}
+
+        return getBitsFromClusterData(index, bbt_t(3));
     }
 
     uint64_t Bitbase::getSizeInBit() const {
