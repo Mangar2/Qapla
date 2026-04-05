@@ -243,6 +243,7 @@ namespace QaplaBitbase {
 
         bool loadHeader(const std::filesystem::path& path);
         void verifyWrittenFile();
+        void compactTo1BitIfPossible();
         int getBitsFromLoadedData(uint64_t bitIndex, bbt_t mask) const;
         int getBitsFromClusterData(uint64_t bitIndex, bbt_t mask);
 

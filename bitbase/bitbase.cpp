@@ -147,6 +147,7 @@ namespace QaplaBitbase {
 		if (!isLoaded()) {
 			throw std::runtime_error("Error: Bitbase is not loaded.");
 		}
+        compactTo1BitIfPossible();
         const uint32_t clusterElements = DEFAULT_CLUSTER_SIZE_IN_BYTES / sizeof(bbt_t);
 
         BitbaseFile::write(
@@ -160,6 +161,36 @@ namespace QaplaBitbase {
         );
 
 		verifyWrittenFile();
+    }
+
+    void Bitbase::compactTo1BitIfPossible() {
+        if (_bitsPerEntry != 1) return;
+
+        // Check if any entry uses the upper bit (value >= 2)
+        // In 2-bit layout, the upper bits form a mask: 0xAA for uint8_t elements
+        constexpr bbt_t upperBitMask = bbt_t(0xAA);  // bits 1,3,5,7 = upper bit of each 2-bit pair
+        for (const auto& element : _bitbase) {
+            if (element & upperBitMask) return;
+        }
+
+        // No upper bit set anywhere — compact to 1-bit
+        const uint64_t entryCount = _sizeInBits / 2;
+        const uint64_t newSizeInBits = entryCount;
+        const uint64_t newSizeInElements = (newSizeInBits + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
+        std::vector<bbt_t> compacted(newSizeInElements, 0);
+
+        for (uint64_t i = 0; i < entryCount; ++i) {
+            const uint64_t srcBitIndex = i * 2;
+            const int value = (_bitbase[srcBitIndex / BITS_IN_ELEMENT] >> (srcBitIndex % BITS_IN_ELEMENT)) & 1;
+            if (value) {
+                compacted[i / BITS_IN_ELEMENT] |= bbt_t(1) << (i % BITS_IN_ELEMENT);
+            }
+        }
+
+        _bitbase = std::move(compacted);
+        _sizeInBits = newSizeInBits;
+        _bitsPerEntry = 0;
+        std::cout << "Compacted 2-bit bitbase to 1-bit (no upper bits used)" << std::endl;
     }
 
     void Bitbase::verifyWrittenFile() {

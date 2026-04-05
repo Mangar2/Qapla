@@ -19,11 +19,6 @@
 
 
 #include "bitbase-interface.h"
-#include "../eval/eval.h"
-#include "winboardprintsearchinfo.h"
-#include <thread>
-#include <vector>
-#include <algorithm>
 
 using namespace std;
 
