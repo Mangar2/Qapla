@@ -18,6 +18,8 @@
  */
 
 #include <map>
+#include <format>
+
 #include "../search/clockmanager.h"
 #include "../eval/evalendgame.h"
 
@@ -47,8 +49,8 @@ std::vector<std::string> BitbaseReader::loadBitbase() {
 			}
 		}
 	}
-	messages.push_back("Read bitbases from directory: " + bitbasePath.string() + "- " + to_string(_bitbases.size() - 1) + " bitbases read");
-	messages.push_back("Time spent to load bitbases: " + to_string(clock.computeTimeSpentInMilliseconds()) + " milliseconds ");
+	messages.push_back(std::format("Read bitbases from directory: {} - {} bitbases read", bitbasePath.string(), _bitbases.size() - 1));
+	messages.push_back(std::format("Time spent to load bitbases: {} milliseconds", clock.computeTimeSpentInMilliseconds()));
 	return messages;
 }
 
@@ -120,6 +122,16 @@ Result BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
 	Bitbase* bitbase = getBitbase(signature);
 	if (bitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
+		if (bitbase->getBitsPerEntry() >= 2) {
+			// 2-bit encoding: UNKNOWN=0, WIN=1, LOSS=2, DRAW=3
+			switch (bitbase->get2Bits(index)) {
+				case BitbaseResult::Win:  return Result::Win;
+				case BitbaseResult::Loss: return Result::Loss;
+				case BitbaseResult::Draw: return Result::Draw;
+				default:                  return Result::Unknown;
+			}
+		}
+		// 1-bit encoding: only win vs. draw-or-loss
 		return bitbase->getBit(index) ? Result::Win : Result::DrawOrLoss;
 	}
 	return Result::Unknown;

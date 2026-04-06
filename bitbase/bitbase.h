@@ -38,12 +38,15 @@ namespace QaplaBitbase {
      * @brief Stores and manages bit-level data for chess endgame databases.
      *
      * 2-bit entry encoding (bitsPerEntry == 2):
-     *   BITBASE_UNKNOWN = 0, BITBASE_WIN = 1, BITBASE_LOSS = 2, BITBASE_DRAW = 3
      */
-    static constexpr int BITBASE_UNKNOWN = 0;
-    static constexpr int BITBASE_WIN = 1;
-    static constexpr int BITBASE_LOSS = 2;
-    static constexpr int BITBASE_DRAW = 3;
+    enum class BitbaseResult : int {
+        Unknown = 0,
+        Win = 1,
+        Loss = 2,
+        Draw = 3
+    };
+
+    std::string to_string(BitbaseResult result);
 
     class Bitbase {
     public:
@@ -122,9 +125,9 @@ namespace QaplaBitbase {
          * @brief Sets two bits as a combined integer value (for example, for win/draw/loss encoding). 
          * Requires that the content of the two bits is currently 0 (initial or cleared state).
          * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
-         * @param value Integer value to set (0-3).
+         * @param value BitbaseResult value to set.
          */
-        void or2Bit(uint64_t index2, int value);
+        void or2Bit(uint64_t index2, BitbaseResult value);
 
         /**
          * @brief Clears a specific bit (sets to 0).
@@ -149,9 +152,9 @@ namespace QaplaBitbase {
          * @brief Gets the value of two bits as a combined integer (for example, for win/draw/loss encoding).
          * 
          * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
-         * @return int two bit value.
+         * @return BitbaseResult value.
          */
-        int get2Bits(uint64_t index2);
+        BitbaseResult get2Bits(uint64_t index2);
 
         /**
          * @brief Gets the total number of bits in the bitbase.
@@ -224,11 +227,11 @@ namespace QaplaBitbase {
         void getAllIndexes(const Bitbase& andNot, std::vector<uint64_t>& indexes) const;
 
         /**
-         * @brief Counts the number of set bits matching the given result.
-         * @param result Bit pattern to match.
-         * @return Count of matching bits.
+         * @brief Counts the number of entries matching the given result.
+         * @param result BitbaseResult to match.
+         * @return Count of matching entries.
          */
-        uint64_t computeResults(bbt_t result) const;
+        uint64_t computeResults(BitbaseResult result) const;
 
         /**
          * @brief Writes the compressed bitbase as a C++ header file with a uint32_t array.
