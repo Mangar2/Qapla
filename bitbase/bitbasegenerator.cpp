@@ -40,26 +40,31 @@ using namespace QaplaSearch;
 using namespace QaplaBitbase;
 
 /**
- * Probes non-capture, non-promotion continuations against the current bitbase.
+ * Evaluates non-capture, non-promotion moves against already-computed bitbase entries
+ * to determine and store the best result achievable from this position.
+ * Capture and promotion moves are skipped here — they were resolved during initialization.
+ * Stores an intermediate lower-bound value (e.g. Draw) as soon as one is found,
+ * even before all successors are resolved. Finalizes the value once all reachable
+ * successors are known.
  *
  * @param position Current position to evaluate.
- * @param bitbase Bitbase containing known won positions.
+ * @param state Mutable generation state providing the bitbase and storing the result.
  * @param verbose Enables detailed debug output.
- * @returns Bitbase value information (BITBASE_WIN, BITBASE_LOSS, BITBASE_DRAW, BITBASE_UNKNOWN)
+ * @returns Final proven result (Win/Loss/Draw), or Unknown if any successor is still unresolved.
  */
-BitbaseResult BitbaseGenerator::computeValue(MoveGenerator &position, Bitbase &bitbase, bool verbose)
+BitbaseResult BitbaseGenerator::setComputeValue(
+	MoveGenerator& position, QaplaBitbase::GenerationState &state, bool verbose)
 {
 	MoveList moveList;
 	Move move;
 	bool whiteToMove = position.isWhiteToMove();
 	PieceList pieceList(position);
 	auto index = BoardAccess::getIndex<false>(position);
-	// ToDo: We might have 5 situations:
-	// 1-3. Finally win, finally draw, finally loss.
-	// 4. Unknown
-	// 5. Unknown but at least draw due to a drawish capture or promotion. 
-	// As we cant store 5 kinds of results in two bits, we either need to check captures or promotes here or
-	// we need to find another solution.  
+	auto& bitbase = state.getComputedResults();
+
+	bool anyUnknown = false;
+
+	// result contains the value gained so far. It is not a final value, computeValue is only called for non final values.
 	BitbaseResult result = bitbase.get2Bits(index);
 
 	if (verbose)
@@ -79,11 +84,16 @@ BitbaseResult BitbaseGenerator::computeValue(MoveGenerator &position, Bitbase &b
 		// but we are currently not detecting this.
 		if (!move.isCaptureOrPromote())
 		{
-			auto index = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-			auto moveResult = bitbase.get2Bits(index);
+			const auto moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
+			auto isFinal = state.isPositionComputed(moveIndex);
+			if (!isFinal) {
+				anyUnknown = true;
+				continue;
+			}
+			auto moveResult = bitbase.get2Bits(moveIndex);
 			if (verbose)
 			{
-				std::cout << move.getLAN() << ", index: " << index
+				std::cout << move.getLAN() << ", index: " << moveIndex
 						  << ", value: " << to_string(result)
 						  << std::endl;
 			}
@@ -93,61 +103,50 @@ BitbaseResult BitbaseGenerator::computeValue(MoveGenerator &position, Bitbase &b
 			// If the side to move can force a win, we have a final result and stop searching further.
 			if (moveResult == BitbaseResult::Win && whiteToMove)
 			{
-				result = BitbaseResult::Win;
-				break;
+				state.setWin(index);
+				return BitbaseResult::Win;
 			}
 			if (moveResult == BitbaseResult::Loss && !whiteToMove)
 			{
-				result = BitbaseResult::Loss;
-				break;
+				state.setLoss(index);
+				return BitbaseResult::Loss;
 			}
-			// If we are here, we do not have a final result yet. Thus we will set the result "so far".
-			// In order of significance we need to test for unknown and draw. If at least one move is unknowon,
-			// we have an unknown result.
-			if (moveResult == BitbaseResult::Unknown || result == BitbaseResult::Unknown)
+			// Store that we "gained" a draw so far, still it is not final
+			if (moveResult == BitbaseResult::Draw && result != BitbaseResult::Draw)
 			{
 				result = BitbaseResult::Draw;
-				continue;
+				state.setValue(index, BitbaseResult::Draw, false);
 			}
-			// If we are here, side to move cant win and nothing is unknown - so if we may get a draw we´ll take it.
-			if (moveResult == BitbaseResult::Draw || result == BitbaseResult::Draw)
-			{
-				result = BitbaseResult::Draw;
-				continue;
-			}
-			// If we cant win, nothing is unknown and we do not have a draw, we have a loss.
-			result = BitbaseResult::Loss;
 		}
 	}
-	if (DO_DEBUG && _debugLevel > 1 && whiteToMove && result == BitbaseResult::Unknown)
-	{
-		printDebugInfo(position);
+	if (anyUnknown) {
+		return BitbaseResult::Unknown;
 	}
+	if (result == BitbaseResult::Draw) {
+		state.setValue(index, BitbaseResult::Draw, true);
+		return BitbaseResult::Draw;
+	}
+	// All known, none winning or drawing, so it is a loss for the side to move.
+	state.setValue(index, result, true);
 	return result;
 }
 
 /**
- * Updates one index by evaluating whether the position is now proven as won.
+ * Re-evaluates one position during iterative propagation and stores the result if resolved.
  *
  * @param index Bitbase index of the current position.
  * @param position Position reconstructed for this index.
  * @param state Mutable generation state.
- * @returns 1 if the index was newly marked as win, otherwise 0.
+ * @returns true if the position reached a definitive result (Win, Loss, or Draw); false if still Unknown.
  */
-uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &position, GenerationState &state)
+bool BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &position, GenerationState &state)
 {
-	uint32_t result = 0;
-	if (position.isWhiteToMove() || computeValue(position, state.getComputedResults(), false) != BitbaseResult::Unknown)
+	auto result = setComputeValue(position, state, false);
+	if (index == _debugIndex)
 	{
-		if (index == _debugIndex)
-		{
-			computeValue(position, state.getComputedResults(), true);
-		}
-		state.setWin(index);
-		result++;
+		setComputeValue(position, state, true);
 	}
-
-	return result;
+	return result != BitbaseResult::Unknown;
 }
 
 /**
@@ -382,13 +381,20 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 }
 
 /**
- * Determines the best achievable result by examining only captures and promotions,
- * consulting already-generated subordinate bitbases for each resulting position.
- * Returns Win/Draw/Loss if the outcome can be fully decided this way,
- * or Unknown if non-capture moves still need to be resolved by iterative propagation.
+ * Sets the initial proven value for a position by consulting subordinate bitbases
+ * via all capture and promotion moves.
+ * Always writes at least the best already-achieved result into state:
+ * a forced win or loss is stored as final; a reachable draw is stored as
+ * an intermediate lower bound even when non-capture moves remain unresolved.
+ * Returns Win or Loss when the result is fully decided by captures/promotions alone,
+ * Draw when all evaluated moves are at least draws and no non-captures exist,
+ * or Unknown when non-capture moves are present and no forced win was found.
  *
  * @param position Current position to evaluate.
+ * @param index Bitbase index of the position.
  * @param moveList Legal moves generated for the side to move.
+ * @param state Mutable generation state that receives the result.
+ * @returns Final proven result, or Unknown if iterative propagation is still needed.
  */
 BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 	MoveGenerator &position, const uint64_t index, MoveList &moveList, QaplaBitbase::GenerationState &state)
@@ -409,8 +415,8 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 		// bitbases only cover positions reachable via captures or promotions.
 		if (!move.isCaptureOrPromote())
 		{
-			continue;
 			anyUnknown = true;
+			continue;
 		}
 		position.doMove(move);
 		Result readerResult = BitbaseReader::getValueFromSingleBitbase(position);
@@ -494,7 +500,6 @@ BitbaseResult BitbaseGenerator::initialComputePosition(
 	uint64_t index, MoveGenerator &position, GenerationState &state)
 {
 	MoveList moveList;
-	Result result = Result::Unknown;
 
 	// Illegal positions can be marked as "searched".
 	if (!position.isLegal())

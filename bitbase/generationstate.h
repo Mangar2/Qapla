@@ -79,6 +79,16 @@ namespace QaplaBitbase {
 		}
 
 		/**
+		 * Checks whether a position has already been (finally) computed.
+		 *
+		 * @param index Bitbase index of the position.
+		 * @returns True if the position is marked as computed.
+		 */
+		bool isPositionComputed(uint64_t index) {
+			return _computedPositions.getBit(index);
+		}
+
+		/**
 		 * Collects all indexes that still need processing.
 		 *
 		 * @param work Output vector receiving candidate work indexes.
