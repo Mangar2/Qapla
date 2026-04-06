@@ -183,24 +183,30 @@ namespace QaplaBitbase {
 		void computeCandidates(vector<uint64_t>& candidates, MoveGenerator& position, bool verbose);
 
 		/**
-		 * Probes non-capture, non-promotion continuations against the current bitbase.
+		 * Evaluates non-capture, non-promotion moves against already-computed bitbase entries
+		 * to determine and store the best result achievable from this position.
+		 * Capture and promotion moves are skipped — they were resolved during initialization.
+		 * Stores an intermediate lower-bound value (e.g. Draw) as soon as one is found,
+		 * even before all successors are resolved. Finalizes the value once all reachable
+		 * successors are known.
 		 *
 		 * @param position Current position to evaluate.
-		 * @param bitbase Bitbase containing known won positions.
+		 * @param state Mutable generation state providing the bitbase and storing the result.
 		 * @param verbose Enables detailed debug output.
-		 * @returns Bitbase value (BitbaseResult::WIN, LOSS, DRAW, or UNKNOWN)
+		 * @returns Final proven result (Win/Loss/Draw), or Unknown if any successor is still unresolved.
 		 */
-		BitbaseResult computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose);
+		BitbaseResult setComputeValue(
+			MoveGenerator& position, QaplaBitbase::GenerationState &state, bool verbose);
 
 		/**
-		 * Updates one index by evaluating whether the position is now proven as won.
+		 * Re-evaluates one position during iterative propagation and stores the result if resolved.
 		 *
 		 * @param index Bitbase index of the current position.
 		 * @param position Position reconstructed for this index.
 		 * @param state Mutable generation state.
-		 * @returns 1 if the index was newly marked as win, otherwise 0.
+		 * @returns true if the position reached a definitive result (Win, Loss, or Draw); false if still Unknown.
 		 */
-		uint32_t computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+		bool computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
 		 * Prints elapsed wall-clock time for the current generation step.
@@ -256,38 +262,48 @@ namespace QaplaBitbase {
 		void computeBitbase(GenerationState& state, ClockManager& clock);
 
 		/**
-		 * Determines the best achievable result by examining only captures and promotions,
-		 * consulting already-generated subordinate bitbases for each resulting position.
-		 * Returns Win/Draw/Loss if the outcome can be fully decided this way,
-		 * or Unknown if non-capture moves still need to be resolved by iterative propagation.
+		 * Sets the initial proven value for a position by consulting subordinate bitbases
+		 * via all capture and promotion moves.
+		 * Always writes at least the best already-achieved result into state:
+		 * a forced win or loss is stored as final; a reachable draw is stored as
+		 * an intermediate lower bound even when non-capture moves remain unresolved.
+		 * Returns Win or Loss when the result is fully decided by captures/promotions alone,
+		 * Draw when all evaluated moves are at least draws and no non-captures exist,
+		 * or Unknown when non-capture moves are present and no forced win was found.
 		 *
 		 * @param position Current position to evaluate.
+		 * @param index Bitbase index of the position.
 		 * @param moveList Legal moves generated for the side to move.
-		 * @returns Best proven result from white's perspective, or Unknown if undecided.
+		 * @param state Mutable generation state that receives the result.
+		 * @returns Final proven result, or Unknown if iterative propagation is still needed.
 		 */
 		BitbaseResult setInitialValueByCapturesAndPromotions(
 			MoveGenerator& position, const uint64_t index, MoveList& moveList, QaplaBitbase::GenerationState &state);
 
 		/**
-		 * Classifies a no-move situation as checkmate or stalemate.
+		 * Stores and returns the terminal result for a position with no legal moves.
+		 * Black checkmated → Win, White checkmated → Loss, no check → Draw (stalemate).
+		 * Always produces a final, non-Unknown result.
 		 *
 		 * @param position Current position with no legal moves.
 		 * @param index Bitbase index of this position.
-		 * @param state Mutable generation state.
-		 * @returns Classified terminal result.
+		 * @param state Mutable generation state that receives the result.
+		 * @returns Win, Loss, or Draw.
 		 */
 		BitbaseResult setMateOrStalemate(QaplaMoveGenerator::MoveGenerator& position, const uint64_t index,
 			QaplaBitbase::GenerationState& state);
 
 		/**
-		 * Performs initial classification for one position before iterative propagation.
+		 * Classifies one position during the initial pass before iterative propagation.
+		 * Illegal and terminal positions (mate/stalemate) are fully decided immediately.
+		 * For positions with legal moves, the best result provable via captures and promotions
+		 * is stored; positions still depending on non-capture moves return Unknown.
 		 *
 		 * @param index Bitbase index of this position.
 		 * @param position Reconstructed position.
-		 * @param state Mutable generation state.
-		 * @returns Initial classification result.
+		 * @param state Mutable generation state that receives the result.
+		 * @returns Final proven result, or Unknown if iterative propagation is still needed.
 		 */
-
 		BitbaseResult initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**

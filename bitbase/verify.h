@@ -31,7 +31,6 @@
 #include "bitbase-reader.h"
 #include "../search/clockmanager.h"
 
-using namespace std;
 using namespace QaplaMoveGenerator;
 using namespace QaplaSearch;
 
@@ -281,7 +280,7 @@ namespace QaplaBitbase {
 					PieceList pieceListCopy(pieceList);
 					string debug;
 					for (Square square = first; square <= last; ++square) {
-						debug += " " + to_string(square);
+						debug += " " + std::to_string(square);
 						pieceListCopy.setSquare(0, square);
 						verifyPositionRec(pieceList, 1);
 						cout << '.';
