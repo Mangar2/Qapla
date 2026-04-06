@@ -42,9 +42,9 @@ namespace QaplaBitbase {
 		{
 			BitbaseIndex bitbaseIndexType(pieceList);
 			_entryCount = bitbaseIndexType.getEntryCount();
-			_wonPositions = Bitbase(_entryCount, 2, sig);
-			_wonPositions.resize(_entryCount);
-			_wonPositions.setLoaded();
+			_computedResults = Bitbase(_entryCount, 2, sig);
+			_computedResults.resize(_entryCount);
+			_computedResults.setLoaded();
 			_computedPositions = Bitbase(_entryCount, 1, sig);
 			_computedPositions.resize(_entryCount);
 			_computedPositions.setLoaded();
@@ -106,10 +106,10 @@ namespace QaplaBitbase {
 		/**
 		 * Returns the bitbase of positions currently classified as won.
 		 *
-		 * @returns Const or mutable reference to the won-position bitbase.
+		 * @returns Const or mutable reference to the computed results bitbase.
 		 */
-		const Bitbase& getWonPositions() const { return _wonPositions; }
-		Bitbase& getWonPositions() { return _wonPositions; }
+		const Bitbase& getComputedResults() const { return _computedResults; }
+		Bitbase& getComputedResults() { return _computedResults; }
 
 		/**
 		 * Adds a batch of candidate indexes for future processing.
@@ -173,6 +173,16 @@ namespace QaplaBitbase {
 			_candidates.clearBit(index);
 		}
 
+		void setValue(uint64_t index, BitbaseResult value, bool finalValue) {
+			_computedResults.or2Bit(index, value);
+			if (finalValue) {
+				_computedPositions.setBit(index);
+				_won += (value == BitbaseResult::Win) ? 1 : 0;
+				_loss += (value == BitbaseResult::Loss) ? 1 : 0;
+				_draw += (value == BitbaseResult::Draw) ? 1 : 0;
+			}
+		}
+
 		/**
 		 * Marks one index as won and computed.
 		 *
@@ -180,7 +190,7 @@ namespace QaplaBitbase {
 		 */
 		void setWin(uint64_t index) {
 			_won++;
-			_wonPositions.or2Bit(index, BITBASE_WIN);
+			_computedResults.or2Bit(index, BitbaseResult::Win);
 			_computedPositions.setBit(index);
 		}
 
@@ -191,6 +201,7 @@ namespace QaplaBitbase {
 		 */
 		void setLoss(uint64_t index) {
 			_loss++;
+			_computedResults.or2Bit(index, BitbaseResult::Loss);
 			_computedPositions.setBit(index);
 		}
 
@@ -201,6 +212,7 @@ namespace QaplaBitbase {
 		 */
 		void setDraw(uint64_t index) {
 			_draw++;
+			_computedResults.or2Bit(index, BitbaseResult::Draw);
 			_computedPositions.setBit(index);
 		}
 
@@ -225,9 +237,9 @@ namespace QaplaBitbase {
 				<< " Draw or loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _entryCount) << "%)"
 				<< " Loss in 0: " << _loss
 				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _entryCount) << "%)"
-				<< " Uncompressed memory size " << _wonPositions.getSize()
+				<< " Uncompressed memory size " << _computedResults.getSize()
 				<< std:: endl;
-			if (_won != _wonPositions.computeResults(BITBASE_WIN)) {
+			if (_won != _computedResults.computeResults(BitbaseResult::Win)) {
 				std::cout << "Error, won positions do not match!" << std::endl;
 			}
 		}
@@ -240,8 +252,8 @@ namespace QaplaBitbase {
 		 * @param compression Compression algorithm for file storage.
 		 */
 		void storeToFile(string fileName, string signature, QaplaCompress::CompressionType compression) {
-			_wonPositions.setFilename(signature, ".btb");
-			_wonPositions.storeToFile(fileName, compression);
+			_computedResults.setFilename(signature, ".btb");
+			_computedResults.storeToFile(fileName, compression);
 		}
 
 		/**
@@ -250,7 +262,7 @@ namespace QaplaBitbase {
 		 * @param signature Signature used for generated artifact names.
 		 */
 		void generateCpp(string signature) {
-			_wonPositions.writeAsCppFile(signature, signature + ".h");
+			_computedResults.writeAsCppFile(signature, signature + ".h");
 		}
 
 		/**
@@ -258,7 +270,7 @@ namespace QaplaBitbase {
 		 */
 		void print() {
 			std::cout << "Won positions: " << std::endl;
-			_wonPositions.print();
+			_computedResults.print();
 			std::cout << "Computed positions: " << std::endl;
 			_computedPositions.print();
 			std::cout << "Candidates: " << std::endl;
@@ -281,7 +293,9 @@ namespace QaplaBitbase {
 		std::atomic<uint64_t> _draw;
 		std::atomic<uint64_t>  _won;
 		std::atomic<uint64_t>  _hasCandidates;
-		Bitbase _wonPositions;
+		// Bitbase holding currently computed results
+		Bitbase _computedResults;
+
 		Bitbase _computedPositions;
 		Bitbase _candidates;
 		PieceList _pieceList;

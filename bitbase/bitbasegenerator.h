@@ -121,16 +121,7 @@ namespace QaplaBitbase {
 				}
 			}
 		}
-
-		/**
-		 * Evaluates capture and promotion moves against existing bitbase information.
-		 *
-		 * @param position Current position to evaluate.
-		 * @param moveList Legal moves generated for the side to move.
-		 * @returns The best known result from the side-to-move perspective.
-		 */
-		Result initialSearch(MoveGenerator& position, MoveList& moveList);
-
+		
 		/**
 		 * Converts one reverse-generated move candidate into a bitbase index.
 		 *
@@ -197,9 +188,9 @@ namespace QaplaBitbase {
 		 * @param position Current position to evaluate.
 		 * @param bitbase Bitbase containing known won positions.
 		 * @param verbose Enables detailed debug output.
-		 * @returns True if the position is currently proven as a win for white.
+		 * @returns Bitbase value (BitbaseResult::WIN, LOSS, DRAW, or UNKNOWN)
 		 */
-		bool computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose);
+		BitbaseResult computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose);
 
 		/**
 		 * Updates one index by evaluating whether the position is now proven as won.
@@ -264,6 +255,18 @@ namespace QaplaBitbase {
 		 */
 		void computeBitbase(GenerationState& state, ClockManager& clock);
 
+		/**
+		 * Determines the best achievable result by examining only captures and promotions,
+		 * consulting already-generated subordinate bitbases for each resulting position.
+		 * Returns Win/Draw/Loss if the outcome can be fully decided this way,
+		 * or Unknown if non-capture moves still need to be resolved by iterative propagation.
+		 *
+		 * @param position Current position to evaluate.
+		 * @param moveList Legal moves generated for the side to move.
+		 * @returns Best proven result from white's perspective, or Unknown if undecided.
+		 */
+		BitbaseResult setInitialValueByCapturesAndPromotions(
+			MoveGenerator& position, const uint64_t index, MoveList& moveList, QaplaBitbase::GenerationState &state);
 
 		/**
 		 * Classifies a no-move situation as checkmate or stalemate.
@@ -273,7 +276,7 @@ namespace QaplaBitbase {
 		 * @param state Mutable generation state.
 		 * @returns Classified terminal result.
 		 */
-		Result setMateOrStalemate(QaplaMoveGenerator::MoveGenerator& position, const uint64_t index,
+		BitbaseResult setMateOrStalemate(QaplaMoveGenerator::MoveGenerator& position, const uint64_t index,
 			QaplaBitbase::GenerationState& state);
 
 		/**
@@ -284,7 +287,8 @@ namespace QaplaBitbase {
 		 * @param state Mutable generation state.
 		 * @returns Initial classification result.
 		 */
-		Result initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+
+		BitbaseResult initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
 		 * Processes one dynamic work package for initial position classification.

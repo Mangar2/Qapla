@@ -30,9 +30,17 @@
 #include "compress.h"
 #include "bitbaseindex.h"
 
-using namespace std;
-
 namespace QaplaBitbase {
+
+    std::string to_string(BitbaseResult result) {
+        switch (result) {
+            case BitbaseResult::Unknown: return "UNKNOWN";
+            case BitbaseResult::Win: return "WIN";
+            case BitbaseResult::Loss: return "LOSS";
+            case BitbaseResult::Draw: return "DRAW";
+            default: return "INVALID_RESULT";
+        }
+    }
 
     Bitbase::Bitbase() : _entryCount(0), _bitsPerEntry(1), _loaded(false), _headerLoaded(false) {}
 
@@ -52,11 +60,11 @@ namespace QaplaBitbase {
         _bitbase[index / BITS_IN_ELEMENT] |= bbt_t(1) << (index % BITS_IN_ELEMENT);
     }
 
-    void Bitbase::or2Bit(uint64_t index2, int value) {
+    void Bitbase::or2Bit(uint64_t index2, BitbaseResult value) {
         assert(isLoaded());
         uint64_t index = index2 * 2;
         if (index + 1 >= sizeInBits()) return;
-        _bitbase[index / BITS_IN_ELEMENT] |= (bbt_t(value) << (index % BITS_IN_ELEMENT));
+        _bitbase[index / BITS_IN_ELEMENT] |= (bbt_t(static_cast<int>(value)) << (index % BITS_IN_ELEMENT));
     }
 
     void Bitbase::clearBit(uint64_t index) {
@@ -119,14 +127,14 @@ namespace QaplaBitbase {
 
     }
 
-    int Bitbase::get2Bits(uint64_t index2) {
+    BitbaseResult Bitbase::get2Bits(uint64_t index2) {
         auto index = index2 * 2;
-        if (index + 1 >= sizeInBits()) return false;
+        if (index + 1 >= sizeInBits()) return BitbaseResult::Unknown;
   		if (_loaded) {
-			return getBitsFromLoadedData(index, bbt_t(3));
+			return static_cast<BitbaseResult>(getBitsFromLoadedData(index, bbt_t(3)));
 		}
 
-        return getBitsFromClusterData(index, bbt_t(3));
+        return static_cast<BitbaseResult>(getBitsFromClusterData(index, bbt_t(3)));
     }
 
     std::string Bitbase::getStatistic() {
@@ -135,7 +143,7 @@ namespace QaplaBitbase {
         for (uint64_t index = 0; index < sizeInBits(); ++index) {
             if (getBit(index)) win++; else draw++;
         }
-        return " win: " + to_string(win) + " draw, loss or error: " + to_string(draw);
+        return " win: " + std::to_string(win) + " draw, loss or error: " + std::to_string(draw);
     }
 
     void Bitbase::storeToFile(const std::string& fileName, QaplaCompress::CompressionType compression) {
@@ -262,11 +270,11 @@ namespace QaplaBitbase {
         }
     }
 
-    uint64_t Bitbase::computeResults(bbt_t result) const {
+    uint64_t Bitbase::computeResults(BitbaseResult result) const {
         uint64_t count = 0;
         for (uint64_t index = 0; index < sizeInBits(); index += _bitsPerEntry) {
             auto mask = _bitsPerEntry == 1 ? bbt_t(1) : bbt_t(3);   
-            if (getBitsFromLoadedData(index, mask) == result) {
+            if (getBitsFromLoadedData(index, mask) == static_cast<int>(result)) {
                 ++count;
             }
         }
