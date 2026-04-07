@@ -206,8 +206,16 @@ void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
 	BitbaseIndex index(pieceString);
 
 	Bitbase bitbase(index, 1, signature.getPiecesSignature());
-	// Bitbase is not available is a supported situation and not an error
-	if (!bitbase.attachFromFile(pieceString, ".btb", bitbasePath)) return;
+	// Bitbase is not available is a supported situation and not an error.
+	// If the direct file doesn't exist, try the color-swapped name (e.g. KKN → KNK).
+	if (!bitbase.attachFromFile(pieceString, ".btb", bitbasePath)) {
+		PieceList list(pieceString);
+		std::string mirrorName = list.getPieceStringOfColor<BLACK>() + list.getPieceStringOfColor<WHITE>();
+		if (mirrorName != pieceString) {
+			loadBitbase(mirrorName, onlyHeader);
+		}
+		return;
+	}
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
 	if (!onlyHeader) {
 		auto [success, errorMessage] = bitbase.readAll();
