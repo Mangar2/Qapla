@@ -96,6 +96,14 @@ namespace QaplaBitbase {
          */
         static void loadBitbase(std::string pieceString, bool onlyHeader);
 
+		/**
+		 * Tries to load a single bitbase file from disk.
+		 * @param pieceString Piece configuration string.
+		 * @param onlyHeader If true, only loads header information.
+		 * @return True if file was found and loaded successfully.
+		 */
+		static bool tryLoadBitbaseFile(const std::string& pieceString, bool onlyHeader);
+
         /**
          * Checks if a bitbase is available.
          * @param pieceString Piece configuration string.
