@@ -25,6 +25,10 @@
 #include <string>
 #include <cstdint>
 #include <iostream>
+#include <mutex>
+#include <atomic>
+#include <array>
+#include <algorithm>
 
 
 namespace QaplaBitbase {
@@ -102,7 +106,11 @@ namespace QaplaBitbase {
 
     /**
      * @class ClusterCache
-     * @brief Fixed-size cache of Bitbase cluster entries with simple probing.
+     * @brief Fixed-size cache of Bitbase cluster entries with striped locking.
+     *
+     * The entry array is partitioned into STRIPE_COUNT segments, each protected
+     * by its own mutex. Probing wraps within a segment, so threads accessing
+     * different segments never contend on the same lock.
      */
     class ClusterCache {
     public:
@@ -112,79 +120,100 @@ namespace QaplaBitbase {
         static constexpr std::size_t PROBE_COUNT = 100;
 
         /**
-         * @brief Construct cache with given capacity.
+         * @brief Number of independent lock stripes.
+         */
+        static constexpr std::size_t STRIPE_COUNT = 256;
+
+        /**
+         * @brief Construct cache with given capacity (rounded up to multiple of STRIPE_COUNT).
          * @param capacity  Number of entries to allocate.
          */
         ClusterCache(std::size_t capacity) {
-            entries.resize(capacity);
+            capacity = roundToStripeMultiple(capacity);
+            _entries.resize(capacity);
         }
 
         /**
-         * @brief Resize the cache.
+         * @brief Resize the cache (rounded up to multiple of STRIPE_COUNT).
          * @param newCapacity  New number of entries.
          */
         void resize(std::size_t newCapacity) {
-            entries.resize(newCapacity);
+            newCapacity = roundToStripeMultiple(newCapacity);
+            _entries.resize(newCapacity);
         }
 
         /**
-         * @brief Look up an entry by signature and cluster number.
+         * @brief Look up a single byte from a cached cluster.
+         *
+         * Thread-safe: acquires only the stripe mutex for the target segment.
+         *
          * @param sig         Bitbase signature to match.
          * @param clusterIdx  Cluster index to match.
-         * @param nowAge      Current global age counter.
-         * @return Pointer to matching entry, or nullptr if not found.
+         * @param byteIndex   Byte offset within the cluster data.
+         * @return The byte value (0-255) on hit, or -1 on miss.
          */
-        CacheEntry* getEntry(uint32_t sig, uint32_t clusterIdx) {
-            if (entries.empty()) return nullptr;
-            std::size_t idx = hash(sig, clusterIdx) % entries.size();
-            for (std::size_t i = 0; i < PROBE_COUNT; ++i) {
-                auto& e = entries[(idx + i) % entries.size()];
+        int getEntryByte(uint32_t sig, uint32_t clusterIdx, uint32_t byteIndex) {
+            if (_entries.empty()) return -1;
+            const std::size_t segSize = _entries.size() / STRIPE_COUNT;
+            const std::size_t h = hash(sig, clusterIdx);
+            const std::size_t stripe = h % STRIPE_COUNT;
+            const std::size_t segStart = stripe * segSize;
+            const std::size_t offset = (h / STRIPE_COUNT) % segSize;
+            const std::size_t probeCount = std::min(PROBE_COUNT, segSize);
+
+            std::lock_guard<std::mutex> lock(_stripeMutexes[stripe].mtx);
+            for (std::size_t i = 0; i < probeCount; ++i) {
+                auto& e = _entries[segStart + (offset + i) % segSize];
                 if (e.signature == sig && e.clusterNumber == clusterIdx) {
-                    return &e;
+                    if (byteIndex < e.data.size()) {
+                        return e.data[byteIndex];
+                    }
+                    return -1;
                 }
             }
-            return nullptr;
+            return -1;
         }
 
         /**
-         * @brief Insert or replace an entry using simple eviction.
-         * @param entry   New CacheEntry to insert.
-         * @param nowAge  Current global age counter.
+         * @brief Insert or replace a cluster entry.
+         *
+         * Thread-safe: acquires only the stripe mutex for the target segment.
+         *
+         * @param data        Data vector for this cluster.
+         * @param sig         Bitbase signature.
+         * @param clusterIdx  Cluster index number.
          */
-        void setEntry(const CacheEntry& entry) {
-            if (entries.empty()) return;
-            nowAge++;
-            std::size_t base = hash(entry.signature, entry.clusterNumber) % entries.size();
-            // find slot with smallest value among first PROBE_COUNT positions
-            std::size_t victim = base;
-            uint64_t bestValue = entries[base].computeValue(nowAge);
-            for (std::size_t i = 1; i < PROBE_COUNT; ++i) {
-                std::size_t idx = (base + i) % entries.size();
-                uint64_t v = entries[idx].computeValue(nowAge);
+		void setEntry(const std::vector<uint8_t>& data,
+			uint32_t sig,
+			uint32_t clusterIdx) {
+            if (_entries.empty()) return;
+            const uint64_t age = ++_nowAge;
+            const std::size_t segSize = _entries.size() / STRIPE_COUNT;
+            const std::size_t h = hash(sig, clusterIdx);
+            const std::size_t stripe = h % STRIPE_COUNT;
+            const std::size_t segStart = stripe * segSize;
+            const std::size_t offset = (h / STRIPE_COUNT) % segSize;
+            const std::size_t probeCount = std::min(PROBE_COUNT, segSize);
+
+            std::lock_guard<std::mutex> lock(_stripeMutexes[stripe].mtx);
+
+            std::size_t victim = segStart + offset;
+            uint64_t bestValue = _entries[victim].computeValue(age);
+            for (std::size_t i = 1; i < probeCount; ++i) {
+                std::size_t idx = segStart + (offset + i) % segSize;
+                uint64_t v = _entries[idx].computeValue(age);
                 if (v > bestValue) {
                     bestValue = v;
                     victim = idx;
                 }
             }
-            if (entries[victim].signature == 0) {
-                fillCount++;
+            if (_entries[victim].signature == 0) {
+                ++_fillCount;
 			}
 			else {
-				numOverwrites++;
+				++_numOverwrites;
 			}
-            entries[victim] = entry;
-        }
-
-        /**
-		 * @brief Set an entry using the current global age counter.
-		 * @param data        Data vector for this cluster.
-		 * @param sig         Bitbase signature.
-		 * @param clusterIdx  Cluster index number.
-         */
-		void setEntry(const std::vector<uint8_t>& data,
-			uint32_t sig,
-			uint32_t clusterIdx) {
-			setEntry(CacheEntry(data, sig, clusterIdx, nowAge));
+            _entries[victim] = CacheEntry(data, sig, clusterIdx, age);
 		}
 
 		/**
@@ -192,35 +221,31 @@ namespace QaplaBitbase {
 		 * @return uint32_t  Fill percentage (0-100).
 		 */ 
         uint32_t fillInPercent() const {
-            if (entries.empty()) return 0;
-            return static_cast<uint32_t>(fillCount * 100 / entries.size());
+            if (_entries.empty()) return 0;
+            return static_cast<uint32_t>(_fillCount.load() * 100 / _entries.size());
         }
 
 		void print() const {
-			std::cout << "Cache: " << entries.size() << " entries, "
-				<< (fillCount * 100) / entries.size() << "% filled, "
-				<< (numOverwrites * 100) / entries.size() << "% overwrites" << std::endl;
+			std::cout << "Cache: " << _entries.size() << " entries, "
+				<< (_fillCount.load() * 100) / _entries.size() << "% filled, "
+				<< (_numOverwrites.load() * 100) / _entries.size() << "% overwrites" << std::endl;
 		}
 
     private:
-        std::vector<CacheEntry> entries;
-		uint64_t nowAge = 0;
-        uint32_t fillCount = 0;
-        uint32_t numOverwrites = 0;
+        struct alignas(64) StripeMutex {
+            std::mutex mtx;
+        };
 
-        /**
-         * @brief Combine signature and cluster number into a hash.
-         * @param sig         Bitbase signature.
-         * @param clusterIdx  Cluster index.
-         * @return std::size_t  Raw hash value.
-         */
-        /*
-        static std::size_t hash(uint32_t sig, uint32_t clusterIdx) {
+        std::vector<CacheEntry> _entries;
+        std::atomic<uint64_t> _nowAge{0};
+        std::atomic<uint32_t> _fillCount{0};
+        std::atomic<uint32_t> _numOverwrites{0};
+        std::array<StripeMutex, STRIPE_COUNT> _stripeMutexes;
 
-            return (static_cast<std::size_t>(sig) * 31u)
-                ^ static_cast<std::size_t>(clusterIdx);
+        static std::size_t roundToStripeMultiple(std::size_t n) {
+            return ((n + STRIPE_COUNT - 1) / STRIPE_COUNT) * STRIPE_COUNT;
         }
-        */
+
         static std::size_t hash(uint32_t sig, uint32_t clusterIdx) {
             uint64_t h = static_cast<uint64_t>(clusterIdx);
             h ^= sig + 0x9e3779b97f4a7c15 + (h << 6) + (h >> 2); // inspired by boost::hash_combine
