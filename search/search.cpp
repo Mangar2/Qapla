@@ -84,20 +84,20 @@ bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& no
 	// positions of bitbases.
 	// if (position.getPiecesSignature() == _rootSignature) return false;
 	// if (curPly.alpha >= -MIN_MATE_VALUE && curPly.beta <= MIN_MATE_VALUE) return false;
-	const QaplaBitbase::Result bitbaseValue = QaplaBitbase::BitbaseReader::getValueFromBitbase(position);
-	if (bitbaseValue == QaplaBitbase::Result::Unknown) {
+	const QaplaBitbase::BitbaseResult bitbaseValue = QaplaBitbase::BitbaseReader::getValueFromBitbase(position);
+	if (bitbaseValue == QaplaBitbase::BitbaseResult::Unknown) {
 		return false;
 	}
 	_computingInfo._tbHits++;
-	if (bitbaseValue == QaplaBitbase::Result::Win) { // && curPly.beta <= MIN_MATE_VALUE) {
+	if (bitbaseValue == QaplaBitbase::BitbaseResult::Win) { // && curPly.beta <= MIN_MATE_VALUE) {
 		node.setCutoff(Cutoff::BITBASE, MIN_MATE_VALUE);
 		return true;
 	} 
-	if (bitbaseValue == QaplaBitbase::Result::Loss) { // && curPly.alpha >= -MIN_MATE_VALUE) {
+	if (bitbaseValue == QaplaBitbase::BitbaseResult::Loss) { // && curPly.alpha >= -MIN_MATE_VALUE) {
 		node.setCutoff(Cutoff::BITBASE, -MIN_MATE_VALUE);
 		return true;
 	}
-	if (bitbaseValue == QaplaBitbase::Result::Draw) {
+	if (bitbaseValue == QaplaBitbase::BitbaseResult::Draw) {
 		node.setCutoff(Cutoff::BITBASE, 1);
 		return true;
 	}

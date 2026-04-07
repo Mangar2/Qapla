@@ -94,7 +94,7 @@ BitbaseResult BitbaseGenerator::setComputeValue(
 			if (verbose)
 			{
 				std::cout << move.getLAN() << ", index: " << moveIndex
-						  << ", value: " << to_string(result)
+						  << ", value: " << to_string(moveResult)
 						  << std::endl;
 			}
 
@@ -378,6 +378,9 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 			break;
 		}
 	}
+	// All positions that remain unresolved after propagation are draws by definition:
+	// neither side can force a win or loss from them (cycles, insufficient material, etc.).
+	state.finalizeDraws();
 }
 
 /**
@@ -399,6 +402,10 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 	MoveGenerator &position, const uint64_t index, MoveList &moveList, QaplaBitbase::GenerationState &state)
 {
+	// Note: drawDueToMissingMaterial() must NOT be used here, because even "theoretically drawn"
+	// material configurations (e.g. KNKN) can contain specific checkmate positions that are
+	// genuine wins/losses. finalizeDraws() correctly handles all unresolved positions at the end.
+
 	// Set default initial value, the value the side to move already "gained" so far.
 	// Initial value is a loss for the side to move. We set the white view.
 	state.setValue(index, position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win, false);
@@ -419,24 +426,24 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 			continue;
 		}
 		position.doMove(move);
-		Result readerResult = BitbaseReader::getValueFromSingleBitbase(position);
+		BitbaseResult readerResult = BitbaseReader::getValueFromSingleBitbase(position);
 		position.undoMove(move, boardState);
-		assert(readerResult != Result::Unknown); // Bitmaps of Reader are complete.
+		assert(readerResult != BitbaseResult::Unknown); // Bitmaps of Reader are complete.
 
 		// Results are stored from white's perspective.
 		// A single winning move is enough to declare the position won for the side to move.
-		if (readerResult == Result::Win && position.isWhiteToMove())
+		if (readerResult == BitbaseResult::Win && position.isWhiteToMove())
 		{
 			state.setValue(index, BitbaseResult::Win, true);
 			return BitbaseResult::Win;
 		}
-		if (readerResult == Result::Loss && !position.isWhiteToMove())
+		if (readerResult == BitbaseResult::Loss && !position.isWhiteToMove())
 		{
 			state.setValue(index, BitbaseResult::Loss, true);
 			return BitbaseResult::Loss;
 		}
 		// The side to move already has a proven draw.
-		if (readerResult == Result::Draw)
+		if (readerResult == BitbaseResult::Draw)
 		{
 			anyDraw = true;
 		}
@@ -447,6 +454,13 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 		if (!anyUnknown) {
 			return BitbaseResult::Draw;
 		}
+	}
+	if (!anyUnknown) {
+		// All moves were captures/promotions and none improved beyond the worst case.
+		// The side to move is forced into the worst outcome (Win for black-to-move, Loss for white-to-move).
+		const BitbaseResult worstCase = position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
+		state.setValue(index, worstCase, true);
+		return worstCase;
 	}
 	return BitbaseResult::Unknown;
 }

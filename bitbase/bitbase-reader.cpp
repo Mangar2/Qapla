@@ -113,31 +113,25 @@ std::vector<std::string> BitbaseReader::loadBitbaseRec(std::string name, bool fo
 	return errors;
 }
 
-Result BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
+BitbaseResult BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
 	PieceSignature signature = PieceSignature(position.getPiecesSignature());
 	if (!position.hasAnyMaterial<WHITE>()) {
-		return Result::DrawOrLoss;
+		return BitbaseResult::DrawOrLoss;
 	}
 
 	Bitbase* bitbase = getBitbase(signature);
 	if (bitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
 		if (bitbase->getBitsPerEntry() >= 2) {
-			// 2-bit encoding: UNKNOWN=0, WIN=1, LOSS=2, DRAW=3
-			switch (bitbase->get2Bits(index)) {
-				case BitbaseResult::Win:  return Result::Win;
-				case BitbaseResult::Loss: return Result::Loss;
-				case BitbaseResult::Draw: return Result::Draw;
-				default:                  return Result::Unknown;
-			}
+			return bitbase->get2Bits(index);
 		}
 		// 1-bit encoding: only win vs. draw-or-loss
-		return bitbase->getBit(index) ? Result::Win : Result::DrawOrLoss;
+		return bitbase->getBit(index) ? BitbaseResult::Win : BitbaseResult::DrawOrLoss;
 	}
-	return Result::Unknown;
+	return BitbaseResult::Unknown;
 }
 
-Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
+BitbaseResult BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 	PieceSignature signature = PieceSignature(position.getPiecesSignature());
 
 	// A bitbase contains winning information for white only. White wins or does not win.
@@ -148,10 +142,10 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 		// Check if white wins
 		if (whiteBitbase->getBit(index)) {
 			// Bitbase indicates that side to move is winning - result is calculated on white view
-			return position.isWhiteToMove() ? Result::Win : Result::Loss;
+			return position.isWhiteToMove() ? BitbaseResult::Win : BitbaseResult::Loss;
 		}
 		// If we are here, then white will not win. If black may not win, it is draw
-		if (!signature.hasEnoughMaterialToMate<BLACK>()) return Result::Draw;
+		if (!signature.hasEnoughMaterialToMate<BLACK>()) return BitbaseResult::Draw;
 	}
 
 	// Now switching the side to test, if black may win
@@ -160,23 +154,23 @@ Result BitbaseReader::getValueFromBitbase(const MoveGenerator& position) {
 	if (blackBitbase != 0) {
 		uint64_t index = BoardAccess::getIndex<1>(position);
 		if (blackBitbase->getBit(index)) {
-			return position.isWhiteToMove() ? Result::Loss : Result::Win;
+			return position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
 		}
 		// If we are here, then black will not win. If white may not win, it is draw
 		// We use "BLACK" as template argument as we changed the sigature to have "white view"
-		if (!signature.hasEnoughMaterialToMate<BLACK>()) return Result::Draw;
+		if (!signature.hasEnoughMaterialToMate<BLACK>()) return BitbaseResult::Draw;
 	}
 
 	// If both bitbases are available and we did not find a win, it is a draw. 
-	return whiteBitbase != 0 && blackBitbase != 0 ? Result::Draw : Result::Unknown;
+	return whiteBitbase != 0 && blackBitbase != 0 ? BitbaseResult::Draw : BitbaseResult::Unknown;
 }
 
 value_t BitbaseReader::getValueFromBitbase(const MoveGenerator& position, value_t currentValue) {
-	const Result bitbaseResult = getValueFromBitbase(position);
+	const BitbaseResult bitbaseResult = getValueFromBitbase(position);
 	value_t value = currentValue;
-	if (bitbaseResult == Result::Win) value = currentValue + WINNING_BONUS;
-	else if (bitbaseResult == Result::Loss) value = currentValue - WINNING_BONUS;
-	else if (bitbaseResult == Result::Draw) value = 1;
+	if (bitbaseResult == BitbaseResult::Win) value = currentValue + WINNING_BONUS;
+	else if (bitbaseResult == BitbaseResult::Loss) value = currentValue - WINNING_BONUS;
+	else if (bitbaseResult == BitbaseResult::Draw) value = 1;
 	return value;
 }
 

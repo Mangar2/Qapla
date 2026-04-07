@@ -40,10 +40,11 @@ namespace QaplaBitbase {
      * 2-bit entry encoding (bitsPerEntry == 2):
      */
     enum class BitbaseResult : int {
-        Unknown = 0,
+        Draw = 0,
+        DrawOrLoss = 0,  ///< Used for legacy 1-bit bitbases where draw and loss are not distinguished
         Win = 1,
         Loss = 2,
-        Draw = 3
+        Unknown = 3
     };
 
     std::string to_string(BitbaseResult result);
@@ -127,7 +128,7 @@ namespace QaplaBitbase {
          * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
          * @param value BitbaseResult value to set.
          */
-        void or2Bit(uint64_t index2, BitbaseResult value);
+        void set2Bit(uint64_t index2, BitbaseResult value);
 
         /**
          * @brief Clears a specific bit (sets to 0).
@@ -175,12 +176,6 @@ namespace QaplaBitbase {
         uint64_t getSize() const {
             return (sizeInBits() + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
         }
-
-        /**
-         * @brief Returns a string describing number of won and non-won positions.
-         * @return Descriptive string.
-         */
-        std::string getStatistic();
 
         /**
          * @brief Saves the bitbase uncompressed to file.
