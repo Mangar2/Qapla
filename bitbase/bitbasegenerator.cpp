@@ -150,6 +150,31 @@ bool BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &position, 
 }
 
 /**
+ * Attempts to directly set the result for a candidate position without full move evaluation.
+ * A Win candidate with white to move can be stored immediately as Win.
+ * A Loss candidate with black to move can be stored immediately as Loss.
+ *
+ * @param index Bitbase index of the candidate position.
+ * @param candidateResult The result that triggered this candidate.
+ * @param whiteToMove True if white is to move in the candidate position.
+ * @param state Mutable generation state.
+ * @returns true if the position was directly resolved, false if full evaluation is needed.
+ */
+bool BitbaseGenerator::tryDirectEntry(uint64_t index, BitbaseResult candidateResult,
+									  bool whiteToMove, GenerationState &state)
+{
+	if (candidateResult == BitbaseResult::Win && whiteToMove) {
+		state.setWin(index);
+		return true;
+	}
+	if (candidateResult == BitbaseResult::Loss && !whiteToMove) {
+		state.setLoss(index);
+		return true;
+	}
+	return false;
+}
+
+/**
  * Prints elapsed wall-clock time for the current generation step.
  *
  * @param clock Clock instance tracking elapsed time.
@@ -196,8 +221,8 @@ uint64_t BitbaseGenerator::computeCandidateIndex(bool wtm, const PieceList &list
  * @param verbose Enables detailed debug output.
  */
 template <Piece COLOR>
-void BitbaseGenerator::reverseGeneratePawnMoves(vector<uint64_t> &candidates,
-												const MoveGenerator &position, const PieceList &list, Move move, bool verbose)
+void BitbaseGenerator::reverseGeneratePawnMoves(vector<CandidateEntry> &candidates,
+												const MoveGenerator &position, const PieceList &list, Move move, BitbaseResult result, bool verbose)
 {
 	const bool wtm = position.isWhiteToMove();
 	const Square departure = move.getDeparture();
@@ -208,12 +233,12 @@ void BitbaseGenerator::reverseGeneratePawnMoves(vector<uint64_t> &candidates,
 	if (isMyPawn && testDeparture >= A3 && position[oneRankDestination] == NO_PIECE)
 	{
 		candidates.push_back(
-			computeCandidateIndex(wtm, list, move, oneRankDestination, verbose));
+			{computeCandidateIndex(wtm, list, move, oneRankDestination, verbose), result});
 		const Square twoRankDestination = oneRankDestination + direction;
 		if (getRank(testDeparture) == Rank::R4 && position[twoRankDestination] == NO_PIECE)
 		{
 			candidates.push_back(
-				computeCandidateIndex(wtm, list, move, twoRankDestination, verbose));
+				{computeCandidateIndex(wtm, list, move, twoRankDestination, verbose), result});
 		}
 	}
 }
@@ -227,8 +252,8 @@ void BitbaseGenerator::reverseGeneratePawnMoves(vector<uint64_t> &candidates,
  * @param move Partially constructed move (piece and departure are set).
  * @param verbose Enables detailed debug output.
  */
-void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, const MoveGenerator &position,
-										 const PieceList &list, Move move, bool verbose)
+void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, const MoveGenerator &position,
+										 const PieceList &list, Move move, BitbaseResult result, bool verbose)
 {
 	bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
 	const bool wtm = position.isWhiteToMove();
@@ -240,8 +265,8 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, const Mov
 	{
 		attackBB &= ~position.pieceAttackMask[position.getKingSquare<WHITE>()];
 	}
-	reverseGeneratePawnMoves<WHITE>(candidates, position, list, move, verbose);
-	reverseGeneratePawnMoves<BLACK>(candidates, position, list, move, verbose);
+	reverseGeneratePawnMoves<WHITE>(candidates, position, list, move, result, verbose);
+	reverseGeneratePawnMoves<BLACK>(candidates, position, list, move, result, verbose);
 	if (getPieceType(move.getMovingPiece()) != PAWN)
 	{
 		for (; attackBB; attackBB &= attackBB - 1)
@@ -252,7 +277,7 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, const Mov
 			{
 				continue;
 			}
-			candidates.push_back(computeCandidateIndex(wtm, list, move, destination, verbose));
+			candidates.push_back({computeCandidateIndex(wtm, list, move, destination, verbose), result});
 		}
 	}
 }
@@ -265,7 +290,7 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, const Mov
  * @param position Current position.
  * @param verbose Enables detailed debug output.
  */
-void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, MoveGenerator &position, bool verbose)
+void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, MoveGenerator &position, BitbaseResult result, bool verbose)
 {
 	PieceList pieceList(position);
 	position.computeAttackMasksForBothColors();
@@ -283,7 +308,7 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, MoveGener
 			move.setMovingPiece(piece);
 			Square departure = lsb(pieceBB);
 			move.setDeparture(departure);
-			computeCandidates(candidates, position, pieceList, move, verbose);
+			computeCandidates(candidates, position, pieceList, move, result, verbose);
 		}
 	}
 }
@@ -318,7 +343,7 @@ void BitbaseGenerator::addPiecesToPosition(
 void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationState &state)
 {
 	MoveGenerator position;
-	vector<uint64_t> candidates;
+	vector<CandidateEntry> candidates;
 
 	static const uint64_t packageSize = 50000;
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize);
@@ -326,8 +351,15 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 	{
 		for (uint64_t workNo = package.first; workNo < package.second; ++workNo)
 		{
-			uint64_t index = workpackage.getIndex(workNo);
+			auto candidate = workpackage.getCandidate(workNo);
+			uint64_t index = candidate.index;
+			if (state.isPositionComputed(index)) {
+				continue;
+			}
 			ReverseIndex reverseIndex(index, state.getPieceList());
+
+			bool directEntry = tryDirectEntry(index, candidate.result,
+											  reverseIndex.isWhiteToMove(), state);
 
 			position.clear();
 			addPiecesToPosition(position, reverseIndex, state.getPieceList());
@@ -337,12 +369,15 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 				exit(1);
 			}
 
-			const auto success = computePosition(index, position, state);
-
-			if (success)
-			{
-				computeCandidates(candidates, position, index == _debugIndex);
+			if (!directEntry) {
+				const auto success = computePosition(index, position, state);
+				if (!success) {
+					continue;
+				}
 			}
+
+			auto resolvedResult = state.getComputedResults().get2Bits(index);
+			computeCandidates(candidates, position, resolvedResult, index == _debugIndex);
 		}
 		if (state.setCandidatesTreadSafe(candidates, false))
 		{
@@ -546,7 +581,7 @@ BitbaseResult BitbaseGenerator::initialComputePosition(
 void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, GenerationState &state)
 {
 	MoveGenerator position;
-	vector<uint64_t> candidates;
+	vector<CandidateEntry> candidates;
 	[[maybe_unused]] uint64_t entryCount = state.getEntryCount();
 
 	uint64_t packageSize = min(static_cast<uint64_t>(50000), (state.getEntryCount() + 5) / 5);
@@ -579,22 +614,22 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 				// Remove the unknown state completely from all generator paths.
 				if (result != BitbaseResult::Unknown)
 				{
-					computeCandidates(candidates, position, index == _debugIndex);
+					computeCandidates(candidates, position, result, index == _debugIndex);
 				}
 			}
 		}
 		if (state.setCandidatesTreadSafe(candidates, false))
 		{
-			for ([[maybe_unused]] uint64_t index : candidates) {
-				assert(index < entryCount);
+			for ([[maybe_unused]] const auto& entry : candidates) {
+				assert(entry.index < entryCount);
 			}
 			candidates.clear();
 		}
 		package = workpackage.getNextPackageToExamine(packageSize, state.getEntryCount());
 	}
 	state.setCandidatesTreadSafe(candidates);
-	for ([[maybe_unused]] uint64_t index : candidates) {
-		assert(index < entryCount);
+	for ([[maybe_unused]] const auto& entry : candidates) {
+		assert(entry.index < entryCount);
 	}
 }
 

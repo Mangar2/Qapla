@@ -157,8 +157,8 @@ namespace QaplaBitbase {
 		 * @param verbose Enables detailed debug output.
 		 */
 		template <Piece COLOR>
-		void reverseGeneratePawnMoves(vector<uint64_t>& candidates, 
-			const MoveGenerator& position, const PieceList& list, Move move, bool verbose);
+		void reverseGeneratePawnMoves(vector<CandidateEntry>& candidates, 
+			const MoveGenerator& position, const PieceList& list, Move move, BitbaseResult result, bool verbose);
 
 		/**
 		 * Computes reverse-generated candidate positions for one specific moving piece.
@@ -169,8 +169,8 @@ namespace QaplaBitbase {
 		 * @param move Partially constructed move (piece and departure are set).
 		 * @param verbose Enables detailed debug output.
 		 */
-		void computeCandidates(vector<uint64_t>& candidates, const MoveGenerator& position,
-			const PieceList& list, Move move, bool verbose);
+		void computeCandidates(vector<CandidateEntry>& candidates, const MoveGenerator& position,
+			const PieceList& list, Move move, BitbaseResult result, bool verbose);
 
 		/**
 		 * Computes all reverse candidates after marking one position as newly won.
@@ -180,7 +180,7 @@ namespace QaplaBitbase {
 		 * @param position Current position.
 		 * @param verbose Enables detailed debug output.
 		 */
-		void computeCandidates(vector<uint64_t>& candidates, MoveGenerator& position, bool verbose);
+		void computeCandidates(vector<CandidateEntry>& candidates, MoveGenerator& position, BitbaseResult result, bool verbose);
 
 		/**
 		 * Evaluates non-capture, non-promotion moves against already-computed bitbase entries
@@ -207,6 +207,18 @@ namespace QaplaBitbase {
 		 * @returns true if the position reached a definitive result (Win, Loss, or Draw); false if still Unknown.
 		 */
 		bool computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+
+		/**
+		 * Attempts to directly set the result for a candidate position without full move evaluation.
+		 *
+		 * @param index Bitbase index of the candidate position.
+		 * @param candidateResult The result that triggered this candidate.
+		 * @param whiteToMove True if white is to move in the candidate position.
+		 * @param state Mutable generation state.
+		 * @returns true if the position was directly resolved, false if full evaluation is needed.
+		 */
+		bool tryDirectEntry(uint64_t index, BitbaseResult candidateResult,
+							bool whiteToMove, GenerationState& state);
 
 		/**
 		 * Prints elapsed wall-clock time for the current generation step.

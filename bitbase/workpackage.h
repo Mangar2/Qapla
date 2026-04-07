@@ -32,7 +32,7 @@ namespace QaplaBitbase {
 	class Workpackage
 	{
 	public:
-		Workpackage(const GenerationState& state) {
+		Workpackage(GenerationState& state) {
 			state.getWork(_workList);
 			_workIndex = 0;
 			_size = state.getEntryCount();
@@ -40,9 +40,9 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Gets the bitbase index of a work element
+		 * Gets the candidate entry of a work element
 		 */
-		uint64_t getIndex(uint64_t workIndex) const { 
+		CandidateEntry getCandidate(uint64_t workIndex) const { 
 			return _workList[workIndex]; 
 		}
 
@@ -80,7 +80,7 @@ namespace QaplaBitbase {
 
 
 	private:
-		std::vector<uint64_t> _workList;
+		std::vector<CandidateEntry> _workList;
 		uint64_t _workIndex;
 		uint64_t _lastInfo;
 		mutex _mtxWork;
