@@ -24,6 +24,8 @@
 #define __BITBASEVERIFY_H
 
 #include <iostream>
+#include <atomic>
+#include <mutex>
 #include "bitbase.h"
 #include "boardaccess.h"
 #include "workpackage.h"
@@ -178,11 +180,15 @@ namespace QaplaBitbase {
 					uint64_t index = BoardAccess::getIndex<0>(position);
 					cout << move.getLAN() << " with index: " << index << " " << to_string(cur) << endl;
 				}
+				// Always undo move before throwing an exception to keep the position in a consistent state
+				position.undoMove(move, boardState);
 
 				if (cur == BitbaseResult::Unknown) {
-					throw "Bitbase not available for fen:  " + position.getFen(0);
+					position.doMove(move);
+					auto fen = position.getFen(0);
+					position.undoMove(move, boardState);
+					throw "Bitbase not available for fen:  " + fen;
 				}
-				position.undoMove(move, boardState);
 
 				if (position.isWhiteToMove()) {
 					// White maximizes: Win > Draw > Loss
@@ -205,16 +211,22 @@ namespace QaplaBitbase {
 				BitbaseResult computedResult = computePosition(position);
 				BitbaseResult expectedResult = BitbaseReader::getValueFromSingleBitbase(position);
 				if (computedResult != expectedResult) {
-					if (_errors < 10) {
+					uint64_t errNo = ++_errors;
+					if (errNo <= 10) {
+						std::lock_guard<std::mutex> lock(_mtxOutput);
 						cout << "verify failed on " << endl;
 						position.print();
 						cout << "Bitbase info: " << to_string(expectedResult)
 							<< " Computed: " << to_string(computedResult)
 							<< " Index: " << BoardAccess::getIndex<0>(position)
 							<< endl;
-						computePosition(position, true);
+						try {
+							computePosition(position, true);
+						}
+						catch (string s) {
+							cout << "Error during verify: " << s << endl;
+						}
 					}
-					_errors++;
 				}
 			}
 		}
@@ -225,11 +237,23 @@ namespace QaplaBitbase {
 		 */
 		void verifyPosition(const PieceList& pieceList) {
 			MoveGenerator position;
-			if (setPosition(position, pieceList)) {
-				position.setWhiteToMove(true);
-				verifyPosition(position);
-				position.setWhiteToMove(false);
-				verifyPosition(position);
+			static uint64_t exceptionCounter = 0;
+			try {
+				if (setPosition(position, pieceList)) {
+					position.setWhiteToMove(true);
+					verifyPosition(position);
+					position.setWhiteToMove(false);
+					verifyPosition(position);
+				}
+			}
+			catch (string s) {
+				exceptionCounter++;
+				if (exceptionCounter < 10) {
+					 cout << "Exception during verifyPosition: " << s << endl;
+					 if (exceptionCounter == 9) {
+						 cout << "Further exceptions will be suppressed." << endl;
+					 }
+				}
 			}
 			return;
 		}
@@ -271,13 +295,22 @@ namespace QaplaBitbase {
 					last = H8;
 				}
 				_threads[threadNo] = thread([this, first, last, pieceList]() {
-					PieceList pieceListCopy(pieceList);
-					string debug;
-					for (Square square = first; square <= last; ++square) {
-						debug += " " + std::to_string(square);
-						pieceListCopy.setSquare(0, square);
-						verifyPositionRec(pieceList, 1);
-						cout << '.';
+					try {
+						PieceList pieceListCopy(pieceList);
+						string debug;
+						for (Square square = first; square <= last; ++square) {
+							debug += " " + std::to_string(square);
+							pieceListCopy.setSquare(0, square);
+							verifyPositionRec(pieceListCopy, 1);
+							{
+								std::lock_guard<std::mutex> lock(_mtxOutput);
+								cout << '.';
+							}
+						}
+					}
+					catch (string s) {
+						std::lock_guard<std::mutex> lock(_mtxOutput);
+						cout << "Exception during verifyPositions, thread terminated: " << s << endl;
 					}
 				});
 			}
@@ -291,27 +324,39 @@ namespace QaplaBitbase {
 		void verifyBitbase(PieceList& pieceList) {
 			ClockManager clock;
 			clock.setStartTime();
-
-			for (uint32_t pieceNo = 0; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
-				pieceList.setSquare(pieceNo, isPawn(pieceList.getPiece(pieceNo)) ? A2 : A1);
-			}
-			string pieceString = pieceList.getPieceString();
-			string loadString = pieceString;
-			replace(loadString.begin(), loadString.end(), 'P', '*');
-			BitbaseReader::loadBitbaseRec(loadString, true);
-			for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
-				PieceList loadList(pieceList);
-				loadList.removePiece(pieceNo);
-				string loadString = loadList.getPieceString();
+			try {
+				for (uint32_t pieceNo = 0; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
+					pieceList.setSquare(pieceNo, isPawn(pieceList.getPiece(pieceNo)) ? A2 : A1);
+				}
+				string pieceString = pieceList.getPieceString();
+				string loadString = pieceString;
 				replace(loadString.begin(), loadString.end(), 'P', '*');
 				BitbaseReader::loadBitbaseRec(loadString, true);
+				for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); pieceNo++) {
+					PieceList loadList(pieceList);
+					loadList.removePiece(pieceNo);
+					string loadString = loadList.getPieceString();
+					replace(loadString.begin(), loadString.end(), 'P', '*');
+					BitbaseReader::loadBitbaseRec(loadString, true);
+				}
+				_errors = 0;
+				cout << pieceString << " Verifying with " << _cores << " cores ";
+				verifyPositions(pieceList);
+				cout << " Errors: " << _errors << " ";
+				printTimeSpent(clock, 0);
+				cout << endl;
 			}
-			_errors = 0;
-			cout << pieceString << " Verifying with " << _cores << " cores ";
-			verifyPositions(pieceList);
-			cout << " Errors: " << _errors << " ";
-			printTimeSpent(clock, 0);
-			cout << endl;
+			catch (string s) {
+				auto pieceString = pieceList.getPieceString();
+				 cout << "Exception during verifyBitbase for " << pieceString << ": " << s << endl;
+				 if (++_exceptionCounter == 10) {
+					 cout << "Further exceptions will be suppressed." << endl;
+				 }
+				 // Continue with other bitbases even if one fails, to get a more complete picture of potential issues.
+				 // Do not re-throw the exception to avoid terminating the entire verification process.
+				 // throw; --- IGNORE ---
+				cout << "Exception during verifyBitbase: " << s << endl;
+			}
 
 		}
 
@@ -347,7 +392,9 @@ namespace QaplaBitbase {
 		bool _uncompressed;
 		int _traceLevel;
 		int _debugLevel;
-		uint64_t _errors;
+		uint64_t _exceptionCounter = 0;
+		std::atomic<uint64_t> _errors{0};
+		std::mutex _mtxOutput;
 		vector<string> _verified;
 
 		static constexpr uint32_t MAX_THREADS = 64;

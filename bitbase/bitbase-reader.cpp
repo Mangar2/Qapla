@@ -101,7 +101,7 @@ std::vector<std::string> BitbaseReader::loadBitbaseRec(std::string name, bool fo
 			errors.insert(errors.end(), subErrors.begin(), subErrors.end());
 		}
 	}
-	else if (force || !isBitbaseAvailable(name)) {
+	else if (!isBitbaseAvailable(name)) {
 		try {
 			loadBitbase(name, true);
 		}
@@ -115,12 +115,15 @@ std::vector<std::string> BitbaseReader::loadBitbaseRec(std::string name, bool fo
 
 BitbaseResult BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& position) {
 	PieceSignature signature = PieceSignature(position.getPiecesSignature());
-	if (!position.hasAnyMaterial<WHITE>()) {
-		return BitbaseResult::DrawOrLoss;
+	// KK (no material on either side) is always a draw - no bitbase needed.
+	// Do NOT short-circuit when only white has no material (e.g. KKQ): the mirror
+	// fallback below correctly returns Loss in that case.
+	if (!position.hasAnyMaterial<WHITE>() && !position.hasAnyMaterial<BLACK>()) {
+		return BitbaseResult::Draw;
 	}
 
 	Bitbase* bitbase = getBitbase(signature);
-	if (bitbase != 0) {
+	if (bitbase != nullptr) {
 		uint64_t index = BoardAccess::getIndex<0>(position);
 		if (bitbase->getBitsPerEntry() >= 2) {
 			return bitbase->get2Bits(index);
@@ -128,6 +131,25 @@ BitbaseResult BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& posi
 		// 1-bit encoding: only win vs. draw-or-loss
 		return bitbase->getBit(index) ? BitbaseResult::Win : BitbaseResult::DrawOrLoss;
 	}
+
+	// Fallback: try the color-swapped bitbase (e.g. KRKQ via KQKR) and invert Win<->Loss.
+	// Works for both 2-bit (full Win/Draw/Loss) and 1-bit (bit=1 is mirrored Win → Loss here;
+	// bit=0 is DrawOrLoss, but since the strong side has no material it can only be Draw).
+	PieceSignature mirroredSig = signature;
+	mirroredSig.changeSide();
+	Bitbase* mirroredBitbase = getBitbase(mirroredSig);
+	if (mirroredBitbase != nullptr) {
+		uint64_t index = BoardAccess::getIndex<1>(position);  // <1> swaps colors + side-to-move
+		if (mirroredBitbase->getBitsPerEntry() >= 2) {
+			BitbaseResult result = mirroredBitbase->get2Bits(index);
+			if (result == BitbaseResult::Win)  return BitbaseResult::Loss;
+			if (result == BitbaseResult::Loss) return BitbaseResult::Win;
+			return result;  // Draw or Unknown unchanged
+		}
+		// 1-bit mirror: bit=1 means the mirrored (strong) side wins → Loss for current view; bit=0 → Draw
+		return mirroredBitbase->getBit(index) ? BitbaseResult::Loss : BitbaseResult::Draw;
+	}
+
 	return BitbaseResult::Unknown;
 }
 
@@ -201,7 +223,12 @@ bool BitbaseReader::isBitbaseAvailable(std::string pieceString) {
 	PieceSignature signature;
 	signature.set(pieceString.c_str());
 	auto it = _bitbases.find(signature.getPiecesSignature());
-	return (it != _bitbases.end() && it->second.isHeaderLoaded());
+	if (it != _bitbases.end() && it->second.isHeaderLoaded()) return true;
+	// Also treat as available if the color-swapped bitbase exists (any bit width).
+	// getValueFromSingleBitbase handles the Win<->Loss inversion transparently.
+	signature.changeSide();
+	auto itMirror = _bitbases.find(signature.getPiecesSignature());
+	return itMirror != _bitbases.end() && itMirror->second.isHeaderLoaded();
 }
 
 void BitbaseReader::setBitbase(std::string pieceString, const Bitbase& bitBase) {
