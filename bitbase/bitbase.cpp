@@ -97,13 +97,18 @@ namespace QaplaBitbase {
         const uint32_t clusterIndex = static_cast<uint32_t>(bitIndex / bitsPerCluster);
         const uint32_t bitInCluster = static_cast<uint32_t>(bitIndex % bitsPerCluster);
 
-        // Prope cache
-        auto cacheEntry = cache.getEntry(_signature, clusterIndex);
-        if (cacheEntry) {
-            const bbt_t word = cacheEntry->data[bitInCluster / BITS_IN_ELEMENT];
-            const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
-            return (word >> bit) & mask;
+        // Cache hit path: shared lock allows all threads to read concurrently.
+        {
+            std::shared_lock<std::shared_mutex> lock(_cacheMutex);
+            auto cacheEntry = cache.getEntry(_signature, clusterIndex);
+            if (cacheEntry) {
+                const bbt_t word = cacheEntry->data[bitInCluster / BITS_IN_ELEMENT];
+                const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
+                return (word >> bit) & mask;
+            }
         }
+
+        // Cache miss: load from file without holding the lock (I/O can be slow).
         try {
             auto cluster = BitbaseFile::readCluster(
                 _filePath.string(),
@@ -113,7 +118,10 @@ namespace QaplaBitbase {
                 _offsets,
                 QaplaCompress::Compress::getDecompressor(_compression)
             );
-            cache.setEntry(cluster, _signature, clusterIndex);
+            {
+                std::unique_lock<std::shared_mutex> lock(_cacheMutex);
+                cache.setEntry(cluster, _signature, clusterIndex);
+            }
             const bbt_t word = cluster[bitInCluster / BITS_IN_ELEMENT];
             const uint32_t bit = bitInCluster % BITS_IN_ELEMENT;
             return (word >> bit) & mask;
