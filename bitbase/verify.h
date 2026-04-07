@@ -367,6 +367,7 @@ namespace QaplaBitbase {
 		 */
 		void verifyBitbaseRec(string pieceString, bool first) {
 			size_t index = pieceString.find('*');
+			Bitbase::setCacheSize(1024);
 			if (index != string::npos) {
 				for (auto ch : { 'Q', 'R', 'B', 'N', 'P' }) {
 					pieceString[index] = ch;

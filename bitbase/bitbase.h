@@ -27,6 +27,7 @@
 #include <ostream>
 #include <filesystem>
 #include <algorithm>
+#include <shared_mutex>
 #include "bitbase-file.h"
 #include "compress.h"
 #include "cluster-cache.h"
@@ -266,6 +267,7 @@ namespace QaplaBitbase {
         // Caching
         uint32_t _signature;
         static inline ClusterCache cache{ 511 };
+        static inline std::shared_mutex _cacheMutex;
 
         static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; 
 

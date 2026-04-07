@@ -140,8 +140,6 @@ namespace QaplaBitbase {
             for (std::size_t i = 0; i < PROBE_COUNT; ++i) {
                 auto& e = entries[(idx + i) % entries.size()];
                 if (e.signature == sig && e.clusterNumber == clusterIdx) {
-                    nowAge++;
-					e.signalUsage(nowAge);
                     return &e;
                 }
             }
