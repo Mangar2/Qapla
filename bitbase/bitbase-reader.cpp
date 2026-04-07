@@ -196,35 +196,39 @@ value_t BitbaseReader::getValueFromBitbase(const MoveGenerator& position, value_
 	return value;
 }
 
-void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
+bool BitbaseReader::tryLoadBitbaseFile(const std::string& pieceString, bool onlyHeader) {
 	PieceSignature signature;
 	signature.set(pieceString);
-	pieceSignature_t sig = signature.getPiecesSignature();
-	if (isBitbaseAvailable(pieceString)) {
-		return;
-	}
 	BitbaseIndex index(pieceString);
-
 	Bitbase bitbase(index, 1, signature.getPiecesSignature());
-	// Bitbase is not available is a supported situation and not an error.
-	// If the direct file doesn't exist, try the color-swapped name (e.g. KKN → KNK).
 	if (!bitbase.attachFromFile(pieceString, ".btb", bitbasePath)) {
-		PieceList list(pieceString);
-		std::string mirrorName = list.getPieceStringOfColor<BLACK>() + list.getPieceStringOfColor<WHITE>();
-		if (mirrorName != pieceString) {
-			loadBitbase(mirrorName, onlyHeader);
-		}
-		return;
+		return false;
 	}
 	ChessEval::EvalEndgame::registerBitbase(pieceString);
 	if (!onlyHeader) {
 		auto [success, errorMessage] = bitbase.readAll();
 		if (!success) {
 			std::cout << "info string loaded bitbase " << pieceString << " " << errorMessage << std::endl;
-			return; // Failed to read � do not insert
+			return false;
 		}
 	}
-	_bitbases.emplace(sig, std::move(bitbase));
+	_bitbases.emplace(signature.getPiecesSignature(), std::move(bitbase));
+	return true;
+}
+
+void BitbaseReader::loadBitbase(std::string pieceString, bool onlyHeader) {
+	if (isBitbaseAvailable(pieceString)) {
+		return;
+	}
+	if (tryLoadBitbaseFile(pieceString, onlyHeader)) {
+		return;
+	}
+	// If the direct file doesn't exist, try the color-swapped name (e.g. KKN → KNK).
+	PieceList list(pieceString);
+	std::string mirrorName = list.getPieceStringOfColor<BLACK>() + list.getPieceStringOfColor<WHITE>();
+	if (mirrorName != pieceString && !isBitbaseAvailable(mirrorName)) {
+		tryLoadBitbaseFile(mirrorName, onlyHeader);
+	}
 }
 
 bool BitbaseReader::isBitbaseAvailable(std::string pieceString) {
