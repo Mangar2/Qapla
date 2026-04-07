@@ -297,9 +297,7 @@ namespace QaplaBitbase {
 				_threads[threadNo] = thread([this, first, last, pieceList]() {
 					try {
 						PieceList pieceListCopy(pieceList);
-						string debug;
 						for (Square square = first; square <= last; ++square) {
-							debug += " " + std::to_string(square);
 							pieceListCopy.setSquare(0, square);
 							verifyPositionRec(pieceListCopy, 1);
 							{
