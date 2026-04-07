@@ -148,7 +148,7 @@ namespace QaplaBitbase {
 		/**
 		 * Computes a single position
 		 */
-		Result computePosition(MoveGenerator& position, bool verbose = false) {
+		BitbaseResult computePosition(MoveGenerator& position, bool verbose = false) {
 			MoveList moveList;
 			Move move;
 			position.genMovesOfMovingColor(moveList);
@@ -156,44 +156,42 @@ namespace QaplaBitbase {
 			if (moveList.getTotalMoveAmount() == 0) {
 				if (verbose) cout << "Mate or Stalemate" << endl;
 				if (position.isWhiteToMove()) {
-					return position.isInCheck() ? Result::Loss : Result::Draw;
+					return position.isInCheck() ? BitbaseResult::Loss : BitbaseResult::Draw;
 				} 
 				else {
-					return position.isInCheck() ? Result::Win : Result::Draw;
+					return position.isInCheck() ? BitbaseResult::Win : BitbaseResult::Draw;
 				}
 			}
 
-			// The side to move starts with a most negative value (Loss)
-			Result result = position.isWhiteToMove() ? Result::Loss : Result::Win;
+			// White maximizes (Win > Draw > Loss), Black minimizes (Loss < Draw < Win from white's view).
+			// DrawOrLoss (1-bit legacy) equals Draw=0 and is treated as Draw.
+			BitbaseResult result = position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
 			BoardState boardState = position.getBoardState();
 
 			for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				move = moveList.getMove(moveNo);
 
 				position.doMove(move);
-				Result cur = BitbaseReader::getValueFromSingleBitbase(position);
+				BitbaseResult cur = BitbaseReader::getValueFromSingleBitbase(position);
 				
 				if (verbose) {
 					uint64_t index = BoardAccess::getIndex<0>(position);
-					cout << move.getLAN() << " with index: " << index << " " << ResultMap[int(cur)] << endl;
+					cout << move.getLAN() << " with index: " << index << " " << to_string(cur) << endl;
 				}
 
-				if (cur == Result::Unknown) {
+				if (cur == BitbaseResult::Unknown) {
 					throw "Bitbase not available for fen:  " + position.getFen(0);
 				}
 				position.undoMove(move, boardState);
 
-				if (!position.isWhiteToMove()) {
-					if (cur != Result::Win) {
-						result = cur;
-						break;
-					}
-				}
-				else {
-					if (cur == Result::Win) {
-						result = cur;
-						break;
-					}
+				if (position.isWhiteToMove()) {
+					// White maximizes: Win > Draw > Loss
+					if (cur == BitbaseResult::Win) { result = cur; break; }
+					if (cur == BitbaseResult::Draw) result = cur;
+				} else {
+					// Black minimizes from white's view: Loss < Draw < Win
+					if (cur == BitbaseResult::Loss) { result = cur; break; }
+					if (cur == BitbaseResult::Draw) result = cur;
 				}
 			}
 			return result;
@@ -203,19 +201,15 @@ namespace QaplaBitbase {
 		 * verifies a position 
 		 */
 		void verifyPosition(MoveGenerator& position) {
-			static array<const char*, 6> resultInfo{ "Unknown", "Loss", "Draw", "DrawOrLoss", "Win", "IllegalIndex" };
 			if (position.isLegal()) {
-				QaplaBitbase::Result computedResult = computePosition(position);
-				if (computedResult == Result::Draw || computedResult == Result::Loss) {
-					computedResult = Result::DrawOrLoss;
-				}
-				Result expectedResult = BitbaseReader::getValueFromSingleBitbase(position);
+				BitbaseResult computedResult = computePosition(position);
+				BitbaseResult expectedResult = BitbaseReader::getValueFromSingleBitbase(position);
 				if (computedResult != expectedResult) {
 					if (_errors < 10) {
 						cout << "verify failed on " << endl;
 						position.print();
-						cout << "Bitbase info: " << resultInfo[int(expectedResult)]
-							<< " Computed: " << resultInfo[int(computedResult)]
+						cout << "Bitbase info: " << to_string(expectedResult)
+							<< " Computed: " << to_string(computedResult)
 							<< " Index: " << BoardAccess::getIndex<0>(position)
 							<< endl;
 						computePosition(position, true);

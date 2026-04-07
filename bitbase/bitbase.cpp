@@ -60,11 +60,17 @@ namespace QaplaBitbase {
         _bitbase[index / BITS_IN_ELEMENT] |= bbt_t(1) << (index % BITS_IN_ELEMENT);
     }
 
-    void Bitbase::or2Bit(uint64_t index2, BitbaseResult value) {
+    void Bitbase::set2Bit(uint64_t index2, BitbaseResult value) {
         assert(isLoaded());
         uint64_t index = index2 * 2;
         if (index + 1 >= sizeInBits()) return;
-        _bitbase[index / BITS_IN_ELEMENT] |= (bbt_t(static_cast<int>(value)) << (index % BITS_IN_ELEMENT));
+        uint64_t elementIndex = index / BITS_IN_ELEMENT;
+        uint64_t bitOffset = index % BITS_IN_ELEMENT;
+        // Clear the two bits first, then write the new value.
+        // A plain OR would corrupt entries where a higher bit-pattern (e.g. Draw=3)
+        // was written as an intermediate lower bound before the final value (e.g. Win=1) is known.
+        _bitbase[elementIndex] = (_bitbase[elementIndex] & ~(bbt_t(3) << bitOffset))
+                               | (bbt_t(static_cast<int>(value)) << bitOffset);
     }
 
     void Bitbase::clearBit(uint64_t index) {
@@ -135,15 +141,6 @@ namespace QaplaBitbase {
 		}
 
         return static_cast<BitbaseResult>(getBitsFromClusterData(index, bbt_t(3)));
-    }
-
-    std::string Bitbase::getStatistic() {
-        uint64_t win = 0;
-        uint64_t draw = 0;
-        for (uint64_t index = 0; index < sizeInBits(); ++index) {
-            if (getBit(index)) win++; else draw++;
-        }
-        return " win: " + std::to_string(win) + " draw, loss or error: " + std::to_string(draw);
     }
 
     void Bitbase::storeToFile(const std::string& fileName, QaplaCompress::CompressionType compression) {

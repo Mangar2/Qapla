@@ -127,9 +127,10 @@ namespace QaplaBitbase {
 		 * @param candidates Candidate indexes to mark.
 		 */
 		void setCandidates(const vector<uint64_t>& candidates) {
-			_hasCandidates = true;
 			for (auto index : candidates) {
-				setCandidate(index);
+				if (!_computedPositions.getBit(index)) {
+					setCandidate(index);
+				}
 			}
 		}
 
@@ -184,10 +185,10 @@ namespace QaplaBitbase {
 		}
 
 		void setValue(uint64_t index, BitbaseResult value, bool finalValue) {
-			_computedResults.or2Bit(index, value);
+			_computedResults.set2Bit(index, value);
 			if (finalValue) {
 				_computedPositions.setBit(index);
-				_won += (value == BitbaseResult::Win) ? 1 : 0;
+				_won  += (value == BitbaseResult::Win)  ? 1 : 0;
 				_loss += (value == BitbaseResult::Loss) ? 1 : 0;
 				_draw += (value == BitbaseResult::Draw) ? 1 : 0;
 			}
@@ -200,7 +201,7 @@ namespace QaplaBitbase {
 		 */
 		void setWin(uint64_t index) {
 			_won++;
-			_computedResults.or2Bit(index, BitbaseResult::Win);
+			_computedResults.set2Bit(index, BitbaseResult::Win);
 			_computedPositions.setBit(index);
 		}
 
@@ -211,7 +212,7 @@ namespace QaplaBitbase {
 		 */
 		void setLoss(uint64_t index) {
 			_loss++;
-			_computedResults.or2Bit(index, BitbaseResult::Loss);
+			_computedResults.set2Bit(index, BitbaseResult::Loss);
 			_computedPositions.setBit(index);
 		}
 
@@ -222,7 +223,7 @@ namespace QaplaBitbase {
 		 */
 		void setDraw(uint64_t index) {
 			_draw++;
-			_computedResults.or2Bit(index, BitbaseResult::Draw);
+			_computedResults.set2Bit(index, BitbaseResult::Draw);
 			_computedPositions.setBit(index);
 		}
 
@@ -234,23 +235,55 @@ namespace QaplaBitbase {
 		 */
 		void setIllegal(uint64_t index) {
 			_illegal++;
+			// Illegal positions are marked as draw to be able to compress bitboards without loss for white to one bit.
+			_computedResults.set2Bit(index, BitbaseResult::Draw);
 			_computedPositions.setBit(index);
 		}
 
 		/**
-		 * Prints summary statistics for wins, losses/draws, illegal positions, and memory.
+		 * Finalizes all positions that are not yet resolved as draws.
+		 * After iterative propagation, any position without a final value could not be
+		 * proven as win or loss — by definition these are draws (neither side can force a result).
+		 * This also corrects intermediate lower-bound values (e.g. provisional Loss entries
+		 * written during initialization) that were never finalized.
+		 */
+		void finalizeDraws() {
+			for (uint64_t index = 0; index < _entryCount; ++index) {
+				if (!_computedPositions.getBit(index)) {
+					setDraw(index);
+				}
+			}
+		}
+
+		/**
+		 * Prints summary statistics for wins, draws, losses, unknown, and illegal positions.
 		 */
 		void printStatistic() {
-			uint64_t drawOrLoss = _entryCount - _won - _illegal;
+			uint64_t unknown = _entryCount - _won - _draw - _loss - _illegal;
 			cout
-				<< "Won: " << _won << " (" << (_won * 100 / _entryCount) << "%) " 
-				<< " Draw or loss: " << drawOrLoss << " (" << (drawOrLoss * 100 / _entryCount) << "%)"
-				<< " Loss in 0: " << _loss
-				<< " Illegal: " << _illegal << " (" << (_illegal * 100 / _entryCount) << "%)"
+				<< "Won: "     << _won     << " (" << (_won     * 100 / _entryCount) << "%) "
+				<< " Draw: "   << _draw    << " (" << (_draw    * 100 / _entryCount) << "%)"
+				<< " Loss: "   << _loss    << " (" << (_loss    * 100 / _entryCount) << "%)"
+				<< " Unknown: "<< unknown  << " (" << (unknown  * 100 / _entryCount) << "%)"
+				<< " Illegal: "<< _illegal << " (" << (_illegal * 100 / _entryCount) << "%)"
 				<< " Uncompressed memory size " << _computedResults.getSize()
-				<< std:: endl;
+				<< std::endl;
 			if (_won != _computedResults.computeResults(BitbaseResult::Win)) {
-				std::cout << "Error, won positions do not match!" << std::endl;
+				std::cout << "Error, won positions do not match! Counter: " << _won
+					<< " Bitbase: " << _computedResults.computeResults(BitbaseResult::Win) << std::endl;
+			}
+			// Illegal positions are stored as Draw=0, so the bitbase count includes both.
+			if (_draw + _illegal != _computedResults.computeResults(BitbaseResult::Draw)) {
+				std::cout << "Error, draw positions do not match! Counter: " << (_draw + _illegal)
+					<< " Bitbase: " << _computedResults.computeResults(BitbaseResult::Draw) << std::endl;
+			}
+			if (_loss != _computedResults.computeResults(BitbaseResult::Loss)) {
+				std::cout << "Error, loss positions do not match! Counter: " << _loss
+					<< " Bitbase: " << _computedResults.computeResults(BitbaseResult::Loss) << std::endl;
+			}
+			uint64_t notFinal = _entryCount - _computedPositions.computeResults(BitbaseResult::Win);
+			if (notFinal > 0) {
+				std::cout << "Error, " << notFinal << " positions have no final value (incomplete generation)!" << std::endl;
 			}
 		}
 
@@ -294,6 +327,7 @@ namespace QaplaBitbase {
 		 * @param index Bitbase index to mark.
 		 */
 		void setCandidate(uint64_t index) {
+			_hasCandidates = true;
 			_candidates.setBit(index);
 		}
 

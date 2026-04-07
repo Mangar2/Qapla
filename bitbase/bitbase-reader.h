@@ -29,19 +29,7 @@
 
 
 namespace QaplaBitbase {
-    /**
-     * Represents the result of a bitbase query.
-     * This enum may not be changed as it represents the actual bit-coding of the file. 
-     */
-    enum class Result {
-        Unknown = 0,       ///< Result is unknown or bitbase unavailable
-        Win = 1,
-        Loss = 2,
-        Draw = 3,
-        DrawOrLoss = 3   ///< Used for legacy 1-bit bitbases where draw and loss are not distinguished
-    };
-
-    static constexpr array<const char*, 4> ResultMap{ "Unknown", "Win", "Loss", "Draw" };
+    static constexpr array<const char*, 4> ResultMap{ "Draw", "Win", "Loss", "Unknown" };
 
     /**
      * Class for loading, managing and querying endgame bitbases.
@@ -78,20 +66,20 @@ namespace QaplaBitbase {
 
         /**
          * Queries a single subordinate bitbase for a position reachable via a capture or promotion.
-         * Returns Win, Loss, or Draw when the bitbase uses 2-bit encoding; falls back to Win/DrawOrLoss
+         * Returns Win, Loss, or Draw when the bitbase uses 2-bit encoding; falls back to Win/Draw for 1-bit.
          * for legacy 1-bit bitbases. Returns Unknown when no matching bitbase is available.
          * Results are expressed from white's perspective.
          * @param position Position to query.
          * @return Bitbase result from white's perspective.
          */
-        static Result getValueFromSingleBitbase(const MoveGenerator& position);
+        static BitbaseResult getValueFromSingleBitbase(const MoveGenerator& position);
 
         /**
          * Queries a bitbase from both white and black perspectives.
          * @param position Position to query.
          * @return Bitbase result depending on side to move.
          */
-        static Result getValueFromBitbase(const MoveGenerator& position);
+        static BitbaseResult getValueFromBitbase(const MoveGenerator& position);
 
         /**
          * Queries bitbase and applies score adjustment based on result.
