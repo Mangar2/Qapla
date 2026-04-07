@@ -29,6 +29,11 @@
 
 namespace QaplaBitbase {
 
+	struct CandidateEntry {
+		uint64_t index;
+		BitbaseResult result;
+	};
+
 	class GenerationState
 	{
 	public:
@@ -51,6 +56,9 @@ namespace QaplaBitbase {
 			_candidates = Bitbase(_entryCount, 1, sig);
 			_candidates.resize(_entryCount);
 			_candidates.setLoaded();
+			_candidateResults = Bitbase(_entryCount, 2, sig);
+			_candidateResults.resize(_entryCount);
+			_candidateResults.setLoaded();
 			_pieceList = pieceList;
 			_illegal = 0;
 			_loss = 0;
@@ -93,8 +101,13 @@ namespace QaplaBitbase {
 		 *
 		 * @param work Output vector receiving candidate work indexes.
 		 */
-		void getWork(vector<uint64_t>& work) const {
-			_candidates.getAllIndexes(_computedPositions, work);
+		void getWork(vector<CandidateEntry>& work) {
+			vector<uint64_t> indexes;
+			_candidates.getAllIndexes(_computedPositions, indexes);
+			work.reserve(indexes.size());
+			for (auto idx : indexes) {
+				work.push_back({idx, _candidateResults.get2Bits(idx)});
+			}
 		}
 
 		/**
@@ -126,10 +139,10 @@ namespace QaplaBitbase {
 		 *
 		 * @param candidates Candidate indexes to mark.
 		 */
-		void setCandidates(const vector<uint64_t>& candidates) {
-			for (auto index : candidates) {
-				if (!_computedPositions.getBit(index)) {
-					setCandidate(index);
+		void setCandidates(const vector<CandidateEntry>& candidates) {
+			for (const auto& entry : candidates) {
+				if (!_computedPositions.getBit(entry.index)) {
+					setCandidate(entry.index, entry.result);
 				}
 			}
 		}
@@ -141,7 +154,7 @@ namespace QaplaBitbase {
 		 * @param wait If true, waits for lock; otherwise skips when another update is active.
 		 * @returns True if candidates were merged, otherwise false.
 		 */
-		bool setCandidatesTreadSafe(const vector<uint64_t>& candidates, bool wait = true) {
+		bool setCandidatesTreadSafe(const vector<CandidateEntry>& candidates, bool wait = true) {
 			if (candidates.empty()) {
 				return false;
 			}
@@ -172,6 +185,7 @@ namespace QaplaBitbase {
 		 */
 		void clearAllCandidates() {
 			_candidates.clear();
+			_candidateResults.clear();
 			_hasCandidates = false;
 		}
 
@@ -326,9 +340,10 @@ namespace QaplaBitbase {
 		 *
 		 * @param index Bitbase index to mark.
 		 */
-		void setCandidate(uint64_t index) {
+		void setCandidate(uint64_t index, BitbaseResult result) {
 			_hasCandidates = true;
 			_candidates.setBit(index);
+			_candidateResults.set2Bit(index, result);
 		}
 
 		uint64_t _entryCount;
@@ -342,6 +357,7 @@ namespace QaplaBitbase {
 
 		Bitbase _computedPositions;
 		Bitbase _candidates;
+		Bitbase _candidateResults;
 		PieceList _pieceList;
 		mutex _mtxUpdate;
 		bool _updateRunning;
