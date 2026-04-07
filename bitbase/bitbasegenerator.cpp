@@ -146,7 +146,7 @@ bool BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &position, 
 	{
 		setComputeValue(position, state, true);
 	}
-	return result != BitbaseResult::Unknown;
+	return 	result != BitbaseResult::Unknown;
 }
 
 /**
@@ -635,6 +635,9 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 
 	string fileName = pieceString + string(".btb");
 	cout << "c" << std::endl;
+	// Register in memory BEFORE storeToFile, which may compact the 2-bit data to 1-bit in place.
+	// Keeping a 2-bit copy in memory allows the mirrored-bitbase lookup (e.g. KRKQ via KQKR).
+	BitbaseReader::setBitbase(pieceString, state.getComputedResults());
 	try {
 		state.storeToFile(fileName, pieceString, compression);
 		if (generateCpp)
@@ -644,7 +647,6 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 		printTimeSpent(clock);
 		printStatistic(state);
 		std::cout << std::endl;
-		BitbaseReader::setBitbase(pieceString, state.getComputedResults());
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << "Error: " << e.what() << '\n';
