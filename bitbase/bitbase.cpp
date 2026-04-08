@@ -54,6 +54,10 @@ namespace QaplaBitbase {
         std::fill(_bitbase.begin(), _bitbase.end(), 0);
     }
 
+    void Bitbase::fillAll() {
+        std::fill(_bitbase.begin(), _bitbase.end(), bbt_t(0xFF));
+    }
+
     void Bitbase::setBit(uint64_t index) {
 		assert(isLoaded());
         if (index >= sizeInBits()) return;
@@ -263,6 +267,16 @@ namespace QaplaBitbase {
         for (uint64_t index = 0; index < sizeInBits(); index += BITS_IN_ELEMENT) {
             uint64_t bbIndex = index / BITS_IN_ELEMENT;
             bbt_t value = _bitbase[bbIndex] & ~andNot._bitbase[bbIndex];
+            for (uint64_t sub = 0; value; ++sub, value >>= 1) {
+                if (value & 1) indexes.push_back(index + sub);
+            }
+        }
+    }
+
+    void Bitbase::getAllSetIndexes(vector<uint64_t>& indexes) const {
+        for (uint64_t index = 0; index < sizeInBits(); index += BITS_IN_ELEMENT) {
+            uint64_t bbIndex = index / BITS_IN_ELEMENT;
+            bbt_t value = _bitbase[bbIndex];
             for (uint64_t sub = 0; value; ++sub, value >>= 1) {
                 if (value & 1) indexes.push_back(index + sub);
             }

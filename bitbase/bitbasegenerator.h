@@ -156,9 +156,13 @@ namespace QaplaBitbase {
 		 * @param move Partially constructed move with moving piece and departure set.
 		 * @param verbose Enables detailed debug output.
 		 */
+		static void addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
+			Bitbase& computedResults);
+
 		template <Piece COLOR>
 		void reverseGeneratePawnMoves(vector<CandidateEntry>& candidates, 
-			const MoveGenerator& position, const PieceList& list, Move move, BitbaseResult result, bool verbose);
+			const MoveGenerator& position, const PieceList& list, Move move, BitbaseResult result,
+			Bitbase& computedResults, bool verbose);
 
 		/**
 		 * Computes reverse-generated candidate positions for one specific moving piece.
@@ -170,7 +174,8 @@ namespace QaplaBitbase {
 		 * @param verbose Enables detailed debug output.
 		 */
 		void computeCandidates(vector<CandidateEntry>& candidates, const MoveGenerator& position,
-			const PieceList& list, Move move, BitbaseResult result, bool verbose);
+			const PieceList& list, Move move, BitbaseResult result,
+			Bitbase& computedResults, bool verbose);
 
 		/**
 		 * Computes all reverse candidates after marking one position as newly won.
@@ -180,7 +185,8 @@ namespace QaplaBitbase {
 		 * @param position Current position.
 		 * @param verbose Enables detailed debug output.
 		 */
-		void computeCandidates(vector<CandidateEntry>& candidates, MoveGenerator& position, BitbaseResult result, bool verbose);
+		void computeCandidates(vector<CandidateEntry>& candidates, MoveGenerator& position, BitbaseResult result,
+			Bitbase& computedResults, bool verbose);
 
 		/**
 		 * Evaluates non-capture, non-promotion moves against already-computed bitbase entries
@@ -190,13 +196,14 @@ namespace QaplaBitbase {
 		 * even before all successors are resolved. Finalizes the value once all reachable
 		 * successors are known.
 		 *
+		 * @param index Bitbase index of the current position.
 		 * @param position Current position to evaluate.
 		 * @param state Mutable generation state providing the bitbase and storing the result.
 		 * @param verbose Enables detailed debug output.
 		 * @returns Final proven result (Win/Loss/Draw), or Unknown if any successor is still unresolved.
 		 */
 		BitbaseResult setComputeValue(
-			MoveGenerator& position, QaplaBitbase::GenerationState &state, bool verbose);
+			uint64_t index, MoveGenerator& position, QaplaBitbase::GenerationState &state, bool verbose);
 
 		/**
 		 * Re-evaluates one position during iterative propagation and stores the result if resolved.
@@ -206,7 +213,7 @@ namespace QaplaBitbase {
 		 * @param state Mutable generation state.
 		 * @returns true if the position reached a definitive result (Win, Loss, or Draw); false if still Unknown.
 		 */
-		bool computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+		BitbaseResult computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
 		 * Attempts to directly set the result for a candidate position without full move evaluation.
@@ -351,6 +358,7 @@ namespace QaplaBitbase {
 		int _traceLevel;
 		uint64_t _debugIndex;
 		int _debugLevel;
+		static constexpr uint64_t _packageSize = 50000;
 
 		static constexpr uint32_t MAX_THREADS = 64;
 		array<thread, MAX_THREADS> _threads;

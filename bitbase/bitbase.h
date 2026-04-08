@@ -117,6 +117,11 @@ namespace QaplaBitbase {
         void clear();
 
         /**
+         * @brief Sets all bits in the bitbase to 1.
+         */
+        void fillAll();
+
+        /**
          * @brief Sets a specific bit to 1.
          * @param index Bit index to set.
          */
@@ -220,6 +225,12 @@ namespace QaplaBitbase {
          * @param indexes Output vector of indices.
          */
         void getAllIndexes(const Bitbase& andNot, std::vector<uint64_t>& indexes) const;
+
+        /**
+         * @brief Returns all indexes where the bit is set to 1.
+         * @param indexes Output vector of indices.
+         */
+        void getAllSetIndexes(std::vector<uint64_t>& indexes) const;
 
         /**
          * @brief Counts the number of entries matching the given result.
