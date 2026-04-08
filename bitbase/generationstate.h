@@ -110,12 +110,11 @@ namespace QaplaBitbase {
 		 */
 		void getWork(vector<CandidateEntry>& work) {
 			vector<uint64_t> indexes;
+			indexes.reserve(_entryCount);
 			_candidates.getAllSetIndexes(indexes);
 			work.reserve(indexes.size());
 			for (auto idx : indexes) {
-				if (!isFinal(_computedResults.get2Bits(idx))) {
-					work.push_back({idx, _candidateResults.get2Bits(idx)});
-				}
+				work.push_back({idx, _candidateResults.get2Bits(idx)});
 			}
 		}
 
