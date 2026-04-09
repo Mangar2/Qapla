@@ -370,80 +370,14 @@ void BitbaseGenerator::addPiecesToPosition(
 }
 
 /**
- * Processes one dynamic work package for iterative bitbase propagation.
- *
- * @param workpackage Shared work provider.
- * @param state Shared generation state.
- */
-void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationState &state)
-{
-	MoveGenerator position;
-	vector<CandidateEntry> candidates;
-	candidates.reserve(_packageSize * 5);
-
-	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(_packageSize);
-	while (package.first < package.second)
-	{
-		for (uint64_t workNo = package.first; workNo < package.second; ++workNo)
-		{
-			auto candidate = workpackage.getCandidate(workNo);
-			uint64_t index = candidate.index;
-			auto computedResult = state.getComputedResults().get2Bits(index);
-
-			if (index == _debugIndex)
-			{
-				cout << "Processing candidate index " << index << " with candidate result ";
-				cout << (candidate.winningMove ? "Winning" : "Losing") << endl;
-			}
-
-			// Win and Loss are truly final and never change — skip them.
-			// Draw can be an intermediate marker (written when a drawing capture exists but quiet
-			// moves remain). Such a position can still be upgraded to Win if tryDirectEntry
-			// detects that a quiet move leads to a win proven in a previous round.
-			// Unknown positions are also still in play.
-			if (GenerationState::isFinal(computedResult)) {
-				continue;
-			}
-			ReverseIndex reverseIndex(index, state.getPieceList());
-
-			bool directEntry = tryDirectEntry(index, candidate.winningMove,
-											  reverseIndex.isWhiteToMove(), state);
-
-			position.clear();
-			addPiecesToPosition(position, reverseIndex, state.getPieceList());
-			if (DO_DEBUG && _debugLevel > 0 && index != BoardAccess::getIndex<0>(position))
-			{
-				cout << "Error, programming bug, index is not correct " << index << endl;
-				exit(1);
-			}
-
-			if (!directEntry) {
-				const auto result = computePosition(index, position, state);
-				if (result == BitbaseResult::Unknown) {
-					continue;
-				}
-			}
-
-			auto resolvedResult = state.getComputedResults().get2Bits(index);
-			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex, state);
-		}
-		// To prevent memory bloat, we flush candidates to the shared state in batches. 
-		state.setCandidatesTreadSafe(candidates);
-		candidates.clear();
-		package = workpackage.getNextPackageToExamine(_packageSize);
-	}
-	state.setCandidatesTreadSafe(candidates);
-}
-
-/**
- * Alternative propagation worker using BitWorkpackage.
+ * Propagation worker using BitWorkpackage.
  * Iterates directly over the index range; getCandidate() returns -1/0/1 by reading
  * the copied bitmaps (no CandidateEntry vector needed).
  *
  * @param workpackage Shared bit-based work provider.
  * @param state Shared generation state.
  */
-void BitbaseGenerator::computeBitWorkpackage(BitWorkpackage &workpackage, GenerationState &state)
+void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, GenerationState &state)
 {
 	MoveGenerator position;
 	vector<CandidateEntry> candidates;
@@ -519,7 +453,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 		{
 			_threads[threadNo] = thread([this, &workpackage, &state]()
-										{ computeBitWorkpackage(workpackage, state); });
+										{ computeWorkpackage(workpackage, state); });
 		}
 
 		joinThreads();
@@ -719,7 +653,7 @@ BitbaseResult BitbaseGenerator::initialComputePosition(
  * @param workpackage Shared work provider.
  * @param state Shared generation state.
  */
-void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, GenerationState &state)
+void BitbaseGenerator::computeInitialWorkpackage(InitialWorkpackage &workpackage, GenerationState &state)
 {
 	MoveGenerator position;
 	vector<CandidateEntry> candidates;
@@ -727,7 +661,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 	[[maybe_unused]] uint64_t entryCount = state.getEntryCount();
 
 	uint64_t packageSize = min(_packageSize, (state.getEntryCount() + 5) / 5);
-	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getEntryCount());
+	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize);
 	while (package.first < package.second)
 	{
 		for (uint64_t index = package.first; index < package.second; ++index)
@@ -765,7 +699,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 		}
 		state.setCandidatesTreadSafe(candidates);
 		candidates.clear();
-		package = workpackage.getNextPackageToExamine(packageSize, state.getEntryCount());
+		package = workpackage.getNextPackageToExamine(packageSize);
 	}
 	state.setCandidatesTreadSafe(candidates);
 	for ([[maybe_unused]] const auto& entry : candidates) {
@@ -800,7 +734,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	auto& timing = BitbaseProfiling::getStaticInstance();
 
 	timing.start("initial scan parallel");
-	Workpackage workpackage(state);
+	InitialWorkpackage workpackage(state.getEntryCount());
 	state.clearAllCandidates();
 	for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 	{

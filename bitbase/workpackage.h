@@ -88,6 +88,34 @@ namespace QaplaBitbase {
 	};
 
 	/**
+	 * Lightweight workpackage for the initial scan phase.
+	 * Distributes index ranges [0, entryCount) across threads without building
+	 * any candidate list — during initial scan no candidates exist yet.
+	 * Ranges are byte-aligned (multiples of 8) to avoid false sharing.
+	 */
+	class InitialWorkpackage
+	{
+	public:
+		InitialWorkpackage(uint64_t entryCount)
+			: _entryCount(entryCount), _workIndex(0) {}
+
+		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count) {
+			count = (count + 7) & ~uint64_t(7);
+			const lock_guard<mutex> lock(_mtxWork);
+			uint64_t first = _workIndex;
+			if (first >= _entryCount) return {_entryCount, _entryCount};
+			uint64_t last = min(first + count, _entryCount);
+			_workIndex = last;
+			return {first, last};
+		}
+
+	private:
+		uint64_t _entryCount;
+		uint64_t _workIndex;
+		mutex _mtxWork;
+	};
+
+	/**
 	 * Alternative Workpackage that copies the candidate bitmaps at construction time.
 	 * This avoids building a large CandidateEntry vector from the bitbase.
 	 * getNextPackageToExamine always returns byte-aligned ranges (multiples of 8)

@@ -269,8 +269,7 @@ namespace QaplaBitbase {
 		 * @param workpackage Shared work provider.
 		 * @param state Shared generation state.
 		 */
-		void computeWorkpackage(Workpackage& workpackage, GenerationState& state);
-		void computeBitWorkpackage(BitWorkpackage& workpackage, GenerationState& state);
+		void computeWorkpackage(BitWorkpackage& workpackage, GenerationState& state);
 
 		/**
 		 * Runs iterative propagation until no additional candidate positions remain.
@@ -331,7 +330,7 @@ namespace QaplaBitbase {
 		 * @param workpackage Shared work provider.
 		 * @param state Shared generation state.
 		 */
-		void computeInitialWorkpackage(Workpackage& workpackage, GenerationState& state);
+		void computeInitialWorkpackage(InitialWorkpackage& workpackage, GenerationState& state);
 
 		/**
 		 * Computes and persists one concrete bitbase described by a piece list.
