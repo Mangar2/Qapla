@@ -436,6 +436,70 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 }
 
 /**
+ * Alternative propagation worker using BitWorkpackage.
+ * Iterates directly over the index range; getCandidate() returns -1/0/1 by reading
+ * the copied bitmaps (no CandidateEntry vector needed).
+ *
+ * @param workpackage Shared bit-based work provider.
+ * @param state Shared generation state.
+ */
+void BitbaseGenerator::computeBitWorkpackage(BitWorkpackage &workpackage, GenerationState &state)
+{
+	MoveGenerator position;
+	vector<CandidateEntry> candidates;
+	candidates.reserve(_packageSize * 2);
+
+	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(_packageSize);
+	while (package.first < package.second)
+	{
+		for (uint64_t index = package.first; index < package.second; ++index)
+		{
+			int candidateValue = workpackage.getCandidate(index);
+			if (candidateValue < 0) continue;  // not a candidate
+
+			bool winningMove = (candidateValue == 1);
+			auto computedResult = state.getComputedResults().get2Bits(index);
+
+			if (index == _debugIndex)
+			{
+				cout << "Processing candidate index " << index << " with candidate result ";
+				cout << (winningMove ? "Winning" : "Losing") << endl;
+			}
+
+			if (GenerationState::isFinal(computedResult)) {
+				continue;
+			}
+			ReverseIndex reverseIndex(index, state.getPieceList());
+
+			bool directEntry = tryDirectEntry(index, winningMove,
+											  reverseIndex.isWhiteToMove(), state);
+
+			position.clear();
+			addPiecesToPosition(position, reverseIndex, state.getPieceList());
+			if (DO_DEBUG && _debugLevel > 0 && index != BoardAccess::getIndex<0>(position))
+			{
+				cout << "Error, programming bug, index is not correct " << index << endl;
+				exit(1);
+			}
+
+			if (!directEntry) {
+				const auto result = computePosition(index, position, state);
+				if (result == BitbaseResult::Unknown) {
+					continue;
+				}
+			}
+
+			auto resolvedResult = state.getComputedResults().get2Bits(index);
+			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex, state);
+		}
+		state.setCandidatesTreadSafe(candidates);
+		candidates.clear();
+		package = workpackage.getNextPackageToExamine(_packageSize);
+	}
+	state.setCandidatesTreadSafe(candidates);
+}
+
+/**
  * Runs iterative propagation until no additional candidate positions remain.
  *
  * @param state Current computation state.
@@ -447,7 +511,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++)
 	{
 		timing.start("workpackage setup");
-		Workpackage workpackage(state);
+		BitWorkpackage workpackage(state);
 		state.clearAllCandidates();
 		timing.stop("workpackage setup");
 
@@ -455,7 +519,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 		{
 			_threads[threadNo] = thread([this, &workpackage, &state]()
-										{ computeWorkpackage(workpackage, state); });
+										{ computeBitWorkpackage(workpackage, state); });
 		}
 
 		joinThreads();
@@ -659,7 +723,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 {
 	MoveGenerator position;
 	vector<CandidateEntry> candidates;
-	candidates.reserve(_packageSize * 5);
+	candidates.reserve(_packageSize * 2);
 	[[maybe_unused]] uint64_t entryCount = state.getEntryCount();
 
 	uint64_t packageSize = min(_packageSize, (state.getEntryCount() + 5) / 5);
