@@ -375,8 +375,7 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 {
 	MoveGenerator position;
 	vector<CandidateEntry> candidates;
-	uint64_t reservedSize = _packageSize * 10;
-	candidates.reserve(reservedSize);
+	candidates.reserve(_packageSize * 5);
 
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(_packageSize);
 	while (package.first < package.second)
@@ -425,14 +424,10 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex);
 		}
 		// To prevent memory bloat, we flush candidates to the shared state in batches. 
-		if (candidates.size() >= reservedSize / 2)
-		{
-			state.setCandidatesTreadSafe(candidates);
-			candidates.clear();
-		}
+		state.setCandidatesTreadSafe(candidates);
+		candidates.clear();
 		package = workpackage.getNextPackageToExamine(_packageSize);
 	}
-	std::cout << "Candidate size: " << candidates.size() << std::endl;
 	state.setCandidatesTreadSafe(candidates);
 }
 
@@ -660,7 +655,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 {
 	MoveGenerator position;
 	vector<CandidateEntry> candidates;
-	candidates.reserve(_packageSize);
+	candidates.reserve(_packageSize * 5);
 	[[maybe_unused]] uint64_t entryCount = state.getEntryCount();
 
 	uint64_t packageSize = min(_packageSize, (state.getEntryCount() + 5) / 5);
@@ -697,14 +692,11 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 				}
 			}
 		}
-		if (candidates.size() >= _packageSize / 2)
-		{
-			for ([[maybe_unused]] const auto& entry : candidates) {
-				assert(entry.index < entryCount);
-			}
-			state.setCandidatesTreadSafe(candidates);
-			candidates.clear();
+		for ([[maybe_unused]] const auto& entry : candidates) {
+			assert(entry.index < entryCount);
 		}
+		state.setCandidatesTreadSafe(candidates);
+		candidates.clear();
 		package = workpackage.getNextPackageToExamine(packageSize, state.getEntryCount());
 	}
 	state.setCandidatesTreadSafe(candidates);
