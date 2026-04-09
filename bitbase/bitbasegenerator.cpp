@@ -221,10 +221,14 @@ uint64_t BitbaseGenerator::computeCandidateIndex(bool wtm, const PieceList &list
  * @param computedResults Bitbase holding current results for early filtering.
  */
 void BitbaseGenerator::addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
-	Bitbase& computedResults)
+	Bitbase& computedResults, GenerationState& state)
 {
 	if (!GenerationState::isFinal(computedResults.get2Bits(entry.index))) {
-		candidates.push_back(entry);
+		// Skip push if the shared state already contains this candidate with sufficient priority.
+		// Atomic relaxed read — thread-safe on all architectures, near-zero cost.
+		if (!state.isCandidateSet(entry.index, entry.winningMove)) {
+			candidates.push_back(entry);
+		}
 	}
 }
 
@@ -242,7 +246,7 @@ void BitbaseGenerator::addToCandidates(vector<CandidateEntry>& candidates, const
 template <Piece COLOR>
 void BitbaseGenerator::reverseGeneratePawnMoves(vector<CandidateEntry> &candidates,
 												const MoveGenerator &position, const PieceList &list, Move move, BitbaseResult result,
-												Bitbase& computedResults, bool verbose)
+												Bitbase& computedResults, bool verbose, GenerationState& state)
 {
 	// BitbaseResult is from perspective of the current position before moving. 
 	const bool wtm = position.isWhiteToMove();
@@ -257,13 +261,13 @@ void BitbaseGenerator::reverseGeneratePawnMoves(vector<CandidateEntry> &candidat
 		bool winningMove = (result == BitbaseResult::Win && wtmAfterMove) || (result == BitbaseResult::Loss && !wtmAfterMove);
 		addToCandidates(candidates,
 			{computeCandidateIndex(wtm, list, move, oneRankDestination, verbose), winningMove},
-			computedResults);
+			computedResults, state);
 		const Square twoRankDestination = oneRankDestination + direction;
 		if (getRank(testDeparture) == Rank::R4 && position[twoRankDestination] == NO_PIECE)
 		{
 			addToCandidates(candidates,
 				{computeCandidateIndex(wtm, list, move, twoRankDestination, verbose), winningMove},
-				computedResults);
+				computedResults, state);
 		}
 	}
 }
@@ -279,7 +283,7 @@ void BitbaseGenerator::reverseGeneratePawnMoves(vector<CandidateEntry> &candidat
  */
 void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, const MoveGenerator &position,
 										 const PieceList &list, Move move, BitbaseResult result,
-										 Bitbase& computedResults, bool verbose)
+										 Bitbase& computedResults, bool verbose, GenerationState& state)
 {
 	bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
 	const bool wtm = position.isWhiteToMove();
@@ -291,8 +295,8 @@ void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, con
 	{
 		attackBB &= ~position.pieceAttackMask[position.getKingSquare<WHITE>()];
 	}
-	reverseGeneratePawnMoves<WHITE>(candidates, position, list, move, result, computedResults, verbose);
-	reverseGeneratePawnMoves<BLACK>(candidates, position, list, move, result, computedResults, verbose);
+	reverseGeneratePawnMoves<WHITE>(candidates, position, list, move, result, computedResults, verbose, state);
+	reverseGeneratePawnMoves<BLACK>(candidates, position, list, move, result, computedResults, verbose, state);
 	if (getPieceType(move.getMovingPiece()) != PAWN)
 	{
 		for (; attackBB; attackBB &= attackBB - 1)
@@ -307,7 +311,7 @@ void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, con
 			bool winningMove = (result == BitbaseResult::Win && wtmAfterMove) || (result == BitbaseResult::Loss && !wtmAfterMove);
 			addToCandidates(candidates,
 				{computeCandidateIndex(wtm, list, move, destination, verbose), winningMove},
-				computedResults);
+				computedResults, state);
 		}
 	}
 }
@@ -321,7 +325,7 @@ void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, con
  * @param verbose Enables detailed debug output.
  */
 void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, MoveGenerator &position, BitbaseResult result,
-										 Bitbase& computedResults, bool verbose)
+										 Bitbase& computedResults, bool verbose, GenerationState& state)
 {
 	PieceList pieceList(position);
 	position.computeAttackMasksForBothColors();
@@ -339,7 +343,7 @@ void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, Mov
 			move.setMovingPiece(piece);
 			Square departure = lsb(pieceBB);
 			move.setDeparture(departure);
-			computeCandidates(candidates, position, pieceList, move, result, computedResults, verbose);
+			computeCandidates(candidates, position, pieceList, move, result, computedResults, verbose, state);
 		}
 	}
 }
@@ -421,7 +425,7 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 			}
 
 			auto resolvedResult = state.getComputedResults().get2Bits(index);
-			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex);
+			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex, state);
 		}
 		// To prevent memory bloat, we flush candidates to the shared state in batches. 
 		state.setCandidatesTreadSafe(candidates);
@@ -688,7 +692,7 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 				// Remove the unknown state completely from all generator paths.
 				if (GenerationState::isFinal(result))
 				{
-					computeCandidates(candidates, position, result, state.getComputedResults(), index == _debugIndex);
+					computeCandidates(candidates, position, result, state.getComputedResults(), index == _debugIndex, state);
 				}
 			}
 		}
