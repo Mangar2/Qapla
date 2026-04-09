@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include <mutex>
 #include <atomic>
 #include "bitbase.h"
 #include "bitbaseindex.h"
@@ -61,7 +60,6 @@ namespace QaplaBitbase {
 			_illegal = 0;
 			_loss = 0;
 			_won = 0;
-			_updateRunning.store(false, std::memory_order_relaxed);
 		}
 
 		/**
@@ -153,19 +151,12 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Thread-safe variant of candidate insertion.
-		 * Uses atomic bit operations — no mutex required.
+		 * Thread-safe candidate insertion using atomic bit operations — no mutex required.
 		 *
 		 * @param candidates Candidate indexes to add.
-		 * @param wait Ignored (kept for API compatibility).
-		 * @returns Always true.
 		 */
-		bool setCandidatesTreadSafe(const vector<CandidateEntry>& candidates, bool wait = true) {
-			if (candidates.empty()) {
-				return false;
-			}
+		void setCandidatesTreadSafe(const vector<CandidateEntry>& candidates) {
 			setCandidates(candidates);
-			return true;
 		}
 
 		/**
@@ -372,12 +363,14 @@ namespace QaplaBitbase {
 		 * @param result The result that made this position a candidate.
 		 */
 		void setCandidate(uint64_t index, bool winningMove) {
-			// Atomic OR: safe for concurrent writes from multiple threads.
-			// winning bit is only ever set, never cleared during accumulation,
-			// so fetch_or is correct and the highest-priority result wins.
-			_hasCandidates = true;
-			_candidates.setBitAtomic(index);
-			if (winningMove) {
+			// Read first (cheap) — only pay for atomic write when bit is not yet set.
+			// Worst case: two threads both pass the read check and both write; that is
+			// harmless because setBitAtomic uses fetch_or (idempotent).
+			if (!_candidates.getBit(index)) {
+				_hasCandidates = true;
+				_candidates.setBitAtomic(index);
+			}
+			if (winningMove && !_candidateResults.getBit(index)) {
 				_candidateResults.setBitAtomic(index);
 			}
 		}
@@ -398,8 +391,6 @@ namespace QaplaBitbase {
 		Bitbase _candidates;
 		Bitbase _candidateResults;
 		PieceList _pieceList;
-		mutex _mtxUpdate;
-		std::atomic<bool> _updateRunning; // kept for API compat, no longer used for candidates
 	};
 
 }
