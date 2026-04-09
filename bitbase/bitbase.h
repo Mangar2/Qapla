@@ -140,6 +140,18 @@ namespace QaplaBitbase {
         }
 
         /**
+         * @brief Reads one bit atomically (thread-safe, no mutex required).
+         * Uses a relaxed load — prevents compiler from caching the value in a register.
+         * @param index Bit index to read.
+         * @returns true if the bit is set.
+         */
+        bool getBitAtomic(uint64_t index) const {
+            const uint64_t elem = index / BITS_IN_ELEMENT;
+            const bbt_t    mask = bbt_t(1) << (index % BITS_IN_ELEMENT);
+            return (std::atomic_ref<const bbt_t>(_bitbase[elem]).load(std::memory_order_relaxed) & mask) != 0;
+        }
+
+        /**
          * @brief Sets two bits as a combined integer value (for example, for win/draw/loss encoding). 
          * Requires that the content of the two bits is currently 0 (initial or cleared state).
          * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).

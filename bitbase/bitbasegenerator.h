@@ -156,12 +156,12 @@ namespace QaplaBitbase {
 		 * @param verbose Enables detailed debug output.
 		 */
 		static void addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
-			Bitbase& computedResults);
+			Bitbase& computedResults, GenerationState& state);
 
 		template <Piece COLOR>
 		void reverseGeneratePawnMoves(vector<CandidateEntry>& candidates, 
 			const MoveGenerator& position, const PieceList& list, Move move, BitbaseResult result,
-			Bitbase& computedResults, bool verbose);
+			Bitbase& computedResults, bool verbose, GenerationState& state);
 
 		/**
 		 * Computes reverse-generated candidate positions for one specific moving piece.
@@ -174,7 +174,7 @@ namespace QaplaBitbase {
 		 */
 		void computeCandidates(vector<CandidateEntry>& candidates, const MoveGenerator& position,
 			const PieceList& list, Move move, BitbaseResult result,
-			Bitbase& computedResults, bool verbose);
+			Bitbase& computedResults, bool verbose, GenerationState& state);
 
 		/**
 		 * Computes all reverse candidates after marking one position as newly won.
@@ -185,7 +185,7 @@ namespace QaplaBitbase {
 		 * @param verbose Enables detailed debug output.
 		 */
 		void computeCandidates(vector<CandidateEntry>& candidates, MoveGenerator& position, BitbaseResult result,
-			Bitbase& computedResults, bool verbose);
+			Bitbase& computedResults, bool verbose, GenerationState& state);
 
 		/**
 		 * Evaluates non-capture, non-promotion moves against already-computed bitbase entries

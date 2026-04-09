@@ -163,13 +163,27 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Checks whether an index is currently marked as candidate.
+		 * Checks atomically (no mutex) whether a candidate is already registered
+		 * in the shared state with at least the given priority.
+		 * A relaxed load is used — thread-safe on all architectures, near-zero overhead.
 		 *
 		 * @param index Bitbase index to test.
-		 * @returns True if the index is marked in the candidate bitmap.
+		 * @param winningMove True if we want to add a winning candidate.
+		 * @returns True if the entry is already present and no upgrade is needed.
 		 */
+		bool isCandidateSet(uint64_t index, bool winningMove) {
+			if (!_candidates.getBitAtomic(index)) return false;
+			if (winningMove && !_candidateResults.getBitAtomic(index)) return false;
+			return true;
+		}
+
+		// Non-atomic variants for the plain-read alternative in addToCandidates.
+		// Safe on x86/ARM in practice (no phantom 1 possible), but UB per C++ standard.
 		bool isCandidate(uint64_t index) {
 			return _candidates.getBit(index);
+		}
+		bool isCandidateResultSet(uint64_t index) {
+			return _candidateResults.getBit(index);
 		}
 
 		/**
