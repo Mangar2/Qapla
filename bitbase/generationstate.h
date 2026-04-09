@@ -140,6 +140,10 @@ namespace QaplaBitbase {
 		const Bitbase& getComputedResults() const { return _computedResults; }
 		Bitbase& getComputedResults() { return _computedResults; }
 
+		// Returns copies of the candidate bitmaps for BitWorkpackage construction.
+		Bitbase getCandidates() const { return _candidates; }
+		Bitbase getCandidateResults() const { return _candidateResults; }
+
 		/**
 		 * Adds a batch of candidate indexes for future processing.
 		 *

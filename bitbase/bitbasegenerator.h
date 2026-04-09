@@ -270,6 +270,7 @@ namespace QaplaBitbase {
 		 * @param state Shared generation state.
 		 */
 		void computeWorkpackage(Workpackage& workpackage, GenerationState& state);
+		void computeBitWorkpackage(BitWorkpackage& workpackage, GenerationState& state);
 
 		/**
 		 * Runs iterative propagation until no additional candidate positions remain.
@@ -357,7 +358,7 @@ namespace QaplaBitbase {
 		int _traceLevel;
 		uint64_t _debugIndex;
 		int _debugLevel;
-		static constexpr uint64_t _packageSize = 50000;
+		static constexpr uint64_t _packageSize = 100000;
 
 		static constexpr uint32_t MAX_THREADS = 64;
 		array<thread, MAX_THREADS> _threads;
