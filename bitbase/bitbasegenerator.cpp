@@ -33,6 +33,7 @@
 #include "generationstate.h"
 #include "bitbase-reader.h"
 #include "bitbasegenerator.h"
+#include "bitbase-profiling.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -149,15 +150,18 @@ BitbaseResult BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &p
  * A Loss candidate with black to move can be stored immediately as Loss.
  *
  * @param index Bitbase index of the candidate position.
- * @param candidateResult The result that triggered this candidate.
+ * @param winningMove True if the candidate move is a winning move for the side to move in this position.
  * @param whiteToMove True if white is to move in the candidate position.
  * @param state Mutable generation state.
  * @returns true if the position was directly resolved, false if full evaluation is needed.
  */
-bool BitbaseGenerator::tryDirectEntry(uint64_t index, BitbaseResult candidateResult,
+bool BitbaseGenerator::tryDirectEntry(uint64_t index, bool winningMove,
 									  bool whiteToMove, GenerationState &state)
 {
-	if (candidateResult == BitbaseResult::Win && whiteToMove) {
+	if (!winningMove) {
+		return false;
+	}
+	if (whiteToMove) {
 		if (index == _debugIndex)
 		{
 			std::cout << "Directly setting index " << index << " to Win based on candidate result." << std::endl;
@@ -165,15 +169,12 @@ bool BitbaseGenerator::tryDirectEntry(uint64_t index, BitbaseResult candidateRes
 		state.setWin(index);
 		return true;
 	}
-	if (candidateResult == BitbaseResult::Loss && !whiteToMove) {
-		if (index == _debugIndex)
-		{
-			std::cout << "Directly setting index " << index << " to Loss based on candidate result." << std::endl;
-		}
-		state.setLoss(index);
-		return true;
+	if (index == _debugIndex)
+	{
+		std::cout << "Directly setting index " << index << " to Loss based on candidate result." << std::endl;
 	}
-	return false;
+	state.setLoss(index);
+	return true;
 }
 
 /**
@@ -253,14 +254,15 @@ void BitbaseGenerator::reverseGeneratePawnMoves(vector<CandidateEntry> &candidat
 	if (isMyPawn && testDeparture >= A3 && position[oneRankDestination] == NO_PIECE)
 	{
 		bool wtmAfterMove = !wtm;
+		bool winningMove = (result == BitbaseResult::Win && wtmAfterMove) || (result == BitbaseResult::Loss && !wtmAfterMove);
 		addToCandidates(candidates,
-			{computeCandidateIndex(wtm, list, move, oneRankDestination, verbose), result, wtmAfterMove},
+			{computeCandidateIndex(wtm, list, move, oneRankDestination, verbose), winningMove},
 			computedResults);
 		const Square twoRankDestination = oneRankDestination + direction;
 		if (getRank(testDeparture) == Rank::R4 && position[twoRankDestination] == NO_PIECE)
 		{
 			addToCandidates(candidates,
-				{computeCandidateIndex(wtm, list, move, twoRankDestination, verbose), result, wtmAfterMove},
+				{computeCandidateIndex(wtm, list, move, twoRankDestination, verbose), winningMove},
 				computedResults);
 		}
 	}
@@ -301,8 +303,10 @@ void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, con
 			{
 				continue;
 			}
+			bool wtmAfterMove = !wtm;
+			bool winningMove = (result == BitbaseResult::Win && wtmAfterMove) || (result == BitbaseResult::Loss && !wtmAfterMove);
 			addToCandidates(candidates,
-				{computeCandidateIndex(wtm, list, move, destination, verbose), result, !wtm},
+				{computeCandidateIndex(wtm, list, move, destination, verbose), winningMove},
 				computedResults);
 		}
 	}
@@ -371,7 +375,8 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 {
 	MoveGenerator position;
 	vector<CandidateEntry> candidates;
-	candidates.reserve(_packageSize);
+	uint64_t reservedSize = _packageSize * 10;
+	candidates.reserve(reservedSize);
 
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(_packageSize);
 	while (package.first < package.second)
@@ -384,7 +389,8 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 
 			if (index == _debugIndex)
 			{
-				cout << "Processing candidate index " << index << " with candidate result " << to_string(candidate.result) << endl;
+				cout << "Processing candidate index " << index << " with candidate result ";
+				cout << (candidate.winningMove ? "Winning" : "Losing") << endl;
 			}
 
 			// Win and Loss are truly final and never change — skip them.
@@ -397,7 +403,7 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 			}
 			ReverseIndex reverseIndex(index, state.getPieceList());
 
-			bool directEntry = tryDirectEntry(index, candidate.result,
+			bool directEntry = tryDirectEntry(index, candidate.winningMove,
 											  reverseIndex.isWhiteToMove(), state);
 
 			position.clear();
@@ -418,12 +424,15 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 			auto resolvedResult = state.getComputedResults().get2Bits(index);
 			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex);
 		}
-		if (state.setCandidatesTreadSafe(candidates, false))
+		// To prevent memory bloat, we flush candidates to the shared state in batches. 
+		if (candidates.size() >= reservedSize / 2)
 		{
+			state.setCandidatesTreadSafe(candidates);
 			candidates.clear();
 		}
 		package = workpackage.getNextPackageToExamine(_packageSize);
 	}
+	std::cout << "Candidate size: " << candidates.size() << std::endl;
 	state.setCandidatesTreadSafe(candidates);
 }
 
@@ -435,10 +444,15 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
  */
 void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &clock)
 {
+	auto& timing = BitbaseProfiling::getStaticInstance();
 	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++)
 	{
+		timing.start("workpackage setup");
 		Workpackage workpackage(state);
 		state.clearAllCandidates();
+		timing.stop("workpackage setup");
+
+		timing.start("propagation parallel");
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 		{
 			_threads[threadNo] = thread([this, &workpackage, &state]()
@@ -446,6 +460,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 		}
 
 		joinThreads();
+		timing.stop("propagation parallel");
 		std::cout << "." << std::flush;
 		if (!state.hasCandidates())
 		{
@@ -454,7 +469,9 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 	}
 	// All positions that remain unresolved after propagation are draws by definition:
 	// neither side can force a win or loss from them (cycles, insufficient material, etc.).
+	timing.start("finalize draws");
 	state.finalizeDraws();
+	timing.stop("finalize draws");
 }
 
 /**
@@ -680,11 +697,12 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 				}
 			}
 		}
-		if (state.setCandidatesTreadSafe(candidates, false))
+		if (candidates.size() >= _packageSize / 2)
 		{
 			for ([[maybe_unused]] const auto& entry : candidates) {
 				assert(entry.index < entryCount);
 			}
+			state.setCandidatesTreadSafe(candidates);
 			candidates.clear();
 		}
 		package = workpackage.getNextPackageToExamine(packageSize, state.getEntryCount());
@@ -719,6 +737,9 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	ClockManager clock;
 	clock.setStartTime();
 
+	auto& timing = BitbaseProfiling::getStaticInstance();
+
+	timing.start("initial scan parallel");
 	Workpackage workpackage(state);
 	state.clearAllCandidates();
 	for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
@@ -727,15 +748,18 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 			{ computeInitialWorkpackage(workpackage, state); });
 	}
 	joinThreads();
+	timing.stop("initial scan parallel");
 	cout << "." << std::flush;
 	computeBitbase(state, clock);
 
 	string fileName = pieceString + string(".btb");
 	cout << "c" << std::endl;
 	// Print statistics BEFORE storeToFile, which may compact 2-bit data to 1-bit in place.
+	timing.start("print statistic");
 	printTimeSpent(clock);
 	printStatistic(state);
 	GenerationState::printTotalStatistic();
+	timing.stop("print statistic");
 	std::cout << std::endl;
 
 	// Register in memory BEFORE storeToFile, which may compact the 2-bit data to 1-bit in place.

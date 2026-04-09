@@ -32,6 +32,7 @@
 #include "workpackage.h"
 #include "generationstate.h"
 #include "bitbase-reader.h"
+#include "bitbase-profiling.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -72,6 +73,7 @@ namespace QaplaBitbase {
 			cout << endl << "All Bitbases generated!";
 			printTimeSpent(clock);
 			cout << endl;
+			BitbaseProfiling::getStaticInstance().printStatistics();
 		}
 
 
@@ -94,16 +96,13 @@ namespace QaplaBitbase {
 			}
 			else if (pieceString == "5s") {
 				computeBitbase("KPPKP", compression, generateCpp);
-				computeBitbase("KPKPP", compression, generateCpp);
 			}
 			else if (pieceString == "5") {
 				computeBitbase("KPPKP", compression, generateCpp);
-				computeBitbase("KPKPP", compression, generateCpp);
 				computeBitbase("KPPPK", compression, generateCpp);
 			}
 			else if (pieceString == "6") {
 				computeBitbase("KPPKPP", compression, generateCpp);
-				computeBitbase("KPKPPP", compression, generateCpp);
 				computeBitbase("KPPPKP", compression, generateCpp);
 			}
 			PieceList list(pieceString);
@@ -219,12 +218,12 @@ namespace QaplaBitbase {
 		 * Attempts to directly set the result for a candidate position without full move evaluation.
 		 *
 		 * @param index Bitbase index of the candidate position.
-		 * @param candidateResult The result that triggered this candidate.
+		 * @param winningMove True if the candidate move is a winning move.
 		 * @param whiteToMove True if white is to move in the candidate position.
 		 * @param state Mutable generation state.
 		 * @returns true if the position was directly resolved, false if full evaluation is needed.
 		 */
-		bool tryDirectEntry(uint64_t index, BitbaseResult candidateResult,
+		bool tryDirectEntry(uint64_t index, bool winningMove,
 							bool whiteToMove, GenerationState& state);
 
 		/**

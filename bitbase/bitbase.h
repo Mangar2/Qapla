@@ -27,6 +27,7 @@
 #include <ostream>
 #include <filesystem>
 #include <algorithm>
+#include <atomic>
 #include "bitbase-file.h"
 #include "compress.h"
 #include "cluster-cache.h"
@@ -126,6 +127,17 @@ namespace QaplaBitbase {
          * @param index Bit index to set.
          */
         void setBit(uint64_t index);
+
+        /**
+         * @brief Sets a specific bit to 1 atomically (thread-safe, no mutex required).
+         * Uses fetch_or so multiple threads can write concurrently.
+         * @param index Bit index to set.
+         */
+        void setBitAtomic(uint64_t index) {
+            const uint64_t elem = index / BITS_IN_ELEMENT;
+            const bbt_t    mask = bbt_t(1) << (index % BITS_IN_ELEMENT);
+            std::atomic_ref<bbt_t>(_bitbase[elem]).fetch_or(mask, std::memory_order_relaxed);
+        }
 
         /**
          * @brief Sets two bits as a combined integer value (for example, for win/draw/loss encoding). 
@@ -264,6 +276,23 @@ namespace QaplaBitbase {
 			numCluster = std::clamp(numCluster, static_cast<uint64_t>(2), static_cast<uint64_t>(UINT32_MAX));
 			cache.resize(numCluster);
 		}
+
+        /**
+         * @brief Get the Bitbase Data object   
+         * 
+         * @return const std::vector<bbt_t>& 
+         */
+        const std::vector<bbt_t>& getBitbaseData() const {
+            return _bitbase;
+        }
+
+        /**
+         * @brief Get the number of bits in one data element (bbt_t).
+         * @return Number of bits in a data element.
+         */
+        const uint32_t getBitsInDataElement() const {
+            return BITS_IN_ELEMENT;
+        }
 
 
     private:
