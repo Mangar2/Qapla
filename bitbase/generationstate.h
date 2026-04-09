@@ -22,6 +22,7 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include "bitbase.h"
 #include "bitbaseindex.h"
 #include "compress.h"
@@ -151,11 +152,13 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Thread-safe candidate insertion using atomic bit operations — no mutex required.
+		 * Thread-safe candidate insertion.
+		 * Acquires mutex, then writes the batch with plain (non-atomic) bit ops.
 		 *
 		 * @param candidates Candidate indexes to add.
 		 */
 		void setCandidatesTreadSafe(const vector<CandidateEntry>& candidates) {
+			const lock_guard<mutex> lock(_mtxUpdate);
 			setCandidates(candidates);
 		}
 
@@ -368,10 +371,10 @@ namespace QaplaBitbase {
 			// harmless because setBitAtomic uses fetch_or (idempotent).
 			if (!_candidates.getBit(index)) {
 				_hasCandidates = true;
-				_candidates.setBitAtomic(index);
+				_candidates.setBit(index);
 			}
 			if (winningMove && !_candidateResults.getBit(index)) {
-				_candidateResults.setBitAtomic(index);
+				_candidateResults.setBit(index);
 			}
 		}
 
@@ -391,6 +394,7 @@ namespace QaplaBitbase {
 		Bitbase _candidates;
 		Bitbase _candidateResults;
 		PieceList _pieceList;
+		mutex _mtxUpdate;
 	};
 
 }
