@@ -31,8 +31,7 @@ namespace QaplaBitbase {
 
 	struct CandidateEntry {
 		uint64_t index;
-		BitbaseResult result;
-		bool whiteToMove; // WTM of the candidate (predecessor) position, i.e. who makes the move TO reach the resolved position
+		bool winningMove;
 	};
 
 	class GenerationState
@@ -55,14 +54,14 @@ namespace QaplaBitbase {
 			_candidates = Bitbase(_entryCount, 1, sig);
 			_candidates.resize(_entryCount);
 			_candidates.setLoaded();
-			_candidateResults = Bitbase(_entryCount, 2, sig);
+			_candidateResults = Bitbase(_entryCount, 1, sig);
 			_candidateResults.resize(_entryCount);
 			_candidateResults.setLoaded();
 			_pieceList = pieceList;
 			_illegal = 0;
 			_loss = 0;
 			_won = 0;
-			_updateRunning = false;
+			_updateRunning.store(false, std::memory_order_relaxed);
 		}
 
 		/**
@@ -114,7 +113,7 @@ namespace QaplaBitbase {
 			_candidates.getAllSetIndexes(indexes);
 			work.reserve(indexes.size());
 			for (auto idx : indexes) {
-				work.push_back({idx, _candidateResults.get2Bits(idx)});
+				work.push_back({idx, _candidateResults.getBit(idx) == 1});
 			}
 		}
 
@@ -149,31 +148,24 @@ namespace QaplaBitbase {
 		 */
 		void setCandidates(const vector<CandidateEntry>& candidates) {
 			for (const auto& entry : candidates) {
-				setCandidate(entry.index, entry.result, entry.whiteToMove);
+				setCandidate(entry.index, entry.winningMove);
 			}
 		}
 
 		/**
 		 * Thread-safe variant of candidate insertion.
+		 * Uses atomic bit operations — no mutex required.
 		 *
 		 * @param candidates Candidate indexes to add.
-		 * @param wait If true, waits for lock; otherwise skips when another update is active.
-		 * @returns True if candidates were merged, otherwise false.
+		 * @param wait Ignored (kept for API compatibility).
+		 * @returns Always true.
 		 */
 		bool setCandidatesTreadSafe(const vector<CandidateEntry>& candidates, bool wait = true) {
 			if (candidates.empty()) {
 				return false;
 			}
-			if (wait || !_updateRunning) {
-				const lock_guard<mutex> lock(_mtxUpdate);
-				_updateRunning = true;
-				setCandidates(candidates);
-				_updateRunning = false;
-				return true;
-			} 
-			else {
-				return false;
-			}
+			setCandidates(candidates);
+			return true;
 		}
 
 		/**
@@ -379,18 +371,14 @@ namespace QaplaBitbase {
 		 * @param index Bitbase index to mark.
 		 * @param result The result that made this position a candidate.
 		 */
-		void setCandidate(uint64_t index, BitbaseResult result, bool whiteToMove) {
-			if (_candidates.getBit(index)) {
-				// Already a candidate — only overwrite with strictly higher priority.
-				BitbaseResult current = _candidateResults.get2Bits(index);
-				if (candidatePriority(result, whiteToMove) <= candidatePriority(current, whiteToMove)) {
-					return;
-				}
-				_candidateResults.set2Bit(index, result);
-			} else {
-				_hasCandidates = true;
-				_candidates.setBit(index);
-				_candidateResults.set2Bit(index, result);
+		void setCandidate(uint64_t index, bool winningMove) {
+			// Atomic OR: safe for concurrent writes from multiple threads.
+			// winning bit is only ever set, never cleared during accumulation,
+			// so fetch_or is correct and the highest-priority result wins.
+			_hasCandidates = true;
+			_candidates.setBitAtomic(index);
+			if (winningMove) {
+				_candidateResults.setBitAtomic(index);
 			}
 		}
 
@@ -411,7 +399,7 @@ namespace QaplaBitbase {
 		Bitbase _candidateResults;
 		PieceList _pieceList;
 		mutex _mtxUpdate;
-		bool _updateRunning;
+		std::atomic<bool> _updateRunning; // kept for API compat, no longer used for candidates
 	};
 
 }

@@ -29,6 +29,7 @@
 #include <stdexcept>
 #include "compress.h"
 #include "bitbaseindex.h"
+#include "bitbase-profiling.h"
 
 namespace QaplaBitbase {
 
@@ -153,9 +154,13 @@ namespace QaplaBitbase {
 		if (!isLoaded()) {
 			throw std::runtime_error("Error: Bitbase is not loaded.");
 		}
+		auto& timing = BitbaseProfiling::getStaticInstance();
+		timing.start("compact to 1 bit");
         compactTo1BitIfPossible();
+		timing.stop("compact to 1 bit");
         const uint32_t clusterElements = DEFAULT_CLUSTER_SIZE_IN_BYTES / sizeof(bbt_t);
 
+		timing.start("file compress+write");
         BitbaseFile::write(
             fileName,
 			sizeInBits(),
@@ -165,8 +170,11 @@ namespace QaplaBitbase {
             QaplaCompress::Compress::getCompressor(compression),
             _bitsPerEntry
         );
+		timing.stop("file compress+write");
 
+		timing.start("file verify");
 		verifyWrittenFile();
+		timing.stop("file verify");
     }
 
     void Bitbase::compactTo1BitIfPossible() {
