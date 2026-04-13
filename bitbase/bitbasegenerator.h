@@ -102,6 +102,8 @@ namespace QaplaBitbase {
 				computeBitbase("KPPPK", compression, generateCpp);
 			}
 			else if (pieceString == "6") {
+				computeBitbase("KPPKP", compression, generateCpp);
+				computeBitbase("KPPPK", compression, generateCpp);
 				computeBitbase("KPPKPP", compression, generateCpp);
 				computeBitbase("KPPPKP", compression, generateCpp);
 			}
