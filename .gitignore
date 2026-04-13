@@ -354,3 +354,7 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# Syzygy tablebase probe code (third-party, not part of this project)
+nnue768/tbprobe.cpp
+nnue768/tbprobe.h
