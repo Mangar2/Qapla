@@ -41,13 +41,6 @@
 #include "bitbase.h"
 #include "recursive-pairing.h"
 
-#ifdef _WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#endif
-
 namespace QaplaBitbase {
 
 /**
@@ -128,9 +121,11 @@ private:
     static constexpr size_t   HEADER_BYTES = 16;          // 4 + 4 + 8
 
     // ── Memory-mapped file state ───────────────────────────────────────────
+    // HANDLE is typedef void* on Windows; stored as void* here so that
+    // <windows.h> is never needed in a header.  The .cpp casts as required.
 #ifdef _WIN32
-    HANDLE _fileHandle    = INVALID_HANDLE_VALUE;
-    HANDLE _mappingHandle = nullptr;
+    void*  _fileHandle    = reinterpret_cast<void*>(-1); // == INVALID_HANDLE_VALUE
+    void*  _mappingHandle = nullptr;
 #else
     int    _fd            = -1;
 #endif

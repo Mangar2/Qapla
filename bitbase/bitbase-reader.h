@@ -118,6 +118,16 @@ namespace QaplaBitbase {
          */
         static void setBitbase(std::string pieceString, const Bitbase& bitBase);
 
+        /**
+         * Opens a .qwdl file and registers it so that getValueFromSingleBitbase()
+         * can probe it without keeping the full bitbase in RAM.
+         * Called by the generator after successfully writing each .qwdl file.
+         * @param pieceString Piece configuration string (e.g. "KPK").
+         * @param filePath    Path to the .qwdl file.
+         */
+        static void registerQwdlFile(const std::string& pieceString,
+                                     const std::string& filePath);
+
     private:
 
         /**

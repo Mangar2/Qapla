@@ -67,20 +67,12 @@ void writeBits(uint8_t* buf, int& bitPos, uint32_t code, int len) {
 }
 
 // =============================================================================
-// Huffman tree: build lowestSym[], minSymLen, maxSymLen
+// Huffman tree: build symOrder[], symCount[], minSymLen, maxSymLen
 // =============================================================================
 
-// Build the Huffman tree and return per-symbol code lengths plus lowestSym[].
-// lowestSym[li] = lowest symbol index (grammar order) at relative length li = len - minLen.
-// This is the same minimal serialization Syzygy uses:  one uint16_t per length level.
-//
-// "Grammar order" means: canonical symbol ordering is by (code_length asc, symbol_index asc).
-// Under canonical assignment the lowest-code symbol at each length is also the one with the
-// smallest symbol index among all symbols of that length, so lowestSym[li] can be computed
-// directly from the sorted symbol list.
 struct HuffBuildResult {
-    std::vector<uint8_t>  lengths;    // per-symbol code length (0 = unused)
-    std::vector<uint16_t> lowestSym;  // per relative-length: lowest symbol index
+    std::vector<uint8_t>  lengths;   // per-symbol code length (0 = unused)
+    std::vector<uint8_t>  symOrder;  // all coded symbols sorted by (length asc, index asc)
     uint8_t minLen = 0;
     uint8_t maxLen = 0;
 };
@@ -147,18 +139,16 @@ HuffBuildResult buildHuffman(const std::vector<uint64_t>& freq, int numSymbols) 
     }
     if (r.minLen == 255) { r.minLen = 0; return r; }
 
-    // Build lowestSym[].
-    // Under canonical assignment (sort by length asc, symbol-index asc),
-    // lowestSym[li] is the smallest symbol index at relative length li.
-    const int numLens = r.maxLen - r.minLen + 1;
-    r.lowestSym.assign(numLens, 0xFFFFu);
-    for (int i = 0; i < numSymbols; ++i) {
-        if (r.lengths[i] > 0) {
-            const int li = r.lengths[i] - r.minLen;
-            if (static_cast<uint16_t>(i) < r.lowestSym[li])
-                r.lowestSym[li] = static_cast<uint16_t>(i);
-        }
-    }
+    // Build symOrder: all symbols with Huffman codes, sorted by (length asc, index asc).
+    // This matches the order used by buildEncodeCodes() so that during decode,
+    // offset k within a length group maps to symOrder[groupStart[li] + k].
+    for (int i = 0; i < numSymbols; ++i)
+        if (r.lengths[i] > 0)
+            r.symOrder.push_back(static_cast<uint8_t>(i));
+    std::sort(r.symOrder.begin(), r.symOrder.end(), [&](uint8_t a, uint8_t b) {
+        return r.lengths[a] < r.lengths[b]
+            || (r.lengths[a] == r.lengths[b] && a < b);
+    });
 
     return r;
 }
@@ -172,6 +162,11 @@ struct HuffCode {
     int      len;   // 0 = unused symbol
 };
 
+// Assign canonical codes sorted by (length asc, symbol_index asc).
+// The k-th symbol in this order at relative length li gets code
+//   base_code[li] + k
+// where base_code[li] = base64[li] >> (64 - li - minSymLen).
+// This is consistent with the decode: offset = (buf64 - base64[li]) >> shift.
 std::vector<HuffCode> buildEncodeCodes(const std::vector<uint8_t>& lengths, int numSymbols) {
     std::vector<HuffCode> codes(numSymbols, {0, 0});
 
@@ -195,37 +190,42 @@ std::vector<HuffCode> buildEncodeCodes(const std::vector<uint8_t>& lengths, int 
 }
 
 // =============================================================================
-// base64[] — the identical computation Syzygy does in set_sizes()
+// base64[] — standard canonical Huffman starting codes, left-padded to 64 bits
 // =============================================================================
 
-// Build base64[] from lowestSym[], minLen.
-// base64[li] is the 64-bit left-padded (right-zero-padded to 64 bits) value of the
-// lowest canonical code at relative length li = len - minLen.
+// Standard canonical Huffman (shorter codes = smaller bit-patterns, base64 is increasing):
+//   code_start[0] = 0
+//   code_start[li+1] = (code_start[li] + symCount[li]) << 1
+//   base64[li] = code_start[li] << (64 - li - minLen)
 //
-// Syzygy's exact recurrence (from set_sizes()):
-//   base64[i] = (base64[i+1] + lowestSym[i] - lowestSym[i+1]) / 2
-//   then: base64[i] <<= 64 - i - minSymLen
-//
-// The canonical code ordering used in Syzygy is DESCENDING by code value for longer
-// symbols (longer = numerically smaller code), i.e. lowestSym[i] >= lowestSym[i+1].
-// We produce exactly the same ordering in buildHuffman() because we assign codes in
-// ascending order to symbols sorted by (length asc, index asc), which means longer
-// codes start at smaller absolute values — the same convention Syzygy uses.
+// During decode: offset_in_group = (buf64 - base64[li]) >> (64 - li - minLen)
+// During probe loop: advance li while buf64 >= base64[li+1]  (base64 is monotone increasing)
 std::vector<uint64_t> buildBase64(
-    const std::vector<uint16_t>& lowestSym, uint8_t minLen)
+    const std::vector<uint16_t>& symCount,
+    uint8_t minLen)
 {
-    const int n = static_cast<int>(lowestSym.size());
+    const int n = static_cast<int>(symCount.size());
     std::vector<uint64_t> base64(n, 0);
 
-    // Recurrence from highest to lowest relative length (Syzygy's loop direction)
-    for (int i = n - 2; i >= 0; --i) {
-        base64[i] = (base64[i + 1] + lowestSym[i] - lowestSym[i + 1]) / 2;
+    uint64_t code = 0;
+    for (int li = 0; li < n; ++li) {
+        const int shift = 64 - li - static_cast<int>(minLen);
+        base64[li] = code << shift;
+        code = (code + symCount[li]) << 1;
     }
-    // Left-shift so base64[li] is right-padded to 64 bits at length (li + minLen)
-    for (int i = 0; i < n; ++i)
-        base64[i] <<= 64 - i - minLen;
-
     return base64;
+}
+
+// =============================================================================
+// groupStart[] — prefix sums of symCount for indexing into symOrder[]
+// =============================================================================
+
+std::vector<uint32_t> buildGroupStart(const std::vector<uint16_t>& symCount) {
+    const int n = static_cast<int>(symCount.size());
+    std::vector<uint32_t> gs(n, 0);
+    for (int li = 1; li < n; ++li)
+        gs[li] = gs[li - 1] + symCount[li - 1];
+    return gs;
 }
 
 // =============================================================================
@@ -267,11 +267,32 @@ std::vector<SparseEntry> buildSparseIndex(
         while (sparseK < numSparse) {
             const uint64_t Ik = sparseK * span + span / 2;
             if (Ik >= posAccum + blockCount) break;
-            idx.push_back({b, static_cast<uint16_t>(Ik - posAccum)});
+            idx.push_back({b, static_cast<uint32_t>(Ik - posAccum)});
             ++sparseK;
         }
         posAccum += blockCount;
     }
+
+    // When I(k) = k*span + span/2 >= totalTerminals the inner loop never fires and
+    // those entries are missing.  probe() computes k = idx/span and expects
+    // sparseIndex[k] to exist for every valid idx.  Fill the remaining entries as
+    // "phantom" positions past the end of the last block.
+    //
+    // probe() then applies diff = idx%span - span/2 = idx - I(k) which is negative
+    // for these k values (because idx < totalTerminals <= I(k)), so the navigation
+    // loop walks backward into the real data and lands on the correct position.
+    if (sparseK < numSparse) {
+        const uint32_t lastBlock      = static_cast<uint32_t>(blockLength.size()) - 1;
+        const uint64_t lastBlockStart = totalTerminals
+                                      - (static_cast<uint64_t>(blockLength[lastBlock]) + 1);
+        while (sparseK < numSparse) {
+            const uint64_t Ik           = static_cast<uint64_t>(sparseK) * span + span / 2;
+            const uint64_t phantomOffset = Ik - lastBlockStart;
+            idx.push_back({lastBlock, static_cast<uint32_t>(phantomOffset)});
+            ++sparseK;
+        }
+    }
+
     return idx;
 }
 
@@ -369,12 +390,23 @@ RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
     std::vector<uint64_t> symFreq(numSymbols, 0);
     for (uint8_t s : seq) ++symFreq[s];
 
-    // Step 5: build Huffman tree → lowestSym, minSymLen, maxSymLen, base64
+    // Step 5: build Huffman tree → symOrder, symCount, minSymLen, maxSymLen
     const HuffBuildResult huff = buildHuffman(symFreq, numSymbols);
     result.minSymLen = huff.minLen;
     result.maxSymLen = huff.maxLen;
-    result.lowestSym = huff.lowestSym;
-    result.base64    = buildBase64(huff.lowestSym, huff.minLen);
+    result.symOrder  = huff.symOrder;
+
+    // Count symbols per relative length
+    const int numLens = result.maxSymLen - result.minSymLen + 1;
+    result.symCount.assign(numLens, 0);
+    for (int i = 0; i < numSymbols; ++i) {
+        if (huff.lengths[i] > 0)
+            result.symCount[huff.lengths[i] - result.minSymLen]++;
+    }
+
+    // Derived: base64 and groupStart
+    result.base64      = buildBase64(result.symCount, huff.minLen);
+    result.groupStart  = buildGroupStart(result.symCount);
 
     // Step 6: canonical encoder codes (needed for bit-packing; not stored)
     const std::vector<HuffCode> codes = buildEncodeCodes(huff.lengths, numSymbols);
@@ -426,15 +458,17 @@ RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
 
 
 std::vector<uint8_t> serialize(const RePairData& data) {
-    const uint32_t numBlocks = data.blocksNum;
-    const int      numLens   = data.maxSymLen - data.minSymLen + 1;
+    const uint32_t numBlocks   = data.blocksNum;
+    const int      numLens     = data.maxSymLen - data.minSymLen + 1;
+    const uint32_t numSymTotal = static_cast<uint32_t>(data.symOrder.size());
 
     std::vector<uint8_t> buf;
     buf.reserve(
         sizeof(uint16_t)                       // numRules
         + data.btree.size() * 2                // btree
         + 1 + 1                                // maxSymLen, minSymLen
-        + numLens * sizeof(uint16_t)           // lowestSym[]
+        + numLens * sizeof(uint16_t)           // symCount[]
+        + numSymTotal                          // symOrder[]
         + sizeof(uint32_t)                     // sizeofBlock
         + sizeof(uint32_t)                     // span
         + sizeof(uint32_t)                     // blocksNum
@@ -448,10 +482,11 @@ std::vector<uint8_t> serialize(const RePairData& data) {
         buf.push_back(r.right);
     }
 
-    // 2. Huffman: maxSymLen, minSymLen, then lowestSym[]
+    // 2. Huffman: maxSymLen, minSymLen, then symCount[], then symOrder[]
     buf.push_back(data.maxSymLen);
     buf.push_back(data.minSymLen);
-    for (uint16_t ls : data.lowestSym) appendValue(buf, ls);
+    for (uint16_t sc : data.symCount)  appendValue(buf, sc);
+    for (uint8_t  so : data.symOrder)  buf.push_back(so);
 
     // 3. Block layout
     appendValue(buf, static_cast<uint32_t>(data.sizeofBlock));
@@ -481,13 +516,19 @@ RePairData deserialize(const uint8_t* raw, size_t size) {
         result.btree[i].right = readValue<uint8_t>(p, end);
     }
 
-    // 2. Huffman: maxSymLen, minSymLen, lowestSym[]
+    // 2. Huffman: maxSymLen, minSymLen, symCount[], symOrder[]
     result.maxSymLen = readValue<uint8_t>(p, end);
     result.minSymLen = readValue<uint8_t>(p, end);
     const int numLens = result.maxSymLen - result.minSymLen + 1;
-    result.lowestSym.resize(numLens);
+    result.symCount.resize(numLens);
     for (int i = 0; i < numLens; ++i)
-        result.lowestSym[i] = readValue<uint16_t>(p, end);
+        result.symCount[i] = readValue<uint16_t>(p, end);
+
+    uint32_t totalSyms = 0;
+    for (uint16_t c : result.symCount) totalSyms += c;
+    result.symOrder.resize(totalSyms);
+    for (uint32_t i = 0; i < totalSyms; ++i)
+        result.symOrder[i] = readValue<uint8_t>(p, end);
 
     // 3. Block layout
     result.sizeofBlock = static_cast<size_t>(readValue<uint32_t>(p, end));
@@ -509,8 +550,9 @@ RePairData deserialize(const uint8_t* raw, size_t size) {
     // ── Derived fields ────────────────────────────────────────────────────────
     const int numSymbols = NUM_TERMINALS + static_cast<int>(numRules);
     result.symlen      = buildSymlen(result.btree, numSymbols);
+    result.base64      = buildBase64(result.symCount, result.minSymLen);
+    result.groupStart  = buildGroupStart(result.symCount);
     result.sparseIndex = buildSparseIndex(result.blockLength, result.span);
-    result.base64      = buildBase64(result.lowestSym, result.minSymLen);
 
     return result;
 }
@@ -527,6 +569,10 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
     uint32_t block  = data.sparseIndex[k].block;
     int64_t  offset = static_cast<int64_t>(data.sparseIndex[k].offset);
 
+    // diff = idx - I(k) where I(k) = k*span + span/2.
+    // Equivalent form idx%span - span/2 avoids the multiply and is identical
+    // as long as k = floor(idx/span), which is guaranteed because buildSparseIndex
+    // now always produces exactly numSparse = ceil(totalTerminals/span) entries.
     const int64_t diff = static_cast<int64_t>(idx % data.span)
                        - static_cast<int64_t>(data.span / 2);
     offset += diff;
@@ -537,8 +583,7 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
         offset -= static_cast<int64_t>(data.blockLength[block++]) + 1;
 
     // ── Step 2: decode symbols with 64-bit rolling buffer ────────────────────
-    // Identical approach to decompress_pairs() in Syzygy's tbprobe.cpp.
-    // buf64 holds the next bits in the most-significant positions.
+    // buf64 holds the next bits in the most-significant positions (MSB first).
     // ptr advances through the block 4 bytes at a time for 32-bit refills.
     const uint8_t* blockStart = data.encoded.data()
                               + static_cast<size_t>(block) * data.sizeofBlock;
@@ -552,9 +597,9 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
     const int      numLens   = data.maxSymLen - data.minSymLen + 1;
     const uint8_t  minSymLen = data.minSymLen;
 
-    uint16_t sym;
+    uint16_t sym = 0;
     while (true) {
-        // Refill when 32 or fewer bits remain — identical to Syzygy
+        // Refill when 32 or fewer bits remain
         if (buf64Size <= 32) {
             buf64Size += 32;
             buf64 |= static_cast<uint64_t>(readBE32(
@@ -562,16 +607,18 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
                    << (64 - buf64Size);
         }
 
-        // Find symbol length: walk base64[] until buf64 >= base64[len].
-        // Syzygy: "while (buf64 < d->base64[len]) ++len;"
+        // Find length group: base64[] is monotonically increasing (standard canonical).
+        // Advance len while buf64 is at or above the next group's starting code.
         int len = 0;
-        while (len < numLens - 1 && buf64 < data.base64[len])
+        while (len < numLens - 1 && buf64 >= data.base64[len + 1])
             ++len;
 
-        // Compute symbol index: offset within the length group + lowestSym[len]
-        sym = static_cast<uint16_t>(
-                  (buf64 - data.base64[len]) >> (64 - len - minSymLen))
-            + data.lowestSym[len];
+        // Offset within the length group
+        const uint32_t offset_in_group = static_cast<uint32_t>(
+            (buf64 - data.base64[len]) >> (64 - len - minSymLen));
+
+        // Look up the original grammar symbol index
+        sym = data.symOrder[data.groupStart[len] + offset_in_group];
 
         const int64_t expansion = static_cast<int64_t>(data.symlen[sym]) + 1;
         if (offset < expansion)
@@ -596,6 +643,7 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
         }
     }
 
+    // sym is now a terminal (original index 0..NUM_TERMINALS-1 = WDLValue)
     return static_cast<WDLValue>(sym);
 }
 
@@ -605,9 +653,9 @@ std::vector<QaplaBitbase::BitbaseResult> decompressBlock(
 {
     if (blockIndex >= data.blockLength.size()) return {};
 
-    const int numLens = data.maxSymLen - data.minSymLen + 1;
+    const int numLens    = data.maxSymLen - data.minSymLen + 1;
+    const uint8_t minLen = data.minSymLen;
 
-    // Use base64[] for bit-by-bit decoding (performance is not critical for full decompression):
     const uint8_t* blockData =
         data.encoded.data() + static_cast<size_t>(blockIndex) * data.sizeofBlock;
     const size_t target = static_cast<size_t>(data.blockLength[blockIndex]) + 1u;
@@ -615,30 +663,34 @@ std::vector<QaplaBitbase::BitbaseResult> decompressBlock(
     std::vector<QaplaBitbase::BitbaseResult> result;
     result.reserve(target);
 
-    // Bit-by-bit decode using base64[] (same principle as probe's inner loop but simpler)
     int bitPos = 0;
-    auto readBit1 = [&]() -> int {
-        return (blockData[bitPos >> 3] >> (7 - (bitPos & 7))) & 1;
+    auto readBit1 = [&]() -> uint64_t {
+        return static_cast<uint64_t>((blockData[bitPos >> 3] >> (7 - (bitPos & 7))) & 1);
     };
 
     while (result.size() < target) {
+        // Read minLen bits into s64 (in the top positions)
+        uint64_t s64 = 0;
+        for (int l = 0; l < minLen; ++l) {
+            s64 = (s64 << 1) | readBit1();
+            ++bitPos;
+        }
+        s64 <<= (64 - minLen);  // left-pad to 64 bits
+
+        // Extend one bit at a time while we're in a longer group
         int len = 0;
-        uint64_t accum = 0;
-        for (int l = 0; l < data.minSymLen; ++l)
-            accum = (accum << 1) | readBit1(), ++bitPos;
-        // accum now holds minSymLen bits
-        // Scan lengths: pad accum to 64 bits and compare to base64[]
-        uint64_t s64 = accum << (64 - data.minSymLen);
-        while (len < numLens - 1 && s64 < data.base64[len]) {
-            s64 = (s64 << 1) | (static_cast<uint64_t>(readBit1()) << (64 - data.minSymLen - len - 1));
+        while (len < numLens - 1 && s64 >= data.base64[len + 1]) {
+            s64 |= readBit1() << (64 - minLen - len - 1);
             ++bitPos;
             ++len;
         }
-        // Now decode symbol
-        uint16_t symDec = static_cast<uint16_t>(
-            (s64 - data.base64[len]) >> (64 - len - data.minSymLen))
-            + data.lowestSym[len];
-        expandOneSymbol(static_cast<uint8_t>(symDec), data.btree, result);
+
+        // Decode the symbol
+        const uint32_t offset_in_group = static_cast<uint32_t>(
+            (s64 - data.base64[len]) >> (64 - len - minLen));
+        const uint8_t sym = data.symOrder[data.groupStart[len] + offset_in_group];
+
+        expandOneSymbol(sym, data.btree, result);
     }
 
     if (result.size() != target)

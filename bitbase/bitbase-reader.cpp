@@ -18,6 +18,7 @@
  */
 
 #include <map>
+#include <memory>
 #include <format>
 
 #include "../search/clockmanager.h"
@@ -26,8 +27,14 @@
 #include "boardaccess.h"
 #include "KPK.h"
 #include "bitbase-reader.h"
+#include "bitbase-repairfile.h"
 
 using namespace QaplaBitbase;
+
+// File-local map of open .qwdl files registered by the generator.
+// Kept here (not in the header) so that bitbase-repairfile.h and <windows.h>
+// are not pulled into every file that includes bitbase-reader.h.
+static std::map<pieceSignature_t, std::unique_ptr<BitbaseRePairFile>> qwdlFiles;
 
 std::vector<std::string> BitbaseReader::loadBitbase() {
 	QaplaSearch::ClockManager clock;
@@ -132,6 +139,15 @@ BitbaseResult BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& posi
 		return bitbase->getBit(index) ? BitbaseResult::Win : BitbaseResult::DrawOrLoss;
 	}
 
+	// Check .qwdl file registered by the generator (full 2-bit WDL, memory-mapped).
+	{
+		auto iq = qwdlFiles.find(signature.getPiecesSignature());
+		if (iq != qwdlFiles.end() && iq->second->isOpen()) {
+			uint64_t index = BoardAccess::getIndex<0>(position);
+			return iq->second->probe(index);
+		}
+	}
+
 	// Fallback: try the color-swapped bitbase (e.g. KRKQ via KQKR) and invert Win<->Loss.
 	// Works for both 2-bit (full Win/Draw/Loss) and 1-bit (bit=1 is mirrored Win → Loss here;
 	// bit=0 is DrawOrLoss, but since the strong side has no material it can only be Draw).
@@ -148,6 +164,18 @@ BitbaseResult BitbaseReader::getValueFromSingleBitbase(const MoveGenerator& posi
 		}
 		// 1-bit mirror: bit=1 means the mirrored (strong) side wins → Loss for current view; bit=0 → Draw
 		return mirroredBitbase->getBit(index) ? BitbaseResult::Loss : BitbaseResult::Draw;
+	}
+
+	// Mirrored .qwdl fallback.
+	{
+		auto iq = qwdlFiles.find(mirroredSig.getPiecesSignature());
+		if (iq != qwdlFiles.end() && iq->second->isOpen()) {
+			uint64_t index = BoardAccess::getIndex<1>(position);
+			BitbaseResult result = iq->second->probe(index);
+			if (result == BitbaseResult::Win)  return BitbaseResult::Loss;
+			if (result == BitbaseResult::Loss) return BitbaseResult::Win;
+			return result;
+		}
 	}
 
 	return BitbaseResult::Unknown;
@@ -236,11 +264,26 @@ bool BitbaseReader::isBitbaseAvailable(std::string pieceString) {
 	signature.set(pieceString.c_str());
 	auto it = _bitbases.find(signature.getPiecesSignature());
 	if (it != _bitbases.end() && it->second.isHeaderLoaded()) return true;
+	// Also check .qwdl files registered by the generator.
+	auto iq = qwdlFiles.find(signature.getPiecesSignature());
+	if (iq != qwdlFiles.end() && iq->second->isOpen()) return true;
 	// Also treat as available if the color-swapped bitbase exists (any bit width).
 	// getValueFromSingleBitbase handles the Win<->Loss inversion transparently.
 	signature.changeSide();
 	auto itMirror = _bitbases.find(signature.getPiecesSignature());
-	return itMirror != _bitbases.end() && itMirror->second.isHeaderLoaded();
+	if (itMirror != _bitbases.end() && itMirror->second.isHeaderLoaded()) return true;
+	auto iqMirror = qwdlFiles.find(signature.getPiecesSignature());
+	return iqMirror != qwdlFiles.end() && iqMirror->second->isOpen();
+}
+
+void BitbaseReader::registerQwdlFile(const std::string& pieceString,
+                                     const std::string& filePath) {
+	PieceSignature signature;
+	signature.set(pieceString.c_str());
+	auto file = std::make_unique<BitbaseRePairFile>();
+	if (file->open(filePath)) {
+		qwdlFiles[signature.getPiecesSignature()] = std::move(file);
+	}
 }
 
 void BitbaseReader::setBitbase(std::string pieceString, const Bitbase& bitBase) {
