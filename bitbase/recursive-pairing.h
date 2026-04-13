@@ -38,7 +38,8 @@
  *   uint8_t   btree[numRules * 2]            (left, right each 1 byte)
  *   uint8_t   maxSymLen                      (maximum Huffman code length in bits)
  *   uint8_t   minSymLen                      (minimum Huffman code length in bits)
- *   uint16_t  lowestSym[maxSymLen-minSymLen+1] (lowestSym[li] = lowest symbol index at relative length li)
+ *   uint16_t  symCount[maxSymLen-minSymLen+1]  (symCount[li]  = number of symbols at relative length li)
+ *   uint8_t   symOrder[sum(symCount)]          (symbols sorted by (length asc, orig_index asc))
  *   uint32_t  sizeofBlock                    (compressed block size in bytes)
  *   uint32_t  span                           (approx. positions between sparse index entries)
  *   uint32_t  blocksNum
@@ -46,8 +47,9 @@
  *   uint8_t   encoded[blocksNum * sizeofBlock] (bit-packed Huffman codes, MSB first)
  *
  * Derived at load time (not stored):
- *   base64[]     (64-bit left-padded decode table, one entry per length; O(numLens) from lowestSym)
- *   symlen[]     (per-symbol terminal expansion count minus 1, from btree)
+ *   base64[]      (64-bit left-padded decode table, one entry per length; from symCount)
+ *   groupStart[]  (start index in symOrder[] for each relative length group; from symCount)
+ *   symlen[]      (per-symbol terminal expansion count minus 1, from btree)
  *   sparseIndex[] (random-access index, from blockLength + span)
  */
 
@@ -114,7 +116,10 @@ namespace QaplaRePair {
      */
     struct SparseEntry {
         uint32_t block;   ///< Block index (0-based)
-        uint16_t offset;  ///< Offset within block in units of terminal positions (0..blockLength[block])
+        uint32_t offset;  ///< Offset within block in units of terminal positions.
+                          ///< For real entries: 0..blockLength[block] (fits uint16_t).
+                          ///< For phantom entries beyond totalTerminals: can exceed 65535,
+                          ///< so uint32_t is required to avoid truncation.
     };
 
     /**
@@ -139,17 +144,28 @@ namespace QaplaRePair {
         uint8_t minSymLen = 0;
         uint8_t maxSymLen = 0;
 
-        /// lowestSym[li] = lowest symbol index (grammar order) among all symbols
-        /// with code length (li + minSymLen), li = 0..maxSymLen-minSymLen.
-        /// SERIALIZED as uint16_t array.  Analogous to PairsData::lowestSym in Syzygy.
-        std::vector<uint16_t>    lowestSym;
+        /// symCount[li] = number of symbols with code length (li + minSymLen).
+        /// Used to reconstruct base64[] and groupStart[] at load time.
+        /// SERIALIZED as uint16_t array.
+        std::vector<uint16_t>    symCount;
+
+        /// symOrder[pos] = original grammar symbol index of the pos-th entry in
+        /// the globally sorted order (Huffman length asc, then symbol index asc).
+        /// Size = sum(symCount).  During probe(), the offset within length group li
+        /// maps to symOrder[groupStart[li] + offset].  SERIALIZED as uint8_t array.
+        std::vector<uint8_t>     symOrder;
 
         // ── Fast decode table (for probe()) ──────────────────────────────────
         /// base64[li] = left-padded 64-bit value of the lowest canonical code
-        /// at relative length li = len - minSymLen.  Computed from lowestSym[] in
-        /// O(numLens) after load.  Identical in semantics to PairsData::base64 in Syzygy.
-        /// DERIVED; not serialized.
+        /// at relative length li = len - minSymLen.  Monotonically increasing
+        /// (standard canonical Huffman: shorter codes have smaller bit-patterns).
+        /// Computed from symCount[] at load time.  DERIVED; not serialized.
         std::vector<uint64_t>    base64;
+
+        /// groupStart[li] = index into symOrder[] of the first symbol at relative
+        /// length li.  groupStart[li] = sum(symCount[0..li-1]).
+        /// DERIVED from symCount[]; not serialized.
+        std::vector<uint32_t>    groupStart;
 
         // ── Expansion info ────────────────────────────────────────────────────
         /// symlen[s] = (number of terminal values symbol s expands to) - 1.

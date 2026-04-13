@@ -17,6 +17,7 @@
 *.7z
 *.bin
 *.epd
+*.qwdl
 .editorconfig
 /.github/
 /test/log/

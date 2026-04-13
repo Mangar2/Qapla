@@ -768,9 +768,6 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 		}
 	}
 
-	// Register in memory BEFORE storeToFile, which may compact the 2-bit data to 1-bit in place.
-	// Keeping a 2-bit copy in memory allows the mirrored-bitbase lookup (e.g. KRKQ via KQKR).
-	BitbaseReader::setBitbase(pieceString, state.getComputedResults());
 	try {
 		state.storeToFile(fileName, pieceString, compression);
 		if (generateCpp)
@@ -782,18 +779,25 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 		std::cerr << "Error: " << e.what() << '\n';
 	}
 
-	// Write a Re-Pair + Huffman compressed copy and verify every position.
-	string rpFileName = pieceString + ".rpb";
+	// Write a Re-Pair + Huffman compressed copy, register it for subordinate lookups,
+	// and verify every position.  The .qwdl file replaces the in-memory Bitbase: subsequent
+	// bitbases that depend on this one probe it via BitbaseReader::getValueFromSingleBitbase()
+	// through the memory-mapped .qwdl file instead of a heap-allocated Bitbase object.
+	string qwdlFileName = pieceString + ".qwdl";
 	try {
-		cout << "Writing Re-Pair file " << rpFileName << " ... " << std::flush;
-		BitbaseRePairFile::write(rpFileName, repairResults);
+		cout << "Writing " << qwdlFileName << " ... " << std::flush;
+		BitbaseRePairFile::write(qwdlFileName, repairResults);
 		cout << "done" << std::endl;
 
+		// Register the file so parent bitbases can probe it via getValueFromSingleBitbase().
+		BitbaseReader::registerQwdlFile(pieceString, qwdlFileName);
+
+		// Verify every position against the original WDL sequence.
 		BitbaseRePairFile reader;
-		if (!reader.open(rpFileName)) {
-			std::cerr << "Re-Pair: cannot reopen " << rpFileName << " for verification\n";
+		if (!reader.open(qwdlFileName)) {
+			std::cerr << "Re-Pair: cannot reopen " << qwdlFileName << " for verification\n";
 		} else {
-			cout << "Verifying Re-Pair compression (" << entryCount << " positions) ... " << std::flush;
+			cout << "Verifying " << qwdlFileName << " (" << entryCount << " positions) ... " << std::flush;
 			uint64_t mismatches = 0;
 			for (uint64_t idx = 0; idx < entryCount; ++idx) {
 				BitbaseResult fromFile = reader.probe(idx);
@@ -809,7 +813,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 			if (mismatches == 0) {
 				cout << "OK" << std::endl;
 			} else {
-				std::cerr << "\nRe-Pair verification FAILED: " << mismatches << " mismatches\n";
+				std::cerr << "\n" << qwdlFileName << " verification FAILED: " << mismatches << " mismatches\n";
 			}
 		}
 	}
