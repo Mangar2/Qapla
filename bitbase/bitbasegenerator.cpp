@@ -20,7 +20,6 @@
  */
 
 #include <iostream>
-#include <algorithm>
 #include <thread>
 
 #include "../search/clockmanager.h"
@@ -34,6 +33,7 @@
 #include "bitbase-reader.h"
 #include "bitbasegenerator.h"
 #include "bitbase-profiling.h"
+#include "bitbase-repairfile.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -756,6 +756,18 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	timing.stop("print statistic");
 	std::cout << std::endl;
 
+	// Collect the full WDL sequence while the bitbase is still in 2-bit form.
+	// storeToFile() may compact the data to 1-bit in place, so this must happen first.
+	const uint64_t entryCount = state.getEntryCount();
+	std::vector<BitbaseResult> repairResults;
+	repairResults.reserve(entryCount);
+	{
+		auto& bb = state.getComputedResults();
+		for (uint64_t idx = 0; idx < entryCount; ++idx) {
+			repairResults.push_back(bb.get2Bits(idx));
+		}
+	}
+
 	// Register in memory BEFORE storeToFile, which may compact the 2-bit data to 1-bit in place.
 	// Keeping a 2-bit copy in memory allows the mirrored-bitbase lookup (e.g. KRKQ via KQKR).
 	BitbaseReader::setBitbase(pieceString, state.getComputedResults());
@@ -768,6 +780,41 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << "Error: " << e.what() << '\n';
+	}
+
+	// Write a Re-Pair + Huffman compressed copy and verify every position.
+	string rpFileName = pieceString + ".rpb";
+	try {
+		cout << "Writing Re-Pair file " << rpFileName << " ... " << std::flush;
+		BitbaseRePairFile::write(rpFileName, repairResults);
+		cout << "done" << std::endl;
+
+		BitbaseRePairFile reader;
+		if (!reader.open(rpFileName)) {
+			std::cerr << "Re-Pair: cannot reopen " << rpFileName << " for verification\n";
+		} else {
+			cout << "Verifying Re-Pair compression (" << entryCount << " positions) ... " << std::flush;
+			uint64_t mismatches = 0;
+			for (uint64_t idx = 0; idx < entryCount; ++idx) {
+				BitbaseResult fromFile = reader.probe(idx);
+				if (repairResults[idx] != fromFile) {
+					++mismatches;
+					if (mismatches <= 5) {
+						std::cerr << "\n  mismatch at index " << idx
+								  << ": expected " << to_string(repairResults[idx])
+								  << ", got " << to_string(fromFile);
+					}
+				}
+			}
+			if (mismatches == 0) {
+				cout << "OK" << std::endl;
+			} else {
+				std::cerr << "\nRe-Pair verification FAILED: " << mismatches << " mismatches\n";
+			}
+		}
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Re-Pair error: " << e.what() << '\n';
 	}
 }
 
