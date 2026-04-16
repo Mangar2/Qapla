@@ -55,11 +55,15 @@ namespace QaplaRePair {
  * @param btree      Out: grammar rules appended in replacement order.
  * @param nextSymbol In/out: next available symbol index; incremented per rule.
  * @param maxVocab   Upper bound (exclusive) for nextSymbol; stops when reached.
+ * @param maxSymlen  Skip any pair whose combined symlen+1 would exceed this value.
+ *                   Limits grammar depth and drastically reduces btree size for
+ *                   mostly-uniform data (e.g. KQK).  Use UINT32_MAX for no cap.
  */
 void repairFull(
     std::vector<uint16_t>& seq,
     std::vector<PairRule>&  btree,
     int&                    nextSymbol,
-    int                     maxVocab);
+    int                     maxVocab,
+    uint32_t                maxSymlen);
 
 } // namespace QaplaRePair

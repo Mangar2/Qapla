@@ -86,10 +86,15 @@ void repairFull(
     std::vector<uint16_t>& seq,
     std::vector<PairRule>&  btree,
     int&                    nextSymbol,
-    int                     maxVocab)
+    int                     maxVocab,
+    uint32_t                maxSymlen)
 {
     const int32_t N = static_cast<int32_t>(seq.size());
     if (N < 2 || nextSymbol >= maxVocab) return;
+
+    // symlen[s] = (number of terminals s expands to) - 1.
+    // Terminals (0..nextSymbol-1) start at 0; non-terminals are set when created.
+    std::vector<uint32_t> symlenVec(static_cast<size_t>(maxVocab), 0u);
 
     // ── Sequence doubly-linked list ───────────────────────────────────────────
     // sl_nxt[i] / sl_prv[i]: next / prev active position, -1 = none.
@@ -136,7 +141,16 @@ void repairFull(
 
         const uint16_t A = static_cast<uint16_t>(key >> 16);
         const uint16_t B = static_cast<uint16_t>(key & 0xFFFF);
+
+        // Skip pairs whose merged symbol would exceed the depth limit.
+        // Erase from freq so stale pq entries are discarded via lazy deletion.
+        if (static_cast<uint64_t>(symlenVec[A]) + symlenVec[B] + 1 > maxSymlen) {
+            freq.erase(key);
+            continue;
+        }
+
         const uint16_t C = static_cast<uint16_t>(nextSymbol++);
+        symlenVec[C] = symlenVec[A] + symlenVec[B] + 1;
         btree.push_back({A, B});
 
         // ── Snapshot occurrence positions; detach the pair record ─────────────

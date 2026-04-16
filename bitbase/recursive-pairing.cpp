@@ -22,10 +22,14 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iomanip>
+#include <iostream>
 #include <queue>
 #include <stdexcept>
 
 namespace QaplaRePair {
+
+constexpr bool VERBOSE_COMPRESS = true;
 
 namespace {
 
@@ -339,7 +343,7 @@ void expandOneSymbol(
 // =============================================================================
 
 RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
-                    size_t blockBytes, uint32_t spanParam)
+                    size_t blockBytes, uint32_t spanParam, uint32_t maxSymlen)
 {
     if ((blockBytes & (blockBytes - 1)) != 0)
         throw std::runtime_error("RePair compress: blockBytes must be a power of 2");
@@ -359,7 +363,7 @@ RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
 
     // Step 2: Re-Pair — O(N log N) single-pass via repair-core
     int nextSymbol = NUM_TERMINALS;
-    repairFull(seq, result.btree, nextSymbol, MAX_VOCAB_SIZE);
+    repairFull(seq, result.btree, nextSymbol, MAX_VOCAB_SIZE, maxSymlen);
 
     const int numSymbols = NUM_TERMINALS + static_cast<int>(result.btree.size());
 
@@ -482,6 +486,42 @@ std::vector<uint8_t> serialize(const RePairData& data) {
 
     // 5. Bit-packed encoded stream (includes 8-byte read-ahead padding)
     buf.insert(buf.end(), data.encoded.begin(), data.encoded.end());
+
+    if (VERBOSE_COMPRESS) {
+        const size_t btreeHeader  = sizeof(uint16_t);
+        const size_t btreeRules   = data.btree.size() * 3;
+        const size_t huffFixed    = 2;                              // maxSymLen + minSymLen
+        const size_t huffCount    = static_cast<size_t>(numLens) * sizeof(uint16_t);
+        const size_t huffOrder    = numSymTotal * sizeof(uint16_t);
+        const size_t blockHeader  = 1 + 1 + sizeof(uint32_t);      // log2_block + log2_span + blocksNum
+        const size_t blockLengths = numBlocks * sizeof(uint16_t);
+        const size_t encodedData  = numBlocks * data.sizeofBlock;
+        const size_t encodedPad   = 8;
+        const size_t total        = buf.size();
+
+        std::cerr << "\n=== RePair serialize breakdown ===\n"
+                  << std::setw(28) << std::left << "  btree numRules (uint16):"
+                  << std::setw(6) << std::right << btreeHeader  << " bytes  (" << data.btree.size() << " rules)\n"
+                  << std::setw(28) << std::left << "  btree rules (3B each):"
+                  << std::setw(6) << std::right << btreeRules   << " bytes\n"
+                  << std::setw(28) << std::left << "  Huffman maxLen+minLen:"
+                  << std::setw(6) << std::right << huffFixed    << " bytes  (min=" << +data.minSymLen << " max=" << +data.maxSymLen << ")\n"
+                  << std::setw(28) << std::left << "  Huffman symCount[]:"
+                  << std::setw(6) << std::right << huffCount    << " bytes  (" << numLens << " lengths)\n"
+                  << std::setw(28) << std::left << "  Huffman symOrder[]:"
+                  << std::setw(6) << std::right << huffOrder    << " bytes  (" << numSymTotal << " symbols)\n"
+                  << std::setw(28) << std::left << "  block log2+blocksNum:"
+                  << std::setw(6) << std::right << blockHeader  << " bytes  (sizeofBlock=" << data.sizeofBlock << " span=" << data.span << ")\n"
+                  << std::setw(28) << std::left << "  blockLength[]:"
+                  << std::setw(6) << std::right << blockLengths << " bytes  (" << numBlocks << " blocks)\n"
+                  << std::setw(28) << std::left << "  encoded data:"
+                  << std::setw(6) << std::right << encodedData  << " bytes\n"
+                  << std::setw(28) << std::left << "  encoded padding:"
+                  << std::setw(6) << std::right << encodedPad   << " bytes\n"
+                  << "  " << std::string(34, '-') << "\n"
+                  << std::setw(28) << std::left << "  Total payload:"
+                  << std::setw(6) << std::right << total        << " bytes\n\n";
+    }
 
     return buf;
 }
