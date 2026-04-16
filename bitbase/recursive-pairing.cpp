@@ -18,6 +18,7 @@
  */
 
 #include "recursive-pairing.h"
+#include "repair-core.h"
 
 #include <algorithm>
 #include <cstring>
@@ -49,6 +50,27 @@ T readValue(const uint8_t*& p, const uint8_t* end) {
 }
 
 // =============================================================================
+// 12-bit LR packing — identical to Syzygy's LR struct layout:
+//   byte0 = left[7:0]
+//   byte1 = left[11:8] | (right[3:0] << 4)
+//   byte2 = right[11:4]
+// =============================================================================
+
+inline void writeLR(std::vector<uint8_t>& buf, uint16_t left, uint16_t right) {
+    buf.push_back(static_cast<uint8_t>(left & 0xFF));
+    buf.push_back(static_cast<uint8_t>(((left >> 8) & 0xF) | ((right & 0xF) << 4)));
+    buf.push_back(static_cast<uint8_t>(right >> 4));
+}
+
+inline void readLR(const uint8_t*& p, const uint8_t* end, uint16_t& left, uint16_t& right) {
+    const uint8_t b0 = readValue<uint8_t>(p, end);
+    const uint8_t b1 = readValue<uint8_t>(p, end);
+    const uint8_t b2 = readValue<uint8_t>(p, end);
+    left  = static_cast<uint16_t>(b0 | ((b1 & 0xF) << 8));
+    right = static_cast<uint16_t>((b1 >> 4) | (static_cast<uint16_t>(b2) << 4));
+}
+
+// =============================================================================
 // Bit I/O  (MSB first within each byte)
 // =============================================================================
 
@@ -66,13 +88,20 @@ void writeBits(uint8_t* buf, int& bitPos, uint32_t code, int len) {
     }
 }
 
+// Returns floor(log2(x)) for x >= 1.  Used to encode power-of-2 sizes as exponents.
+inline uint8_t log2floor(uint32_t x) {
+    uint8_t n = 0;
+    while (x > 1) { x >>= 1; ++n; }
+    return n;
+}
+
 // =============================================================================
 // Huffman tree: build symOrder[], symCount[], minSymLen, maxSymLen
 // =============================================================================
 
 struct HuffBuildResult {
-    std::vector<uint8_t>  lengths;   // per-symbol code length (0 = unused)
-    std::vector<uint8_t>  symOrder;  // all coded symbols sorted by (length asc, index asc)
+    std::vector<uint8_t>   lengths;   // per-symbol code length (0 = unused), indexed by symbol
+    std::vector<uint16_t>  symOrder;  // all coded symbols sorted by (length asc, index asc)
     uint8_t minLen = 0;
     uint8_t maxLen = 0;
 };
@@ -140,12 +169,10 @@ HuffBuildResult buildHuffman(const std::vector<uint64_t>& freq, int numSymbols) 
     if (r.minLen == 255) { r.minLen = 0; return r; }
 
     // Build symOrder: all symbols with Huffman codes, sorted by (length asc, index asc).
-    // This matches the order used by buildEncodeCodes() so that during decode,
-    // offset k within a length group maps to symOrder[groupStart[li] + k].
     for (int i = 0; i < numSymbols; ++i)
         if (r.lengths[i] > 0)
-            r.symOrder.push_back(static_cast<uint8_t>(i));
-    std::sort(r.symOrder.begin(), r.symOrder.end(), [&](uint8_t a, uint8_t b) {
+            r.symOrder.push_back(static_cast<uint16_t>(i));
+    std::sort(r.symOrder.begin(), r.symOrder.end(), [&](uint16_t a, uint16_t b) {
         return r.lengths[a] < r.lengths[b]
             || (r.lengths[a] == r.lengths[b] && a < b);
     });
@@ -163,10 +190,6 @@ struct HuffCode {
 };
 
 // Assign canonical codes sorted by (length asc, symbol_index asc).
-// The k-th symbol in this order at relative length li gets code
-//   base_code[li] + k
-// where base_code[li] = base64[li] >> (64 - li - minSymLen).
-// This is consistent with the decode: offset = (buf64 - base64[li]) >> shift.
 std::vector<HuffCode> buildEncodeCodes(const std::vector<uint8_t>& lengths, int numSymbols) {
     std::vector<HuffCode> codes(numSymbols, {0, 0});
 
@@ -193,13 +216,6 @@ std::vector<HuffCode> buildEncodeCodes(const std::vector<uint8_t>& lengths, int 
 // base64[] — standard canonical Huffman starting codes, left-padded to 64 bits
 // =============================================================================
 
-// Standard canonical Huffman (shorter codes = smaller bit-patterns, base64 is increasing):
-//   code_start[0] = 0
-//   code_start[li+1] = (code_start[li] + symCount[li]) << 1
-//   base64[li] = code_start[li] << (64 - li - minLen)
-//
-// During decode: offset_in_group = (buf64 - base64[li]) >> (64 - li - minLen)
-// During probe loop: advance li while buf64 >= base64[li+1]  (base64 is monotone increasing)
 std::vector<uint64_t> buildBase64(
     const std::vector<uint16_t>& symCount,
     uint8_t minLen)
@@ -273,14 +289,11 @@ std::vector<SparseEntry> buildSparseIndex(
         posAccum += blockCount;
     }
 
-    // When I(k) = k*span + span/2 >= totalTerminals the inner loop never fires and
-    // those entries are missing.  probe() computes k = idx/span and expects
-    // sparseIndex[k] to exist for every valid idx.  Fill the remaining entries as
-    // "phantom" positions past the end of the last block.
-    //
-    // probe() then applies diff = idx%span - span/2 = idx - I(k) which is negative
-    // for these k values (because idx < totalTerminals <= I(k)), so the navigation
-    // loop walks backward into the real data and lands on the correct position.
+    // Fill phantom entries for sparse indices beyond totalTerminals.
+    // probe() computes k = idx/span and requires sparseIndex[k] to exist for
+    // every valid idx.  For k values where I(k) >= totalTerminals the inner
+    // loop above never fires; we fill with positions past the last real block
+    // so that probe()'s backward navigation still lands in valid data.
     if (sparseK < numSparse) {
         const uint32_t lastBlock      = static_cast<uint32_t>(blockLength.size()) - 1;
         const uint64_t lastBlockStart = totalTerminals
@@ -297,18 +310,18 @@ std::vector<SparseEntry> buildSparseIndex(
 }
 
 // =============================================================================
-// Re-Pair
+// Re-Pair symbol expansion (used by decompressBlock / decompress)
 // =============================================================================
 
 void expandOneSymbol(
-    uint8_t sym,
+    uint16_t sym,
     const std::vector<PairRule>& btree,
     std::vector<QaplaBitbase::BitbaseResult>& out)
 {
-    std::vector<uint8_t> stack;
+    std::vector<uint16_t> stack;
     stack.push_back(sym);
     while (!stack.empty()) {
-        uint8_t s = stack.back(); stack.pop_back();
+        uint16_t s = stack.back(); stack.pop_back();
         if (s < NUM_TERMINALS) {
             out.push_back(static_cast<QaplaBitbase::BitbaseResult>(s));
         } else {
@@ -317,43 +330,6 @@ void expandOneSymbol(
             stack.push_back(rule.left);
         }
     }
-}
-
-bool repairIteration(
-    std::vector<uint8_t>& seq,
-    std::vector<PairRule>& btree,
-    int& nextSymbol,
-    std::vector<uint32_t>& freq)
-{
-    if (nextSymbol >= MAX_VOCAB_SIZE) return false;
-    if (seq.size() < 2) return false;
-
-    std::fill(freq.begin(), freq.end(), 0);
-    for (size_t i = 0; i + 1 < seq.size(); ++i)
-        ++freq[static_cast<size_t>(seq[i]) * MAX_VOCAB_SIZE + seq[i + 1]];
-
-    uint32_t bestCount = 1;
-    int bestIdx = -1;
-    for (int i = 0, n = MAX_VOCAB_SIZE * MAX_VOCAB_SIZE; i < n; ++i) {
-        if (freq[i] > bestCount) { bestCount = freq[i]; bestIdx = i; }
-    }
-    if (bestIdx < 0) return false;
-
-    const uint8_t left  = static_cast<uint8_t>(bestIdx / MAX_VOCAB_SIZE);
-    const uint8_t right = static_cast<uint8_t>(bestIdx % MAX_VOCAB_SIZE);
-    btree.push_back({left, right});
-    const uint8_t newSym = static_cast<uint8_t>(nextSymbol++);
-
-    size_t w = 0;
-    for (size_t i = 0; i < seq.size(); ) {
-        if (i + 1 < seq.size() && seq[i] == left && seq[i + 1] == right) {
-            seq[w++] = newSym; i += 2;
-        } else {
-            seq[w++] = seq[i++];
-        }
-    }
-    seq.resize(w);
-    return true;
 }
 
 } // anonymous namespace
@@ -365,21 +341,25 @@ bool repairIteration(
 RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
                     size_t blockBytes, uint32_t spanParam)
 {
+    if ((blockBytes & (blockBytes - 1)) != 0)
+        throw std::runtime_error("RePair compress: blockBytes must be a power of 2");
+    if ((spanParam & (spanParam - 1)) != 0)
+        throw std::runtime_error("RePair compress: span must be a power of 2");
+
     RePairData result;
     result.sizeofBlock = blockBytes;
     result.span        = spanParam;
 
     if (input.empty()) return result;
 
-    // Step 1: convert to byte sequence
-    std::vector<uint8_t> seq(input.size());
+    // Step 1: convert to 16-bit symbol sequence
+    std::vector<uint16_t> seq(input.size());
     for (size_t i = 0; i < input.size(); ++i)
-        seq[i] = static_cast<uint8_t>(input[i]);
+        seq[i] = static_cast<uint16_t>(input[i]);
 
-    // Step 2: Re-Pair — build grammar (btree)
-    std::vector<uint32_t> pairFreq(MAX_VOCAB_SIZE * MAX_VOCAB_SIZE, 0);
+    // Step 2: Re-Pair — O(N log N) single-pass via repair-core
     int nextSymbol = NUM_TERMINALS;
-    while (repairIteration(seq, result.btree, nextSymbol, pairFreq)) {}
+    repairFull(seq, result.btree, nextSymbol, MAX_VOCAB_SIZE);
 
     const int numSymbols = NUM_TERMINALS + static_cast<int>(result.btree.size());
 
@@ -388,7 +368,7 @@ RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
 
     // Step 4: frequency count for Huffman
     std::vector<uint64_t> symFreq(numSymbols, 0);
-    for (uint8_t s : seq) ++symFreq[s];
+    for (uint16_t s : seq) ++symFreq[s];
 
     // Step 5: build Huffman tree → symOrder, symCount, minSymLen, maxSymLen
     const HuffBuildResult huff = buildHuffman(symFreq, numSymbols);
@@ -417,7 +397,7 @@ RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
     int      bitsUsed      = 0;
     uint32_t blockTerminals = 0;
 
-    for (uint8_t sym : seq) {
+    for (uint16_t sym : seq) {
         const HuffCode& c = codes[sym];
         if (c.len == 0)
             throw std::runtime_error("RePair compress: symbol has no Huffman code");
@@ -462,41 +442,45 @@ std::vector<uint8_t> serialize(const RePairData& data) {
     const int      numLens     = data.maxSymLen - data.minSymLen + 1;
     const uint32_t numSymTotal = static_cast<uint32_t>(data.symOrder.size());
 
+    // sizeofBlock and span must be powers of 2
+    if ((data.sizeofBlock & (data.sizeofBlock - 1)) != 0)
+        throw std::runtime_error("RePair serialize: sizeofBlock must be a power of 2");
+    if ((data.span & (data.span - 1)) != 0)
+        throw std::runtime_error("RePair serialize: span must be a power of 2");
+
     std::vector<uint8_t> buf;
     buf.reserve(
-        sizeof(uint16_t)                       // numRules
-        + data.btree.size() * 2                // btree
-        + 1 + 1                                // maxSymLen, minSymLen
-        + numLens * sizeof(uint16_t)           // symCount[]
-        + numSymTotal                          // symOrder[]
-        + sizeof(uint32_t)                     // sizeofBlock
-        + sizeof(uint32_t)                     // span
-        + sizeof(uint32_t)                     // blocksNum
-        + numBlocks * sizeof(uint16_t)         // blockLength[]
-        + data.encoded.size());                // bit-packed stream (incl. 8-byte padding)
+        sizeof(uint16_t)                           // numRules
+        + data.btree.size() * 3                    // btree (3 bytes per rule, 12+12 bit)
+        + 1 + 1                                    // maxSymLen, minSymLen
+        + numLens * sizeof(uint16_t)               // symCount[]
+        + numSymTotal * sizeof(uint16_t)           // symOrder[] (uint16_t for 12-bit symbols)
+        + 1                                        // log2_sizeofBlock
+        + 1                                        // log2_span
+        + sizeof(uint32_t)                         // blocksNum
+        + numBlocks * sizeof(uint16_t)             // blockLength[]
+        + data.encoded.size());                    // bit-packed stream (incl. 8-byte padding)
 
-    // 1. Grammar (btree)
+    // 1. Grammar (btree): each rule packed as 3 bytes (two 12-bit children)
     appendValue(buf, static_cast<uint16_t>(data.btree.size()));
-    for (const PairRule& r : data.btree) {
-        buf.push_back(r.left);
-        buf.push_back(r.right);
-    }
+    for (const PairRule& r : data.btree)
+        writeLR(buf, r.left, r.right);
 
     // 2. Huffman: maxSymLen, minSymLen, then symCount[], then symOrder[]
     buf.push_back(data.maxSymLen);
     buf.push_back(data.minSymLen);
     for (uint16_t sc : data.symCount)  appendValue(buf, sc);
-    for (uint8_t  so : data.symOrder)  buf.push_back(so);
+    for (uint16_t so : data.symOrder)  appendValue(buf, so);
 
-    // 3. Block layout
-    appendValue(buf, static_cast<uint32_t>(data.sizeofBlock));
-    appendValue(buf, data.span);
+    // 3. Block layout: sizes stored as log2 exponents (1 byte each)
+    buf.push_back(log2floor(static_cast<uint32_t>(data.sizeofBlock)));
+    buf.push_back(log2floor(static_cast<uint32_t>(data.span)));
     appendValue(buf, numBlocks);
 
     // 4. blockLength[] (count-1)
     for (uint16_t len : data.blockLength) appendValue(buf, len);
 
-    // 5. Bit-packed encoded stream (includes 8-byte padding)
+    // 5. Bit-packed encoded stream (includes 8-byte read-ahead padding)
     buf.insert(buf.end(), data.encoded.begin(), data.encoded.end());
 
     return buf;
@@ -508,13 +492,11 @@ RePairData deserialize(const uint8_t* raw, size_t size) {
     const uint8_t* end = raw + size;
     RePairData result;
 
-    // 1. Grammar (btree)
+    // 1. Grammar (btree): each rule is 3 bytes (two 12-bit children)
     const uint16_t numRules = readValue<uint16_t>(p, end);
     result.btree.resize(numRules);
-    for (uint16_t i = 0; i < numRules; ++i) {
-        result.btree[i].left  = readValue<uint8_t>(p, end);
-        result.btree[i].right = readValue<uint8_t>(p, end);
-    }
+    for (uint16_t i = 0; i < numRules; ++i)
+        readLR(p, end, result.btree[i].left, result.btree[i].right);
 
     // 2. Huffman: maxSymLen, minSymLen, symCount[], symOrder[]
     result.maxSymLen = readValue<uint8_t>(p, end);
@@ -528,11 +510,11 @@ RePairData deserialize(const uint8_t* raw, size_t size) {
     for (uint16_t c : result.symCount) totalSyms += c;
     result.symOrder.resize(totalSyms);
     for (uint32_t i = 0; i < totalSyms; ++i)
-        result.symOrder[i] = readValue<uint8_t>(p, end);
+        result.symOrder[i] = readValue<uint16_t>(p, end);
 
-    // 3. Block layout
-    result.sizeofBlock = static_cast<size_t>(readValue<uint32_t>(p, end));
-    result.span        = readValue<uint32_t>(p, end);
+    // 3. Block layout: read log2 exponents and reconstruct actual sizes
+    result.sizeofBlock = static_cast<size_t>(1u) << readValue<uint8_t>(p, end);
+    result.span        = 1u << readValue<uint8_t>(p, end);
     const uint32_t numBlocks = readValue<uint32_t>(p, end);
     result.blocksNum = numBlocks;
 
@@ -541,7 +523,7 @@ RePairData deserialize(const uint8_t* raw, size_t size) {
     for (uint32_t i = 0; i < numBlocks; ++i)
         result.blockLength[i] = readValue<uint16_t>(p, end);
 
-    // 5. Bit-packed encoded stream (with 8-byte padding appended by serialize())
+    // 5. Bit-packed encoded stream (with 8-byte read-ahead padding)
     const size_t encodedBytes = static_cast<size_t>(numBlocks) * result.sizeofBlock + 8;
     if (p + encodedBytes > end)
         throw std::runtime_error("RePair deserialize: encoded stream truncated");
@@ -569,10 +551,6 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
     uint32_t block  = data.sparseIndex[k].block;
     int64_t  offset = static_cast<int64_t>(data.sparseIndex[k].offset);
 
-    // diff = idx - I(k) where I(k) = k*span + span/2.
-    // Equivalent form idx%span - span/2 avoids the multiply and is identical
-    // as long as k = floor(idx/span), which is guaranteed because buildSparseIndex
-    // now always produces exactly numSparse = ceil(totalTerminals/span) entries.
     const int64_t diff = static_cast<int64_t>(idx % data.span)
                        - static_cast<int64_t>(data.span / 2);
     offset += diff;
@@ -583,8 +561,6 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
         offset -= static_cast<int64_t>(data.blockLength[block++]) + 1;
 
     // ── Step 2: decode symbols with 64-bit rolling buffer ────────────────────
-    // buf64 holds the next bits in the most-significant positions (MSB first).
-    // ptr advances through the block 4 bytes at a time for 32-bit refills.
     const uint8_t* blockStart = data.encoded.data()
                               + static_cast<size_t>(block) * data.sizeofBlock;
     const uint32_t* ptr = reinterpret_cast<const uint32_t*>(blockStart);
@@ -607,24 +583,20 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
                    << (64 - buf64Size);
         }
 
-        // Find length group: base64[] is monotonically increasing (standard canonical).
-        // Advance len while buf64 is at or above the next group's starting code.
+        // Find length group: advance len while buf64 >= next group's start code
         int len = 0;
         while (len < numLens - 1 && buf64 >= data.base64[len + 1])
             ++len;
 
-        // Offset within the length group
+        // Offset within the length group → look up original grammar symbol
         const uint32_t offset_in_group = static_cast<uint32_t>(
             (buf64 - data.base64[len]) >> (64 - len - minSymLen));
-
-        // Look up the original grammar symbol index
         sym = data.symOrder[data.groupStart[len] + offset_in_group];
 
         const int64_t expansion = static_cast<int64_t>(data.symlen[sym]) + 1;
         if (offset < expansion)
             break;   // this symbol contains our target position
 
-        // Consume the symbol's bits and subtract its expansion from offset
         offset    -= expansion;
         const int realLen = len + minSymLen;
         buf64     <<= realLen;
@@ -643,7 +615,6 @@ WDLValue probe(const RePairData& data, uint64_t idx) {
         }
     }
 
-    // sym is now a terminal (original index 0..NUM_TERMINALS-1 = WDLValue)
     return static_cast<WDLValue>(sym);
 }
 
@@ -669,15 +640,13 @@ std::vector<QaplaBitbase::BitbaseResult> decompressBlock(
     };
 
     while (result.size() < target) {
-        // Read minLen bits into s64 (in the top positions)
         uint64_t s64 = 0;
         for (int l = 0; l < minLen; ++l) {
             s64 = (s64 << 1) | readBit1();
             ++bitPos;
         }
-        s64 <<= (64 - minLen);  // left-pad to 64 bits
+        s64 <<= (64 - minLen);
 
-        // Extend one bit at a time while we're in a longer group
         int len = 0;
         while (len < numLens - 1 && s64 >= data.base64[len + 1]) {
             s64 |= readBit1() << (64 - minLen - len - 1);
@@ -685,10 +654,9 @@ std::vector<QaplaBitbase::BitbaseResult> decompressBlock(
             ++len;
         }
 
-        // Decode the symbol
         const uint32_t offset_in_group = static_cast<uint32_t>(
             (s64 - data.base64[len]) >> (64 - len - minLen));
-        const uint8_t sym = data.symOrder[data.groupStart[len] + offset_in_group];
+        const uint16_t sym = data.symOrder[data.groupStart[len] + offset_in_group];
 
         expandOneSymbol(sym, data.btree, result);
     }

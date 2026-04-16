@@ -761,12 +761,14 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	const uint64_t entryCount = state.getEntryCount();
 	std::vector<BitbaseResult> repairResults;
 	repairResults.reserve(entryCount);
+	timing.start("qwdl collect sequence");
 	{
 		auto& bb = state.getComputedResults();
 		for (uint64_t idx = 0; idx < entryCount; ++idx) {
 			repairResults.push_back(bb.get2Bits(idx));
 		}
 	}
+	timing.stop("qwdl collect sequence");
 
 	try {
 		state.storeToFile(fileName, pieceString, compression);
@@ -785,9 +787,11 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	// through the memory-mapped .qwdl file instead of a heap-allocated Bitbase object.
 	string qwdlFileName = pieceString + ".qwdl";
 	try {
+		timing.start("qwdl compress+write");
 		cout << "Writing " << qwdlFileName << " ... " << std::flush;
 		BitbaseRePairFile::write(qwdlFileName, repairResults);
 		cout << "done" << std::endl;
+		timing.stop("qwdl compress+write");
 
 		// Register the file so parent bitbases can probe it via getValueFromSingleBitbase().
 		BitbaseReader::registerQwdlFile(pieceString, qwdlFileName);
@@ -797,6 +801,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 		if (!reader.open(qwdlFileName)) {
 			std::cerr << "Re-Pair: cannot reopen " << qwdlFileName << " for verification\n";
 		} else {
+			timing.start("qwdl verify");
 			cout << "Verifying " << qwdlFileName << " (" << entryCount << " positions) ... " << std::flush;
 			uint64_t mismatches = 0;
 			for (uint64_t idx = 0; idx < entryCount; ++idx) {
@@ -815,6 +820,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 			} else {
 				std::cerr << "\n" << qwdlFileName << " verification FAILED: " << mismatches << " mismatches\n";
 			}
+			timing.stop("qwdl verify");
 		}
 	}
 	catch (const std::exception& e) {

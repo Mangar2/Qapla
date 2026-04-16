@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake --build build)",
+      "Bash(make Release -j)",
+      "Bash(make BUILD_TYPE=Release -j)"
+    ]
+  }
+}
