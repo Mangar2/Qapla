@@ -226,7 +226,8 @@ namespace QaplaRePair {
      */
     RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
                         size_t blockBytes = COMPRESSED_BLOCK_BYTES,
-                        uint32_t span = 128);
+                        uint32_t span = 128,
+                        uint32_t maxSymlen = 255);
 
     /**
      * @brief Serialize RePairData to a flat byte stream (little-endian).
