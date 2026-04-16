@@ -35,13 +35,17 @@
  *
  * Serialized binary layout (little-endian):
  *   uint16_t  numRules
- *   uint8_t   btree[numRules * 2]            (left, right each 1 byte)
+ *   uint8_t   btree[numRules * 3]            (two 12-bit children packed per rule,
+ *                                             same layout as Syzygy LR:
+ *                                             byte0=left[7:0],
+ *                                             byte1=left[11:8]|right[3:0]<<4,
+ *                                             byte2=right[11:4])
  *   uint8_t   maxSymLen                      (maximum Huffman code length in bits)
  *   uint8_t   minSymLen                      (minimum Huffman code length in bits)
- *   uint16_t  symCount[maxSymLen-minSymLen+1]  (symCount[li]  = number of symbols at relative length li)
- *   uint8_t   symOrder[sum(symCount)]          (symbols sorted by (length asc, orig_index asc))
- *   uint32_t  sizeofBlock                    (compressed block size in bytes)
- *   uint32_t  span                           (approx. positions between sparse index entries)
+ *   uint16_t  symCount[maxSymLen-minSymLen+1]  (symCount[li] = number of symbols at relative length li)
+ *   uint16_t  symOrder[sum(symCount)]          (symbols sorted by (length asc, orig_index asc))
+ *   uint8_t   log2_sizeofBlock               (compressed block size = 1 << log2_sizeofBlock; must be power of 2)
+ *   uint8_t   log2_span                      (approx. positions between sparse index entries = 1 << log2_span; must be power of 2)
  *   uint32_t  blocksNum
  *   uint16_t  blockLength[blocksNum]         (terminals per block stored as count-1; range 0..65535 = 1..65536)
  *   uint8_t   encoded[blocksNum * sizeofBlock] (bit-packed Huffman codes, MSB first)
@@ -64,23 +68,23 @@ namespace QaplaRePair {
     /// Maximum combined vocabulary size (terminals + non-terminals).
     /// Terminal symbols occupy indices 0..NUM_TERMINALS-1.
     /// Grammar rules use indices NUM_TERMINALS..MAX_VOCAB_SIZE-1.
-    /// Yields at most MAX_VOCAB_SIZE - NUM_TERMINALS = 251 rules for the default of 256.
-    static constexpr int16_t MAX_VOCAB_SIZE = 256;
+    /// Symbols fit in 12 bits (0..4095); btree children stored as 3 bytes per rule.
+    static constexpr int MAX_VOCAB_SIZE = 4096;
 
-    /// Default compressed block size in bytes.
-    /// Stored as sizeofBlock in RePairData so it can vary per table.
-    static constexpr uint32_t COMPRESSED_BLOCK_BYTES = 4;
+    /// Default compressed block size in bytes (must be a power of 2).
+    /// Stored on disk as log2(sizeofBlock), matching the Syzygy convention.
+    static constexpr uint32_t COMPRESSED_BLOCK_BYTES = 32;
 
     /// Maximum Huffman code length in bits.
-    static constexpr int MAX_HUFF_LEN = 16;
-
-    static_assert(MAX_VOCAB_SIZE <= 256,
-        "MAX_VOCAB_SIZE must be <= 256 to fit symbols in uint8_t");
+    /// Must be < 64 (the 64-bit rolling buffer uses shift = 64 - len, which
+    /// would be UB for len >= 64).  32 is well above the Fibonacci worst-case
+    /// depth of ~18 for 4096 symbols, yet leaves 32 bits of shift margin.
+    static constexpr int MAX_HUFF_LEN = 32;
 
     /// Number of terminal symbols: Draw, Win, Loss, CursedWin, BlessedLoss.
     /// Indices 0..2 align with QaplaBitbase::BitbaseResult for safe casting.
     /// Indices 3..4 are reserved and currently unused.
-    static constexpr int16_t NUM_TERMINALS = 5;
+    static constexpr int NUM_TERMINALS = 5;
 
     /// WDL result values with extended precision for DTZ-style tables.
     /// Values 0..2 are identical to QaplaBitbase::BitbaseResult.
@@ -96,14 +100,18 @@ namespace QaplaRePair {
      * @brief One grammar rule: non-terminal symbol -> (left child, right child).
      *
      * btree[i] describes symbol with index (NUM_TERMINALS + i).
-     * Both left and right are symbol indices (0..MAX_VOCAB_SIZE-1):
-     *   0..NUM_TERMINALS-1  = terminal (leaf)
-     *   NUM_TERMINALS..255  = previously defined non-terminal
-     * Each field is 1 byte; the rule is 2 bytes in memory and on disk.
+     * Both left and right are 12-bit symbol indices (0..4095):
+     *   0..NUM_TERMINALS-1         = terminal (leaf)
+     *   NUM_TERMINALS..MAX_VOCAB_SIZE-1 = previously defined non-terminal
+     *
+     * On disk: packed into 3 bytes like Syzygy's LR struct:
+     *   byte0 = left[7:0]
+     *   byte1 = left[11:8] | (right[3:0] << 4)
+     *   byte2 = right[11:4]
      */
     struct PairRule {
-        uint8_t left;
-        uint8_t right;
+        uint16_t left;   ///< 12-bit left child symbol
+        uint16_t right;  ///< 12-bit right child symbol
     };
 
     /**
@@ -125,7 +133,7 @@ namespace QaplaRePair {
     /**
      * @brief Re-Pair + Huffman compressed representation of a bitbase.
      *
-     * Fields are split into three groups:
+     * Fields are split into two groups:
      *   Serialized   - written to / read from disk
      *   Derived      - computed at load time; not serialized (marked below)
      *
@@ -152,8 +160,8 @@ namespace QaplaRePair {
         /// symOrder[pos] = original grammar symbol index of the pos-th entry in
         /// the globally sorted order (Huffman length asc, then symbol index asc).
         /// Size = sum(symCount).  During probe(), the offset within length group li
-        /// maps to symOrder[groupStart[li] + offset].  SERIALIZED as uint8_t array.
-        std::vector<uint8_t>     symOrder;
+        /// maps to symOrder[groupStart[li] + offset].  SERIALIZED as uint16_t array.
+        std::vector<uint16_t>    symOrder;
 
         // ── Fast decode table (for probe()) ──────────────────────────────────
         /// base64[li] = left-padded 64-bit value of the lowest canonical code
@@ -177,31 +185,28 @@ namespace QaplaRePair {
         std::vector<uint32_t>    symlen;
 
         // ── Block layout ──────────────────────────────────────────────────────
-        /// Compressed block size in bytes.  Every block in encoded[] is exactly
-        /// sizeofBlock bytes.  Default is COMPRESSED_BLOCK_BYTES.
+        /// Compressed block size in bytes (must be a power of 2).
+        /// Stored on disk as log2(sizeofBlock) in a single byte.
         size_t   sizeofBlock = COMPRESSED_BLOCK_BYTES;
 
         /// Approximately every span terminal positions there is one sparseIndex entry.
-        /// Larger span = smaller index, slower probe(); smaller span = opposite.
+        /// Must be a power of 2.  Stored on disk as log2(span) in a single byte.
         uint32_t span = 128;
 
-        /// Number of compressed blocks.  DERIVED as blockLength.size(); not stored
-        /// separately on disk, but kept here for fast access.
+        /// Number of compressed blocks.  Derived as blockLength.size(); kept for fast access.
         uint32_t blocksNum = 0;
 
         /// sparseIndex[k] is the entry for position I(k) = k*span + span/2.
         /// Enables probe() to jump close to the target block in O(1).
-        /// Analogous to PairsData::sparseIndex in Syzygy tbprobes.
         /// DERIVED from blockLength + span; not serialized.
         std::vector<SparseEntry> sparseIndex;
 
         /// blockLength[b] = (number of terminals in block b) - 1.
         /// Stored as count-1 so that 0..65535 covers 1..65536 actual terminals.
-        /// Positions never begin at 0 terminals, so 0 is never a wasted code.
         std::vector<uint16_t>    blockLength;
 
         /// Bit-packed Huffman-coded Re-Pair symbol stream.
-        /// Total size = blocksNum * sizeofBlock bytes.
+        /// Total size = blocksNum * sizeofBlock bytes (+8 bytes read-ahead padding).
         /// Within each block: Huffman codes are packed MSB-first; unused
         /// trailing bits of the last symbol in a block are zero-padded.
         std::vector<uint8_t>     encoded;
@@ -212,6 +217,7 @@ namespace QaplaRePair {
      *
      * Input values must be QaplaBitbase::BitbaseResult (Draw/Win/Loss).
      * BitbaseResult::Unknown is not supported.
+     * blockBytes and span must be powers of 2.
      *
      * @param input       Sequence of BitbaseResult values to compress.
      * @param blockBytes  Block size in bytes (default COMPRESSED_BLOCK_BYTES).
@@ -230,7 +236,7 @@ namespace QaplaRePair {
     /**
      * @brief Deserialize RePairData from a byte stream produced by serialize().
      *
-     * Also computes all derived fields (minSymLen, maxSymLen, symlen, sparseIndex).
+     * Also computes all derived fields (symlen, base64, groupStart, sparseIndex).
      *
      * @throws std::runtime_error if the stream is truncated or malformed.
      */
