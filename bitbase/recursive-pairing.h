@@ -224,10 +224,17 @@ namespace QaplaRePair {
      * @param span        Positions between sparse index entries (default 128).
      * @return            Compressed RePairData ready for serialization or direct use.
      */
+    /// Minimum pair frequency for Re-Pair rule creation.
+    /// Each rule costs ~5 bytes of serialized overhead (3 btree + 2 symOrder).
+    /// At 1 bit/symbol the break-even frequency is ~40; 32 is a conservative default
+    /// that prevents overhead from dominating for skewed data (e.g. KQK).
+    static constexpr uint32_t DEFAULT_MIN_PAIR_FREQ = 32;
+
     RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
                         size_t blockBytes = COMPRESSED_BLOCK_BYTES,
                         uint32_t span = 128,
-                        uint32_t maxSymlen = 255);
+                        uint32_t maxSymlen = 255,
+                        uint32_t minPairFreq = DEFAULT_MIN_PAIR_FREQ);
 
     /**
      * @brief Serialize RePairData to a flat byte stream (little-endian).

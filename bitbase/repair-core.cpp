@@ -87,7 +87,8 @@ void repairFull(
     std::vector<PairRule>&  btree,
     int&                    nextSymbol,
     int                     maxVocab,
-    uint32_t                maxSymlen)
+    uint32_t                maxSymlen,
+    uint32_t                minPairFreq)
 {
     const int32_t N = static_cast<int32_t>(seq.size());
     if (N < 2 || nextSymbol >= maxVocab) return;
@@ -138,6 +139,10 @@ void repairFull(
             const auto it = freq.find(key);
             if (it == freq.end() || it->second.count != cnt || cnt < 2) continue;
         }
+
+        // Max-heap: if the most frequent remaining pair is below the threshold,
+        // all remaining pairs are too — no more rules would break even on overhead.
+        if (cnt < minPairFreq) break;
 
         const uint16_t A = static_cast<uint16_t>(key >> 16);
         const uint16_t B = static_cast<uint16_t>(key & 0xFFFF);

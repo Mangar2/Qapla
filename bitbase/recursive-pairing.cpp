@@ -343,7 +343,8 @@ void expandOneSymbol(
 // =============================================================================
 
 RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
-                    size_t blockBytes, uint32_t spanParam, uint32_t maxSymlen)
+                    size_t blockBytes, uint32_t spanParam, uint32_t maxSymlen,
+                    uint32_t minPairFreq)
 {
     if ((blockBytes & (blockBytes - 1)) != 0)
         throw std::runtime_error("RePair compress: blockBytes must be a power of 2");
@@ -363,7 +364,7 @@ RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
 
     // Step 2: Re-Pair — O(N log N) single-pass via repair-core
     int nextSymbol = NUM_TERMINALS;
-    repairFull(seq, result.btree, nextSymbol, MAX_VOCAB_SIZE, maxSymlen);
+    repairFull(seq, result.btree, nextSymbol, MAX_VOCAB_SIZE, maxSymlen, minPairFreq);
 
     const int numSymbols = NUM_TERMINALS + static_cast<int>(result.btree.size());
 
