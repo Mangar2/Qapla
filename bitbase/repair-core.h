@@ -55,15 +55,21 @@ namespace QaplaRePair {
  * @param btree      Out: grammar rules appended in replacement order.
  * @param nextSymbol In/out: next available symbol index; incremented per rule.
  * @param maxVocab   Upper bound (exclusive) for nextSymbol; stops when reached.
- * @param maxSymlen  Skip any pair whose combined symlen+1 would exceed this value.
- *                   Limits grammar depth and drastically reduces btree size for
- *                   mostly-uniform data (e.g. KQK).  Use UINT32_MAX for no cap.
+ * @param maxSymlen   Skip any pair whose combined symlen+1 would exceed this value.
+ *                    Limits grammar depth and drastically reduces btree size for
+ *                    mostly-uniform data (e.g. KQK).  Use UINT32_MAX for no cap.
+ * @param minPairFreq Stop replacing pairs once the most frequent remaining pair
+ *                    appears fewer than this many times.  Each rule costs ~5 bytes
+ *                    of serialized overhead (3 bytes btree + 2 bytes symOrder); at
+ *                    1 bit/symbol the break-even frequency is ~40.  Default 2
+ *                    preserves the original "replace everything" behaviour.
  */
 void repairFull(
     std::vector<uint16_t>& seq,
     std::vector<PairRule>&  btree,
     int&                    nextSymbol,
     int                     maxVocab,
-    uint32_t                maxSymlen);
+    uint32_t                maxSymlen,
+    uint32_t                minPairFreq = 2);
 
 } // namespace QaplaRePair
