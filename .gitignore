@@ -21,6 +21,7 @@
 .editorconfig
 /.github/
 /test/log/
+*.DS_Store
 
 !CMakeLists.txt
 
