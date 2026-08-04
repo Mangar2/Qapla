@@ -143,6 +143,11 @@ namespace QaplaSearch {
 
 		void iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
+		/**
+		 * Computes the singular extension. Only PV nodes use the result, thus it returns
+		 * immediately for any other search region.
+		 */
+		template <SearchRegion TYPE>
 		ply_t se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**

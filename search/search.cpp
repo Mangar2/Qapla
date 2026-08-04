@@ -257,7 +257,10 @@ void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 
 }
 
+template <Search::SearchRegion TYPE>
 ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
+	// Only PV nodes use the result, see negaMax step 8
+	if constexpr (TYPE != SearchRegion::PV) return 0;
 	if (!SearchParameter::DO_SE_EXTENSION) return 0;
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
@@ -405,8 +408,8 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
 	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
 
-	// 5. Singular extension. Only PV nodes use the result, see 8., thus it is not computed elsewhere
-	const auto seExtension = TYPE == SearchRegion::PV ? se(position, stack, alpha, beta, depth, ply) : 0;
+	// 5. Singular extension, computed for PV nodes only, see se()
+	const auto seExtension = se<TYPE>(position, stack, alpha, beta, depth, ply);
 
 	value_t result;
 	Move curMove;
