@@ -24,9 +24,10 @@
  * compressed blocks.  Each block stores a variable number of symbols.
  *
  * Terminal indices (0..NUM_TERMINALS-1) map to WDLValue enum values.
- * Currently only Draw/Win/Loss (0..2) appear in practice; CursedWin and
- * BlessedLoss (3..4) are reserved for future use.
- * Unknown is not supported by this compressor.
+ * Currently only Draw/Win/Loss (0..2) appear in legal positions.
+ * Unknown (3) marks illegal positions and acts as a joker: compress() replaces
+ * each Unknown with the nearest non-joker neighbor before Re-Pair to maximize
+ * run lengths and pair frequencies.  CursedWin/BlessedLoss (3..4) are reserved.
  *
  * Primary access pattern: probe(idx) retrieves the WDL value at a single
  * position index without decompressing the entire table.  This is implemented
@@ -216,7 +217,7 @@ namespace QaplaRePair {
      * @brief Compress a bitbase sequence using Re-Pair + Huffman.
      *
      * Input values must be QaplaBitbase::BitbaseResult (Draw/Win/Loss).
-     * BitbaseResult::Unknown is not supported.
+     * BitbaseResult::Unknown (illegal positions) is resolved as a joker before compression.
      * blockBytes and span must be powers of 2.
      *
      * @param input       Sequence of BitbaseResult values to compress.

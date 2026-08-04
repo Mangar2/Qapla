@@ -299,27 +299,31 @@ namespace QaplaBitbase {
 		 */
 		void printStatistic() {
 			_totalEntryCount += _entryCount;
-			uint64_t draw = _computedResults.computeResults(BitbaseResult::Draw);
-			uint64_t loss = _computedResults.computeResults(BitbaseResult::Loss);
-			// computeResults(Win) includes illegal positions (stored as Win in bitbase).
-			auto winIncludingIllegal = _computedResults.computeResults(BitbaseResult::Win);
-			uint64_t unknown = _entryCount - winIncludingIllegal - draw - loss;
+			uint64_t draw    = _computedResults.computeResults(BitbaseResult::Draw);
+			uint64_t loss    = _computedResults.computeResults(BitbaseResult::Loss);
+			uint64_t win     = _computedResults.computeResults(BitbaseResult::Win);
+			uint64_t illegal = _computedResults.computeResults(BitbaseResult::Unknown);
+			uint64_t unknown = _entryCount - win - draw - loss - illegal;
 
 			cout
 				<< "Won: "     << _won     << " (" << (_won     * 100 / _entryCount) << "%) "
-				<< " Draw: "   << draw    << " (" << (draw    * 100 / _entryCount) << "%)"
+				<< " Draw: "   << draw     << " (" << (draw     * 100 / _entryCount) << "%)"
 				<< " Loss: "   << _loss    << " (" << (_loss    * 100 / _entryCount) << "%)"
-				<< " Unknown: "<< unknown  << " (" << (unknown  * 100 / _entryCount) << "%)"
 				<< " Illegal: "<< _illegal << " (" << (_illegal * 100 / _entryCount) << "%)"
+				<< " Unknown: "<< unknown  << " (" << (unknown  * 100 / _entryCount) << "%)"
 				<< " Uncompressed memory size " << _computedResults.getSize()
 				<< std::endl;
-			if ((_won + _illegal) != winIncludingIllegal) {
-				std::cout << "Error, won positions do not match! Counter: " << (_won + _illegal)
-					<< " Bitbase: " << winIncludingIllegal << std::endl;
+			if (_won != win) {
+				std::cout << "Error, won positions do not match! Counter: " << _won
+					<< " Bitbase: " << win << std::endl;
 			}
 			if (_loss != loss) {
 				std::cout << "Error, loss positions do not match! Counter: " << _loss
 					<< " Bitbase: " << loss << std::endl;
+			}
+			if (_illegal != illegal) {
+				std::cout << "Error, illegal positions do not match! Counter: " << _illegal
+					<< " Bitbase: " << illegal << std::endl;
 			}
 			if (unknown > 0) {
 				std::cout << "Error, " << unknown << " positions have no final value (incomplete generation)!" << std::endl;
