@@ -77,6 +77,27 @@ within maxgames. A non-zero exit code here is a result, not an error.
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
 
+## Tuning parameter values (CLOP)
+
+Values are tuned with a CLOP run, then confirmed by an SPRT like any other change.
+
+1. Set the group flag (e.g. `optimizeSE`) to true — do not commit that — and build
+   `make ReleaseOpt -j`. Check the options are there:
+   `printf 'uci\nquit\n' | ./build/ReleaseOpt/Qapla.exe | grep "^option name"`.
+2. Run (engine as parameter, the ini defines none — a command line `--engine` adds an engine
+   instead of replacing one):
+
+```powershell
+c:\development\bin\qet.exe --settingsfile=test/clop/clop-standard.ini --engine name=Qapla cmd=c:/development/qapla2/build/ReleaseOpt/Qapla.exe --clop samples=<N> --clopvalue name=<UciOption> min=<min> max=<max> [--clopvalue ...]
+```
+
+Samples: ~2000 for a single parameter, ~5000 from five parameters upwards. Each sample costs
+`gamespersample` games — 5000 samples took ~3.2 hours here. Choose min/max so the current
+default sits in the middle of the range.
+
+3. Round the estimates, put them in as the new defaults, set the group flag back to false,
+   then tag and run the SPRT against the previous version.
+
 ## Tunable search parameters
 
 Define them at the call site, see `search/search-param.h`:
