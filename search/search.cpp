@@ -290,11 +290,11 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	auto ttMove = node.getTTMove();
 	// Minimal depth the tt move must have been searched with to be tested at all
 	const ply_t ttMinDepth =
-		depth * 100 / param<SearchParameter::optimizeSE, "seTTMinDepthDivisor", 200, 100, 1000>()
+		depth * 100 / param<SearchParameter::optimizeSE, "seTTMinDepthDivisor", 178, 100, 1000>()
 		- param<SearchParameter::optimizeSE, "seTTMinDepthReduction", 0, -8, 8>();
 	// Depth used to search the remaining moves against the singular margin
 	const ply_t seDepth =
-		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 200, 100, 1000>()
+		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 207, 100, 1000>()
 		- param<SearchParameter::optimizeSE, "seDepthReduction", 0, -8, 8>();
 	if (ttMove.isEmpty()) return 0;
 	// We require a certain search depth for the tt move to be considered for a singular extension
@@ -302,8 +302,8 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// No se, if the tt already shows a mate or equivalent value
 	if (node.ttValue != NO_VALUE && (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE)) return 0;
 
-	node.setSE(param<SearchParameter::optimizeSE, "seMarginConst", 1, -100, 300>()
-		+ param<SearchParameter::optimizeSE, "seMarginFactor", 4, 0, 100>() * depth);
+	node.setSE(param<SearchParameter::optimizeSE, "seMarginConst", 8, -100, 300>()
+		+ param<SearchParameter::optimizeSE, "seMarginFactor", 3, 0, 100>() * depth);
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
