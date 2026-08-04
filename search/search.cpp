@@ -427,11 +427,18 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	node.computeMoves(position, _butterflyBoard);
-	// 8. Calculate additional search extensions
-	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
+	// 8. Calculate additional node wide search extensions
+	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth);
 
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
+
+		// The singular extension belongs to the move se() proved to be singular, not to the node.
+		// It is not added on top of a node wide extension, keeping the former maximum of one ply.
+		const ply_t moveExtension =
+			seExtension > 0 && node.searchDepthExtension == 0 && curMove == node.getTTMove() ? seExtension : 0;
+		const ply_t moveDepth = moveExtension > 0 ?
+			std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
 
 		bool doMovePrunings = node.moveNumber > 3 && !node.isCheckMove(position, curMove);
 		// lmr is needed for move count pruning and late move reduction search
@@ -455,10 +462,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
-			result = TYPE != SearchRegion::NEAR_LEAF && depth - lmr > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1 - lmr, ply, result, "LMR");
+			result = TYPE != SearchRegion::NEAR_LEAF && moveDepth - lmr > 2 ?
+				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1) :
+				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
 			if (result <= node.alpha) {
 				childNode.undoMove(position);
 				// We improve value on lmr result. Especially important to not get false mate values due to skipped escape moves
@@ -475,14 +482,14 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// We do not return fail high from a null window search in PV node
 		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.moveNumber == 1 || depth <= 1);
 		if (!isDirectPVWindowSearch) {
-			result = TYPE != SearchRegion::NEAR_LEAF && depth > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
+			result = TYPE != SearchRegion::NEAR_LEAF && moveDepth > 2 ?
+				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1) :
+				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
 		}
 		// 5. Full window PV search or research the move with full window, if result is better than alpha
 		if (TYPE == SearchRegion::PV && (isDirectPVWindowSearch || result > node.alpha)) {
-			const ply_t adjustedDepth = depth <= 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : depth;
+			const ply_t adjustedDepth = moveDepth <= 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : moveDepth;
 			if (!isDirectPVWindowSearch) {
 				position.computeAttackMasksForBothColors();
 			}
