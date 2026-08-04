@@ -40,6 +40,27 @@ Report both numbers (baseline vs. new) when presenting such a change.
 When a change *is* meant to alter play, the node count is expected to differ — then the run
 serves as proof that the new code is actually wired in and reached.
 
+## Trying out a new version (SPRT)
+
+Any change meant to make the engine stronger is decided by an SPRT run, never by the EPD
+success rate.
+
+1. Build HEAD *before* the change and copy the binary somewhere outside the repo — that is
+   the baseline.
+2. Apply the change, rebuild, run the EPD test once: the node count must differ, otherwise
+   the change is not active.
+3. Run (from the repo root, own state file per experiment):
+
+```powershell
+c:\development\bin\qet.exe --settingsfile=test/sprt/sprt-standard.ini --engine name=Qapla-baseline cmd=<baseline.exe> --engine name=Qapla-<change> cmd=c:/development/qapla2/build/Release/Qapla.exe gauntlet=true --sprt file=test/log/sprt-<change>.state
+```
+
+Command line parameters override the ini. Engine names must not contain spaces. Change
+`test/sprt/sprt-standard.ini` only if qet reports an error in it.
+
+H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
+as documentation of what was already tried and revert it on the working branch.
+
 ## Tunable search parameters
 
 Define them at the call site, see `search/search-param.h`:
