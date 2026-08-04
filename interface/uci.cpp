@@ -32,6 +32,8 @@
 #include "../basics/pst.h"
 #include "../basics/materialbalance.h"
 
+#include "../search/search-param.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
@@ -61,6 +63,8 @@ static std::vector<UciParameterProvider*> collectUciProviders() {
 	providers.push_back(&Imbalance::getUciAccess());
 	providers.push_back(&QaplaBasics::PST::getUciAccess());
 	providers.push_back(&QaplaBasics::MaterialBalance::getUciAccess());
+	// Search parameters, only present for parameter groups currently being optimized
+	providers.push_back(&QaplaSearch::SearchParams::getUciAccess());
 	return providers;
 }
 
