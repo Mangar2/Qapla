@@ -294,7 +294,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 		depth - param<SearchParameter::optimizeSE, "seTTMinDepthReduction", 6, 0, 12>();
 	// Depth used to search the remaining moves against the singular margin
 	const ply_t seDepth =
-		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 200, 100, 1000>();
+		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 200, 100, 300>();
 	if (ttMove.isEmpty()) return 0;
 	// We require a certain search depth for the tt move to be considered for a singular extension
 	if (node.ttDepth < ttMinDepth) return 0;
