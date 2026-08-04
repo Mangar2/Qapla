@@ -63,6 +63,12 @@ c:\development\bin\qet.exe --settingsfile=test/sprt/sprt-standard.ini --engine n
 Command line parameters override the ini. Engine names must not contain spaces. Change
 `test/sprt/sprt-standard.ini` only if qet reports an error in it.
 
+The `--sprt file=` state file holds the tournament state. The run may be stopped at any
+time and continued with the exact same call. If the LLR is still close to a bound at the
+20000 games of the ini, continue with a raised limit, e.g. `--sprt maxgames=30000`, using
+the same state file. With bounds only 5 Elo apart the LLR moves slowly — game counts in
+the thousands say nothing, do not read a tendency into them.
+
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
 
