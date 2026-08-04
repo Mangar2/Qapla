@@ -33,22 +33,6 @@ namespace QaplaSearch {
 	class SearchParameter {
 	public:
 
-#define OPTIMIZING
-
-#ifdef OPTIMIZING
-		static int32_t getParameter(const std::string& key, int32_t defaultValue) {
-			auto it = parameters.find(key);
-			if (it == parameters.end()) {
-				return defaultValue;
-			}
-			return it->second;
-		}
-#else 
-		constexpr static int32_t getParameter(const std::string& key, int32_t defaultValue) {
-			return defaultValue;
-		}
-#endif
-
 		/**
 		 * Calculates the reduction by nullmove
 		 */
@@ -107,21 +91,6 @@ namespace QaplaSearch {
 			return res;
 		}
 
-		static void parseCommandLine(int argc, char* argv[]) {
-			for (int i = 1; i < argc - 1; i += 2) {
-				std::string key = argv[i];
-				try {
-					int32_t value = std::stoi(argv[i + 1]);
-					parameters[key] = value;
-				}
-				catch (const std::exception&) {
-					// Intentionally do nothing
-				}
-			}
-		}
-
-
-
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 
@@ -141,36 +110,33 @@ namespace QaplaSearch {
 		static const bool DO_CHECK_EXTENSIONS = true;
 
 		static const bool DO_SE_EXTENSION = true;
-		static value_t singularExtensionMargin(ply_t depth) {
-			const auto marginC = getParameter("semc", 1);
-			const auto marginF = getParameter("semf", 4);
-			return marginC + marginF * depth;
+		constexpr static value_t SINGULAR_EXTENSION_MARGIN_CONST = 1;
+		constexpr static value_t SINGULAR_EXTENSION_MARGIN_FACTOR = 4;
+		constexpr static value_t singularExtensionMargin(ply_t depth) {
+			return SINGULAR_EXTENSION_MARGIN_CONST + SINGULAR_EXTENSION_MARGIN_FACTOR * depth;
 			//return 30 + depth * 4;
 		}
 
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
 		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;
-		static value_t cmdLineParam[10];
-		static value_t forewardFutilityMargin(ply_t depth, bool isImproving) {
-			const auto forewardFutilityFactor = getParameter("ffut", 75);
-			return forewardFutilityFactor * (depth + 1) - 100 * isImproving;
+		constexpr static value_t FOREWARD_FUTILITY_FACTOR = 75;
+		constexpr static value_t forewardFutilityMargin(ply_t depth, bool isImproving) {
+			return FOREWARD_FUTILITY_FACTOR * (depth + 1) - 100 * isImproving;
 		}
 
 		// Futility Pruning (in move loop) - predicts forward futility will prune
 		static const ply_t FUTILITY_DEPTH = 7;
 		static const uint32_t FUTILITY_PRUNING_MIN_MOVE_NUMBER = 3;
-		static value_t futilityMargin(ply_t depth, bool isImproving) {
-			// 1.6 100, 25: 50,9%, 50: 51,8%, 60: 51,1% 75: 51,6%
-			// 50 vs. 100: 50,9%, 50 vs. 75%: 50%
-			const auto futilityFactor = getParameter("fut", 75);
-			return futilityFactor * (depth + 1) + 100 * isImproving; 
+		// 1.6 100, 25: 50,9%, 50: 51,8%, 60: 51,1% 75: 51,6%
+		// 50 vs. 100: 50,9%, 50 vs. 75%: 50%
+		constexpr static value_t FUTILITY_FACTOR = 75;
+		constexpr static value_t futilityMargin(ply_t depth, bool isImproving) {
+			return FUTILITY_FACTOR * (depth + 1) + 100 * isImproving;
 		}
 
 		static const Rank PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK = Rank::R7;
 		static const Rank PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK = Rank::R2;
-
-		inline static std::map<std::string, int32_t> parameters;
 
 	};
 }
