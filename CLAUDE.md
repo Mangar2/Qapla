@@ -47,9 +47,14 @@ success rate.
 
 1. Build HEAD *before* the change and copy the binary somewhere outside the repo — that is
    the baseline.
-2. Apply the change, rebuild, run the EPD test once: the node count must differ, otherwise
-   the change is not active.
-3. Run (from the repo root, own state file per experiment):
+2. Apply the change, commit, tag it with the next version number (`0.4.0-027` → `0.4.0-028`,
+   annotated). Every tested version gets its own tag.
+3. Rebuild *after* tagging: the Makefile takes `QAPLA_VERSION` from `git describe --tags`,
+   so the engine reports `Qapla 0.4.0-028` and the tag is visible in the test output. A
+   build made before the tag shows `<tag>-<n>-g<hash>` instead — no code edit needed, only
+   the right order.
+4. Run the EPD test once: the node count must differ, otherwise the change is not active.
+5. Run (from the repo root, own state file per experiment):
 
 ```powershell
 c:\development\bin\qet.exe --settingsfile=test/sprt/sprt-standard.ini --engine name=Qapla-baseline cmd=<baseline.exe> --engine name=Qapla-<change> cmd=c:/development/qapla2/build/Release/Qapla.exe gauntlet=true --sprt file=test/log/sprt-<change>.state
