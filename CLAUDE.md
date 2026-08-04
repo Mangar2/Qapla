@@ -39,3 +39,19 @@ Report both numbers (baseline vs. new) when presenting such a change.
 
 When a change *is* meant to alter play, the node count is expected to differ — then the run
 serves as proof that the new code is actually wired in and reached.
+
+## Tunable search parameters
+
+Define them at the call site, see `search/search-param.h`:
+
+```cpp
+node.setSE(param<SearchParameter::optimizeSE, "seMarginConst", 1, -100, 300>() + ...);
+```
+
+`param<OPTIMIZE, NAME, DEFAULT, MIN, MAX>()`: flag false → default as constexpr, no UCI
+option; flag true → value read from a variable registered as UCI spin option before main.
+Group flags like `optimizeSE` live in `search/searchparameter.h`, default false; set one to
+true only for a tuning run. Node count must be identical for both flag states at defaults.
+
+Do not add search parameters via the eval-style `UciParameterProvider` classes; those stay
+for eval only.
