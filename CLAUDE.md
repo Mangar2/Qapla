@@ -52,7 +52,9 @@ success rate.
 3. Rebuild *after* tagging: the Makefile takes `QAPLA_VERSION` from `git describe --tags`,
    so the engine reports `Qapla 0.4.0-028` and the tag is visible in the test output. A
    build made before the tag shows `<tag>-<n>-g<hash>` instead — no code edit needed, only
-   the right order.
+   the right order. The version is a compile flag, not a make dependency: after tagging use
+   `make BUILD_TYPE=Release clean` first, otherwise the old string stays in the binary.
+   Verify with `printf 'uci\nquit\n' | ./build/Release/Qapla.exe | grep "^id name"`.
 4. Run the EPD test once: the node count must differ, otherwise the change is not active.
 5. Run (from the repo root, own state file per experiment):
 
@@ -68,6 +70,9 @@ time and continued with the exact same call. If the LLR is still close to a boun
 20000 games of the ini, continue with a raised limit, e.g. `--sprt maxgames=30000`, using
 the same state file. With bounds only 5 Elo apart the LLR moves slowly — game counts in
 the thousands say nothing, do not read a tendency into them.
+
+qet signals the result via its exit code: 14 = H1 accepted, 15 = H0 accepted, 16 = undecided
+within maxgames. A non-zero exit code here is a result, not an error.
 
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
