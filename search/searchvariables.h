@@ -244,10 +244,11 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Extend the current search
+		 * Extend the current search. Node wide extensions only, the singular extension
+		 * applies to a single move and is thus not handled here.
 		 */
-		auto extendSearch(MoveGenerator& position, ply_t depthAtRoot, ply_t seExtension) {
-			searchDepthExtension = Extension::calculateExtension(position, previousMove, remainingDepth, seExtension);
+		auto extendSearch(MoveGenerator& position, ply_t depthAtRoot) {
+			searchDepthExtension = Extension::calculateExtension(position, previousMove, remainingDepth);
 			remainingDepth += searchDepthExtension;
 			return std::min(remainingDepth, depthAtRoot * 2);
 		}
