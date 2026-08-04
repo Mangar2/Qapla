@@ -288,12 +288,17 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Singular extension based on tt move. Only, if the search found a value > alpha it found a "best move" in the position and is able to store it to
 	// the transposition table
 	auto ttMove = node.getTTMove();
+	// Minimal depth the tt move must have been searched with to be tested at all
+	const ply_t ttMinDepth =
+		depth * 100 / param<SearchParameter::optimizeSE, "seTTMinDepthDivisor", 200, 100, 1000>()
+		- param<SearchParameter::optimizeSE, "seTTMinDepthReduction", 0, -8, 8>();
+	// Depth used to search the remaining moves against the singular margin
 	const ply_t seDepth =
 		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 200, 100, 1000>()
-		- param<SearchParameter::optimizeSE, "seDepthReduction", 0, 0, 8>();
+		- param<SearchParameter::optimizeSE, "seDepthReduction", 0, -8, 8>();
 	if (ttMove.isEmpty()) return 0;
 	// We require a certain search depth for the tt move to be considered for a singular extension
-	if (node.ttDepth < seDepth) return 0;
+	if (node.ttDepth < ttMinDepth) return 0;
 	// No se, if the tt already shows a mate or equivalent value
 	if (node.ttValue != NO_VALUE && (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE)) return 0;
 
@@ -434,9 +439,8 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
 		// The singular extension belongs to the move se() proved to be singular, not to the node.
-		// It is not added on top of a node wide extension, keeping the former maximum of one ply.
-		const ply_t moveExtension =
-			seExtension > 0 && node.searchDepthExtension == 0 && curMove == node.getTTMove() ? seExtension : 0;
+		// It cannot add on top of the check extension, as se() returns 0 for a node in check.
+		const ply_t moveExtension = curMove == node.getTTMove() ? seExtension : 0;
 		const ply_t moveDepth = moveExtension > 0 ?
 			std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
 
