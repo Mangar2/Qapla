@@ -35,7 +35,6 @@
 using namespace QaplaInterface;
 
 namespace QaplaSearch {
-	value_t SearchParameter::cmdLineParam[10];
 
 	class ChessEnvironment {
 	public:
@@ -96,7 +95,7 @@ FenTests fenTests = {
 
 */
 
-int main(int argc, char* argv[])
+int main()
 {
 
 	/*
@@ -111,9 +110,6 @@ int main(int argc, char* argv[])
 #endif
 
 	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;
-	// This enables setting search parameters to a static object. The search parameters are set as name, value pairs
-	// Currently this is used for testing only
-	SearchParameter::parseCommandLine(argc, argv);
 	QaplaSearch::ChessEnvironment environment;
 	// The environment collates the interface with the chess engine. Both are separated by an adapter interface to be
 	// reusable for other engines. 
