@@ -110,12 +110,8 @@ namespace QaplaSearch {
 		static const bool DO_CHECK_EXTENSIONS = true;
 
 		static const bool DO_SE_EXTENSION = true;
-		constexpr static value_t SINGULAR_EXTENSION_MARGIN_CONST = 1;
-		constexpr static value_t SINGULAR_EXTENSION_MARGIN_FACTOR = 4;
-		constexpr static value_t singularExtensionMargin(ply_t depth) {
-			return SINGULAR_EXTENSION_MARGIN_CONST + SINGULAR_EXTENSION_MARGIN_FACTOR * depth;
-			//return 30 + depth * 4;
-		}
+		// Set to true to make the singular extension parameters settable by UCI, see search-param.h
+		static constexpr bool optimizeSE = false;
 
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 

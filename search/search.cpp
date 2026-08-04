@@ -21,6 +21,7 @@
 #include "whatIf.h"
 #include "quiescence.h"
 #include "rootmoves.h"
+#include "search-param.h"
 #include "../basics/materialbalance.h"
 #include "../bitbase/bitbase-reader.h"
 #include "../movegenerator/movegenerator.h"
@@ -284,14 +285,17 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Singular extension based on tt move. Only, if the search found a value > alpha it found a "best move" in the position and is able to store it to
 	// the transposition table
 	auto ttMove = node.getTTMove();
-	const auto seDepth = depth / 2;
+	const ply_t seDepth =
+		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 200, 100, 1000>()
+		- param<SearchParameter::optimizeSE, "seDepthReduction", 0, 0, 8>();
 	if (ttMove.isEmpty()) return 0;
 	// We require a certain search depth for the tt move to be considered for a singular extension
 	if (node.ttDepth < seDepth) return 0;
 	// No se, if the tt already shows a mate or equivalent value
 	if (node.ttValue != NO_VALUE && (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE)) return 0;
 
-	node.setSE(SearchParameter::singularExtensionMargin(depth));
+	node.setSE(param<SearchParameter::optimizeSE, "seMarginConst", 1, -100, 300>()
+		+ param<SearchParameter::optimizeSE, "seMarginFactor", 4, 0, 100>() * depth);
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
