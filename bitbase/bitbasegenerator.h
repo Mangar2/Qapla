@@ -333,6 +333,7 @@ namespace QaplaBitbase {
 		 * @param state Shared generation state.
 		 */
 		void computeInitialWorkpackage(InitialWorkpackage& workpackage, GenerationState& state);
+		void markIllegalAsUnknown(GenerationState& state);
 
 		/**
 		 * Computes and persists one concrete bitbase described by a piece list.

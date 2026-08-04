@@ -362,6 +362,18 @@ RePairData compress(const std::vector<QaplaBitbase::BitbaseResult>& input,
     for (size_t i = 0; i < input.size(); ++i)
         seq[i] = static_cast<uint16_t>(input[i]);
 
+    // Joker resolution: illegal positions are stored as Unknown (3) and act as
+    // wildcards — replace each with the nearest non-joker neighbor to extend runs
+    // and maximize Re-Pair pair frequencies.
+    constexpr uint16_t JOKER = static_cast<uint16_t>(QaplaBitbase::BitbaseResult::Unknown);
+    for (size_t i = 0; i < seq.size(); ++i) {
+        if (seq[i] != JOKER) continue;
+        uint16_t fill = UINT16_MAX;
+        if (i > 0 && seq[i - 1] != JOKER)           fill = seq[i - 1];
+        else if (i + 1 < seq.size() && seq[i + 1] != JOKER) fill = seq[i + 1];
+        seq[i] = (fill != UINT16_MAX) ? fill : 0u; // fallback: Draw
+    }
+
     // Step 2: Re-Pair — O(N log N) single-pass via repair-core
     int nextSymbol = NUM_TERMINALS;
     repairFull(seq, result.btree, nextSymbol, MAX_VOCAB_SIZE, maxSymlen, minPairFreq);

@@ -469,6 +469,9 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 	timing.start("finalize draws");
 	state.finalizeDraws();
 	timing.stop("finalize draws");
+	timing.start("mark illegal as unknown");
+	markIllegalAsUnknown(state);
+	timing.stop("mark illegal as unknown");
 }
 
 /**
@@ -707,6 +710,24 @@ void BitbaseGenerator::computeInitialWorkpackage(InitialWorkpackage &workpackage
 	}
 }
 
+void BitbaseGenerator::markIllegalAsUnknown(GenerationState& state)
+{
+	MoveGenerator position;
+	for (uint64_t index = 0; index < state.getEntryCount(); ++index) {
+		ReverseIndex reverseIndex(index, state.getPieceList());
+		if (!reverseIndex.isLegal()) {
+			state.getComputedResults().set2Bit(index, BitbaseResult::Unknown);
+			continue;
+		}
+		position.clear();
+		addPiecesToPosition(position, reverseIndex, state.getPieceList());
+		uint64_t testIndex = BoardAccess::getIndex<0>(position);
+		if (index != testIndex || !position.isLegal()) {
+			state.getComputedResults().set2Bit(index, BitbaseResult::Unknown);
+		}
+	}
+}
+
 /**
  * Computes and persists one concrete bitbase described by a piece list.
  *
@@ -805,6 +826,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 			cout << "Verifying " << qwdlFileName << " (" << entryCount << " positions) ... " << std::flush;
 			uint64_t mismatches = 0;
 			for (uint64_t idx = 0; idx < entryCount; ++idx) {
+				if (repairResults[idx] == BitbaseResult::Unknown) continue; // illegal position — joker, skip
 				BitbaseResult fromFile = reader.probe(idx);
 				if (repairResults[idx] != fromFile) {
 					++mismatches;
