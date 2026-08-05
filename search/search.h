@@ -147,6 +147,11 @@ namespace QaplaSearch {
 		 * Computes the singular extension for the tt move, in PV as well as in non PV nodes.
 		 * Near leaf nodes never reach the minimal depth needed, thus it returns immediately
 		 * for that search region. The margin is tuned separately for PV and non PV nodes.
+		 *
+		 * The same search also provides the multi cut: if one of the searched moves reaches
+		 * beta, a second move besides the tt move is expected to fail high, the node is thus
+		 * not singular and gets cut. In that case the node holds Cutoff::MULTI_CUT and the
+		 * caller must return its bestValue instead of searching the node.
 		 */
 		template <SearchRegion TYPE>
 		ply_t se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
@@ -166,14 +171,6 @@ namespace QaplaSearch {
 		 */
 		bool isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
 
-		/**
-		 * Check for a multi cut. Searches the first moves of the move ordering with a reduced
-		 * depth against beta plus a margin. If enough of them fail high, the node is expected
-		 * to fail high as well and is cut. The margin is tuned separately for PV and non PV
-		 * nodes. Near leaf nodes are excluded, they stay below the minimal depth needed.
-		 */
-		template <SearchRegion TYPE>
-		bool isMultiCut(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
 
 		/**
 		 * Do a full search using the negaMax algorithm
