@@ -293,10 +293,10 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Minimal depth the tt move must have been searched with to be tested at all,
 	// a constant distance to the current depth instead of a share of it
 	const ply_t ttMinDepth =
-		depth - param<SearchParameter::optimizeSE, "seTTMinDepthReduction", 6, 0, 12>();
+		depth - param<SearchParameter::optimizeSE, "seTTMinDepthReduction", 3, 0, 12>();
 	// Depth used to search the remaining moves against the singular margin
 	const ply_t seDepth =
-		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 200, 100, 300>();
+		depth * 100 / param<SearchParameter::optimizeSE, "seDepthDivisor", 263, 100, 300>();
 	if (ttMove.isEmpty()) return 0;
 	// We require a certain search depth for the tt move to be considered for a singular extension
 	if (node.ttDepth < ttMinDepth) return 0;
@@ -306,9 +306,9 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// The margin the remaining moves must fail below to make the tt move singular. PV and non
 	// PV nodes get their own values, the tt value is a much weaker information in a non PV node
 	node.setSE(IS_PV
-		? param<SearchParameter::optimizeSE, "sePvMarginConst", 1, -100, 300>()
-			+ param<SearchParameter::optimizeSE, "sePvMarginFactor", 4, 0, 100>() * depth
-		: param<SearchParameter::optimizeSE, "seNonPvMarginConst", 1, -100, 300>()
+		? param<SearchParameter::optimizeSE, "sePvMarginConst", -6, -100, 300>()
+			+ param<SearchParameter::optimizeSE, "sePvMarginFactor", 3, 0, 100>() * depth
+		: param<SearchParameter::optimizeSE, "seNonPvMarginConst", 0, -100, 300>()
 			+ param<SearchParameter::optimizeSE, "seNonPvMarginFactor", 4, 0, 100>() * depth);
 	_computingInfo._nodesSearched++;
 
