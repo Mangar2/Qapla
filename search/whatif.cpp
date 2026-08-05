@@ -133,7 +133,8 @@ void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo
  */
 string getCutoffString(Cutoff cutoff)
 {
-	return array<string, int(Cutoff::COUNT)>{"NONE", "REPT", "50M", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY"}[int(cutoff)];
+	return array<string, int(Cutoff::COUNT)>{"NONE", "REPT", "50MO", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL",
+		"BITB", "LOST", "MAXD", "ABOR", "MCUT"}[int(cutoff)];
 }
 
 void WhatIf::cutoff(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, ply_t ply, Cutoff cutoff)
