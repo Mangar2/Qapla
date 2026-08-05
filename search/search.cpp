@@ -315,17 +315,6 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
 	if (checkEvalReleatedCutoffsAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, seDepth, ply)) return 0;
 
-	// Value a move of the se search must reach to multi cut the node, see below. It must never
-	// fall below beta, the cut would otherwise enter a value that is no fail high at all, thus
-	// the margins cannot become negative. PV and non PV nodes get their own margin, a fail high
-	// of the reduced se search says much less in a PV node
-	const value_t mcBeta = beta + (IS_PV
-		? param<SearchParameter::optimizeMC, "mcPvMarginConst", 0, 0, 300>()
-			+ param<SearchParameter::optimizeMC, "mcPvMarginFactor", 0, 0, 20>() * depth
-		: param<SearchParameter::optimizeMC, "mcNonPvMarginConst", 0, 0, 300>()
-			+ param<SearchParameter::optimizeMC, "mcNonPvMarginFactor", 0, 0, 20>() * depth);
-	value_t multiCutValue = NO_VALUE;
-
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
@@ -337,13 +326,8 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, seDepth - 1, ply, result, "SE");
 		childNode.undoMove(position);
 
-		// Multi cut: the tt move is expected to fail high and this move reaches beta as well.
-		// Two moves above beta, thus the node is not singular but expected to fail high itself
-		// and the whole subtree is cut. The search is already done, this costs nothing extra.
-		if (SearchParameter::DO_MULTI_CUT && result >= mcBeta && result < MIN_MATE_VALUE) {
-			multiCutValue = result;
-			break;
-		}
+		// A move reaching beta ends the search, the tt move is not singular either way
+		if (SearchParameter::DO_MULTI_CUT && result >= beta) break;
 
 		if (node.isFailHigh()) break;
 	}
@@ -351,9 +335,13 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Attack masks are lazily computed. We need to make sure to recompute them, if we like to search twice in the same position
 	position.computeAttackMasksForBothColors();
 
-	if (multiCutValue != NO_VALUE) {
-		// The caller returns immediately on this cutoff, see negaMax step 5
-		node.setCutoff(Cutoff::MULTI_CUT, multiCutValue);
+	// Multi cut: the tt move is expected to fail high and one more move reached beta as well.
+	// Two moves above beta, thus the node is not singular but expected to fail high itself and
+	// the whole subtree is cut. The search is already done, this costs nothing extra. Mate
+	// values are left out, the reduced search is far too shallow to claim a mate.
+	// The caller returns this value instead of searching the node, see negaMax step 5
+	if (SearchParameter::DO_MULTI_CUT && node.bestValue >= beta && node.bestValue < MIN_MATE_VALUE) {
+		node.setCutoff(Cutoff::MULTI_CUT, node.bestValue);
 		return 0;
 	}
 
