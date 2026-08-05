@@ -98,7 +98,8 @@ namespace QaplaSearch {
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			cutoff = Cutoff::NONE;
-			ttValueIsUpperBound = false;
+			// The tt bound flags are not reset here. They belong to the position, are set by
+			// probeTT and are read afterwards, for example by the futility pruning.
 			adjustedEval = NO_VALUE;
 			isImproving = false;
 			remainingDepth = depth;
@@ -139,7 +140,8 @@ namespace QaplaSearch {
 			noNullmove = true;
 			cutoff = Cutoff::NONE;
 			positionHashSignature = position.computeBoardHash();
-			ttValueIsUpperBound = false;
+			ttValueIsGreaterOrEqualBeta = false;
+			ttValueIsLessOrEqualAlpha = false;
 			sideToMoveIsInCheck = position.isInCheck();
 			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position, ttPtr->getPawnTT()); 
 			isImproving = false;
@@ -181,6 +183,8 @@ namespace QaplaSearch {
 			ttMove = Move::EMPTY_MOVE;
 			ttValue = NO_VALUE;
 			eval = NO_VALUE;
+			ttValueIsGreaterOrEqualBeta = false;
+			ttValueIsLessOrEqualAlpha = false;
 			if (ttIndex == TT::INVALID_INDEX) return false;
 
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
@@ -191,7 +195,8 @@ namespace QaplaSearch {
 				return true;
 			}
 
-			ttValueIsUpperBound = entry.isGreaterOrEqualBeta();
+			ttValueIsGreaterOrEqualBeta = entry.isGreaterOrEqualBeta();
+			ttValueIsLessOrEqualAlpha = entry.isLessOrEqualAlpha();
 			if (entry.isExact()) {
 				adjustedEval = entry.getPositionValue(ply);
 			}
@@ -264,7 +269,8 @@ namespace QaplaSearch {
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
-			if (ttValueIsUpperBound) return false;
+			// A tt value <= alpha is evidence against the expected fail high
+			if (ttValueIsLessOrEqualAlpha) return false;
 			// Avoids discarding moves solely because no special-case loss evaluation applies. 
 			if (beta < -WINNING_BONUS) return false;
 			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
@@ -536,7 +542,8 @@ namespace QaplaSearch {
 		hash_t positionHashSignature;
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
-		bool ttValueIsUpperBound;
+		bool ttValueIsGreaterOrEqualBeta;
+		bool ttValueIsLessOrEqualAlpha;
 		bool isVerifyingNullmove;
 		bool isImproving;
 		value_t ttValue;
