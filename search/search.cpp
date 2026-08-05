@@ -76,6 +76,11 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 		node.setCutoff(Cutoff::NULL_MOVE);
 		return true;
 	}
+	// Must be after the nullmove, it is the cheaper test for the same expectation
+	if (isMultiCut<TYPE>(position, stack, depth, ply)) {
+		node.setCutoff(Cutoff::MULTI_CUT, node.beta);
+		return true;
+	}
 	return false;
 }
 
@@ -193,6 +198,59 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	}
 	// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
 	return isCutoff;
+}
+
+/**
+ * Check for a multi cut, see search.h
+ */
+template <Search::SearchRegion TYPE>
+bool Search::isMultiCut(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply) {
+	// Near leaf nodes are searched with a depth below the minimal depth required below
+	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return false;
+	constexpr bool IS_PV = TYPE == SearchRegion::PV;
+	if (!SearchParameter::DO_MULTI_CUT) return false;
+	SearchVariables& node = stack[ply];
+	SearchVariables& childNode = stack[ply + 1];
+
+	if (node.sideToMoveIsInCheck) return false;
+	// A reduced search is not reliable enough to cut on a mate value
+	if (node.beta > MIN_MATE_VALUE || node.beta < -MIN_MATE_VALUE) return false;
+
+	// We need a certain search depth left, else the reduced searches are meaningless
+	if (depth < param<SearchParameter::optimizeMC, "mcMinDepth", 6, 0, 24>()) return false;
+	const ply_t mcDepth = depth - param<SearchParameter::optimizeMC, "mcReduction", 4, 0, 12>();
+	if (mcDepth < 1) return false;
+
+	// Value the reduced searches must reach to count as a cut. PV and non PV nodes get their
+	// own margin, a fail high of a reduced search says much less in a PV node
+	const value_t mcBeta = node.beta + (IS_PV
+		? param<SearchParameter::optimizeMC, "mcPvMarginConst", 0, -300, 300>()
+			+ param<SearchParameter::optimizeMC, "mcPvMarginFactor", 0, -20, 20>() * depth
+		: param<SearchParameter::optimizeMC, "mcNonPvMarginConst", 0, -300, 300>()
+			+ param<SearchParameter::optimizeMC, "mcNonPvMarginFactor", 0, -20, 20>() * depth);
+
+	const int32_t maxMoves = param<SearchParameter::optimizeMC, "mcMoveCount", 6, 1, 24>();
+	const int32_t neededCuts = param<SearchParameter::optimizeMC, "mcCutCount", 3, 1, 12>();
+	int32_t cuts = 0;
+
+	node.computeMoves(position, _butterflyBoard);
+	Move curMove;
+	while (node.moveNumber < maxMoves && !(curMove = node.selectNextMove(position)).isEmpty()) {
+		childNode.doMove(position, curMove);
+		const auto result = -negaMax<SearchRegion::INNER>(position, stack, -mcBeta, -mcBeta + 1, mcDepth - 1, ply + 1);
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, mcDepth - 1, ply, result, "MC");
+		childNode.undoMove(position);
+		if (result >= mcBeta) {
+			++cuts;
+			if (cuts >= neededCuts) break;
+		}
+	}
+
+	// Attack masks are lazily computed. We need to make sure to recompute them, as the node
+	// generates its moves again after this call
+	position.computeAttackMasksForBothColors();
+	node.setToPlyStart();
+	return cuts >= neededCuts;
 }
 
 ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move)

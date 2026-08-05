@@ -167,6 +167,15 @@ namespace QaplaSearch {
 		bool isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
 
 		/**
+		 * Check for a multi cut. Searches the first moves of the move ordering with a reduced
+		 * depth against beta plus a margin. If enough of them fail high, the node is expected
+		 * to fail high as well and is cut. The margin is tuned separately for PV and non PV
+		 * nodes. Near leaf nodes are excluded, they stay below the minimal depth needed.
+		 */
+		template <SearchRegion TYPE>
+		bool isMultiCut(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply);
+
+		/**
 		 * Do a full search using the negaMax algorithm
 		 */
 		template <SearchRegion TYPE>

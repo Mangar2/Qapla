@@ -113,6 +113,10 @@ namespace QaplaSearch {
 		// Set to true to make the singular extension parameters settable by UCI, see search-param.h
 		static constexpr bool optimizeSE = false;
 
+		static const bool DO_MULTI_CUT = true;
+		// Set to true to make the multi cut parameters settable by UCI, see search-param.h
+		static constexpr bool optimizeMC = false;
+
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
 		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;
