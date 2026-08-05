@@ -259,8 +259,9 @@ void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 
 template <Search::SearchRegion TYPE>
 ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
-	// Only PV nodes use the result, see negaMax step 8
-	if constexpr (TYPE != SearchRegion::PV) return 0;
+	// Near leaf nodes are searched with a depth below the minimal depth required below
+	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return 0;
+	constexpr bool IS_PV = TYPE == SearchRegion::PV;
 	if (!SearchParameter::DO_SE_EXTENSION) return 0;
 	SearchVariables& node = stack[ply];
 	SearchVariables& childNode = stack[ply + 1];
@@ -302,8 +303,13 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// No se, if the tt already shows a mate or equivalent value
 	if (node.ttValue != NO_VALUE && (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE)) return 0;
 
-	node.setSE(param<SearchParameter::optimizeSE, "seMarginConst", 1, -100, 300>()
-		+ param<SearchParameter::optimizeSE, "seMarginFactor", 4, 0, 100>() * depth);
+	// The margin the remaining moves must fail below to make the tt move singular. PV and non
+	// PV nodes get their own values, the tt value is a much weaker information in a non PV node
+	node.setSE(IS_PV
+		? param<SearchParameter::optimizeSE, "sePvMarginConst", 1, -100, 300>()
+			+ param<SearchParameter::optimizeSE, "sePvMarginFactor", 4, 0, 100>() * depth
+		: param<SearchParameter::optimizeSE, "seNonPvMarginConst", 1, -100, 300>()
+			+ param<SearchParameter::optimizeSE, "seNonPvMarginFactor", 4, 0, 100>() * depth);
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
@@ -413,7 +419,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
 	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
 
-	// 5. Singular extension, computed for PV nodes only, see se()
+	// 5. Singular extension for the tt move, computed for PV and non PV nodes, see se()
 	const auto seExtension = se<TYPE>(position, stack, alpha, beta, depth, ply);
 
 	value_t result;
