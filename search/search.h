@@ -144,8 +144,9 @@ namespace QaplaSearch {
 		void iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-		 * Computes the singular extension. Only PV nodes use the result, thus it returns
-		 * immediately for any other search region.
+		 * Computes the singular extension for the tt move, in PV as well as in non PV nodes.
+		 * Near leaf nodes never reach the minimal depth needed, thus it returns immediately
+		 * for that search region. The margin is tuned separately for PV and non PV nodes.
 		 */
 		template <SearchRegion TYPE>
 		ply_t se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
