@@ -315,13 +315,15 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
 	if (checkEvalReleatedCutoffsAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, seDepth, ply)) return 0;
 
-	// Value a move of the se search must reach to multi cut the node, see below. PV and non PV
-	// nodes get their own margin, a fail high of the reduced se search says much less in a PV node
+	// Value a move of the se search must reach to multi cut the node, see below. It must never
+	// fall below beta, the cut would otherwise enter a value that is no fail high at all, thus
+	// the margins cannot become negative. PV and non PV nodes get their own margin, a fail high
+	// of the reduced se search says much less in a PV node
 	const value_t mcBeta = beta + (IS_PV
-		? param<SearchParameter::optimizeMC, "mcPvMarginConst", 0, -300, 300>()
-			+ param<SearchParameter::optimizeMC, "mcPvMarginFactor", 0, -20, 20>() * depth
-		: param<SearchParameter::optimizeMC, "mcNonPvMarginConst", 0, -300, 300>()
-			+ param<SearchParameter::optimizeMC, "mcNonPvMarginFactor", 0, -20, 20>() * depth);
+		? param<SearchParameter::optimizeMC, "mcPvMarginConst", 0, 0, 300>()
+			+ param<SearchParameter::optimizeMC, "mcPvMarginFactor", 0, 0, 20>() * depth
+		: param<SearchParameter::optimizeMC, "mcNonPvMarginConst", 0, 0, 300>()
+			+ param<SearchParameter::optimizeMC, "mcNonPvMarginFactor", 0, 0, 20>() * depth);
 	value_t multiCutValue = NO_VALUE;
 
 	node.computeMoves(position, _butterflyBoard);
