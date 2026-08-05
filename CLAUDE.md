@@ -81,7 +81,7 @@ as documentation of what was already tried and revert it on the working branch.
 
 Values are tuned with a CLOP run, then confirmed by an SPRT like any other change.
 
-1. Set the group flag (e.g. `optimizeSE`) to true — do not commit that — and build
+1. Set the group flag of the parameters to be tuned to true — do not commit that — and build
    `make ReleaseOpt -j`. Check the options are there:
    `printf 'uci\nquit\n' | ./build/ReleaseOpt/Qapla.exe | grep "^option name"`.
 2. Run (engine as parameter, the ini defines none — a command line `--engine` adds an engine
@@ -91,25 +91,38 @@ Values are tuned with a CLOP run, then confirmed by an SPRT like any other chang
 c:\development\bin\qet.exe --settingsfile=test/clop/clop-standard.ini --engine name=Qapla cmd=c:/development/qapla2/build/ReleaseOpt/Qapla.exe --clop samples=<N> --clopvalue name=<UciOption> min=<min> max=<max> [--clopvalue ...]
 ```
 
-Samples: ~2000 for a single parameter, ~5000 from five parameters upwards. Each sample costs
-`gamespersample` games — 5000 samples took ~3.2 hours here. Choose min/max so the current
-default sits in the middle of the range.
-
 3. Round the estimates, put them in as the new defaults, set the group flag back to false,
    then tag and run the SPRT against the previous version.
 
+Samples: ~2000 for a single parameter, ~5000 from five parameters upwards. Each sample costs
+`gamespersample` games — 5000 samples took ~3.2 hours here.
+
+**The current value must sit exactly in the middle between `min` and `max`.** Only one of the
+two bounds is a free choice, the other one follows from it: with a current value of 17 and
+`min=0`, `max` is necessarily 34. A range that is not centred on the current value biases the
+run towards one direction and makes the result unusable.
+
+The UCI option must accept that whole range (0 to 34 in the example above). If its own limits
+are narrower, widen the limits of the UCI parameter and rebuild — otherwise CLOP proposes
+values the engine never actually plays with.
+
 ## Tunable search parameters
 
-Define them at the call site, see `search/search-param.h`:
+Define them at the call site, using the value where it is needed instead of routing it through
+a constant or a member. The definition is `param<OPTIMIZE, NAME, DEFAULT, MIN, MAX>()`, which
+returns the parameter value, see `search/search-param.h`:
 
-```cpp
-node.setSE(param<SearchParameter::optimizeSE, "seMarginConst", 1, -100, 300>() + ...);
-```
+- `OPTIMIZE` false → `DEFAULT` as a compile time constant, the call is optimized away and no
+  UCI option exists.
+- `OPTIMIZE` true → the value is read from a variable that is registered as a UCI spin option
+  named `NAME` with the limits `MIN` and `MAX` before main.
 
-`param<OPTIMIZE, NAME, DEFAULT, MIN, MAX>()`: flag false → default as constexpr, no UCI
-option; flag true → value read from a variable registered as UCI spin option before main.
-Group flags like `optimizeSE` live in `search/searchparameter.h`, default false; set one to
-true only for a tuning run. Node count must be identical for both flag states at defaults.
+`OPTIMIZE` is a group flag; the group flags live in `search/searchparameter.h` and are false
+by default. Set one to true only for a tuning run. Node count must be identical for both flag
+states as long as all values are at their defaults.
+
+`MIN` and `MAX` are the limits reported to the UCI interface and thus the range a CLOP run can
+explore — see the range rule in the CLOP section above.
 
 Do not add search parameters via the eval-style `UciParameterProvider` classes; those stay
 for eval only.
