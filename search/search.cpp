@@ -280,8 +280,9 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Must be after setFromParentNode
 	node.probeTT(false, alpha, beta, depth, ply);
 
-	// No se, if tt does not have a good move value (> alpha)
-	if (node.ttValueIsUpperBound) return 0;
+	// No se, if tt does not have a good move value (> alpha). With a tt value <= alpha the
+	// value is an upper bound only, thus other moves failing below it prove nothing.
+	if (node.ttValueIsLessOrEqualAlpha) return 0;
 	// We need a ttValue to have something to search for
 	if (node.ttValue == NO_VALUE) return 0;
 
