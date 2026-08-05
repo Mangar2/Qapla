@@ -315,6 +315,10 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
 	if (checkEvalReleatedCutoffsAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, seDepth, ply)) return 0;
 
+	// A pv node is never cut. Its value is needed exactly, and the reduced se search is no
+	// basis to drop the pv move without having searched it
+	constexpr bool doMultiCut = SearchParameter::DO_MULTI_CUT && !IS_PV;
+
 	node.computeMoves(position, _butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
@@ -327,7 +331,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 		childNode.undoMove(position);
 
 		// A move reaching beta ends the search, the tt move is not singular either way
-		if (SearchParameter::DO_MULTI_CUT && result >= beta) break;
+		if (doMultiCut && result >= beta) break;
 
 		if (node.isFailHigh()) break;
 	}
@@ -340,7 +344,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// the whole subtree is cut. The search is already done, this costs nothing extra. Mate
 	// values are left out, the reduced search is far too shallow to claim a mate.
 	// The caller returns this value instead of searching the node, see negaMax step 5
-	if (SearchParameter::DO_MULTI_CUT && node.bestValue >= beta && node.bestValue < MIN_MATE_VALUE) {
+	if (doMultiCut && node.bestValue >= beta && node.bestValue < MIN_MATE_VALUE) {
 		node.setCutoff(Cutoff::MULTI_CUT, node.bestValue);
 		return 0;
 	}
