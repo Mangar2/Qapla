@@ -269,8 +269,11 @@ namespace QaplaSearch {
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
-			// A tt value <= alpha is evidence against the expected fail high
-			if (ttValueIsLessOrEqualAlpha) return false;
+			// A tt value <= alpha would be evidence against the expected fail high. The test is
+			// disabled: it never had any effect, because setFromParentNode reset the flag between
+			// probeTT and this call. Enabling it together with the fixed singular extension lost
+			// elo (SPRT H0), so it is kept out to measure the extension change on its own.
+			// if (ttValueIsLessOrEqualAlpha) return false;
 			// Avoids discarding moves solely because no special-case loss evaluation applies. 
 			if (beta < -WINNING_BONUS) return false;
 			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
