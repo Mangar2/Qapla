@@ -140,6 +140,34 @@ namespace QaplaSearch {
 		}
 
 		/**
+		 * Returns the exchange value of a capture, seen from the side to move. The exchange
+		 * runs with a window around the threshold and stops as soon as the result is safely on
+		 * one side of it, so the value is exact near the threshold and a bound further away.
+		 */
+		value_t computeExchangeValue(const MoveGenerator& position, Move move, value_t threshold) {
+			const bool whiteMoves = position.isWhiteToMove();
+			// gain and the exchange value are computed from the view of white
+			const value_t whiteThreshold = whiteMoves ? threshold : -threshold;
+			gain = -position.getPieceValueForMoveSorting(move.getCapture());
+			// The exchange can only turn out worse for the capturing side, the captured piece
+			// is the upper bound of the result. Once that bound is below the threshold, no
+			// attacker has to be computed at all
+			if (whiteMoves ? gain < whiteThreshold : gain > whiteThreshold) {
+				return whiteMoves ? gain : -gain;
+			}
+			allPiecesLeft = position.getAllPiecesBB();
+			allPiecesLeft &= ~(1ULL << move.getDeparture());
+			whiteToMove = !whiteMoves;
+			clear();
+			// Must be after clear, it resets the window
+			alpha = whiteThreshold - 1;
+			beta = whiteThreshold + 1;
+			const value_t exchangeValue = computeSEEValue(position, move.getDestination(),
+				position.getPieceValueForMoveSorting(move.getMovingPiece()));
+			return whiteMoves ? exchangeValue : -exchangeValue;
+		}
+
+		/**
 		 * Computes a static exchange value of a move
 		 */
 		value_t computeSEEValueOfMove(const MoveGenerator& position, Move move) {
