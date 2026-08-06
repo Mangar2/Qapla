@@ -102,7 +102,7 @@ namespace QaplaSearch {
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
 		// Set to true to make the quiescence parameters settable by UCI, see search-param.h
-		static constexpr bool optimizeQS = true;
+		static constexpr bool optimizeQS = false;
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
