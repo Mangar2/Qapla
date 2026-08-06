@@ -20,6 +20,7 @@
 #include "quiescence.h"
 #include "../eval/eval.h"
 #include "searchparameter.h"
+#include "search-param.h"
 #include "moveprovider.h"
 #include "whatIf.h"
 #include "see.h"
@@ -30,10 +31,12 @@ using namespace ChessEval;
 using namespace QaplaSearch;
 
 /**
- * Computes the maximal value a capture move can gain + safety margin
+ * Computes the value a capture move can gain + safety margin
  * If this value is not enough to make it a valuable move, the move is skipped
+ * The gain is the exchange value of the capture. It falls back to the value of the captured
+ * piece on its own, that is the upper bound the exchange starts from.
  */
-value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t standPatValue, Move move) {
+value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t standPatValue, value_t alpha, Move move) {
 	value_t result = MAX_VALUE;
 	// A winning bonus can be fully destroyed by capturing the piece
 	bool hasWinningBonus = standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS;
@@ -42,8 +45,11 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 
 	Piece capturedPiece = move.getCapture();
 	if (position.doFutilityOnCapture(capturedPiece)) {
-		value_t maxGain = position.getAbsolutePieceValue(capturedPiece);
-		result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
+		// Both terms must use the same margin, else a tuning run moves two halves against
+		// each other. 100: 49%, 35: 50,3%, 40: 49,3%
+		const value_t margin = param<SearchParameter::optimizeQS, "qsSafetyMargin", 50, 0, 200>();
+		const value_t threshold = alpha - standPatValue - margin;
+		result = standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 	}
 	return result;
 }
@@ -121,14 +127,13 @@ value_t Quiescence::search(bool isPvNode,
 			moveProvider.computeCaptures(position, lastMove);
 		}
 		while (!(move = moveProvider.selectNextCaptureOrEvade(position, evadesCheck)).isEmpty()) {
-			valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, move);
+			valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, alpha, move);
 			if (valueOfNextPlySearch < alpha) {
 				if (valueOfNextPlySearch > bestValue) {
 					bestValue = valueOfNextPlySearch;
 				}
-				break;
-			}
-			if (SearchParameter::QUIESCENSE_USE_SEE_PRUNINT && SEE::isLoosingCaptureLight(position, move)) {
+				// The value is no upper bound of the remaining moves once the exchange took
+				// part in it, the moves are sorted by the value of the captured piece only
 				continue;
 			}
 

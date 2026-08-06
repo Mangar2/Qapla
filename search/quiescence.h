@@ -26,6 +26,7 @@
 #include <tuple>
 #include "../basics/evalvalue.h"
 #include "computinginfo.h"
+#include "see.h"
 #include "../search/tt.h"
 #include "../movegenerator/movegenerator.h"
 #ifdef USE_STOCKFISH_EVAL
@@ -83,14 +84,16 @@ namespace QaplaSearch {
 		 * Computes the maximal value a capture move can gain + safety margin
 		 * If this value is not enough to make it a valuable move, the move is skipped
 		 */
-		value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move);
+		value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, value_t alpha, Move move);
 
 		/**
 		 * Gets an entry from the transposition table
 		 * @returns eval, hash value, precision, move
 		 */
 		std::tuple<value_t, value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
-				
+
+		SEE _see;
+
 	public:
 
 		TT* _tt;

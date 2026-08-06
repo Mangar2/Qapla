@@ -99,10 +99,10 @@ namespace QaplaSearch {
 
 		static const bool DO_IID = true;
 
-		static const bool QUIESCENSE_USE_SEE_PRUNINT = false;
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
-		static const value_t PRUING_SAFETY_MARGIN_IN_CP = 50; // 100: 49%, 35:50,3%, 40:49,3%
+		// Set to true to make the quiescence parameters settable by UCI, see search-param.h
+		static constexpr bool optimizeQS = true;
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;

@@ -189,8 +189,10 @@ namespace QaplaBasics {
 		inline static array<value_t, PIECE_AMOUNT> absolutePieceValues;
 	#endif
 
+		// Mean of the midgame and the endgame value of the piece, knight and bishop kept equal.
+		// The pawn keeps 100, it nearly always collects bonuses on top of its material value
 		static constexpr array<value_t, PIECE_AMOUNT> pieceValuesForMoveSorting =
-		{ 0, 0, 100, -100, 300, -300, 300, -300, 500, -500, 900, -900 , MAX_VALUE, -MAX_VALUE };
+		{ 0, 0, 100, -100, 340, -340, 340, -340, 565, -565, 1060, -1060 , MAX_VALUE, -MAX_VALUE };
 
 	};
 
