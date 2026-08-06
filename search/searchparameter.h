@@ -110,11 +110,17 @@ namespace QaplaSearch {
 		static const bool DO_CHECK_EXTENSIONS = true;
 
 		static const bool DO_SE_EXTENSION = true;
+		// The singular extension in non pv nodes costs search depth. Switched off while the
+		// engine searches shallower than its opponents, see se(). The values tuned for it are
+		// the defaults of seNonPvMargin*, seTTMinDepthReduction 3 and seDepthDivisor 263,
+		// they belong to tag 0.4.0-032 and have to come back when this is switched on again.
+		static constexpr bool DO_SE_IN_NON_PV = false;
 		// Set to true to make the singular extension parameters settable by UCI, see search-param.h
 		static constexpr bool optimizeSE = false;
 
-		// Multi cut, computed within the singular extension search, see se()
-		static const bool DO_MULTI_CUT = true;
+		// Multi cut, computed within the singular extension search, see se(). Switched off
+		// together with the non pv singular extension, it lives inside that search
+		static const bool DO_MULTI_CUT = false;
 
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
