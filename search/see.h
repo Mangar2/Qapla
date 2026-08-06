@@ -196,7 +196,7 @@ namespace QaplaSearch {
 						gain = alpha;
 						break;
 					}
-					valueOfNextPieceOnTargetField = tryPiece<WHITE>(position, square);
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<WHITE>(position, square);
 					if (valueOfNextPieceOnTargetField != 0) {
 						gain -= valueOfCurrentPieceOnSquare;
 					}
@@ -212,7 +212,7 @@ namespace QaplaSearch {
 						gain = beta;
 						break;
 					}
-					valueOfNextPieceOnTargetField = tryPiece<BLACK>(position, square);
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<BLACK>(position, square);
 					if (valueOfNextPieceOnTargetField != 0) {
 						gain -= valueOfCurrentPieceOnSquare;
 					}
@@ -321,8 +321,12 @@ namespace QaplaSearch {
 			return result;
 		}
 
+		/**
+		 * Returns the value of the next attacker and removes it from the allPiecesLeft mask.
+		 * It uses the current state to determine the next piece type to try.
+		 */
 		template <Piece COLOR>
-		value_t tryPiece(const MoveGenerator& position, Square square) {
+		value_t getValueOfNextAttackerAndRemoveIt(const MoveGenerator& position, Square square) {
 			value_t result = 0;
 			nodeCountStatistic++;
 			if (pieceToTryBitBoard[COLOR] == 0) {
@@ -330,8 +334,10 @@ namespace QaplaSearch {
 			}
 			if (pieceToTryBitBoard[COLOR] != 0) {
 				result = currentValue[COLOR];
-				allPiecesLeft &= ~pieceToTryBitBoard[COLOR];
-				pieceToTryBitBoard[COLOR] &= pieceToTryBitBoard[COLOR] - 1;
+				auto capturingPiece = pieceToTryBitBoard[COLOR] & (0LL - pieceToTryBitBoard[COLOR]);
+				// Remove the attacking piece from the allPiecesLeft bitboard.
+				allPiecesLeft &= ~capturingPiece;
+				pieceToTryBitBoard[COLOR] &= ~capturingPiece;
 			}
 			return result;
 		}
