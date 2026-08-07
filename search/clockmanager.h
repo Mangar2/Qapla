@@ -331,17 +331,18 @@ namespace QaplaSearch {
 				const int64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
 				const int64_t timeIncrement = _clockSetting.getTimeIncrementPerMoveInMilliseconds();
 				const int32_t movesToGo = computeMovesToGo();
-				maxTime = timeLeft / 3;
 
-				// Not less than the fair share
-				maxTime = std::max(maxTime, timeLeft / (movesToGo + 1));
-				// Keep at least: 
-				maxTime = std::min(maxTime, timeLeft - MIN_REMAINING_TIME);
-				// Take a bit more, if you have timeIncrement 
-				maxTime = std::max(maxTime, timeIncrement - 50);
-				if (timeLeft - maxTime < MIN_REMAINING_TIME) {
-					maxTime = timeLeft / 5;
-				}
+				// Use 1/3 but less near MIN_REMAINING_TIME. 
+				maxTime = (timeLeft - MIN_REMAINING_TIME) / 3;
+				maxTime = max(maxTime, timeLeft / (movesToGo + 1));
+				// Even near zero you may use the time increment. 
+				// But with an Arena safety margin as Arena tends to loose > 20ms for handling moves
+				maxTime = std::max(maxTime, timeIncrement - 20);
+				maxTime = std::max(maxTime, timeLeft / 5);
+				// Hard cut, keep 10 ms for safety
+				// Note: maxtime is including time increment, because it is added after moving.
+				maxTime = std::min(maxTime, timeLeft - 10);
+				// But never zero, never negative.
 				maxTime = std::max(maxTime, static_cast<int64_t>(1));
 			}
 
