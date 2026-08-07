@@ -37,10 +37,27 @@ using namespace QaplaMoveGenerator;
 
 namespace QaplaSearch {
 
+	/**
+	 * The order of move selection is defined by the MoveType enum, the stages are run
+	 * through in enum order.
+	 *
+	 * Two kinds of stages exist. A selecting stage returns one move per call and stays
+	 * active until it runs out of moves. A preparing stage returns no move at all, it
+	 * only sets weights and immediately falls through to the next stage.
+	 */
 	enum class MoveType {
-		CAPTURE_KILLER, 
-		PV, WEIGHT_CAPTURES, GOOD_CAPTURES, KILLER1, KILLER2, SORT_MOVES, ALL,
-		CAPTURES_ONLY,
+		PV, 							// Selects the PV move, else the tt move
+		WEIGHT_CAPTURES, 				// Prepares: weights every capture. Nothing is sorted, the order
+										// emerges from searching the maximum on every single selection
+		GOOD_CAPTURES, 					// Selects the captures that SEE does not rate as loosing, highest
+										// weight first. Weight is the value of the captured piece plus the
+										// recapture bonus, the capturing piece does not take part.
+										// Loosing captures are dropped here and reappear in SILENT_MOVES
+		KILLER1, KILLER2, 				// Selects the killers, thus only after the good captures are used up
+		SORT_MOVES, 					// Prepares: weights the silent moves by butterfly value and sorts
+										// the first few of them
+		SILENT_MOVES,					// Selects everything still left in list order: first the loosing
+										// captures dropped by GOOD_CAPTURES, unsorted, then the silent moves
 	};
 
 	constexpr MoveType operator+(MoveType a, int b) { return MoveType(int(a) + b); }
@@ -52,18 +69,10 @@ namespace QaplaSearch {
 
 		MoveProvider() : curMoveNo(0), _butterflyBoard(0) {
 			selectStage = MoveType::PV + 1;
-			currentStage = selectStage;
 			pvMove = Move::EMPTY_MOVE;
 			_ttMove = Move::EMPTY_MOVE;
 			previousMove = Move::EMPTY_MOVE;
 		};
-
-		/**
-		 * Returns true, if we are in an all search stage
-		 */
-		bool isAllSearch() {
-			return selectStage == MoveType::ALL;
-		}
 
 		/**
 		 * Initializes the move provider
@@ -177,7 +186,6 @@ namespace QaplaSearch {
 			Move move;
 
 			while (selectedMoveNo == -1 && move.isEmpty()) {
-				currentStage = selectStage;
 				switch (selectStage) {
 				case MoveType::PV:
 					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove);
@@ -199,14 +207,11 @@ namespace QaplaSearch {
 				case MoveType::GOOD_CAPTURES:
 					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures(board);
 					break;
-				case MoveType::CAPTURES_ONLY:
-					selectedMoveNo = selectNextCaptureMove();
-					break;
 				case MoveType::SORT_MOVES:
 					sortNonCaptures();
 					++selectStage;
 					break;
-				case  MoveType::ALL:
+				case  MoveType::SILENT_MOVES:
 					selectedMoveNo = selectNextSilentMove();
 					break;
 				default: break;
@@ -263,7 +268,6 @@ namespace QaplaSearch {
 		uint32_t getTotalMoveAmount() const { return moveList.getTotalMoveAmount(); }
 		uint32_t getNonSilentMoveAmount() const { return moveList.getNonSilentMoveAmount(); }
 		uint32_t getNumberOfMoveProvidedLast() const { return curMoveNo; }
-		MoveType getSelectTypeOfLastProvidedMove() const { return currentStage; }
 
 		uint32_t getTriedMovesAmount() const {
 			return triedMovesAmount;
@@ -324,13 +328,16 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Select the next capture move scipping loosing captures according SEE
+		 * Selects the next capture move, deferring the loosing captures according to SEE.
+		 * A deferred capture is invisible to findNextBestCaptureMove from here on, so every
+		 * move arriving in the loop still carries its original, non negative weight and no
+		 * move is ever tested by SEE twice.
 		 */
 		int32_t selectNextCaptureMoveHandlingLoosingCaptures(const MoveGenerator& board) {
 			int32_t moveNo;
 			moveNo = findNextBestCaptureMove();
-			while (moveNo != -1 && moveList.getWeight(moveNo) >= 0 && sEE.isLoosingCapture(board, moveList[moveNo])) {
-				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - LOOSING_CAPTURE_MALUS);
+			while (moveNo != -1 && sEE.isLoosingCapture(board, moveList[moveNo])) {
+				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - CAPTURE_DEFERRAL_MALUS);
 				moveNo = findNextBestCaptureMove();
 			}
 			if (moveNo == -1) {
@@ -399,10 +406,22 @@ namespace QaplaSearch {
 		}
 
 		static const uint32_t TRIED_MOVES_STORE_SIZE = 200;
-		static const value_t LOOSING_CAPTURE_MALUS = 50000;
+
+		// Subtracted from the weight of a loosing capture. findNextBestCaptureMove starts its
+		// maximum search at -MAX_VALUE, so the capture ends up below that floor and drops out
+		// of the GOOD_CAPTURES stage altogether. selectNextSilentMove picks it up again later,
+		// as it walks the list linearly and does not look at weights. This is a deferral to a
+		// later stage, not a re-ordering inside the capture stage.
+		static const value_t CAPTURE_DEFERRAL_MALUS = 50000;
+
+		// Largest weight computeCaptureWeight can produce: value of a queen plus the recapture
+		// bonus, with room to spare. Lowering the malus below this sum would silently bring the
+		// loosing captures back into the capture stage, ahead of the killer moves.
+		static const value_t MAX_CAPTURE_WEIGHT = 2000;
+		static_assert(CAPTURE_DEFERRAL_MALUS > MAX_VALUE + MAX_CAPTURE_WEIGHT,
+			"a deferred capture must fall below the -MAX_VALUE floor of findNextBestCaptureMove");
 
 		MoveType selectStage;
-		MoveType currentStage;
 		uint32_t curMoveNo;
 		Move pvMove;
 		Move _ttMove;

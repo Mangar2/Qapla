@@ -24,6 +24,6 @@ SPRT run.
 - [ ] **Promotions without capture rank behind every capture**, as their weight is the value
       of a captured piece and there is none.
 
-- [ ] **The quiescence search does not use the static exchange evaluation.** The switch that
+- [X] **The quiescence search does not use the static exchange evaluation.** The switch that
       exists there uses a light heuristic instead, and it is switched off. A test with the
       real exchange evaluation has never run.
