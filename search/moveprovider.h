@@ -56,7 +56,7 @@ namespace QaplaSearch {
 		KILLER1, KILLER2, 				// Selects the killers, thus only after the good captures are used up
 		SORT_MOVES, 					// Prepares: weights the silent moves by butterfly value and sorts
 										// the first few of them
-		SILENT_MOVES,					// Selects everything still left in list order: first the loosing
+		REMAINING_MOVES,				// Selects everything still left in list order: first the loosing
 										// captures dropped by GOOD_CAPTURES, unsorted, then the silent moves
 	};
 
@@ -211,7 +211,7 @@ namespace QaplaSearch {
 					sortNonCaptures();
 					++selectStage;
 					break;
-				case  MoveType::SILENT_MOVES:
+				case  MoveType::REMAINING_MOVES:
 					selectedMoveNo = selectNextSilentMove();
 					break;
 				default: break;
