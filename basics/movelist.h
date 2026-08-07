@@ -122,17 +122,30 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Gets the best amount moves and sorts them to the beginning of the silent moves list
-		 * Sorting is done by a kind of insertion sort (search the next best move and swaps it to the front).
+		 * Sorts the best `amount` silent moves to the beginning of the silent move list.
+		 * Selection sort: search the best remaining move and swap it to the front, repeated
+		 * until `amount` moves are placed. Only moves above SORT_WEIGHT_FLOOR take part, all
+		 * others keep the order the move generator produced.
 		 */
 		void sortFirstSilentMoves(uint32_t amount) {
+			// Weight a move has to exceed to be sorted to the front. It doubles as the
+			// "nothing found" marker of bestWeight, which is what makes the early exit below
+			// work. Raising it to a value real weights can reach would break that.
+			constexpr value_t SORT_WEIGHT_FLOOR = 0;
 			for (uint32_t sortIndex = nonSilentMoveAmount; sortIndex < totalMoveAmount && amount > 0; sortIndex++, amount--) {
-				value_t moveWeight = 0;
+				value_t bestWeight = SORT_WEIGHT_FLOOR;
 				uint32_t bestIndex = sortIndex;
 				for (uint32_t searchBestIndex = sortIndex; searchBestIndex < totalMoveAmount; searchBestIndex++) {
-					if (getWeight(searchBestIndex) > moveWeight) {
+					const auto weight = getWeight(searchBestIndex);
+					if (weight > bestWeight) {
+						bestWeight = weight;
 						bestIndex = searchBestIndex;
 					}
+				}
+				// Nothing above the floor is left. Every later pass searches a subrange of
+				// this one, so none of them can find anything either.
+				if (bestWeight == SORT_WEIGHT_FLOOR) {
+					break;
 				}
 				if (bestIndex != sortIndex) {
 					swapEntry(sortIndex, bestIndex);
