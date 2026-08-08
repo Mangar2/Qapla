@@ -287,9 +287,13 @@ namespace QaplaSearch {
 		 */
 		value_t computeCaptureWeight(const MoveGenerator& board, Move move) {
 			value_t weight = board.getAbsolutePieceValue(move.getCapture());
-			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
-				// order recaptures to the front
-				weight += 10;
+			const bool isRecapture = previousMove.isCapture() &&
+				previousMove.getDestination() == move.getDestination();
+			if (!isRecapture) {
+				// Every recapture is to be tried before every other capture. Pushing the others
+				// down by more than the most valuable piece is worth achieves that without a
+				// magic number: taking back a pawn still outweighs winning a queen elsewhere.
+				weight -= board.getAbsolutePieceValue(WHITE_QUEEN) + 1;
 			}
 			return weight;
 		}
@@ -414,9 +418,9 @@ namespace QaplaSearch {
 		// later stage, not a re-ordering inside the capture stage.
 		static const value_t CAPTURE_DEFERRAL_MALUS = 50000;
 
-		// Largest weight computeCaptureWeight can produce: value of a queen plus the recapture
-		// bonus, with room to spare. Lowering the malus below this sum would silently bring the
-		// loosing captures back into the capture stage, ahead of the killer moves.
+		// Upper bound of what computeCaptureWeight can produce, which is the value of a queen
+		// taken back, with room to spare. Lowering the malus below this sum would silently
+		// bring the loosing captures back into the capture stage, ahead of the killer moves.
 		static const value_t MAX_CAPTURE_WEIGHT = 2000;
 		static_assert(CAPTURE_DEFERRAL_MALUS > MAX_VALUE + MAX_CAPTURE_WEIGHT,
 			"a deferred capture must fall below the -MAX_VALUE floor of findNextBestCaptureMove");
