@@ -168,26 +168,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Returns the exchange value of a capture, seen from the side to move, computed with a
-		 * fully open window. Unlike computeExchangeValue the result is the real value everywhere
-		 * instead of a bound outside a threshold window, which is what move ordering needs: there
-		 * the magnitude decides the order, and a bound carries no order.
-		 */
-		value_t computeExactExchangeValue(const MoveGenerator& position, Move move) {
-			const bool whiteMoves = position.isWhiteToMove();
-			// gain and the exchange value are computed from the view of white
-			gain = -position.getPieceValueForMoveSorting(move.getCapture());
-			allPiecesLeft = position.getAllPiecesBB();
-			allPiecesLeft &= ~(1ULL << move.getDeparture());
-			whiteToMove = !whiteMoves;
-			// Opens the window to -MAX_VALUE .. MAX_VALUE, must run after gain is set
-			clear();
-			const value_t exchangeValue = computeSEEValue(position, move.getDestination(),
-				position.getPieceValueForMoveSorting(move.getMovingPiece()));
-			return whiteMoves ? exchangeValue : -exchangeValue;
-		}
-
-		/**
 		 * Computes a static exchange value of a move
 		 */
 		value_t computeSEEValueOfMove(const MoveGenerator& position, Move move) {

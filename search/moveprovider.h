@@ -205,7 +205,7 @@ namespace QaplaSearch {
 					++selectStage;
 					break;
 				case MoveType::GOOD_CAPTURES:
-					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures();
+					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures(board);
 					break;
 				case MoveType::SORT_MOVES:
 					sortNonCaptures();
@@ -286,11 +286,7 @@ namespace QaplaSearch {
 		 * Calculate the weight (winning material in centi-pawn) of a capture move for more ordering
 		 */
 		value_t computeCaptureWeight(const MoveGenerator& board, Move move) {
-			// The net result of the whole exchange, not just the value of the piece taken, so a
-			// queen taking a defended pawn no longer leads the list. The only non capture that
-			// reaches this list is the promotion to queen; it keeps the weight 0 it always had,
-			// which leaves it at the end of the winning captures.
-			value_t weight = move.isCapture() ? sEE.computeExactExchangeValue(board, move) : 0;
+			value_t weight = board.getAbsolutePieceValue(move.getCapture());
 			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
 				// order recaptures to the front
 				weight += 10;
@@ -332,15 +328,15 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Selects the next capture move, deferring the loosing ones. The weight is the exchange
-		 * value now, so a loosing capture is simply one with a negative weight and no separate
-		 * SEE call is needed here. findNextBestCaptureMove returns the maximum, so once that is
-		 * negative every remaining capture is, and the loop defers them all and ends the stage.
+		 * Selects the next capture move, deferring the loosing captures according to SEE.
+		 * A deferred capture is invisible to findNextBestCaptureMove from here on, so every
+		 * move arriving in the loop still carries its original, non negative weight and no
+		 * move is ever tested by SEE twice.
 		 */
-		int32_t selectNextCaptureMoveHandlingLoosingCaptures() {
+		int32_t selectNextCaptureMoveHandlingLoosingCaptures(const MoveGenerator& board) {
 			int32_t moveNo;
 			moveNo = findNextBestCaptureMove();
-			while (moveNo != -1 && moveList.getWeight(moveNo) < 0) {
+			while (moveNo != -1 && sEE.isLoosingCapture(board, moveList[moveNo])) {
 				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - CAPTURE_DEFERRAL_MALUS);
 				moveNo = findNextBestCaptureMove();
 			}
