@@ -134,9 +134,10 @@ Include in [eval.cpp:33](../eval/eval.cpp#L33) aktivieren und Korrektur in `lazy
 In `computeCaptureWeight` ([moveprovider.h:284-291](../search/moveprovider.h#L284-L291)) Umwandlungen mit `promoBoost` gewichten (Skala an `getPieceValueForMoveSorting` orientieren; wirkt auch in der Quiescence).
 **Abhängigkeit:** S1 (falls Boost als Suchparameter exportiert wird). **Parameter:** 1 → **CLOP:** `--clop samples=1000 --clopvalue name=promoBoost min=200 max=1200`, dann **SPRT:** `sprt-E2.state`
 
-### ☐ E3 — Verlierende Schlagzüge hinter Killer/Quiets
-Eigene Stage `BAD_CAPTURES` nach `KILLER2`/`SORT_MOVES` in [moveprovider.h](../search/moveprovider.h) (aktuell werden sie am Ende der GOOD_CAPTURES-Stage geliefert, [moveprovider.h:329-345](../search/moveprovider.h#L329-L345)).
-**Parameter:** keine → **SPRT:** `sprt-E3.state`
+### ❌ E3 — Verlierende Schlagzüge hinter Killer/Quiets — verworfen
+Die Beschreibung des Ist-Zustands war falsch. Verlierende Schlagzüge werden **nicht** am Ende der GOOD_CAPTURES-Stage geliefert: `CAPTURE_DEFERRAL_MALUS` (50000) drückt ihr Gewicht unter die Untergrenze `-MAX_VALUE` (−30000), bei der `findNextBestCaptureMove` seine Maximumsuche beginnt. Sie werden damit für die Stufe unsichtbar und tauchen erst in `REMAINING_MOVES` wieder auf, also nach `KILLER1`, `KILLER2` und `SORT_MOVES`. Die Killer standen immer schon davor — auch vor dem Umbau, die alte Stufenreihenfolge war relativ dieselbe.
+
+Der verbleibende Teil, sie zusätzlich hinter die ruhigen Züge zu schieben, wird nicht verfolgt: spätestens mit LMR ist das sinnlos. Die Reduktion stuft späte Züge ohnehin ab, während Schlagzüge in `computeLMR` gar nicht reduziert werden ([search.cpp:206](../search/search.cpp#L206)) — sie stünden dann mit voller Tiefe an sehr später Stelle.
 
 ### ☐ E4 — Futility-Margins nachtunen
 Nach Abschluss der Gruppen A/B/E: `fut`/`ffut` ([searchparameter.h:155-168](../search/searchparameter.h#L155-L168)) neu optimieren.
