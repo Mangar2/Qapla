@@ -167,7 +167,9 @@ namespace ChessEval {
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksDefended) +
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2 +
 				computeCheckMoves<COLOR>(position, results) +
-				(position.getPieceBB(QUEEN + COLOR) != 0) * queenFactor;
+				// COLOR is the side whose king is examined, OPPONENT the one attacking it.
+				// An attack is more dangerous when the attacker has a queen, not the defender.
+				(position.getPieceBB(QUEEN + OPPONENT) != 0) * queenFactor;
 
 			attackIndex = std::min(MAX_WEIGHT_COUNT, attackIndex);
 			value_t attackValue = 0;
