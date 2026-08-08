@@ -202,14 +202,19 @@ namespace ChessEval {
 		static constexpr uint32_t PRESSURE_INDEX = 0x2;
 		static constexpr uint32_t PRESSURE_MASK = 0x1F;
 		static constexpr uint32_t INDEX_SIZE = 0x40;
-		// Reverted to the value of 0.4.0-025a. The tuned value 2 performed worse than
-		// 0.4.0-025a, therefore the old value 3 is used again.
+		// An earlier CLOP landed on 2 and that lost against 0.4.0-025a, so 3 was restored. That
+		// run tuned the term while it still counted the defender's queen; re-run against the
+		// corrected term it came out at 2.65, which rounds back to the same 3.
 		static constexpr uint32_t QUEEN_FACTOR_DEFAULT = 3;
 
 		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> ATTACK_WEIGHT_DEFAULT =
 
-		{ 0, 0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
-		  -530, -560, -590, -620, -650, -680, -710 };
+		// Re-tuned by CLOP after the queen term moved to the attacking side. Generated from the
+		// seven support points 0, -3, -13, -32, -85, -234, -658. Index 0 means no attack at all
+		// and is kept at 0 by hand; CLOP proposed 0.51 there, which would be a standing bonus
+		// for nothing.
+		{ 0, -1, -3, -7, -13, -22, -32, -42, -53, -67, -85, -108, -135, -166, -199, -234, -269, -305, -341, -376, -410, -444, -476, -506, -535, -561,
+		  -585, -606, -624, -638, -649, -656, -658 };
 
 		/*
 		// Tuned king attack weights: worse result than 0.4.0-025a, therefore commented out.
