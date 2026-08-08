@@ -81,6 +81,12 @@ as documentation of what was already tried and revert it on the working branch.
 
 Values are tuned with a CLOP run, then confirmed by an SPRT like any other change.
 
+**Search and eval parameters are exposed differently and need different builds.** Read the
+section that matches what is being tuned and do not mix the two — the eval flow with a
+`ReleaseOpt` build, or the search flow with a per-file define, both go wrong silently.
+
+### Search parameters only
+
 1. Set the group flag of the parameters to be tuned to true — do not commit that — and build
    `make ReleaseOpt -j`. Check the options are there:
    `printf 'uci\nquit\n' | ./build/ReleaseOpt/Qapla.exe | grep "^option name"`.
@@ -94,6 +100,38 @@ c:\development\bin\qet.exe --settingsfile=test/clop/clop-standard.ini --engine n
 3. Round the estimates, put them in as the new defaults, set the group flag back to false,
    then tag and run the SPRT against the previous version.
 
+### Eval parameters only
+
+Eval values are exposed by a per-file define instead of a group flag, and **for them
+`ReleaseOpt` must not be built at all.** `ReleaseOpt` defines `PARAM_OPTIMIZE`, and every eval
+file turns that into its own switch:
+
+```cpp
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_KING_ATTACK
+#endif
+```
+
+So `ReleaseOpt` activates *all* of them at once — `PARAM_OPTIMIZE_BISHOP`, `_KNIGHT`, `_PAWN`,
+`_QUEEN`, `_ROOK`, `_THREAT`, `_SPACE`, `_KING_ATTACK`, `_IMBALANCE`, `_MATERIALBALANCE`,
+`_PST` — which floods the UCI option list with hundreds of entries that have nothing to do with
+the run and costs speed in the parts that are not being tuned.
+
+Instead add the define of the affected file only, above its `#ifdef PARAM_OPTIMIZE` block:
+
+```cpp
+#define PARAM_OPTIMIZE_KING_ATTACK
+```
+
+and build the normal `make BUILD_TYPE=Release -j`. Only that file's parameters become UCI
+options, the rest of the eval keeps its compile time constants.
+
+Steps 2 and 3 of the search flow apply unchanged, only the path differs: the engine is
+`build/Release/Qapla.exe`, not `build/ReleaseOpt/Qapla.exe`. Remove the define again when the
+run is done — it must never be committed.
+
+### Applies to both
+
 Samples: ~2000 for a single parameter, ~5000 from five parameters upwards. Each sample costs
 `gamespersample` games — 5000 samples took ~3.2 hours here.
 
@@ -102,9 +140,27 @@ two bounds is a free choice, the other one follows from it: with a current value
 `min=0`, `max` is necessarily 34. A range that is not centred on the current value biases the
 run towards one direction and makes the result unusable.
 
+CLOP estimates a value the more precisely the narrower the interval it has to explore. Pick the
+width from the change to be expected: wide for a value that was never tuned, narrow when
+re-optimizing a value that is already good.
+
 The UCI option must accept that whole range (0 to 34 in the example above). If its own limits
 are narrower, widen the limits of the UCI parameter and rebuild — otherwise CLOP proposes
 values the engine never actually plays with.
+
+## Shape of a tunable value
+
+Applies to search and eval alike. Giving a name to a value that cannot move does not make it
+tunable.
+
+- Every case gets its own coefficients. Never derive one case from another — no scaling, no
+  ratio, no shared factor. Dependent values cannot be moved apart by a tuning run.
+- Every influence on the value enters as its own coefficient, not as a fixed multiplier, offset
+  or exemption.
+- Each coefficient must have room to move. A value confined to a few integers carries no signal.
+
+When an existing expression has the wrong shape, reformulate it. Do not put a parameter into the
+old form.
 
 ## Tunable search parameters
 

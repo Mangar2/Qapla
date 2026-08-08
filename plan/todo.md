@@ -1,0 +1,151 @@
+# To do
+
+Candidates that can gain Elo. Each one gets its own tag and its own SPRT, results go into
+[version-log.md](version-log.md).
+
+Priority 1 first, 3 last. The **Cleanups** section at the end carries no priority.
+
+## 1. King attack: queen term on the right side
+
+**Priority 1** — done: [x] — `0.4.0-046`, ≈ +5.7 Elo
+
+
+[king-attack.h:170](../eval/king-attack.h#L170) counts the queen of the side whose king
+is under attack instead of the attacking side:
+
+```cpp
+(position.getPieceBB(QUEEN + COLOR) != 0) * queenFactor
+```
+Tune all available king attack uci parameters with clop. 
+
+## 2. ClockManager with RAMP_BEGIN_TIME = 2000
+
+**Priority 1** — done: [x] — kept as `0.4.0-044`, Elo neutral
+
+## 3. LMR / MCP: make every factor tunable
+
+**Priority 1** — done: [ ]
+
+Every relevant factor of the late move reduction and of the move count pruning becomes tunable.
+
+PV nodes and capture moves get a reduction of their own, loosing and winning captures separable.
+Passed pawn pushes get a reduced reduction factor, not an exemption; promotions count as passed
+pawn pushes.
+
+## 4. All futility margins tunable, then re-optimized
+
+**Priority 1** — done: [ ]
+
+Every futility margin becomes tunable: forward futility, the move based futility pruning often
+called razoring, and the quiescence margin. Then one CLOP run over all of them — they interact.
+
+## 5. Replace IID by IIR
+
+**Priority 1** — done: [ ]
+
+The internal iterative deepening in [search.cpp:243](../search/search.cpp#L243) is replaced by an
+internal iterative reduction.
+
+## 6. Quiescence: try the tt move first
+
+**Priority 1** — done: [ ]
+
+The quiescence never tries the tt move first, in neither of its two paths. It should.
+
+## 7. Aspiration window: the delta term is always zero
+
+**Priority 2** — done: [ ]
+
+[aspirationwindow.h:98-99](../search/aspirationwindow.h#L98-L99) overwrites the previous position
+value before the difference is taken, so the window never widens for a value that jumped between
+iterations.
+
+## 8. Quiescence tt control flow with the isPV flag
+
+**Priority 2** — done: [ ]
+
+The early tt return in [quiescencese.cpp:102](../search/quiescencese.cpp#L102) fires in every
+node, which leaves the stand pat refinement below it unreachable. Bind it to a null window again,
+and additionally let it fire in PV nodes when the tt entry carries the `isPV` flag — a value from
+a real window search may cut a PV node.
+
+Assume the plain guard already lost an SPRT; the `isPV` part is what is new.
+
+## 9. Normal search time for longer time controls
+
+**Priority 2** — done: [ ]
+
+Only the maximum search time has been tuned so far, not the normal one
+([clockmanager.h:283](../search/clockmanager.h#L283)). Other engines spend clearly more time in
+the opening phase at longer time controls.
+
+## 10. Opposite coloured bishops: scale the surplus
+
+**Priority 3** — done: [ ]
+
+A material advantage with bishops on opposite colours and nothing else but pawns is usually a
+draw and has to be scaled down.
+
+**Hand written factors, no CLOP** — the position type is too rare for a signal. For the same
+reason measure it on a start position set of opposite coloured bishop endgames, not on the
+standard book.
+
+## 11. Pawn shield: activate and tune the weights
+
+**Priority 3** — done: [ ]
+
+`computePawnShieldValue` is not part of the king attack evaluation. Activate it and tune its
+weights together with the other king attack parameters.
+
+Already tried once.
+
+## 12. Space weight
+
+**Priority 3** — done: [ ]
+
+`spaceWeightMg` defaults to 0, the space evaluation is off. Tune it. If it fails again, remove
+the space code.
+
+Already tried once, hence the 0.
+
+## 13. Forward futility: honour ttValueIsLessOrEqualAlpha
+
+**Priority 3** — done: [ ]
+
+Uncomment [searchvariables.h:276](../search/searchvariables.h#L276) and test it.
+
+It lost an SPRT once, together with the singular extension fix, which is switched off again
+today. The comment there also claims the flag is reset before the line is reached — if that still
+holds, making it effective is the actual work.
+
+## 14. SEE based capture ordering
+
+**Priority 3** — done: [ ]
+
+Order the captures by their static exchange value.
+
+Tested as `0.4.0-042` and lost 6.7 Elo (`dead/see-weight`) when the exchange value replaced the
+weight outright. A retry needs a different shape.
+
+---
+
+# Cleanups
+
+No priority, no Elo expected. The EPD node count must come out **identical**, that is the proof.
+No SPRT, no tag.
+
+## 15. Attack tables into the ply, out of the position
+
+The attack masks are computed by the position because move generation needs them. Move them into
+the ply and hand them to the move generation by reference, to be created and updated there.
+
+Today they are rebuilt in many places because a sub search can change them, and missing one of
+those rebuilds has caused real bugs more than once.
+
+## 16. Castling encoded as king to its own rook square
+
+Castling is generated as the king moving to `g1` or `c1`. Encode it as the king moving onto its
+own rook's square instead — that is what Chess960 needs and it is the simpler logic.
+
+**Not node stable**, unlike the rest of this section: the butterfly history is indexed by piece
+and destination, so castling moves into a different history slot.
