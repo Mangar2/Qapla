@@ -131,7 +131,10 @@ namespace QaplaBasics {
 			// Weight a move has to exceed to be sorted to the front. It doubles as the
 			// "nothing found" marker of bestWeight, which is what makes the early exit below
 			// work. Raising it to a value real weights can reach would break that.
-			constexpr value_t SORT_WEIGHT_FLOOR = 0;
+			// At -MAX_VALUE moves with a negative history take part in the sorting as well.
+			// The butterfly values are not bounded by MAX_VALUE, so a move whose history has
+			// dropped below -MAX_VALUE still keeps its generated position.
+			constexpr value_t SORT_WEIGHT_FLOOR = -MAX_VALUE;
 			for (uint32_t sortIndex = nonSilentMoveAmount; sortIndex < totalMoveAmount && amount > 0; sortIndex++, amount--) {
 				value_t bestWeight = SORT_WEIGHT_FLOOR;
 				uint32_t bestIndex = sortIndex;
