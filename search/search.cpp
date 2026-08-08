@@ -200,14 +200,26 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 
 	// Ability to disable history for a ply
 	// if (node->mDisableHist) return 0;
+	constexpr bool OPT = SearchParameter::optimizeLMR;
 	const auto moveNo = node.moveNumber;
 
-	if (ply <= 1) return 0;
+	if (ply <= param<OPT, "lmrMinPly", 1, 0, 2>()) return 0;
 	if (move.isCapture()) return 0;
-	ply_t moveCountLmr = std::clamp(moveNo <= 7 ? 16 + (moveNo - 3) * 16 / 4 : 32 + (moveNo - 7) / 2, 16, 3 * 16);
-	ply_t moveCountDepth = std::clamp(16 + (depth - 3) * 2, 16, 3 * 16);
-	// Any omitization attempt was bad, seems to be optimal already
-	ply_t lmr = moveCountLmr * moveCountDepth / 256;
+
+	// The reduction is the product of two ramps, one over the move number and one over the
+	// remaining depth. The move number ramp is steep up to a break point and flat after it.
+	const int32_t moveRamp = moveNo <= param<OPT, "lmrMoveBreak", 7, 2, 12>()
+		? param<OPT, "lmrMoveBase", 16, 0, 32>()
+			+ (moveNo - param<OPT, "lmrMoveOffset", 3, 0, 6>()) * param<OPT, "lmrMoveSlope", 4, 0, 8>()
+		: param<OPT, "lmrMoveHighBase", 32, 0, 64>()
+			+ (moveNo - param<OPT, "lmrMoveHighOffset", 7, 2, 12>()) / param<OPT, "lmrMoveHighDiv", 2, 1, 3>();
+	const int32_t depthRamp = param<OPT, "lmrDepthBase", 16, 0, 32>()
+		+ (depth - param<OPT, "lmrDepthOffset", 3, 0, 6>()) * param<OPT, "lmrDepthSlope", 2, 0, 4>();
+
+	const int32_t rampMin = param<OPT, "lmrRampMin", 16, 0, 32>();
+	const int32_t rampMax = param<OPT, "lmrRampMax", 48, 16, 80>();
+	ply_t lmr = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax)
+		/ param<OPT, "lmrDivisor", 256, 128, 384>();
 	if (node.isPVNode()) lmr /= 2;
 	return lmr;
 }
