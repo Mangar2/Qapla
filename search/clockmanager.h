@@ -327,21 +327,40 @@ namespace QaplaSearch {
 				maxTime = _clockSetting.getExactTimePerMoveInMilliseconds();
 			}
 			else {
-				const int64_t MIN_REMAINING_TIME = 2000;
+				// The share of the remaining time this move may spend runs on a ramp. While the
+				// clock is low the move gets a fifth, once there is room it gets a third, and in
+				// between the share grows steadily with no step anywhere. The ramp is expressed
+				// through the divisor of the share, kept in milliseconds so that the clamp is
+				// plain integer arithmetic; SHARE_DIVISOR_SCALE turns it into the real divisor.
+				//
+				// Until 0.4.0-042 this was max((timeLeft - 2000) / 3, timeLeft / 5) instead,
+				// which held the share at a flat fifth all the way up to 10 seconds left.
+				const int64_t SHARE_DIVISOR_SCALE = 1000;
+				const int64_t RAMP_BEGIN_TIME = 1000;			// below this the share stays at a fifth
+				const int64_t LOW_TIME_SHARE_DIVISOR = 5000;	// 5.0, a fifth, while the clock is low
+				const int64_t FULL_SHARE_DIVISOR = 3000;		// 3.0, a third, once the clock allows it
+				// Arena tends to loose more than 20 ms handling a move, do not spend that part
+				const int64_t MOVE_HANDLING_MARGIN = 20;
+				// Never hand out the last of the clock
+				const int64_t CLOCK_SAFETY_MARGIN = 10;
+
 				const int64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
 				const int64_t timeIncrement = _clockSetting.getTimeIncrementPerMoveInMilliseconds();
 				const int32_t movesToGo = computeMovesToGo();
 
-				// Use 1/3 but less near MIN_REMAINING_TIME. 
-				maxTime = (timeLeft - MIN_REMAINING_TIME) / 3;
+				const int64_t scaledDivisor = std::clamp(
+					LOW_TIME_SHARE_DIVISOR - (timeLeft - RAMP_BEGIN_TIME),
+					FULL_SHARE_DIVISOR, LOW_TIME_SHARE_DIVISOR);
+				const double shareDivisor =
+					static_cast<double>(scaledDivisor) / static_cast<double>(SHARE_DIVISOR_SCALE);
+				maxTime = static_cast<int64_t>(static_cast<double>(timeLeft) / shareDivisor);
+				// Not less than the fair share of the moves still to play
 				maxTime = max(maxTime, timeLeft / (movesToGo + 1));
-				// Even near zero you may use the time increment. 
-				// But with an Arena safety margin as Arena tends to loose > 20ms for handling moves
-				maxTime = std::max(maxTime, timeIncrement - 20);
-				maxTime = std::max(maxTime, timeLeft / 5);
-				// Hard cut, keep 10 ms for safety
+				// Even near zero you may use the time increment.
+				maxTime = std::max(maxTime, timeIncrement - MOVE_HANDLING_MARGIN);
+				// Hard cut.
 				// Note: maxtime is including time increment, because it is added after moving.
-				maxTime = std::min(maxTime, timeLeft - 10);
+				maxTime = std::min(maxTime, timeLeft - CLOCK_SAFETY_MARGIN);
 				// But never zero, never negative.
 				maxTime = std::max(maxTime, static_cast<int64_t>(1));
 			}
