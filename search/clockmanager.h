@@ -336,7 +336,7 @@ namespace QaplaSearch {
 				// Until 0.4.0-042 this was max((timeLeft - 2000) / 3, timeLeft / 5) instead,
 				// which held the share at a flat fifth all the way up to 10 seconds left.
 				const int64_t SHARE_DIVISOR_SCALE = 1000;
-				const int64_t RAMP_BEGIN_TIME = 1000;			// below this the share stays at a fifth
+				const int64_t RAMP_BEGIN_TIME = 2000;			// below this the share stays at a fifth
 				const int64_t LOW_TIME_SHARE_DIVISOR = 5000;	// 5.0, a fifth, while the clock is low
 				const int64_t FULL_SHARE_DIVISOR = 3000;		// 3.0, a third, once the clock allows it
 				// Arena tends to loose more than 20 ms handling a move, do not spend that part
