@@ -99,6 +99,10 @@ namespace QaplaSearch {
 
 		static const bool DO_IID = true;
 
+		// Set to true to make the late move reduction and move count pruning parameters
+		// settable by UCI, see search-param.h
+		static constexpr bool optimizeLMR = false;
+
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
 		// Set to true to make the quiescence parameters settable by UCI, see search-param.h
