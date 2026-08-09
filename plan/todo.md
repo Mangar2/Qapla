@@ -33,7 +33,8 @@ Passed pawn pushes get a reduced reduction factor, not an exemption; promotions 
 pawn pushes.
 
 Counter check at the end: take captures out of the reduction again, an early `return 0` for every
-capture as it was before. SPRT only, no CLOP.
+capture as it was before. SPRT only, no CLOP. The capture term only survives a clear H0 — on H1
+*and* on undecided it goes out of the code entirely.
 
 ## 4. All futility margins tunable, then re-optimized
 
@@ -63,6 +64,8 @@ The quiescence never tries the tt move first, in neither of its two paths. It sh
 value before the difference is taken, so the window never widens for a value that jumped between
 iterations.
 
+Add tunable parameters to the aspiration window and optimize them with clop
+
 ## 8. Quiescence tt control flow with the isPV flag
 
 **Priority 2** — done: [ ]
@@ -81,6 +84,8 @@ Assume the plain guard already lost an SPRT; the `isPV` part is what is new.
 Only the maximum search time has been tuned so far, not the normal one
 ([clockmanager.h:283](../search/clockmanager.h#L283)). Other engines spend clearly more time in
 the opening phase at longer time controls.
+
+Add tunable parameters to control the time usage. It should depend on the time available so shorter time available gives even relatively shorter time. 1 minute for a game is considered as long time, 20s as medium, 5s as short time, 1s very short (to give you a relation). Optimize it with clop in timecontrols 5s + 10ms, 20s + 100ms and 60s + 1s - I know this will take long. Organize the parameters in a way that some parameters influences short time controls more and some parameters longer timecontrols so that you are able to mix the result from the three clop runs. Be linear in the formular no jump even not in first and second derivatives
 
 ## 10. Opposite coloured bishops: scale the surplus
 
@@ -152,3 +157,9 @@ own rook's square instead — that is what Chess960 needs and it is the simpler 
 
 **Not node stable**, unlike the rest of this section: the butterfly history is indexed by piece
 and destination, so castling moves into a different history slot.
+
+# Features
+
+## 17. Implement syzygy bases support
+
+Based on stockfish code

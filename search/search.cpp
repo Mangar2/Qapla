@@ -215,10 +215,9 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 
 	if (ply <= MIN_PLY) return 0;
 
-	// Counter check: no capture is reduced at all, as it was before the reduction had a capture
-	// term. If this wins, the term below is worth nothing.
-	const bool isCapture = move.isCapture();
-	if (isCapture) return 0;
+	// Captures are never reduced. Reducing the loosing ones by a tuned amount was tried in
+	// 0.4.0-049 and did not pay, see plan/version-log.md.
+	if (move.isCapture()) return 0;
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
@@ -236,8 +235,6 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	int32_t divisor = node.isPVNode()
 		? param<OPT, "lmrPvDivisor", 512, 256, 768>()
 		: param<OPT, "lmrDivisor", 261, 133, 389>();
-	// A loosing capture keeps the late move term but is reduced less than a quiet move.
-	if (isCapture) divisor += param<OPT, "lmrCaptureDivisorAdd", 245, 0, 490>();
 	// Extra reduction where a reduction already happens and the position is not improving.
 	if (!node.isImproving && numerator >= divisor) {
 		numerator += param<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
