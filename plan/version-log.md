@@ -512,6 +512,28 @@ games at 52.41 % overstates the case as much as the long run understates nothing
 Pooled over both runs: 10510.5 of 20707 points = 50.76 %, **≈ +5.3 Elo**. That is the number for
 the item.
 
+## 0.4.0-057 — quiescence tries the tt move first
+
+Neither path offered it. The capture list is selected by weight only, so the tt move got a weight
+above every capture; the evades entered the stage machine behind the stage that offers the tt move
+and now start at that stage.
+
+- EPD nodes: 56240905 → 56326178 (+0.15 %), success rate unchanged at 23 %
+- SPRT vs 0.4.0-054 at 5+0.01: **H0 accepted**, 49.34 %, ≈ −4.6 Elo, 9826 games
+
+Reverted, `dead/qs-ttmove`.
+
+The node count already said the reach is small: the early tt return above the move loop cuts on
+most tt hits, so a tt move is rarely available down there at all — that is todo item 8.
+
+What is left is the same pattern that sank 0.4.0-039 and 0.4.0-040: a rule placed ahead of the
+material order. In the quiescence the order is the value of the captured piece, and pulling a tt
+move that may be a pawn capture in front of a queen capture costs more than the hash knowledge is
+worth. Three attempts now, all lost, always in that shape.
+
+A split into the two halves was not run. If it is worth a retry, the capture half is the suspect —
+the evades half only adds a stage that offers a move which is in the evade list anyway.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
