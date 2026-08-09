@@ -377,6 +377,38 @@ derived logic, `mcpDivisor` did not exist yet. Their values are valid for the co
 the derived form does mean is that `lmrDivisor` moves the pruning threshold along with the reduction,
 so those two effects cannot be told apart in a run.
 
+## 0.4.0-052 — all futility margins tunable and re-optimized
+
+Both margins had been fixed expressions of the same shape, `factor * (depth + 1)` with a hard 100
+for improving — one slope that dragged the constant part along and an improving term without a
+coefficient of its own. They now sit at their call sites with three independent values each, and
+nothing is shared between the forward futility and the move loop futility. The depth limits stay
+constants, they are ply counts. The restructuring came out at 90280196 nodes, unchanged, with the
+flags off and on.
+
+One CLOP over all seven values including `qsSafetyMargin`, 5000 samples, 114 min. They are all
+summands of the same threshold, so none of them can cancel another.
+
+| | old | new |
+|---|---|---|
+| `ffDepthFactor` | 75 | 83 |
+| `ffBase` | 75 | 69 |
+| `ffImprovingBonus` | 100 | 101 |
+| `futDepthFactor` | 75 | 43 |
+| `futBase` | 75 | 80 |
+| `futImprovingMalus` | 100 | 77 |
+| `qsSafetyMargin` | 47 | 50 |
+
+The forward futility becomes more conservative — it cuts at `eval - margin >= beta`, so a larger
+margin cuts less. The move loop futility becomes clearly more aggressive: it cuts at
+`eval + captured + margin < alpha`, where a smaller margin cuts more, and its depth slope nearly
+halves. `qsSafetyMargin` confirms itself, it had been tuned not long ago.
+
+- EPD nodes: 90280196 → **86564295**, success rate 26 % → 24 %
+- SPRT vs 0.4.0-051 at 5+0.01: **H1 accepted**, 51.02 %, ≈ +7.1 Elo, 7624 games
+
+Kept, new baseline.
+
 ## 0.4.0-051 — passed pawn pushes are reduced less
 
 Rebuilt on `0.4.0-049` after the first attempt had been made on the discarded structure. The
