@@ -204,10 +204,35 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	const auto moveNo = node.moveNumber;
 
 	if (ply <= param<OPT, "lmrMinPly", 1, 0, 2>()) return 0;
-	if (move.isCapture()) return 0;
+
+	if (move.isCapture()) {
+		// Captures carry a reduction of their own, winning and loosing ones separately. Both
+		// default to 0, the exemption they had before. The interval is one sided because a
+		// reduction cannot be negative.
+		return static_cast<ply_t>(SEE::isLoosingCaptureLight(position, move)
+			? param<OPT, "lmrLoosingCapture", 0, 0, 4>()
+			: param<OPT, "lmrWinningCapture", 0, 0, 4>());
+	}
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
+	// PV nodes have their own coefficients throughout, nothing here is derived from the non PV
+	// case. The defaults differ only in the divisor, 512 against 256, which reproduces the
+	// halving PV used to get.
+	if (node.isPVNode()) {
+		const int32_t moveRamp = moveNo <= param<OPT, "lmrPvMoveBreak", 7, 2, 12>()
+			? param<OPT, "lmrPvMoveBase", 16, 0, 32>()
+				+ (moveNo - param<OPT, "lmrPvMoveOffset", 3, 0, 6>()) * param<OPT, "lmrPvMoveSlope", 4, 0, 8>()
+			: param<OPT, "lmrPvMoveHighBase", 32, 0, 64>()
+				+ (moveNo - param<OPT, "lmrPvMoveHighOffset", 7, 2, 12>()) / param<OPT, "lmrPvMoveHighDiv", 2, 1, 3>();
+		const int32_t depthRamp = param<OPT, "lmrPvDepthBase", 16, 0, 32>()
+			+ (depth - param<OPT, "lmrPvDepthOffset", 3, 0, 6>()) * param<OPT, "lmrPvDepthSlope", 2, 0, 4>();
+		const int32_t rampMin = param<OPT, "lmrPvRampMin", 16, 0, 32>();
+		const int32_t rampMax = param<OPT, "lmrPvRampMax", 48, 16, 80>();
+		return static_cast<ply_t>(std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax)
+			/ param<OPT, "lmrPvDivisor", 512, 256, 768>());
+	}
+
 	const int32_t moveRamp = moveNo <= param<OPT, "lmrMoveBreak", 7, 2, 12>()
 		? param<OPT, "lmrMoveBase", 16, 0, 32>()
 			+ (moveNo - param<OPT, "lmrMoveOffset", 3, 0, 6>()) * param<OPT, "lmrMoveSlope", 4, 0, 8>()
@@ -218,10 +243,8 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 
 	const int32_t rampMin = param<OPT, "lmrRampMin", 16, 0, 32>();
 	const int32_t rampMax = param<OPT, "lmrRampMax", 48, 16, 80>();
-	ply_t lmr = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax)
-		/ param<OPT, "lmrDivisor", 256, 128, 384>();
-	if (node.isPVNode()) lmr /= 2;
-	return lmr;
+	return static_cast<ply_t>(std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax)
+		/ param<OPT, "lmrDivisor", 256, 128, 384>());
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
