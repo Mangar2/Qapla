@@ -157,9 +157,20 @@ namespace QaplaSearch {
 		ply_t se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-	 	 * @brief   
+		 * What the move loop does with a late move: how many plies it is reduced by and
+		 * whether it is skipped entirely.
 		 */
-		ply_t computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move);
+		struct LateMoveDecision {
+			ply_t reduction;
+			bool pruneByMoveCount;
+		};
+
+		/**
+		 * Computes reduction and move count pruning for one move. Both read the same weight,
+		 * a ramp over the move number times a ramp over the remaining depth, but each divides
+		 * it by coefficients of its own.
+		 */
+		LateMoveDecision computeLateMoveDecision(SearchVariables& node, ply_t depth, ply_t ply, Move move);
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
