@@ -141,6 +141,11 @@ namespace QaplaSearch {
 		template <SearchRegion TYPE>
 		bool checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply);
 
+		/**
+		 * Pre searches a node that has no tt move, to get a move worth trying first. Runs in PV
+		 * and in cut nodes, never in all nodes.
+		 */
+		template <SearchRegion TYPE>
 		void iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**

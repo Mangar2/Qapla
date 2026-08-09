@@ -107,7 +107,7 @@ namespace QaplaSearch {
 			remainingDepthAtPlyStart = depth;
 			setWindowAtPlyStart(alpha, beta);
 			moveNumber = 0;
-			_nodeType = isPVNode? NodeType::PV : parentNode._nodeType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
+			_nodeType = childNodeType(parentNode._nodeType, isPVNode);
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
 			moveProvider.init();
@@ -524,6 +524,16 @@ namespace QaplaSearch {
 		 * Returns true, if the current node is a cut node
 		 */
 		inline bool isCutNode() { return _nodeType == NodeType::CUT; }
+
+		NodeType getNodeType() const { return _nodeType; }
+
+		/**
+		 * The type a child node gets from its parent. Available before setFromParentNode has run,
+		 * which is what the code above the move loop needs.
+		 */
+		static constexpr NodeType childNodeType(NodeType parentType, bool isPVNode) {
+			return isPVNode ? NodeType::PV : parentType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
+		}
 
 		/**
 		 * Gets the name of the node type
