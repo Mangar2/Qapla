@@ -377,6 +377,25 @@ derived logic, `mcpDivisor` did not exist yet. Their values are valid for the co
 the derived form does mean is that `lmrDivisor` moves the pruning threshold along with the reduction,
 so those two effects cannot be told apart in a run.
 
+## 0.4.0-051 — passed pawn pushes are reduced less
+
+Rebuilt on `0.4.0-049` after the first attempt had been made on the discarded structure. The
+divisor gets `lmrPassedPawnDivisorAdd` for a pawn no opponent pawn can stop; a promotion counts as
+such a push. Since the move count pruning reads the reduction, the same value also makes those
+moves survive the pruning longer — one coefficient, two effects, and that is what was tuned here.
+
+The eval keeps its passed pawns in the pawn hash and the move loop never sees them, so
+`search/passedpawn.h` carries a front span table of its own, one lookup and one AND per quiet pawn
+move.
+
+CLOP over the single value, 2000 samples: seed 128 → 112. The first, discarded run had said 141 for
+the weaker version of the same parameter.
+
+- EPD nodes: 91160837 → **90280196**
+- SPRT vs 0.4.0-049 at 5+0.01: **H1 accepted**, 50.86 %, ≈ +6.0 Elo, 8883 games
+
+Kept, new baseline.
+
 ## Not tagged — passed pawn pushes, first attempt
 
 `lmrPassedPawnDivisorAdd` on the divisor, a promotion counting as such a push, front span table in
