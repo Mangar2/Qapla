@@ -518,6 +518,12 @@ Neither path offered it. The capture list is selected by weight only, so the tt 
 above every capture; the evades entered the stage machine behind the stage that offers the tt move
 and now start at that stage.
 
+Which tt moves actually took part differs between the two paths. In the capture path only
+capturing ones: `computeCaptures` generates the non silent moves alone, and `selectProposedMove`
+searches exactly that list, so a quiet tt move is not found and gets no weight. In the evades path
+any move of the evade list can be the tt move, quiet king moves included — which is correct there,
+the quiescence searches all evades when in check.
+
 - EPD nodes: 56240905 → 56326178 (+0.15 %), success rate unchanged at 23 %
 - SPRT vs 0.4.0-054 at 5+0.01: **H0 accepted**, 49.34 %, ≈ −4.6 Elo, 9826 games
 
