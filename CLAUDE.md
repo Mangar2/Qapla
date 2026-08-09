@@ -132,6 +132,20 @@ run is done — it must never be committed.
 
 ### Applies to both
 
+**Never tune more than 10 parameters in one run.** CLOP cannot separate more than that; split the
+set into runs of related values instead.
+
+**Values that can cancel each other out do not go into the same run.** Numerator and denominator
+of the same division are the clearest case: countless pairs produce the same quotient, so the run
+has no way to tell them apart and estimates nothing. Split them — tune one side, confirm it with an
+SPRT, then tune the other side against the new baseline.
+
+**A parameter whose range holds fewer than 5 values does not go into a run.** If the range can be
+widened — by rescaling the term it sits in — widen it and tune it. If it cannot, because the value
+is inherently discrete (a move number, a ply count, a small integer divisor), it is not a tunable
+value at all: write it as a named compile time constant, not as a `param<>` call. A UCI option that
+CLOP cannot move only clutters the option list.
+
 Samples: ~2000 for a single parameter, ~5000 from five parameters upwards. Each sample costs
 `gamespersample` games — 5000 samples took ~3.2 hours here.
 
