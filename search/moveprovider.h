@@ -114,13 +114,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Checks whether the node has a move from the previous iteration to try first
-		 */
-		bool hasPVMove() const {
-			return !pvMove.isEmpty();
-		}
-
-		/**
 		 * Sets the best move coming from the tt
 		 */
 		void setTTMove(Move move) {
