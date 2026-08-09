@@ -215,9 +215,10 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 
 	if (ply <= MIN_PLY) return 0;
 
-	// A capture that wins material is never reduced.
+	// Counter check: no capture is reduced at all, as it was before the reduction had a capture
+	// term. If this wins, the term below is worth nothing.
 	const bool isCapture = move.isCapture();
-	if (isCapture && !SEE::isLoosingCaptureLight(position, move)) return 0;
+	if (isCapture) return 0;
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
