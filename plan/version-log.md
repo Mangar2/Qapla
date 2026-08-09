@@ -320,6 +320,22 @@ second, independent confirmation of the term.
 Kept, new baseline. By far the largest single step of this series, and it came from splitting one
 unusable 17 parameter run into two clean ones.
 
+## 0.4.0-049 — counter check: captures are not reduced at all
+
+`computeLMR` returns 0 for every capture again, the exemption it had before 0.4.0-047. The
+question was whether reducing loosing captures, with a divisor tuned for exactly that, buys
+anything.
+
+- EPD nodes: 90963468 → **91160837**
+- SPRT vs 0.4.0-048 at 5+0.01: **undecided after 20000 games**, 50.21 %, LLR 1.30
+
+Kept. Undecided counts against the capture term here, and the small positive LLR is if anything a
+hint the other way. `lmrCaptureDivisorAdd` and the `isLoosingCaptureLight` call are out of the
+code, not merely bypassed — node count after the removal identical at 91160837.
+
+The term was not badly tuned, it simply has almost nothing to work on: only loosing captures were
+affected and the whole difference is 0.2 % of the nodes.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
