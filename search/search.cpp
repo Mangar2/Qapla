@@ -196,14 +196,12 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	return isCutoff;
 }
 
-Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, const MoveGenerator& position,
-	ply_t depth, ply_t ply, Move move)
+ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move)
 {
 
 	// Ability to disable history for a ply
 	// if (node->mDisableHist) return 0;
 	constexpr bool OPT = SearchParameter::optimizeLMR;
-	constexpr LateMoveDecision NO_DECISION = { 0, false };
 
 	// Values that can only take a handful of integers. A tuning run gets no signal out of such a
 	// range, so they are compile time constants and not UCI parameters.
@@ -216,11 +214,11 @@ Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, 
 
 	const int32_t moveNo = static_cast<int32_t>(node.moveNumber);
 
-	if (ply <= MIN_PLY) return NO_DECISION;
+	if (ply <= MIN_PLY) return 0;
 
-	// Captures are neither reduced nor skipped. Reducing the loosing ones by a tuned amount was
-	// tried in 0.4.0-049 and did not pay, see plan/version-log.md.
-	if (move.isCapture()) return NO_DECISION;
+	// Captures are never reduced. Reducing the loosing ones by a tuned amount was tried in
+	// 0.4.0-049 and did not pay, see plan/version-log.md.
+	if (move.isCapture()) return 0;
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
@@ -238,8 +236,9 @@ Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, 
 	int32_t divisor = node.isPVNode()
 		? param<OPT, "lmrPvDivisor", 512, 256, 768>()
 		: param<OPT, "lmrDivisor", 261, 133, 389>();
-	// A pawn that cannot be stopped is reduced less than another quiet move, but it is not
-	// exempt. A promotion counts as such a push.
+	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
+	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
+	// counts as such a push.
 	if (PassedPawn::isPassedPawnPush(position, move)) {
 		divisor += param<OPT, "lmrPassedPawnDivisorAdd", 128, 0, 256>();
 	}
@@ -248,15 +247,7 @@ Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, 
 		numerator += param<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
 	}
 
-	// The move is skipped once the weight buys more plies than the search has left. The move
-	// count pruning has coefficients of its own; deriving it from the reduction would tie the
-	// two together and neither could be moved without the other. The defaults are the reduction
-	// divisors, which is where it stood while it was derived.
-	const int32_t mcpDivisor = node.isPVNode()
-		? param<OPT, "mcpPvDivisor", 512, 128, 896>()
-		: param<OPT, "mcpDivisor", 261, 61, 461>();
-
-	return { static_cast<ply_t>(numerator / divisor), numerator >= (depth + 1) * mcpDivisor };
+	return static_cast<ply_t>(numerator / divisor);
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
@@ -523,12 +514,9 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		const ply_t moveDepth = moveExtension > 0 ?
 			std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
 
-		// Move number of the first move that may be reduced, skipped or pruned at all.
-		constexpr uint32_t FIRST_PRUNABLE_MOVE = 4;
-		bool doMovePrunings = node.moveNumber >= FIRST_PRUNABLE_MOVE && !node.isCheckMove(position, curMove);
-		const LateMoveDecision lateMove = doMovePrunings
-			? computeLateMoveDecision(node, position, depth, ply, curMove) : LateMoveDecision{ 0, false };
-		const ply_t lmr = lateMove.reduction;
+		bool doMovePrunings = node.moveNumber > 3 && !node.isCheckMove(position, curMove);
+		// lmr is needed for move count pruning and late move reduction search
+		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
 		// Never skip moves when escaping from mate and in positions with pawns only.
 		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
 			
@@ -538,7 +526,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 			}
 
 			// 2. Move count pruning
-			if (lateMove.pruneByMoveCount) {
+			if (lmr > 0 && depth - lmr < 0) {
 				continue;
 			}
 		}
