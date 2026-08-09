@@ -485,6 +485,20 @@ argument that a PV node without any move to try first is the more expensive of t
 Reverted, `dead/iir-pv2`. The value 3 was not run: the direction is monotone and 2 already loses
 clearly.
 
+## 0.4.0-056 — IIR: cut nodes with an upper bound tt value reduced by two
+
+Fourth experiment. A cut node with no move to try first whose tt value did not reach alpha last
+time is discouraging twice over, so it was searched two plies shallower instead of one.
+
+- EPD nodes: 56240905 → 45214777, success rate 23 % → 18 %
+- SPRT vs 0.4.0-054 at 5+0.01: **H0 accepted**, 49.51 %, ≈ −3.4 Elo, 13138 games
+
+Reverted, `dead/iir-upperbound`. Together with 0.4.0-055 this settles the depth question of the
+item: one ply is right in both node types, and every attempt to reduce further loses. `hasPVMove`
+and `childNodeType` stay, 0.4.0-054 uses them.
+
+Winner of todo item 5 is 0.4.0-054, four runs in — a closing run against 0.4.0-052 follows.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
