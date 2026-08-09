@@ -50,6 +50,15 @@ called razoring, and the quiescence margin. Then one CLOP run over all of them �
 The internal iterative deepening in [search.cpp:243](../search/search.cpp#L243) is replaced by an
 internal iterative reduction.
 
+Make sure that you check PV AND ttMove, if PV move is availabl it is also fine - no reduction
+Make sure to not reduce ALL nodes, it is normal, that ALL nodes have no TT-Move
+
+Topic to Sprt in IIR (multiple sprt, no clop):
+- Do IIR in Cut nodes too (never in all nodes). If it improves take this improved version and compare it with IIR instead of the current version.
+- Reduce PV nodes even more (PV nodes without ttMove are very expensive), try 1, 2, 3
+- Reduce Cut nodes more, if tt-Value is below alpha (upper bound) AND there is no tt-Move (no tt-move AND >= alpha -> reduce by 1, no tt-move AND UpperBound -> Reduce by 2 or 3)
+
+
 ## 6. Quiescence: try the tt move first
 
 **Priority 1** — done: [ ]
@@ -158,8 +167,14 @@ own rook's square instead — that is what Chess960 needs and it is the simpler 
 **Not node stable**, unlike the rest of this section: the butterfly history is indexed by piece
 and destination, so castling moves into a different history slot.
 
+## 17. Remove passedpawn.h
+
+Find the best architecture to get the passed pawn information from eval (the bitboard with passed pawns) and remove passedpawn.h. Double check nps to see, if it is really faster than the current implementation that is quite simple.
+One option is to have the EvalResults structure as ref parameter in eval and the real occurence is in ply. Then search can always access it anywhere. 
+Double check, if there are other optimization opportunities by doing so.
+
 # Features
 
-## 17. Implement syzygy bases support
+## 18. Implement syzygy bases support
 
 Based on stockfish code
