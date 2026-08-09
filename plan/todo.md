@@ -38,7 +38,7 @@ capture as it was before. SPRT only, no CLOP. The capture term only survives a c
 
 ## 4. All futility margins tunable, then re-optimized
 
-**Priority 1** — done: [ ]
+**Priority 1** — done: [x] — `0.4.0-052`, ≈ +7.1 Elo
 
 Every futility margin becomes tunable: forward futility, the move based futility pruning often
 called razoring, and the quiescence margin. Then one CLOP run over all of them — they interact.
@@ -54,7 +54,7 @@ Make sure that you check PV AND ttMove, if PV move is availabl it is also fine -
 Make sure to not reduce ALL nodes, it is normal, that ALL nodes have no TT-Move
 
 Topic to Sprt in IIR (multiple sprt, no clop):
-- Do IIR in Cut nodes too (never in all nodes). If it improves take this improved version and compare it with IIR instead of the current version.
+- Do IIR in Cut nodes too (never in all nodes, it is normal, that all nodes have no ttmove). If it improves take this improved version and compare it with IIR instead of the current version.
 - Reduce PV nodes even more (PV nodes without ttMove are very expensive), try 1, 2, 3
 - Reduce Cut nodes more, if tt-Value is below alpha (upper bound) AND there is no tt-Move (no tt-move AND >= alpha -> reduce by 1, no tt-move AND UpperBound -> Reduce by 2 or 3)
 
