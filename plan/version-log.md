@@ -377,38 +377,6 @@ derived logic, `mcpDivisor` did not exist yet. Their values are valid for the co
 the derived form does mean is that `lmrDivisor` moves the pruning threshold along with the reduction,
 so those two effects cannot be told apart in a run.
 
-## 0.4.0-052 — all futility margins tunable and re-optimized
-
-Both margins had been fixed expressions of the same shape, `factor * (depth + 1)` with a hard 100
-for improving — one slope that dragged the constant part along and an improving term without a
-coefficient of its own. They now sit at their call sites with three independent values each, and
-nothing is shared between the forward futility and the move loop futility. The depth limits stay
-constants, they are ply counts. The restructuring came out at 90280196 nodes, unchanged, with the
-flags off and on.
-
-One CLOP over all seven values including `qsSafetyMargin`, 5000 samples, 114 min. They are all
-summands of the same threshold, so none of them can cancel another.
-
-| | old | new |
-|---|---|---|
-| `ffDepthFactor` | 75 | 83 |
-| `ffBase` | 75 | 69 |
-| `ffImprovingBonus` | 100 | 101 |
-| `futDepthFactor` | 75 | 43 |
-| `futBase` | 75 | 80 |
-| `futImprovingMalus` | 100 | 77 |
-| `qsSafetyMargin` | 47 | 50 |
-
-The forward futility becomes more conservative — it cuts at `eval - margin >= beta`, so a larger
-margin cuts less. The move loop futility becomes clearly more aggressive: it cuts at
-`eval + captured + margin < alpha`, where a smaller margin cuts more, and its depth slope nearly
-halves. `qsSafetyMargin` confirms itself, it had been tuned not long ago.
-
-- EPD nodes: 90280196 → **86564295**, success rate 26 % → 24 %
-- SPRT vs 0.4.0-051 at 5+0.01: **H1 accepted**, 51.02 %, ≈ +7.1 Elo, 7624 games
-
-Kept, new baseline.
-
 ## 0.4.0-051 — passed pawn pushes are reduced less
 
 Rebuilt on `0.4.0-049` after the first attempt had been made on the discarded structure. The
@@ -442,6 +410,80 @@ estimate does not carry over. Redone from scratch on `0.4.0-049`.
 
 - EPD nodes with the term at 141: 88402616, at 0: 91160837 — the second is the control that proves
   the rest of the rollback is neutral.
+
+## 0.4.0-052 — all futility margins tunable and re-optimized
+
+Both margins had been fixed expressions of the same shape, `factor * (depth + 1)` with a hard 100
+for improving — one slope that dragged the constant part along and an improving term without a
+coefficient of its own. They now sit at their call sites with three independent values each, and
+nothing is shared between the forward futility and the move loop futility. The depth limits stay
+constants, they are ply counts. The restructuring came out at 90280196 nodes, unchanged, with the
+flags off and on.
+
+One CLOP over all seven values including `qsSafetyMargin`, 5000 samples, 114 min. They are all
+summands of the same threshold, so none of them can cancel another.
+
+| | old | new |
+|---|---|---|
+| `ffDepthFactor` | 75 | 83 |
+| `ffBase` | 75 | 69 |
+| `ffImprovingBonus` | 100 | 101 |
+| `futDepthFactor` | 75 | 43 |
+| `futBase` | 75 | 80 |
+| `futImprovingMalus` | 100 | 77 |
+| `qsSafetyMargin` | 47 | 50 |
+
+The forward futility becomes more conservative — it cuts at `eval - margin >= beta`, so a larger
+margin cuts less. The move loop futility becomes clearly more aggressive: it cuts at
+`eval + captured + margin < alpha`, where a smaller margin cuts more, and its depth slope nearly
+halves. `qsSafetyMargin` confirms itself, it had been tuned not long ago.
+
+- EPD nodes: 90280196 → **86564295**, success rate 26 % → 24 %
+- SPRT vs 0.4.0-051 at 5+0.01: **H1 accepted**, 51.02 %, ≈ +7.1 Elo, 7624 games
+
+Kept, new baseline.
+
+## 0.4.0-053 — IID also in cut nodes
+
+First of the four experiments of todo item 5. The pre search ran in PV nodes only; it now runs in
+cut nodes as well, all nodes stay out. The node type existed already but was only set by
+`setFromParentNode`, which runs after the pre search — `childNodeType` computes it from the parent
+instead, and `setFromParentNode` uses the same function.
+
+- EPD nodes: 86564295 → 91108889, success rate 24 % → 21 %
+- SPRT vs 0.4.0-052 at 5+0.01: **H0 accepted**, 49.00 %, ≈ −7.0 Elo, 7049 games
+
+Reverted, `dead/iid-cut`. A pre search costs a whole sub tree and pays only with a better move
+order; a cut node is done as soon as one move fails high, so there is little order left to improve.
+`childNodeType` stayed, 0.4.0-054 needs it.
+
+## 0.4.0-054 — IID replaced by an internal iterative reduction, in PV and cut nodes
+
+Second experiment, and the same idea as 0.4.0-053 in the other form: the pre search produces a move
+and is then thrown away, the reduction just searches such a node one ply shallower and costs
+nothing extra. PV and cut nodes, never all nodes. A move from the previous iteration counts like a
+tt move, so a node on the former primary variant is not reduced — `hasPVMove` on the move provider,
+which is exactly the move the ordering would offer first.
+
+- EPD nodes: 86564295 → **56240905**, success rate 24 % → 23 %
+- SPRT vs 0.4.0-052 at 5+0.01: **H1 accepted**, 50.46 %, ≈ +3.2 Elo, 17559 games
+
+Kept, new baseline. 35 % fewer nodes for +3.2 Elo, and the run needed almost the full distance —
+the extra depth bought back nearly everything the shallower nodes gave away.
+
+The pair 0.4.0-053 and 0.4.0-054 is worth remembering: the same insight, pre search versus
+reduction, −7.0 against +3.2 Elo.
+
+## 0.4.0-055 — IIR: PV nodes reduced by two plies
+
+Third experiment. PV and cut nodes got separate reductions and the PV one went from 1 to 2, on the
+argument that a PV node without any move to try first is the more expensive of the two.
+
+- EPD nodes: 56240905 → 53840068, success rate 23 % → 19 %
+- SPRT vs 0.4.0-054 at 5+0.01: **H0 accepted**, 48.91 %, ≈ −7.6 Elo, 6255 games
+
+Reverted, `dead/iir-pv2`. The value 3 was not run: the direction is monotone and 2 already loses
+clearly.
 
 ## Notes on reading this log
 
