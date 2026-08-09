@@ -55,7 +55,7 @@ Make sure to not reduce ALL nodes, it is normal, that ALL nodes have no TT-Move
 
 Topic to Sprt in IIR (multiple sprt, no clop):
 1. Experiment: Extend the current IID to work also in CUT nodes, but never in ALL nodes.
-2. Compare it with IIR in PV-Nodes And Cut-Nodes
+2. Compare it with IIR in PV-Nodes And Cut-Nodes (the best version of point 1, so either den PV only or the PV+CUT node version)
 3. Reduce PV nodes even more (PV nodes without ttMove are very expensive), try 1, 2, 3
 4. Reduce Cut nodes more, if tt-Value is below alpha (upper bound) AND there is no tt-Move (no tt-move AND >= alpha -> reduce by 1, no tt-move AND UpperBound -> Reduce by 2 or 3)
 

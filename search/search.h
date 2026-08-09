@@ -142,11 +142,12 @@ namespace QaplaSearch {
 		bool checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply);
 
 		/**
-		 * Pre searches a node that has no tt move, to get a move worth trying first. Runs in PV
+		 * Internal iterative reduction: the plies a node is searched shallower by because it has
+		 * no move to try first, neither from the hash nor from the previous iteration. Runs in PV
 		 * and in cut nodes, never in all nodes.
 		 */
 		template <SearchRegion TYPE>
-		void iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
+		ply_t iir(const SearchStack& stack, ply_t depth, ply_t ply);
 
 		/**
 		 * Computes the singular extension for the tt move, in PV as well as in non PV nodes.

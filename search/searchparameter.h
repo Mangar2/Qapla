@@ -54,22 +54,6 @@ namespace QaplaSearch {
 			return 5;
 		}
 
-		/**
-		 * Calculates the reduction for internal iterative deepening
-		 */
-		constexpr static ply_t getIIDReduction([[maybe_unused]]int32_t remainingSearchDepth)
-		{
-			return 2;
-		}
-
-		/**
-		 * Calculates the minimal depth for internal iterative deepening
-		 */
-		constexpr static ply_t getIIDMinDepth()
-		{
-			return 4;
-		}
-
 
 		/**
 		 * Calculates the late move reduction
@@ -97,7 +81,11 @@ namespace QaplaSearch {
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
 
-		static const bool DO_IID = true;
+		// Internal iterative reduction, replaces the internal iterative deepening. Both values are
+		// ply counts and stay constants, a tuning run gets no signal out of a range of a few plies.
+		static const bool DO_IIR = true;
+		static const ply_t IIR_MIN_DEPTH = 4;
+		static const ply_t IIR_REDUCTION = 1;
 
 		// Set to true to make the late move reduction and move count pruning parameters
 		// settable by UCI, see search-param.h
