@@ -77,18 +77,6 @@ within maxgames. A non-zero exit code here is a result, not an error.
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
 
-### Closing run after a series of SPRTs
-
-Once **more than two** SPRTs have been run to find the best version of one todo item, the winner
-has to prove itself in a final run against the version the item started from.
-
-Every single run accepts at alpha = 0.05, so over a series the chance that one of the survivors is
-worth nothing is no longer small — and a run stops at the moment it reaches its bound, which
-favours whatever was fluctuating upwards. The individual gains must not be added up either; the
-closing run is the only honest number for the item as a whole.
-
-If it fails, the series produced nothing, whatever the single runs said.
-
 ## The version log
 
 `plan/version-log.md` gets an entry for **every** tagged version, written as soon as its result
