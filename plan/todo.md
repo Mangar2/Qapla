@@ -64,7 +64,7 @@ Topic to Sprt in IIR (multiple sprt, no clop):
 
 ## 6. Quiescence: try the tt move first
 
-**Priority 1** — done: [ ]
+**Priority 1** — done: [x] — `0.4.0-057` lost 4.6 Elo, `dead/qs-ttmove`
 
 The quiescence never tries the tt move first, in neither of its two paths. It should.
 
