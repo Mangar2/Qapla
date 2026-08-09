@@ -278,21 +278,14 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, va
  * IID modifies variables from stack[ply] (like move counter, search depth, ...)
  * Thus it must be called before setting the stack in negamax (setFromPreviousPly).
  */
-void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
-	SearchVariables& node = stack[ply];
+ply_t Search::iir(const SearchVariables& node, ply_t depth) {
+	if (!SearchParameter::DO_IIR) return 0;
+	if (depth <= SearchParameter::IIR_MIN_DEPTH) return 0;
+	// Any move worth trying first is enough, from the hash or from the previous iteration.
+	if (!node.getTTMove().isEmpty()) return 0;
+	if (node.hasPVMove()) return 0;
 
-	if (!SearchParameter::DO_IID) return;
-	if (depth <= SearchParameter::getIIDMinDepth()) return;
-	if (!node.getTTMove().isEmpty()) return;
-
-	ply_t iidR = SearchParameter::getIIDReduction(depth);
-	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, alpha, beta, depth - iidR, ply);
-	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
-	position.computeAttackMasksForBothColors();
-	if (!node.bestMove.isEmpty()) {
-		node.setTTMove(node.bestMove);
-	}
-
+	return SearchParameter::IIR_PV_REDUCTION;
 }
 
 template <Search::SearchRegion TYPE>
@@ -473,8 +466,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, depth, ply);
 
-	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
-	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
+	// 4. Internal iterative reduction. A node with no move to try first is expensive and its
+	// result unreliable, so it is searched shallower instead of being pre-searched. Must be
+	// before node.setFromParentNode, which hands the depth on to the node.
+	if (TYPE == SearchRegion::PV) depth -= iir(node, depth);
 
 	// 5. Singular extension for the tt move, computed for PV and non PV nodes, see se()
 	const auto seExtension = se<TYPE>(position, stack, alpha, beta, depth, ply);
