@@ -45,7 +45,7 @@ called razoring, and the quiescence margin. Then one CLOP run over all of them �
 
 ## 5. Replace IID by IIR
 
-**Priority 1** — done: [ ]
+**Priority 1** — done: [x] — `0.4.0-054`, ≈ +5.3 Elo over the closing run
 
 The internal iterative deepening in [search.cpp:243](../search/search.cpp#L243) is replaced by an
 internal iterative reduction.
@@ -58,6 +58,8 @@ Topic to Sprt in IIR (multiple sprt, no clop):
 2. Compare it with IIR in PV-Nodes And Cut-Nodes (the best version of point 1, so either den PV only or the PV+CUT node version)
 3. Reduce PV nodes even more (PV nodes without ttMove are very expensive), try 1, 2, 3
 4. Reduce Cut nodes more, if tt-Value is below alpha (upper bound) AND there is no tt-Move (no tt-move AND >= alpha -> reduce by 1, no tt-move AND UpperBound -> Reduce by 2 or 3)
+5. Run IIR only for PV nodes, no CUT nodes
+6. As so many SPRT increases the chance of false positive SPRT, run a final SPRT against the original IID version with the best result of all IIR tries to prove that it holds true in a single last SPRT run even, if the SPRT 5 was positive and you run the idential SPRT twice.
 
 
 ## 6. Quiescence: try the tt move first

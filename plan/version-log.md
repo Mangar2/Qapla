@@ -497,7 +497,20 @@ Reverted, `dead/iir-upperbound`. Together with 0.4.0-055 this settles the depth 
 item: one ply is right in both node types, and every attempt to reduce further loses. `hasPVMove`
 and `childNodeType` stay, 0.4.0-054 uses them.
 
-Winner of todo item 5 is 0.4.0-054, four runs in — a closing run against 0.4.0-052 follows.
+Winner of todo item 5 is 0.4.0-054, four runs in.
+
+## Closing run for todo item 5
+
+`0.4.0-054` against `0.4.0-052`, the version the item started from: **H1 accepted**, 52.41 %,
+3148 games.
+
+It is the same pairing as the run under 0.4.0-054 itself, which gave 50.46 % over 17559 games, and
+the two numbers are a good illustration of why the closing rule exists — this time in the other
+direction. A run that reaches its bound early does so because it was fluctuating upwards, and 3148
+games at 52.41 % overstates the case as much as the long run understates nothing.
+
+Pooled over both runs: 10510.5 of 20707 points = 50.76 %, **≈ +5.3 Elo**. That is the number for
+the item.
 
 ## Notes on reading this log
 
