@@ -22,6 +22,7 @@
 #include "quiescence.h"
 #include "rootmoves.h"
 #include "search-param.h"
+#include "passedpawn.h"
 #include "../basics/materialbalance.h"
 #include "../bitbase/bitbase-reader.h"
 #include "../movegenerator/movegenerator.h"
@@ -195,7 +196,8 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	return isCutoff;
 }
 
-Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, ply_t depth, ply_t ply, Move move)
+Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, const MoveGenerator& position,
+	ply_t depth, ply_t ply, Move move)
 {
 
 	// Ability to disable history for a ply
@@ -233,9 +235,14 @@ Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, 
 	const int32_t rampMax = param<OPT, "lmrRampMax", 55, 30, 80>();
 	int32_t numerator = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax);
 
-	const int32_t divisor = node.isPVNode()
+	int32_t divisor = node.isPVNode()
 		? param<OPT, "lmrPvDivisor", 512, 256, 768>()
 		: param<OPT, "lmrDivisor", 261, 133, 389>();
+	// A pawn that cannot be stopped is reduced less than another quiet move, but it is not
+	// exempt. A promotion counts as such a push.
+	if (PassedPawn::isPassedPawnPush(position, move)) {
+		divisor += param<OPT, "lmrPassedPawnDivisorAdd", 128, 0, 256>();
+	}
 	// Extra reduction where a reduction already happens and the position is not improving.
 	if (!node.isImproving && numerator >= divisor) {
 		numerator += param<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
@@ -520,7 +527,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		constexpr uint32_t FIRST_PRUNABLE_MOVE = 4;
 		bool doMovePrunings = node.moveNumber >= FIRST_PRUNABLE_MOVE && !node.isCheckMove(position, curMove);
 		const LateMoveDecision lateMove = doMovePrunings
-			? computeLateMoveDecision(node, depth, ply, curMove) : LateMoveDecision{ 0, false };
+			? computeLateMoveDecision(node, position, depth, ply, curMove) : LateMoveDecision{ 0, false };
 		const ply_t lmr = lateMove.reduction;
 		// Never skip moves when escaping from mate and in positions with pawns only.
 		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {

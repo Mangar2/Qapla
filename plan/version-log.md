@@ -336,6 +336,28 @@ code, not merely bypassed — node count after the removal identical at 91160837
 The term was not badly tuned, it simply has almost nothing to work on: only loosing captures were
 affected and the whole difference is 0.2 % of the nodes.
 
+## 0.4.0-050 — move count pruning with divisors of its own
+
+The pruning had been derived from the reduction: skip the move once `depth - lmr` fell below zero,
+so it carried no value that a run could move. It now reads the same ramp weight and compares it
+against `(depth + 1) * mcpDivisor`, with `mcpDivisor` / `mcpPvDivisor` independent of the reduction
+divisors. Defaults equal to the reduction divisors reproduce the derived form exactly — the
+restructuring itself came out at 91160837 nodes, unchanged.
+
+CLOP over the two, 2500 samples, wide ranges: 512 → 592 and 261 → 354, both clearly larger, so the
+run wanted less pruning.
+
+- EPD nodes: 91160837 → 102983953, success rate 26 % → 23 %
+- SPRT vs 0.4.0-049 at 5+0.01: **H0 accepted**, 48.57 %, ≈ −10 Elo, 4946 games
+
+Reverted, `dead/mcp-divisors`. Only the two values went back, the restructuring stays — the
+pruning keeps its own coefficients.
+
+A CLOP optimum losing 10 Elo is worth recording as a warning: 2500 samples over a two dimensional,
+flat landscape produce an argmax that is mostly noise. Where CLOP and SPRT disagree this clearly,
+the SPRT is the answer. The direction below the default is untested; the run explored 61 to 461 and
+found nothing there either.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05

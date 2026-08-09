@@ -170,7 +170,8 @@ namespace QaplaSearch {
 		 * a ramp over the move number times a ramp over the remaining depth, but each divides
 		 * it by coefficients of its own.
 		 */
-		LateMoveDecision computeLateMoveDecision(SearchVariables& node, ply_t depth, ply_t ply, Move move);
+		LateMoveDecision computeLateMoveDecision(SearchVariables& node, const MoveGenerator& position,
+			ply_t depth, ply_t ply, Move move);
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
