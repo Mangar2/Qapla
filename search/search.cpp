@@ -278,21 +278,31 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, va
  * IID modifies variables from stack[ply] (like move counter, search depth, ...)
  * Thus it must be called before setting the stack in negamax (setFromPreviousPly).
  */
+template <Search::SearchRegion TYPE>
 void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
-	SearchVariables& node = stack[ply];
+	// A near leaf node never reaches the minimal depth below
+	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return;
+	else {
+		SearchVariables& node = stack[ply];
 
-	if (!SearchParameter::DO_IID) return;
-	if (depth <= SearchParameter::getIIDMinDepth()) return;
-	if (!node.getTTMove().isEmpty()) return;
+		if (!SearchParameter::DO_IID) return;
+		if (depth <= SearchParameter::getIIDMinDepth()) return;
+		if (!node.getTTMove().isEmpty()) return;
+		// Cut nodes are pre searched as well, all nodes are not. An all node without a tt move
+		// is the normal case, there is nothing unusual about it and nothing to gain.
+		if constexpr (TYPE != SearchRegion::PV) {
+			if (SearchVariables::childNodeType(stack[ply - 1].getNodeType(), false)
+				!= SearchVariables::NodeType::CUT) return;
+		}
 
-	ply_t iidR = SearchParameter::getIIDReduction(depth);
-	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, alpha, beta, depth - iidR, ply);
-	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
-	position.computeAttackMasksForBothColors();
-	if (!node.bestMove.isEmpty()) {
-		node.setTTMove(node.bestMove);
+		ply_t iidR = SearchParameter::getIIDReduction(depth);
+		const value_t curValue = negaMax<TYPE>(position, stack, alpha, beta, depth - iidR, ply);
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
+		position.computeAttackMasksForBothColors();
+		if (!node.bestMove.isEmpty()) {
+			node.setTTMove(node.bestMove);
+		}
 	}
-
 }
 
 template <Search::SearchRegion TYPE>
@@ -474,7 +484,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, depth, ply);
 
 	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
-	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
+	iid<TYPE>(position, stack, alpha, beta, depth, ply);
 
 	// 5. Singular extension for the tt move, computed for PV and non PV nodes, see se()
 	const auto seExtension = se<TYPE>(position, stack, alpha, beta, depth, ply);
