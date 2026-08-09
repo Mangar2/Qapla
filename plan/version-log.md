@@ -303,6 +303,23 @@ Kept, new baseline. The success rate falling while the engine plays measurably b
 familiar picture — the EPD set rewards depth on tactical positions, and this version searches
 13 % fewer nodes for the same time.
 
+## 0.4.0-048 — LMR numerator coefficients tuned
+
+Second CLOP over the same function, this time the numerator side: `lmrMoveBase` 16 → 11,
+`lmrMoveHighBase` 32 → 51, `lmrDepthBase` 16 → 11, `lmrRampMin` 16 → 15, `lmrRampMax` 48 → 55,
+`lmrNotImprovingAdd` 128 → 133. 5000 samples, 114 min.
+
+The move number ramp becomes far steeper. Below the break point it is flatter than before, above
+it the base jumps to 51 — at the break the ramp steps from 23 to 51. Almost all of the reduction
+now hangs on crossing move number 6. `lmrNotImprovingAdd` lands on its seed value, which is a
+second, independent confirmation of the term.
+
+- EPD nodes: 92945122 → **90963468**, success rate 25 % → 29 %
+- SPRT vs 0.4.0-047 at 5+0.01: **H1 accepted**, 52.06 %, ≈ +14.3 Elo, 3690 games
+
+Kept, new baseline. By far the largest single step of this series, and it came from splitting one
+unusable 17 parameter run into two clean ones.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
