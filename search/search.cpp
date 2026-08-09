@@ -224,12 +224,12 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	// Both ramps are shared by all node types; only the divisor tells PV nodes apart.
 	const int32_t moveBreak = param<OPT, "lmrMoveBreak", 6, 2, 10>();
 	const int32_t moveRamp = moveNo <= moveBreak
-		? param<OPT, "lmrMoveBase", 16, 0, 32>() + (moveNo - MOVE_OFFSET) * MOVE_SLOPE
-		: param<OPT, "lmrMoveHighBase", 32, 0, 64>() + (moveNo - moveBreak) / MOVE_HIGH_DIV;
-	const int32_t depthRamp = param<OPT, "lmrDepthBase", 16, 0, 32>() + (depth - DEPTH_OFFSET) * DEPTH_SLOPE;
+		? param<OPT, "lmrMoveBase", 11, 0, 22>() + (moveNo - MOVE_OFFSET) * MOVE_SLOPE
+		: param<OPT, "lmrMoveHighBase", 51, 0, 102>() + (moveNo - moveBreak) / MOVE_HIGH_DIV;
+	const int32_t depthRamp = param<OPT, "lmrDepthBase", 11, 0, 22>() + (depth - DEPTH_OFFSET) * DEPTH_SLOPE;
 
-	const int32_t rampMin = param<OPT, "lmrRampMin", 16, 0, 32>();
-	const int32_t rampMax = param<OPT, "lmrRampMax", 48, 16, 80>();
+	const int32_t rampMin = param<OPT, "lmrRampMin", 15, 0, 30>();
+	const int32_t rampMax = param<OPT, "lmrRampMax", 55, 30, 80>();
 	int32_t numerator = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax);
 
 	int32_t divisor = node.isPVNode()
@@ -239,7 +239,7 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	if (isCapture) divisor += param<OPT, "lmrCaptureDivisorAdd", 245, 0, 490>();
 	// Extra reduction where a reduction already happens and the position is not improving.
 	if (!node.isImproving && numerator >= divisor) {
-		numerator += param<OPT, "lmrNotImprovingAdd", 128, 0, 256>();
+		numerator += param<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
 	}
 
 	return static_cast<ply_t>(numerator / divisor);
