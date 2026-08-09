@@ -274,6 +274,35 @@ Kept, new baseline. The fix alone was flat, the fix plus the re-tuning is worth 
 which is the whole argument for tying a re-tuning to a change that shifts what the weights were
 fitted to.
 
+## 0.4.0-047 — LMR reshaped, divisors tuned
+
+`computeLMR` is now one ramp product with tunable coefficients instead of a hand written ladder.
+The move number ramp and the depth ramp are shared by all node types; PV nodes differ only in the
+divisor. Captures are no longer exempt: a capture that wins material is never reduced, a loosing
+one keeps the late move term and only gets a larger divisor. `lmrNotImprovingAdd` raises the
+numerator when the position is not improving, but only where a reduction already happens.
+
+Values that can only take a handful of integers — the minimum ply, the ramp offsets and slopes,
+the divisor of the flat branch — are compile time constants. A CLOP run gets no signal out of a
+range of three or five values, and a UCI option it cannot move only clutters the list.
+
+The first attempt put all 17 values into one run. Two things were wrong with that: CLOP cannot
+separate that many parameters, and numerator and denominator of the same division were in the same
+run, where countless pairs give the same quotient and neither side can be estimated. Split into a
+denominator run (this version) and a numerator run.
+
+CLOP over `lmrMoveBreak`, `lmrPvDivisor`, `lmrDivisor`, `lmrCaptureDivisorAdd`, 4000 samples,
+91 min: 7 → 6, 448 → 512, 192 → 261, 256 → 245. The divisors go back to exactly where they stood
+before `lmrNotImprovingAdd` existed. Lowering them by half of that term, as they were seeded, was
+wrong — the extra reduction for a non improving position is wanted on top, not compensated away.
+
+- EPD nodes: 107064904 → **92945122**, success rate 29 % → 25 %
+- SPRT vs 0.4.0-046 at 5+0.01: **H1 accepted**, 50.82 %, ≈ +5.7 Elo, 9591 games
+
+Kept, new baseline. The success rate falling while the engine plays measurably better is the
+familiar picture — the EPD set rewards depth on tactical positions, and this version searches
+13 % fewer nodes for the same time.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
