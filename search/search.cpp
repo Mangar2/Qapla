@@ -295,9 +295,6 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		if constexpr (TYPE != SearchRegion::PV) {
 			if (SearchVariables::childNodeType(stack[ply - 1].getNodeType(), false)
 				!= SearchVariables::NodeType::CUT) return 0;
-			// A cut node whose tt value is an upper bound is doubly discouraging: no move to try
-			// first, and the last search of this position did not reach alpha either.
-			if (node.ttValueIsLessOrEqualAlpha) return SearchParameter::IIR_CUT_UPPER_BOUND_REDUCTION;
 		}
 
 		return SearchParameter::IIR_REDUCTION;
