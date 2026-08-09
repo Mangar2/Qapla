@@ -466,6 +466,9 @@ namespace QaplaSearch {
 		Move getTTMove() const { return ttMove; }
 		void setTTMove(Move move) { ttMove = move; }
 
+		/** The move from the previous iteration, if this node is on the former primary variant */
+		bool hasPVMove() const { return moveProvider.hasPVMove(); }
+
 		void setPly(ply_t curPly) { ply = curPly; }
 
 		

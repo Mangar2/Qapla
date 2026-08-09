@@ -279,29 +279,25 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, va
  * Thus it must be called before setting the stack in negamax (setFromPreviousPly).
  */
 template <Search::SearchRegion TYPE>
-void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
+ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 	// A near leaf node never reaches the minimal depth below
-	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return;
+	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return 0;
 	else {
-		SearchVariables& node = stack[ply];
+		const SearchVariables& node = stack[ply];
 
-		if (!SearchParameter::DO_IID) return;
-		if (depth <= SearchParameter::getIIDMinDepth()) return;
-		if (!node.getTTMove().isEmpty()) return;
-		// Cut nodes are pre searched as well, all nodes are not. An all node without a tt move
-		// is the normal case, there is nothing unusual about it and nothing to gain.
+		if (!SearchParameter::DO_IIR) return 0;
+		if (depth <= SearchParameter::IIR_MIN_DEPTH) return 0;
+		// Any move worth trying first is enough, from the hash or from the previous iteration.
+		if (!node.getTTMove().isEmpty()) return 0;
+		if (node.hasPVMove()) return 0;
+		// Cut nodes are reduced as well, all nodes are not. An all node without a tt move is the
+		// normal case, there is nothing unusual about it.
 		if constexpr (TYPE != SearchRegion::PV) {
 			if (SearchVariables::childNodeType(stack[ply - 1].getNodeType(), false)
-				!= SearchVariables::NodeType::CUT) return;
+				!= SearchVariables::NodeType::CUT) return 0;
 		}
 
-		ply_t iidR = SearchParameter::getIIDReduction(depth);
-		const value_t curValue = negaMax<TYPE>(position, stack, alpha, beta, depth - iidR, ply);
-		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
-		position.computeAttackMasksForBothColors();
-		if (!node.bestMove.isEmpty()) {
-			node.setTTMove(node.bestMove);
-		}
+		return SearchParameter::IIR_REDUCTION;
 	}
 }
 
@@ -483,8 +479,10 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, depth, ply);
 
-	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
-	iid<TYPE>(position, stack, alpha, beta, depth, ply);
+	// 4. Internal iterative reduction. A node with no move to try first is expensive and its
+	// result unreliable, so it is searched shallower. Must be before node.setFromParentNode,
+	// which hands the depth on to the node.
+	depth -= iir<TYPE>(stack, depth, ply);
 
 	// 5. Singular extension for the tt move, computed for PV and non PV nodes, see se()
 	const auto seExtension = se<TYPE>(position, stack, alpha, beta, depth, ply);
