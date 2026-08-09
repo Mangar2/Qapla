@@ -119,6 +119,9 @@ namespace QaplaSearch {
 		// Set to true to make the futility margins settable by UCI, see search-param.h
 		static constexpr bool optimizeFutility = false;
 
+		// Set to true to make the aspiration window size settable by UCI, see search-param.h
+		static constexpr bool optimizeAspiration = false;
+
 		// The margins themselves live at their call sites in searchvariables.h, see search-param.h.
 		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
 		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;

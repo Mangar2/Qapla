@@ -27,6 +27,8 @@
 
 #include <math.h>
 #include "../basics/types.h"
+#include "searchparameter.h"
+#include "search-param.h"
 
 using namespace QaplaBasics;
 
@@ -95,8 +97,10 @@ namespace QaplaSearch {
 			if (_state == State::Alternating) {
 				_alternateCount++;
 			}
+			// Must be taken before _positionValue is overwritten, else the delta is always zero
+			const value_t positionValueDelta = positionValue - _positionValue;
 			_positionValue = positionValue;
-			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, _positionValue - positionValue);
+			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, positionValueDelta);
 			setWindow(_positionValue, windowSize);
 		}
 
@@ -145,11 +149,19 @@ namespace QaplaSearch {
 		 * @param positionValueDelta difference between current positionValue and former positionValue
 		 */
 		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue, value_t positionValueDelta) {
-			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth) * 10;
-			const value_t deltaRelatedSize = _state == State::Rising ? std::abs(positionValueDelta) : std::abs(positionValueDelta) / 10;
-			const value_t valueRelatedSize = std::abs(positionValue) / 20;
-			const value_t retryRelatedSize = _retryCount * 30;
-			const value_t minSize = 15;
+			constexpr bool OPT = SearchParameter::optimizeAspiration;
+			// Every influence carries its own coefficient. The two delta cases are independent of
+			// each other, the rising one is not the other one scaled.
+			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth)
+				* param<OPT, "awDepthFactor", 10, 0, 20>();
+			const value_t deltaFactor = _state == State::Rising
+				? param<OPT, "awDeltaRisingFactor", 100, 0, 200>()
+				: param<OPT, "awDeltaFactor", 10, 0, 20>();
+			const value_t deltaRelatedSize = std::abs(positionValueDelta) * deltaFactor / 100;
+			const value_t valueRelatedSize = std::abs(positionValue)
+				* param<OPT, "awValueFactor", 5, 0, 10>() / 100;
+			const value_t retryRelatedSize = _retryCount * param<OPT, "awRetryFactor", 30, 0, 60>();
+			const value_t minSize = param<OPT, "awMinSize", 15, 0, 30>();
 			return minSize + deltaRelatedSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
 		}
 
