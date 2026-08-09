@@ -240,7 +240,7 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
 	// counts as such a push.
 	if (PassedPawn::isPassedPawnPush(position, move)) {
-		divisor += param<OPT, "lmrPassedPawnDivisorAdd", 128, 0, 256>();
+		divisor += param<OPT, "lmrPassedPawnDivisorAdd", 112, 0, 224>();
 	}
 	// Extra reduction where a reduction already happens and the position is not improving.
 	if (!node.isImproving && numerator >= divisor) {
