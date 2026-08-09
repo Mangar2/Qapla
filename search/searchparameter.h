@@ -81,11 +81,14 @@ namespace QaplaSearch {
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
 
-		// Internal iterative reduction, replaces the internal iterative deepening. Both values are
+		// Internal iterative reduction, replaces the internal iterative deepening. All values are
 		// ply counts and stay constants, a tuning run gets no signal out of a range of a few plies.
+		// PV and cut nodes carry their own reduction, a PV node without a move to try first is by
+		// far the more expensive of the two.
 		static const bool DO_IIR = true;
 		static const ply_t IIR_MIN_DEPTH = 4;
-		static const ply_t IIR_REDUCTION = 1;
+		static const ply_t IIR_PV_REDUCTION = 2;
+		static const ply_t IIR_CUT_REDUCTION = 1;
 
 		// Set to true to make the late move reduction and move count pruning parameters
 		// settable by UCI, see search-param.h
