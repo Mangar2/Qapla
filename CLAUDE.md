@@ -77,6 +77,17 @@ within maxgames. A non-zero exit code here is a result, not an error.
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
 
+## The version log
+
+`plan/version-log.md` gets an entry for **every** tagged version, written as soon as its result
+is in — the kept ones and the reverted ones alike. A version whose entry is missing is a version
+nobody can learn anything from later. Entries stay in ascending version order.
+
+**The entry goes into a commit of its own.** Never into the commit that carries the change it
+describes: when that change loses its SPRT and gets reverted, the revert takes the entry with it
+and the record of the failure disappears — which is exactly the record worth keeping. After a
+revert, check that the entry is still in the file.
+
 ## Tuning parameter values (CLOP)
 
 Values are tuned with a CLOP run, then confirmed by an SPRT like any other change.
