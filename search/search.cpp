@@ -201,50 +201,48 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	// Ability to disable history for a ply
 	// if (node->mDisableHist) return 0;
 	constexpr bool OPT = SearchParameter::optimizeLMR;
-	const auto moveNo = node.moveNumber;
 
-	if (ply <= param<OPT, "lmrMinPly", 1, 0, 2>()) return 0;
+	// Values that can only take a handful of integers. A tuning run gets no signal out of such a
+	// range, so they are compile time constants and not UCI parameters.
+	constexpr ply_t MIN_PLY = 1;
+	constexpr int32_t MOVE_OFFSET = 3;
+	constexpr int32_t MOVE_SLOPE = 4;
+	constexpr int32_t MOVE_HIGH_DIV = 2;
+	constexpr int32_t DEPTH_OFFSET = 3;
+	constexpr int32_t DEPTH_SLOPE = 2;
 
-	if (move.isCapture()) {
-		// Captures carry a reduction of their own, winning and loosing ones separately. Both
-		// default to 0, the exemption they had before. The interval is one sided because a
-		// reduction cannot be negative.
-		return static_cast<ply_t>(SEE::isLoosingCaptureLight(position, move)
-			? param<OPT, "lmrLoosingCapture", 0, 0, 4>()
-			: param<OPT, "lmrWinningCapture", 0, 0, 4>());
-	}
+	const int32_t moveNo = static_cast<int32_t>(node.moveNumber);
+
+	if (ply <= MIN_PLY) return 0;
+
+	// A capture that wins material is never reduced.
+	const bool isCapture = move.isCapture();
+	if (isCapture && !SEE::isLoosingCaptureLight(position, move)) return 0;
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
-	// PV nodes have their own coefficients throughout, nothing here is derived from the non PV
-	// case. The defaults differ only in the divisor, 512 against 256, which reproduces the
-	// halving PV used to get.
-	if (node.isPVNode()) {
-		const int32_t moveRamp = moveNo <= param<OPT, "lmrPvMoveBreak", 7, 2, 12>()
-			? param<OPT, "lmrPvMoveBase", 16, 0, 32>()
-				+ (moveNo - param<OPT, "lmrPvMoveOffset", 3, 0, 6>()) * param<OPT, "lmrPvMoveSlope", 4, 0, 8>()
-			: param<OPT, "lmrPvMoveHighBase", 32, 0, 64>()
-				+ (moveNo - param<OPT, "lmrPvMoveHighOffset", 7, 2, 12>()) / param<OPT, "lmrPvMoveHighDiv", 2, 1, 3>();
-		const int32_t depthRamp = param<OPT, "lmrPvDepthBase", 16, 0, 32>()
-			+ (depth - param<OPT, "lmrPvDepthOffset", 3, 0, 6>()) * param<OPT, "lmrPvDepthSlope", 2, 0, 4>();
-		const int32_t rampMin = param<OPT, "lmrPvRampMin", 16, 0, 32>();
-		const int32_t rampMax = param<OPT, "lmrPvRampMax", 48, 16, 80>();
-		return static_cast<ply_t>(std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax)
-			/ param<OPT, "lmrPvDivisor", 512, 256, 768>());
-	}
-
-	const int32_t moveRamp = moveNo <= param<OPT, "lmrMoveBreak", 7, 2, 12>()
-		? param<OPT, "lmrMoveBase", 16, 0, 32>()
-			+ (moveNo - param<OPT, "lmrMoveOffset", 3, 0, 6>()) * param<OPT, "lmrMoveSlope", 4, 0, 8>()
-		: param<OPT, "lmrMoveHighBase", 32, 0, 64>()
-			+ (moveNo - param<OPT, "lmrMoveHighOffset", 7, 2, 12>()) / param<OPT, "lmrMoveHighDiv", 2, 1, 3>();
-	const int32_t depthRamp = param<OPT, "lmrDepthBase", 16, 0, 32>()
-		+ (depth - param<OPT, "lmrDepthOffset", 3, 0, 6>()) * param<OPT, "lmrDepthSlope", 2, 0, 4>();
+	// Both ramps are shared by all node types; only the divisor tells PV nodes apart.
+	const int32_t moveBreak = param<OPT, "lmrMoveBreak", 6, 2, 10>();
+	const int32_t moveRamp = moveNo <= moveBreak
+		? param<OPT, "lmrMoveBase", 16, 0, 32>() + (moveNo - MOVE_OFFSET) * MOVE_SLOPE
+		: param<OPT, "lmrMoveHighBase", 32, 0, 64>() + (moveNo - moveBreak) / MOVE_HIGH_DIV;
+	const int32_t depthRamp = param<OPT, "lmrDepthBase", 16, 0, 32>() + (depth - DEPTH_OFFSET) * DEPTH_SLOPE;
 
 	const int32_t rampMin = param<OPT, "lmrRampMin", 16, 0, 32>();
 	const int32_t rampMax = param<OPT, "lmrRampMax", 48, 16, 80>();
-	return static_cast<ply_t>(std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax)
-		/ param<OPT, "lmrDivisor", 256, 128, 384>());
+	int32_t numerator = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax);
+
+	int32_t divisor = node.isPVNode()
+		? param<OPT, "lmrPvDivisor", 512, 256, 768>()
+		: param<OPT, "lmrDivisor", 261, 133, 389>();
+	// A loosing capture keeps the late move term but is reduced less than a quiet move.
+	if (isCapture) divisor += param<OPT, "lmrCaptureDivisorAdd", 245, 0, 490>();
+	// Extra reduction where a reduction already happens and the position is not improving.
+	if (!node.isImproving && numerator >= divisor) {
+		numerator += param<OPT, "lmrNotImprovingAdd", 128, 0, 256>();
+	}
+
+	return static_cast<ply_t>(numerator / divisor);
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
