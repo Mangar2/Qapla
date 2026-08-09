@@ -106,7 +106,7 @@ namespace QaplaSearch {
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
 		// Set to true to make the quiescence parameters settable by UCI, see search-param.h
-		static constexpr bool optimizeQS = true;
+		static constexpr bool optimizeQS = false;
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
@@ -129,7 +129,7 @@ namespace QaplaSearch {
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
 		// Set to true to make the futility margins settable by UCI, see search-param.h
-		static constexpr bool optimizeFutility = true;
+		static constexpr bool optimizeFutility = false;
 
 		// The margins themselves live at their call sites in searchvariables.h, see search-param.h.
 		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
