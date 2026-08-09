@@ -106,7 +106,7 @@ namespace QaplaSearch {
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
 		// Set to true to make the quiescence parameters settable by UCI, see search-param.h
-		static constexpr bool optimizeQS = false;
+		static constexpr bool optimizeQS = true;
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
 		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
@@ -128,21 +128,16 @@ namespace QaplaSearch {
 
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
+		// Set to true to make the futility margins settable by UCI, see search-param.h
+		static constexpr bool optimizeFutility = true;
+
+		// The margins themselves live at their call sites in searchvariables.h, see search-param.h.
+		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
 		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;
-		constexpr static value_t FOREWARD_FUTILITY_FACTOR = 75;
-		constexpr static value_t forewardFutilityMargin(ply_t depth, bool isImproving) {
-			return FOREWARD_FUTILITY_FACTOR * (depth + 1) - 100 * isImproving;
-		}
 
 		// Futility Pruning (in move loop) - predicts forward futility will prune
 		static const ply_t FUTILITY_DEPTH = 7;
 		static const uint32_t FUTILITY_PRUNING_MIN_MOVE_NUMBER = 3;
-		// 1.6 100, 25: 50,9%, 50: 51,8%, 60: 51,1% 75: 51,6%
-		// 50 vs. 100: 50,9%, 50 vs. 75%: 50%
-		constexpr static value_t FUTILITY_FACTOR = 75;
-		constexpr static value_t futilityMargin(ply_t depth, bool isImproving) {
-			return FUTILITY_FACTOR * (depth + 1) + 100 * isImproving;
-		}
 
 		static const Rank PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK = Rank::R7;
 		static const Rank PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK = Rank::R2;
