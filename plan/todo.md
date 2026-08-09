@@ -24,7 +24,7 @@ Tune all available king attack uci parameters with clop.
 
 ## 3. LMR / MCP: make every factor tunable
 
-**Priority 1** — done: [ ]
+**Priority 1** — done: [x] — `0.4.0-047` ≈ +5.7, `0.4.0-048` ≈ +14.3, `0.4.0-051` ≈ +6.0 Elo
 
 Every relevant factor of the late move reduction and of the move count pruning becomes tunable.
 
