@@ -292,14 +292,12 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		if (node.hasPVMove()) return 0;
 		// Cut nodes are reduced as well, all nodes are not. An all node without a tt move is the
 		// normal case, there is nothing unusual about it.
-		if constexpr (TYPE == SearchRegion::PV) {
-			return SearchParameter::IIR_PV_REDUCTION;
-		}
-		else {
+		if constexpr (TYPE != SearchRegion::PV) {
 			if (SearchVariables::childNodeType(stack[ply - 1].getNodeType(), false)
 				!= SearchVariables::NodeType::CUT) return 0;
-			return SearchParameter::IIR_CUT_REDUCTION;
 		}
+
+		return SearchParameter::IIR_REDUCTION;
 	}
 }
 

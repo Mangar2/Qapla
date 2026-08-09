@@ -377,34 +377,6 @@ derived logic, `mcpDivisor` did not exist yet. Their values are valid for the co
 the derived form does mean is that `lmrDivisor` moves the pruning threshold along with the reduction,
 so those two effects cannot be told apart in a run.
 
-## 0.4.0-054 — IID replaced by an internal iterative reduction, in PV and cut nodes
-
-The pre search of the IID produces a move and is then thrown away. The IIR searches such a node
-one ply shallower instead, which costs nothing extra. It runs in PV and in cut nodes; an all node
-without a tt move is the normal case and stays out. A move from the previous iteration counts like
-a tt move, so a node on the former primary variant is not reduced — `hasPVMove` on the move
-provider, which is exactly what the move ordering asks for first.
-
-- EPD nodes: 86564295 → **56240905**, success rate 24 % → 23 %
-- SPRT vs 0.4.0-052 at 5+0.01: **H1 accepted**, 50.46 %, ≈ +3.2 Elo, 17559 games
-
-Kept, new baseline. 35 % fewer nodes for the same time is a large change for +3.2 Elo, and the run
-needed almost the full distance — the depth bought back nearly all of what the shallower cut nodes
-cost.
-
-## 0.4.0-053 — IID also in cut nodes
-
-The pre search extended to cut nodes, all nodes left out. The node type existed already but was
-only set by `setFromParentNode`, which runs after the pre search; `childNodeType` computes it from
-the parent instead.
-
-- EPD nodes: 86564295 → 91108889, success rate 24 % → 21 %
-- SPRT vs 0.4.0-052 at 5+0.01: **H0 accepted**, 49.00 %, ≈ −7.0 Elo, 7049 games
-
-Reverted, `dead/iid-cut`. A pre search costs a full sub tree and pays only with a better move
-order; in a cut node, where one good move ends the work anyway, that is not worth it. The same idea
-as a *reduction* instead of a pre search is 0.4.0-054, and that one holds. `childNodeType` stayed.
-
 ## 0.4.0-052 — all futility margins tunable and re-optimized
 
 Both margins had been fixed expressions of the same shape, `factor * (depth + 1)` with a hard 100
