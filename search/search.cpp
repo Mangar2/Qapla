@@ -246,8 +246,8 @@ Search::LateMoveDecision Search::computeLateMoveDecision(SearchVariables& node, 
 	// two together and neither could be moved without the other. The defaults are the reduction
 	// divisors, which is where it stood while it was derived.
 	const int32_t mcpDivisor = node.isPVNode()
-		? param<OPT, "mcpPvDivisor", 592, 208, 976>()
-		: param<OPT, "mcpDivisor", 354, 154, 554>();
+		? param<OPT, "mcpPvDivisor", 512, 128, 896>()
+		: param<OPT, "mcpDivisor", 261, 61, 461>();
 
 	return { static_cast<ply_t>(numerator / divisor), numerator >= (depth + 1) * mcpDivisor };
 }
