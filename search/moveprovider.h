@@ -157,10 +157,6 @@ namespace QaplaSearch {
 			previousMove = previousPlyMove;
 			board.genNonSilentMovesOfMovingColor(moveList);
 			computeAllCaptureWeight(board);
-			// The tt move is the best move the last search of this position found, it is tried
-			// first. A quiet tt move is not in this list at all and simply does not show up.
-			const int16_t ttMoveNo = selectProposedMove(_ttMove);
-			if (ttMoveNo != -1) moveList.setWeight(ttMoveNo, TT_MOVE_WEIGHT);
 			curMoveNo = 0;
 			triedMovesAmount = 0;
 		}
@@ -171,9 +167,6 @@ namespace QaplaSearch {
 		inline void computeEvades(MoveGenerator& board, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			board.genEvadesOfMovingColor(moveList);
-			// Start at the stage that offers the tt move; the evades used to enter the stages
-			// behind it and never saw it.
-			selectStage = MoveType::PV;
 			curMoveNo = 0;
 			triedMovesAmount = 0;
 		}
@@ -432,12 +425,6 @@ namespace QaplaSearch {
 		// bonus, with room to spare. Lowering the malus below this sum would silently bring the
 		// loosing captures back into the capture stage, ahead of the killer moves.
 		static const value_t MAX_CAPTURE_WEIGHT = 2000;
-
-		// Weight given to the tt move in the quiescence capture list, above every capture weight
-		// and below the deferral malus, so a loosing tt move still moves to the back.
-		static const value_t TT_MOVE_WEIGHT = 3000;
-		static_assert(TT_MOVE_WEIGHT > MAX_CAPTURE_WEIGHT,
-			"the tt move must outweigh every capture");
 		static_assert(CAPTURE_DEFERRAL_MALUS > MAX_VALUE + MAX_CAPTURE_WEIGHT,
 			"a deferred capture must fall below the -MAX_VALUE floor of findNextBestCaptureMove");
 
