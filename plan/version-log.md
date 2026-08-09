@@ -358,6 +358,40 @@ flat landscape produce an argmax that is mostly noise. Where CLOP and SPRT disag
 the SPRT is the answer. The direction below the default is untested; the run explored 61 to 461 and
 found nothing there either.
 
+## Not tagged — the separated move count pruning taken back out
+
+`0.4.0-050` had kept its structure after the value revert: `computeLateMoveDecision` returned both
+the reduction and the pruning decision, the pruning reading the ramp weight against `mcpDivisor` /
+`mcpPvDivisor`.
+
+Taken back out. The two are not independent in the way the split assumed: with divisors that differ,
+the pruning can skip a move the reduction would still have searched, or search one the reduction has
+already reduced past the remaining depth — in that second case with a negative depth, answered out
+of the quiescence. `computeLMR` returns a plain `ply_t` again and the pruning is `depth - lmr < 0` in
+the move loop, where `lmr > depth` cannot survive.
+
+Node count after the rollback 91160837, identical to `0.4.0-049`.
+
+Worth keeping in mind for the tuning: the `0.4.0-047` and `0.4.0-048` runs were made on exactly this
+derived logic, `mcpDivisor` did not exist yet. Their values are valid for the code as it stands. What
+the derived form does mean is that `lmrDivisor` moves the pruning threshold along with the reduction,
+so those two effects cannot be told apart in a run.
+
+## Not tagged — passed pawn pushes, first attempt
+
+`lmrPassedPawnDivisorAdd` on the divisor, a promotion counting as such a push, front span table in
+`search/passedpawn.h` because the eval keeps its passed pawns in the pawn hash and the move loop
+never sees them.
+
+CLOP over the single value, 2000 samples, 46 min: seed 128 → 141.
+
+Not tested. The run was made on the build with the separated pruning, where the larger divisor left
+the pruning threshold untouched. Under the derived form it moves the threshold as well, so the
+estimate does not carry over. Redone from scratch on `0.4.0-049`.
+
+- EPD nodes with the term at 141: 88402616, at 0: 91160837 — the second is the control that proves
+  the rest of the rollback is neutral.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
