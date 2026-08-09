@@ -32,6 +32,9 @@ PV nodes and capture moves get a reduction of their own, loosing and winning cap
 Passed pawn pushes get a reduced reduction factor, not an exemption; promotions count as passed
 pawn pushes.
 
+Counter check at the end: take captures out of the reduction again, an early `return 0` for every
+capture as it was before. SPRT only, no CLOP.
+
 ## 4. All futility margins tunable, then re-optimized
 
 **Priority 1** — done: [ ]
