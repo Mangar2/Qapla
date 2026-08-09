@@ -86,6 +86,8 @@ namespace QaplaSearch {
 		static const bool DO_IIR = true;
 		static const ply_t IIR_MIN_DEPTH = 4;
 		static const ply_t IIR_REDUCTION = 1;
+		// A cut node with no tt move whose tt value is an upper bound is reduced further
+		static const ply_t IIR_CUT_UPPER_BOUND_REDUCTION = 2;
 
 		// Set to true to make the late move reduction and move count pruning parameters
 		// settable by UCI, see search-param.h
