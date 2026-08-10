@@ -90,7 +90,7 @@ namespace QaplaSearch {
 		 * Gets an entry from the transposition table
 		 * @returns eval, hash value, precision, move
 		 */
-		std::tuple<value_t, value_t, uint32_t, Move, bool> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
+		std::tuple<value_t, value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
 
 		SEE _see;
 
