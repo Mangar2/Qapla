@@ -103,6 +103,76 @@ the opening phase at longer time controls.
 
 Add tunable parameters to control the time usage. It should depend on the time available so shorter time available gives even relatively shorter time. 1 minute for a game is considered as long time, 20s as medium, 5s as short time, 1s very short (to give you a relation). Optimize it with clop in timecontrols 5s + 10ms, 20s + 100ms and 60s + 1s - I know this will take long. Organize the parameters in a way that some parameters influences short time controls more and some parameters longer timecontrols so that you are able to mix the result from the three clop runs. Be linear in the formular no jump even not in first and second derivatives
 
+### Concept
+
+The move time is a product of three independent factors. Each answers one question, none of
+them is derived from another:
+
+```
+moveTime = fairSlice(timeLeft, movesPlayed) * clockShare(timeLeft) * modeFactor(searchFinding)
+```
+
+**fairSlice** — `timeLeft / (movesToGo + 2)`, what one move gets if the rest of the game is
+played evenly. The `+ 2` is the safety against losing on time.
+
+`movesToGo` is where the moves played enter, and today it is
+`max(AVERAGE_MOVE_COUNT_PER_GAME - movesPlayed / 2, KEEP_TIME_FOR_MOVES)` — a kink at move 50,
+where the slope jumps from −0.5 to 0. Replace it by the same saturating shape the share uses:
+
+```
+movesToGo = keep + (start - keep) * halfMoves / (halfMoves + movesPlayed)
+```
+
+monotone falling, saturating at `keep`, continuous in every derivative. Three coefficients:
+`start`, `keep`, `halfMoves`.
+
+**clockShare** — how much of that fair slice a move may take, as a function of the time still on
+the clock. Already implemented:
+
+```
+share = shareMin + (shareMax - shareMin) * timeLeft / (timeLeft + halfTime)
+```
+
+`shareMin` governs short time controls, `shareMax` long ones, `halfTime` places the transition.
+That separation is what lets three runs at three time controls be combined.
+
+**modeFactor** — the situation the search reports. This one is discrete by nature and that is
+fine: it is a function of the search finding, not of the clock, so it cannot make the time jump
+as the clock runs down. Today `SearchState::modifyTimeBySearchFinding` has hard values 1, 4, 15
+and 1/5; all of them become tunable coefficients.
+
+### What Spike had and Qapla does not
+
+Read from `C:\Development\SpikeEngine\src`, `TimeControl.cpp` and `TimeCalc.h`. Qapla already
+inherited the mode machine including the factors 4 and 15, and the thresholds 0.7 and 0.8 of the
+average time for starting another iteration or another root move. Missing:
+
+- **A normal factor above one.** Spike's `cNormal` multiplies by 10/8 = 1.25 and its `cSilent`
+  by 0.9. Qapla's normal mode multiplies by 1.0 and it has no silent mode. Since nearly every
+  move is normal, Qapla spends about a fifth less than Spike did on ordinary moves — the most
+  likely single reason why other engines look slower in the opening. The normal factor is the
+  first coefficient to tune.
+- **A forced move mode.** Spike cut the time to a fifth, capped at 333 ms, when the move was
+  forced. Qapla plays a forced move at full price.
+- **A hard abort at 1.2 × average.** Spike stopped there, capped by the maximum. Qapla only
+  stops at the maximum, which is far larger, so a single iteration can eat the whole reserve.
+- **A seeded start value.** Spike started a game with the previous value at −0.8 pawns so that
+  the first move does not look like a collapse and trigger the critical mode.
+
+### Order of the runs
+
+One parameter per run, each at the time control where it has the most leverage, applying each
+result before the next run starts:
+
+1. `timeShareMin` at 5+0.01 — done, 80 → 135
+2. `timeShareMax` at 60+1
+3. `timeShareHalfTime` at 20+0.1
+4. the normal mode factor at 20+0.1
+5. the `movesToGo` coefficients
+
+The closing proof is an SPRT at a long time control, not at 5+0.01 — a change aimed at long
+games shows nothing there.
+
 ## 10. Opposite coloured bishops: scale the surplus
 
 **Priority 3** — done: [ ]
