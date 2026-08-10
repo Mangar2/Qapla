@@ -239,6 +239,7 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
 	// counts as such a push.
+	// Tested 0.4.0-051: +6.0 Elo, 8883 games
 	if (PassedPawn::isPassedPawnPush(position, move)) {
 		divisor += param<OPT, "lmrPassedPawnDivisorAdd", 112, 0, 224>();
 	}
@@ -292,6 +293,8 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		if (node.hasPVMove()) return 0;
 		// Cut nodes are reduced as well, all nodes are not. An all node without a tt move is the
 		// normal case, there is nothing unusual about it.
+		// Tested 0.4.0-060: PV nodes only, cut nodes left out: -8.4 Elo, 5597 games
+		// Tested 0.4.0-053: the same idea as a pre search (IID) in cut nodes: -7.0 Elo, 7049 games
 		if constexpr (TYPE != SearchRegion::PV) {
 			if (SearchVariables::childNodeType(stack[ply - 1].getNodeType(), false)
 				!= SearchVariables::NodeType::CUT) return 0;

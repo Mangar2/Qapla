@@ -134,6 +134,7 @@ namespace QaplaBasics {
 			// At -MAX_VALUE moves with a negative history take part in the sorting as well.
 			// The butterfly values are not bounded by MAX_VALUE, so a move whose history has
 			// dropped below -MAX_VALUE still keeps its generated position.
+			// Tested 0.4.0-038: -MAX_VALUE instead of 0: +11 Elo, 4674 games
 			constexpr value_t SORT_WEIGHT_FLOOR = -MAX_VALUE;
 			for (uint32_t sortIndex = nonSilentMoveAmount; sortIndex < totalMoveAmount && amount > 0; sortIndex++, amount--) {
 				value_t bestWeight = SORT_WEIGHT_FLOOR;
