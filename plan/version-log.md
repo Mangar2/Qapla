@@ -573,6 +573,17 @@ window instead of failing fast and re-searching. The re-search is apparently the
 two. The four remaining coefficients stay tunable, they were confirmed at their hand written
 values.
 
+## 0.4.0-060 — IIR in PV nodes only
+
+Fifth experiment of todo item 5, the counter check to 0.4.0-054: cut nodes out of the reduction
+again, to see what the cut node half is actually worth.
+
+- EPD nodes: 56240905 → 82676622, success rate 23 % → 26 %
+- SPRT vs 0.4.0-054 at 5+0.01: **H0 accepted**, 48.79 %, ≈ −8.4 Elo, 5597 games
+
+Reverted, `dead/iir-pvonly`. The cut nodes carry the item: without them the reduction saves almost
+nothing (82.7 against 56.2 million nodes) and loses 8.4 Elo. `0.4.0-054` stands.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
