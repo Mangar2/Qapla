@@ -310,7 +310,7 @@ namespace QaplaSearch {
 				if (_clockSetting.getMoveAmountForClock() == 0)
 				{
 					constexpr bool OPT = SearchParameter::optimizeTime;
-					const int64_t shareMin = param<OPT, "timeShareMin", 80, 0, 160>();
+					const int64_t shareMin = param<OPT, "timeShareMin", 135, 10, 260>();
 					const int64_t shareMax = param<OPT, "timeShareMax", 120, 0, 240>();
 					const int64_t halfTime = param<OPT, "timeShareHalfTime", 20000, 0, 40000>();
 					const int64_t share = shareMin + (shareMax - shareMin) * timeLeft / (timeLeft + halfTime);

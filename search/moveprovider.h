@@ -153,6 +153,8 @@ namespace QaplaSearch {
 		/**
 		 * Initializes the move provider to provide captures
 		 */
+		// Tested 0.4.0-057: quiescence tries the tt move first, in this list and in the evades:
+		// -4.6 Elo, 9826 games
 		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			board.genNonSilentMovesOfMovingColor(moveList);
@@ -296,6 +298,8 @@ namespace QaplaSearch {
 			value_t weight = board.getAbsolutePieceValue(move.getCapture());
 			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
 				// order recaptures to the front
+				// Tested 0.4.0-039: real piece values, every recapture ahead of every other
+				// capture: -4.5 Elo, 10018 games
 				weight += 10;
 			}
 			return weight;

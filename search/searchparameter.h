@@ -76,6 +76,7 @@ namespace QaplaSearch {
 		}
 
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
+		// Tested 0.4.0-037 and 0.4.0-041: 14 instead of 7: flat both times, 20000 games each
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 
 		static const bool DO_NULLMOVE = true;
@@ -83,8 +84,11 @@ namespace QaplaSearch {
 
 		// Internal iterative reduction, replaces the internal iterative deepening. Both values are
 		// ply counts and stay constants, a tuning run gets no signal out of a range of a few plies.
+		// Tested 0.4.0-054: IIR instead of the IID pre search: +3.2 Elo, 17559 games
 		static const bool DO_IIR = true;
 		static const ply_t IIR_MIN_DEPTH = 4;
+		// Tested 0.4.0-055: 2 in pv nodes: -7.6 Elo, 6255 games
+		// Tested 0.4.0-056: 2 in cut nodes with an upper bound tt value: -3.4 Elo, 13138 games
 		static const ply_t IIR_REDUCTION = 1;
 
 		// Set to true to make the late move reduction and move count pruning parameters
@@ -123,7 +127,7 @@ namespace QaplaSearch {
 		static constexpr bool optimizeAspiration = false;
 
 		// Set to true to make the time management settable by UCI, see search-param.h
-		static constexpr bool optimizeTime = false;
+		static constexpr bool optimizeTime = true;
 
 		// The margins themselves live at their call sites in searchvariables.h, see search-param.h.
 		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
