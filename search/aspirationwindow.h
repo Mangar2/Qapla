@@ -155,13 +155,13 @@ namespace QaplaSearch {
 			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth)
 				* param<OPT, "awDepthFactor", 10, 0, 20>();
 			const value_t deltaFactor = _state == State::Rising
-				? param<OPT, "awDeltaRisingFactor", 106, 12, 200>()
-				: param<OPT, "awDeltaFactor", 12, 0, 24>();
+				? param<OPT, "awDeltaRisingFactor", 100, 0, 200>()
+				: param<OPT, "awDeltaFactor", 10, 0, 20>();
 			const value_t deltaRelatedSize = std::abs(positionValueDelta) * deltaFactor / 100;
 			const value_t valueRelatedSize = std::abs(positionValue)
-				* param<OPT, "awValueFactor", 4, 0, 8>() / 100;
-			const value_t retryRelatedSize = _retryCount * param<OPT, "awRetryFactor", 25, 0, 50>();
-			const value_t minSize = param<OPT, "awMinSize", 12, 0, 24>();
+				* param<OPT, "awValueFactor", 5, 0, 10>() / 100;
+			const value_t retryRelatedSize = _retryCount * param<OPT, "awRetryFactor", 30, 0, 60>();
+			const value_t minSize = param<OPT, "awMinSize", 15, 0, 30>();
 			return minSize + deltaRelatedSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
 		}
 
