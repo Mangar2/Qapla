@@ -69,7 +69,7 @@ namespace QaplaSearch {
 			_state = State::Search;
 			_alternateCount = 0;
 			_retryCount /= 2;
-			value_t windowSize = calculateWindowSize(searchDepth, _positionValue, 0);
+			value_t windowSize = calculateWindowSize(searchDepth, _positionValue);
 			setWindow(_positionValue, windowSize);
 		}
 
@@ -97,10 +97,8 @@ namespace QaplaSearch {
 			if (_state == State::Alternating) {
 				_alternateCount++;
 			}
-			// Must be taken before _positionValue is overwritten, else the delta is always zero
-			const value_t positionValueDelta = positionValue - _positionValue;
 			_positionValue = positionValue;
-			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, positionValueDelta);
+			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue);
 			setWindow(_positionValue, windowSize);
 		}
 
@@ -144,25 +142,26 @@ namespace QaplaSearch {
 
 		/**
 		 * Computes the size of the original window
+		 *
+		 * The size carried a term over the jump of the position value between iterations, but it
+		 * was always zero: the previous value had been overwritten before the difference was
+		 * taken. Repairing it lost elo twice, with the old values and with values tuned for it
+		 * (0.4.0-058 flat over 20000 games, 0.4.0-059 −4.0 Elo, `dead/aspiration-delta`), so the
+		 * term is gone instead of silently computing nothing.
+		 *
 		 * @param searchDepth depth of the current search
 		 * @param positionValue positionValue of the current search
-		 * @param positionValueDelta difference between current positionValue and former positionValue
 		 */
-		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue, value_t positionValueDelta) {
+		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue) {
 			constexpr bool OPT = SearchParameter::optimizeAspiration;
-			// Every influence carries its own coefficient. The two delta cases are independent of
-			// each other, the rising one is not the other one scaled.
+			// Every influence carries its own coefficient
 			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth)
 				* param<OPT, "awDepthFactor", 10, 0, 20>();
-			const value_t deltaFactor = _state == State::Rising
-				? param<OPT, "awDeltaRisingFactor", 100, 0, 200>()
-				: param<OPT, "awDeltaFactor", 10, 0, 20>();
-			const value_t deltaRelatedSize = std::abs(positionValueDelta) * deltaFactor / 100;
 			const value_t valueRelatedSize = std::abs(positionValue)
 				* param<OPT, "awValueFactor", 5, 0, 10>() / 100;
 			const value_t retryRelatedSize = _retryCount * param<OPT, "awRetryFactor", 30, 0, 60>();
 			const value_t minSize = param<OPT, "awMinSize", 15, 0, 30>();
-			return minSize + deltaRelatedSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
+			return minSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
 		}
 
 		/**
