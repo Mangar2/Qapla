@@ -120,11 +120,20 @@ played evenly. The `+ 2` is the safety against losing on time.
 where the slope jumps from −0.5 to 0. Replace it by the same saturating shape the share uses:
 
 ```
-movesToGo = keep + (start - keep) * halfMoves / (halfMoves + movesPlayed)
+movesToGo = keep + (start - keep) * midpoint / (midpoint + movesPlayed)
 ```
 
-monotone falling, saturating at `keep`, continuous in every derivative. Three coefficients:
-`start`, `keep`, `halfMoves`.
+`movesToGo` keeps its meaning, the forecast of the moves still to be played, and its role in
+`timeLeft / (movesToGo + 2)` is unchanged. Only the course changes: instead of falling linearly
+and clamping hard at move 50 it approaches `keep` asymptotically.
+
+`midpoint` says where the transition sits: at `movesPlayed == midpoint` the forecast is exactly
+halfway between `start` and `keep`, so 47.5 for 60 and 35. Around 25 to 30 reproduces the shape
+of today's line. Monotone falling, saturating at `keep`, continuous in every derivative. Three
+coefficients: `start`, `keep`, `midpoint`.
+
+`movesPlayed` here means full moves. `ClockSetting::getPlayedMovesInGame()` counts plies, today's
+code divides by two for that reason and the new formula has to do the same.
 
 **clockShare** — how much of that fair slice a move may take, as a function of the time still on
 the clock. Already implemented:
