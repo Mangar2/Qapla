@@ -78,6 +78,9 @@ iterations.
 
 Add tunable parameters to the aspiration window and optimize them with clop
 
+- Try with original values (a second sprt), if the clop values does not result in elo
+- Fix the bug in any case, if bose sprt does not work by keeping the logic as is but without bug (so no value-based window widening but not in a buggy way)
+
 ## 8. Quiescence tt control flow with the isPV flag
 
 **Priority 2** — done: [ ]
