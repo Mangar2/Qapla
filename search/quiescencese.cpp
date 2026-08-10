@@ -58,7 +58,7 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
  * Gets an entry from the transposition table
  * @returns hash value and hash move or -MAX_VALUE, if no value found
  */
-std::tuple<value_t, value_t, uint32_t, Move, bool> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
+std::tuple<value_t, value_t, uint32_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
 	uint32_t ttIndex = _tt->getEntryIndex(position.computeBoardHash());
 
 	if (ttIndex != TT::INVALID_INDEX) {
@@ -67,9 +67,9 @@ std::tuple<value_t, value_t, uint32_t, Move, bool> Quiescence::probeTT(MoveGener
 		const auto bestValue = entry.getTTCutoffValue(alpha, beta, 0, ply);
 		const auto move = entry.getMove();
 		const auto precision = entry.getComputedPrecision();
-		return std::make_tuple(eval, bestValue, precision, move, entry.isPV());
+		return std::make_tuple(eval, bestValue, precision, move);
 	}
-	return std::make_tuple(NO_VALUE, NO_VALUE, TTEntry::INVALID, Move::EMPTY_MOVE, false);
+	return std::make_tuple(NO_VALUE, NO_VALUE, TTEntry::INVALID, Move::EMPTY_MOVE);
 }
 
 
@@ -96,13 +96,10 @@ value_t Quiescence::search(bool isPvNode,
 	Move move;
 	computingInfo._nodesSearched++;
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
-	auto [ttEval, ttValue, ttPrecision, ttMove, ttIsPV] = probeTT(position, alpha, beta, ply);
-
+	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
+	
 	moveProvider.setTTMove(ttMove);
-	// The early return is bound to a null window again; in a node with a real window it left the
-	// stand pat refinement below unreachable. It still fires there when the entry was written by
-	// a real window search, a value from such a search may cut a pv node.
-	if (ttValue != NO_VALUE && (alpha + 1 == beta || ttIsPV)) return ttValue;
+	if (/*alpha + 1 == beta && */ ttValue != NO_VALUE) return ttValue;
 
 	const auto evadesCheck = SearchParameter::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
 	value_t bestValue, standPatValue;
