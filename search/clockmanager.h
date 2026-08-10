@@ -27,6 +27,8 @@
 #include <sys/timeb.h>
 #include "../interface/clocksetting.h"
 #include "searchstate.h"
+#include "searchparameter.h"
+#include "search-param.h"
 
 using namespace std;
 using namespace QaplaInterface;
@@ -296,15 +298,23 @@ namespace QaplaSearch {
 				// use movesToGo + 2 to not loose on time
 				averageTime = timeLeft / (movesToGo + 2);
 
-				// Infinite amount of moves:
+				// Infinite amount of moves: the share of the fair time slice this move may take
+				// grows with the time still on the clock, so a short game is played relatively
+				// faster than a long one. The share saturates towards timeShareMax and is
+				// continuous in every derivative — no clamp, no step.
+				//
+				// timeShareMin governs the short time controls, timeShareMax the long ones and
+				// timeShareHalfTime says where the transition sits: at timeLeft == halfTime the
+				// share is exactly halfway between the two. That separation is what lets three
+				// tuning runs at three time controls be combined.
 				if (_clockSetting.getMoveAmountForClock() == 0)
 				{
-					if ((timeLeft < 10000) && (_clockSetting.getTimeIncrementPerMoveInMilliseconds() <= 1))
-						averageTime /= 2;
-					averageTime *= min(
-						static_cast<int64_t>(2000LL), 
-						max(static_cast<int64_t>(1000LL), int64_t((6810000 + timeLeft) / (6810 + 300))));
-					averageTime /= 1000;
+					constexpr bool OPT = SearchParameter::optimizeTime;
+					const int64_t shareMin = param<OPT, "timeShareMin", 80, 0, 160>();
+					const int64_t shareMax = param<OPT, "timeShareMax", 120, 0, 240>();
+					const int64_t halfTime = param<OPT, "timeShareHalfTime", 20000, 0, 40000>();
+					const int64_t share = shareMin + (shareMax - shareMin) * timeLeft / (timeLeft + halfTime);
+					averageTime = averageTime * share / 100;
 				}
 				averageTime = _searchState.modifyTimeBySearchFinding(averageTime);
 				averageTime += _clockSetting.getTimeIncrementPerMoveInMilliseconds();
