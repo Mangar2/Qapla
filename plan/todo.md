@@ -45,7 +45,8 @@ called razoring, and the quiescence margin. Then one CLOP run over all of them �
 
 ## 5. Replace IID by IIR
 
-**Priority 1** — done: [x] — `0.4.0-054`, ≈ +5.3 Elo over the closing run
+**Priority 1** — done: [ ] — best so far `0.4.0-054`, ≈ +5.3 Elo over the closing run.
+Experiments 1 to 4 and the closing run 6 are done, experiment 5 is open.
 
 The internal iterative deepening in [search.cpp:243](../search/search.cpp#L243) is replaced by an
 internal iterative reduction.
@@ -70,7 +71,7 @@ The quiescence never tries the tt move first, in neither of its two paths. It sh
 
 ## 7. Aspiration window: the delta term is always zero
 
-**Priority 2** — done: [ ]
+**Priority 2** — done: [x] — both runs lost, `dead/aspiration-delta`; the term is out of the code
 
 [aspirationwindow.h:98-99](../search/aspirationwindow.h#L98-L99) overwrites the previous position
 value before the difference is taken, so the window never widens for a value that jumped between
