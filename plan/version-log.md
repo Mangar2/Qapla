@@ -584,6 +584,23 @@ again, to see what the cut node half is actually worth.
 Reverted, `dead/iir-pvonly`. The cut nodes carry the item: without them the reduction saves almost
 nothing (82.7 against 56.2 million nodes) and loses 8.4 Elo. `0.4.0-054` stands.
 
+## 0.4.0-061 — quiescence tt return bound to a null window, plus the isPV flag
+
+The early return fired in every node, which left the stand pat refinement below it unreachable in
+nodes with a real window. Bound to a null window again, and additionally firing in a pv node when
+the entry carries the `isPV` flag — a value from a real window search may cut a pv node.
+
+- EPD nodes: 56240905 → 56052024 (−0.3 %), success rate 23 % → 24 %
+- SPRT vs 0.4.0-054 at 5+0.01: **H0 accepted**, 49.17 %, ≈ −5.8 Elo, 8214 games
+
+Reverted, `dead/qs-ttpv`. The plain guard had already lost once, and the `isPV` addition does not
+rescue it. Nothing is left to vary here: the return is either unconditional, which is the current
+code, or guarded, which loses in both forms tried. Item closed.
+
+The node count says why the stand pat refinement is not the prize it looked like: making it
+reachable moves 0.3 % of the nodes. What the guard costs instead is every cheap tt cutoff it gives
+up in a pv node.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
