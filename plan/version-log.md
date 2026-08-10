@@ -540,6 +540,39 @@ worth. Three attempts now, all lost, always in that shape.
 A split into the two halves was not run. If it is worth a retry, the capture half is the suspect —
 the evades half only adds a stage that offers a move which is in the evade list anyway.
 
+## 0.4.0-058 — aspiration window: delta term repaired and tuned
+
+`setSearchResult` overwrote `_positionValue` before the difference was taken, so the delta term of
+the window size was always zero and a value that jumped between iterations never widened the
+window. Repaired, and the window size given a coefficient per influence — the two delta cases
+independent of each other instead of one being the other divided by ten.
+
+CLOP over the six coefficients, 5000 samples, 114 min. All of them land close to where they stood:
+15 → 12, 10 → 10, 100 → 106, 10 → 12, 5 → 4, 30 → 25.
+
+- EPD nodes: 56240905 → 57370149, success rate unchanged at 23 %
+- SPRT vs 0.4.0-054 at 5+0.01: **undecided**, 50.01 %, LLR −0.33 after the full 20000 games
+
+## 0.4.0-059 — the same fix with the original values
+
+Since the tuned values came out flat, the second run tested the repaired delta term on its own.
+
+- EPD nodes: 56240905 → 55953846
+- SPRT vs 0.4.0-054 at 5+0.01: **H0 accepted**, 49.43 %, ≈ −4.0 Elo, 11827 games
+
+Both reverted, `dead/aspiration-delta`.
+
+The term is now **out of the code** rather than silently computing zero: the window has no delta
+part any more, `calculateWindowSize` does not take the argument, and a comment records why. Node
+count after the removal 56240905, identical to 0.4.0-054 — the bug had made the term inert, so
+deleting it changes nothing.
+
+Why a wider window on a jumping value hurts is worth a thought: the delta is large exactly when the
+last iteration moved a lot, and a window opened wide there searches the whole node with a real
+window instead of failing fast and re-searching. The re-search is apparently the cheaper of the
+two. The four remaining coefficients stay tunable, they were confirmed at their hand written
+values.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
