@@ -45,8 +45,8 @@ called razoring, and the quiescence margin. Then one CLOP run over all of them �
 
 ## 5. Replace IID by IIR
 
-**Priority 1** — done: [ ] — best so far `0.4.0-054`, ≈ +5.3 Elo over the closing run.
-Experiments 1 to 4 and the closing run 6 are done, experiment 5 is open.
+**Priority 1** — done: [x] — `0.4.0-054`, ≈ +5.3 Elo over the closing run. All five experiments
+run, the closing run confirms the winner.
 
 The internal iterative deepening in [search.cpp:243](../search/search.cpp#L243) is replaced by an
 internal iterative reduction.
