@@ -84,7 +84,7 @@ Add tunable parameters to the aspiration window and optimize them with clop
 
 ## 8. Quiescence tt control flow with the isPV flag
 
-**Priority 2** — done: [ ]
+**Priority 2** — done: [x] — `0.4.0-061` lost 5.8 Elo, `dead/qs-ttpv`
 
 The early tt return in [quiescencese.cpp:102](../search/quiescencese.cpp#L102) fires in every
 node, which leaves the stand pat refinement below it unreachable. Bind it to a null window again,
