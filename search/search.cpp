@@ -290,8 +290,12 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		// Any move worth trying first is enough, from the hash or from the previous iteration.
 		if (!node.getTTMove().isEmpty()) return 0;
 		if (node.hasPVMove()) return 0;
-		// Counter check of 0.4.0-054: PV nodes only, cut nodes left out again.
-		if constexpr (TYPE != SearchRegion::PV) return 0;
+		// Cut nodes are reduced as well, all nodes are not. An all node without a tt move is the
+		// normal case, there is nothing unusual about it.
+		if constexpr (TYPE != SearchRegion::PV) {
+			if (SearchVariables::childNodeType(stack[ply - 1].getNodeType(), false)
+				!= SearchVariables::NodeType::CUT) return 0;
+		}
 
 		return SearchParameter::IIR_REDUCTION;
 	}
