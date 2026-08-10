@@ -127,10 +127,18 @@ movesToGo = keep + (start - keep) * midpoint / (midpoint + movesPlayed)
 `timeLeft / (movesToGo + 2)` is unchanged. Only the course changes: instead of falling linearly
 and clamping hard at move 50 it approaches `keep` asymptotically.
 
-`midpoint` says where the transition sits: at `movesPlayed == midpoint` the forecast is exactly
-halfway between `start` and `keep`, so 47.5 for 60 and 35. Around 25 to 30 reproduces the shape
-of today's line. Monotone falling, saturating at `keep`, continuous in every derivative. Three
-coefficients: `start`, `keep`, `midpoint`.
+| | meaning | today |
+|---|---|---|
+| `start` | the forecast at move 1, so the length of a game the engine plans for | 60 (`AVERAGE_MOVE_COUNT_PER_GAME`) |
+| `keep` | the forecast a long game settles on, so how many moves the engine always keeps time for, no matter how long the game has already run | 35 (`KEEP_TIME_FOR_MOVES`) |
+| `midpoint` | where the transition sits: at `movesPlayed == midpoint` the forecast is exactly halfway between the two, so 47.5 for 60 and 35 | 25 to 30 reproduces today's line |
+
+Monotone falling, saturating at `keep`, continuous in every derivative.
+
+`keep` is the one that matters late: a game that is still running after move 80 gets
+`timeLeft / 37` per move, so the engine never spends its last reserve on a single move. `start`
+decides how fast the opening is played, `midpoint` how quickly the engine moves from the one
+regime into the other.
 
 `movesPlayed` here means full moves. `ClockSetting::getPlayedMovesInGame()` counts plies, today's
 code divides by two for that reason and the new formula has to do the same.
