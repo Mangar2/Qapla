@@ -771,12 +771,30 @@ So the share runs from 135 % of the fair slice at an empty clock to 168 % at a f
 60 seconds left. The old code was flat at 100 %. The direction the item expected does hold — more
 clock, more time per move — it just sits an entire level higher than assumed.
 
-**No SPRT was run after either value yet.** The intent was to test the finished parameter set
-after all three runs. Given the size of the step that was the wrong call; an intermediate run
-would have said early whether the direction holds at all. It is caught up as soon as the machine
-is free, with the pgn output the ini now writes, so the times actually spent can be put next to
-the tables above — they are what the formula asks for, not what the engine ends up doing once the
-maximum time, the mode factors and the 0.7 and 0.8 thresholds have their say.
+- SPRT `0.4.0-062` vs `0.4.0-054` at 5+0.01: **H1 accepted**, 52.86 %, ≈ **+19.9 Elo**, 2602 games
+
+The largest single gain of the whole series, and it comes from spending 35 % more time per move.
+Every SPRT of this item runs against `0.4.0-054`, at all three time controls, because the goal is
+a version that is better at each of them and above all at 60+1.
+
+### What the engine really spends
+
+The ini now writes a pgn with the clock and nothing else; `test/tools/movetime-stats.py` turns it
+into the blocks of five above. From the 7705 moves `0.4.0-062` played in that run:
+
+| moves | formula | mean | median | stddev | max |
+|---:|---:|---:|---:|---:|---:|
+| 1-5 | 115 ms | 118 ms | 100 ms | 47 ms | 400 ms |
+| 11-15 | 110 ms | 111 ms | 90 ms | 47 ms | 420 ms |
+| 21-25 | 104 ms | 105 ms | 90 ms | 46 ms | 410 ms |
+| 31-35 | 85 ms | 75 ms | 70 ms | 34 ms | 340 ms |
+| 41-45 | 63 ms | 55 ms | 50 ms | 25 ms | 220 ms |
+
+The mean tracks the formula almost exactly for the first thirty moves, so the normal time is
+really what the engine aims at. The median sits well below it: the distribution is skewed to the
+right, most moves stop early at the 0.7 or 0.8 threshold and single moves reach four times the
+normal time — which is exactly the critical mode factor of 4. From move 30 the practice falls
+below the formula, there the maximum time caps it.
 
 Still open for the item: `timeShareHalfTime` at 20+0.1, the normal mode factor, and the
 `movesToGo` reformulation.
