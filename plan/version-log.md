@@ -601,6 +601,79 @@ The node count says why the stand pat refinement is not the prize it looked like
 reachable moves 0.3 % of the nodes. What the guard costs instead is every cheap tt cutoff it gives
 up in a pv node.
 
+## In progress — normal search time (todo item 9)
+
+`computeAverageTime` multiplied the fair time slice by a factor clamped to 1.0 below five minutes
+of remaining time, reaching 2.0 only beyond two hours — at every time control the engine actually
+plays it did nothing. Below it sat a hard halving at 10000 ms with an increment of one millisecond
+or less. Both replaced by
+
+```
+share = shareMin + (shareMax - shareMin) * timeLeft / (timeLeft + halfTime)
+```
+
+monotone, saturating, continuous in every derivative.
+
+The tables below list the time one move gets, every fifth move, under the assumption that every
+move takes exactly the normal time and no mode factor applies. The clock is simulated: each move
+costs its own time and gains the increment.
+
+**5 s + 10 ms**
+
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | shareMin 135, after run 1 |
+|---:|---:|---:|---:|
+| 1 | 90 ms | 80 ms | 115 ms |
+| 6 | 90 ms | 80 ms | 112 ms |
+| 11 | 90 ms | 81 ms | 110 ms |
+| 16 | 90 ms | 81 ms | 107 ms |
+| 21 | 90 ms | 83 ms | 104 ms |
+| 26 | 91 ms | 83 ms | 100 ms |
+| 31 | 80 ms | 75 ms | 85 ms |
+| 36 | 71 ms | 67 ms | 72 ms |
+| 41 | 63 ms | 61 ms | 63 ms |
+
+**20 s + 100 ms**
+
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | shareMin 135, after run 1 |
+|---:|---:|---:|---:|
+| 1 | 422 ms | 422 ms | 508 ms |
+| 6 | 422 ms | 418 ms | 500 ms |
+| 11 | 422 ms | 416 ms | 492 ms |
+| 16 | 422 ms | 414 ms | 481 ms |
+| 21 | 422 ms | 412 ms | 472 ms |
+| 26 | 422 ms | 410 ms | 458 ms |
+| 31 | 381 ms | 367 ms | 402 ms |
+| 36 | 345 ms | 333 ms | 355 ms |
+| 41 | 314 ms | 303 ms | 313 ms |
+
+**60 s + 1 s**
+
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | shareMin 135, after run 1 |
+|---:|---:|---:|---:|
+| 1 | 1967 ms | 2063 ms | 2189 ms |
+| 6 | 1967 ms | 2046 ms | 2176 ms |
+| 11 | 1967 ms | 2028 ms | 2150 ms |
+| 16 | 1967 ms | 2011 ms | 2122 ms |
+| 21 | 1968 ms | 1994 ms | 2101 ms |
+| 26 | 1968 ms | 1978 ms | 2066 ms |
+| 31 | 1844 ms | 1831 ms | 1904 ms |
+| 36 | 1736 ms | 1715 ms | 1767 ms |
+| 41 | 1641 ms | 1616 ms | 1643 ms |
+
+Two things the tables show. The old code is flat across all three time controls, which is the
+point of the item — the factor that was supposed to make a long game slower never left its lower
+clamp. And the increment carries most of the load: the times barely fall until the forecast stops
+shrinking around move 26, because each move gets its own increment back.
+
+`timeShareMin` came out at 135 in the first run, 5+0.01, 2000 samples, 45 min. That is a quarter
+more time per move than the old code takes and the opposite of what the item assumed — the
+expectation was that a short time control should be played relatively faster.
+
+**No SPRT was run after that first value.** The intent was to test the finished parameter set
+after all three runs. Given the size of the step from 100 to 135 that was the wrong call; an
+intermediate run would have said early whether the direction holds at all. It is caught up as soon
+as the machine is free.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
