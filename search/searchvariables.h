@@ -270,11 +270,9 @@ namespace QaplaSearch {
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
-			// A tt value <= alpha is evidence against the expected fail high: the position has
-			// already been searched and did not reach alpha, so pruning towards beta contradicts
-			// what the table knows. setFromParentNode no longer resets the flag, so unlike the
-			// earlier attempt the test is actually reached.
-			if (ttValueIsLessOrEqualAlpha) return false;
+			// Tested 0.4.0-081: no futility pruning when the tt value is <= alpha: flat at
+			// 50.0 %, undecided after 20000 games
+			// if (ttValueIsLessOrEqualAlpha) return false;
 			// Avoids discarding moves solely because no special-case loss evaluation applies. 
 			if (beta < -WINNING_BONUS) return false;
 			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
