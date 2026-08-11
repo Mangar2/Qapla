@@ -192,7 +192,7 @@ games shows nothing there.
 
 ## 10. Opposite coloured bishops: scale the surplus
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner)
+**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
 
 A material advantage with bishops on opposite colours and nothing else but pawns is usually a
 draw and has to be scaled down.
@@ -203,7 +203,7 @@ standard book.
 
 ## 11. Pawn shield: activate and tune the weights
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner)
+**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
 
 `computePawnShieldValue` is not part of the king attack evaluation. Activate it and tune its
 weights together with the other king attack parameters.
@@ -212,7 +212,7 @@ Already tried once.
 
 ## 12. Space weight
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner)
+**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
 
 `spaceWeightMg` defaults to 0, the space evaluation is off. Tune it. If it fails again, remove
 the space code.
@@ -221,7 +221,7 @@ Already tried once, hence the 0.
 
 ## 13. Forward futility: honour ttValueIsLessOrEqualAlpha
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner)
+**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
 
 Uncomment [searchvariables.h:276](../search/searchvariables.h#L276) and test it.
 
@@ -231,7 +231,7 @@ holds, making it effective is the actual work.
 
 ## 14. SEE based capture ordering
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner)
+**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
 
 Order the captures by their static exchange value.
 
