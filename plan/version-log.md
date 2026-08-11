@@ -632,6 +632,31 @@ the winrate at 48.9 %; it looked decided. It ended at -0.21 and 50.02 %. With bo
 the swing over thousands of games is larger than the effect being measured, which is exactly why
 the log records the final number and nothing else.
 
+## 0.4.0-082 - the loosing captures ordered by their exchange value
+
+Todo item 14, in the one shape the area had not been tried in. The captures the SEE rates as
+loosing are deferred out of the capture stage and come back in `REMAINING_MOVES` in the order the
+move generator produced them - the only place in the move ordering where no order exists at all.
+`computeExactExchangeValue` is back from `0.4.0-042`, but it runs only for a capture the selection
+actually reaches and has just found loosing, not for every capture in the preparation stage.
+
+- EPD nodes: 56240905 -> 54575345 (-3.0 %), success rate 23 % -> 22 %, EPD runtime 3.39 s -> 3.08 s
+- SPRT vs the branch point at 5+0.01: **H0 accepted**, 49.49 %, ~ -3.5 Elo, 12721 games
+
+Reverted, `dead/see-loosing-order`. Node count after the revert 56240905.
+
+The interesting part is that it is cheaper and still worse: 3 % fewer nodes, a faster run, and
+-3.5 Elo. Whatever the generated order of the loosing captures is, it beats sorting them by how
+much material the exchange loses. A plausible reading is that the exchange value answers the wrong
+question down there - a capture that loses a rook for a bishop may still be the move that saves the
+game, and the generator order at least keeps the cheap pieces first by accident of the piece loop.
+
+This is the fourth change to the capture ordering that lost: recapture priority (`0.4.0-039`,
+-4.5), queen promotion priority (`0.4.0-040`, flat), exchange value as the capture weight
+(`0.4.0-042`, -6.7) and now the order of the loosing captures. The one variant still untried is a
+tie break by the capturing piece inside an equal captured value - real MVV/LVA, where today only
+the MVV half exists. Item closed without it.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
