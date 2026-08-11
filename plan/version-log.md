@@ -601,6 +601,37 @@ The node count says why the stand pat refinement is not the prize it looked like
 reachable moves 0.3 % of the nodes. What the guard costs instead is every cheap tt cutoff it gives
 up in a pv node.
 
+## Items 10 to 14, worked in parallel on branch `todo-10-14`
+
+The branch starts at `373bb20b`, right before the ClockManager work of item 9, which runs on
+another machine at the same time. Its versions take the block from `0.4.0-081` upwards so that
+the two machines cannot collide on a tag. Every run in this block measures against the state at
+the branch point, which is `0.4.0-054` behaviour - `0.4.0-057`, `-060` and `-061` were all
+reverted, and the EPD node count of 56240905 at the branch point confirms it.
+
+## 0.4.0-081 - forward futility honours ttValueIsLessOrEqualAlpha
+
+Todo item 13. The guard stood in the code as a commented out line, with the note that it never
+had any effect because `setFromParentNode` reset the flag between `probeTT` and the call. That
+note is out of date: the tt bound flags are deliberately left standing there today, so the line
+is reachable and could be measured for the first time.
+
+- EPD nodes: 56240905 -> 54663722 (-2.8 %), success rate 23 % -> 24 %
+- SPRT vs the branch point at 5+0.01: **undecided**, 50.02 %, LLR -0.21 after the full 20000
+  games (5216 / 9578 / 5206), 98 min
+
+Reverted, `dead/ff-ttalpha`. Node count after the revert 56240905, identical to the baseline.
+
+Two things are worth keeping. The first is that the guard is anything but inert: it moves 2.8 %
+of the nodes and lifts the EPD success rate by a point. Skipping the pruning searches the node
+properly instead of guessing, and the better tt entry that comes out of it apparently saves more
+nodes elsewhere than the skipped cutoff costs - yet none of that turns into Elo.
+
+The second is the shape of the run. At 4208 games the LLR stood at -1.99 of the -2.94 bound and
+the winrate at 48.9 %; it looked decided. It ended at -0.21 and 50.02 %. With bounds 5 Elo apart
+the swing over thousands of games is larger than the effect being measured, which is exactly why
+the log records the final number and nothing else.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
