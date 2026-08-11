@@ -107,7 +107,6 @@ EvalEndgame::InitStatics::InitStatics() {
 	regVal("KBKPP+", -MaterialBalance::PAWN_VALUE_EG);
 	regVal("KBKPP", -MaterialBalance::PAWN_VALUE_EG * 3 / 2);
 	regVal("KBKP", -MaterialBalance::BISHOP_VALUE_EG + MaterialBalance::PAWN_VALUE_EG);
-	regFun("KBP*KBP*", KBPsKBPs);
 	REGISTER("KBK", drawValue);
 
 	// Knight
@@ -222,9 +221,19 @@ value_t EvalEndgame::KPsKPs(MoveGenerator& position, value_t value) {
 	return result;
 }
 
-value_t EvalEndgame::KBPsKBPs(MoveGenerator& position, value_t value) {
-	// One bishop per side is guaranteed by the piece signature, the colour of their squares
-	// is not - only the pair standing on different colours is the drawish one.
+value_t EvalEndgame::scaleOppositeColouredBishops(const MoveGenerator& position, value_t value) {
+	// Exactly one bishop per side and no other officer, pawns as they come. One and with one
+	// compare on the piece signature, which the position keeps up to date anyway.
+	constexpr pieceSignature_t OFFICERS = SignatureMask::KNIGHT | SignatureMask::BISHOP
+		| SignatureMask::ROOK | SignatureMask::QUEEN;
+	constexpr pieceSignature_t OFFICERS_OF_BOTH_SIDES =
+		OFFICERS | (OFFICERS << PieceSignature::SIG_SHIFT_BLACK);
+	constexpr pieceSignature_t ONE_BISHOP_EACH = pieceSignature_t(Signature::BISHOP)
+		| (pieceSignature_t(Signature::BISHOP) << PieceSignature::SIG_SHIFT_BLACK);
+	if ((position.getPiecesSignature() & OFFICERS_OF_BOTH_SIDES) != ONE_BISHOP_EACH) {
+		return value;
+	}
+	// Only the pair standing on squares of different colour is the drawish one.
 	const bool whiteBishopOnLightSquare = (position.getPieceBB(WHITE_BISHOP) & WHITE_FIELDS) != 0;
 	const bool blackBishopOnLightSquare = (position.getPieceBB(BLACK_BISHOP) & WHITE_FIELDS) != 0;
 	if (whiteBishopOnLightSquare == blackBishopOnLightSquare) {
