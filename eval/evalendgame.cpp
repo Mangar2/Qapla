@@ -17,6 +17,8 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+#include <algorithm>
+
 #include "evalresults.h"
 #include "eval-helper.h"
 #include "evalendgame.h"
@@ -105,6 +107,7 @@ EvalEndgame::InitStatics::InitStatics() {
 	regVal("KBKPP+", -MaterialBalance::PAWN_VALUE_EG);
 	regVal("KBKPP", -MaterialBalance::PAWN_VALUE_EG * 3 / 2);
 	regVal("KBKP", -MaterialBalance::BISHOP_VALUE_EG + MaterialBalance::PAWN_VALUE_EG);
+	regFun("KBP*KBP*", KBPsKBPs);
 	REGISTER("KBK", drawValue);
 
 	// Knight
@@ -217,6 +220,21 @@ value_t EvalEndgame::KPsKPs(MoveGenerator& position, value_t value) {
 		result += kingPawnAttack.computeKingRace(position) * KING_RACED_PAWN_BONUS;
 	}
 	return result;
+}
+
+value_t EvalEndgame::KBPsKBPs(MoveGenerator& position, value_t value) {
+	// One bishop per side is guaranteed by the piece signature, the colour of their squares
+	// is not - only the pair standing on different colours is the drawish one.
+	const bool whiteBishopOnLightSquare = (position.getPieceBB(WHITE_BISHOP) & WHITE_FIELDS) != 0;
+	const bool blackBishopOnLightSquare = (position.getPieceBB(BLACK_BISHOP) & WHITE_FIELDS) != 0;
+	if (whiteBishopOnLightSquare == blackBishopOnLightSquare) {
+		return value;
+	}
+	const int32_t pawnDifference = popCount(position.getPieceBB(WHITE_PAWN))
+		- popCount(position.getPieceBB(BLACK_PAWN));
+	const int32_t surplus = pawnDifference < 0 ? -pawnDifference : pawnDifference;
+	const value_t scale = OPPOSITE_BISHOP_SCALE_PERCENT[std::min(surplus, 4)];
+	return value * scale / 100;
 }
 
 template <Piece COLOR>
