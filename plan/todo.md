@@ -143,12 +143,15 @@ back in the code, commented out, with the result above it.
 
 ## 14. SEE based capture ordering
 
-**Priority 3** — done: [ ]
+**Priority 3** — done: [x] — `0.4.0-082` lost 3.5 Elo, `dead/see-loosing-order`
 
-Order the captures by their static exchange value.
+Tried in the one shape the area had not seen: the loosing captures, which come back from the
+deferral in generated order, sorted by their exchange value instead. Cheaper (3 % fewer nodes, a
+faster EPD run) and still 3.5 Elo worse. Fourth loss in the capture ordering, after `0.4.0-039`,
+`-040` and `-042`.
 
-Tested as `0.4.0-042` and lost 6.7 Elo (`dead/see-weight`) when the exchange value replaced the
-weight outright. A retry needs a different shape.
+Untried: a tie break by the capturing piece inside an equal captured value, so real MVV/LVA where
+only the MVV half exists today. Not part of this item any more.
 
 ---
 
