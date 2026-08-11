@@ -657,6 +657,47 @@ This is the fourth change to the capture ordering that lost: recapture priority 
 tie break by the capturing piece inside an equal captured value - real MVV/LVA, where today only
 the MVV half exists. Item closed without it.
 
+## 0.4.0-083 - opposite coloured bishops, scaled through the signature hash
+
+Todo item 10, first attempt. `KBP*KBP*` registered as an endgame pattern, scaling the value by
+45, 50, 65, 85 and 100 percent for a pawn surplus of 0 to 4 and more. Hand written, no CLOP - the
+material is far too rare in a normal game for a run to find a signal on it.
+
+- Activation shown on the static evaluation, not on the EPD node count: the wmtest positions do
+  not reach this material. Eight positions of the set, baseline against new: -94/-51, 241/116,
+  178/85, -435/-287, 359/175, 106/63, -446/-295, -140/-74
+- SPRT on the opposite coloured bishop start set at 5+0.01: **undecided**, 50.02 %, LLR 0.05
+  after the full 20000 games
+
+The version has a construction fault, found afterwards by comparing the moves the two engines
+choose on the set: 9 of 30 differed, which is far more than a scaling that is order preserving
+inside its own material class should produce. The reason is the contract of the signature hash.
+An entry there **replaces** the value, so `lazyEval` takes the endgame branch and skips the tempo
+bonus and the fifty move damping, `result -= result * (halfmoves - 20) / 250`. That damping pulls
+towards the draw as well - the version switched it off in exactly the positions it wanted pulled
+towards the draw, and the flat result is two opposite effects measured against each other.
+
+A second lesson sits in the start position set. Inside `KBP*KBP*` with a fixed surplus every leaf
+is scaled by the same factor, so the minimax result is too and the move choice cannot change. What
+the scaling really decides is whether to *enter* such an endgame - and a set that starts inside one
+does not contain that decision. The set is the wrong instrument for this change, however well it
+covers the material.
+
+## 0.4.0-084 - the same scaling, applied last
+
+The scaling moved out of the signature hash to the end of `lazyEval`, after the tempo bonus and
+the fifty move damping, which is where a scaling of the finished value belongs. The material test
+is one and plus one compare on the piece signature instead of a hash lookup. The factors are
+unchanged.
+
+- EPD nodes: 56240905 -> 55970930, success rate unchanged at 23 %
+- Static evaluation now baseline times the factor exactly: -94/-47, 241/120, 178/89, -435/-282,
+  359/179, 106/68, -446/-289, -140/-70
+- SPRT vs the branch point at 5+0.01: **H1 accepted**, 50.85 %, ~ +5.9 Elo, 8623 games
+
+Kept. Two thirds of an hour of runtime separates it from `0.4.0-083`, and the whole difference is
+where the multiplication happens.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
