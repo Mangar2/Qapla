@@ -54,12 +54,10 @@ namespace QaplaSearch {
 										// recapture bonus, the capturing piece does not take part.
 										// Loosing captures are dropped here and reappear in REMAINING_MOVES
 		KILLER1, KILLER2, 				// Selects the killers, thus only after the good captures are used up
-		SORT_MOVES, 					// Prepares: orders the loosing captures by their exchange value,
-										// weights the silent moves by butterfly value and sorts the first
-										// few of them
+		SORT_MOVES, 					// Prepares: weights the silent moves by butterfly value and sorts
+										// the first few of them
 		REMAINING_MOVES,				// Selects everything still left in list order: first the loosing
-										// captures dropped by GOOD_CAPTURES, ordered by their exchange
-										// value, then the silent moves
+										// captures dropped by GOOD_CAPTURES, unsorted, then the silent moves
 	};
 
 	constexpr MoveType operator+(MoveType a, int b) { return MoveType(int(a) + b); }
@@ -217,7 +215,6 @@ namespace QaplaSearch {
 					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures(board);
 					break;
 				case MoveType::SORT_MOVES:
-					sortLoosingCaptures();
 					sortNonCaptures();
 					++selectStage;
 					break;
@@ -347,13 +344,9 @@ namespace QaplaSearch {
 			int32_t moveNo;
 			moveNo = findNextBestCaptureMove();
 			while (moveNo != -1 && sEE.isLoosingCapture(board, moveList[moveNo])) {
-				// The exchange value replaces the weight of a deferred capture. Below the
-				// -MAX_VALUE floor the weight has no say in the capture stage any more, so it
-				// is free to carry the order of the loosing captures among themselves. The SEE
-				// runs only for the captures the selection actually reaches, and only for those
-				// it has just found loosing.
-				const value_t exchangeValue = sEE.computeExactExchangeValue(board, moveList[moveNo]);
-				moveList.setWeight(moveNo, exchangeValue - CAPTURE_DEFERRAL_MALUS);
+				// Tested 0.4.0-082: the deferred captures ordered by their exact exchange value
+				// instead of the order the move generator produced: -3.5 Elo, 12721 games
+				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - CAPTURE_DEFERRAL_MALUS);
 				moveNo = findNextBestCaptureMove();
 			}
 			if (moveNo == -1) {
@@ -411,34 +404,6 @@ namespace QaplaSearch {
 			return static_cast<int32_t>(curMoveNo - 1);
 		}
 
-		/**
-		 * Sorts the deferred loosing captures by their exchange value, best first. They are
-		 * what is left in the capture part of the list once the good captures are used up,
-		 * and REMAINING_MOVES walks that part linearly - so the list order is their search
-		 * order, and without this it is the order the move generator happened to produce.
-		 * Empty slots are moves an earlier stage already took; they carry no weight and are
-		 * simply pushed to the back, where the linear walk skips them as before.
-		 */
-		void sortLoosingCaptures() {
-			const uint32_t end = moveList.getNonSilentMoveAmount();
-			for (uint32_t sortIndex = curMoveNo; sortIndex < end; sortIndex++) {
-				int32_t bestIndex = -1;
-				value_t bestWeight = 0;
-				for (uint32_t index = sortIndex; index < end; index++) {
-					if (moveList[index].isEmpty()) continue;
-					const value_t weight = moveList.getWeight(index);
-					if (bestIndex == -1 || weight > bestWeight) {
-						bestWeight = weight;
-						bestIndex = static_cast<int32_t>(index);
-					}
-				}
-				if (bestIndex == -1) break;
-				if (static_cast<uint32_t>(bestIndex) != sortIndex) {
-					moveList.swapEntry(sortIndex, static_cast<uint32_t>(bestIndex));
-				}
-			}
-		}
-
 		void sortNonCaptures() {
 			if (_butterflyBoard == 0) {
 				return;
@@ -451,7 +416,7 @@ namespace QaplaSearch {
 
 		static const uint32_t TRIED_MOVES_STORE_SIZE = 200;
 
-		// Subtracted from the exchange value of a loosing capture. findNextBestCaptureMove starts its
+		// Subtracted from the weight of a loosing capture. findNextBestCaptureMove starts its
 		// maximum search at -MAX_VALUE, so the capture ends up below that floor and drops out
 		// of the GOOD_CAPTURES stage altogether. selectNextSilentMove picks it up again later,
 		// as it walks the list linearly and does not look at weights. This is a deferral to a
