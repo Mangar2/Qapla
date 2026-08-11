@@ -145,6 +145,13 @@ namespace ChessEval {
 
 		static value_t KPsKPs(MoveGenerator& board, value_t currentValue);
 
+		/**
+		 * Bishops on opposite colours with nothing on the board but pawns. The defending
+		 * bishop covers a colour the attacking one can never reach, so a material surplus
+		 * often cannot be converted and the value has to be pulled towards the draw.
+		 */
+		static value_t KBPsKBPs(MoveGenerator& board, value_t currentValue);
+
 		template <Piece COLOR>
 		static value_t KPsKR(MoveGenerator& position, value_t value);
 
@@ -254,6 +261,14 @@ namespace ChessEval {
 		static constexpr Square UP[COLOR_COUNT] = { NORTH, SOUTH };
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
+
+		// Percentage the value keeps in an opposite coloured bishop endgame, by the number of
+		// pawns the stronger side is ahead. Hand written, not tuned: the position type is far too
+		// rare in a normal game for a run to produce a signal on it.
+		// Index 0, equal material, is the most drawish case of all - neither side has anything to
+		// convert. From three pawns up the extra material starts to tell even against a bishop of
+		// the wrong colour, and from four the endgame is a normal win.
+		static constexpr value_t OPPOSITE_BISHOP_SCALE_PERCENT[5] = { 45, 50, 65, 85, 100 };
 
 		static inline PieceSignatureHashedLookup<EvalEntry, 32768, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
 	};
