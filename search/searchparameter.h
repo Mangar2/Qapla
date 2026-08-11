@@ -127,7 +127,7 @@ namespace QaplaSearch {
 		static constexpr bool optimizeAspiration = false;
 
 		// Set to true to make the time management settable by UCI, see search-param.h
-		static constexpr bool optimizeTime = true;
+		static constexpr bool optimizeTime = false;
 
 		// The margins themselves live at their call sites in searchvariables.h, see search-param.h.
 		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
