@@ -199,6 +199,16 @@ tunable.
 When an existing expression has the wrong shape, reformulate it. Do not put a parameter into the
 old form.
 
+**A reformulation starts at the values it replaces.** The new coefficients get the defaults that
+reproduce the old expression exactly, proven by an identical node count, and only then does a run
+tune them. Choosing "reasonable looking" new values and tuning from there mixes two changes that
+have to be measured separately — afterwards nobody can say whether a gain came from the new shape
+or from the new values.
+
+If two of the new coefficients coincide at that starting point and a third one therefore has no
+effect, that is not a reason to move them apart by hand. Tune the two that do have an effect
+first, then the third one against the values they reached.
+
 ## Tunable search parameters
 
 Define them at the call site, using the value where it is needed instead of routing it through
