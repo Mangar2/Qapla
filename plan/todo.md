@@ -134,13 +134,12 @@ Already tried once, hence the 0.
 
 ## 13. Forward futility: honour ttValueIsLessOrEqualAlpha
 
-**Priority 3** — done: [ ]
+**Priority 3** — done: [x] — `0.4.0-081` undecided at 50.0 %, `dead/ff-ttalpha`
 
-Uncomment [searchvariables.h:276](../search/searchvariables.h#L276) and test it.
-
-It lost an SPRT once, together with the singular extension fix, which is switched off again
-today. The comment there also claims the flag is reset before the line is reached — if that still
-holds, making it effective is the actual work.
+The claim that `setFromParentNode` resets the flag before the line is reached no longer held, so
+the guard was reachable and could be measured for the first time. It moves 2.8 % of the nodes and
+lifts the EPD success rate by a point, but the full 20000 games came out at 50.02 %. The line is
+back in the code, commented out, with the result above it.
 
 ## 14. SEE based capture ordering
 
