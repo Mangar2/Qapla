@@ -80,6 +80,19 @@ namespace ChessEval {
 			registerEntry(pieces, EvalEntry(getFromBitbase), true);
 		}
 
+		/**
+		 * Bishops on opposite colours with nothing on the board but pawns: the defending bishop
+		 * covers a colour the attacking one can never reach, so a material surplus often cannot
+		 * be converted and the value is pulled towards the draw.
+		 *
+		 * This is a scaling of the finished evaluation, not an endgame pattern of its own, and
+		 * that is why it does not go through the piece signature hash. An entry there replaces
+		 * the value, which makes lazyEval skip the tempo bonus and the fifty move damping that
+		 * follow - and the damping pulls towards the draw as well. Switching it off in exactly
+		 * the positions that are to be pulled towards the draw would work against the scaling.
+		 */
+		static value_t scaleOppositeColouredBishops(const MoveGenerator& position, value_t value);
+
 	private:
 
 
@@ -144,13 +157,6 @@ namespace ChessEval {
 		static value_t KPsK(MoveGenerator& board, value_t currentValue);
 
 		static value_t KPsKPs(MoveGenerator& board, value_t currentValue);
-
-		/**
-		 * Bishops on opposite colours with nothing on the board but pawns. The defending
-		 * bishop covers a colour the attacking one can never reach, so a material surplus
-		 * often cannot be converted and the value has to be pulled towards the draw.
-		 */
-		static value_t KBPsKBPs(MoveGenerator& board, value_t currentValue);
 
 		template <Piece COLOR>
 		static value_t KPsKR(MoveGenerator& position, value_t value);

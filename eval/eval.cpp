@@ -201,6 +201,14 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			}
 		}
 	}
+	// Bishops on opposite colours are scaled last, after the tempo bonus and the fifty move
+	// damping, because it is a scaling of the finished value and both of those belong in it.
+	result = EvalEndgame::scaleOppositeColouredBishops(position, result);
+	if constexpr (PRINT) {
+		cout << "Opposite bishops:"
+			<< std::right << std::setw(19) << result << std::endl;
+	}
+
 	// If a value == 0, the position will not be stored in hash tables
 	// Value == 0 indicates a forced draw situation like repetetive moves 
 	// or move count without pawn move or capture == 50
