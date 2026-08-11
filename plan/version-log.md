@@ -620,156 +620,166 @@ costs its own time and gains the increment.
 
 **5 s + 10 ms**
 
-| move | 054 | 062 |
-|---:|---:|---:|
-| 1 | 90 ms | 115 ms |
-| 6 | 90 ms | 112 ms |
-| 11 | 90 ms | 110 ms |
-| 16 | 90 ms | 107 ms |
-| 21 | 90 ms | 104 ms |
-| 26 | 91 ms | 100 ms |
-| 31 | 80 ms | 85 ms |
-| 36 | 71 ms | 72 ms |
-| 41 | 63 ms | 63 ms |
-| 46 | 57 ms | 54 ms |
-| 51 | 51 ms | 46 ms |
-| 56 | 45 ms | 40 ms |
-| 61 | 41 ms | 35 ms |
-| 66 | 37 ms | 31 ms |
-| 71 | 33 ms | 27 ms |
-| 76 | 30 ms | 24 ms |
-| 81 | 28 ms | 22 ms |
-| 86 | 26 ms | 20 ms |
-| 91 | 24 ms | 19 ms |
-| 96 | 22 ms | 16 ms |
-| 101 | 20 ms | 16 ms |
-| 106 | 19 ms | 15 ms |
-| 111 | 18 ms | 14 ms |
-| 116 | 17 ms | 14 ms |
-| 121 | 16 ms | 12 ms |
-| 126 | 15 ms | 12 ms |
-| 131 | 15 ms | 12 ms |
-| 136 | 14 ms | 11 ms |
-| 141 | 13 ms | 11 ms |
-| 146 | 13 ms | 11 ms |
-| 151 | 13 ms | 11 ms |
-| 156 | 12 ms | 11 ms |
-| 161 | 12 ms | 11 ms |
-| 166 | 12 ms | 11 ms |
-| 171 | 11 ms | 11 ms |
-| 176 | 11 ms | 10 ms |
-| 181 | 11 ms | 10 ms |
-| 186 | 11 ms | 10 ms |
-| 191 | 11 ms | 10 ms |
-| 196 | 11 ms | 10 ms |
+| move | 054 | 062 | 063 |
+|---:|---:|---:|---:|
+| 1 | 90 ms | 115 ms | 122 ms |
+| 6 | 90 ms | 112 ms | 118 ms |
+| 11 | 90 ms | 110 ms | 115 ms |
+| 16 | 90 ms | 107 ms | 110 ms |
+| 21 | 90 ms | 104 ms | 105 ms |
+| 26 | 91 ms | 100 ms | 101 ms |
+| 31 | 80 ms | 85 ms | 84 ms |
+| 36 | 71 ms | 72 ms | 71 ms |
+| 41 | 63 ms | 63 ms | 60 ms |
+| 46 | 57 ms | 54 ms | 52 ms |
+| 51 | 51 ms | 46 ms | 45 ms |
+| 56 | 45 ms | 40 ms | 38 ms |
+| 61 | 41 ms | 35 ms | 34 ms |
+| 66 | 37 ms | 31 ms | 30 ms |
+| 71 | 33 ms | 27 ms | 26 ms |
+| 76 | 30 ms | 24 ms | 23 ms |
+| 81 | 28 ms | 22 ms | 22 ms |
+| 86 | 26 ms | 20 ms | 19 ms |
+| 91 | 24 ms | 19 ms | 18 ms |
+| 96 | 22 ms | 16 ms | 16 ms |
+| 101 | 20 ms | 16 ms | 15 ms |
+| 106 | 19 ms | 15 ms | 15 ms |
+| 111 | 18 ms | 14 ms | 14 ms |
+| 116 | 17 ms | 14 ms | 14 ms |
+| 121 | 16 ms | 12 ms | 12 ms |
+| 126 | 15 ms | 12 ms | 12 ms |
+| 131 | 15 ms | 12 ms | 12 ms |
+| 136 | 14 ms | 11 ms | 11 ms |
+| 141 | 13 ms | 11 ms | 11 ms |
+| 146 | 13 ms | 11 ms | 11 ms |
+| 151 | 13 ms | 11 ms | 11 ms |
+| 156 | 12 ms | 11 ms | 11 ms |
+| 161 | 12 ms | 11 ms | 11 ms |
+| 166 | 12 ms | 11 ms | 11 ms |
+| 171 | 11 ms | 11 ms | 10 ms |
+| 176 | 11 ms | 10 ms | 10 ms |
+| 181 | 11 ms | 10 ms | 10 ms |
+| 186 | 11 ms | 10 ms | 10 ms |
+| 191 | 11 ms | 10 ms | 10 ms |
+| 196 | 11 ms | 10 ms | 10 ms |
 
 **20 s + 100 ms**
 
-| move | 054 | 062 |
-|---:|---:|---:|
-| 1 | 422 ms | 508 ms |
-| 6 | 422 ms | 500 ms |
-| 11 | 422 ms | 492 ms |
-| 16 | 422 ms | 481 ms |
-| 21 | 422 ms | 472 ms |
-| 26 | 422 ms | 458 ms |
-| 31 | 381 ms | 402 ms |
-| 36 | 345 ms | 355 ms |
-| 41 | 314 ms | 313 ms |
-| 46 | 286 ms | 278 ms |
-| 51 | 263 ms | 250 ms |
-| 56 | 242 ms | 225 ms |
-| 61 | 224 ms | 205 ms |
-| 66 | 208 ms | 187 ms |
-| 71 | 194 ms | 173 ms |
-| 76 | 182 ms | 161 ms |
-| 81 | 171 ms | 150 ms |
-| 86 | 162 ms | 142 ms |
-| 91 | 154 ms | 136 ms |
-| 96 | 147 ms | 129 ms |
-| 101 | 141 ms | 124 ms |
-| 106 | 136 ms | 120 ms |
-| 111 | 131 ms | 117 ms |
-| 116 | 127 ms | 114 ms |
-| 121 | 124 ms | 112 ms |
-| 126 | 121 ms | 109 ms |
-| 131 | 118 ms | 108 ms |
-| 136 | 116 ms | 106 ms |
-| 141 | 114 ms | 105 ms |
-| 146 | 112 ms | 105 ms |
-| 151 | 111 ms | 104 ms |
-| 156 | 109 ms | 104 ms |
-| 161 | 108 ms | 101 ms |
-| 166 | 107 ms | 100 ms |
-| 171 | 106 ms | 100 ms |
-| 176 | 105 ms | 100 ms |
-| 181 | 105 ms | 100 ms |
-| 186 | 104 ms | 100 ms |
-| 191 | 104 ms | 100 ms |
-| 196 | 103 ms | 100 ms |
+| move | 054 | 062 | 063 |
+|---:|---:|---:|---:|
+| 1 | 422 ms | 508 ms | 586 ms |
+| 6 | 422 ms | 500 ms | 563 ms |
+| 11 | 422 ms | 492 ms | 539 ms |
+| 16 | 422 ms | 481 ms | 515 ms |
+| 21 | 422 ms | 472 ms | 488 ms |
+| 26 | 422 ms | 458 ms | 463 ms |
+| 31 | 381 ms | 402 ms | 396 ms |
+| 36 | 345 ms | 355 ms | 339 ms |
+| 41 | 314 ms | 313 ms | 295 ms |
+| 46 | 286 ms | 278 ms | 259 ms |
+| 51 | 263 ms | 250 ms | 230 ms |
+| 56 | 242 ms | 225 ms | 208 ms |
+| 61 | 224 ms | 205 ms | 189 ms |
+| 66 | 208 ms | 187 ms | 172 ms |
+| 71 | 194 ms | 173 ms | 160 ms |
+| 76 | 182 ms | 161 ms | 150 ms |
+| 81 | 171 ms | 150 ms | 142 ms |
+| 86 | 162 ms | 142 ms | 134 ms |
+| 91 | 154 ms | 136 ms | 128 ms |
+| 96 | 147 ms | 129 ms | 124 ms |
+| 101 | 141 ms | 124 ms | 120 ms |
+| 106 | 136 ms | 120 ms | 116 ms |
+| 111 | 131 ms | 117 ms | 113 ms |
+| 116 | 127 ms | 114 ms | 112 ms |
+| 121 | 124 ms | 112 ms | 109 ms |
+| 126 | 121 ms | 109 ms | 108 ms |
+| 131 | 118 ms | 108 ms | 106 ms |
+| 136 | 116 ms | 106 ms | 105 ms |
+| 141 | 114 ms | 105 ms | 105 ms |
+| 146 | 112 ms | 105 ms | 104 ms |
+| 151 | 111 ms | 104 ms | 102 ms |
+| 156 | 109 ms | 104 ms | 100 ms |
+| 161 | 108 ms | 101 ms | 100 ms |
+| 166 | 107 ms | 100 ms | 100 ms |
+| 171 | 106 ms | 100 ms | 100 ms |
+| 176 | 105 ms | 100 ms | 100 ms |
+| 181 | 105 ms | 100 ms | 100 ms |
+| 186 | 104 ms | 100 ms | 100 ms |
+| 191 | 104 ms | 100 ms | 100 ms |
+| 196 | 103 ms | 100 ms | 100 ms |
 
 **60 s + 1 s**
 
-| move | 054 | 062 |
-|---:|---:|---:|
-| 1 | 1967 ms | 2189 ms |
-| 6 | 1967 ms | 2176 ms |
-| 11 | 1967 ms | 2150 ms |
-| 16 | 1967 ms | 2122 ms |
-| 21 | 1968 ms | 2101 ms |
-| 26 | 1968 ms | 2066 ms |
-| 31 | 1844 ms | 1904 ms |
-| 36 | 1736 ms | 1767 ms |
-| 41 | 1641 ms | 1643 ms |
-| 46 | 1559 ms | 1544 ms |
-| 51 | 1488 ms | 1460 ms |
-| 56 | 1425 ms | 1385 ms |
-| 61 | 1371 ms | 1325 ms |
-| 66 | 1323 ms | 1271 ms |
-| 71 | 1282 ms | 1229 ms |
-| 76 | 1246 ms | 1191 ms |
-| 81 | 1214 ms | 1161 ms |
-| 86 | 1187 ms | 1134 ms |
-| 91 | 1163 ms | 1112 ms |
-| 96 | 1142 ms | 1094 ms |
-| 101 | 1124 ms | 1078 ms |
-| 106 | 1108 ms | 1065 ms |
-| 111 | 1094 ms | 1054 ms |
-| 116 | 1082 ms | 1045 ms |
-| 121 | 1072 ms | 1038 ms |
-| 126 | 1062 ms | 1000 ms |
-| 131 | 1054 ms | 1000 ms |
-| 136 | 1047 ms | 1000 ms |
-| 141 | 1041 ms | 1000 ms |
-| 146 | 1036 ms | 1000 ms |
-| 151 | 1032 ms | 1000 ms |
-| 156 | 1027 ms | 1000 ms |
-| 161 | 1000 ms | 1000 ms |
-| 166 | 1000 ms | 1000 ms |
-| 171 | 1000 ms | 1000 ms |
-| 176 | 1000 ms | 1000 ms |
-| 181 | 1000 ms | 1000 ms |
-| 186 | 1000 ms | 1000 ms |
-| 191 | 1000 ms | 1000 ms |
-| 196 | 1000 ms | 1000 ms |
+| move | 054 | 062 | 063 |
+|---:|---:|---:|---:|
+| 1 | 1967 ms | 2189 ms | 2537 ms |
+| 6 | 1967 ms | 2176 ms | 2453 ms |
+| 11 | 1967 ms | 2150 ms | 2369 ms |
+| 16 | 1967 ms | 2122 ms | 2282 ms |
+| 21 | 1968 ms | 2101 ms | 2196 ms |
+| 26 | 1968 ms | 2066 ms | 2101 ms |
+| 31 | 1844 ms | 1904 ms | 1886 ms |
+| 36 | 1736 ms | 1767 ms | 1709 ms |
+| 41 | 1641 ms | 1643 ms | 1569 ms |
+| 46 | 1559 ms | 1544 ms | 1461 ms |
+| 51 | 1488 ms | 1460 ms | 1372 ms |
+| 56 | 1425 ms | 1385 ms | 1303 ms |
+| 61 | 1371 ms | 1325 ms | 1247 ms |
+| 66 | 1323 ms | 1271 ms | 1200 ms |
+| 71 | 1282 ms | 1229 ms | 1163 ms |
+| 76 | 1246 ms | 1191 ms | 1135 ms |
+| 81 | 1214 ms | 1161 ms | 1111 ms |
+| 86 | 1187 ms | 1134 ms | 1091 ms |
+| 91 | 1163 ms | 1112 ms | 1075 ms |
+| 96 | 1142 ms | 1094 ms | 1061 ms |
+| 101 | 1124 ms | 1078 ms | 1052 ms |
+| 106 | 1108 ms | 1065 ms | 1042 ms |
+| 111 | 1094 ms | 1054 ms | 1000 ms |
+| 116 | 1082 ms | 1045 ms | 1000 ms |
+| 121 | 1072 ms | 1038 ms | 1000 ms |
+| 126 | 1062 ms | 1000 ms | 1000 ms |
+| 131 | 1054 ms | 1000 ms | 1000 ms |
+| 136 | 1047 ms | 1000 ms | 1000 ms |
+| 141 | 1041 ms | 1000 ms | 1000 ms |
+| 146 | 1036 ms | 1000 ms | 1000 ms |
+| 151 | 1032 ms | 1000 ms | 1000 ms |
+| 156 | 1027 ms | 1000 ms | 1000 ms |
+| 161 | 1000 ms | 1000 ms | 1000 ms |
+| 166 | 1000 ms | 1000 ms | 1000 ms |
+| 171 | 1000 ms | 1000 ms | 1000 ms |
+| 176 | 1000 ms | 1000 ms | 1000 ms |
+| 181 | 1000 ms | 1000 ms | 1000 ms |
+| 186 | 1000 ms | 1000 ms | 1000 ms |
+| 191 | 1000 ms | 1000 ms | 1000 ms |
+| 196 | 1000 ms | 1000 ms | 1000 ms |
 
 Two things the tables show. The old code is flat across all three time controls, which is the
 point of the item — the factor that was supposed to make a long game slower never left its lower
 clamp. And the increment carries most of the load: the times barely fall until the forecast stops
 shrinking around move 26, because each move gets its own increment back.
 
-`timeShareMin` came out at 135 in the first run, 5+0.01, 2000 samples, 45 min, and is tagged
+`timeShareMin` came out at 135 in the first run, 5+0.01, 2000 samples, 45 min, tagged
 **`0.4.0-062`**. That is a quarter more time per move than the old code takes and the opposite of
 what the item assumed — the expectation was that a short time control should be played relatively
 faster.
 
-The seed column is the committed but never tagged intermediate state, the shape with the values
-the item started from.
+`timeShareMax` came out at 168 in the second run, 60+1, stopped at 1700 of 2000 samples for a
+pending reboot, tagged **`0.4.0-063`**. The estimate had plateaued: after rising from 153 at 600
+samples the last twenty readings all sit between 165 and 169.
 
-**No SPRT was run after that first value.** The intent was to test the finished parameter set
-after all three runs. Given the size of the step from 100 to 135 that was the wrong call; an
-intermediate run would have said early whether the direction holds at all. It is caught up as soon
-as the machine is free.
+So the share runs from 135 % of the fair slice at an empty clock to 168 % at a full one, 160 % at
+60 seconds left. The old code was flat at 100 %. The direction the item expected does hold — more
+clock, more time per move — it just sits an entire level higher than assumed.
+
+**No SPRT was run after either value yet.** The intent was to test the finished parameter set
+after all three runs. Given the size of the step that was the wrong call; an intermediate run
+would have said early whether the direction holds at all. It is caught up as soon as the machine
+is free, with the pgn output the ini now writes, so the times actually spent can be put next to
+the tables above — they are what the formula asks for, not what the engine ends up doing once the
+maximum time, the mode factors and the 0.7 and 0.8 thresholds have their say.
+
+Still open for the item: `timeShareHalfTime` at 20+0.1, the normal mode factor, and the
+`movesToGo` reformulation.
 
 ## Notes on reading this log
 
