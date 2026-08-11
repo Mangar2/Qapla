@@ -620,7 +620,7 @@ costs its own time and gains the increment.
 
 **5 s + 10 ms**
 
-| move | 0.4.0-054, old code | new share, seed 80/120/20000 | shareMin 135, after run 1 |
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | `0.4.0-062`, shareMin 135 |
 |---:|---:|---:|---:|
 | 1 | 90 ms | 80 ms | 115 ms |
 | 6 | 90 ms | 80 ms | 112 ms |
@@ -634,7 +634,7 @@ costs its own time and gains the increment.
 
 **20 s + 100 ms**
 
-| move | 0.4.0-054, old code | new share, seed 80/120/20000 | shareMin 135, after run 1 |
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | `0.4.0-062`, shareMin 135 |
 |---:|---:|---:|---:|
 | 1 | 422 ms | 422 ms | 508 ms |
 | 6 | 422 ms | 418 ms | 500 ms |
@@ -648,7 +648,7 @@ costs its own time and gains the increment.
 
 **60 s + 1 s**
 
-| move | 0.4.0-054, old code | new share, seed 80/120/20000 | shareMin 135, after run 1 |
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | `0.4.0-062`, shareMin 135 |
 |---:|---:|---:|---:|
 | 1 | 1967 ms | 2063 ms | 2189 ms |
 | 6 | 1967 ms | 2046 ms | 2176 ms |
@@ -665,9 +665,13 @@ point of the item — the factor that was supposed to make a long game slower ne
 clamp. And the increment carries most of the load: the times barely fall until the forecast stops
 shrinking around move 26, because each move gets its own increment back.
 
-`timeShareMin` came out at 135 in the first run, 5+0.01, 2000 samples, 45 min. That is a quarter
-more time per move than the old code takes and the opposite of what the item assumed — the
-expectation was that a short time control should be played relatively faster.
+`timeShareMin` came out at 135 in the first run, 5+0.01, 2000 samples, 45 min, and is tagged
+**`0.4.0-062`**. That is a quarter more time per move than the old code takes and the opposite of
+what the item assumed — the expectation was that a short time control should be played relatively
+faster.
+
+The seed column is the committed but never tagged intermediate state, the shape with the values
+the item started from.
 
 **No SPRT was run after that first value.** The intent was to test the finished parameter set
 after all three runs. Given the size of the step from 100 to 135 that was the wrong call; an
