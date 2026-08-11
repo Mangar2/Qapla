@@ -620,7 +620,7 @@ costs its own time and gains the increment.
 
 **5 s + 10 ms**
 
-| move | 0.4.0-054, old code | new share, seed 80/120/20000 | `0.4.0-062`, shareMin 135 |
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | 0.4.0-062, shareMin 135 |
 |---:|---:|---:|---:|
 | 1 | 90 ms | 80 ms | 115 ms |
 | 6 | 90 ms | 80 ms | 112 ms |
@@ -631,10 +631,41 @@ costs its own time and gains the increment.
 | 31 | 80 ms | 75 ms | 85 ms |
 | 36 | 71 ms | 67 ms | 72 ms |
 | 41 | 63 ms | 61 ms | 63 ms |
+| 46 | 57 ms | 55 ms | 54 ms |
+| 51 | 51 ms | 50 ms | 46 ms |
+| 56 | 45 ms | 46 ms | 40 ms |
+| 61 | 41 ms | 41 ms | 35 ms |
+| 66 | 37 ms | 38 ms | 31 ms |
+| 71 | 33 ms | 35 ms | 27 ms |
+| 76 | 30 ms | 32 ms | 24 ms |
+| 81 | 28 ms | 30 ms | 22 ms |
+| 86 | 26 ms | 28 ms | 20 ms |
+| 91 | 24 ms | 26 ms | 19 ms |
+| 96 | 22 ms | 24 ms | 16 ms |
+| 101 | 20 ms | 22 ms | 16 ms |
+| 106 | 19 ms | 22 ms | 15 ms |
+| 111 | 18 ms | 20 ms | 14 ms |
+| 116 | 17 ms | 19 ms | 14 ms |
+| 121 | 16 ms | 18 ms | 12 ms |
+| 126 | 15 ms | 18 ms | 12 ms |
+| 131 | 15 ms | 17 ms | 12 ms |
+| 136 | 14 ms | 16 ms | 11 ms |
+| 141 | 13 ms | 15 ms | 11 ms |
+| 146 | 13 ms | 14 ms | 11 ms |
+| 151 | 13 ms | 14 ms | 11 ms |
+| 156 | 12 ms | 14 ms | 11 ms |
+| 161 | 12 ms | 14 ms | 11 ms |
+| 166 | 12 ms | 13 ms | 11 ms |
+| 171 | 11 ms | 13 ms | 11 ms |
+| 176 | 11 ms | 13 ms | 10 ms |
+| 181 | 11 ms | 12 ms | 10 ms |
+| 186 | 11 ms | 12 ms | 10 ms |
+| 191 | 11 ms | 12 ms | 10 ms |
+| 196 | 11 ms | 11 ms | 10 ms |
 
 **20 s + 100 ms**
 
-| move | 0.4.0-054, old code | new share, seed 80/120/20000 | `0.4.0-062`, shareMin 135 |
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | 0.4.0-062, shareMin 135 |
 |---:|---:|---:|---:|
 | 1 | 422 ms | 422 ms | 508 ms |
 | 6 | 422 ms | 418 ms | 500 ms |
@@ -645,10 +676,41 @@ costs its own time and gains the increment.
 | 31 | 381 ms | 367 ms | 402 ms |
 | 36 | 345 ms | 333 ms | 355 ms |
 | 41 | 314 ms | 303 ms | 313 ms |
+| 46 | 286 ms | 278 ms | 278 ms |
+| 51 | 263 ms | 255 ms | 250 ms |
+| 56 | 242 ms | 236 ms | 225 ms |
+| 61 | 224 ms | 220 ms | 205 ms |
+| 66 | 208 ms | 206 ms | 187 ms |
+| 71 | 194 ms | 192 ms | 173 ms |
+| 76 | 182 ms | 182 ms | 161 ms |
+| 81 | 171 ms | 173 ms | 150 ms |
+| 86 | 162 ms | 164 ms | 142 ms |
+| 91 | 154 ms | 157 ms | 136 ms |
+| 96 | 147 ms | 151 ms | 129 ms |
+| 101 | 141 ms | 144 ms | 124 ms |
+| 106 | 136 ms | 140 ms | 120 ms |
+| 111 | 131 ms | 136 ms | 117 ms |
+| 116 | 127 ms | 131 ms | 114 ms |
+| 121 | 124 ms | 128 ms | 112 ms |
+| 126 | 121 ms | 125 ms | 109 ms |
+| 131 | 118 ms | 122 ms | 108 ms |
+| 136 | 116 ms | 120 ms | 106 ms |
+| 141 | 114 ms | 118 ms | 105 ms |
+| 146 | 112 ms | 116 ms | 105 ms |
+| 151 | 111 ms | 114 ms | 104 ms |
+| 156 | 109 ms | 112 ms | 104 ms |
+| 161 | 108 ms | 112 ms | 101 ms |
+| 166 | 107 ms | 110 ms | 100 ms |
+| 171 | 106 ms | 109 ms | 100 ms |
+| 176 | 105 ms | 108 ms | 100 ms |
+| 181 | 105 ms | 108 ms | 100 ms |
+| 186 | 104 ms | 107 ms | 100 ms |
+| 191 | 104 ms | 106 ms | 100 ms |
+| 196 | 103 ms | 105 ms | 100 ms |
 
 **60 s + 1 s**
 
-| move | 0.4.0-054, old code | new share, seed 80/120/20000 | `0.4.0-062`, shareMin 135 |
+| move | 0.4.0-054, old code | new share, seed 80/120/20000 | 0.4.0-062, shareMin 135 |
 |---:|---:|---:|---:|
 | 1 | 1967 ms | 2063 ms | 2189 ms |
 | 6 | 1967 ms | 2046 ms | 2176 ms |
@@ -659,6 +721,37 @@ costs its own time and gains the increment.
 | 31 | 1844 ms | 1831 ms | 1904 ms |
 | 36 | 1736 ms | 1715 ms | 1767 ms |
 | 41 | 1641 ms | 1616 ms | 1643 ms |
+| 46 | 1559 ms | 1526 ms | 1544 ms |
+| 51 | 1488 ms | 1455 ms | 1460 ms |
+| 56 | 1425 ms | 1394 ms | 1385 ms |
+| 61 | 1371 ms | 1339 ms | 1325 ms |
+| 66 | 1323 ms | 1294 ms | 1271 ms |
+| 71 | 1282 ms | 1256 ms | 1229 ms |
+| 76 | 1246 ms | 1223 ms | 1191 ms |
+| 81 | 1214 ms | 1194 ms | 1161 ms |
+| 86 | 1187 ms | 1171 ms | 1134 ms |
+| 91 | 1163 ms | 1149 ms | 1112 ms |
+| 96 | 1142 ms | 1131 ms | 1094 ms |
+| 101 | 1124 ms | 1114 ms | 1078 ms |
+| 106 | 1108 ms | 1101 ms | 1065 ms |
+| 111 | 1094 ms | 1089 ms | 1054 ms |
+| 116 | 1082 ms | 1079 ms | 1045 ms |
+| 121 | 1072 ms | 1070 ms | 1038 ms |
+| 126 | 1062 ms | 1062 ms | 1000 ms |
+| 131 | 1054 ms | 1055 ms | 1000 ms |
+| 136 | 1047 ms | 1048 ms | 1000 ms |
+| 141 | 1041 ms | 1043 ms | 1000 ms |
+| 146 | 1036 ms | 1039 ms | 1000 ms |
+| 151 | 1032 ms | 1034 ms | 1000 ms |
+| 156 | 1027 ms | 1030 ms | 1000 ms |
+| 161 | 1000 ms | 1027 ms | 1000 ms |
+| 166 | 1000 ms | 1024 ms | 1000 ms |
+| 171 | 1000 ms | 1016 ms | 1000 ms |
+| 176 | 1000 ms | 1000 ms | 1000 ms |
+| 181 | 1000 ms | 1000 ms | 1000 ms |
+| 186 | 1000 ms | 1000 ms | 1000 ms |
+| 191 | 1000 ms | 1000 ms | 1000 ms |
+| 196 | 1000 ms | 1000 ms | 1000 ms |
 
 Two things the tables show. The old code is flat across all three time controls, which is the
 point of the item — the factor that was supposed to make a long game slower never left its lower
