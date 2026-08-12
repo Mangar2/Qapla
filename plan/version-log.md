@@ -820,6 +820,40 @@ derived from, and their runtimes match the time control they were given.
 Still open for the item: the formula rebuild — a saturating `movesToGo` instead of the kinked
 maximum and the mode factors as coefficients — plus the pieces Spike had that Qapla lacks.
 
+## 0.4.0-065 — time formulas reformulated
+
+`movesToGo` was `max(start - movesPlayed, keep)`, a kink where the slope jumps from −1 to 0. It is
+a soft maximum now, `keep + s * ln(1 + exp((start - played - keep) / s))`, which at s = 0.5 gives
+the same integer for every ply count from 0 to 400. The four mode factors became coefficients in
+percent with the defaults the hard values had. Behaviour identical to `0.4.0-064`.
+
+- SPRT vs `0.4.0-054` at 5+0.01: **H1 accepted**, 52.38 %, ≈ **+16.6 Elo**, 3105 games
+
+## 0.4.0-066 — normal time capped against the maximum
+
+The normal time is the budget the search plans against: it starts another iteration while below
+0.7 of it and another root move while below 0.8. Nothing tied that budget to the maximum, so the
+room between the deepening decision and the hard cut shrank over the game — at 60+1 from eleven
+times the gate down to 1.2 by move 80, and with the critical factor of 4 from move 42 on there is
+none left at all. Every iteration begun there dies mid tree and buys nothing for the move choice.
+
+`normalTime = min(normalTime, maxTime * 100 / timeAvgCapDivisor)`, the divisor never below 100 so
+the normal time stays under the maximum by construction. CLOP at 20+0.1, stopped at 950 of 2000
+samples: 220.
+
+- SPRT vs `0.4.0-065` at 20+0.1: **H0 accepted**, 49.16 %, ≈ −5.8 Elo, 7228 games
+
+Reverted, `dead/time-avg-cap`.
+
+The reasoning was sound and the measurement says no. What it means is that the work in an aborted
+iteration is not lost after all: the transposition table keeps it, and the next move starts from a
+tree that is already searched deeper. Cutting the budget to hold every iteration inside the maximum
+gives up more than the aborted iterations cost. Spike has the same construction and the same
+missing cap, which is worth knowing — it is not an oversight there either.
+
+`timeIncrementShare` went out with the revert; it was in that commit at 100 percent and had no
+effect on this run.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
