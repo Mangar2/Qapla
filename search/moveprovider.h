@@ -345,7 +345,7 @@ namespace QaplaSearch {
 			moveNo = findNextBestCaptureMove();
 			while (moveNo != -1 && sEE.isLoosingCapture(board, moveList[moveNo])) {
 				// Tested 0.4.0-082: the deferred captures ordered by their exact exchange value
-				// instead of the order the move generator produced: -3.5 Elo, 12721 games
+				// instead of the order the move generator produced: about -4 Elo, 12721 games
 				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - CAPTURE_DEFERRAL_MALUS);
 				moveNo = findNextBestCaptureMove();
 			}

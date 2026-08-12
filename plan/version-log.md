@@ -641,7 +641,7 @@ move generator produced them - the only place in the move ordering where no orde
 actually reaches and has just found loosing, not for every capture in the preparation stage.
 
 - EPD nodes: 56240905 -> 54575345 (-3.0 %), success rate 23 % -> 22 %, EPD runtime 3.39 s -> 3.08 s
-- SPRT vs the branch point at 5+0.01: **H0 accepted**, 49.49 %, ~ -3.5 Elo, 12721 games
+- SPRT vs the branch point at 5+0.01: **H0 accepted**, 49.49 %, about -4 Elo +- 2, 12721 games
 
 Reverted, `dead/see-loosing-order`. Node count after the revert 56240905.
 
@@ -693,7 +693,7 @@ unchanged.
 - EPD nodes: 56240905 -> 55970930, success rate unchanged at 23 %
 - Static evaluation now baseline times the factor exactly: -94/-47, 241/120, 178/89, -435/-282,
   359/179, 106/68, -446/-289, -140/-70
-- SPRT vs the branch point at 5+0.01: **H1 accepted**, 50.85 %, ~ +5.9 Elo, 8623 games
+- SPRT vs the branch point at 5+0.01: **H1 accepted**, 50.85 %, about +6 Elo +- 3, 8623 games
 
 - SPRT on the opposite coloured bishop start set: **H0 accepted**, 49.89 %, 15324 games
 
@@ -721,7 +721,7 @@ be worth switched on. Activating it at weight 0 is behaviour neutral, the node c
 55970930, which confirms the CLOP engine only ever differed in the weight.
 
 - EPD nodes: 55970930 -> 56980971, success rate 23 % -> 22 %
-- SPRT vs 0.4.0-084 at 5+0.01: **H0 accepted**, 47.18 %, ~ -19.6 Elo, 2641 games
+- SPRT vs 0.4.0-084 at 5+0.01: **H0 accepted**, 47.18 %, about -20 Elo +- 5, 2641 games
 
 Switched off again. The two measurements agree and the game result is the harsher of the two: the
 term is not merely worthless at its ported weight, it costs twenty Elo. CLOP pointing at the null
@@ -765,7 +765,7 @@ Not tuned together with the other king attack parameters as the item asked: seve
 plus seven attack support points plus the queen factor are 15, and a run takes at most 10.
 
 - EPD nodes: 55970930 -> 56158265, success rate 23 % -> 22 %
-- SPRT vs 0.4.0-084 at 5+0.01: **H1 accepted**, 51.11 %, ~ +7.7 Elo, 6783 games
+- SPRT vs 0.4.0-084 at 5+0.01: **H1 accepted**, 51.11 %, about +8 Elo +- 3, 6783 games
 
 Kept.
 
@@ -775,27 +775,41 @@ Two of the five items survived, and each of them was accepted at alpha = 0.05 ag
 the head was at the time. Their numbers must not be added up, so the head was measured against the
 branch point once more.
 
-- SPRT `0.4.0-086` vs the state at `373bb20b` at 5+0.01: **H1 accepted**, 51.19 %, ~ +8.3 Elo,
-  6340 games
+- SPRT `0.4.0-086` vs the state at `373bb20b` at 5+0.01, the standard bounds: **H1 accepted**,
+  51.19 %, 6340 games
 
-### What the closing run does and does not say
+A second closing run followed, with the bounds placed where the question actually is instead of at
+the standard +-2/+3:
 
-It says the two survivors together are worth more than 3 Elo. That is all it says, and it is worth
-being blunt about it, because the first version of this entry claimed more.
+- SPRT `0.4.0-086` vs the state at `373bb20b`, H0 = 0, H1 = 10: **H1 accepted**, 52.68 %, 1662
+  games, 8 min
 
-The Elo figures quoted for the single runs - +5.9 and +7.7 - are not measurements. An SPRT is a
-decision procedure: it stops at a boundary, and the score at the stopping point is biased upwards
-for exactly the reason it stopped. Reading them as estimates and adding them to +13.6 has no basis.
+### What the closing runs say, and what the first version of this entry got wrong
 
-Even taken as estimates they would carry no such resolution. With 6340 games and this draw rate
-the variance per game is 0.129, so the standard error of the score is 0.45 %, which is **3.1 Elo
-at one sigma** and 6.2 Elo at 95 %. The other two runs sit at 2.7 and 3.0 Elo. The difference
-between 13.6 and 8.3 is 5.3 Elo against a standard error of the difference of about 5.1 - one
-sigma, and nothing to explain.
+They say the two survivors together are worth at least 10 Elo.
 
-So: three runs, three decisions, each of them "more than 3 Elo". Whoever wants the magnitude of
-this block has to measure it, with bounds placed where the question is - H0 = 5, H1 = 12 would ask
-whether the two changes add up - and not read it off a run that was built to answer something else.
+The first version of this entry said something else. It put the summed single runs, about 14 Elo,
+against the first closing run, about 8, and explained the gap as the price of stopping at a bound.
+That explanation was invented. The gap is 5 Elo against a standard error of the difference of
+about 5 - one sigma, nothing to account for.
+
+Two things went wrong and both are worth naming.
+
+The first is arithmetic dressed up as precision. Writing 8.3 claims the value is known to better
+than a tenth. With 6340 games and this draw rate the variance per game is 0.129, the standard
+error of the score is 0.45 %, and that is about 3 Elo at one sigma. The correct way to write that
+number is "about 8 Elo", or "8 +- 3". The spurious decimal made two indistinguishable figures look
+like two different results, and the story followed the decimal.
+
+The second is reading an SPRT as a measurement. It stops the moment the LLR reaches a bound, and
+the score at that moment is biased in the direction that caused the stop. The second closing run
+shows it plainly: same two engines, and it came out at 52.68 % after 1662 games where the first
+had 51.19 % after 6340. The short run is the hotter one, which is why it was short.
+
+Taken together - they are independent samples of the same comparison - 8002 games at 51.50 %, so
+**about 10 Elo, +- 3**. The sum of the two single runs, about 14, sits inside that. Whatever the
+first version of this entry claimed about the sum being inflated has no support in the data, and
+if anything they lean the other way.
 
 The Elo below is the score at the stopping point converted to Elo, with one sigma from the game
 count and the draw rate of that run. It is a label on a decision, not a measurement - and the
@@ -804,11 +818,11 @@ error bars are the size of the effects being looked for.
 | Item | Tag | Result |
 |---|---|---|
 | 13 forward futility honours the tt bound | `0.4.0-081` | undecided at 50.02 %, 20000 games |
-| 14 loosing captures by exchange value | `0.4.0-082` | H0, 49.49 %, -3.5 +- 2.2 Elo |
+| 14 loosing captures by exchange value | `0.4.0-082` | H0, 49.49 %, about -4 +- 2 Elo |
 | 10 opposite bishops through the signature hash | `0.4.0-083` | flat, construction fault |
-| 10 opposite bishops scaled last | `0.4.0-084` | **H1, 50.85 %, +5.9 +- 2.7 Elo, kept** |
-| 12 space evaluation at its ported weight | `0.4.0-085` | H0, 47.18 %, -19.6 +- 5.0 Elo |
-| 11 pawn shield activated and tuned | `0.4.0-086` | **H1, 51.11 %, +7.7 +- 3.0 Elo, kept** |
+| 10 opposite bishops scaled last | `0.4.0-084` | **H1, 50.85 %, about +6 +- 3 Elo, kept** |
+| 12 space evaluation at its ported weight | `0.4.0-085` | H0, 47.18 %, about -20 +- 5 Elo |
+| 11 pawn shield activated and tuned | `0.4.0-086` | **H1, 51.11 %, about +8 +- 3 Elo, kept** |
 
 Three of the six versions were measured on an instrument that first had to be repaired: item 10
 needed a start position set that then turned out to be unable to see the effect, item 12 needed a
