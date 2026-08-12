@@ -59,7 +59,7 @@ namespace ChessEval {
 	private:
 		static constexpr value_t NON_PAWN_MATERIAL_THRESHOLD_DEFAULT = 5250;
 		// 0 switches the term off. Tested 0.4.0-085 at 100, a factor of 1.0 on the raw bonus and
-		// so the term as it was ported: -19.6 Elo over 2641 games. CLOP over -40 to 40 put it at
+		// so the term as it was ported: about -20 Elo over 2641 games. CLOP over -40 to 40 put it at
 		// -2.1. The call in lazyEval is commented out as well, this default alone would not
 		// save the time the evaluation costs.
 		static constexpr value_t SPACE_WEIGHT_MG_DEFAULT = 0;
