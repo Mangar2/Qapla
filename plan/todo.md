@@ -129,12 +129,14 @@ Already tried once.
 
 ## 12. Space weight
 
-**Priority 3** — done: [ ]
+**Priority 3** — done: [x] — `0.4.0-085` lost 19.6 Elo, `dead/space-weight`
 
-`spaceWeightMg` defaults to 0, the space evaluation is off. Tune it. If it fails again, remove
-the space code.
+CLOP over -40 to 40, 2000 samples, estimate -2.1, so the null point. The estimate was then set
+aside and the ported weight of 100 measured on its own: 47.18 % over 2641 games. Both answers
+point the same way and the game result is the harsher one.
 
-Already tried once, hence the 0.
+Switched off again, code left in place with the measurement written at the call in `lazyEval` and
+at the default weight — not removed, so that the number stands where the idea would come back.
 
 ## 13. Forward futility: honour ttValueIsLessOrEqualAlpha
 

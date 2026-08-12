@@ -708,6 +708,29 @@ decision does not occur in a set that starts inside one. The item asked for the 
 because the material is too rare in the standard book. It is too rare there, and the standard book
 is still the only place the change can be measured.
 
+## 0.4.0-085 - the space evaluation switched on
+
+Todo item 12. `spaceWeightMg` stood at 0, which made the term inert, and the call in `lazyEval`
+was commented out on top of that. Both switched on, at a weight of 100 - a factor of 1.0 on the
+raw bonus, so the term exactly as the port defines it.
+
+A CLOP run came first: 2000 samples over -40 to 40, centred on the 0 the value stood at, estimate
+**-2.1**. That is the null point. The run was then deliberately set aside and the ported weight
+measured instead, on the argument that a run cannot learn from an inert term what the term would
+be worth switched on. Activating it at weight 0 is behaviour neutral, the node count stayed at
+55970930, which confirms the CLOP engine only ever differed in the weight.
+
+- EPD nodes: 55970930 -> 56980971, success rate 23 % -> 22 %
+- SPRT vs 0.4.0-084 at 5+0.01: **H0 accepted**, 47.18 %, ~ -19.6 Elo, 2641 games
+
+Switched off again. The two measurements agree and the game result is the harsher of the two: the
+term is not merely worthless at its ported weight, it costs twenty Elo. CLOP pointing at the null
+point was the correct answer, not a failure to see a signal.
+
+The code stays in `eval/space.h` and `eval/space.cpp`, with the number written at the call in
+`lazyEval` and at the default weight. It is measured now rather than suspected, which is worth
+more standing in the code than the same lines would be worth deleted. Kept as `dead/space-weight`.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
