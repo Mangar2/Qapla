@@ -61,7 +61,16 @@ public:
 			{ .name = "kAttackP10", .defaultValue = p10_, .minValue = -2000, .maxValue = 2000 },
 			{ .name = "kAttackP15", .defaultValue = p15_, .minValue = -2000, .maxValue = 2000 },
 			{ .name = "kAttackP32", .defaultValue = p32_, .minValue = -2000, .maxValue = 2000 },
-			{ .name = "kAttackQueenFactor", .defaultValue = static_cast<int32_t>(KingAttack::queenFactor), .minValue = 0, .maxValue = 10 }
+			{ .name = "kAttackQueenFactor", .defaultValue = static_cast<int32_t>(KingAttack::queenFactor), .minValue = 0, .maxValue = 10 },
+			// The full shield, index 7, has no option: it is the reference the other seven are
+			// measured against, see PAWN_INDEX_FACTOR_DEFAULT.
+			{ .name = "kShield0", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[0], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield1", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[1], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield2", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[2], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield3", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[3], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield4", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[4], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield5", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[5], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield6", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[6], .minValue = -100, .maxValue = 100 }
 		};
 	}
 
@@ -82,6 +91,9 @@ public:
 			p32_ = static_cast<value_t>(value);
 		} else if (name == "kAttackQueenFactor") {
 			KingAttack::queenFactor = static_cast<uint32_t>(value);
+			return true;
+		} else if (name.rfind("kShield", 0) == 0 && name.size() == 8 && name[7] >= '0' && name[7] <= '6') {
+			KingAttack::pawnIndexFactor[static_cast<size_t>(name[7] - '0')] = static_cast<value_t>(value);
 			return true;
 		} else {
 			return false;

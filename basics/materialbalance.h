@@ -123,9 +123,16 @@ namespace QaplaBasics {
 			return pieceValues;
 		}
 
-		// Piece values reverted to 0.4.0-025a. The optimized values
-		// (N 365, B 365/340, R 550/575, Q 1150/1150) performed worse than 0.4.0-025a,
-		// therefore they are kept as a comment only.
+		// Piece values at the level of 0.4.0-025a. They have been optimized twice and dropped twice.
+		//
+		// 0.4.0-026 (N 365, B 365/340, R 550/575, Q 1150/1150) was rolled back in 464ba8e because it
+		// lost the final tournament against 0.4.0-025a - a comparison that was worthless, 025a had
+		// won 150 games on time in a broken run and was rated far too high.
+		//
+		// Tested 0.4.0-087: the run repeated for that reason, CLOP over 5000 samples with the pawn
+		// left fixed, giving N 365/310, B 365/330, R 575/565, Q 1070/1060: about -5 Elo, 8666 games.
+		// Both runs agree that the minor pieces want 365 in the midgame; neither set survives a game
+		// result. The rollback had no basis, its outcome holds anyway.
 		constexpr static value_t PAWN_VALUE_MG_DEFAULT = 80;
 		constexpr static value_t PAWN_VALUE_EG_DEFAULT = 95;
 		constexpr static value_t KNIGHT_VALUE_MG_DEFAULT = 360;

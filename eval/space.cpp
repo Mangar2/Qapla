@@ -37,8 +37,10 @@ class SpaceUciAccess : public UciParameterProvider {
 public:
 	std::vector<UciParam> getUciParameters() const override {
 		return {
+			// The lower limit is negative on purpose: a CLOP range has to be centred on the value
+			// it starts from, and that value has been 0.
 			{ .name = "spaceWeightMg", .defaultValue = Space::SPACE_WEIGHT_MG_DEFAULT,
-			  .minValue = 0, .maxValue = 500 },
+			  .minValue = -500, .maxValue = 500 },
 			{ .name = "spaceNonPawnThreshold", .defaultValue = Space::NON_PAWN_MATERIAL_THRESHOLD_DEFAULT,
 			  .minValue = 0, .maxValue = 20000 }
 		};

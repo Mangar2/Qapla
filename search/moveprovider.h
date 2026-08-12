@@ -52,7 +52,7 @@ namespace QaplaSearch {
 		GOOD_CAPTURES, 					// Selects the captures that SEE does not rate as loosing, highest
 										// weight first. Weight is the value of the captured piece plus the
 										// recapture bonus, the capturing piece does not take part.
-										// Loosing captures are dropped here and reappear in SILENT_MOVES
+										// Loosing captures are dropped here and reappear in REMAINING_MOVES
 		KILLER1, KILLER2, 				// Selects the killers, thus only after the good captures are used up
 		SORT_MOVES, 					// Prepares: weights the silent moves by butterfly value and sorts
 										// the first few of them
@@ -348,6 +348,8 @@ namespace QaplaSearch {
 			int32_t moveNo;
 			moveNo = findNextBestCaptureMove();
 			while (moveNo != -1 && sEE.isLoosingCapture(board, moveList[moveNo])) {
+				// Tested 0.4.0-082: the deferred captures ordered by their exact exchange value
+				// instead of the order the move generator produced: about -4 Elo, 12721 games
 				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - CAPTURE_DEFERRAL_MALUS);
 				moveNo = findNextBestCaptureMove();
 			}

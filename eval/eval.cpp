@@ -136,8 +136,9 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	evalValue += Knight::eval(position, evalResults);
 	evalValue += Queen::eval(position, evalResults);
 	evalValue += Threat::eval(position, evalResults);
-	// Space evaluation: worse result than 0.4.0-025a, therefore commented out.
-	// The implementation is kept in eval/space.h / eval/space.cpp for later work.
+	// Tested 0.4.0-085: space evaluation switched on at its ported weight of 100:
+	// about -20 Elo, 2641 games. A CLOP run over -40 to 40 with 2000 samples put the weight at
+	// -2.1, so at the null point, and the game result confirms the direction.
 	// evalValue += Space::eval(position, evalResults);
 	evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
 	evalValue += King::eval(position, evalResults);
@@ -201,6 +202,14 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			}
 		}
 	}
+	// Bishops on opposite colours are scaled last, after the tempo bonus and the fifty move
+	// damping, because it is a scaling of the finished value and both of those belong in it.
+	result = EvalEndgame::scaleOppositeColouredBishops(position, result);
+	if constexpr (PRINT) {
+		cout << "Opposite bishops:"
+			<< std::right << std::setw(19) << result << std::endl;
+	}
+
 	// If a value == 0, the position will not be stored in hash tables
 	// Value == 0 indicates a forced draw situation like repetetive moves 
 	// or move count without pawn move or capture == 50
