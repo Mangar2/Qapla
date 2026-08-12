@@ -136,7 +136,10 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	evalValue += Knight::eval(position, evalResults);
 	evalValue += Queen::eval(position, evalResults);
 	evalValue += Threat::eval(position, evalResults);
-	evalValue += Space::eval(position, evalResults);
+	// Tested 0.4.0-085: space evaluation switched on at its ported weight of 100:
+	// -19.6 Elo, 2641 games. A CLOP run over -40 to 40 with 2000 samples put the weight at
+	// -2.1, so at the null point, and the game result confirms the direction.
+	// evalValue += Space::eval(position, evalResults);
 	evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
 	evalValue += King::eval(position, evalResults);
 
