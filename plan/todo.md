@@ -105,12 +105,30 @@ Add tunable parameters to control the time usage. It should depend on the time a
 
 ### Concept
 
-The move time is a product of three independent factors. Each answers one question, none of
-them is derived from another:
+The whole normal time, in one place:
 
 ```
-moveTime = fairSlice(timeLeft, movesPlayed) * clockShare(timeLeft) * modeFactor(searchFinding)
+movesToGo  = keep + smoothing * ln(1 + exp((start - movesPlayed - keep) / smoothing))
+fairSlice  = timeLeft / (movesToGo + 2)
+clockShare = shareMin + (shareMax - shareMin) * timeLeft / (timeLeft + halfTime)
+
+normalTime = fairSlice * clockShare / 100
+normalTime = normalTime * modeFactor / 100
+normalTime = normalTime + increment * incrementShare / 100
+normalTime = min(normalTime, maxTime * 100 / capDivisor)
 ```
+
+Coefficients, all independent of each other, none derived from another:
+
+| | what it decides |
+|---|---|
+| `start`, `keep`, `smoothing` | how the forecast of remaining moves falls over the game |
+| `shareMin`, `shareMax`, `halfTime` | how much of the fair slice a move takes, as a function of the clock |
+| `modeFactor` | one coefficient per search finding: normal, critical, sudden death, book move |
+| `incrementShare` | how much of the increment is spent on the move it is given for |
+| `capDivisor` | how far the normal time stays below the maximum, never below 100 |
+
+The parts in detail:
 
 **fairSlice** — `timeLeft / (movesToGo + 2)`, what one move gets if the rest of the game is
 played evenly. The `+ 2` is the safety against losing on time.
