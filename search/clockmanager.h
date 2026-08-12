@@ -23,6 +23,7 @@
 #define _CLOCKMANAGER_H
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <sys/timeb.h>
 #include "../interface/clocksetting.h"
@@ -261,12 +262,25 @@ namespace QaplaSearch {
 		int32_t computeMovesToGo()
 		{
 			int32_t movesToGo = _clockSetting.getMoveAmountForClock();
-			const int32_t movesPlayed = _clockSetting.getPlayedMovesInGame();
 			if (movesToGo == 0) {
-				movesToGo = std::max(AVERAGE_MOVE_COUNT_PER_GAME - (movesPlayed / 2), KEEP_TIME_FOR_MOVES);
+				constexpr bool OPT = SearchParameter::optimizeTime;
+				// The forecast falls from movesToGoStart at the first move towards movesToGoKeep,
+				// the amount of moves the engine always keeps time for. The old form was
+				// max(start - played, keep), which has a kink where the two meet - the slope
+				// jumps from -1 to 0. A soft maximum is identical away from that corner and
+				// continuous in every derivative at it.
+				//
+				// movesToGoSmoothing is in tenths of a move. At 5 the corner is as sharp as the
+				// old maximum, which is where this reformulation starts.
+				const double start = param<OPT, "movesToGoStart", 60, 20, 100>();
+				const double keep = param<OPT, "movesToGoKeep", 35, 0, 70>();
+				const double smoothing = param<OPT, "movesToGoSmoothing", 5, 1, 100>() / 10.0;
+				const double played = _clockSetting.getPlayedMovesInGame() / 2;
+				const double above = (start - keep - played) / smoothing;
+				const double soft = above > 30.0 ? above : std::log1p(std::exp(above));
+				movesToGo = static_cast<int32_t>(keep + smoothing * soft + 0.5);
 			}
-			movesToGo = std::max(1, movesToGo);
-			return movesToGo;
+			return std::max(1, movesToGo);
 		}
 
 		/**

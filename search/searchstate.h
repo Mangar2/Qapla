@@ -31,6 +31,7 @@
 #include "../interface/clocksetting.h"
 #include "searchdef.h"
 #include "searchparameter.h"
+#include "search-param.h"
 
 using namespace std;
 using namespace QaplaBasics;
@@ -128,21 +129,27 @@ namespace QaplaSearch {
 		 * Modifies the average time by the situation found by search
 		 */
 		int64_t modifyTimeBySearchFinding(int64_t averageTime) {
+			// Every situation carries its own factor, in percent, none derived from another.
+			// The defaults are the hard values this used to have: unchanged, four times, fifteen
+			// times, a fifth.
+			constexpr bool OPT = SearchParameter::optimizeTime;
+			int64_t factor = 100;
 			switch (_rootSearchState)
 			{
 			case SearchFinding::normal:
+				factor = param<OPT, "timeNormalFactor", 100, 40, 160>();
 				break;
 			case SearchFinding::critical:
-				averageTime *= 4;
+				factor = param<OPT, "timeCriticalFactor", 400, 100, 700>();
 				break;
 			case SearchFinding::suddenDeath:
-				averageTime *= 15;
+				factor = param<OPT, "timeSuddenDeathFactor", 1500, 100, 2900>();
 				break;
 			case SearchFinding::book:
-				averageTime /= 5;
+				factor = param<OPT, "timeBookFactor", 20, 0, 40>();
 				break;
 			}
-			return averageTime;
+			return averageTime * factor / 100;
 		}
 
 	private:
