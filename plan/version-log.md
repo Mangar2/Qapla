@@ -601,6 +601,202 @@ The node count says why the stand pat refinement is not the prize it looked like
 reachable moves 0.3 % of the nodes. What the guard costs instead is every cheap tt cutoff it gives
 up in a pv node.
 
+## Items 10 to 14, worked in parallel on branch `todo-10-14`
+
+The branch starts at `373bb20b`, right before the ClockManager work of item 9, which runs on
+another machine at the same time. Its versions take the block from `0.4.0-081` upwards so that
+the two machines cannot collide on a tag. Every run in this block measures against the state at
+the branch point, which is `0.4.0-054` behaviour - `0.4.0-057`, `-060` and `-061` were all
+reverted, and the EPD node count of 56240905 at the branch point confirms it.
+
+## 0.4.0-081 - forward futility honours ttValueIsLessOrEqualAlpha
+
+Todo item 13. The guard stood in the code as a commented out line, with the note that it never
+had any effect because `setFromParentNode` reset the flag between `probeTT` and the call. That
+note is out of date: the tt bound flags are deliberately left standing there today, so the line
+is reachable and could be measured for the first time.
+
+- EPD nodes: 56240905 -> 54663722 (-2.8 %), success rate 23 % -> 24 %
+- SPRT vs the branch point at 5+0.01: **undecided**, 50.02 %, LLR -0.21 after the full 20000
+  games (5216 / 9578 / 5206), 98 min
+
+Reverted, `dead/ff-ttalpha`. Node count after the revert 56240905, identical to the baseline.
+
+Two things are worth keeping. The first is that the guard is anything but inert: it moves 2.8 %
+of the nodes and lifts the EPD success rate by a point. Skipping the pruning searches the node
+properly instead of guessing, and the better tt entry that comes out of it apparently saves more
+nodes elsewhere than the skipped cutoff costs - yet none of that turns into Elo.
+
+The second is the shape of the run. At 4208 games the LLR stood at -1.99 of the -2.94 bound and
+the winrate at 48.9 %; it looked decided. It ended at -0.21 and 50.02 %. With bounds 5 Elo apart
+the swing over thousands of games is larger than the effect being measured, which is exactly why
+the log records the final number and nothing else.
+
+## 0.4.0-082 - the loosing captures ordered by their exchange value
+
+Todo item 14, in the one shape the area had not been tried in. The captures the SEE rates as
+loosing are deferred out of the capture stage and come back in `REMAINING_MOVES` in the order the
+move generator produced them - the only place in the move ordering where no order exists at all.
+`computeExactExchangeValue` is back from `0.4.0-042`, but it runs only for a capture the selection
+actually reaches and has just found loosing, not for every capture in the preparation stage.
+
+- EPD nodes: 56240905 -> 54575345 (-3.0 %), success rate 23 % -> 22 %, EPD runtime 3.39 s -> 3.08 s
+- SPRT vs the branch point at 5+0.01: **H0 accepted**, 49.49 %, ~ -3.5 Elo, 12721 games
+
+Reverted, `dead/see-loosing-order`. Node count after the revert 56240905.
+
+The interesting part is that it is cheaper and still worse: 3 % fewer nodes, a faster run, and
+-3.5 Elo. Whatever the generated order of the loosing captures is, it beats sorting them by how
+much material the exchange loses. A plausible reading is that the exchange value answers the wrong
+question down there - a capture that loses a rook for a bishop may still be the move that saves the
+game, and the generator order at least keeps the cheap pieces first by accident of the piece loop.
+
+This is the fourth change to the capture ordering that lost: recapture priority (`0.4.0-039`,
+-4.5), queen promotion priority (`0.4.0-040`, flat), exchange value as the capture weight
+(`0.4.0-042`, -6.7) and now the order of the loosing captures. The one variant still untried is a
+tie break by the capturing piece inside an equal captured value - real MVV/LVA, where today only
+the MVV half exists. Item closed without it.
+
+## 0.4.0-083 - opposite coloured bishops, scaled through the signature hash
+
+Todo item 10, first attempt. `KBP*KBP*` registered as an endgame pattern, scaling the value by
+45, 50, 65, 85 and 100 percent for a pawn surplus of 0 to 4 and more. Hand written, no CLOP - the
+material is far too rare in a normal game for a run to find a signal on it.
+
+- Activation shown on the static evaluation, not on the EPD node count: the wmtest positions do
+  not reach this material. Eight positions of the set, baseline against new: -94/-51, 241/116,
+  178/85, -435/-287, 359/175, 106/63, -446/-295, -140/-74
+- SPRT on the opposite coloured bishop start set at 5+0.01: **undecided**, 50.02 %, LLR 0.05
+  after the full 20000 games
+
+The version has a construction fault, found afterwards by comparing the moves the two engines
+choose on the set: 9 of 30 differed, which is far more than a scaling that is order preserving
+inside its own material class should produce. The reason is the contract of the signature hash.
+An entry there **replaces** the value, so `lazyEval` takes the endgame branch and skips the tempo
+bonus and the fifty move damping, `result -= result * (halfmoves - 20) / 250`. That damping pulls
+towards the draw as well - the version switched it off in exactly the positions it wanted pulled
+towards the draw, and the flat result is two opposite effects measured against each other.
+
+A second lesson sits in the start position set. Inside `KBP*KBP*` with a fixed surplus every leaf
+is scaled by the same factor, so the minimax result is too and the move choice cannot change. What
+the scaling really decides is whether to *enter* such an endgame - and a set that starts inside one
+does not contain that decision. The set is the wrong instrument for this change, however well it
+covers the material.
+
+## 0.4.0-084 - the same scaling, applied last
+
+The scaling moved out of the signature hash to the end of `lazyEval`, after the tempo bonus and
+the fifty move damping, which is where a scaling of the finished value belongs. The material test
+is one and plus one compare on the piece signature instead of a hash lookup. The factors are
+unchanged.
+
+- EPD nodes: 56240905 -> 55970930, success rate unchanged at 23 %
+- Static evaluation now baseline times the factor exactly: -94/-47, 241/120, 178/89, -435/-282,
+  359/179, 106/68, -446/-289, -140/-70
+- SPRT vs the branch point at 5+0.01: **H1 accepted**, 50.85 %, ~ +5.9 Elo, 8623 games
+
+- SPRT on the opposite coloured bishop start set: **H0 accepted**, 49.89 %, 15324 games
+
+Kept. Two thirds of an hour of runtime separates it from `0.4.0-083`, and the whole difference is
+where the multiplication happens.
+
+The two runs together are the interesting part. On the start position set the change is worth
+nothing, slightly negative even; in normal games it is worth six Elo. That is precisely what the
+mechanism predicts: inside `KBP*KBP*` the scaling multiplies every leaf by the same factor and
+cannot change a move, it only decides whether such an endgame is worth entering - and that
+decision does not occur in a set that starts inside one. The item asked for the special set
+because the material is too rare in the standard book. It is too rare there, and the standard book
+is still the only place the change can be measured.
+
+## 0.4.0-085 - the space evaluation switched on
+
+Todo item 12. `spaceWeightMg` stood at 0, which made the term inert, and the call in `lazyEval`
+was commented out on top of that. Both switched on, at a weight of 100 - a factor of 1.0 on the
+raw bonus, so the term exactly as the port defines it.
+
+A CLOP run came first: 2000 samples over -40 to 40, centred on the 0 the value stood at, estimate
+**-2.1**. That is the null point. The run was then deliberately set aside and the ported weight
+measured instead, on the argument that a run cannot learn from an inert term what the term would
+be worth switched on. Activating it at weight 0 is behaviour neutral, the node count stayed at
+55970930, which confirms the CLOP engine only ever differed in the weight.
+
+- EPD nodes: 55970930 -> 56980971, success rate 23 % -> 22 %
+- SPRT vs 0.4.0-084 at 5+0.01: **H0 accepted**, 47.18 %, ~ -19.6 Elo, 2641 games
+
+Switched off again. The two measurements agree and the game result is the harsher of the two: the
+term is not merely worthless at its ported weight, it costs twenty Elo. CLOP pointing at the null
+point was the correct answer, not a failure to see a signal.
+
+The code stays in `eval/space.h` and `eval/space.cpp`, with the number written at the call in
+`lazyEval` and at the default weight. It is measured now rather than suspected, which is worth
+more standing in the code than the same lines would be worth deleted. Kept as `dead/space-weight`.
+
+## 0.4.0-086 - the pawn shield activated and tuned
+
+Todo item 11. `computePawnShieldValue` had been written but nothing ever called it; the index
+lookup already carried a `kShield` entry for it. It is now added to the attack value of the side
+whose king is examined, so it shares the midgame scaling of the king attack term and disappears
+with it towards the endgame.
+
+Before tuning, the eight factors had to be given a shape a run can work on. Both kings get the
+same term and the two are subtracted from each other, so a constant added to all eight cancels
+out - up to the rounding of the midgame scaling it changes nothing at all. That is a degree of
+freedom carrying no information, and no run could have resolved it. Index 7, the full shield, is
+pinned at 0 and the other seven are measured against it; the original set shifted by -10 is the
+same evaluation.
+
+CLOP over the seven, 5000 samples, 115 min:
+
+| index | pawns | before | estimate | taken |
+|---|---|---|---|---|
+| 0 | none | -18 | -12.93 | -13 |
+| 1 | east | -19 | -19.06 | -19 |
+| 2 | west | -19 | -24.29 | -24 |
+| 3 | west+east | -15 | -17.49 | -17 |
+| 4 | front | -19 | -15.10 | -15 |
+| 5 | front+east | -14 | -7.69 | -8 |
+| 6 | front+west | -5 | -9.96 | -10 |
+
+Indices 5 and 6 are mirror images of each other and had stood 9 apart, which was always suspect.
+The run pulled them to -8 and -10. Agreement of that kind between two values it optimises
+independently is not what noise produces, and it is the best evidence the run found something.
+
+Not tuned together with the other king attack parameters as the item asked: seven shield values
+plus seven attack support points plus the queen factor are 15, and a run takes at most 10.
+
+- EPD nodes: 55970930 -> 56158265, success rate 23 % -> 22 %
+- SPRT vs 0.4.0-084 at 5+0.01: **H1 accepted**, 51.11 %, ~ +7.7 Elo, 6783 games
+
+Kept.
+
+## Closing run for items 10 to 14
+
+Two of the five items survived, and each of them was accepted at alpha = 0.05 against whatever
+the head was at the time. Their numbers must not be added up, so the head was measured against the
+branch point once more.
+
+- SPRT `0.4.0-086` vs the state at `373bb20b` at 5+0.01: **H1 accepted**, 51.19 %, ~ +8.3 Elo,
+  6340 games
+
+The two individual runs said +5.9 and +7.7, which would add to +13.6. The honest number is +8.3.
+Neither run was wrong; both stopped at the moment they reached their bound, and that moment
+favours whichever way the result was fluctuating at the time. The gap between 13.6 and 8.3 is what
+that costs, and it is the reason the closing run exists.
+
+| Item | Tag | Result |
+|---|---|---|
+| 13 forward futility honours the tt bound | `0.4.0-081` | undecided at 50.02 %, 20000 games |
+| 14 loosing captures by exchange value | `0.4.0-082` | H0, 49.49 %, ~ -3.5 Elo |
+| 10 opposite bishops through the signature hash | `0.4.0-083` | flat, construction fault |
+| 10 opposite bishops scaled last | `0.4.0-084` | **H1, 50.85 %, ~ +5.9 Elo, kept** |
+| 12 space evaluation at its ported weight | `0.4.0-085` | H0, 47.18 %, ~ -19.6 Elo |
+| 11 pawn shield activated and tuned | `0.4.0-086` | **H1, 51.11 %, ~ +7.7 Elo, kept** |
+
+Three of the six versions were measured on an instrument that first had to be repaired: item 10
+needed a start position set that then turned out to be unable to see the effect, item 12 needed a
+CLOP run whose answer was set aside, and item 13 needed the code to be reachable at all. The
+runtime went into that as much as into the games.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05

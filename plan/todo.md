@@ -192,36 +192,46 @@ games shows nothing there.
 
 ## 10. Opposite coloured bishops: scale the surplus
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
+**Priority 3** — done: [x] — `0.4.0-084`, ≈ +5.9 Elo
 
-A material advantage with bishops on opposite colours and nothing else but pawns is usually a
-draw and has to be scaled down.
+Hand written factors 45, 50, 65, 85, 100 percent by pawn surplus, applied at the end of `lazyEval`
+after the tempo bonus and the fifty move damping. The first attempt `0.4.0-083` put them into the
+piece signature hash, whose entries replace the value and therefore switch that damping off - two
+opposite effects, flat result.
 
-**Hand written factors, no CLOP** — the position type is too rare for a signal. For the same
-reason measure it on a start position set of opposite coloured bishop endgames, not on the
-standard book.
+The start position set (`tools/gen-ocb-endgames.py`, `test/sprt/sprt-ocb.ini`) turned out to be the
+wrong instrument and says so itself: 49.89 % there against 50.85 % on the standard book. Inside the
+material class the scaling multiplies every leaf by the same factor and cannot change a move; what
+it decides is whether to enter such an endgame, and that decision is not in a set that starts
+inside one.
 
 ## 11. Pawn shield: activate and tune the weights
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
+**Priority 3** — done: [x] — `0.4.0-086`, ≈ +7.7 Elo
 
-`computePawnShieldValue` is not part of the king attack evaluation. Activate it and tune its
-weights together with the other king attack parameters.
+Activated as a term of the king attack value, and first given a shape a run can work on: index 7,
+the full shield, pinned at 0, because a constant over all eight factors cancels between the two
+kings and no run could have resolved it. CLOP over the remaining seven, 5000 samples, then 51.11 %
+over 6783 games.
 
-Already tried once.
+Tuned alone, not together with the other king attack parameters as written here — that would be
+15 values in one run and a run takes at most 10. Re-tuning the attack weights against the shield
+is still open.
 
 ## 12. Space weight
 
-**Priority 3** — done: [ ] — in Arbeit auf Branch `todo-10-14` (zweiter Rechner), Tags 0.4.0-081 aufwärts
+**Priority 3** — done: [x] — `0.4.0-085` lost 19.6 Elo, `dead/space-weight`
 
-`spaceWeightMg` defaults to 0, the space evaluation is off. Tune it. If it fails again, remove
-the space code.
+CLOP over -40 to 40, 2000 samples, estimate -2.1, so the null point. The estimate was then set
+aside and the ported weight of 100 measured on its own: 47.18 % over 2641 games. Both answers
+point the same way and the game result is the harsher one.
 
-Already tried once, hence the 0.
+Switched off again, code left in place with the measurement written at the call in `lazyEval` and
+at the default weight — not removed, so that the number stands where the idea would come back.
 
 ## 13. Forward futility: honour ttValueIsLessOrEqualAlpha
 
-**Priority 3** — done: [x] — `0.4.0-081` undecided at 50.0 %, `dead/ff-ttalpha` (Branch `todo-10-14`)
+**Priority 3** — done: [x] — `0.4.0-081` undecided at 50.0 %, `dead/ff-ttalpha`
 
 The claim that `setFromParentNode` resets the flag before the line is reached no longer held, so
 the guard was reachable and could be measured for the first time. It moves 2.8 % of the nodes and
@@ -230,12 +240,15 @@ back in the code, commented out, with the result above it.
 
 ## 14. SEE based capture ordering
 
-**Priority 3** — done: [ ] — `0.4.0-082` im SPRT auf Branch `todo-10-14`
+**Priority 3** — done: [x] — `0.4.0-082` lost 3.5 Elo, `dead/see-loosing-order`
 
-Order the captures by their static exchange value.
+Tried in the one shape the area had not seen: the loosing captures, which come back from the
+deferral in generated order, sorted by their exchange value instead. Cheaper (3 % fewer nodes, a
+faster EPD run) and still 3.5 Elo worse. Fourth loss in the capture ordering, after `0.4.0-039`,
+`-040` and `-042`.
 
-Tested as `0.4.0-042` and lost 6.7 Elo (`dead/see-weight`) when the exchange value replaced the
-weight outright. A retry needs a different shape.
+Untried: a tie break by the capturing piece inside an equal captured value, so real MVV/LVA where
+only the MVV half exists today. Not part of this item any more.
 
 ---
 
