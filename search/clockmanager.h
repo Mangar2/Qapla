@@ -342,7 +342,7 @@ namespace QaplaSearch {
 				// game - at 60+1 from eleven times the gate down to 1.2 by move 80 - and every
 				// iteration begun there dies mid tree, which buys nothing for the move choice.
 				averageTime = std::min(averageTime,
-					_maxTimePerMove * 100 / param<SearchParameter::optimizeTime, "timeAvgCapDivisor", 220, 100, 340>());
+					_maxTimePerMove * 100 / param<SearchParameter::optimizeTime, "timeAvgCapDivisor", 150, 100, 200>());
 			}
 			return averageTime;
 		}
