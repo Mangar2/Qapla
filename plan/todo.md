@@ -163,6 +163,24 @@ fine: it is a function of the search finding, not of the clock, so it cannot mak
 as the clock runs down. Today `SearchState::modifyTimeBySearchFinding` has hard values 1, 4, 15
 and 1/5; all of them become tunable coefficients.
 
+**increment** — added flat at the end, `averageTime += increment`, untouched by share and mode.
+That is the largest lever nobody tunes. Late in a game with a big increment the normal time is
+almost only the increment: at 60+1 with 810 ms left the fair slice is 21 ms and the normal time
+1032. It gets its own coefficient, `timeIncrementShare` in percent, default 100 for what the code
+does today.
+
+**the cap against the maximum** — `averageTime = min(averageTime, maxTime * 100 / capDivisor)`.
+The normal time is the budget the search plans against: it starts another iteration or another
+root move while it is below its share of that budget. If the budget is not clearly below the
+maximum, it authorises work the hard cut kills mid tree, and that work never changes the move.
+The divisor is tunable and never below 100, so the normal time stays under the maximum by
+construction.
+
+**the three thresholds** — 0.7 of the normal time for starting another iteration, 0.8 for starting
+another root move, and Spike's third one, a hard abort at 1.2 that Qapla does not have. All three
+are hard constants today; each becomes a coefficient of its own. They decide what the normal time
+actually buys, so tuning the time without them is half the job.
+
 ### What Spike had and Qapla does not
 
 Read from `C:\Development\SpikeEngine\src`, `TimeControl.cpp` and `TimeCalc.h`. Qapla already
