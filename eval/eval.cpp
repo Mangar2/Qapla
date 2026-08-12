@@ -136,9 +136,7 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	evalValue += Knight::eval(position, evalResults);
 	evalValue += Queen::eval(position, evalResults);
 	evalValue += Threat::eval(position, evalResults);
-	// Space evaluation: worse result than 0.4.0-025a, therefore commented out.
-	// The implementation is kept in eval/space.h / eval/space.cpp for later work.
-	// evalValue += Space::eval(position, evalResults);
+	evalValue += Space::eval(position, evalResults);
 	evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
 	evalValue += King::eval(position, evalResults);
 
