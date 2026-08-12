@@ -331,18 +331,7 @@ namespace QaplaSearch {
 					averageTime = averageTime * share / 100;
 				}
 				averageTime = _searchState.modifyTimeBySearchFinding(averageTime);
-				// The increment is added flat, untouched by share and mode. Late in a game with a
-				// large increment it is almost the whole normal time - at 60+1 with 810 ms left
-				// the fair slice is 21 ms and the normal time 1032 - so how much of it a move may
-				// spend is a value of its own. 100 percent is what the code did before.
-				averageTime += _clockSetting.getTimeIncrementPerMoveInMilliseconds()
-					* param<SearchParameter::optimizeTime, "timeIncrementShare", 100, 0, 200>() / 100;
-				// Tie the normal time to the maximum. Without this the room between the decision
-				// to start another iteration and the hard cut at the maximum shrinks over the
-				// game - at 60+1 from eleven times the gate down to 1.2 by move 80 - and every
-				// iteration begun there dies mid tree, which buys nothing for the move choice.
-				averageTime = std::min(averageTime,
-					_maxTimePerMove * 100 / param<SearchParameter::optimizeTime, "timeAvgCapDivisor", 220, 100, 340>());
+				averageTime += _clockSetting.getTimeIncrementPerMoveInMilliseconds();
 			}
 			return averageTime;
 		}
