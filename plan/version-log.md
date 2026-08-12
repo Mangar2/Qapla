@@ -796,8 +796,29 @@ right, most moves stop early at the 0.7 or 0.8 threshold and single moves reach 
 normal time — which is exactly the critical mode factor of 4. From move 30 the practice falls
 below the formula, there the maximum time caps it.
 
-Still open for the item: `timeShareHalfTime` at 20+0.1, the normal mode factor, and the
-`movesToGo` reformulation.
+### 0.4.0-064 — both share values tuned at 20+0.1
+
+CLOP over `timeShareMin` and `timeShareMax` at 20+0.1, 2500 samples, 5 h: 135 → 155 and 168 → 168.
+`shareMax` did not move, which was expected — at 20 seconds left the two sit at 50:50 in the share
+and the weight shifts towards `shareMin` as the clock runs down, so that run can barely see
+`shareMax`.
+
+- SPRT vs `0.4.0-054` at 20+0.1: **H1 accepted**, 51.82 %, ≈ **+12.7 Elo**, 3702 games
+
+`shareMin` has now risen from 100 to 135 at 5 seconds and to 155 at 20. Together with 168 the
+share is nearly flat between 160 and 168 percent, so what is left of the time dependence is little
+more than a constant. The engine was simply playing too fast, at every time control.
+
+**A run thrown away, worth recording.** The first attempt at this SPRT passed `tc=20+0.1` after the
+second `--engine` block, where it is an option of that engine alone: 064 played with 20 seconds
+against 054 with the 5 from the ini and won 87.69 % of 337 games. Nothing in the output says so —
+the only signal is the absurd number. The pgn showed it in two lines, 0.5 to 0.8 seconds a move
+against 0.07 to 0.09. A time control override belongs in `--each`, before the engines; the rule is
+in CLAUDE.md now. The two CLOP runs are not affected, they define a single engine both sides are
+derived from, and their runtimes match the time control they were given.
+
+Still open for the item: the formula rebuild — a saturating `movesToGo` instead of the kinked
+maximum and the mode factors as coefficients — plus the pieces Spike had that Qapla lacks.
 
 ## Notes on reading this log
 
