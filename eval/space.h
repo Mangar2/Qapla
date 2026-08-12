@@ -58,7 +58,9 @@ namespace ChessEval {
 
 	private:
 		static constexpr value_t NON_PAWN_MATERIAL_THRESHOLD_DEFAULT = 5250;
-		static constexpr value_t SPACE_WEIGHT_MG_DEFAULT = 0;
+		// 100 is a factor of 1.0 on the raw bonus, so the term as it was ported. The 0 it stood
+		// at switched the whole evaluation off.
+		static constexpr value_t SPACE_WEIGHT_MG_DEFAULT = 100;
 
 #ifndef PARAM_OPTIMIZE_SPACE
 		static constexpr value_t NON_PAWN_MATERIAL_THRESHOLD = NON_PAWN_MATERIAL_THRESHOLD_DEFAULT;
