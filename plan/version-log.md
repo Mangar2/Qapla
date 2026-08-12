@@ -851,8 +851,20 @@ tree that is already searched deeper. Cutting the budget to hold every iteration
 gives up more than the aborted iterations cost. Spike has the same construction and the same
 missing cap, which is worth knowing — it is not an oversight there either.
 
-`timeIncrementShare` went out with the revert; it was in that commit at 100 percent and had no
-effect on this run.
+## 0.4.0-067 — the same cap with divisor 150
+
+Second attempt with a milder cap, at 5+0.01 because it decides faster.
+
+- SPRT vs `0.4.0-065` at 5+0.01: **H0 accepted**, 49.59 %, ≈ −2.9 Elo, 15462 games
+
+Reverted, `dead/time-avg-cap-150`. Much closer than 220 and it still needed 15462 games to reach
+the bound, but on the wrong side of it. The cap is out of the code for good, and so is
+`timeIncrementShare`, which never had an effect at 100 percent.
+
+Two runs on the same idea, both negative, and the milder one closer to neutral: the loss scales
+with how hard the budget is cut. That is the shape of a change that costs something real and buys
+nothing — the aborted iterations were never the waste they looked like, the transposition table
+carries their work into the next move.
 
 ## Notes on reading this log
 
