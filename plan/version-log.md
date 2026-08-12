@@ -695,8 +695,18 @@ unchanged.
   359/179, 106/68, -446/-289, -140/-70
 - SPRT vs the branch point at 5+0.01: **H1 accepted**, 50.85 %, ~ +5.9 Elo, 8623 games
 
+- SPRT on the opposite coloured bishop start set: **H0 accepted**, 49.89 %, 15324 games
+
 Kept. Two thirds of an hour of runtime separates it from `0.4.0-083`, and the whole difference is
 where the multiplication happens.
+
+The two runs together are the interesting part. On the start position set the change is worth
+nothing, slightly negative even; in normal games it is worth six Elo. That is precisely what the
+mechanism predicts: inside `KBP*KBP*` the scaling multiplies every leaf by the same factor and
+cannot change a move, it only decides whether such an endgame is worth entering - and that
+decision does not occur in a set that starts inside one. The item asked for the special set
+because the material is too rare in the standard book. It is too rare there, and the standard book
+is still the only place the change can be measured.
 
 ## Notes on reading this log
 

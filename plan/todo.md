@@ -105,14 +105,18 @@ Add tunable parameters to control the time usage. It should depend on the time a
 
 ## 10. Opposite coloured bishops: scale the surplus
 
-**Priority 3** — done: [ ]
+**Priority 3** — done: [x] — `0.4.0-084`, ≈ +5.9 Elo
 
-A material advantage with bishops on opposite colours and nothing else but pawns is usually a
-draw and has to be scaled down.
+Hand written factors 45, 50, 65, 85, 100 percent by pawn surplus, applied at the end of `lazyEval`
+after the tempo bonus and the fifty move damping. The first attempt `0.4.0-083` put them into the
+piece signature hash, whose entries replace the value and therefore switch that damping off - two
+opposite effects, flat result.
 
-**Hand written factors, no CLOP** — the position type is too rare for a signal. For the same
-reason measure it on a start position set of opposite coloured bishop endgames, not on the
-standard book.
+The start position set (`tools/gen-ocb-endgames.py`, `test/sprt/sprt-ocb.ini`) turned out to be the
+wrong instrument and says so itself: 49.89 % there against 50.85 % on the standard book. Inside the
+material class the scaling multiplies every leaf by the same factor and cannot change a move; what
+it decides is whether to enter such an endgame, and that decision is not in a set that starts
+inside one.
 
 ## 11. Pawn shield: activate and tune the weights
 
