@@ -120,12 +120,16 @@ inside one.
 
 ## 11. Pawn shield: activate and tune the weights
 
-**Priority 3** — done: [ ]
+**Priority 3** — done: [x] — `0.4.0-086`, ≈ +7.7 Elo
 
-`computePawnShieldValue` is not part of the king attack evaluation. Activate it and tune its
-weights together with the other king attack parameters.
+Activated as a term of the king attack value, and first given a shape a run can work on: index 7,
+the full shield, pinned at 0, because a constant over all eight factors cancels between the two
+kings and no run could have resolved it. CLOP over the remaining seven, 5000 samples, then 51.11 %
+over 6783 games.
 
-Already tried once.
+Tuned alone, not together with the other king attack parameters as written here — that would be
+15 values in one run and a run takes at most 10. Re-tuning the attack weights against the shield
+is still open.
 
 ## 12. Space weight
 
