@@ -65,6 +65,12 @@ c:\development\bin\qet.exe --settingsfile=test/sprt/sprt-standard.ini --engine n
 Command line parameters override the ini. Engine names must not contain spaces. Change
 `test/sprt/sprt-standard.ini` only if qet reports an error in it.
 
+**A time control other than the one in the ini goes in as `--each tc=20+0.1`, before the
+`--engine` blocks.** `tc=` is also an option of `--engine`, so written after an engine block it
+silently applies to that engine alone and the other one keeps the ini value. The run then compares
+one engine at 20 seconds against one at 5 and reports a winrate near 90 % — the only warning is
+the number itself. Check the move times in the pgn when a result looks too good.
+
 The `--sprt file=` state file holds the tournament state. The run may be stopped at any
 time and continued with the exact same call. If the LLR is still close to a bound at the
 20000 games of the ini, continue with a raised limit, e.g. `--sprt maxgames=30000`, using
