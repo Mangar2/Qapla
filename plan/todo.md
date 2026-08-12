@@ -192,7 +192,7 @@ games shows nothing there.
 
 ## 10. Opposite coloured bishops: scale the surplus
 
-**Priority 3** — done: [x] — `0.4.0-084`, ≈ +5.9 Elo
+**Priority 3** — done: [x] — `0.4.0-084`, about +6 Elo ± 3
 
 Hand written factors 45, 50, 65, 85, 100 percent by pawn surplus, applied at the end of `lazyEval`
 after the tempo bonus and the fifty move damping. The first attempt `0.4.0-083` put them into the
@@ -207,7 +207,7 @@ inside one.
 
 ## 11. Pawn shield: activate and tune the weights
 
-**Priority 3** — done: [x] — `0.4.0-086`, ≈ +7.7 Elo
+**Priority 3** — done: [x] — `0.4.0-086`, about +8 Elo ± 3
 
 Activated as a term of the king attack value, and first given a shape a run can work on: index 7,
 the full shield, pinned at 0, because a constant over all eight factors cancels between the two
@@ -220,7 +220,7 @@ is still open.
 
 ## 12. Space weight
 
-**Priority 3** — done: [x] — `0.4.0-085` lost 19.6 Elo, `dead/space-weight`
+**Priority 3** — done: [x] — `0.4.0-085` lost about 20 Elo, `dead/space-weight`
 
 CLOP over -40 to 40, 2000 samples, estimate -2.1, so the null point. The estimate was then set
 aside and the ported weight of 100 measured on its own: 47.18 % over 2641 games. Both answers
@@ -240,11 +240,11 @@ back in the code, commented out, with the result above it.
 
 ## 14. SEE based capture ordering
 
-**Priority 3** — done: [x] — `0.4.0-082` lost 3.5 Elo, `dead/see-loosing-order`
+**Priority 3** — done: [x] — `0.4.0-082` lost about 4 Elo, `dead/see-loosing-order`
 
 Tried in the one shape the area had not seen: the loosing captures, which come back from the
 deferral in generated order, sorted by their exchange value instead. Cheaper (3 % fewer nodes, a
-faster EPD run) and still 3.5 Elo worse. Fourth loss in the capture ordering, after `0.4.0-039`,
+faster EPD run) and still about 4 Elo worse. Fourth loss in the capture ordering, after `0.4.0-039`,
 `-040` and `-042`.
 
 Untried: a tie break by the capturing piece inside an equal captured value, so real MVV/LVA where
