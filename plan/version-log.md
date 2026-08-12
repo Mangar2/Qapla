@@ -870,6 +870,31 @@ against another engine. The SPRT says these particular values lose; it does not 
 values are right. Answering that needs the final tournament against the field, not another run of
 the engine against itself.
 
+## 0.4.0-088 - end of branch `todo-10-14`, for the final tournament
+
+Not a change of its own. It is the end of the branch that worked todo items 10 to 14, tagged so
+that the tournament against the field has a clean version number to run.
+
+What is in it, against the branch point `373bb20b`:
+
+- **0.4.0-084**, opposite coloured bishops scaled towards the draw, at the end of `lazyEval`
+- **0.4.0-086**, the pawn shield activated and its seven factors tuned
+
+Everything else that was tried is reverted and present only as a comment at the place where the
+idea sits: the futility guard on the tt bound (`0.4.0-081`), the exchange value order of the
+loosing captures (`0.4.0-082`), the space evaluation (`0.4.0-085`) and the re-tuned material
+values (`0.4.0-087`). Their code is on the `dead/` branches.
+
+- EPD nodes: 56240905 at the branch point -> 56158265, success rate 23 % -> 22 %
+- SPRT vs the branch point at 5+0.01, standard bounds: H1 accepted, 51.19 %, 6340 games
+- SPRT vs the branch point, H0 = 0 and H1 = 10: H1 accepted, 52.68 %, 1662 games
+- Both pooled, 8002 games at 51.50 %: about 10 Elo +- 3
+
+The final tournament against the field is still to run. Self play is what all of the above rests
+on, and this is the version that has to prove itself somewhere else - the more so because the last
+time a version was judged against that field, the field measurement itself was broken and the
+error stood for four months, see `0.4.0-087`.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
