@@ -829,6 +829,47 @@ needed a start position set that then turned out to be unable to see the effect,
 CLOP run whose answer was set aside, and item 13 needed the code to be reachable at all. The
 runtime went into that as much as into the games.
 
+## 0.4.0-087 - material balance re-tuned, and dropped again
+
+Not a todo item. The piece values had been optimized once as `0.4.0-026` (`f830fb9`) and rolled
+back in `464ba8e` with the note that they lost the final tournament against `0.4.0-025a`. That
+tournament was broken: `025a` won 150 games on time and came out rated far too high, so every
+version measured against it afterwards was judged against a number that did not exist. Nothing
+had been tuned on the material balance since, so the rollback stood on a comparison worth
+nothing - reason enough to run it again.
+
+CLOP over 5000 samples, 117 min, the pawn left fixed at 80/95 as the scale. A common factor over
+all material values is a degree of freedom a run resolves badly, and the pawn is what every other
+value is read against; `0.4.0-026` had left it alone for the same reason.
+
+| value | 025a | CLOP | taken | 0.4.0-026 had |
+|---|---|---|---|---|
+| knight mg | 360 | 363 | 365 | 365 |
+| knight eg | 310 | 308 | 310 | 310 |
+| bishop mg | 360 | 363 | 365 | 365 |
+| bishop eg | 330 | 331 | 330 | 340 |
+| rook mg | 560 | 576 | 575 | 550 |
+| rook eg | 570 | 564 | 565 | 570 |
+| queen mg | 1035 | 1072 | 1070 | 1150 |
+| queen eg | 1085 | 1060 | 1060 | 1150 |
+
+- EPD nodes: 56158265 -> 55782709, success rate 22 % -> 23 %
+- SPRT vs `0.4.0-086` at 5+0.01: **H0 accepted**, 49.23 %, about -5 Elo +- 3, 8666 games
+
+Reverted, `dead/material-retune`. Node count back at 56158265.
+
+Two things are worth keeping. The two runs, four months apart and on different code, both put the
+minor pieces at 365 in the midgame and both move the midgame queen up - independently, and from
+different starting points. That is the part of the picture that reproduces. What does not
+reproduce is the size: 026 wanted the queen 115 higher, this run 35, and the endgame queen moves
+the other way entirely.
+
+The other is what the run does not settle. CLOP optimises in self play, where both sides carry the
+same shifted values, and material values are the classic case where that says least about play
+against another engine. The SPRT says these particular values lose; it does not say the 025a
+values are right. Answering that needs the final tournament against the field, not another run of
+the engine against itself.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
