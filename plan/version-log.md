@@ -769,6 +769,34 @@ plus seven attack support points plus the queen factor are 15, and a run takes a
 
 Kept.
 
+## Closing run for items 10 to 14
+
+Two of the five items survived, and each of them was accepted at alpha = 0.05 against whatever
+the head was at the time. Their numbers must not be added up, so the head was measured against the
+branch point once more.
+
+- SPRT `0.4.0-086` vs the state at `373bb20b` at 5+0.01: **H1 accepted**, 51.19 %, ~ +8.3 Elo,
+  6340 games
+
+The two individual runs said +5.9 and +7.7, which would add to +13.6. The honest number is +8.3.
+Neither run was wrong; both stopped at the moment they reached their bound, and that moment
+favours whichever way the result was fluctuating at the time. The gap between 13.6 and 8.3 is what
+that costs, and it is the reason the closing run exists.
+
+| Item | Tag | Result |
+|---|---|---|
+| 13 forward futility honours the tt bound | `0.4.0-081` | undecided at 50.02 %, 20000 games |
+| 14 loosing captures by exchange value | `0.4.0-082` | H0, 49.49 %, ~ -3.5 Elo |
+| 10 opposite bishops through the signature hash | `0.4.0-083` | flat, construction fault |
+| 10 opposite bishops scaled last | `0.4.0-084` | **H1, 50.85 %, ~ +5.9 Elo, kept** |
+| 12 space evaluation at its ported weight | `0.4.0-085` | H0, 47.18 %, ~ -19.6 Elo |
+| 11 pawn shield activated and tuned | `0.4.0-086` | **H1, 51.11 %, ~ +7.7 Elo, kept** |
+
+Three of the six versions were measured on an instrument that first had to be repaired: item 10
+needed a start position set that then turned out to be unable to see the effect, item 12 needed a
+CLOP run whose answer was set aside, and item 13 needed the code to be reachable at all. The
+runtime went into that as much as into the games.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
