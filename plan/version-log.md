@@ -731,6 +731,44 @@ The code stays in `eval/space.h` and `eval/space.cpp`, with the number written a
 `lazyEval` and at the default weight. It is measured now rather than suspected, which is worth
 more standing in the code than the same lines would be worth deleted. Kept as `dead/space-weight`.
 
+## 0.4.0-086 - the pawn shield activated and tuned
+
+Todo item 11. `computePawnShieldValue` had been written but nothing ever called it; the index
+lookup already carried a `kShield` entry for it. It is now added to the attack value of the side
+whose king is examined, so it shares the midgame scaling of the king attack term and disappears
+with it towards the endgame.
+
+Before tuning, the eight factors had to be given a shape a run can work on. Both kings get the
+same term and the two are subtracted from each other, so a constant added to all eight cancels
+out - up to the rounding of the midgame scaling it changes nothing at all. That is a degree of
+freedom carrying no information, and no run could have resolved it. Index 7, the full shield, is
+pinned at 0 and the other seven are measured against it; the original set shifted by -10 is the
+same evaluation.
+
+CLOP over the seven, 5000 samples, 115 min:
+
+| index | pawns | before | estimate | taken |
+|---|---|---|---|---|
+| 0 | none | -18 | -12.93 | -13 |
+| 1 | east | -19 | -19.06 | -19 |
+| 2 | west | -19 | -24.29 | -24 |
+| 3 | west+east | -15 | -17.49 | -17 |
+| 4 | front | -19 | -15.10 | -15 |
+| 5 | front+east | -14 | -7.69 | -8 |
+| 6 | front+west | -5 | -9.96 | -10 |
+
+Indices 5 and 6 are mirror images of each other and had stood 9 apart, which was always suspect.
+The run pulled them to -8 and -10. Agreement of that kind between two values it optimises
+independently is not what noise produces, and it is the best evidence the run found something.
+
+Not tuned together with the other king attack parameters as the item asked: seven shield values
+plus seven attack support points plus the queen factor are 15, and a run takes at most 10.
+
+- EPD nodes: 55970930 -> 56158265, success rate 23 % -> 22 %
+- SPRT vs 0.4.0-084 at 5+0.01: **H1 accepted**, 51.11 %, ~ +7.7 Elo, 6783 games
+
+Kept.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
