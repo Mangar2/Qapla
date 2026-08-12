@@ -1159,6 +1159,27 @@ on, and this is the version that has to prove itself somewhere else - the more s
 time a version was judged against that field, the field measurement itself was broken and the
 error stood for four months, see `0.4.0-087`.
 
+## 0.4.0-089 — the two lines merged
+
+Branch `todo-10-14` merged into the time management line. The two touch different code: items 10
+to 14 sit in the eval, item 9 in the ClockManager, and nothing had to be decided by hand outside
+the two plan files.
+
+The node count is the proof. Nothing in the time management can be seen at a fixed depth —
+`isInfiniteSearch` short circuits the whole computation — so the merge has to give exactly what the
+branch end gave: **56158265**, and it does.
+
+What the merged version carries against `0.4.0-054`:
+
+| | measured at | |
+|---|---|---|
+| item 9, normal search time | 5+0.01 | ≈ +16.6 Elo, 3105 games |
+| item 9, normal search time | 20+0.1 | ≈ +12.7 Elo, 3702 games |
+| items 10 to 14, eval | 5+0.01 | ≈ +10 Elo ± 3, 8002 games pooled |
+
+Both figures rest on self play and neither has been measured at 60+1, which is still open for
+item 9.
+
 ## Notes on reading this log
 
 Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At alpha = 0.05
