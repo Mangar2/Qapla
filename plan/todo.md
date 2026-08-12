@@ -116,32 +116,37 @@ moveTime = fairSlice(timeLeft, movesPlayed) * clockShare(timeLeft) * modeFactor(
 played evenly. The `+ 2` is the safety against losing on time.
 
 `movesToGo` is where the moves played enter, and today it is
-`max(AVERAGE_MOVE_COUNT_PER_GAME - movesPlayed / 2, KEEP_TIME_FOR_MOVES)` — a kink at move 50,
-where the slope jumps from −0.5 to 0. Replace it by the same saturating shape the share uses:
+`max(AVERAGE_MOVE_COUNT_PER_GAME - movesPlayed / 2, KEEP_TIME_FOR_MOVES)` — a kink at move 25,
+where the slope jumps from −1 to 0. Replaced by a soft maximum of the same two terms:
 
 ```
-movesToGo = keep + (start - keep) * midpoint / (midpoint + movesPlayed)
+movesToGo = keep + smoothing * ln(1 + exp((start - movesPlayed - keep) / smoothing))
 ```
 
 `movesToGo` keeps its meaning, the forecast of the moves still to be played, and its role in
-`timeLeft / (movesToGo + 2)` is unchanged. Only the course changes: instead of falling linearly
-and clamping hard at move 50 it approaches `keep` asymptotically.
+`timeLeft / (movesToGo + 2)` is unchanged. The course is the same as before — a falling line, then
+a floor — only the corner between the two is rounded.
 
 | | meaning | today |
 |---|---|---|
 | `start` | the forecast at move 1, so the length of a game the engine plans for | 60 (`AVERAGE_MOVE_COUNT_PER_GAME`) |
-| `keep` | the forecast a long game settles on, so how many moves the engine always keeps time for, no matter how long the game has already run | 35 (`KEEP_TIME_FOR_MOVES`) |
-| `midpoint` | where the transition sits: at `movesPlayed == midpoint` the forecast is exactly halfway between the two, so 47.5 for 60 and 35 | 25 to 30 reproduces today's line |
+| `keep` | the forecast a long game settles on, so how many moves the engine always keeps time for | 35 (`KEEP_TIME_FOR_MOVES`) |
+| `smoothing` | the width of the rounding, in moves. At the corner the value sits `0.69 * smoothing` above the floor, and about `3 * smoothing` moves either side the deviation from the two straight lines is negligible | 0.5, which reproduces the old maximum exactly |
 
-Monotone falling, saturating at `keep`, continuous in every derivative.
+At smoothing 0.5 the formula gives the same integer as `max()` for every ply count from 0 to 400,
+so this reformulation starts at the known point and a run tunes it away from there. That is the
+reason for this shape rather than a saturating hyperbola: a hyperbola is a different family of
+curves that cannot reproduce the current one, so it would have to start from an untested point.
+What this form cannot do is change the shape — it rounds the corner, it does not turn the line
+into a curve. If the tuning finds the corner wants to be very wide, that is the signal to try the
+other family after all.
 
-`keep` is the one that matters late: a game that is still running after move 80 gets
-`timeLeft / 37` per move, so the engine never spends its last reserve on a single move. `start`
-decides how fast the opening is played, `midpoint` how quickly the engine moves from the one
-regime into the other.
+`keep` is the one that matters late: a game still running after move 80 gets `timeLeft / 37` per
+move, so the engine never spends its last reserve on a single move. `start` decides how fast the
+opening is played.
 
 `movesPlayed` here means full moves. `ClockSetting::getPlayedMovesInGame()` counts plies, today's
-code divides by two for that reason and the new formula has to do the same.
+code divides by two for that reason and the new formula does the same.
 
 **clockShare** — how much of that fair slice a move may take, as a function of the time still on
 the clock. Already implemented:
