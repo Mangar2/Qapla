@@ -778,19 +778,37 @@ branch point once more.
 - SPRT `0.4.0-086` vs the state at `373bb20b` at 5+0.01: **H1 accepted**, 51.19 %, ~ +8.3 Elo,
   6340 games
 
-The two individual runs said +5.9 and +7.7, which would add to +13.6. The honest number is +8.3.
-Neither run was wrong; both stopped at the moment they reached their bound, and that moment
-favours whichever way the result was fluctuating at the time. The gap between 13.6 and 8.3 is what
-that costs, and it is the reason the closing run exists.
+### What the closing run does and does not say
+
+It says the two survivors together are worth more than 3 Elo. That is all it says, and it is worth
+being blunt about it, because the first version of this entry claimed more.
+
+The Elo figures quoted for the single runs - +5.9 and +7.7 - are not measurements. An SPRT is a
+decision procedure: it stops at a boundary, and the score at the stopping point is biased upwards
+for exactly the reason it stopped. Reading them as estimates and adding them to +13.6 has no basis.
+
+Even taken as estimates they would carry no such resolution. With 6340 games and this draw rate
+the variance per game is 0.129, so the standard error of the score is 0.45 %, which is **3.1 Elo
+at one sigma** and 6.2 Elo at 95 %. The other two runs sit at 2.7 and 3.0 Elo. The difference
+between 13.6 and 8.3 is 5.3 Elo against a standard error of the difference of about 5.1 - one
+sigma, and nothing to explain.
+
+So: three runs, three decisions, each of them "more than 3 Elo". Whoever wants the magnitude of
+this block has to measure it, with bounds placed where the question is - H0 = 5, H1 = 12 would ask
+whether the two changes add up - and not read it off a run that was built to answer something else.
+
+The Elo below is the score at the stopping point converted to Elo, with one sigma from the game
+count and the draw rate of that run. It is a label on a decision, not a measurement - and the
+error bars are the size of the effects being looked for.
 
 | Item | Tag | Result |
 |---|---|---|
 | 13 forward futility honours the tt bound | `0.4.0-081` | undecided at 50.02 %, 20000 games |
-| 14 loosing captures by exchange value | `0.4.0-082` | H0, 49.49 %, ~ -3.5 Elo |
+| 14 loosing captures by exchange value | `0.4.0-082` | H0, 49.49 %, -3.5 +- 2.2 Elo |
 | 10 opposite bishops through the signature hash | `0.4.0-083` | flat, construction fault |
-| 10 opposite bishops scaled last | `0.4.0-084` | **H1, 50.85 %, ~ +5.9 Elo, kept** |
-| 12 space evaluation at its ported weight | `0.4.0-085` | H0, 47.18 %, ~ -19.6 Elo |
-| 11 pawn shield activated and tuned | `0.4.0-086` | **H1, 51.11 %, ~ +7.7 Elo, kept** |
+| 10 opposite bishops scaled last | `0.4.0-084` | **H1, 50.85 %, +5.9 +- 2.7 Elo, kept** |
+| 12 space evaluation at its ported weight | `0.4.0-085` | H0, 47.18 %, -19.6 +- 5.0 Elo |
+| 11 pawn shield activated and tuned | `0.4.0-086` | **H1, 51.11 %, +7.7 +- 3.0 Elo, kept** |
 
 Three of the six versions were measured on an instrument that first had to be repaired: item 10
 needed a start position set that then turned out to be unable to see the effect, item 12 needed a
