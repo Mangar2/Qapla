@@ -176,11 +176,6 @@ maximum, it authorises work the hard cut kills mid tree, and that work never cha
 The divisor is tunable and never below 100, so the normal time stays under the maximum by
 construction.
 
-**the three thresholds** — 0.7 of the normal time for starting another iteration, 0.8 for starting
-another root move, and Spike's third one, a hard abort at 1.2 that Qapla does not have. All three
-are hard constants today; each becomes a coefficient of its own. They decide what the normal time
-actually buys, so tuning the time without them is half the job.
-
 ### What Spike had and Qapla does not
 
 Read from `C:\Development\SpikeEngine\src`, `TimeControl.cpp` and `TimeCalc.h`. Qapla already
