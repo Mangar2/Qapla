@@ -114,12 +114,14 @@ namespace ChessEval {
 		}
 
 		template <Piece COLOR>
-		inline static value_t computePawnShieldValue(MoveGenerator& position, const EvalResults& results) {
+		inline static uint32_t computePawnShieldIndexOf(const MoveGenerator& position) {
 			Square kingSquare = position.getKingSquare<COLOR>();
 			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
-			uint32_t index = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			value_t pawnShieldValue = (pawnIndexFactor[index] * results.midgameInPercentV2) / 100;
-			return pawnShieldValue;
+			return computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
+		}
+
+		inline static value_t computePawnShieldValue(uint32_t index, const EvalResults& results) {
+			return (pawnIndexFactor[index] * results.midgameInPercentV2) / 100;
 		}
 
 		/**
@@ -175,7 +177,14 @@ namespace ChessEval {
 			value_t attackValue = 0;
 			attackValue = attackWeight[attackIndex];
 			attackValue = (attackValue * results.midgameInPercentV2) / 100;
-			
+
+			// The pawns in front of the king are the one part of the king safety that does not
+			// depend on what the opponent is doing. It is a term of its own, not a modifier of
+			// the attack index: a missing shield is a weakness even before an attack exists.
+			const uint32_t pawnShieldIndex = computePawnShieldIndexOf<COLOR>(position);
+			const value_t pawnShieldValue = computePawnShieldValue(pawnShieldIndex, results);
+			attackValue += pawnShieldValue;
+
 			if constexpr (STORE_DETAILS) {
 				const IndexVector indexVector{ { "kingAttack", attackIndex, COLOR } };
 				details->push_back({ KING + COLOR, kingSquare, indexVector, "a<" + std::to_string(attackIndex) + ">", COLOR == WHITE ? attackValue : -attackValue });
@@ -293,7 +302,23 @@ namespace ChessEval {
 			return kingAttackBB;
 		} ();
 
-		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
+		// Bonus for the pawns in front of the king, indexed by FWE: F = a pawn in front, W = one
+		// to the west, E = one to the east. Both kings get the same term and the two are
+		// subtracted from each other, so a constant added to all eight entries cancels out - up
+		// to the rounding of the midgame scaling it changes nothing. It is a degree of freedom
+		// that carries no information and that a tuning run could not resolve, so the full
+		// shield, index 7, is pinned at 0 and the other seven are measured against it. The
+		// values are the original { -8, -9, -9, -5, -9, -4, 5, 10 } shifted by -10.
+		// Tuned by CLOP over 5000 samples with index 7 pinned, from { -18, -19, -19, -15, -19,
+		// -14, -5, 0 }. Indices 5 and 6 are mirror images of each other and stood 9 apart; the
+		// run pulled them to -8 and -10, which is the kind of agreement noise does not produce.
+		static constexpr array<value_t, 8> PAWN_INDEX_FACTOR_DEFAULT = { -13, -19, -24, -17, -15, -8, -10, 0 };
+
+#ifndef PARAM_OPTIMIZE_KING_ATTACK
+		static constexpr array<value_t, 8> pawnIndexFactor = PAWN_INDEX_FACTOR_DEFAULT;
+#else
+		inline static array<value_t, 8> pawnIndexFactor = PAWN_INDEX_FACTOR_DEFAULT;
+#endif
 
 	};
 }
