@@ -21,7 +21,7 @@
 #include "whatIf.h"
 #include "quiescence.h"
 #include "rootmoves.h"
-#include "search-param.h"
+#include "tunable.h"
 #include "passedpawn.h"
 #include "../basics/materialbalance.h"
 #include "../bitbase/bitbase-reader.h"
@@ -223,29 +223,29 @@ ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t d
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
 	// Both ramps are shared by all node types; only the divisor tells PV nodes apart.
-	const int32_t moveBreak = param<OPT, "lmrMoveBreak", 6, 2, 10>();
+	const int32_t moveBreak = tunable<OPT, "lmrMoveBreak", 6, 2, 10>();
 	const int32_t moveRamp = moveNo <= moveBreak
-		? param<OPT, "lmrMoveBase", 11, 0, 22>() + (moveNo - MOVE_OFFSET) * MOVE_SLOPE
-		: param<OPT, "lmrMoveHighBase", 51, 0, 102>() + (moveNo - moveBreak) / MOVE_HIGH_DIV;
-	const int32_t depthRamp = param<OPT, "lmrDepthBase", 11, 0, 22>() + (depth - DEPTH_OFFSET) * DEPTH_SLOPE;
+		? tunable<OPT, "lmrMoveBase", 11, 0, 22>() + (moveNo - MOVE_OFFSET) * MOVE_SLOPE
+		: tunable<OPT, "lmrMoveHighBase", 51, 0, 102>() + (moveNo - moveBreak) / MOVE_HIGH_DIV;
+	const int32_t depthRamp = tunable<OPT, "lmrDepthBase", 11, 0, 22>() + (depth - DEPTH_OFFSET) * DEPTH_SLOPE;
 
-	const int32_t rampMin = param<OPT, "lmrRampMin", 15, 0, 30>();
-	const int32_t rampMax = param<OPT, "lmrRampMax", 55, 30, 80>();
+	const int32_t rampMin = tunable<OPT, "lmrRampMin", 15, 0, 30>();
+	const int32_t rampMax = tunable<OPT, "lmrRampMax", 55, 30, 80>();
 	int32_t numerator = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax);
 
 	int32_t divisor = node.isPVNode()
-		? param<OPT, "lmrPvDivisor", 512, 256, 768>()
-		: param<OPT, "lmrDivisor", 261, 133, 389>();
+		? tunable<OPT, "lmrPvDivisor", 512, 256, 768>()
+		: tunable<OPT, "lmrDivisor", 261, 133, 389>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
 	// counts as such a push.
 	// Tested 0.4.0-051: +6.0 Elo, 8883 games
 	if (PassedPawn::isPassedPawnPush(position, move)) {
-		divisor += param<OPT, "lmrPassedPawnDivisorAdd", 112, 0, 224>();
+		divisor += tunable<OPT, "lmrPassedPawnDivisorAdd", 112, 0, 224>();
 	}
 	// Extra reduction where a reduction already happens and the position is not improving.
 	if (!node.isImproving && numerator >= divisor) {
-		numerator += param<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
+		numerator += tunable<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
 	}
 
 	return static_cast<ply_t>(numerator / divisor);
@@ -342,10 +342,10 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Minimal depth the tt move must have been searched with to be tested at all,
 	// a constant distance to the current depth instead of a share of it
 	const ply_t ttMinDepth =
-		depth - param<SearchConfig::optimizeSE, "seTTMinDepthReduction", 6, 0, 12>();
+		depth - tunable<SearchConfig::optimizeSE, "seTTMinDepthReduction", 6, 0, 12>();
 	// Depth used to search the remaining moves against the singular margin
 	const ply_t seDepth =
-		depth * 100 / param<SearchConfig::optimizeSE, "seDepthDivisor", 200, 100, 300>();
+		depth * 100 / tunable<SearchConfig::optimizeSE, "seDepthDivisor", 200, 100, 300>();
 	if (ttMove.isEmpty()) return 0;
 	// We require a certain search depth for the tt move to be considered for a singular extension
 	if (node.ttDepth < ttMinDepth) return 0;
@@ -355,10 +355,10 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// The margin the remaining moves must fail below to make the tt move singular. PV and non
 	// PV nodes get their own values, the tt value is a much weaker information in a non PV node
 	node.setSE(IS_PV
-		? param<SearchConfig::optimizeSE, "sePvMarginConst", 1, -100, 300>()
-			+ param<SearchConfig::optimizeSE, "sePvMarginFactor", 4, 0, 100>() * depth
-		: param<SearchConfig::optimizeSE, "seNonPvMarginConst", 0, -100, 300>()
-			+ param<SearchConfig::optimizeSE, "seNonPvMarginFactor", 4, 0, 100>() * depth);
+		? tunable<SearchConfig::optimizeSE, "sePvMarginConst", 1, -100, 300>()
+			+ tunable<SearchConfig::optimizeSE, "sePvMarginFactor", 4, 0, 100>() * depth
+		: tunable<SearchConfig::optimizeSE, "seNonPvMarginConst", 0, -100, 300>()
+			+ tunable<SearchConfig::optimizeSE, "seNonPvMarginFactor", 4, 0, 100>() * depth);
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 

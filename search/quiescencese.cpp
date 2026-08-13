@@ -20,7 +20,7 @@
 #include "quiescence.h"
 #include "../eval/eval.h"
 #include "search-config.h"
-#include "search-param.h"
+#include "tunable.h"
 #include "moveprovider.h"
 #include "whatIf.h"
 #include "see.h"
@@ -47,7 +47,7 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 	if (position.doFutilityOnCapture(capturedPiece)) {
 		// Both terms must use the same margin, else a tuning run moves two halves against
 		// each other. 100: 49%, 35: 50,3%, 40: 49,3%
-		const value_t margin = param<SearchConfig::optimizeQS, "qsSafetyMargin", 50, 0, 100>();
+		const value_t margin = tunable<SearchConfig::optimizeQS, "qsSafetyMargin", 50, 0, 100>();
 		const value_t threshold = alpha - standPatValue - margin;
 		result = standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 	}

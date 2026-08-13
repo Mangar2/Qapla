@@ -31,7 +31,7 @@
 #include "../interface/clocksetting.h"
 #include "searchdef.h"
 #include "search-config.h"
-#include "search-param.h"
+#include "tunable.h"
 
 using namespace std;
 using namespace QaplaBasics;
@@ -137,16 +137,16 @@ namespace QaplaSearch {
 			switch (_rootSearchState)
 			{
 			case SearchFinding::normal:
-				factor = param<OPT, "timeNormalFactor", 100, 40, 160>();
+				factor = tunable<OPT, "timeNormalFactor", 100, 40, 160>();
 				break;
 			case SearchFinding::critical:
-				factor = param<OPT, "timeCriticalFactor", 400, 100, 700>();
+				factor = tunable<OPT, "timeCriticalFactor", 400, 100, 700>();
 				break;
 			case SearchFinding::suddenDeath:
-				factor = param<OPT, "timeSuddenDeathFactor", 1500, 100, 2900>();
+				factor = tunable<OPT, "timeSuddenDeathFactor", 1500, 100, 2900>();
 				break;
 			case SearchFinding::book:
-				factor = param<OPT, "timeBookFactor", 20, 0, 40>();
+				factor = tunable<OPT, "timeBookFactor", 20, 0, 40>();
 				break;
 			}
 			return averageTime * factor / 100;

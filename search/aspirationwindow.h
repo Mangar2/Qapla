@@ -28,7 +28,7 @@
 #include <math.h>
 #include "../basics/types.h"
 #include "search-config.h"
-#include "search-param.h"
+#include "tunable.h"
 
 using namespace QaplaBasics;
 
@@ -156,11 +156,11 @@ namespace QaplaSearch {
 			constexpr bool OPT = SearchConfig::optimizeAspiration;
 			// Every influence carries its own coefficient
 			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth)
-				* param<OPT, "awDepthFactor", 10, 0, 20>();
+				* tunable<OPT, "awDepthFactor", 10, 0, 20>();
 			const value_t valueRelatedSize = std::abs(positionValue)
-				* param<OPT, "awValueFactor", 5, 0, 10>() / 100;
-			const value_t retryRelatedSize = _retryCount * param<OPT, "awRetryFactor", 30, 0, 60>();
-			const value_t minSize = param<OPT, "awMinSize", 15, 0, 30>();
+				* tunable<OPT, "awValueFactor", 5, 0, 10>() / 100;
+			const value_t retryRelatedSize = _retryCount * tunable<OPT, "awRetryFactor", 30, 0, 60>();
+			const value_t minSize = tunable<OPT, "awMinSize", 15, 0, 30>();
 			return minSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
 		}
 
