@@ -49,9 +49,9 @@ void RootMove::set(value_t searchResult, const SearchStack& stack, bool isPVSear
 	_depthOfLastSearch = stack[0].remainingDepth;
 	_pvLine.setMove(0, Move::EMPTY_MOVE);
 	if (_isPVSearched) {
-		// We cannot directly set stack[0].pvMovesStore, because stack[0] is not yet updated
+		// We cannot directly set stack[0].pv, because stack[0] is not yet updated
 		_pvLine.setMove(0, _move);
-		_pvLine.copyFromPV(stack[1].pvMovesStore, 1);
+		_pvLine.copyFromPV(stack[1].pv, 1);
 	}
 }
 

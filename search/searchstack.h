@@ -34,10 +34,10 @@ namespace QaplaSearch {
 		SearchStack(TT* tt) 
 			: ttPtr(tt) 
 		{
-			searchVariablePtr.fill(0);
+			nodePtr.fill(0);
 			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
 				_stack[ply].ply = ply;
-				searchVariablePtr[ply] = &_stack[ply];
+				nodePtr[ply] = &_stack[ply];
 				_stack[ply].setTT(tt);
 			}
 			referenceCount = 1;
@@ -46,7 +46,7 @@ namespace QaplaSearch {
 		SearchStack(const SearchStack& searchStack)
 			: SearchStack(searchStack.getTT())
 		{
-			searchVariablePtr.fill(0);
+			nodePtr.fill(0);
 		}
 
 		~SearchStack() {
@@ -58,8 +58,8 @@ namespace QaplaSearch {
 			}
 		}
 
-		inline const SearchNode& operator[](uint32_t index) const { return *searchVariablePtr[index]; }
-		inline  SearchNode& operator[](uint32_t index) { return *searchVariablePtr[index]; }
+		inline const SearchNode& operator[](uint32_t index) const { return *nodePtr[index]; }
+		inline  SearchNode& operator[](uint32_t index) { return *nodePtr[index]; }
 		TT* getTT() const { return ttPtr; }
 
 		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
@@ -70,7 +70,7 @@ namespace QaplaSearch {
 			return _stack[0].getMoveFromPVMovesStore(ply);
 		}
 
-		const PV& getPV() const { return _stack[0].pvMovesStore; }
+		const PV& getPV() const { return _stack[0].pv; }
 
 		/**
 		 * Sets the PV moves store
@@ -98,7 +98,7 @@ namespace QaplaSearch {
 
 		void initForParallelSearch(SearchStack& foreignStack, ply_t ply) {
 			for (ply_t index = 0; index <= ply; index++) {
-				searchVariablePtr[index] = foreignStack.searchVariablePtr[index];
+				nodePtr[index] = foreignStack.nodePtr[index];
 			}
 			copyKillers(foreignStack, ply + 1);
 		}
@@ -111,7 +111,7 @@ namespace QaplaSearch {
 			ply_t minPly = ply - board.getHalfmovesWithoutPawnMoveOrCapture();
 			if (minPly < 0) { minPly = 0; }
 			for (ply_t checkPly = ply - 4; checkPly >= minPly; checkPly -= 2) {
-				if (searchVariablePtr[checkPly]->positionHashSignature == searchVariablePtr[ply]->positionHashSignature) {
+				if (nodePtr[checkPly]->positionHash == nodePtr[ply]->positionHash) {
 					drawByRepetition = true;
 					break;
 				}
@@ -142,7 +142,7 @@ namespace QaplaSearch {
 	private:
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 
-		array<SearchNode*, SearchConfig::MAX_SEARCH_DEPTH + 1> searchVariablePtr;
+		array<SearchNode*, SearchConfig::MAX_SEARCH_DEPTH + 1> nodePtr;
 		array<SearchNode, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;
 		uint32_t referenceCount;
 	};

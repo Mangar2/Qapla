@@ -94,8 +94,8 @@ namespace QaplaSearch {
 		 * Sets all variables from previous ply
 		 */
 		void setFromParentNode(MoveGenerator& position, const SearchNode& parentNode, value_t alpha, value_t beta, ply_t depth, bool isPVNode) {
-			pvMovesStore.setEmpty(ply);
-			pvMovesStore.setEmpty(ply + 1);
+			pv.setEmpty(ply);
+			pv.setEmpty(ply + 1);
 			bestMove.setEmpty();
 			bestValue = -MAX_VALUE;
 			cutoff = Cutoff::NONE;
@@ -106,7 +106,7 @@ namespace QaplaSearch {
 			remainingDepth = depth;
 			remainingDepthAtPlyStart = depth;
 			setWindowAtPlyStart(alpha, beta);
-			moveNumber = 0;
+			movesTried = 0;
 			_nodeType = childNodeType(parentNode._nodeType, isPVNode);
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
@@ -114,13 +114,13 @@ namespace QaplaSearch {
 		}
 
 		void setToPlyStart() {
-			pvMovesStore.setEmpty(ply);
-			pvMovesStore.setEmpty(ply + 1);
+			pv.setEmpty(ply);
+			pv.setEmpty(ply + 1);
 			bestValue = -MAX_VALUE;
 			remainingDepth = remainingDepthAtPlyStart;
 			alpha = alphaAtPlyStart;
 			beta = betaAtPlyStart;
-			moveNumber = 0;
+			movesTried = 0;
 		}
 
 		/**
@@ -129,7 +129,7 @@ namespace QaplaSearch {
 		void initSearchAtRoot(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, ply_t searchDepth) {
 			position.computeAttackMasksForBothColors();
 			remainingDepthAtPlyStart = remainingDepth = searchDepth;
-			moveNumber = 0;
+			movesTried = 0;
 			alpha = initialAlpha;
 			beta = initialBeta;
 			alphaAtPlyStart = alpha;
@@ -140,7 +140,7 @@ namespace QaplaSearch {
 			isVerifyingNullmove = false;
 			noNullmove = true;
 			cutoff = Cutoff::NONE;
-			positionHashSignature = position.computeBoardHash();
+			positionHash = position.computeBoardHash();
 			ttValueIsGreaterOrEqualBeta = false;
 			ttValueIsLessOrEqualAlpha = false;
 			sideToMoveIsInCheck = position.isInCheck();
@@ -154,7 +154,7 @@ namespace QaplaSearch {
 		 */
 		void doMove(MoveGenerator& position, Move previousPlyMove) {
 			previousMove = previousPlyMove;
-			boardState = position.getBoardState();
+			boardStateBeforeMove = position.getBoardState();
 			position.doMove(previousMove);
 			sideToMoveIsInCheck = position.isInCheck();
 #ifdef USE_STOCKFISH_EVAL
@@ -169,7 +169,7 @@ namespace QaplaSearch {
 			if (previousMove.isEmpty()) {
 				return;
 			}
-			position.undoMove(previousMove, boardState);
+			position.undoMove(previousMove, boardStateBeforeMove);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(previousMove);
 #endif
@@ -179,8 +179,8 @@ namespace QaplaSearch {
 		 * Gets an entry from the transposition table
 		 */
 		bool probeTT(bool isPVNode, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
-			assert(positionHashSignature != 0);
-			uint32_t ttIndex = ttPtr->getEntryIndex(positionHashSignature);
+			assert(positionHash != 0);
+			uint32_t ttIndex = ttPtr->getEntryIndex(positionHash);
 			ttMove = Move::EMPTY_MOVE;
 			ttValue = NO_VALUE;
 			eval = NO_VALUE;
@@ -219,11 +219,11 @@ namespace QaplaSearch {
 		}
 
 		void setHashSignature(const MoveGenerator& position) {
-			positionHashSignature = position.computeBoardHash();
+			positionHash = position.computeBoardHash();
 		}
 
 		void printTTEntry() {
-			ttPtr->printHash(positionHashSignature);
+			ttPtr->printHash(positionHash);
 		}
 
 		/**
@@ -303,7 +303,7 @@ namespace QaplaSearch {
 			// Only at low depths (more conservative than forward futility)
 			if (SearchConfig::FUTILITY_DEPTH <= remainingDepth) return false;
 			// Only after trying some moves first
-			if (moveNumber < SearchConfig::FUTILITY_PRUNING_MIN_MOVE_NUMBER) return false;
+			if (movesTried < SearchConfig::FUTILITY_PRUNING_MIN_MOVE_NUMBER) return false;
 			
 			// Predict forward futility will prune: eval + moveValue + margin < alpha
 			// More conservative margin because opponent will improve position. Coefficients of
@@ -328,13 +328,13 @@ namespace QaplaSearch {
 		 */
 		void computeMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
 			position.isWhiteToMove();
-			checkingBitmaps = position.computeCheckBitmapsForMovingColor();
+			checkGivingSquares = position.computeCheckBitmapsForMovingColor();
 			moveProvider.computeMoves(position, butterflyBoard, previousMove, ttMove);
 			bestValue = moveProvider.checkForGameEnd(position, ply);
 		}
 
 		bool isCheckMove(MoveGenerator& position, Move move) {
-			return position.isCheckMove(move, checkingBitmaps);
+			return position.isCheckMove(move, checkGivingSquares);
 		}
 
 		/**
@@ -381,7 +381,7 @@ namespace QaplaSearch {
 		 */
 		inline Move selectNextMove(MoveGenerator& position) {
 			Move result = moveProvider.selectNextMove(position);
-			moveNumber++;
+			movesTried++;
 			return result;
 		}
 
@@ -405,8 +405,8 @@ namespace QaplaSearch {
 					bestMove = currentMove;
 					if (isPVNode()) {
 						// PV line may be extended, thus always copy from pv
-						pvMovesStore.copyFromPV(nextPlySearchInfo.pvMovesStore, ply + 1);
-						pvMovesStore.setMove(ply, bestMove);
+						pv.copyFromPV(nextPlySearchInfo.pv, ply + 1);
+						pv.setMove(ply, bestMove);
 					}
 					if (searchResult < beta) {
 						// Never set alpha > beta, it will harm the PVS algorithm
@@ -458,7 +458,7 @@ namespace QaplaSearch {
 			}
 		}
 
-		Move getMoveFromPVMovesStore(ply_t ply) const { return pvMovesStore.getMove(ply); }
+		Move getMoveFromPVMovesStore(ply_t ply) const { return pv.getMove(ply); }
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
 
 		Move getTTMove() const { return ttMove; }
@@ -504,7 +504,7 @@ namespace QaplaSearch {
 		
 			if (isPVNode()) {
 				std::cout << " [PV: ";
-				pvMovesStore.print(ply);
+				pv.print(ply);
 				std::cout << " ]";
 			}
 		
@@ -558,13 +558,13 @@ namespace QaplaSearch {
 		value_t eval;
 		Move bestMove;
 		Move previousMove;
-		int32_t moveNumber;
+		int32_t movesTried;
 		ply_t remainingDepth;
 		ply_t remainingDepthAtPlyStart;
 		ply_t ply;
 		ply_t searchDepthExtension;
-		BoardState boardState;
-		hash_t positionHashSignature;
+		BoardState boardStateBeforeMove;
+		hash_t positionHash;
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
 		bool ttValueIsGreaterOrEqualBeta;
@@ -578,9 +578,9 @@ namespace QaplaSearch {
 		Cutoff cutoff;
 		mutex mtxSearchResult;
 		MoveProvider moveProvider;
-		PV pvMovesStore;
+		PV pv;
 		// Bitmaps to identify checking moves faster
-		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> checkingBitmaps;
+		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> checkGivingSquares;
 
 	private:
 		NodeType _nodeType;

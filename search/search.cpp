@@ -212,7 +212,7 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	constexpr int32_t DEPTH_OFFSET = 3;
 	constexpr int32_t DEPTH_SLOPE = 2;
 
-	const int32_t moveNo = static_cast<int32_t>(node.moveNumber);
+	const int32_t moveNo = static_cast<int32_t>(node.movesTried);
 
 	if (ply <= MIN_PLY) return 0;
 
@@ -450,7 +450,7 @@ template <Search::SearchRegion TYPE>
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 
 	SearchNode& node = stack[ply];
-	node.pvMovesStore.setEmpty(ply);
+	node.pv.setEmpty(ply);
 
 	// 1. Detect direct cutoffs without requiring search or eval
 	// This includes checking the hash and setting the hash information like ttMove
@@ -525,7 +525,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		const ply_t moveDepth = moveExtension > 0 ?
 			std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
 
-		bool doMovePrunings = node.moveNumber > 3 && !node.isCheckMove(position, curMove);
+		bool doMovePrunings = node.movesTried > 3 && !node.isCheckMove(position, curMove);
 		// lmr is needed for move count pruning and late move reduction search
 		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
 		// Never skip moves when escaping from mate and in positions with pawns only.
@@ -565,7 +565,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// 4. Searching with null window either because of non pv search or because it is not the first move in pv.
 		// Additionally we do not go to null window search on PV, if depth is 1 or 0
 		// We do not return fail high from a null window search in PV node
-		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.moveNumber == 1 || depth <= 1);
+		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.movesTried == 1 || depth <= 1);
 		if (!isDirectPVWindowSearch) {
 			result = TYPE != SearchRegion::NEAR_LEAF && moveDepth > 2 ?
 				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1) :
