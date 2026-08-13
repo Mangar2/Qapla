@@ -145,6 +145,8 @@ value_t Quiescence::search(bool isPvNode,
 #endif
 			valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
 			position.undoMove(move, positionState);
+			// Scaffolding of step B3, see SearchNode::undoMove
+			assert(position.getIncrementalState() == incrementalState);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(move);
 #endif
