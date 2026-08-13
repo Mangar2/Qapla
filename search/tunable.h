@@ -20,7 +20,7 @@
  *
  * A parameter is used directly where it is needed:
  *
- *     const value_t margin = param<optimizeSE, "seMarginConst", 1, -100, 300>();
+ *     const value_t margin = tunable<optimizeSE, "seMarginConst", 1, -100, 300>();
  *
  * The first template parameter decides how the value is provided:
  * - false: the default value is returned as a compile time constant, the call is
@@ -33,8 +33,8 @@
  * though no search has been started yet.
  */
 
-#ifndef __SEARCH_PARAM_H
-#define __SEARCH_PARAM_H
+#ifndef __TUNABLE_H
+#define __TUNABLE_H
 
 #include <cstddef>
 #include <cstdint>
@@ -67,10 +67,10 @@ namespace QaplaSearch {
 	 * Registry of all search parameters currently exposed to UCI. Only parameters
 	 * used with the optimize flag set are registered here.
 	 */
-	class SearchParams : public ChessEval::UciParameterProvider {
+	class TunableParams : public ChessEval::UciParameterProvider {
 	public:
-		static SearchParams& getUciAccess() {
-			static SearchParams instance;
+		static TunableParams& getUciAccess() {
+			static TunableParams instance;
 			return instance;
 		}
 
@@ -130,7 +130,7 @@ namespace QaplaSearch {
 	struct ParamSlot {
 		inline static int32_t value = DEFAULT;
 		inline static const bool registered =
-			SearchParams::add({ std::string(NAME.view()), DEFAULT, MIN, MAX }, &value);
+			TunableParams::add({ std::string(NAME.view()), DEFAULT, MIN, MAX }, &value);
 
 		static int32_t get() {
 			// Uses "registered" to make sure the registration is not optimized away
@@ -148,7 +148,7 @@ namespace QaplaSearch {
 	 * @tparam MAX maximal value reported to the UCI interface
 	 */
 	template <bool OPTIMIZE, ParamName NAME, int32_t DEFAULT, int32_t MIN = -32000, int32_t MAX = 32000>
-	constexpr int32_t param() {
+	constexpr int32_t tunable() {
 		if constexpr (!OPTIMIZE) {
 			return DEFAULT;
 		}
@@ -159,4 +159,4 @@ namespace QaplaSearch {
 
 }
 
-#endif // __SEARCH_PARAM_H
+#endif // __TUNABLE_H

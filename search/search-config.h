@@ -92,12 +92,12 @@ namespace QaplaSearch {
 		static const ply_t IIR_REDUCTION = 1;
 
 		// Set to true to make the late move reduction and move count pruning parameters
-		// settable by UCI, see search-param.h
+		// settable by UCI, see tunable.h
 		static constexpr bool optimizeLMR = false;
 
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
-		// Set to true to make the quiescence parameters settable by UCI, see search-param.h
+		// Set to true to make the quiescence parameters settable by UCI, see tunable.h
 		static constexpr bool optimizeQS = false;
 
 		static const bool DO_MOVE_ORDERING_STATISTIC = false;
@@ -111,7 +111,7 @@ namespace QaplaSearch {
 		// the defaults of seNonPvMargin*, seTTMinDepthReduction 3 and seDepthDivisor 263,
 		// they belong to tag 0.4.0-032 and have to come back when this is switched on again.
 		static constexpr bool DO_SE_IN_NON_PV = false;
-		// Set to true to make the singular extension parameters settable by UCI, see search-param.h
+		// Set to true to make the singular extension parameters settable by UCI, see tunable.h
 		static constexpr bool optimizeSE = false;
 
 		// Multi cut, computed within the singular extension search, see se(). Switched off
@@ -120,16 +120,16 @@ namespace QaplaSearch {
 
 		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
 
-		// Set to true to make the futility margins settable by UCI, see search-param.h
+		// Set to true to make the futility margins settable by UCI, see tunable.h
 		static constexpr bool optimizeFutility = false;
 
-		// Set to true to make the aspiration window size settable by UCI, see search-param.h
+		// Set to true to make the aspiration window size settable by UCI, see tunable.h
 		static constexpr bool optimizeAspiration = false;
 
-		// Set to true to make the time management settable by UCI, see search-param.h
+		// Set to true to make the time management settable by UCI, see tunable.h
 		static constexpr bool optimizeTime = false;
 
-		// The margins themselves live at their call sites in searchvariables.h, see search-param.h.
+		// The margins themselves live at their call sites in searchvariables.h, see tunable.h.
 		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
 		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;
 

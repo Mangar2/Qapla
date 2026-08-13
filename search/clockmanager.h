@@ -29,7 +29,7 @@
 #include "../interface/clocksetting.h"
 #include "searchstate.h"
 #include "search-config.h"
-#include "search-param.h"
+#include "tunable.h"
 
 using namespace std;
 using namespace QaplaInterface;
@@ -272,9 +272,9 @@ namespace QaplaSearch {
 				//
 				// movesToGoSmoothing is in tenths of a move. At 5 the corner is as sharp as the
 				// old maximum, which is where this reformulation starts.
-				const double start = param<OPT, "movesToGoStart", 60, 20, 100>();
-				const double keep = param<OPT, "movesToGoKeep", 35, 0, 70>();
-				const double smoothing = param<OPT, "movesToGoSmoothing", 5, 1, 100>() / 10.0;
+				const double start = tunable<OPT, "movesToGoStart", 60, 20, 100>();
+				const double keep = tunable<OPT, "movesToGoKeep", 35, 0, 70>();
+				const double smoothing = tunable<OPT, "movesToGoSmoothing", 5, 1, 100>() / 10.0;
 				const double played = _clockSetting.getPlayedMovesInGame() / 2;
 				const double above = (start - keep - played) / smoothing;
 				const double soft = above > 30.0 ? above : std::log1p(std::exp(above));
@@ -324,9 +324,9 @@ namespace QaplaSearch {
 				if (_clockSetting.getMoveAmountForClock() == 0)
 				{
 					constexpr bool OPT = SearchConfig::optimizeTime;
-					const int64_t shareMin = param<OPT, "timeShareMin", 155, 50, 260>();
-					const int64_t shareMax = param<OPT, "timeShareMax", 168, 96, 240>();
-					const int64_t halfTime = param<OPT, "timeShareHalfTime", 20000, 0, 40000>();
+					const int64_t shareMin = tunable<OPT, "timeShareMin", 155, 50, 260>();
+					const int64_t shareMax = tunable<OPT, "timeShareMax", 168, 96, 240>();
+					const int64_t halfTime = tunable<OPT, "timeShareHalfTime", 20000, 0, 40000>();
 					const int64_t share = shareMin + (shareMax - shareMin) * timeLeft / (timeLeft + halfTime);
 					averageTime = averageTime * share / 100;
 				}

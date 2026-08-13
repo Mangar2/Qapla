@@ -32,7 +32,7 @@
 #include "../basics/pst.h"
 #include "../basics/materialbalance.h"
 
-#include "../search/search-param.h"
+#include "../search/tunable.h"
 
 #include <algorithm>
 #include <cctype>
@@ -64,7 +64,7 @@ static std::vector<UciParameterProvider*> collectUciProviders() {
 	providers.push_back(&QaplaBasics::PST::getUciAccess());
 	providers.push_back(&QaplaBasics::MaterialBalance::getUciAccess());
 	// Search parameters, only present for parameter groups currently being optimized
-	providers.push_back(&QaplaSearch::SearchParams::getUciAccess());
+	providers.push_back(&QaplaSearch::TunableParams::getUciAccess());
 	return providers;
 }
 

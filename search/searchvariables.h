@@ -33,7 +33,7 @@
 #include "tt.h"
 #include "butterfly-boards.h"
 #include "search-config.h"
-#include "search-param.h"
+#include "tunable.h"
 #include "extension.h"
 #include "../eval/eval.h"
 #ifdef USE_STOCKFISH_EVAL
@@ -281,9 +281,9 @@ namespace QaplaSearch {
 			// Each influence carries its own coefficient. The depth term and the constant part are
 			// separate, so a run can change the slope without moving the whole line.
 			constexpr bool OPT = SearchConfig::optimizeFutility;
-			const value_t margin = param<OPT, "ffDepthFactor", 83, 0, 166>() * remainingDepth
-				+ param<OPT, "ffBase", 69, 0, 138>()
-				- param<OPT, "ffImprovingBonus", 101, 0, 202>() * isImproving;
+			const value_t margin = tunable<OPT, "ffDepthFactor", 83, 0, 166>() * remainingDepth
+				+ tunable<OPT, "ffBase", 69, 0, 138>()
+				- tunable<OPT, "ffImprovingBonus", 101, 0, 202>() * isImproving;
 			const bool doFutility = adjustedEval - margin >= beta;
 			if (doFutility) {
 				bestValue = beta + (adjustedEval - beta) / 2;
@@ -309,9 +309,9 @@ namespace QaplaSearch {
 			// More conservative margin because opponent will improve position. Coefficients of
 			// its own throughout, nothing here is derived from the forward futility margin.
 			constexpr bool OPT = SearchConfig::optimizeFutility;
-			const value_t margin = param<OPT, "futDepthFactor", 43, 0, 86>() * remainingDepth
-				+ param<OPT, "futBase", 80, 0, 160>()
-				+ param<OPT, "futImprovingMalus", 77, 0, 154>() * isImproving;
+			const value_t margin = tunable<OPT, "futDepthFactor", 43, 0, 86>() * remainingDepth
+				+ tunable<OPT, "futBase", 80, 0, 160>()
+				+ tunable<OPT, "futImprovingMalus", 77, 0, 154>() * isImproving;
 			const value_t capturedPieceValue = position.getPieceValueForMoveSorting(
 				getPieceType(move.getCapture())
 			);

@@ -218,8 +218,8 @@ first, then the third one against the values they reached.
 ## Tunable search parameters
 
 Define them at the call site, using the value where it is needed instead of routing it through
-a constant or a member. The definition is `param<OPTIMIZE, NAME, DEFAULT, MIN, MAX>()`, which
-returns the parameter value, see `search/search-param.h`:
+a constant or a member. The definition is `tunable<OPTIMIZE, NAME, DEFAULT, MIN, MAX>()`, which
+returns the parameter value, see `search/tunable.h`:
 
 - `OPTIMIZE` false → `DEFAULT` as a compile time constant, the call is optimized away and no
   UCI option exists.
