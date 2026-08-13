@@ -75,9 +75,8 @@ void Board::setToSymetricBoard(const Board& board) {
 
 void Board::removePiece(Square squareOfPiece) {
 	Piece pieceToRemove = _board[squareOfPiece];
-	removePieceBB(squareOfPiece, pieceToRemove);
+	removePieceFromPosition(squareOfPiece);
 	_boardState.updateHash(squareOfPiece, pieceToRemove);
-	_board[squareOfPiece] = NO_PIECE;
 	_pieceSignature.removePiece(pieceToRemove, bitBoardsPiece[pieceToRemove]);
 	_imbalance.removePiece(pieceToRemove, _pieceSignature);
 	_materialBalance.removePiece(pieceToRemove);
@@ -87,39 +86,33 @@ void Board::removePiece(Square squareOfPiece) {
 void Board::addPiece(Square squareOfPiece, Piece pieceToAdd) {
 	_pieceSignature.addPiece(pieceToAdd);
 	_imbalance.addPiece(pieceToAdd, _pieceSignature);
-	addPieceBB(squareOfPiece, pieceToAdd);
+	addPieceToPosition(squareOfPiece, pieceToAdd);
 	_boardState.updateHash(squareOfPiece, pieceToAdd);
-	_board[squareOfPiece] = pieceToAdd;
 	_materialBalance.addPiece(pieceToAdd);
 	_pstBonus += PST::getValue(squareOfPiece, pieceToAdd);
 }
 
 void Board::movePiece(Square departure, Square destination) {
 	Piece pieceToMove = _board[departure];
-	if (isKing(pieceToMove)) {
-		kingSquares[getPieceColor(pieceToMove)] = destination;
-	}
 	_pstBonus += PST::getValue(destination, pieceToMove) -
 		PST::getValue(departure, pieceToMove);
-	movePieceBB(departure, destination, pieceToMove);
+	movePieceInPosition(departure, destination);
 	_boardState.updateHash(departure, pieceToMove);
-	_board[departure] = NO_PIECE;
 	_boardState.updateHash(destination, pieceToMove);
-	_board[destination] = pieceToMove;
 }
 
-void Board::removePiecePlacement(Square squareOfPiece) {
+void Board::removePieceFromPosition(Square squareOfPiece) {
 	Piece pieceToRemove = _board[squareOfPiece];
 	removePieceBB(squareOfPiece, pieceToRemove);
 	_board[squareOfPiece] = NO_PIECE;
 }
 
-void Board::addPiecePlacement(Square squareOfPiece, Piece pieceToAdd) {
+void Board::addPieceToPosition(Square squareOfPiece, Piece pieceToAdd) {
 	addPieceBB(squareOfPiece, pieceToAdd);
 	_board[squareOfPiece] = pieceToAdd;
 }
 
-void Board::movePiecePlacement(Square departure, Square destination) {
+void Board::movePieceInPosition(Square departure, Square destination) {
 	Piece pieceToMove = _board[departure];
 	if (isKing(pieceToMove)) {
 		kingSquares[getPieceColor(pieceToMove)] = destination;
@@ -220,55 +213,55 @@ void Board::undoMoveSpecialities(Move move) {
 	switch (move.getActionAndMovingPiece())
 	{
 	case Move::WHITE_PROMOTE:
-		removePiecePlacement(destination);
-		addPiecePlacement(destination, WHITE_PAWN);
+		removePieceFromPosition(destination);
+		addPieceToPosition(destination, WHITE_PAWN);
 		break;
 	case Move::BLACK_PROMOTE:
-		removePiecePlacement(destination);
-		addPiecePlacement(destination, BLACK_PAWN);
+		removePieceFromPosition(destination);
+		addPieceToPosition(destination, BLACK_PAWN);
 		break;
 	case Move::WHITE_EP:
-		addPiecePlacement(destination + SOUTH, BLACK_PAWN);
+		addPieceToPosition(destination + SOUTH, BLACK_PAWN);
 		break;
 	case Move::BLACK_EP:
-		addPiecePlacement(destination + NORTH, WHITE_PAWN);
+		addPieceToPosition(destination + NORTH, WHITE_PAWN);
 		break;
 	case Move::WHITE_CASTLES_KING_SIDE:
 		assert(_board[G1] == WHITE_KING);
-		removePiecePlacement(G1);
+		removePieceFromPosition(G1);
 		if (_kingRookStartSquare[WHITE] != F1) {
-			movePiecePlacement(F1, _kingRookStartSquare[WHITE]);
+			movePieceInPosition(F1, _kingRookStartSquare[WHITE]);
 		}
-		addPiecePlacement(_kingStartSquare[WHITE], WHITE_KING);
+		addPieceToPosition(_kingStartSquare[WHITE], WHITE_KING);
 		kingSquares[WHITE] = _kingStartSquare[WHITE];
 		break;
 	case Move::BLACK_CASTLES_KING_SIDE:
 		assert(_board[G8] == BLACK_KING);
-		removePiecePlacement(G8);
+		removePieceFromPosition(G8);
 		if (_kingRookStartSquare[BLACK] != F8) {
-			movePiecePlacement(F8, _kingRookStartSquare[BLACK]);
+			movePieceInPosition(F8, _kingRookStartSquare[BLACK]);
 		}
-		addPiecePlacement(_kingStartSquare[BLACK], BLACK_KING);
+		addPieceToPosition(_kingStartSquare[BLACK], BLACK_KING);
 		kingSquares[BLACK] = _kingStartSquare[BLACK];
 		break;
 
 	case Move::WHITE_CASTLES_QUEEN_SIDE:
 		assert(_board[C1] == WHITE_KING);
-		removePiecePlacement(C1);
+		removePieceFromPosition(C1);
 		if (_queenRookStartSquare[WHITE] != D1) {
-			movePiecePlacement(D1, _queenRookStartSquare[WHITE]);
+			movePieceInPosition(D1, _queenRookStartSquare[WHITE]);
 		}
-		addPiecePlacement(_kingStartSquare[WHITE], WHITE_KING);
+		addPieceToPosition(_kingStartSquare[WHITE], WHITE_KING);
 		kingSquares[WHITE] = _kingStartSquare[WHITE];
 		break;
 
 	case Move::BLACK_CASTLES_QUEEN_SIDE:
 		assert(_board[C8] == BLACK_KING);
-		removePiecePlacement(C8);
+		removePieceFromPosition(C8);
 		if (_queenRookStartSquare[BLACK] != D8) {
-			movePiecePlacement(D8, _queenRookStartSquare[BLACK]);
+			movePieceInPosition(D8, _queenRookStartSquare[BLACK]);
 		}
-		addPiecePlacement(_kingStartSquare[BLACK], BLACK_KING);
+		addPieceToPosition(_kingStartSquare[BLACK], BLACK_KING);
 		kingSquares[BLACK] = _kingStartSquare[BLACK];
 		break;
 	}
@@ -287,9 +280,9 @@ void Board::undoMove(Move move, BoardState recentBoardState, const IncrementalSt
 	if (!move.isCastleMove())
 	{
 		assert(_board[destination] == move.getMovingPiece());
-		movePiecePlacement(destination, departure);
+		movePieceInPosition(destination, departure);
 		if (move.isCaptureMoveButNotEP()) {
-			addPiecePlacement(destination, capture);
+			addPieceToPosition(destination, capture);
 		}
 	}
 	_whiteToMove = !_whiteToMove;
