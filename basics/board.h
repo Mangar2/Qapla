@@ -491,9 +491,9 @@ namespace QaplaBasics {
 		// bitboards and the king squares, nothing else. The hash and the incrementally
 		// maintained values are restored from the caller's snapshots afterwards, so doing
 		// that work here would only be thrown away.
-		void movePiecePlacement(Square departure, Square destination);
-		void removePiecePlacement(Square squareOfPiece);
-		void addPiecePlacement(Square squareOfPiece, Piece pieceToAdd);
+		void movePieceInPosition(Square departure, Square destination);
+		void removePieceFromPosition(Square squareOfPiece);
+		void addPieceToPosition(Square squareOfPiece, Piece pieceToAdd);
 
 
 		/**
