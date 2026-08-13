@@ -34,6 +34,23 @@
 
 namespace QaplaBasics {
 
+	/**
+	 * The values the board keeps up to date move by move. They are derived from the
+	 * position, they are not part of it. A snapshot taken before a move restores all of
+	 * them afterwards, so undoing a move does not have to recompute a single one.
+	 *
+	 * Only the accumulators belong here. The piece value tables of the material balance
+	 * are configuration, they do not change during a search and are not snapshotted.
+	 *
+	 * Category 2 of plan/position-state-refactoring.md.
+	 */
+	struct IncrementalState {
+		EvalValue        pstBonus;
+		EvalValue        materialValue;
+		pieceSignature_t pieceSignature;
+		value_t          imbalance;
+	};
+
 	class Board {
 	public:
 		Board();
@@ -308,6 +325,28 @@ namespace QaplaBasics {
 		inline auto getQueenRookStartSquare() const { return _queenRookStartSquare[COLOR]; }
 
 		BoardState getBoardState() const { return _boardState; }
+
+		/**
+		 * Reads the incrementally maintained values, to be kept until the move is undone
+		 */
+		IncrementalState getIncrementalState() const {
+			return {
+				_pstBonus,
+				_materialBalance.getMaterialValue(),
+				_pieceSignature.getPiecesSignature(),
+				_imbalance.getRawValue()
+			};
+		}
+
+		/**
+		 * Restores the incrementally maintained values from a snapshot
+		 */
+		void setIncrementalState(const IncrementalState& state) {
+			_pstBonus = state.pstBonus;
+			_materialBalance.setMaterialValue(state.materialValue);
+			_pieceSignature.setPiecesSignature(state.pieceSignature);
+			_imbalance.setRawValue(state.imbalance);
+		}
 
 		/**
 		 * Gets the board in Fen representation

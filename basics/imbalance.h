@@ -64,6 +64,18 @@ namespace ChessEval {
 			//return 0;
 		}
 
+		/**
+		 * Unscaled accumulator, for the snapshot taken before a move. getValue() divides,
+		 * so it must not be used to save and restore the state.
+		 */
+		inline value_t getRawValue() const {
+			return _imbalance;
+		}
+
+		inline void setRawValue(value_t value) {
+			_imbalance = value;
+		}
+
 	private:
 		static constexpr uint32_t PIECE_KIND_COUNT = 5;
 
