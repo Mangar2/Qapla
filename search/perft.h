@@ -45,11 +45,12 @@ namespace QaplaSearch {
 
 		void doMove(MoveGenerator& board) {
 			boardState = board.getBoardState();
+			incrementalState = board.getIncrementalState();
 			board.doMove(moveList[moveNo]);
 		}
 
 		void undoMoveAndSetToNextMove(MoveGenerator& board) {
-			board.undoMove(moveList[moveNo], boardState);
+			board.undoMove(moveList[moveNo], boardState, incrementalState);
 			moveNo++;
 		}
 
@@ -64,6 +65,7 @@ namespace QaplaSearch {
 
 		MoveList moveList;
 		BoardState boardState;
+		IncrementalState incrementalState;
 		uint16_t moveNo;
 		uint8_t curDepth;
 	};

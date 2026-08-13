@@ -48,10 +48,11 @@ void PerftSearch::perftRecHelper(SplitPoint& splitPoint, WorkPackage &work, bool
 	while(!(move = splitPoint.selectNextMove()).isEmpty()) {
 		// if (splitPoint.getCurDepth() > 1 && workerCount > 0) cout << "depth " << splitPoint.getCurDepth() << endl;
 		const BoardState boardState = board.getBoardState();
+		const IncrementalState incrementalState = board.getIncrementalState();
 		board.doMove(move);
 		uint64_t movesFound = perftRec(board, splitPoint.getMaxDepth(), splitPoint.getCurDepth() + 1, splitPoint.getScipLastPly());
 		result += movesFound;
-		board.undoMove(move, boardState);
+		board.undoMove(move, boardState, incrementalState);
 	}
 	// cout << "Thread found: " << result << " nodes" << (main ? " (main thread) " : "") << endl;
 	splitPoint.addResult(result);
@@ -87,6 +88,7 @@ uint64_t PerftSearch::perftRec(
 			const auto isCheckingMove = board.isCheckMove(move, checkGivingSquares);
 			if (move.isEmpty()) break;
 			const BoardState boardState = board.getBoardState();
+			const IncrementalState incrementalState = board.getIncrementalState();
 			board.doMove(move);
 			
 			const auto isCheck = board.isInCheck();
@@ -101,7 +103,7 @@ uint64_t PerftSearch::perftRec(
 			
 			uint64_t movesFound = perftRec(board, maxDepth, curDepth + 1, scipLastPly);
 			result += movesFound;
-			board.undoMove(move, boardState);
+			board.undoMove(move, boardState, incrementalState);
 			if (verbose) {
 				cout << move.getLAN() << " " << movesFound << endl;
 			}
@@ -117,6 +119,7 @@ uint64_t PerftSearch::perftRecTT(
 {
 	MoveList moveList;
 	BoardState boardState;
+	IncrementalState incrementalState;
 	if (curDepth == maxDepth) return 1;
 	board.genMovesOfMovingColor(moveList);
 	if (scipLastPly && curDepth + 1 == maxDepth) {
@@ -131,6 +134,7 @@ uint64_t PerftSearch::perftRecTT(
 		const Move move = isSplitPoint ? _splitPoints[0].selectNextMove() : moveList[index];
 		if (move.isEmpty()) break;
 		boardState = board.getBoardState();
+		incrementalState = board.getIncrementalState();
 		board.doMove(move);
 		hash_t boardHash = board.basicBoard.computeBoardHash();
 
@@ -143,7 +147,7 @@ uint64_t PerftSearch::perftRecTT(
 			ttMoves += movesFound;
 		}
 		result += movesFound;
-		board.undoMove(move, boardState);
+		board.undoMove(move, boardState, incrementalState);
 	}
 	if (curDepth == 0) {
 		cout << "TTMoves found: " << ttMoves << endl;

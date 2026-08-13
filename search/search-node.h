@@ -170,10 +170,7 @@ namespace QaplaSearch {
 			if (previousMove.isEmpty()) {
 				return;
 			}
-			position.undoMove(previousMove, boardStateBeforeMove);
-			// Scaffolding of step B3: undoMove still recomputes the incremental values, so
-			// this checks the snapshot against them before anything starts depending on it.
-			assert(position.getIncrementalState() == incrementalBeforeMove);
+			position.undoMove(previousMove, boardStateBeforeMove, incrementalBeforeMove);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(previousMove);
 #endif

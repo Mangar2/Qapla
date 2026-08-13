@@ -525,6 +525,7 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 	// quiet move is proven to also lose. This makes _computedPositions unnecessary.
 
 	BoardState boardState = position.getBoardState();
+	IncrementalState incrementalState = position.getIncrementalState();
 	bool anyUnknown = false;
 	bool anyDraw = false;
 
@@ -540,7 +541,7 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 		}
 		position.doMove(move);
 		BitbaseResult readerResult = BitbaseReader::getValueFromSingleBitbase(position);
-		position.undoMove(move, boardState);
+		position.undoMove(move, boardState, incrementalState);
 		assert(readerResult != BitbaseResult::Unknown); // Bitmaps of Reader are complete.
 
 		// Results are stored from white's perspective.
