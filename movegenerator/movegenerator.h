@@ -147,7 +147,7 @@ namespace QaplaMoveGenerator {
 		 *
 		 * Uses the precomputed checkBitmaps from computeCheckBitmaps().
 		 */
-		bool isCheckMove(Move move, const std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2>& checkingBitmaps);
+		bool isCheckMove(Move move, const std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2>& checkGivingSquares);
 
 		/**
 		 * Generates all legal moves that evade a check for the side to move.
