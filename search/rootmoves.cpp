@@ -55,7 +55,7 @@ void RootMove::set(value_t searchResult, const SearchStack& stack, bool isPVSear
 	}
 }
 
-bool RootMove::doSearch(const SearchVariables& variables) const {
+bool RootMove::doSearch(const SearchNode& variables) const {
 	if (_isExcluded) {
 		return false;
 	}

@@ -109,10 +109,10 @@ namespace QaplaSearch {
 		/**
 		 * Check, if we have a bitbase value
 		 */
-		bool hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& curPly);
+		bool hasBitbaseCutoff(const MoveGenerator& position, SearchNode& curPly);
 
 		template <SearchRegion TYPE>
-		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, value_t alpha, value_t beta, ply_t depth, ply_t ply);
+		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchNode& node, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
 		 * @brief Checks evaluation-related cutoffs and initializes node evaluation values
@@ -139,7 +139,7 @@ namespace QaplaSearch {
 		 * @note Sets node.adjustedEval, node.eval, and node.isImproving as side effects
 		 */
 		template <SearchRegion TYPE>
-		bool checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchStack& stack, SearchVariables& node, ply_t depth, ply_t ply);
+		bool checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchStack& stack, SearchNode& node, ply_t depth, ply_t ply);
 
 		/**
 		 * Internal iterative reduction: the plies a node is searched shallower by because it has
@@ -165,12 +165,12 @@ namespace QaplaSearch {
 		/**
 	 	 * @brief   
 		 */
-		ply_t computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move);
+		ply_t computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move);
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
 		 */
-		bool isNullmoveReasonable(MoveGenerator& position, SearchVariables& node, ply_t depth, ply_t ply);
+		bool isNullmoveReasonable(MoveGenerator& position, SearchNode& node, ply_t depth, ply_t ply);
 
 		/**
 		 * Check for a nullmove cutoff

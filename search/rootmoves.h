@@ -91,7 +91,7 @@ namespace QaplaSearch {
 		 * outside the window and the corresponding window border did not change.
 		 * @returns true, if we need to search this root move
 		 */ 
-		bool doSearch(const SearchVariables& variables) const;
+		bool doSearch(const SearchNode& variables) const;
 
 		/**
 		 * Print the move (used for debugging)

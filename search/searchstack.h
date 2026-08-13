@@ -22,7 +22,7 @@
 #ifndef __SEARCHSTACK_H
 #define __SEARCHSTACK_H
 
-#include "searchvariables.h"
+#include "search-node.h"
 #include "tt.h"
 // #include "HistoryTable.h"
 
@@ -58,15 +58,15 @@ namespace QaplaSearch {
 			}
 		}
 
-		inline const SearchVariables& operator[](uint32_t index) const { return *searchVariablePtr[index]; }
-		inline  SearchVariables& operator[](uint32_t index) { return *searchVariablePtr[index]; }
+		inline const SearchNode& operator[](uint32_t index) const { return *searchVariablePtr[index]; }
+		inline  SearchNode& operator[](uint32_t index) { return *searchVariablePtr[index]; }
 		TT* getTT() const { return ttPtr; }
 
 		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
 			_stack[0].initSearchAtRoot(board, alpha, beta, searchDepth);
 		}
 
-		Move getMoveFromPVMovesStore(SearchVariables::pvIndex_t ply) {
+		Move getMoveFromPVMovesStore(SearchNode::pvIndex_t ply) {
 			return _stack[0].getMoveFromPVMovesStore(ply);
 		}
 
@@ -142,8 +142,8 @@ namespace QaplaSearch {
 	private:
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 
-		array<SearchVariables*, SearchConfig::MAX_SEARCH_DEPTH + 1> searchVariablePtr;
-		array<SearchVariables, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;
+		array<SearchNode*, SearchConfig::MAX_SEARCH_DEPTH + 1> searchVariablePtr;
+		array<SearchNode, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;
 		uint32_t referenceCount;
 	};
 
