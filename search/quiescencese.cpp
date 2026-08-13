@@ -138,6 +138,7 @@ value_t Quiescence::search(bool isPvNode,
 			}
 
 			BoardState positionState = position.getBoardState();
+			IncrementalState incrementalState = position.getIncrementalState();
 			position.doMove(move);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::doMove(move, si);

@@ -155,6 +155,7 @@ namespace QaplaSearch {
 		void doMove(MoveGenerator& position, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			boardStateBeforeMove = position.getBoardState();
+			incrementalBeforeMove = position.getIncrementalState();
 			position.doMove(previousMove);
 			sideToMoveIsInCheck = position.isInCheck();
 #ifdef USE_STOCKFISH_EVAL
@@ -564,6 +565,10 @@ namespace QaplaSearch {
 		ply_t ply;
 		ply_t searchDepthExtension;
 		BoardState boardStateBeforeMove;
+		// Snapshot of the incrementally maintained values, taken before the move of this
+		// ply. Restoring it is cheaper than letting undoMove recompute them, see
+		// plan/position-state-refactoring.md.
+		IncrementalState incrementalBeforeMove;
 		hash_t positionHash;
 		bool noNullmove;
 		bool sideToMoveIsInCheck;
