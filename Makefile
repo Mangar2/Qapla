@@ -158,8 +158,9 @@ endif
 
 # Platform-specific link flags
 ifeq ($(UNAME_S),Darwin)
-  # macOS: static link C++ stdlib and compiler runtime for portability
-  LDFLAGS_PLAT := -static-libgcc -static-libstdc++
+  # macOS: libc++/compiler-rt ship with the OS; Apple clang has no -static-lib*.
+  # -flto must be repeated at link time (the link rule uses only LDFLAGS).
+  LDFLAGS_PLAT := -flto
 else
   # Linux: static linking to avoid runtime dependencies
   LDFLAGS_PLAT := -Wl,--gc-sections -flto -fuse-ld=lld -static -static-libgcc -static-libstdc++

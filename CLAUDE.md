@@ -226,7 +226,7 @@ returns the parameter value, see `search/search-param.h`:
 - `OPTIMIZE` true → the value is read from a variable that is registered as a UCI spin option
   named `NAME` with the limits `MIN` and `MAX` before main.
 
-`OPTIMIZE` is a group flag; the group flags live in `search/searchparameter.h` and are false
+`OPTIMIZE` is a group flag; the group flags live in `search/search-config.h` and are false
 by default. Set one to true only for a tuning run. Node count must be identical for both flag
 states as long as all values are at their defaults.
 

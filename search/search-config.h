@@ -19,8 +19,8 @@
  * Implements functions and constants for search parameters
  */
 
-#ifndef __SEARCHPARAMETER_H
-#define __SEARCHPARAMETER_H
+#ifndef __SEARCH_CONFIG_H
+#define __SEARCH_CONFIG_H
 
 #include <map>
 #include <algorithm>
@@ -30,7 +30,7 @@
 using namespace QaplaBasics;
 
 namespace QaplaSearch {
-	class SearchParameter {
+	class SearchConfig {
 	public:
 
 		/**
@@ -143,4 +143,4 @@ namespace QaplaSearch {
 	};
 }
 
-#endif // __SEARCHPARAMETER_H
+#endif // __SEARCH_CONFIG_H

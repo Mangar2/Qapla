@@ -148,7 +148,8 @@ namespace QaplaBitbase {
         bool getBitAtomic(uint64_t index) const {
             const uint64_t elem = index / BITS_IN_ELEMENT;
             const bbt_t    mask = bbt_t(1) << (index % BITS_IN_ELEMENT);
-            return (std::atomic_ref<const bbt_t>(_bitbase[elem]).load(std::memory_order_relaxed) & mask) != 0;
+            // atomic_ref<const T> is C++26; the storage itself is non-const, so cast is safe.
+            return (std::atomic_ref<bbt_t>(const_cast<bbt_t&>(_bitbase[elem])).load(std::memory_order_relaxed) & mask) != 0;
         }
 
         /**

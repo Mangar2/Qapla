@@ -2126,7 +2126,7 @@
     <ClInclude Include="search\searchdef.h" />
     <ClInclude Include="search\movehistory.h" />
     <ClInclude Include="search\perft.h" />
-    <ClInclude Include="search\searchparameter.h" />
+    <ClInclude Include="search\search-config.h" />
     <ClInclude Include="search\searchstack.h" />
     <ClInclude Include="search\searchvariables.h" />
     <ClInclude Include="search\see.h" />

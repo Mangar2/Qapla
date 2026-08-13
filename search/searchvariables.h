@@ -32,7 +32,7 @@
 #include "moveprovider.h"
 #include "tt.h"
 #include "butterfly-boards.h"
-#include "searchparameter.h"
+#include "search-config.h"
 #include "search-param.h"
 #include "extension.h"
 #include "../eval/eval.h"
@@ -263,7 +263,7 @@ namespace QaplaSearch {
 		 * Examine, if we can do a futility pruning based on an evaluation score
 		 */
 		inline bool forewardFutility(MoveGenerator& position) {
-			if (SearchParameter::FOREWARD_FUTILITY_DEPTH <= remainingDepth) return false;
+			if (SearchConfig::FOREWARD_FUTILITY_DEPTH <= remainingDepth) return false;
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
 			if (adjustedEval < beta) return false;
 			// We do not prune in PV nodes. 
@@ -280,7 +280,7 @@ namespace QaplaSearch {
 
 			// Each influence carries its own coefficient. The depth term and the constant part are
 			// separate, so a run can change the slope without moving the whole line.
-			constexpr bool OPT = SearchParameter::optimizeFutility;
+			constexpr bool OPT = SearchConfig::optimizeFutility;
 			const value_t margin = param<OPT, "ffDepthFactor", 83, 0, 166>() * remainingDepth
 				+ param<OPT, "ffBase", 69, 0, 138>()
 				- param<OPT, "ffImprovingBonus", 101, 0, 202>() * isImproving;
@@ -301,14 +301,14 @@ namespace QaplaSearch {
 		 */
 		inline bool canPruneFutility(MoveGenerator& position, const Move& move) {
 			// Only at low depths (more conservative than forward futility)
-			if (SearchParameter::FUTILITY_DEPTH <= remainingDepth) return false;
+			if (SearchConfig::FUTILITY_DEPTH <= remainingDepth) return false;
 			// Only after trying some moves first
-			if (moveNumber < SearchParameter::FUTILITY_PRUNING_MIN_MOVE_NUMBER) return false;
+			if (moveNumber < SearchConfig::FUTILITY_PRUNING_MIN_MOVE_NUMBER) return false;
 			
 			// Predict forward futility will prune: eval + moveValue + margin < alpha
 			// More conservative margin because opponent will improve position. Coefficients of
 			// its own throughout, nothing here is derived from the forward futility margin.
-			constexpr bool OPT = SearchParameter::optimizeFutility;
+			constexpr bool OPT = SearchConfig::optimizeFutility;
 			const value_t margin = param<OPT, "futDepthFactor", 43, 0, 86>() * remainingDepth
 				+ param<OPT, "futBase", 80, 0, 160>()
 				+ param<OPT, "futImprovingMalus", 77, 0, 154>() * isImproving;
