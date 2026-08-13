@@ -19,7 +19,7 @@
 
 #include "quiescence.h"
 #include "../eval/eval.h"
-#include "searchparameter.h"
+#include "search-config.h"
 #include "search-param.h"
 #include "moveprovider.h"
 #include "whatIf.h"
@@ -47,7 +47,7 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 	if (position.doFutilityOnCapture(capturedPiece)) {
 		// Both terms must use the same margin, else a tuning run moves two halves against
 		// each other. 100: 49%, 35: 50,3%, 40: 49,3%
-		const value_t margin = param<SearchParameter::optimizeQS, "qsSafetyMargin", 50, 0, 100>();
+		const value_t margin = param<SearchConfig::optimizeQS, "qsSafetyMargin", 50, 0, 100>();
 		const value_t threshold = alpha - standPatValue - margin;
 		result = standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 	}
@@ -80,7 +80,7 @@ value_t Quiescence::search(bool isPvNode,
 	MoveGenerator& position, ComputingInfo& computingInfo, Move lastMove,
 	value_t alpha, value_t beta, ply_t ply)
 {
-	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
+	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
 	if (alpha > MAX_VALUE - ply) {
@@ -101,7 +101,7 @@ value_t Quiescence::search(bool isPvNode,
 	moveProvider.setTTMove(ttMove);
 	if (/*alpha + 1 == beta && */ ttValue != NO_VALUE) return ttValue;
 
-	const auto evadesCheck = SearchParameter::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
+	const auto evadesCheck = SearchConfig::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
 	value_t bestValue, standPatValue;
 	if (evadesCheck) {
 		bestValue = standPatValue = -MAX_VALUE + ply;

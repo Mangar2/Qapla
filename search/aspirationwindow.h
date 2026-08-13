@@ -27,7 +27,7 @@
 
 #include <math.h>
 #include "../basics/types.h"
-#include "searchparameter.h"
+#include "search-config.h"
 #include "search-param.h"
 
 using namespace QaplaBasics;
@@ -153,7 +153,7 @@ namespace QaplaSearch {
 		 * @param positionValue positionValue of the current search
 		 */
 		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue) {
-			constexpr bool OPT = SearchParameter::optimizeAspiration;
+			constexpr bool OPT = SearchConfig::optimizeAspiration;
 			// Every influence carries its own coefficient
 			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth)
 				* param<OPT, "awDepthFactor", 10, 0, 20>();

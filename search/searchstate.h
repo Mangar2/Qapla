@@ -30,7 +30,7 @@
 #include "../basics/evalvalue.h"
 #include "../interface/clocksetting.h"
 #include "searchdef.h"
-#include "searchparameter.h"
+#include "search-config.h"
 #include "search-param.h"
 
 using namespace std;
@@ -132,7 +132,7 @@ namespace QaplaSearch {
 			// Every situation carries its own factor, in percent, none derived from another.
 			// The defaults are the hard values this used to have: unchanged, four times, fifteen
 			// times, a fifth.
-			constexpr bool OPT = SearchParameter::optimizeTime;
+			constexpr bool OPT = SearchConfig::optimizeTime;
 			int64_t factor = 100;
 			switch (_rootSearchState)
 			{
@@ -184,7 +184,7 @@ namespace QaplaSearch {
 		bool _hasBookMove;
 		SearchFinding _state;
 		SearchFinding _rootSearchState;
-		array<value_t, SearchParameter::MAX_SEARCH_DEPTH> _values;
+		array<value_t, SearchConfig::MAX_SEARCH_DEPTH> _values;
 		static const value_t ONE_PAWN = 100;
 		static const value_t DEATH_DROP = ONE_PAWN;
 		static const value_t CRITICAL_DROP = ONE_PAWN / 5;

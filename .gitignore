@@ -361,3 +361,5 @@ healthchecksdb
 # Syzygy tablebase probe code (third-party, not part of this project)
 nnue768/tbprobe.cpp
 nnue768/tbprobe.h
+# Reference binary for the interleaved timing runs, a local working aid
+test/epd/ref/

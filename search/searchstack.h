@@ -142,8 +142,8 @@ namespace QaplaSearch {
 	private:
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 
-		array<SearchVariables*, SearchParameter::MAX_SEARCH_DEPTH + 1> searchVariablePtr;
-		array<SearchVariables, SearchParameter::MAX_SEARCH_DEPTH + 1> _stack;
+		array<SearchVariables*, SearchConfig::MAX_SEARCH_DEPTH + 1> searchVariablePtr;
+		array<SearchVariables, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;
 		uint32_t referenceCount;
 	};
 

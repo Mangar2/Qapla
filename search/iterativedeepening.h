@@ -131,7 +131,7 @@ namespace QaplaSearch {
 			if (_search->getComputingInfo().getMovesAmount() == 0) {
 				return _search->getComputingInfo();
 			}
-			ply_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
+			ply_t maxDepth = SearchConfig::MAX_SEARCH_DEPTH - 28;
 			const ply_t depthLimit = _clockSetting.getSearchDepthLimit();
 			if (depthLimit > 0 && depthLimit < maxDepth) {
 				maxDepth = depthLimit;

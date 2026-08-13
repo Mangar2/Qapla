@@ -27,7 +27,7 @@
 #include "searchdef.h"
 #include "killermove.h"
 #include "see.h"
-#include "searchparameter.h"
+#include "search-config.h"
 #include "butterfly-boards.h"
 #include "../movegenerator/movegenerator.h"
 
@@ -415,7 +415,7 @@ namespace QaplaSearch {
 			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				moveList.setWeight(moveNo, _butterflyBoard->getValue(moveList.getMove(moveNo)));
 			}
-			moveList.sortFirstSilentMoves(SearchParameter::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
+			moveList.sortFirstSilentMoves(SearchConfig::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
 		}
 
 		static const uint32_t TRIED_MOVES_STORE_SIZE = 200;

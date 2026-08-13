@@ -21,7 +21,7 @@
 
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
-#include "searchparameter.h"
+#include "search-config.h"
 
 using namespace QaplaMoveGenerator;
 
@@ -34,10 +34,10 @@ namespace QaplaSearch {
 		 */
 		static ply_t calculateExtension(MoveGenerator& board, Move move, int32_t remainingSearchDepth) {
 			ply_t extension = 0;
-			if (SearchParameter::DO_CHECK_EXTENSIONS && board.isInCheck()) {
+			if (SearchConfig::DO_CHECK_EXTENSIONS && board.isInCheck()) {
 				extension = 1;
 			}
-			else if (SearchParameter::DO_PASSED_PAWN_EXTENSIONS && isChallengingPassedPawnMove(board, move)) {
+			else if (SearchConfig::DO_PASSED_PAWN_EXTENSIONS && isChallengingPassedPawnMove(board, move)) {
 				static uint32_t passedPawnExtensions = 0;
 				passedPawnExtensions++; if (passedPawnExtensions % 1000 == 0) { 
 					std::cout << passedPawnExtensions << std::endl;
@@ -91,7 +91,7 @@ namespace QaplaSearch {
 			Square destinationSquare = move.getDestination();
 
 			if (movingPiece == WHITE_PAWN) {
-				if (destinationSquare >= Square(SearchParameter::PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK) * NORTH &&
+				if (destinationSquare >= Square(SearchConfig::PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK) * NORTH &&
 					defendedByWhiteOrNotAttackedByBlack(board, destinationSquare) &&
 					move.isPromote())
 				{
@@ -100,7 +100,7 @@ namespace QaplaSearch {
 				}
 			}
 			else if (movingPiece == BLACK_PAWN) {
-				if (destinationSquare <= Square(SearchParameter::PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK) * NORTH + NW &&
+				if (destinationSquare <= Square(SearchConfig::PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK) * NORTH + NW &&
 					defendedByBlackOrNotAttackedByWhite(board, destinationSquare) &&
 					!move.isPromote())
 				{

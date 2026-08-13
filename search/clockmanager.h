@@ -28,7 +28,7 @@
 #include <sys/timeb.h>
 #include "../interface/clocksetting.h"
 #include "searchstate.h"
-#include "searchparameter.h"
+#include "search-config.h"
 #include "search-param.h"
 
 using namespace std;
@@ -263,7 +263,7 @@ namespace QaplaSearch {
 		{
 			int32_t movesToGo = _clockSetting.getMoveAmountForClock();
 			if (movesToGo == 0) {
-				constexpr bool OPT = SearchParameter::optimizeTime;
+				constexpr bool OPT = SearchConfig::optimizeTime;
 				// The forecast falls from movesToGoStart at the first move towards movesToGoKeep,
 				// the amount of moves the engine always keeps time for. The old form was
 				// max(start - played, keep), which has a kink where the two meet - the slope
@@ -323,7 +323,7 @@ namespace QaplaSearch {
 				// tuning runs at three time controls be combined.
 				if (_clockSetting.getMoveAmountForClock() == 0)
 				{
-					constexpr bool OPT = SearchParameter::optimizeTime;
+					constexpr bool OPT = SearchConfig::optimizeTime;
 					const int64_t shareMin = param<OPT, "timeShareMin", 155, 50, 260>();
 					const int64_t shareMax = param<OPT, "timeShareMax", 168, 96, 240>();
 					const int64_t halfTime = param<OPT, "timeShareHalfTime", 20000, 0, 40000>();
