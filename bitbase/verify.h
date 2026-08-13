@@ -169,6 +169,7 @@ namespace QaplaBitbase {
 			// DrawOrLoss (1-bit legacy) equals Draw=0 and is treated as Draw.
 			BitbaseResult result = position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
 			BoardState boardState = position.getBoardState();
+			IncrementalState incrementalState = position.getIncrementalState();
 
 			for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				move = moveList.getMove(moveNo);
@@ -181,12 +182,12 @@ namespace QaplaBitbase {
 					cout << move.getLAN() << " with index: " << index << " " << to_string(cur) << endl;
 				}
 				// Always undo move before throwing an exception to keep the position in a consistent state
-				position.undoMove(move, boardState);
+				position.undoMove(move, boardState, incrementalState);
 
 				if (cur == BitbaseResult::Unknown) {
 					position.doMove(move);
 					auto fen = position.getFen(0);
-					position.undoMove(move, boardState);
+					position.undoMove(move, boardState, incrementalState);
 					throw "Bitbase not available for fen:  " + fen;
 				}
 

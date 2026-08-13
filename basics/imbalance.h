@@ -65,15 +65,29 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Unscaled accumulator, for the snapshot taken before a move. getValue() divides,
-		 * so it must not be used to save and restore the state.
+		 * Everything this class maintains move by move. It is not only the accumulator:
+		 * the two signatures are a cached copy of the piece signature of the last update
+		 * and both the delta and the early exit of updateByDelta depend on them. Restoring
+		 * the accumulator alone leaves the next update computing from a stale signature.
+		 *
+		 * The members mirror clear(), which is the definition of what is incremental here.
 		 */
-		inline value_t getRawValue() const {
-			return _imbalance;
+		struct State {
+			value_t          imbalance;
+			pieceSignature_t whiteSignature;
+			pieceSignature_t blackSignature;
+
+			bool operator==(const State& other) const = default;
+		};
+
+		inline State getState() const {
+			return { _imbalance, _whiteSignature, _blackSignature };
 		}
 
-		inline void setRawValue(value_t value) {
-			_imbalance = value;
+		inline void setState(const State& state) {
+			_imbalance = state.imbalance;
+			_whiteSignature = state.whiteSignature;
+			_blackSignature = state.blackSignature;
 		}
 
 	private:

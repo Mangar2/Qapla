@@ -45,10 +45,10 @@ namespace QaplaBasics {
 	 * Category 2 of plan/position-state-refactoring.md.
 	 */
 	struct IncrementalState {
-		EvalValue        pstBonus;
-		EvalValue        materialValue;
-		pieceSignature_t pieceSignature;
-		value_t          imbalance;
+		EvalValue                   pstBonus;
+		EvalValue                   materialValue;
+		pieceSignature_t            pieceSignature;
+		ChessEval::Imbalance::State imbalance;
 
 		/**
 		 * Only used by the assertions that check a snapshot against a recomputed state
@@ -74,10 +74,18 @@ namespace QaplaBasics {
 
 		/*
 		 * Undoes a previously made move on the move
+		 *
+		 * Only the piece placement is undone by moving pieces back. Everything the board
+		 * maintains incrementally - the hash, the castling rights, the en passant square,
+		 * the halfmove counters, the material balance, the piece signature, the imbalance
+		 * and the PST bonus - is restored from the two snapshots the caller took before
+		 * the move. Recomputing them here would cost more than keeping the copies.
+		 *
 		 * @param move move previously made
-		 * @param boardState a stored state from the board before doing the move incl. EP-Position
+		 * @param boardState board state from before the move, incl. EP-Position
+		 * @param incremental incrementally maintained values from before the move
 		 */
-		void undoMove(Move move, BoardState boardState);
+		void undoMove(Move move, BoardState boardState, const IncrementalState& incremental);
 		void clear();
 		inline auto operator[](Square square) const { return _board[square]; }
 		inline auto isWhiteToMove() const { return _whiteToMove; }
@@ -346,7 +354,7 @@ namespace QaplaBasics {
 				_pstBonus,
 				_materialBalance.getMaterialValue(),
 				_pieceSignature.getPiecesSignature(),
-				_imbalance.getRawValue()
+				_imbalance.getState()
 			};
 		}
 
@@ -357,7 +365,7 @@ namespace QaplaBasics {
 			_pstBonus = state.pstBonus;
 			_materialBalance.setMaterialValue(state.materialValue);
 			_pieceSignature.setPiecesSignature(state.pieceSignature);
-			_imbalance.setRawValue(state.imbalance);
+			_imbalance.setState(state.imbalance);
 		}
 
 		/**
@@ -478,6 +486,14 @@ namespace QaplaBasics {
 		 * Adds a piece as part of a move (for example for promotions)
 		 */
 		void addPiece(Square squareOfPiece, Piece pieceToAdd);
+
+		// Placement-only variants, used on the undo path. They touch the board array, the
+		// bitboards and the king squares, nothing else. The hash and the incrementally
+		// maintained values are restored from the caller's snapshots afterwards, so doing
+		// that work here would only be thrown away.
+		void movePiecePlacement(Square departure, Square destination);
+		void removePiecePlacement(Square squareOfPiece);
+		void addPiecePlacement(Square squareOfPiece, Piece pieceToAdd);
 
 
 		/**
