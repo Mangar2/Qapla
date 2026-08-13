@@ -55,7 +55,7 @@ namespace QaplaSearch {
 			_cutoff = "";
 			_bestMove = "";
 			_ply = ply;
-			const SearchVariables& node = stack[ply];
+			const SearchNode& node = stack[ply];
 			_alpha = node.alpha;
 			_beta = node.beta;
 			_bestValue = node.bestValue;
@@ -79,7 +79,7 @@ namespace QaplaSearch {
 			
 		}
 
-		string computeSearchType(const string searchType, const SearchVariables& node) const {
+		string computeSearchType(const string searchType, const SearchNode& node) const {
 			if (searchType == "") {
 				return node.isWindowZero() ? (node.isPVNode() ? "ZeroW" : "Normal") : "PV";
 			}

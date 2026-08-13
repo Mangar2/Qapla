@@ -19,8 +19,8 @@
  * Implements all needed variables for search in one structure
  */
 
-#ifndef __SEARCHVARIABLES_H
-#define __SEARCHVARIABLES_H
+#ifndef __SEARCH_NODE_H
+#define __SEARCH_NODE_H
 
 #include <mutex>
 #include <string>
@@ -53,7 +53,7 @@ enum class Cutoff {
 };
 
 namespace QaplaSearch {
-	struct SearchVariables {
+	struct SearchNode {
 
 		enum class SearchFinding {
 			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID, SE,
@@ -62,7 +62,7 @@ namespace QaplaSearch {
 
 		typedef uint32_t pvIndex_t;
 
-		SearchVariables() {
+		SearchNode() {
 			cutoff = Cutoff::NONE;
 		};
 
@@ -93,7 +93,7 @@ namespace QaplaSearch {
 		/**
 		 * Sets all variables from previous ply
 		 */
-		void setFromParentNode(MoveGenerator& position, const SearchVariables& parentNode, value_t alpha, value_t beta, ply_t depth, bool isPVNode) {
+		void setFromParentNode(MoveGenerator& position, const SearchNode& parentNode, value_t alpha, value_t beta, ply_t depth, bool isPVNode) {
 			pvMovesStore.setEmpty(ply);
 			pvMovesStore.setEmpty(ply + 1);
 			bestMove.setEmpty();
@@ -396,7 +396,7 @@ namespace QaplaSearch {
 		/**
 		 * applies the search result to the status
 		 */
-		void setSearchResult(value_t searchResult, const SearchVariables& nextPlySearchInfo, Move currentMove) {
+		void setSearchResult(value_t searchResult, const SearchNode& nextPlySearchInfo, Move currentMove) {
 			assert(abs(searchResult) < MIN_MATE_VALUE || abs(searchResult) > MAX_VALUE - 50);
 			currentValue = searchResult;
 			if (searchResult > bestValue) {
@@ -419,7 +419,7 @@ namespace QaplaSearch {
 		/**
 		 * Multi-Threading version to set the search result
 		 */
-		void setSearchResultThreadSafe(value_t searchResult, const SearchVariables& searchInfo, Move currentMove) {
+		void setSearchResultThreadSafe(value_t searchResult, const SearchNode& searchInfo, Move currentMove) {
 			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
 			setSearchResult(searchResult, searchInfo, currentMove);
 		}
@@ -595,4 +595,4 @@ namespace QaplaSearch {
 
 }
 
-#endif // __SEARCHVARIABLES_H
+#endif // __SEARCH_NODE_H

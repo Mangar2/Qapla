@@ -107,7 +107,7 @@ namespace QaplaSearch {
 		/**
 		 * Starts searching the next iteration
 		 */
-		void nextIteration(const SearchVariables& searchInfo) {
+		void nextIteration(const SearchNode& searchInfo) {
 			_totalAmountOfMovesToConcider = searchInfo.moveProvider.getTotalMoveAmount();
 			_currentConcideredMove.setEmpty();
 			_currentMoveNoSearched = 0;

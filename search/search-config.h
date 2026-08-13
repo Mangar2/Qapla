@@ -129,7 +129,7 @@ namespace QaplaSearch {
 		// Set to true to make the time management settable by UCI, see tunable.h
 		static constexpr bool optimizeTime = false;
 
-		// The margins themselves live at their call sites in searchvariables.h, see tunable.h.
+		// The margins themselves live at their call sites in search-node.h, see tunable.h.
 		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
 		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;
 
