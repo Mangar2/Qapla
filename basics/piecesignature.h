@@ -178,6 +178,14 @@ namespace QaplaBasics
 		}
 
 		/**
+		 * Restores the signature from a snapshot taken before a move
+		 */
+		inline void setPiecesSignature(pieceSignature_t signature)
+		{
+			_signature = signature;
+		}
+
+		/**
 		 * Gets a static piece value (Queen = 9, Rook = 5, Bishop & Knight = 3, >= 3 Pawns = 1)
 		 * The pawns are counted as one, if there are 3 or more pawns
 		 */

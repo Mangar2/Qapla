@@ -116,6 +116,14 @@ namespace QaplaBasics {
 			return _materialValue;
 		}
 
+		/**
+		 * Restores the material value from a snapshot taken before a move. The piece value
+		 * tables are configuration and are not part of the snapshot.
+		 */
+		inline void setMaterialValue(EvalValue value) {
+			_materialValue = value;
+		}
+
 		const array<EvalValue, PIECE_AMOUNT>& getPieceValues() const {
 			return pieceValues;
 		}
