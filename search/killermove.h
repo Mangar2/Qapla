@@ -34,12 +34,6 @@ namespace QaplaSearch {
 	class KillerMove {
 	public:
 		KillerMove() { }
-		KillerMove(const KillerMove& killerMove) { operator=(killerMove); }
-		KillerMove& operator=(const KillerMove& killerMove) {
-			_killer = killerMove._killer;
-			captureKiller = killerMove.captureKiller;
-			return *this;
-		}
 		/**
 		 * Gets a killer move
 		 */
