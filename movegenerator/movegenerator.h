@@ -305,6 +305,15 @@ namespace QaplaMoveGenerator {
 		template <Piece COLOR>
 		bitBoard_t computeAttackMask();
 
+		/**
+		 * All bishops, rooks and queens of ATTACKER_COLOR attacking a square for a given
+		 * occupancy. The occupancy is a parameter because the callers ask about positions
+		 * that do not exist on the board yet - the one after an en passant capture, where
+		 * two pieces leave the same row at once.
+		 */
+		template <Piece ATTACKER_COLOR>
+		bitBoard_t sliderAttacksToSquare(Square square, bitBoard_t occupancy) const;
+
 		template <Piece COLOR>
 		void computeCastlingMasksForMoveGeneration();
 
