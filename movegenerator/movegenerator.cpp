@@ -746,5 +746,9 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 
 template void MoveGenerator::genMoves<WHITE>(MoveList&);
 template void MoveGenerator::genMoves<BLACK>(MoveList&);
+// Called from eval.cpp; without the explicit instantiation the symbol only exists
+// as long as LTO happens to inline every cross-TU call.
+template void MoveGenerator::computePinnedMask<WHITE>();
+template void MoveGenerator::computePinnedMask<BLACK>();
 template void MoveGenerator::genPinnedMovesForAllPieces<WHITE, MoveGenerator::ALL>(MoveList&, Square);
 template void MoveGenerator::genPinnedMovesForAllPieces<BLACK, MoveGenerator::ALL>(MoveList&, Square);
