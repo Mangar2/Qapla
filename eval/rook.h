@@ -31,6 +31,7 @@
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "evalresults.h"
+#include "eval-helper.h"
 #include "array-generator.h"
 #include "../interface/uci-parameter-provider.h"
 
@@ -139,7 +140,7 @@ namespace ChessEval {
 			rookIndex += trappedByKing<COLOR>(rookSquare, position.getKingSquare<COLOR>()) * TRAPPED;
 			rookIndex +=
 				protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
-			rookIndex += isPinned(position.pinnedMask[COLOR], rookSquare) * PINNED;
+			rookIndex += EvalHelper::isPinned(position.pinnedMask[COLOR], rookSquare) * PINNED;
 			if (squareToBB(rookSquare) & ROW_7[COLOR]) {
 				rookIndex += rookOnRow7Index;
 			}
@@ -153,13 +154,8 @@ namespace ChessEval {
 		static uint32_t calcMobilityIndex(
 			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
-			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
-			results.rookAttack[COLOR] |= attackBB;
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-
-			attackBB &= removeBB;
-			return popCount(attackBB);
+			const bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
+			return results.addPieceAttack<COLOR>(results.rookAttack, attackBB, removeBB);
 		}
 
 		/**
@@ -179,13 +175,6 @@ namespace ChessEval {
 			if (((rookIndex / ROW_7_INDEX) & 7) == 6) { result += "rrq7,"; }
 			if (!result.empty() && result.back() == ',') result.pop_back();
 			return result;
-		}
-
-		/**
-		 * Returns true, if the rook is pinned
-		 */
-		static constexpr bool isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
 		}
 
 		/**
