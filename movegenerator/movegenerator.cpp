@@ -401,7 +401,7 @@ void MoveGenerator::genNonPinnedMovesForAllPieces(MoveList& moveList) {
 	genMovesForPiece<KING + COLOR, TYPE>(moveList);
 }
 
-template<Piece COLOR>
+template<Piece COLOR, MoveGenerator::moveGenType_t TYPE>
 void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 {
 	bitBoard_t pieces;
@@ -418,7 +418,9 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 		switch (piece) {
 		// Pinned KNIGHTS can never move.
 		case PAWN + COLOR:
-			genSilentSinglePawnMoves<COLOR>(departure, ~bitBoardAllPieces & allowedRayMask, moveList);
+			if constexpr (TYPE == ALL) {
+				genSilentSinglePawnMoves<COLOR>(departure, ~bitBoardAllPieces & allowedRayMask, moveList);
+			}
 			// Captures, not a bug: bitBoardAllPieces is ok to use. A pinned piece will never
 			// have a piece of own color in the pinning ray
 			destination = BitBoardMasks::pawnCaptures[COLOR][departure];
@@ -436,52 +438,12 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 		case QUEEN + COLOR:
 			destination = pieceAttackMask[departure] & allowedRayMask;
 			genMovesSinglePiece(piece, departure, destination & bitBoardAllPieces, moveList);
-			genMovesSinglePiece(piece, departure, destination & ~bitBoardAllPieces, moveList);
+			if constexpr (TYPE == ALL) {
+				genMovesSinglePiece(piece, departure, destination & ~bitBoardAllPieces, moveList);
+			}
 			break;
 		default:
 			// Intentionally left blank
-			break;
-		}
-	}
-}
-
-template<Piece COLOR>
-void MoveGenerator::genPinnedCapturesForAllPieces(MoveList& moveList, Square epPos)
-{
-	bitBoard_t pieces;
-	bitBoard_t destination;
-	bitBoard_t allowedRayMask;
-	Square departure;
-
-	for (pieces = pinnedMask[COLOR] & bitBoardAllPiecesOfOneColor[COLOR]; pieces; pieces &= pieces - 1)
-	{
-		departure = lsb(pieces);
-		// Assure that piece stays in ray
-		allowedRayMask = BitBoardMasks::FullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
-		Piece piece = operator[](departure);
-		switch (piece) {
-		// Pinned KNIGHTS can never move.
-		case PAWN + COLOR:
-			// Captures, not a bug: bitBoardAllPieces is ok to use. A pinned piece will never
-			// have a piece of own color in the pinning ray
-			destination = BitBoardMasks::pawnCaptures[COLOR][departure];
-			destination &= allowedRayMask & bitBoardAllPieces;
-			genPawnCaptureSinglePiece<COLOR>(departure, destination, moveList);
-
-			// En passant moves
-			if (epPos && (BitBoardMasks::EPMask[epPos] & (1ULL << departure)))
-			{
-				genEPMove<COLOR>(departure, epPos, moveList);
-			}
-			break;
-		case BISHOP + COLOR:
-		case ROOK + COLOR:
-		case QUEEN + COLOR:
-			destination = pieceAttackMask[departure] & allowedRayMask;
-			genMovesSinglePiece(piece, departure, destination & bitBoardAllPieces, moveList);
-			break;
-		default:
-			// Nothing to do for other pieces.
 			break;
 		}
 	}
@@ -612,7 +574,7 @@ void MoveGenerator::genNonSilentMoves(MoveList& moveList) {
 	else {
 		moveList.clear();
 		genNonPinnedMovesForAllPieces<NON_SILENT, COLOR>(moveList);
-		genPinnedCapturesForAllPieces<COLOR>(moveList, getEP());
+		genPinnedMovesForAllPieces<COLOR, NON_SILENT>(moveList, getEP());
 	}
 }
 
@@ -654,7 +616,7 @@ void MoveGenerator::genMoves(MoveList& moveList)
 			(castlePieceMaskQueenSide[COLOR] & bitBoardAllPieces) == 0)
 			moveList.addSilentMove(Move(kingSquares[COLOR], QUEEN_SIDE_CASTLE, Move::KING_CASTLES_QUEEN_SIDE + COLOR));
 
-		genPinnedMovesForAllPieces<COLOR>(moveList, getEP());
+		genPinnedMovesForAllPieces<COLOR, ALL>(moveList, getEP());
 	}
 }
 
@@ -788,5 +750,5 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 
 template void MoveGenerator::genMoves<WHITE>(MoveList&);
 template void MoveGenerator::genMoves<BLACK>(MoveList&);
-template void MoveGenerator::genPinnedMovesForAllPieces<WHITE>(MoveList&, Square);
-template void MoveGenerator::genPinnedMovesForAllPieces<BLACK>(MoveList&, Square);
+template void MoveGenerator::genPinnedMovesForAllPieces<WHITE, MoveGenerator::ALL>(MoveList&, Square);
+template void MoveGenerator::genPinnedMovesForAllPieces<BLACK, MoveGenerator::ALL>(MoveList&, Square);
