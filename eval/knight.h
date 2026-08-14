@@ -29,6 +29,7 @@
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "evalresults.h"
+#include "eval-helper.h"
 #include "../interface/uci-parameter-provider.h"
 
 #include "array-generator.h"
@@ -121,12 +122,8 @@ namespace ChessEval {
 		 */
 		template<Piece COLOR>
 		static inline uint32_t calcMobilityIndex(EvalResults& results, Square square, bitBoard_t removeBB) {
-			bitBoard_t attackBB = BitBoardMasks::knightMoves[square];
-			results.knightAttack[COLOR] |= attackBB;
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-			attackBB &= removeBB;
-			return popCount(attackBB);
+			const bitBoard_t attackBB = BitBoardMasks::knightMoves[square];
+			return results.addPieceAttack<COLOR>(results.knightAttack, attackBB, removeBB);
 		}
 
 		/**
@@ -148,13 +145,6 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Returns true, if the knight is pinned
-		 */
-		static constexpr uint32_t isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
-		}
-
-		/**
 		 * Calculates properties and their Values for Knights
 		 */
 		template<Piece COLOR>
@@ -162,7 +152,7 @@ namespace ChessEval {
 		{
 			const bitBoard_t opponentPawnBB = position.getPieceBB(PAWN + opponentColor<COLOR>());
 			uint32_t knightIndex = isOutpost<COLOR>(knightSquare, opponentPawnBB, position.pawnAttack[COLOR]) * OUTPOST;
-			knightIndex += isPinned(position.pinnedMask[COLOR], knightSquare) * PINNED;
+			knightIndex += EvalHelper::isPinned(position.pinnedMask[COLOR], knightSquare) * PINNED;
 			return knightIndex;
 		}
 

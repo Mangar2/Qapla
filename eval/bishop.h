@@ -23,6 +23,7 @@
 #define __BISHOP_H
 
 #include "evalresults.h"
+#include "eval-helper.h"
 
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
@@ -96,7 +97,7 @@ namespace ChessEval {
 				const auto mobilityValue = EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]);
 				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(1)[mobilityIndex];
 
-				const auto propertyIndex = allBishopsIndex | (isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
+				const auto propertyIndex = allBishopsIndex | (EvalHelper::isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
 				const auto propertyValue = EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]);
 				//const auto propertyValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
@@ -137,20 +138,8 @@ namespace ChessEval {
 		template<Piece COLOR>
 		static inline uint32_t calcMobilityIndex(EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
-			bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
-			results.bishopAttack[COLOR] |= attackBB;
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-
-			attackBB &= removeBB;
-			return popCount(attackBB);
-		}
-
-		/**
-		 * Returns true, if the bishop is pinned
-		 */
-		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
+			const bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
+			return results.addPieceAttack<COLOR>(results.bishopAttack, attackBB, removeBB);
 		}
 
 		/**

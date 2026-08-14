@@ -97,7 +97,7 @@ namespace QaplaSearch {
 		/**
 		 * initializes data before starting to search
 		 */
-		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard butterflyBoard) {
+		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard) {
 			_rootMoves.setMoves(position, searchMoves, butterflyBoard);
 			_nodesSearched = 0;
 			_tbHits = 0;
@@ -219,7 +219,7 @@ namespace QaplaSearch {
 		 * Update status information on ply 0
 		 */
 		void printNewPV(uint32_t moveNo) {
-			const auto rootMove = _rootMoves.getMove(moveNo);
+			const auto& rootMove = _rootMoves.getMove(moveNo);
 			if (rootMove.isPVSearched() && rootMove.getValue() > _positionValueInCentiPawn) {
 				_positionValueInCentiPawn = rootMove.getValue();
 				if (_multiPV == 1 && _nodesSearched > 2000000) {

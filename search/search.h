@@ -184,6 +184,21 @@ namespace QaplaSearch {
 		template <SearchRegion TYPE>
 		value_t negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
+		/**
+		 * Searches a child node, picking the region it belongs to: a child with more than one
+		 * ply left below it is still an inner node, everything else is near the leaves. A child
+		 * of a NEAR_LEAF node is never an inner node again.
+		 * The caller negates the result and passes the window already from the child's view.
+		 */
+		template <SearchRegion TYPE>
+		inline value_t searchChild(MoveGenerator& position, SearchStack& stack,
+			value_t alpha, value_t beta, ply_t childDepth, ply_t childPly)
+		{
+			return TYPE != SearchRegion::NEAR_LEAF && childDepth > 1 ?
+				negaMax<SearchRegion::INNER>(position, stack, alpha, beta, childDepth, childPly) :
+				negaMax<SearchRegion::NEAR_LEAF>(position, stack, alpha, beta, childDepth, childPly);
+		}
+
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**

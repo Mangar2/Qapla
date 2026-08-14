@@ -53,14 +53,7 @@ namespace QaplaBasics {
 		/**
 		 * Only used by the assertions that check a snapshot against a recomputed state
 		 */
-		bool operator==(const IncrementalState& other) const {
-			return pstBonus.midgame() == other.pstBonus.midgame()
-				&& pstBonus.endgame() == other.pstBonus.endgame()
-				&& materialValue.midgame() == other.materialValue.midgame()
-				&& materialValue.endgame() == other.materialValue.endgame()
-				&& pieceSignature == other.pieceSignature
-				&& imbalance == other.imbalance;
-		}
+		bool operator==(const IncrementalState& other) const = default;
 	};
 
 	class Board {

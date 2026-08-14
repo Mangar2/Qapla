@@ -172,9 +172,9 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	ply_t R = SearchConfig::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.adjustedEval, node.isImproving);
 
 	childNode.doMove(position, Move::NULL_MOVE);
-	node.bestValue = depth - R > 2 ?
-		-negaMax<SearchRegion::INNER>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1) :
-		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1);
+	// isNullmoveCutoff is only reached from an INNER node, see checkEvalReleatedCutoffsAndSetEval
+	node.bestValue = -searchChild<SearchRegion::INNER>(
+		position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1);
 
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - R - 1, ply, node.bestValue, "null");
 	childNode.undoMove(position);
@@ -513,6 +513,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	node.computeMoves(position, _butterflyBoard);
+	node.computeCheckGivingSquares(position);
 	// 8. Calculate additional node wide search extensions
 	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth);
 
@@ -547,9 +548,8 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
-			result = TYPE != SearchRegion::NEAR_LEAF && moveDepth - lmr > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
+			result = -searchChild<TYPE>(
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
 			if (result <= node.alpha) {
 				childNode.undoMove(position);
@@ -567,9 +567,8 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// We do not return fail high from a null window search in PV node
 		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.movesTried == 1 || depth <= 1);
 		if (!isDirectPVWindowSearch) {
-			result = TYPE != SearchRegion::NEAR_LEAF && moveDepth > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
+			result = -searchChild<TYPE>(
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
 		}
 		// 5. Full window PV search or research the move with full window, if result is better than alpha
