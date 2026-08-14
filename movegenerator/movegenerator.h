@@ -264,11 +264,8 @@ namespace QaplaMoveGenerator {
 		template<MoveGenerator::moveGenType_t TYPE, Piece COLOR>
 		void genNonPinnedMovesForAllPieces(MoveList& moveList);
 
-		template<Piece COLOR>
+		template<Piece COLOR, moveGenType_t TYPE>
 		void genPinnedMovesForAllPieces(MoveList& moveList, Square epPos);
-
-		template<Piece COLOR>
-		void genPinnedCapturesForAllPieces(MoveList& moveList, Square epPos);
 
 		template <Piece PIECE>
 		void genEvadesByBlocking(MoveList& moveList, 
