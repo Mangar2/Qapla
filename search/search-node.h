@@ -455,7 +455,10 @@ namespace QaplaSearch {
 					butterflyBoard.newBestMove(bestMove, depth, moveProvider.getTriedMoves(), moveProvider.getTriedMovesAmount());
 				}
 				
-				setTTEntry(position.computeBoardHash(), isPV);
+				// The node owns the hash of its own position: it was stored on entry, and by the
+				// time the ply terminates every move tried below has been taken back.
+				assert(positionHash == position.computeBoardHash());
+				setTTEntry(positionHash, isPV);
 			}
 		}
 
