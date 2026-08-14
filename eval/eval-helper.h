@@ -39,6 +39,14 @@ public:
 		return _distTable[(dx + 7) + 15 * (dy + 7)];
 	}
 
+	/**
+	 * True if the piece on the square is pinned against the king of its own colour.
+	 * The caller passes the pinned mask of the colour the piece belongs to.
+	 */
+	static constexpr bool isPinned(bitBoard_t pinnedBB, Square square) {
+		return (pinnedBB & squareToBB(square)) != 0;
+	}
+
 private:
 	static constexpr value_t DISTANCE_SIZE = 15 * 15;
 
