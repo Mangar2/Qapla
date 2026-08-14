@@ -141,6 +141,16 @@ bitBoard_t MoveGenerator::computeAttackMask()
 	return result;
 }
 
+// -------------------------- sliderAttacksToSquare ---------------------------
+template <Piece ATTACKER_COLOR>
+inline bitBoard_t MoveGenerator::sliderAttacksToSquare(Square square, bitBoard_t occupancy) const
+{
+	return (Magics::genBishopAttackMask(square, occupancy) &
+			(bitBoardsPiece[BISHOP + ATTACKER_COLOR] | bitBoardsPiece[QUEEN + ATTACKER_COLOR])) |
+		   (Magics::genRookAttackMask(square, occupancy) &
+			(bitBoardsPiece[ROOK + ATTACKER_COLOR] | bitBoardsPiece[QUEEN + ATTACKER_COLOR]));
+}
+
 // -------------------------- computeAttackMasksForBothColors -----------------
 void MoveGenerator::computeAttackMasksForBothColors()
 {
@@ -282,18 +292,13 @@ genEPMove(Square departure, Square epPos, MoveList& moveList)
 	const Square DIRECTION = COLOR == WHITE ? NORTH : -NORTH;
 
 	bitBoard_t allPiecesAfterEPMove = bitBoardAllPieces;
-	bitBoard_t attack;
 	// Set the ep move to the All Pieces bitboard to test checks
 	// Set destination bit
 	allPiecesAfterEPMove |= 1ULL << (epPos + DIRECTION);
 	// Remove starting position bit and captured piece position bit
 	allPiecesAfterEPMove &= ~ ((1ULL << departure) | (1ULL << epPos));
-	// Now test if king is in check, check bishops and queens
-	attack = Magics::genBishopAttackMask(kingSquares[COLOR], allPiecesAfterEPMove) & 
-		(bitBoardsPiece[BISHOP + OPPONENT_COLOR] | bitBoardsPiece[QUEEN  + OPPONENT_COLOR]);
-	// Check rooks and queens
-	attack |= Magics::genRookAttackMask(kingSquares[COLOR], allPiecesAfterEPMove) & 
-		(bitBoardsPiece[ROOK + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
+	// Now test if king is in check
+	const bitBoard_t attack = sliderAttacksToSquare<OPPONENT_COLOR>(kingSquares[COLOR], allPiecesAfterEPMove);
 	// if king is not in check after move, generate ep move
 	if (!attack)
 	{
@@ -493,10 +498,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 	directAttack |= BitBoardMasks::knightMoves[kingSquares[COLOR]] & bitBoardsPiece[KNIGHT + OPPONENT_COLOR];
 
 	// Now check if a range piece is attacking king
-	rangeAttack = Magics::genBishopAttackMask(kingSquares[COLOR], bitBoardAllPieces) & 
-		(bitBoardsPiece[BISHOP + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
-	rangeAttack |= Magics::genRookAttackMask(kingSquares[COLOR], bitBoardAllPieces) &
-		(bitBoardsPiece[ROOK + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
+	rangeAttack = sliderAttacksToSquare<OPPONENT_COLOR>(kingSquares[COLOR], bitBoardAllPieces);
 
 	// Check if more than one piece is attacking the king. If yes we can�t 
 	// do anything else than moving the king
@@ -717,19 +719,13 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	{
 		const auto kingPos = kingSquares[BLACK];
 		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + SOUTH)) | destinationBit;
-		const auto attack =
-			(Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + WHITE] | bitBoardsPiece[QUEEN + WHITE])) |
-			(Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + WHITE] | bitBoardsPiece[QUEEN + WHITE]));
-		return attack ? true : false;
+		return sliderAttacksToSquare<WHITE>(kingPos, allPiecesEPMovedBB) ? true : false;
 	}
 	case Move::BLACK_EP:
 	{
 		const auto kingPos = kingSquares[WHITE];
 		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + NORTH)) | destinationBit;
-		const auto attack =
-			(Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + BLACK] | bitBoardsPiece[QUEEN + BLACK])) |
-			(Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + BLACK] | bitBoardsPiece[QUEEN + BLACK]));
-		return attack ? true : false;
+		return sliderAttacksToSquare<BLACK>(kingPos, allPiecesEPMovedBB) ? true : false;
 	}
 	// Check if the rook delivers check to the king after castling. There are two scenarios:
 	// 1. The rook is on a square that attacks the king (a computed check square).
