@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <vector>
 #include "evalresults.h"
+#include "eval-helper.h"
 
 #include "../movegenerator/movegenerator.h"
 #include "../basics/types.h"
@@ -97,7 +98,7 @@ namespace ChessEval {
 				const auto mobilityValue = EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]);
 				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
 
-				const auto propertyIndex = isPinned(position.pinnedMask[COLOR], square);
+				const auto propertyIndex = EvalHelper::isPinned(position.pinnedMask[COLOR], square);
 				const auto propertyValue = QUEEN_PROPERTY_MAP[propertyIndex];
 				// const auto propertyValue = position.getEvalVersion() == 0 ? QUEEN_PROPERTY_MAP[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
@@ -132,20 +133,8 @@ namespace ChessEval {
 		{
 			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB & ~position.getPieceBB(ROOK + COLOR));
 			attackBB |= Magics::genBishopAttackMask(square, occupiedBB & ~position.getPieceBB(BISHOP + COLOR));
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-			results.queenAttack[COLOR] |= attackBB;
-
-			attackBB &= removeBB;
-			return popCount(attackBB);
+			return results.addPieceAttack<COLOR>(results.queenAttack, attackBB, removeBB);
 		}
-
-		/**
-		 * Returns true, if the queen is pinned
-		 */
-		static constexpr uint32_t isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
-		};
 
 		static constexpr value_t _pinned[2] = { 0, 0 };
 
