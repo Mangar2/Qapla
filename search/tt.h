@@ -142,6 +142,15 @@ namespace QaplaSearch {
 
 
 		/**
+		 * Prefetches the cache line holding the entry pair of a hash key. The key is
+		 * known long before the probe reads the entry - issuing the prefetch at that
+		 * point hides part of the memory latency of the probe.
+		 */
+		void prefetch(hash_t hashKey) const {
+			__builtin_prefetch(&_tt[computeEntryIndex(hashKey)]);
+		}
+
+		/**
 		 * Gets a valid tt entry index
 		 * @returns tt entry index with the correct hash signature or INVALID_INDEX
 		 */
