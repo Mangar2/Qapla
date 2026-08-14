@@ -513,6 +513,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	node.computeMoves(position, _butterflyBoard);
+	node.computeCheckGivingSquares(position);
 	// 8. Calculate additional node wide search extensions
 	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth);
 
