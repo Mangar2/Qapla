@@ -138,6 +138,8 @@ namespace QaplaBasics {
 			return result;
 		}
 
+		constexpr bool operator==(const EvalValue&) const = default;
+
 		constexpr value_t midgame() const { return _midgame; }
 		constexpr value_t endgame() const { return _endgame; }
 		value_t& midgame() { return _midgame; }
