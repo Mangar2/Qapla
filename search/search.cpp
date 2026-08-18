@@ -24,7 +24,6 @@
 #include "tunable.h"
 #include "passedpawn.h"
 #include "../basics/materialbalance.h"
-#include "../bitbase/bitbase-reader.h"
 #include "../movegenerator/movegenerator.h"
 
 using namespace QaplaSearch;
@@ -75,32 +74,6 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 	} 
 	if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, depth, ply)) {
 		node.setCutoff(Cutoff::NULL_MOVE);
-		return true;
-	}
-	return false;
-}
-
-bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchNode& node) {
-	return false;
-	// We only look into the bitbases, if we had a capture or a promote. This avoids "non-searching" on
-	// positions of bitbases.
-	// if (position.getPiecesSignature() == _rootSignature) return false;
-	// if (curPly.alpha >= -MIN_MATE_VALUE && curPly.beta <= MIN_MATE_VALUE) return false;
-	const QaplaBitbase::BitbaseResult bitbaseValue = QaplaBitbase::BitbaseReader::getValueFromBitbase(position);
-	if (bitbaseValue == QaplaBitbase::BitbaseResult::Unknown) {
-		return false;
-	}
-	_computingInfo._tbHits++;
-	if (bitbaseValue == QaplaBitbase::BitbaseResult::Win) { // && curPly.beta <= MIN_MATE_VALUE) {
-		node.setCutoff(Cutoff::BITBASE, MIN_MATE_VALUE);
-		return true;
-	} 
-	if (bitbaseValue == QaplaBitbase::BitbaseResult::Loss) { // && curPly.alpha >= -MIN_MATE_VALUE) {
-		node.setCutoff(Cutoff::BITBASE, -MIN_MATE_VALUE);
-		return true;
-	}
-	if (bitbaseValue == QaplaBitbase::BitbaseResult::Draw) {
-		node.setCutoff(Cutoff::BITBASE, 1);
 		return true;
 	}
 	return false;
@@ -428,9 +401,6 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	}
 	else if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, node.getTT()->getPawnTT(), ply));
-	}
-	else if (TYPE != SearchRegion::NEAR_LEAF && hasBitbaseCutoff(position, node)) {
-		node.setCutoff(Cutoff::BITBASE);
 	}
 	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
