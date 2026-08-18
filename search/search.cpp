@@ -25,6 +25,9 @@
 #include "passedpawn.h"
 #include "../basics/materialbalance.h"
 #include "../movegenerator/movegenerator.h"
+#include "../eval/tablebase-value.h"
+#include "../src/syzygy/tablebase.h"
+#include "../src/syzygy/tbposition-builder.h"
 
 using namespace QaplaSearch;
 
@@ -77,6 +80,65 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 		return true;
 	}
 	return false;
+}
+
+/**
+ * Asks the tablebases and cuts the node if the answer is usable.
+ *
+ * The stored entry is only the true value of the position when nothing zeroing is
+ * available - where a capture, an en passant capture or a promotion exists, the
+ * generator was free to store whatever compresses best. That is what the non silent
+ * move count decides, so this can only run after the moves have been generated.
+ *
+ * The value is a bound, not a score: the tables say "won", not "mate in seven". A win
+ * may therefore only cut when it reaches beta and a loss only when it falls to alpha,
+ * which matters all the more because a cursed win is worth barely a pawn here.
+ */
+bool Search::hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t depth) {
+
+	// Cheapest test first: it is the one that rejects nearly every node of a real game,
+	// and with no tables loaded the cardinality is zero and nothing else is ever touched.
+	const uint32_t pieceCount = uint32_t(popCount(position.getAllPiecesBB()));
+	if (pieceCount > _tbCardinality) return false;
+
+	if (node.getNonSilentMoveAmount() != 0) return false;
+	if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() != 0) return false;
+	if (position.getBoardState().getCastlingRightsMask() != 0) return false;
+
+	// The depth limit only bites on the most expensive level; below it the tables are
+	// small enough to be worth asking at any depth.
+	if (pieceCount >= _tbCardinality && depth < _tbProbeDepth) return false;
+
+	QaplaSyzygy::TbPosition tbPosition{};
+	if (!QaplaSyzygy::buildTbPosition(position, tbPosition)) return false;
+
+	const QaplaSyzygy::WdlEntry entry = QaplaSyzygy::probeWdlEntry(tbPosition);
+	if (entry.status != QaplaSyzygy::Status::Ok) return false;
+
+	_computingInfo._tbHits++;
+
+	QaplaSyzygy::Wdl wdl = entry.value;
+	if (!_tbUseRule50) {
+		if (wdl == QaplaSyzygy::Wdl::CursedWin) wdl = QaplaSyzygy::Wdl::Win;
+		if (wdl == QaplaSyzygy::Wdl::BlessedLoss) wdl = QaplaSyzygy::Wdl::Loss;
+	}
+
+	const value_t value = ChessEval::tablebaseWdlToValue(wdl, node.adjustedEval);
+
+	const bool cuts = wdl == QaplaSyzygy::Wdl::Draw
+		? value >= node.beta || value <= node.alpha
+		: (value > DRAW_VALUE ? value >= node.beta : value <= node.alpha);
+
+	if (!cuts) return false;
+
+	node.setCutoff(Cutoff::TABLEBASE, value);
+
+	// The answer does not depend on how deep the search is, so the entry gets a draft
+	// well above the current one and survives long enough to spare the next probe.
+	node.setTTEntry(node.positionHash, false, depth + SearchConfig::TABLEBASE_TT_DEPTH_BONUS,
+		Move::EMPTY_MOVE, node.eval, value, node.alpha, node.beta);
+
+	return true;
 }
 
 /**
@@ -475,7 +537,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	node.setFromParentNode(position, parentNode, alpha, beta, depth, TYPE == SearchRegion::PV);
 	
 
-	// 7. Check all kind of early cutoffs including futility, nullmove, bitbase and others 
+	// 7. Check all kind of early cutoffs including futility, nullmove and others
 	// Additionally set eval. This is done as late as possible, as it is very time consuming. Some cutoff checks needs eval.
 	if (checkEvalReleatedCutoffsAndSetEval<TYPE>(position, stack, node, depth, ply)) {
 		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
@@ -483,6 +545,15 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	}
 
 	node.computeMoves(position, _butterflyBoard);
+
+	// 7b. Ask the tablebases. It has to be here and not earlier: the move list decides whether
+	// the stored entry is exact, the hash probe above keeps a repeated position cheap, and the
+	// eval the value builds on has just been set.
+	if (hasTablebaseCutoff(position, node, depth)) {
+		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
+		return node.bestValue;
+	}
+
 	node.computeCheckGivingSquares(position);
 	// 8. Calculate additional node wide search extensions
 	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth);

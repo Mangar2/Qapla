@@ -35,6 +35,7 @@
 #include "butterfly-boards.h"
 #include "whatIf.h"
 #include "quiescence.h"
+#include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif
@@ -67,6 +68,11 @@ namespace QaplaSearch {
 		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves) {
 			_computingInfo.initNewSearch(position, searchMoves, _butterflyBoard);
 			_butterflyBoard.newSearch();
+			// The tablebase settings cannot change during a search, and reading them at
+			// every node costs more than the probes save.
+			_tbCardinality = QaplaSyzygy::Tablebase::cardinality();
+			_tbProbeDepth = QaplaSyzygy::Tablebase::probeDepth();
+			_tbUseRule50 = QaplaSyzygy::Tablebase::useRule50();
 		}
 
 		/**
@@ -105,6 +111,13 @@ namespace QaplaSearch {
 		enum class SearchRegion {
 			INNER, NEAR_LEAF, PV
 		};
+
+		/**
+		 * Asks the tablebases and cuts the node if the answer is usable. Must be called
+		 * after the moves have been generated - the move list decides whether the stored
+		 * entry is exact.
+		 */
+		bool hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t depth);
 
 		template <SearchRegion TYPE>
 		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchNode& node, value_t alpha, value_t beta, ply_t depth, ply_t ply);
@@ -213,6 +226,11 @@ namespace QaplaSearch {
 		Quiescence _quiescence;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
+
+		// Tablebase settings, read once per search - see startNewSearch
+		uint32_t _tbCardinality = 0;
+		int32_t  _tbProbeDepth = 1;
+		bool     _tbUseRule50 = true;
 		// RootMoves _rootMoves;
 	public:
 		ButterflyBoard _butterflyBoard;

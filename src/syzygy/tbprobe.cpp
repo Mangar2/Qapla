@@ -28,12 +28,15 @@
 #include <atomic>
 #include <bit>
 #include <cassert>
+#include <cctype>
 #include <cstring>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <mutex>
 #include <sstream>
+#include <unordered_set>
 #include <vector>
 
 #ifndef _WIN32
@@ -316,6 +319,50 @@ namespace QaplaSyzygy {
 
 		std::string TBFile::Paths;
 
+		/**
+		 * Names of all files found in the configured directories, lower case.
+		 *
+		 * Table discovery asks for every material combination that the format supports,
+		 * which is far more names than any set on disk holds. Trying to open each one
+		 * costs a file system round trip per miss and adds up to tens of milliseconds
+		 * on every engine start; reading each directory once and asking this set costs
+		 * nothing. Lower case because Windows matches names that way and the set has to
+		 * behave like the file system it stands for.
+		 */
+		std::unordered_set<std::string> AvailableFiles;
+
+		std::string toLower(std::string name) {
+			std::transform(name.begin(), name.end(), name.begin(),
+				[](unsigned char c) { return char(std::tolower(c)); });
+			return name;
+		}
+
+		void collectAvailableFiles(const std::string& paths) {
+			AvailableFiles.clear();
+			if (paths.empty()) return;
+
+#ifndef _WIN32
+			constexpr char SepChar = ':';
+#else
+			constexpr char SepChar = ';';
+#endif
+			std::stringstream ss(paths);
+			std::string path;
+
+			while (std::getline(ss, path, SepChar)) {
+				if (path.empty()) continue;
+				std::error_code error;
+				for (const auto& entry : std::filesystem::directory_iterator(path, error)) {
+					if (error) break;
+					AvailableFiles.insert(toLower(entry.path().filename().string()));
+				}
+			}
+		}
+
+		bool isFileAvailable(const std::string& name) {
+			return AvailableFiles.find(toLower(name)) != AvailableFiles.end();
+		}
+
 		// ------------------------------------------------------------------
 		// PairsData / TBTable / TBTables
 		// ------------------------------------------------------------------
@@ -521,16 +568,10 @@ namespace QaplaSyzygy {
 			for (const int pt : pieces) code += PieceToChar[pt];
 			code.insert(code.find('K', 1), "v");
 
-			TBFile fileDtz(code + ".rtbz");
-			if (fileDtz.is_open()) {
-				fileDtz.close();
-				foundDTZFiles++;
-			}
+			if (isFileAvailable(code + ".rtbz")) foundDTZFiles++;
 
-			TBFile file(code + ".rtbw");
-			if (!file.is_open()) return;   // Only the WDL file decides
+			if (!isFileAvailable(code + ".rtbw")) return;   // Only the WDL file decides
 
-			file.close();
 			foundWDLFiles++;
 
 			MaxCardinality = std::max(int(pieces.size()), MaxCardinality);
@@ -1202,6 +1243,7 @@ namespace QaplaSyzygy {
 		Tables.clear();
 		MaxCardinality = 0;
 		TBFile::Paths = paths;
+		collectAvailableFiles(paths);
 
 		if (paths.empty()) return LoadResult{};
 
