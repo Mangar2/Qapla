@@ -38,6 +38,7 @@ Re-apply these when taking an upstream fix.
 | change | why |
 | --- | --- |
 | position class replaced by `TbPosition` | keeps the engine out of this directory; twelve call sites |
+| table discovery reads each directory once instead of trying to open every possible name | upstream opens one file per material combination, which is tens of thousands of misses per engine start. It cost about 50 ms every time `SyzygyPath` was set - invisible in any node count, but 20000 SPRT games pay it 20000 times |
 | own material key, four bits per colour and piece type | the upstream key is a Zobrist key from the engine's position class |
 | key mixed before use as a hash bucket | the new key layout is dense, the upstream one was not |
 | plain `int` squares and local square helpers | avoids the engine's types |
