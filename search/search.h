@@ -106,11 +106,6 @@ namespace QaplaSearch {
 			INNER, NEAR_LEAF, PV
 		};
 
-		/**
-		 * Check, if we have a bitbase value
-		 */
-		bool hasBitbaseCutoff(const MoveGenerator& position, SearchNode& curPly);
-
 		template <SearchRegion TYPE>
 		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchNode& node, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 

@@ -2026,6 +2026,8 @@
     <ClCompile Include="search\rootmoves.cpp" />
     <ClCompile Include="search\search.cpp" />
     <ClCompile Include="search\whatif.cpp" />
+    <ClCompile Include="src\syzygy\tbprobe.cpp" />
+    <ClCompile Include="src\syzygy\tbprobe-test.cpp" />
     <ClCompile Include="training\piece-signature-statistic.cpp" />
     <ClCompile Include="training\signature-eval-adjuster.cpp" />
   </ItemGroup>
@@ -2121,6 +2123,8 @@
     <ClInclude Include="search\moveprovider.h" />
     <ClInclude Include="search\pv.h" />
     <ClInclude Include="search\quiescence.h" />
+    <ClInclude Include="src\syzygy\tbprobe.h" />
+    <ClInclude Include="src\syzygy\tbposition-builder.h" />
     <ClInclude Include="search\rootmoves.h" />
     <ClInclude Include="search\search.h" />
     <ClInclude Include="search\searchdef.h" />

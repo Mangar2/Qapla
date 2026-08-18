@@ -34,6 +34,8 @@
 
 #include "../search/tunable.h"
 
+#include "uci-option-provider.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
@@ -75,13 +77,16 @@ void UCI::uciCommand() {
 	_clock.setTimeBetweenInfoInMilliseconds(1000);
 	println("id name " + getBoard()->getEngineInfo()["name"]);
 	println("id author " + getBoard()->getEngineInfo()["author"]);
-	println("option name Hash type spin default 32 min 1 max 32000");
 	println("option name ponder type check");
-	println("option name MultiPV type spin default 1 min 1 max 40");
 	println("option name UCI_EngineAbout type string default " + getBoard()->getEngineInfo()["engine-about"]);
-	println("option name qaplaBitbasePath type string");
-	println("option name qaplaBitbaseCache type spin default 8 min 1 max 32000");
-	
+
+	// Add options from the components that own them
+	for (auto* provider : getBoard()->getUciOptionProviders()) {
+		for (const auto& option : provider->getUciOptions()) {
+			println("option name " + option.declaration());
+		}
+	}
+
 	// Add UCI parameters from evaluation components
 	auto providers = collectUciProviders();
 	for (auto* provider : providers) {
@@ -130,9 +135,20 @@ void UCI::setOption() {
 		return;
 	}
 
+	const std::string lowerName = toLowerString(name);
+
+	// Options first: they own their type and take the raw value text
+	for (auto* provider : getBoard()->getUciOptionProviders()) {
+		for (const auto& option : provider->getUciOptions()) {
+			if (toLowerString(option.name) == lowerName) {
+				provider->setUciOption(option.name, value);
+				return;
+			}
+		}
+	}
+
 	// Try to set parameter via UCI parameter providers
 	auto providers = collectUciProviders();
-	const std::string lowerName = toLowerString(name);
 	for (auto* provider : providers) {
 		// Check if the value is a number (simple check)
 		bool isNumber = !value.empty() && std::find_if(value.begin(), 
