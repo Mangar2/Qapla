@@ -92,7 +92,8 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
  *
  * The value is a bound, not a score: the tables say "won", not "mate in seven". A win
  * may therefore only cut when it reaches beta and a loss only when it falls to alpha,
- * which matters all the more because a cursed win is worth barely a pawn here.
+ * which matters all the more because a cursed win is worth barely a pawn here. A draw
+ * is different: it is the exact value of the position, so it cuts in any window.
  */
 bool Search::hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t depth) {
 
@@ -101,13 +102,13 @@ bool Search::hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t
 	const uint32_t pieceCount = uint32_t(popCount(position.getAllPiecesBB()));
 	if (pieceCount > _tbCardinality) return false;
 
+	// The depth limit only bites on the most expensive level; below it the tables are
+	// small enough to be worth asking at any depth.
+	if (pieceCount == _tbCardinality && depth < _tbProbeDepth) return false;
+
 	if (node.getNonSilentMoveAmount() != 0) return false;
 	if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() != 0) return false;
 	if (position.getBoardState().getCastlingRightsMask() != 0) return false;
-
-	// The depth limit only bites on the most expensive level; below it the tables are
-	// small enough to be worth asking at any depth.
-	if (pieceCount >= _tbCardinality && depth < _tbProbeDepth) return false;
 
 	QaplaSyzygy::TbPosition tbPosition{};
 	if (!QaplaSyzygy::buildTbPosition(position, tbPosition)) return false;
@@ -123,14 +124,18 @@ bool Search::hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t
 		if (wdl == QaplaSyzygy::Wdl::BlessedLoss) wdl = QaplaSyzygy::Wdl::Loss;
 	}
 
-	const value_t value = ChessEval::tablebaseWdlToValue(wdl, node.adjustedEval);
+	const value_t value = ChessEval::tablebaseWdlToValue(wdl);
 
-	const bool cuts = wdl == QaplaSyzygy::Wdl::Draw
-		? value >= node.beta || value <= node.alpha
-		: (value > DRAW_VALUE ? value >= node.beta : value <= node.alpha);
+	// tb always returns a concrete value, there is no "unknown value" here.
+	if (value > DRAW_VALUE && value < node.beta) {
+		return false;
+	}
+	if (value < DRAW_VALUE && value > node.alpha) {
+		return false;
+	}
 
-	if (!cuts) return false;
-
+	// A draw is exact, not a bound: with best play there is nothing left to find here,
+	// no win and no loss, so it cuts inside the window as well.
 	node.setCutoff(Cutoff::TABLEBASE, value);
 
 	// The answer does not depend on how deep the search is, so the entry gets a draft
