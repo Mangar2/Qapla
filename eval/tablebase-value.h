@@ -44,35 +44,41 @@ namespace ChessEval {
 	using QaplaBasics::NON_MATE_VALUE_LIMIT;
 
 	/**
-	 * Value of a position a cursed win or blessed loss leads to. It has to stay
-	 * far below the winning bonus - the fifty move rule takes the full point away
-	 * - but above the noise of the evaluation, so the engine still steers towards
-	 * it and gives the opponent the chance to defend badly.
+	 * Value of a position a cursed win or blessed loss leads to, used by the distance
+	 * mapping. The win/draw/loss mapping scores them as plain draws instead - see
+	 * plan/syzygy-value-log.md.
 	 */
 	constexpr value_t TB_CURSED_BONUS = QaplaBasics::MaterialBalance::PAWN_VALUE_EG;
-
-	/**
-	 * Maps a win/draw/loss answer, seen from the side to move, to an evaluation value.
-	 *
-	 * @param wdl          the answer of the tables
-	 * @param currentValue evaluation of the position, seen from the side to move
-	 */
-	inline value_t tablebaseWdlToValue(QaplaSyzygy::Wdl wdl, value_t currentValue) {
-		switch (wdl) {
-		case QaplaSyzygy::Wdl::Win:         return currentValue + WINNING_BONUS;
-		case QaplaSyzygy::Wdl::CursedWin:   return currentValue + TB_CURSED_BONUS;
-		case QaplaSyzygy::Wdl::Draw:        return DRAW_VALUE;
-		case QaplaSyzygy::Wdl::BlessedLoss: return currentValue - TB_CURSED_BONUS;
-		case QaplaSyzygy::Wdl::Loss:        return currentValue - WINNING_BONUS;
-		}
-		return currentValue;
-	}
 
 	/** Plies of headroom reserved for distance to zero values. */
 	constexpr value_t TB_DTZ_RANGE = 1000;
 
 	/** Lowest value a tablebase win can take, so the whole band stays below a real mate. */
 	constexpr value_t TB_WIN_VALUE = MIN_MATE_VALUE - TB_DTZ_RANGE;
+
+	/**
+	 * Maps a win/draw/loss answer, seen from the side to move, to a search value.
+	 *
+	 * A win is one constant, not the evaluation plus a bonus. The tables say "won" and
+	 * nothing about how to convert it, and a run of 20000 games could not separate a
+	 * mapping that keeps the evaluation underneath from this one - see
+	 * plan/syzygy-value-log.md. So the shape that cannot go wrong is the one kept: a
+	 * constant cannot leave its band, and it cannot pick up NO_VALUE from a position that
+	 * was never evaluated because its side to move stood in check.
+	 *
+	 * The band sits below the distance band, which sits below the mate band, so a table
+	 * win always loses to a forced mate and to a shorter measured distance.
+	 */
+	inline value_t tablebaseWdlToValue(QaplaSyzygy::Wdl wdl) {
+		switch (wdl) {
+		case QaplaSyzygy::Wdl::Win:         return TB_WIN_VALUE;
+		case QaplaSyzygy::Wdl::Loss:        return -TB_WIN_VALUE;
+		case QaplaSyzygy::Wdl::Draw:        return DRAW_VALUE;
+		case QaplaSyzygy::Wdl::CursedWin:   return DRAW_VALUE;
+		case QaplaSyzygy::Wdl::BlessedLoss: return DRAW_VALUE;
+		}
+		return DRAW_VALUE;
+	}
 
 	/** From this distance on the outcome is drawn under the fifty move rule. */
 	constexpr int32_t TB_CURSED_FROM = 100;

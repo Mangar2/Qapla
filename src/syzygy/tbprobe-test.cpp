@@ -231,6 +231,27 @@ namespace {
 
 }
 
+/** Reports what the tables hold for one position, without any correction. */
+static void reportPosition(const char* fen) {
+
+	TbPosition pos{};
+	if (!fenToTbPosition(fen, pos)) {
+		std::cout << "  cannot read " << fen << "\n";
+		return;
+	}
+
+	const WdlEntry wdl = probeWdlEntry(pos);
+	std::cout << fen << "\n  wdl: " << statusName(wdl.status);
+	if (wdl.status == Status::Ok) std::cout << ", " << wdlName(wdl.value);
+
+	if (wdl.status == Status::Ok) {
+		const DtzEntry dtz = probeDtzEntry(pos, wdl.value);
+		std::cout << "\n  dtz: " << statusName(dtz.status);
+		if (dtz.status == Status::Ok) std::cout << ", " << dtz.distance << " (raw entry)";
+	}
+	std::cout << "\n\n";
+}
+
 int main(int argc, char** argv) {
 
 	const std::string path = argc > 1 ? argv[1] : "C:/Chess/syzygy/tables";
@@ -245,6 +266,13 @@ int main(int argc, char** argv) {
 	if (loaded.wdlFiles == 0) {
 		std::cout << "no tables found, nothing to check\n";
 		return 1;
+	}
+
+	// Any further arguments are positions to look up instead of running the checks.
+	if (argc > 2) {
+		for (int index = 2; index < argc; ++index) reportPosition(argv[index]);
+		release();
+		return 0;
 	}
 
 	for (const Case& item : cases) runCase(item);
