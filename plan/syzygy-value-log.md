@@ -233,5 +233,23 @@ Note what is inside the challenger besides the probe: the retired file bitbases,
 provider, the option list that replaced `qaplaBitbasePath` and `qaplaBitbaseCache` with the four
 `Syzygy*` options. The run measures the whole change, not the probe alone.
 
-**Result: pending.**
+**5980 games, +1534 =3097 -1349. H1 accepted against H0 = 2, H1 = 7.**
+
+The feature is kept. What is established is that the gain clears the two Elo H0 was set at -
+not the size of it, which no SPRT reports.
+
+Saved as `test/log/sprt-syzygy-final.qsprt`.
+
+## What is still missing
+
+The number above is what the tables are worth through the inner node alone. Two known gaps
+remain, both recorded in `plan/syzygy-implementation.md`:
+
+- **The root is never probed.** An endgame already on the board is played on the evaluation,
+  because the halfmove clock only returns to zero on a capture or a pawn move and there are
+  none. Trading *into* a table position is covered; standing in one is not. This is the root
+  ranking, and it is the larger of the two.
+- **The distance tables are never read during play.** `tablebaseDtzToValue` exists and its band
+  is reserved, but nothing calls it yet.
+
 
