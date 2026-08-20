@@ -189,15 +189,16 @@ non-zero hit count; check 2 passes; the SPRT decides.
 **Why it stands on its own:** because the value keeps the evaluation gradient instead of being a
 flat constant, this stage adds knowledge without taking any away, and it does not depend on stage F
 to be worth anything. What it cannot do is convert endings whose technique the evaluation does not
-already encode - there the gradient points nowhere useful, and only the distance ranking of stage F
+already encode - there the gradient points nowhere useful, and only the distance classification of stage F
 helps. So the two are independent improvements, each with its own SPRT, not a pair that has to be
 run together.
 
 ---
 
-## Stage F — distance-to-zero ranking at the root
+## Stage F — distance-to-zero classification at the root
 
-**Goal:** the engine converts won endings instead of merely knowing they are won.
+**Goal:** the engine converts won endings instead of merely knowing they are won, and does so
+without giving up MultiPV.
 
 1. Write the two move-driven format corrections as Qapla code, using Qapla's move generator and
    `doMove`/`undoMove`, next to the root code that needs them — not inside `syzygy/`. First: a
@@ -206,25 +207,45 @@ run together.
    entry holds the answer for one side to move only, so when it reports the other side, the legal
    moves are walked one ply to find the shortest distance. The rules come from the foreign source,
    the code does not.
-2. Add two fields to the root move: a rank and a tablebase score.
-3. Rank every root move: play the move; if the child is a draw by repetition or by the fifty-move
-   rule, the distance is zero; if the move resets the halfmove counter, derive the distance from
-   the win/draw/loss answer; otherwise take the distance answer for the child and correct it by one
-   ply. Force a mating move to the shortest distance.
-4. The rank formula additionally needs the current halfmove counter. Its second input, whether a
-   position has already repeated, starts as a constant false - see the open points.
-5. If any distance answer is missing, fall back to a ranking from win/draw/loss alone. If that
-   fails too, leave the move list untouched and search normally.
-6. Sort the root moves stably by rank. **Do not shorten the list** — every move stays searchable,
-   which keeps MultiPV working and keeps the tie-break information.
-7. When the distance ranking succeeded and the best move is not losing, switch the in-search probe
-   of stage E off for the rest of the search. The root ranking and the in-search cutoff answer the
-   fifty-move question differently, and mixing them makes the engine abandon a won ending.
-8. Report the tablebase score on the info line instead of the search value, and add the root move
-   count to the hit counter.
+2. Only when the root position is probeable: for every legal root move, play it and classify the
+   resulting position from the root mover's perspective into one of the five win/draw/loss buckets
+   that `QaplaSyzygy::Wdl` already distinguishes, plus a plies-to-zero figure. If the child is a
+   draw by repetition or by the fifty-move rule, the bucket is draw outright; if the move resets
+   the halfmove counter, take the bucket from the child's win/draw/loss answer directly; otherwise
+   take the child's distance answer, corrected by one ply, and derive both the bucket and the
+   figure from it. Force a mating move to distance 1.
+3. A move classified as a nominal win is downgraded to the cursed-win bucket when its distance,
+   added to the halfmove counter already active at the root, would exceed the fifty-move budget —
+   the table calls it won, but this game cannot force it.
+4. Add the bucket and the plies-to-zero figure as two fields on the root move. **No move is removed
+   from the list.** The sort order changes instead: the bucket becomes the unconditional primary
+   key (win, cursed win, draw, blessed loss, loss — in that order, never overridden by a search
+   value or search depth belonging to a worse bucket), and only within a tied bucket, before either
+   move has real search data, does the plies-to-zero figure break the tie, shorter first.
+5. Relying on the search's own alpha-beta pruning to make a non-winning move cheap enough not to
+   matter was considered and rejected: at shallow depth such a move can still score above a
+   null-window alpha and trigger a full re-search, because the search's own evaluation is exactly
+   what tablebases exist to correct in these endgames, and it can end up as the reported best move
+   despite not being the proven win. Making the bucket an unconditional sort key removes that risk
+   without removing the move from the list: however inflated its search score becomes, it cannot
+   outrank a move from a better bucket.
+6. Root search spends real search effort on every move in the win bucket, plus — only if the
+   configured MultiPV count is larger than the win bucket — as many additional moves from the
+   next-best bucket as needed to reach it. A move beyond that count keeps its bucket and its place
+   in the list but never gets a real search call.
+7. If any move's classification fails along the way (a partial table set, say), no root move gets a
+   bucket at all and the list is searched exactly as it is today — a missing answer must never be
+   read as "not winning", and a half-classified list must never be sorted by it.
+8. Once at least one move classified as a genuine win, switch the in-search probe of stage E off
+   for the rest of the search. The root classification and the in-search cutoff answer the
+   fifty-move question differently, and running both would let the in-search cutoff hand back a
+   flat tablebase-win bound that drowns the actual distance-to-mate signal the search is looking
+   for.
+9. Optional, cosmetic: report the tablebase distance on the info line instead of the search value
+   for a move in the win or cursed-win bucket, and add to the hit counter.
 
-**Done when:** tagged; the node count differs; check 2 passes including the root ranking; the SPRT
-decides.
+**Done when:** tagged; the node count differs; check 2 passes including the root classification;
+the SPRT decides.
 
 ---
 
@@ -239,8 +260,8 @@ guard active — it is the empirical confirmation that a guarded direct read is 
 
 **Check 2 — against an external reference.** Feed the same position list to both — [wmtest.epd](../wmtest.epd)
 filtered to seven pieces or fewer, plus positions from finished games — and diff the win/draw/loss
-answer, the distance answer and the root ranking. This catches a wrong halfmove counter or a wrong
-rank formula, which check 1 cannot see.
+answer, the distance answer and the root classification's bucket per move. This catches a wrong
+halfmove counter or a wrong bucket decision, which check 1 cannot see.
 
 ---
 
@@ -277,22 +298,23 @@ probe then reports no table. False negatives, the dangerous direction, cannot oc
 search starts - the configured probe limit clamped to what was loaded - turns the common case into a
 single integer test.
 
-**Switch the in-search probe off after a successful root ranking.** Stage F already does this, but
-only for the winning case. Whether the losing case is worth the same treatment is a separate
-question.
+**Switch the in-search probe off after a successful root classification.** Stage F already does
+this, but only for the winning case. Whether the losing case is worth the same treatment is a
+separate question.
 
 **Capture-resolving probe.** Stage E gives up where a capture is available, on the argument that the
 search resolves it one ply deeper at lower cost. The alternative resolves it inside the probe and
 hits more often. Higher hit rate against higher cost per probe - a clean single-change SPRT.
 
-**Repetition input of the rank formula.** With it false, every move that keeps the win inside the
-fifty-move budget gets the same top rank and the search picks freely among them. Setting it once a
-position has repeated switches the ranking to distance order and thereby demands progress instead of
-mere preservation - the engine is circling at that point, and while the search does prevent the
-threefold itself, it can burn the fifty-move counter on non-repeating idle moves. It needs a query
-on [MoveHistory](../search/movehistory.h) asking whether any position has repeated since the last
-capture or pawn move: same history window as the existing repetition check, different evaluation,
-threshold two instead of three.
+**Repetition input of the classification.** Without it, a move that has already led toward a
+repeated position can still land in the win bucket as if it preserved the win, and the engine may
+drift a won endgame into the fifty-move draw while shuffling among moves the classification treats
+as equally winning. Downgrading such a move the same way a fifty-move timeout downgrades a win to
+cursed-win instead demands real progress - the engine is circling at that point, and while the
+search does prevent the threefold itself, it can burn the fifty-move counter on non-repeating idle
+moves first. It needs a query on [MoveHistory](../search/movehistory.h) asking whether any position
+has repeated since the last capture or pawn move: same history window as the existing repetition
+check, different evaluation, threshold two instead of three.
 
 **Root principal variation extension.** Walking the distance tables to extend the displayed
 variation to mate is cosmetic and affects no move choice.
