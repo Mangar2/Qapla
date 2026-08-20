@@ -55,11 +55,18 @@ That is the whole interface work — a table of renames plus one addition to `Mo
    [sprt-standard.ini](../test/sprt/sprt-standard.ini) sets it), **removing them is
    behaviour-neutral: identical node count, no SPRT, no lost Elo.** See section 5.
 
-4. **The root ranks moves, it does not filter them.** The old plan intersected `searchMoves` with
-   the best DTZ group. Stockfish assigns every root move a `tbRank` and `tbScore`, stable-sorts,
-   and lets the search run on all of them — which keeps MultiPV intact and keeps the tie-break
-   information. It also disables in-search probing when DTZ ranking succeeded and we are winning,
-   which the old plan had no equivalent of. See section 4.
+4. **The root classifies every move into a win/cursed-win/draw/blessed-loss/loss bucket, and the
+   bucket is an unconditional primary sort key.** No root move is removed from the list — a move
+   from a worse bucket can still get searched (to fill MultiPV beyond the win bucket), but it can
+   never be sorted ahead of a move from a better bucket, whatever search value it gets. That is
+   what makes searching non-winning moves safe: relying on the search's own pruning to make a
+   non-winning move cheap enough not to matter is not enough on its own, since at shallow depth
+   such a move can still score above a null-window alpha, trigger a full re-search and end up as
+   the reported best move — the bucket check now catches that regardless. Real search effort still
+   only goes to the win bucket plus, if MultiPV asks for more lines than the win bucket has moves,
+   as many additional moves from the next-best bucket as needed. It also disables in-search WDL
+   probing for the rest of the search once at least one move classified as a genuine win. See
+   section 4.
 
 One fact that matters for stage D and that the old plan misread: `Search::hasBitbaseCutoff` starts
 with an unconditional `return false` ([search.cpp:84](../search/search.cpp#L84)), so **the
@@ -78,7 +85,7 @@ one ply deeper with its own TT. See section 2a.
 
 Smaller things the old plan got wrong or missed: `undoMove` takes three arguments, not two;
 `Syzygy50MoveRule` and `SyzygyProbeDepth` are needed, not optional; the per-root-move draw check
-and the mate-in-1 DTZ correction were missing; `has_repeated` is required for correct DTZ ranking
+and the mate-in-1 DTZ correction were missing; `has_repeated` is required for a correct DTZ classification
 and is ~10 lines on `MoveHistory`, not a follow-up; and the 40-line cost analysis of ClusterCache
 vs. mmap is moot once the probe sits behind a depth guard and a TT store.
 
@@ -257,13 +264,14 @@ Stockfish's `root_probe` needs two things Qapla's board does not have:
   `MoveHistory::isDrawByRepetition` ([movehistory.h:79](../search/movehistory.h#L79)) plus
   `getTotalHalfmovesWithoutPawnMoveOrCapture() >= 100`
   ([board.h:151](../basics/board.h#L151)). Root only, so `MoveHistory` is available.
-- **`pos.has_repeated()`** — *has any position repeated since the last zeroing move?* This is the
-  `rep` flag in the rank formula, and without it the engine may shuffle a won endgame into the
+- **`pos.has_repeated()`** — *has any position repeated since the last zeroing move?* Without this
+  input the root classification can place a move in the win bucket as if it still preserved the win when the position has
+  in fact already shuffled toward a repetition, and the engine may drift a won endgame into the
   50-move draw. It is a different question from `isDrawByRepetition` (which asks about the
   *current* position), but it walks the same history and reuses the same loop bound at
   [movehistory.h:84](../search/movehistory.h#L84). Add
-  `bool hasRepeatedSinceZeroing() const` to `MoveHistory`. Not a follow-up — the rank formula is
-  wrong without it.
+  `bool hasRepeatedSinceZeroing() const` to `MoveHistory`. Not a follow-up — the classification
+  is wrong without it.
 
 ---
 
@@ -306,7 +314,7 @@ option name SyzygyProbeLimit type spin default 7 min 0 max 7
 All four, not two. The old plan dropped `Syzygy50MoveRule` and `SyzygyProbeDepth` as "nothing
 reads them yet" — but `Syzygy50MoveRule` is exactly what makes cursed wins and blessed losses
 come out right (it is the `useRule50` that produces the `±1` draw score in the search and the
-`bound` in the root ranking), and `SyzygyProbeDepth` is the knob that keeps the in-search probe
+`bound` in the root classification), and `SyzygyProbeDepth` is the knob that keeps the in-search probe
 affordable. Both are load-bearing from the first build.
 
 Wiring, mirroring `qaplaBitbasePath`:
@@ -427,45 +435,66 @@ new code is reached. `Syzygy50MoveRule` decides whether cursed wins and blessed 
 
 ---
 
-## 4. The root — rank, do not filter
+## 4. The root — classify every move, let the tablebase bucket dominate the sort
 
-Port `root_probe`, `root_probe_wdl` and `rank_root_moves` from `tbprobe.cpp:1595-1765`.
+Two format corrections have to exist as Qapla code before the root classification can run, using
+Qapla's own move generator and `doMove`/`undoMove`, living next to the root code that needs them —
+not inside `syzygy/`, which stays engine-agnostic (see `syzygy/README.md`):
 
-`RootMove` ([rootmoves.h](../search/rootmoves.h)) gets two fields, mirroring Stockfish's
-`search.h:101-102`:
+- A win/draw/loss answer for a position that has a capture available is only a bound: the
+  captures have to be played out and the best of them, compared against the raw table entry,
+  gives the true value.
+- A distance entry answers for one side to move only. When it answers for the other side, the
+  legal moves of that position are walked one ply to find the shortest distance among them.
 
-```cpp
-int     _tbRank  = 0;
-value_t _tbScore = 0;
-```
+With those two in place, and only when the root position is `isProbeable`, root search classifies
+every legal root move rather than filtering the list down:
 
-`RootMoves::setMoves` ([rootmoves.cpp:109](../search/rootmoves.cpp#L109)) already builds the list
-and already honours `searchMoves`, so `rank_root_moves` runs right after it and then
-`std::stable_sort`s by `_tbRank` descending. **The move list is not shortened.** Every root move
-stays searchable — MultiPV keeps working, and the ranking rather than a filter is what breaks DTZ
-ties without producing the unnatural shuffling moves that pure DTZ-optimal play produces.
+1. For every legal root move, play it and resolve its outcome from the root mover's perspective as
+   one of five buckets, ordered best to worst: **win, cursed win, draw, blessed loss, loss** — the
+   same five outcomes `QaplaSyzygy::Wdl` already distinguishes. A move that resets the halfmove
+   counter (a capture or pawn move) takes its bucket from the child's win/draw/loss answer
+   directly. Any other move takes the child's distance answer, corrected by one ply, and turns it
+   into a bucket plus a plies-to-zero figure. **A root move that leads to a draw** by repetition or
+   by the fifty-move rule (section 2c) is the draw bucket outright, whatever the raw distance
+   answer would otherwise say. **A mating move gets distance 1** regardless of what the raw
+   distance answer says, otherwise the fastest mate is not recognised as such.
+2. **A nominal win is reclassified as a cursed win** when its distance, added to the halfmove
+   counter already active at the root, would exceed the fifty-move budget — the table calls it
+   won, but this particular game cannot actually force it, so for ranking purposes it belongs with
+   the wins that are only a win on the board.
+3. Every root move keeps its place in the list — nothing is removed. `RootMove` gets the bucket and
+   the plies-to-zero figure as two extra fields, and the sort order changes: the bucket is the
+   unconditional primary key (win, then cursed win, then draw, then blessed loss, then loss —
+   never overridden by a search value or search depth from a lower bucket), and only within a tied
+   bucket, before either move has real search data, does the plies-to-zero figure break the tie
+   (shorter first). This is what makes searching the non-winning moves safe: relying on the
+   search's own alpha-beta pruning to make a non-winning move cheap enough not to matter was
+   considered and rejected earlier, because at shallow depth such a move can still score above a
+   null-window alpha and trigger a full re-search, and the search's own evaluation is exactly what
+   tablebases exist to correct in these endgames. Making the bucket unconditional removes that
+   risk without needing to remove the move from the list — however inflated a losing or drawing
+   move's search score becomes, it cannot outrank a move from a better bucket.
+4. Root search still only *spends real search effort* on as many moves as needed: every move in
+   the win bucket, and beyond that, however many additional moves (next-best bucket first) are
+   needed to fill the configured MultiPV count. A losing or drawing move beyond that count keeps
+   its classification and its place in the list, but never gets a real search call — this is the
+   direct reason engines keep every root move in the list at all: MultiPV can show, say, 5 lines
+   even when only 3 moves are confirmed wins, by searching two more moves from the next-best
+   bucket, while the bucket ordering guarantees none of the extra lines can ever be reported ahead
+   of a win.
+5. If any move's classification fails along the way (a partial table set, say), no root move gets
+   a bucket at all and the list is searched exactly as it is today — a missing answer must never
+   be read as "not winning", and a half-classified list must never be sorted by it.
+6. Once at least one move classified as a genuine win, switch the in-search WDL cutoff (section 3)
+   **off** for the rest of that search. The root classification and the in-search cutoff answer the
+   fifty-move question differently, and running both would let the in-search cutoff hand back a
+   flat tablebase-win bound that drowns the actual distance-to-mate signal the search is looking
+   for.
 
-Three parts of `root_probe` the old plan did not have:
-
-- **`dtz = 0` for a root move that leads to a draw** by repetition or 50-move rule (`is_draw(1)`,
-  section 2c). Without it a won position can be ranked into a repetition.
-- **the mate-in-1 correction**: `if (checkers && dtz == 2 && no legal moves) dtz = 1` — otherwise a
-  mating move is not ranked as the fastest win.
-- **`cnt50` and `rep`** as inputs to the rank formula: `cnt50` is
-  `getTotalHalfmovesWithoutPawnMoveOrCapture()`, `rep` is `hasRepeatedSinceZeroing()` from
-  section 2c. The old plan hardcoded `rep = false`, which is what probetool's *demo driver* does,
-  not what an engine does.
-
-And one piece of control flow the old plan missed entirely: after a successful DTZ ranking
-Stockfish sets `config.cardinality = 0` unless the best move is losing
-(`tbprobe.cpp:1753`). That switches the in-search WDL probe **off** for the rest of the search.
-The reason is that DTZ ranking at the root and WDL cutoffs inside the search answer different
-questions about the 50-move rule, and mixing them makes the engine abandon a won endgame. Port
-this as-is.
-
-Reporting: when the root ranking succeeded, the UCI `info` line shows `_tbScore` instead of the
-search value (Stockfish `search.cpp:2048-2049`) and adds the root move count to `tbhits`
-(`search.cpp:2033`).
+Reporting: when the root classification is active, the UCI `info` line can show the tablebase
+distance instead of the search value for a move in the win or cursed-win bucket, and hit counting
+can add to `tbhits`. Cosmetic, not required for the feature to work.
 
 ---
 
@@ -543,8 +572,8 @@ still trivially loadable.
 from — so any difference is a porting bug, which is a far sharper signal than the old plan's
 "build probetool as a separate binary" would have been. Feed both engines the same FEN list
 ([wmtest.epd](../wmtest.epd) filtered to ≤ 7 pieces, plus positions from finished games) and
-compare WDL, DTZ and the root ranking. This is what catches a wrong `cnt50` or a wrong rank
-formula, which check (a) cannot see.
+compare WDL, DTZ and the root classification. This is what catches a wrong `cnt50` or a wrong
+bucket decision, which check (a) cannot see.
 
 Move generation is verified implicitly by both: a wrong capture set or a stray castling move
 changes the WDL answer.
@@ -565,7 +594,7 @@ with them. **Stage A-F below, step N always means the numbering in
 | **C** | file bitbases retired behind the flag, KPK kept (section 5) | no | EPD node count **identical** |
 | **D** | `hasBitbaseCutoff` and its call in `nonSearchingCutoff` deleted | no | EPD node count **identical** |
 | **E** | WDL cutoff in `negaMax` after step 7, per section 3 | yes, with `SyzygyPath` set | node count differs, tag, SPRT |
-| **F** | root ranking with DTZ | yes | node count differs, tag, SPRT |
+| **F** | root classification with DTZ | yes | node count differs, tag, SPRT |
 
 **Stages A-D are all behaviour neutral**, and the rule from [CLAUDE.md](../CLAUDE.md) applies to
 each of them in full: identical total node count, runtime within 5 %. That is the payoff of the
