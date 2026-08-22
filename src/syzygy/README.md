@@ -27,9 +27,11 @@ Everything that makes or unmakes a move, because that is engine code:
 - the root move ranking
 
 `probeWdlEntry` and `probeDtzEntry` therefore return the **stored entry, uncorrected**. A
-win/draw/loss entry is only the true value of the position when the side to move has no capture
-available — where one is, the generator stores a "don't care" value. A distance entry can come back
-with `Status::OtherSideToMove`. Both corrections belong to the caller.
+win/draw/loss entry is a lower bound: where a capture already reaches the true value, the generator
+is free to store a lower one, never a higher one. The caller resolves the captures and takes the
+better of the two, and keeps en passant captures apart because the entry describes the position
+without that right. A distance entry can come back with `Status::OtherSideToMove`. All of these
+corrections belong to the caller — the rules are in [../../plan/syzygy-probe.md](../../plan/syzygy-probe.md).
 
 ## Deliberate changes against upstream
 
