@@ -27,6 +27,7 @@
 #include "../basics/move.h"
 #include "../basics/evalvalue.h"
 #include "../movegenerator/movegenerator.h"
+#include "../src/syzygy/tablebase.h"
 #include "pv.h"
 #include "searchstack.h"
 #include "tt.h"
@@ -42,10 +43,19 @@ namespace QaplaSearch {
 		RootMove() { init(); }
 
 		/**
-		 * A root move is smaller that another
-		 * If it is searched with "PV" and the other is not
-		 * If both are searched with PV: if it failed low and the other did not
-		 * If both are searched with PV and not failed low: the one with the least value
+		 * A root move is smaller than another if:
+		 * - both have tablebase info and this one sits in the worse bucket (win > cursed win >
+		 *   draw > blessed loss > loss) - checked first, unconditionally, never overridden by
+		 *   depth or search value
+		 * - otherwise, if a position has repeated since the last zeroing move and both have
+		 *   tablebase info, the one with the longer distance to zero - also unconditionally,
+		 *   because only a shorter distance ends the repetition
+		 * - otherwise, if it was searched to a lesser depth
+		 * - otherwise, if neither move has been searched yet this run and both have tablebase
+		 *   info, the one with the longer distance to zero
+		 * - otherwise, if it is searched with "PV" and the other is not
+		 * - if both are searched with PV: if it failed low and the other did not
+		 * - if both are searched with PV and not failed low: the one with the least value
 		 */
 		bool operator<(const RootMove& rootMove) const;
 
@@ -102,7 +112,26 @@ namespace QaplaSearch {
 		ply_t getDepth() const { return _depthOfLastSearch;  }
 		value_t getAlpha() const { return _alphaOfLastSearch;  }
 		value_t getBeta() const { return _betaOfLastSearch; }
-		
+
+		/**
+		 * Classifies this move's tablebase outcome, played from `rootPosition`, from the root
+		 * mover's perspective: which of the five win/draw/loss buckets it lands in
+		 * (QaplaSyzygy::Wdl), and how many plies until the next zeroing move or mate. `cnt50` is
+		 * the halfmove counter already active at the root, used to demote a nominal win to a
+		 * cursed win when it cannot actually be forced under the fifty-move rule from here.
+		 *
+		 * Leaves the move without tablebase info and returns false if any table needed along the
+		 * way is missing - the caller must then not trust tablebase info on any root move, since a
+		 * missing answer must never be read as "not winning".
+		 */
+		bool computeTablebaseInfo(QaplaMoveGenerator::MoveGenerator& rootPosition, uint32_t cnt50,
+			bool distanceDecides);
+
+		bool hasTbInfo() const { return _hasTbInfo; }
+		QaplaSyzygy::Wdl getTbWdl() const { return _tbWdl; }
+		int32_t getTbDtz() const { return _tbDtz; }
+		void clearTbInfo() { _hasTbInfo = false; }
+
 	private:
 		Move _move;
 
@@ -125,6 +154,13 @@ namespace QaplaSearch {
 
 		bool _isExcluded;
 
+		bool _hasTbInfo;
+		QaplaSyzygy::Wdl _tbWdl;
+		int32_t _tbDtz;
+		// A position has repeated since the last zeroing move: the game has stopped making
+		// progress, so the distance decides among equally classified moves instead of the search.
+		bool _tbDistanceDecides;
+
 	};
 
 	class RootMoves {
@@ -143,6 +179,31 @@ namespace QaplaSearch {
 		 * @param butterflyBoard the butterfly board
 		 */
 		void setMoves(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard);
+
+		/**
+		 * Classifies every move already in the list against the tablebases, if `position` is
+		 * probeable, and sorts the list so the tablebase bucket becomes the primary key (see
+		 * RootMove::operator<). If any move's classification fails, no move keeps tablebase info
+		 * and the list order is left exactly as it was - a missing answer must never be read as
+		 * "not winning". Knows nothing about MultiPV; how many of the classified moves actually
+		 * get searched is a Search-level decision, see getTablebaseWinCount().
+		 * @returns true if at least one move classified as a genuine, still-forceable win
+		 */
+		bool computeTablebaseInfo(MoveGenerator& position, bool distanceDecides);
+
+		/**
+		 * Amount of moves at the front of the (already sorted) list that classify as a genuine
+		 * win. Zero when computeTablebaseInfo has not run or found no win. Search combines this
+		 * with MultiPV to decide how many moves actually need a real search call.
+		 */
+		uint32_t getTablebaseWinCount() const {
+			uint32_t count = 0;
+			while (count < _moves.size() && _moves[count].hasTbInfo()
+				&& _moves[count].getTbWdl() == QaplaSyzygy::Wdl::Win) {
+				++count;
+			}
+			return count;
+		}
 
 		/**
 		 * Stable sort algorithm sorting all moves from first to last

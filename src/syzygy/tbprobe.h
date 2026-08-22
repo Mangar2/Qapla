@@ -85,9 +85,11 @@ namespace QaplaSyzygy {
 	};
 
 	/**
-	 * Reads the stored win/draw/loss entry. The value is only the true value of the
-	 * position when no capture is available - where one is, the format stores a
-	 * "don't care" and the caller has to resolve the captures itself.
+	 * Reads the stored win/draw/loss entry, which is a lower bound: where a capture
+	 * already reaches the true value, the entry may sit below it, never above. The
+	 * caller resolves the captures and takes the better of the two - and keeps en
+	 * passant captures apart, which the entry does not cover at all.
+	 * See plan/syzygy-probe.md.
 	 */
 	WdlEntry probeWdlEntry(const TbPosition& pos);
 

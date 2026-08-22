@@ -65,7 +65,8 @@ namespace QaplaSearch {
 		/**
 		 * Starts a new search
 		 */
-		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves) {
+		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves,
+			bool hasRepeatedPosition) {
 			_computingInfo.initNewSearch(position, searchMoves, _butterflyBoard);
 			_butterflyBoard.newSearch();
 			// The tablebase settings cannot change during a search, and reading them at
@@ -73,6 +74,14 @@ namespace QaplaSearch {
 			_tbCardinality = QaplaSyzygy::Tablebase::cardinality();
 			_tbProbeDepth = QaplaSyzygy::Tablebase::probeDepth();
 			_tbUseRule50 = QaplaSyzygy::Tablebase::useRule50();
+
+			// Root position does not change during the search either, so the classification and
+			// the resulting win-bucket count are computed once here, not per iteration.
+			_tbRootWin = _computingInfo.getRootMoves().computeTablebaseInfo(position, hasRepeatedPosition);
+			_tbSearchableMoves = _tbRootWin
+				? std::max(_computingInfo.getRootMoves().getTablebaseWinCount(), _computingInfo.getMultiPV())
+				: uint32_t(_computingInfo.getMovesAmount());
+			_tbSearchableMoves = std::min(_tbSearchableMoves, uint32_t(_computingInfo.getMovesAmount()));
 		}
 
 		/**
@@ -231,6 +240,13 @@ namespace QaplaSearch {
 		uint32_t _tbCardinality = 0;
 		int32_t  _tbProbeDepth = 1;
 		bool     _tbUseRule50 = true;
+
+		// Root tablebase classification, computed once per search - see startNewSearch. A root
+		// win found this way answers the fifty-move question differently from the in-search WDL
+		// cutoff, so the two must not run together: hasTablebaseCutoff skips itself for the rest
+		// of the search while _tbRootWin is set.
+		bool     _tbRootWin = false;
+		uint32_t _tbSearchableMoves = 0;
 		// RootMoves _rootMoves;
 	public:
 		ButterflyBoard _butterflyBoard;

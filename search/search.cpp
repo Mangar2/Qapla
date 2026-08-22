@@ -97,6 +97,11 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
  */
 bool Search::hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t depth) {
 
+	// A root win found by the DTZ classification answers the fifty-move question differently
+	// from this cutoff - running both would let a flat tablebase-win bound drown the actual
+	// distance-to-mate signal the filtered root search is looking for (see rootmoves.h).
+	if (_tbRootWin) return false;
+
 	// Cheapest test first: it is the one that rejects nearly every node of a real game,
 	// and with no tables loaded the cardinality is zero and nothing else is ever touched.
 	const uint32_t pieceCount = uint32_t(popCount(position.getAllPiecesBB()));
@@ -682,7 +687,10 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::Engine::set_position(position.getFen());
 #endif
-	for (uint32_t triedMoves = 0; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
+	// Every move in the tablebase win bucket gets searched, plus - only if MultiPV asks for more
+	// lines than the win bucket has moves - as many more (next-best bucket first, per the sort
+	// order) as needed to reach it. Without a root win this is every legal move, as before.
+	for (uint32_t triedMoves = 0; triedMoves < _tbSearchableMoves; ++triedMoves) {
 
 		RootMove& rootMove = _computingInfo.getRootMoves().getMove(triedMoves);
 		if (rootMove.isPVSearchedInWindow(depth) && triedMoves < skipMoves) {
