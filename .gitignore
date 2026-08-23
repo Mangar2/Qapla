@@ -363,3 +363,6 @@ nnue768/tbprobe.cpp
 nnue768/tbprobe.h
 # Reference binary for the interleaved timing runs, a local working aid
 test/epd/ref/
+
+# Dear ImGui layout of the chess GUI, written whenever it runs from this directory
+imgui.ini
