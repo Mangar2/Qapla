@@ -46,7 +46,6 @@ namespace QaplaSyzygy {
 			return {
 				UciOption::string("SyzygyPath"),
 				UciOption::spin("SyzygyProbeDepth", DEFAULT_PROBE_DEPTH, 1, 100),
-				UciOption::check("Syzygy50MoveRule", DEFAULT_USE_RULE_50),
 				UciOption::spin("SyzygyProbeLimit", TB_MAX_PIECES, 0, TB_MAX_PIECES)
 			};
 		}
@@ -64,11 +63,6 @@ namespace QaplaSyzygy {
 
 			if (name == "SyzygyProbeDepth") {
 				_probeDepth = QaplaInterface::uciValueToInt(value, DEFAULT_PROBE_DEPTH);
-				return true;
-			}
-
-			if (name == "Syzygy50MoveRule") {
-				_useRule50 = QaplaInterface::uciValueToBool(value);
 				return true;
 			}
 
@@ -109,7 +103,6 @@ namespace QaplaSyzygy {
 		}
 
 		static int32_t probeDepth() { return getUciAccess()._probeDepth; }
-		static bool useRule50() { return getUciAccess()._useRule50; }
 
 		/**
 		 * Whether the tables may be asked about this position at all.
@@ -128,11 +121,9 @@ namespace QaplaSyzygy {
 
 	private:
 		static constexpr int32_t DEFAULT_PROBE_DEPTH = 1;
-		static constexpr bool    DEFAULT_USE_RULE_50 = true;
 
 		std::string _path;
 		int32_t     _probeDepth = DEFAULT_PROBE_DEPTH;
-		bool        _useRule50 = DEFAULT_USE_RULE_50;
 		int32_t     _probeLimit = TB_MAX_PIECES;
 	};
 

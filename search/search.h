@@ -73,13 +73,19 @@ namespace QaplaSearch {
 			// every node costs more than the probes save.
 			_tbCardinality = QaplaSyzygy::Tablebase::cardinality();
 			_tbProbeDepth = QaplaSyzygy::Tablebase::probeDepth();
-			_tbUseRule50 = QaplaSyzygy::Tablebase::useRule50();
 
 			// Root position does not change during the search either, so the classification and
-			// the resulting win-bucket count are computed once here, not per iteration.
+			// the counts that follow from it are computed once here, not per iteration.
 			_tbRootWin = _computingInfo.getRootMoves().computeTablebaseInfo(position, hasRepeatedPosition);
-			_tbSearchableMoves = _tbRootWin
-				? std::max(_computingInfo.getRootMoves().getTablebaseWinCount(), _computingInfo.getMultiPV())
+			// Every classified root move is a position answered by the tables, counted the same
+			// way hasTablebaseCutoff counts its own probes - which matters because that one stops
+			// counting for the rest of the search as soon as _tbRootWin is set.
+			_computingInfo._tbHits += _computingInfo.getRootMoves().getTablebaseInfoCount();
+			// Only the best bucket needs real search effort - a move from a worse one can never turn
+			// out better. MultiPV asks for more lines than that, so it raises the count.
+			const uint32_t bestBucket = _computingInfo.getRootMoves().getTablebaseBestBucketCount();
+			_tbSearchableMoves = bestBucket > 0
+				? std::max(bestBucket, _computingInfo.getMultiPV())
 				: uint32_t(_computingInfo.getMovesAmount());
 			_tbSearchableMoves = std::min(_tbSearchableMoves, uint32_t(_computingInfo.getMovesAmount()));
 		}
@@ -239,7 +245,6 @@ namespace QaplaSearch {
 		// Tablebase settings, read once per search - see startNewSearch
 		uint32_t _tbCardinality = 0;
 		int32_t  _tbProbeDepth = 1;
-		bool     _tbUseRule50 = true;
 
 		// Root tablebase classification, computed once per search - see startNewSearch. A root
 		// win found this way answers the fifty-move question differently from the in-search WDL

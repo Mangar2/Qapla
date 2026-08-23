@@ -128,6 +128,8 @@ namespace QaplaSearch {
 			bool distanceDecides);
 
 		bool hasTbInfo() const { return _hasTbInfo; }
+		bool hasTbDistance() const { return _tbDistanceKnown; }
+		bool tbDistanceDecides() const { return _tbDistanceDecides; }
 		QaplaSyzygy::Wdl getTbWdl() const { return _tbWdl; }
 		int32_t getTbDtz() const { return _tbDtz; }
 		void clearTbInfo() { _hasTbInfo = false; }
@@ -157,6 +159,9 @@ namespace QaplaSearch {
 		bool _hasTbInfo;
 		QaplaSyzygy::Wdl _tbWdl;
 		int32_t _tbDtz;
+		// False where no distance file answered and the bucket comes from the win/draw/loss
+		// tables alone - then _tbDtz means nothing and no distance comparison may use it.
+		bool _tbDistanceKnown;
 		// A position has repeated since the last zeroing move: the game has stopped making
 		// progress, so the distance decides among equally classified moves instead of the search.
 		bool _tbDistanceDecides;
@@ -183,13 +188,20 @@ namespace QaplaSearch {
 		/**
 		 * Classifies every move already in the list against the tablebases, if `position` is
 		 * probeable, and sorts the list so the tablebase bucket becomes the primary key (see
-		 * RootMove::operator<). If any move's classification fails, no move keeps tablebase info
-		 * and the list order is left exactly as it was - a missing answer must never be read as
-		 * "not winning". Knows nothing about MultiPV; how many of the classified moves actually
-		 * get searched is a Search-level decision, see getTablebaseWinCount().
+		 * RootMove::operator<). Where no distance file answers, the win/draw/loss tables alone
+		 * place the move. Only a move neither of them answers fails, and then no move keeps
+		 * tablebase info and the order is left exactly as it was - a missing answer must never be
+		 * read as "not winning".
+		 *
+		 * Knows nothing about MultiPV; how many of the classified moves actually get searched is a
+		 * Search-level decision, see getTablebaseBestBucketCount().
+		 *
+		 * @param hasRepeatedPosition a position has repeated since the last zeroing move; together
+		 *        with a halfmove counter close to the fifty move draw this makes the distance the
+		 *        criterion instead of a tie-break
 		 * @returns true if at least one move classified as a genuine, still-forceable win
 		 */
-		bool computeTablebaseInfo(MoveGenerator& position, bool distanceDecides);
+		bool computeTablebaseInfo(MoveGenerator& position, bool hasRepeatedPosition);
 
 		/**
 		 * Amount of moves at the front of the (already sorted) list that classify as a genuine
@@ -199,8 +211,48 @@ namespace QaplaSearch {
 		uint32_t getTablebaseWinCount() const {
 			uint32_t count = 0;
 			while (count < _moves.size() && _moves[count].hasTbInfo()
-				&& _moves[count].getTbWdl() == QaplaSyzygy::Wdl::Win) {
+				&& _moves[count].getTbWdl() == QaplaSyzygy::Wdl::Win
+				&& _moves[count].hasTbDistance()) {
 				++count;
+			}
+			return count;
+		}
+
+		/**
+		 * Amount of moves at the front of the (already sorted) list sharing the best bucket, zero
+		 * when no move carries tablebase information. Restricting the search to them loses nothing:
+		 * the worst outcome of a better bucket is the best outcome of a worse one, whatever the
+		 * halfmove counter is.
+		 */
+		uint32_t getTablebaseBestBucketCount() const {
+			if (_moves.empty() || !_moves[0].hasTbInfo()) return 0;
+			const QaplaSyzygy::Wdl best = _moves[0].getTbWdl();
+			// Only the win bucket splits further: a proven win beats an unproven one. In every
+			// other bucket a distance says nothing about the outcome, and for a loss the move
+			// without one may even hold out longer.
+			const bool splitByDistance = best == QaplaSyzygy::Wdl::Win && _moves[0].hasTbDistance();
+			// Where the distance decides, only the moves sharing the shortest one are equivalent -
+			// the others still win, but no longer within what is left of the fifty move budget.
+			const bool splitByExactDistance = splitByDistance && _moves[0].tbDistanceDecides();
+			const int32_t bestDtz = _moves[0].getTbDtz();
+			uint32_t count = 0;
+			while (count < _moves.size() && _moves[count].hasTbInfo()
+				&& _moves[count].getTbWdl() == best
+				&& (!splitByDistance || _moves[count].hasTbDistance())
+				&& (!splitByExactDistance || _moves[count].getTbDtz() == bestDtz)) {
+				++count;
+			}
+			return count;
+		}
+
+		/**
+		 * Amount of moves carrying tablebase information - the positions the classification
+		 * actually resolved from the tables, which is what the tbhits output counts.
+		 */
+		uint32_t getTablebaseInfoCount() const {
+			uint32_t count = 0;
+			for (const RootMove& move : _moves) {
+				if (move.hasTbInfo()) ++count;
 			}
 			return count;
 		}
