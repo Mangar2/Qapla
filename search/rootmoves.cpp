@@ -280,6 +280,17 @@ namespace {
 	}
 
 	/**
+	 * Halfmove counter from which the distance stops being a tie-break and becomes the criterion.
+	 * That close to the fifty move draw there are too few plies left to convert a win any other
+	 * way, so a move that merely also wins can no longer be afforded and the search must not pick
+	 * among the winning moves any more.
+	 *
+	 * Deliberately a constant and not a tunable: the situation is far too rare in a game for a
+	 * tuning run to ever see enough of it.
+	 */
+	constexpr uint32_t DISTANCE_DECIDES_FROM_HALFMOVES = 80;
+
+	/**
 	 * The outcome group of a root move, from its distance and the halfmove counter active at the
 	 * root - the rank rule of plan/syzygy-probe.md, reduced to the five groups the root move list
 	 * sorts by. A nominal win whose distance no longer fits the fifty move budget is a cursed win.
@@ -312,6 +323,7 @@ void RootMove::init() {
 	_hasTbInfo = false;
 	_tbWdl = Wdl::Draw;
 	_tbDtz = 0;
+	_tbDistanceKnown = false;
 	_tbDistanceDecides = false;
 }
 
@@ -352,14 +364,33 @@ bool RootMove::computeTablebaseInfo(MoveGenerator& rootPosition, uint32_t cnt50,
 		if (replies.getTotalMoveAmount() == 0) dtz = 1;
 	}
 
+	// Where no distance file answers, the win/draw/loss tables alone still place the move. That
+	// order holds whatever the halfmove counter is: the fifty move rule can turn a win into a
+	// draw and a loss into a draw, never a win into a loss.
+	std::optional<Wdl> outcome;
+	if (!dtz) {
+		const std::optional<WdlValue> replyWdl = computeWdl(rootPosition);
+		if (replyWdl) outcome = negateWdl(replyWdl->value);
+	}
+
 	rootPosition.undoMove(_move, state, incremental);
 	rootPosition.computeAttackMasksForBothColors();
 
-	if (!dtz) return false;
+	if (dtz) {
+		_tbWdl = rootBucket(*dtz, cnt50);
+		_tbDtz = *dtz;
+		_tbDistanceKnown = true;
+	}
+	else if (outcome) {
+		_tbWdl = *outcome;
+		_tbDtz = 0;
+		_tbDistanceKnown = false;
+	}
+	else {
+		return false;
+	}
 
 	_hasTbInfo = true;
-	_tbDtz = *dtz;
-	_tbWdl = rootBucket(*dtz, cnt50);
 	_tbDistanceDecides = distanceDecides;
 	return true;
 }
@@ -400,7 +431,15 @@ bool RootMove::operator<(const RootMove& other) const {
 	if (_hasTbInfo && other._hasTbInfo && _tbWdl != other._tbWdl) {
 		return _tbWdl < other._tbWdl;
 	}
-	if (_tbDistanceDecides && _hasTbInfo && other._hasTbInfo && _tbDtz != other._tbDtz) {
+	const bool bothHaveDistance = _hasTbInfo && other._hasTbInfo
+		&& _tbDistanceKnown && other._tbDistanceKnown;
+	if (_hasTbInfo && other._hasTbInfo && _tbWdl == QaplaSyzygy::Wdl::Win
+		&& _tbDistanceKnown != other._tbDistanceKnown) {
+		// A win with a distance is forceable within the fifty move budget - that is what the
+		// distance was checked against. A win without one may still run into the rule.
+		return !_tbDistanceKnown;
+	}
+	if (_tbDistanceDecides && bothHaveDistance && _tbDtz != other._tbDtz) {
 		// A position has repeated since the last zeroing move, so the game is no longer making
 		// progress and the search value must not pick among equally classified moves any more -
 		// only a strictly shorter distance gets out of the repetition.
@@ -413,7 +452,7 @@ bool RootMove::operator<(const RootMove& other) const {
 		// Neither has a real search result yet this run: within a tied tablebase bucket, order by
 		// distance to zero, shorter first. Once either move has a search value this tie-break no
 		// longer applies - the real search result decides below instead.
-		if (_hasTbInfo && other._hasTbInfo && _tbDtz != other._tbDtz) {
+		if (bothHaveDistance && _tbDtz != other._tbDtz) {
 			return _tbDtz > other._tbDtz;
 		}
 		return false;
@@ -464,24 +503,22 @@ void RootMoves::setMoves(MoveGenerator& position, const std::vector<Move>& searc
 	}
 }
 
-bool RootMoves::computeTablebaseInfo(MoveGenerator& position, bool distanceDecides) {
+bool RootMoves::computeTablebaseInfo(MoveGenerator& position, bool hasRepeatedPosition) {
 	if (!QaplaSyzygy::Tablebase::isProbeable(position)) return false;
 
 	const uint32_t cnt50 = position.getTotalHalfmovesWithoutPawnMoveOrCapture();
-	bool allResolved = true;
 
+	// Two situations leave no room to convert a win any way other than the shortest: the game has
+	// already stopped making progress, or the fifty move draw is close enough that it will.
+	const bool distanceDecides =
+		hasRepeatedPosition || cnt50 >= DISTANCE_DECIDES_FROM_HALFMOVES;
+
+	// A partially classified list must never be sorted: an unanswered move carries no bucket and
+	// would fall behind every classified one, reading as "loses" where nothing is known at all.
 	for (RootMove& move : _moves) {
-		if (!move.computeTablebaseInfo(position, cnt50, distanceDecides)) {
-			allResolved = false;
-			break;
-		}
-	}
-
-	if (!allResolved) {
-		// A missing answer must never be read as "not winning" - fall back to no tablebase info
-		// at all, on any move, rather than sort by a partially classified list.
-		for (RootMove& move : _moves) {
-			move.clearTbInfo();
+		if (move.computeTablebaseInfo(position, cnt50, distanceDecides)) continue;
+		for (RootMove& toClear : _moves) {
+			toClear.clearTbInfo();
 		}
 		return false;
 	}

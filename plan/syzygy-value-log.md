@@ -196,9 +196,10 @@ was no reason left to expect one. A cursed win is rare enough in five piece tabl
 control that no run of this length can see it, and the two candidate values are a pawn apart.
 
 They are therefore scored as **plain draws**, which is what they are under the fifty move rule
-that the engine plays by, and which lets them cut exactly like a draw. With
-`Syzygy50MoveRule` switched off they are remapped to win and loss before this point and never
-reach the mapping, which is the whole meaning of that option.
+that the engine plays by, and which lets them cut exactly like a draw. The `Syzygy50MoveRule`
+option that could switch this off has since been removed: the engine plays by the rule
+everywhere, and the root ranking applies it as well, so a second answer to the same question
+only let the two paths disagree.
 
 ## Final mapping
 

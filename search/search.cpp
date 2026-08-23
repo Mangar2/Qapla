@@ -123,13 +123,7 @@ bool Search::hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t
 
 	_computingInfo._tbHits++;
 
-	QaplaSyzygy::Wdl wdl = entry.value;
-	if (!_tbUseRule50) {
-		if (wdl == QaplaSyzygy::Wdl::CursedWin) wdl = QaplaSyzygy::Wdl::Win;
-		if (wdl == QaplaSyzygy::Wdl::BlessedLoss) wdl = QaplaSyzygy::Wdl::Loss;
-	}
-
-	const value_t value = ChessEval::tablebaseWdlToValue(wdl);
+	const value_t value = ChessEval::tablebaseWdlToValue(entry.value);
 
 	// tb always returns a concrete value, there is no "unknown value" here.
 	if (value > DRAW_VALUE && value < node.beta) {
