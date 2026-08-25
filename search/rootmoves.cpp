@@ -22,6 +22,7 @@
 #include "rootmoves.h"
 #include "moveprovider.h"
 #include "../src/syzygy/tbposition-builder.h"
+#include "../eval/tablebase-value.h"
 
 using namespace QaplaSearch;
 using QaplaSyzygy::Wdl;
@@ -408,6 +409,15 @@ void RootMove::set(value_t searchResult, const SearchStack& stack, bool isPVSear
 		_pvLine.setMove(0, _move);
 		_pvLine.copyFromPV(stack[1].pv, 1);
 	}
+}
+
+value_t RootMove::getReportedValue() const {
+	if (!_hasTbInfo || _tbWdl != Wdl::Win) return _valueOfLastSearch;
+	// With a distance the value says how far the conversion still is, which is what makes one
+	// win better than another. Without one only the outcome is known.
+	return _tbDistanceKnown
+		? ChessEval::tablebaseDtzToValue(_tbDtz)
+		: ChessEval::tablebaseWdlToValue(Wdl::Win);
 }
 
 bool RootMove::doSearch(const SearchNode& variables) const {

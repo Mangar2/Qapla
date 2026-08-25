@@ -109,6 +109,14 @@ namespace QaplaSearch {
 		void print() const;
 
 		value_t getValue() const { return _valueOfLastSearch; }
+
+		/**
+		 * The value to report for this move. Where the tablebases classify it as a win, theirs is
+		 * reported instead of the search value: a root win switches the tablebase probing inside
+		 * the search off, so the search value says nothing about the win it is converting. Every
+		 * other move keeps its search value.
+		 */
+		value_t getReportedValue() const;
 		ply_t getDepth() const { return _depthOfLastSearch;  }
 		value_t getAlpha() const { return _alphaOfLastSearch;  }
 		value_t getBeta() const { return _betaOfLastSearch; }
