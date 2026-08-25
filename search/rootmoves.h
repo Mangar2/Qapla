@@ -113,8 +113,10 @@ namespace QaplaSearch {
 		/**
 		 * The value to report for this move. Where the tablebases classify it as a win, theirs is
 		 * reported instead of the search value: a root win switches the tablebase probing inside
-		 * the search off, so the search value says nothing about the win it is converting. Every
-		 * other move keeps its search value.
+		 * the search off, so the search value says nothing about the win it is converting.
+		 *
+		 * A mate the search found is kept, it says more than the tables do. So does every value
+		 * of a move the tables do not call won.
 		 */
 		value_t getReportedValue() const;
 		ply_t getDepth() const { return _depthOfLastSearch;  }

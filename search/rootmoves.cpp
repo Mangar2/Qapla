@@ -413,6 +413,9 @@ void RootMove::set(value_t searchResult, const SearchStack& stack, bool isPVSear
 
 value_t RootMove::getReportedValue() const {
 	if (!_hasTbInfo || _tbWdl != Wdl::Win) return _valueOfLastSearch;
+	// A mate the search actually found says more than the tables do - it names the end of the
+	// win, not only that there is one. Its band sits above theirs for exactly that reason.
+	if (_valueOfLastSearch >= MIN_MATE_VALUE) return _valueOfLastSearch;
 	// With a distance the value says how far the conversion still is, which is what makes one
 	// win better than another. Without one only the outcome is known.
 	return _tbDistanceKnown
