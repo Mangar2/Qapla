@@ -48,7 +48,7 @@ using namespace ChessEval;
 
 enum class Cutoff {
 	NONE, DRAW_BY_REPETITION, DRAW_BY_50_MOVES_RULE, HASH, FASTER_MATE_FOUND, RAZORING, NOT_ENOUGH_MATERIAL,
-	NULL_MOVE, FUTILITY, BITBASE, LOST_WINNING_BONUS, MAX_SEARCH_DEPTH, ABORT, MULTI_CUT,
+	NULL_MOVE, FUTILITY, TABLEBASE, LOST_WINNING_BONUS, MAX_SEARCH_DEPTH, ABORT, MULTI_CUT,
 	COUNT
 };
 
@@ -479,6 +479,13 @@ namespace QaplaSearch {
 
 		/** The move from the previous iteration, if this node is on the former primary variant */
 		bool hasPVMove() const { return moveProvider.hasPVMove(); }
+
+		/**
+		 * Amount of captures, en passant captures and promotions in the generated
+		 * move list. Zero means nothing resets the fifty move counter here, which is
+		 * exactly the condition under which a tablebase entry is stored exactly.
+		 */
+		uint32_t getNonSilentMoveAmount() const { return moveProvider.getNonSilentMoveAmount(); }
 
 		void setPly(ply_t curPly) { ply = curPly; }
 

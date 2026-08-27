@@ -126,7 +126,8 @@ namespace QaplaSearch {
 			for (auto& window : _window) {
 				window.initSearch();
 			}	
-			_search->startNewSearch(searchBoard, searchMoves);
+			_search->startNewSearch(searchBoard, searchMoves,
+				moveHistory.hasRepeatedPosition(searchBoard));
 			_clockManager.setNewMove();
 			if (_search->getComputingInfo().getMovesAmount() == 0) {
 				return _search->getComputingInfo();
