@@ -35,6 +35,7 @@
 #include "butterfly-boards.h"
 #include "whatIf.h"
 #include "quiescence.h"
+#include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif
@@ -64,9 +65,29 @@ namespace QaplaSearch {
 		/**
 		 * Starts a new search
 		 */
-		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves) {
+		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves,
+			bool hasRepeatedPosition) {
 			_computingInfo.initNewSearch(position, searchMoves, _butterflyBoard);
 			_butterflyBoard.newSearch();
+			// The tablebase settings cannot change during a search, and reading them at
+			// every node costs more than the probes save.
+			_tbCardinality = QaplaSyzygy::Tablebase::cardinality();
+			_tbProbeDepth = QaplaSyzygy::Tablebase::probeDepth();
+
+			// Root position does not change during the search either, so the classification and
+			// the counts that follow from it are computed once here, not per iteration.
+			_tbRootWin = _computingInfo.getRootMoves().computeTablebaseInfo(position, hasRepeatedPosition);
+			// Every classified root move is a position answered by the tables, counted the same
+			// way hasTablebaseCutoff counts its own probes - which matters because that one stops
+			// counting for the rest of the search as soon as _tbRootWin is set.
+			_computingInfo._tbHits += _computingInfo.getRootMoves().getTablebaseInfoCount();
+			// Only the best bucket needs real search effort - a move from a worse one can never turn
+			// out better. MultiPV asks for more lines than that, so it raises the count.
+			const uint32_t bestBucket = _computingInfo.getRootMoves().getTablebaseBestBucketCount();
+			_tbSearchableMoves = bestBucket > 0
+				? std::max(bestBucket, _computingInfo.getMultiPV())
+				: uint32_t(_computingInfo.getMovesAmount());
+			_tbSearchableMoves = std::min(_tbSearchableMoves, uint32_t(_computingInfo.getMovesAmount()));
 		}
 
 		/**
@@ -107,9 +128,11 @@ namespace QaplaSearch {
 		};
 
 		/**
-		 * Check, if we have a bitbase value
+		 * Asks the tablebases and cuts the node if the answer is usable. Must be called
+		 * after the moves have been generated - the move list decides whether the stored
+		 * entry is exact.
 		 */
-		bool hasBitbaseCutoff(const MoveGenerator& position, SearchNode& curPly);
+		bool hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t depth);
 
 		template <SearchRegion TYPE>
 		bool nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchNode& node, value_t alpha, value_t beta, ply_t depth, ply_t ply);
@@ -218,6 +241,17 @@ namespace QaplaSearch {
 		Quiescence _quiescence;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
+
+		// Tablebase settings, read once per search - see startNewSearch
+		uint32_t _tbCardinality = 0;
+		int32_t  _tbProbeDepth = 1;
+
+		// Root tablebase classification, computed once per search - see startNewSearch. A root
+		// win found this way answers the fifty-move question differently from the in-search WDL
+		// cutoff, so the two must not run together: hasTablebaseCutoff skips itself for the rest
+		// of the search while _tbRootWin is set.
+		bool     _tbRootWin = false;
+		uint32_t _tbSearchableMoves = 0;
 		// RootMoves _rootMoves;
 	public:
 		ButterflyBoard _butterflyBoard;

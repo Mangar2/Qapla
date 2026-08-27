@@ -168,6 +168,14 @@ namespace QaplaSearch {
 		}
 		void printSearchResult(uint32_t moveNo, uint32_t multiPVNo = 1) const {
 			const auto& rootMove = _rootMoves.getMove(moveNo);
+			const value_t reported = rootMove.getReportedValue();
+			if (reported != rootMove.getValue()) {
+				// A tablebase answer is knowledge, not a search result - it has no window it
+				// could be a bound of, so it is reported exact.
+				printSearchResult(rootMove.getPV(), reported, -MAX_VALUE, MAX_VALUE,
+					rootMove.getDepth(), multiPVNo);
+				return;
+			}
 			printSearchResult(rootMove.getPV(), rootMove.getValue(), rootMove.getAlpha(), rootMove.getBeta(), rootMove.getDepth(), multiPVNo);
 		}
 

@@ -55,6 +55,12 @@ namespace QaplaInterface {
 		 */
 		void loadEgtb();
 
+		/** True if some provider offers an option of that name. */
+		bool hasOption(const std::string& name);
+
+		/** Hands an option to the provider that owns it, falling back to the board. */
+		void setOptionByProvider(const std::string& name, const std::string& value);
+
 		/**
 		 * Sets a winboard option
 		 */

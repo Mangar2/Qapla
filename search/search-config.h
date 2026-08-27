@@ -126,6 +126,13 @@ namespace QaplaSearch {
 		// Set to true to make the aspiration window size settable by UCI, see tunable.h
 		static constexpr bool optimizeAspiration = false;
 
+		/**
+		 * Extra draft a tablebase answer is stored with. The answer does not depend on
+		 * the depth it was found at, so the entry may outlive the subtree that produced
+		 * it and spare the next probe of the same position.
+		 */
+		static constexpr ply_t TABLEBASE_TT_DEPTH_BONUS = 6;
+
 		// Set to true to make the time management settable by UCI, see tunable.h
 		static constexpr bool optimizeTime = false;
 

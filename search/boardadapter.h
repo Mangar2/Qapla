@@ -44,6 +44,8 @@
 #include "../bitbase/bitbasegenerator.h"
 #include "../bitbase/verify.h"
 #include "../bitbase/bitbase-reader.h"
+#include "../bitbase/bitbase-options.h"
+#include "../src/syzygy/tablebase.h"
 
 using namespace QaplaMoveGenerator;
 using namespace QaplaInterface;
@@ -51,7 +53,7 @@ using namespace ChessEval;
 
 namespace QaplaSearch {
 
-	class BoardAdapter : public IChessBoard {
+	class BoardAdapter : public IChessBoard, public UciOptionProvider {
 	public:
 		BoardAdapter() : _workerCount(0) {}
 
@@ -85,38 +87,48 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sets an option of the engine
+		 * The components behind this board that own options. Every one of them
+		 * declares its own, so neither this class nor the protocol interfaces have
+		 * to know what they are.
+		 */
+		virtual std::vector<UciOptionProvider*> getUciOptionProviders() {
+			return { this,
+				&QaplaBitbase::BitbaseOptions::getUciAccess(),
+				&QaplaSyzygy::Tablebase::getUciAccess() };
+		}
+
+		/** The options of the search itself. */
+		virtual std::vector<UciOption> getUciOptions() const {
+			return {
+				UciOption::spin("Hash", 32, 1, 32000),
+				UciOption::spin("MultiPV", 1, 1, 40)
+			};
+		}
+
+		virtual bool setUciOption(const std::string& name, const std::string& value) {
+
+			if (name == "Hash") {
+				iterativeDeepening.setTTSizeInKilobytes(uciValueToInt(value, 32) * 1024);
+				return true;
+			}
+
+			if (name == "MultiPV") {
+				iterativeDeepening.setMultiPV(std::clamp(uciValueToInt(value, 1), 1, 40));
+				return true;
+			}
+
+			return false;
+		}
+
+		/**
+		 * Sets an option the option providers do not own. Only the undocumented
+		 * qaplaBitbasePathNL is left here - it sets the path without loading and
+		 * exists for the offline tooling, not for a GUI.
 		 */
 		virtual void setOption(string name, string value) {
-			int32_t intValue = 0;
 			name = to_lowercase(name);
-			if (value == "false") {
-				intValue = 0;
-			}
-			else if (value == "true") {
-				intValue = 1;
-			}
-			else {
-				if (name == "qaplabitbasepath") {
-					if (value != "" && QaplaBitbase::BitbaseReader::setBitbasePath(value)) {
-						auto messages = QaplaBitbase::BitbaseReader::loadBitbase();
-						for (const auto& message : messages) {
-							std::cout << "info string " << message << std::endl;
-						}
-					}
-					return;
-				}
-				if (name == "qaplabitbasepathnl") {
-					QaplaBitbase::BitbaseReader::setBitbasePath(value);
-					return;
-				}
-				auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
-				if (ec != std::errc()) {
-					return;
-				}
-				if (name == "hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
-				if (name == "multipv") iterativeDeepening.setMultiPV(std::clamp(intValue, 1, 40));
-				if (name == "qaplabitbasecache") QaplaBitbase::Bitbase::setCacheSize(intValue);
+			if (name == "qaplabitbasepathnl") {
+				QaplaBitbase::BitbaseReader::setBitbasePath(value);
 			}
 		}
 
@@ -166,6 +178,7 @@ namespace QaplaSearch {
 		 */
 		virtual void newGame() {
 			iterativeDeepening.startNewGame();
+			QaplaSyzygy::Tablebase::newGame();
 		}
 
 		/**
