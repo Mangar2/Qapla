@@ -32,7 +32,6 @@
 #include "../basics/bits.h"
 #include "../basics/evalvalue.h"
 #include "eval-exchange-structures.h"
-#include "../interface/candidate-trainer.h"
 
 using namespace QaplaBasics;
 

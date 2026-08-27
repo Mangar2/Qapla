@@ -24,7 +24,6 @@
 //#include "EPDTest.h"
 #include <vector>
 #include "chessinterface.h"
-#include "self-play-manager.h"
 
 using namespace std;
 
@@ -92,11 +91,6 @@ namespace QaplaInterface {
 		void handleWhatIf(std::string whatif);
 		
 		/**
-		 * Sets the computer to analyze mode
-		 */
-		void analyzeMove();
-
-		/**
 		 * Sets the board from fen
 		 */
 		void setBoard();
@@ -116,17 +110,6 @@ namespace QaplaInterface {
 		 */
 		void handleInputWhileComputingMove();
 
-		void train();
-		void trainCandidates(uint32_t numThreads = 1);
-		void playEpdGames(uint32_t numThreads = 1);
-		void playStatistic(uint32_t numThreads = 1);
-		void loadGamesFromFile(const std::string& filename);
-		std::tuple<EvalValue, value_t>  computeEval(
-			ChessEval::IndexLookupMap& lookupMap, std::map<std::string, std::vector<uint64_t>>& lookupCount, bool verbose = false);
-		void trainPosition(ChessEval::IndexLookupMap& lookupMap, int32_t evalDiff);
-		
-		void computeMaterialDifference();
-
 		/**
 		 * Handles input while in "wait for user action" mode
 		 */
@@ -134,8 +117,6 @@ namespace QaplaInterface {
 		volatile Mode _mode;
 		bool _xBoardMode;
 		bool _computerIsWhite;
-		std::vector<ChessGame> _games;
-		SelfPlayManager epdTasks;
 	};
 
 }
