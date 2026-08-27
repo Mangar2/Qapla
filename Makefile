@@ -14,8 +14,6 @@ VERSION_DEFINE := -DQAPLA_VERSION=\"$(QAPLA_VERSION)\"
 # PGO: 'make ReleasePGO' builds an instrumented binary, trains it on the internal
 # wmtest (run from test/epd, where wmtest.epd lives), merges the profile and
 # rebuilds with it. Result: build/ReleasePGO/Qapla[.exe]
-PGO_PROFDIR     := $(abspath $(BUILD_BASE)/pgo)
-PGO_DATA        := $(PGO_PROFDIR)/qapla.profdata
 PGO_TRAIN_DEPTH ?= 16
 
 # ============================================================================
@@ -30,6 +28,12 @@ COMPILER_MODE := MSVC
 
 # Executable name
 EXE := $(BUILD_DIR)/Qapla.exe
+
+# PGO paths. The directory is baked into the instrumented binary, so it has to be
+# a native path: an MSYS path (/c/...) would be read drive-relative at runtime and
+# the profiles would land in C:\c\... where the merge does not look for them.
+PGO_PROFDIR := $(shell cygpath -m '$(abspath $(BUILD_BASE)/pgo)')
+PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
 SRC_CPP := $(shell C:/msys64/usr/bin/find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" | C:/msys64/usr/bin/sed 's|^\./||')
@@ -125,6 +129,10 @@ COMPILER_MODE := GCC
 
 # Executable name
 EXE := $(BUILD_DIR)/Qapla
+
+# PGO paths
+PGO_PROFDIR := $(abspath $(BUILD_BASE)/pgo)
+PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
 SRC_CPP := $(shell find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" | sed 's|^\./||')
