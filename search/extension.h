@@ -13,15 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements functions to calculate the search extensions
  */
 
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
-#include "searchparameter.h"
+#include "search-config.h"
 
 using namespace QaplaMoveGenerator;
 
@@ -32,12 +32,12 @@ namespace QaplaSearch {
 		/**
 		 * Computes extensions
 		 */
-		static ply_t calculateExtension(MoveGenerator& board, Move move, int32_t remainingSearchDepth, ply_t seExtension) {
-			ply_t extension = seExtension;
-			if (SearchParameter::DO_CHECK_EXTENSIONS && board.isInCheck()) {
+		static ply_t calculateExtension(MoveGenerator& board, Move move, int32_t remainingSearchDepth) {
+			ply_t extension = 0;
+			if (SearchConfig::DO_CHECK_EXTENSIONS && board.isInCheck()) {
 				extension = 1;
 			}
-			else if (SearchParameter::DO_PASSED_PAWN_EXTENSIONS && isChallengingPassedPawnMove(board, move)) {
+			else if (SearchConfig::DO_PASSED_PAWN_EXTENSIONS && isChallengingPassedPawnMove(board, move)) {
 				static uint32_t passedPawnExtensions = 0;
 				passedPawnExtensions++; if (passedPawnExtensions % 1000 == 0) { 
 					std::cout << passedPawnExtensions << std::endl;
@@ -91,7 +91,7 @@ namespace QaplaSearch {
 			Square destinationSquare = move.getDestination();
 
 			if (movingPiece == WHITE_PAWN) {
-				if (destinationSquare >= Square(SearchParameter::PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK) * NORTH &&
+				if (destinationSquare >= Square(SearchConfig::PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK) * NORTH &&
 					defendedByWhiteOrNotAttackedByBlack(board, destinationSquare) &&
 					move.isPromote())
 				{
@@ -100,7 +100,7 @@ namespace QaplaSearch {
 				}
 			}
 			else if (movingPiece == BLACK_PAWN) {
-				if (destinationSquare <= Square(SearchParameter::PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK) * NORTH + NW &&
+				if (destinationSquare <= Square(SearchConfig::PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK) * NORTH + NW &&
 					defendedByBlackOrNotAttackedByWhite(board, destinationSquare) &&
 					!move.isPromote())
 				{

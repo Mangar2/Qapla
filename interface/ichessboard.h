@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a generic interface to chess boards to separate dedicated board implementations from
  * the interface management
@@ -27,6 +27,7 @@
 #include "computinginfoexchange.h"
 #include "iwhatIf.h"
 #include "isendsearchinfo.h"
+#include "uci-option-provider.h"
 #include "../eval/eval-exchange-structures.h"
 
 
@@ -58,6 +59,14 @@ namespace QaplaInterface {
 
         /** Performs all necessary initializations. */
         virtual void initialize() {}
+
+        /**
+         * All components behind this board that own user facing options. The
+         * interface announces and forwards them without knowing any of them, so
+         * an option is declared exactly where its value is used - and a component
+         * compiled out simply stops offering its options.
+         */
+        virtual std::vector<UciOptionProvider*> getUciOptionProviders() { return {}; }
 
         /** Executes a move. Partial information is allowed if unambiguous. */
         virtual bool doMove(char movingPiece,

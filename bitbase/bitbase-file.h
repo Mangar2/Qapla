@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Workpackage for a thread in bitbase generation
  */
@@ -27,6 +27,7 @@
 #include <string>
 #include <functional>
 #include <optional>
+#include <fstream>
 #include "compress.h"
 
 
@@ -45,6 +46,7 @@ namespace QaplaBitbase {
 			uint32_t clusterSize;
 			QaplaCompress::CompressionType compression;
 			uint64_t sizeInBits;
+			uint32_t bitsPerEntry;  // 1 = 1-bit, 2 = 2-bit
 		};
         /**
          * Writes a bitbase file to disk.
@@ -55,6 +57,7 @@ namespace QaplaBitbase {
          * @param clusterElements Number of elements per cluster.
          * @param compression Compression type identifier.
          * @param compressFn Compression function to apply per cluster.
+         * @param bitsPerEntry 1 = 1-bit, 2 = 2-bit.
          */
         static void write(
             const std::string& fileNameWithPath,
@@ -62,7 +65,8 @@ namespace QaplaBitbase {
             const std::vector<bbt_t>& data,
             uint32_t clusterElements,
             QaplaCompress::CompressionType compression,
-            const QaplaCompress::CompressFn& compressFn
+            const QaplaCompress::CompressFn& compressFn,
+            uint32_t bitsPerEntry = 1
         );
 
         /**
@@ -117,7 +121,7 @@ namespace QaplaBitbase {
             static constexpr size_t WordCount = 10;
             static constexpr uint32_t MAGIC_1 = 0x4C504151; // 'Q''A''P''L'
             static constexpr uint32_t MAGIC_2 = 0x42494241; // 'A''B''I''B'
-            static constexpr uint32_t CURRENT_VERSION = 1;
+            static constexpr uint32_t CURRENT_VERSION = 2;
 
             uint32_t words[WordCount];
 
@@ -128,8 +132,9 @@ namespace QaplaBitbase {
              * @param cluster_size Size of uncompressed cluster in bytes.
              * @param cluster_count Number of clusters in file.
              * @param totalBits Total number of uncompressed bits in the entire bitbase.
+             * @param bitsPerEntry 1 = 1-bit, 2 = 2-bit.
              */
-            BitbaseHeader(QaplaCompress::CompressionType compression, uint32_t cluster_size, uint32_t cluster_count, uint64_t sizeInBits) {
+            BitbaseHeader(QaplaCompress::CompressionType compression, uint32_t cluster_size, uint32_t cluster_count, uint64_t sizeInBits, uint32_t bitsPerEntry = 1) {
                 words[0] = MAGIC_1;
                 words[1] = MAGIC_2;
                 words[2] = CURRENT_VERSION;
@@ -140,7 +145,7 @@ namespace QaplaBitbase {
                 // Split sizeInBits into two 32-bit words (little-endian order)
                 words[6] = static_cast<uint32_t>(sizeInBits & 0xFFFFFFFF);
                 words[7] = static_cast<uint32_t>((sizeInBits >> 32) & 0xFFFFFFFF);
-                words[8] = 0;
+                words[8] = (bitsPerEntry >= 2) ? 1u : 0u;  // entryFormat: 0 = 1-bit, 1 = 2-bit
                 words[9] = 0;
             }
 
@@ -162,6 +167,8 @@ namespace QaplaBitbase {
             uint64_t sizeInBits() const {
                 return (static_cast<uint64_t>(words[7]) << 32) | static_cast<uint64_t>(words[6]);
             }
+
+            uint32_t entryFormat() const { return words[8]; }
 
             void write(std::ostream& out) const {
                 out.write(reinterpret_cast<const char*>(words), sizeof(words));

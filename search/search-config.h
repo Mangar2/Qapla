@@ -1,0 +1,153 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ * @Overview
+ * Implements functions and constants for search parameters
+ */
+
+#ifndef __SEARCH_CONFIG_H
+#define __SEARCH_CONFIG_H
+
+#include <map>
+#include <algorithm>
+#include "../basics/piecesignature.h"
+#include "searchdef.h"
+
+using namespace QaplaBasics;
+
+namespace QaplaSearch {
+	class SearchConfig {
+	public:
+
+		/**
+		 * Calculates the reduction by nullmove
+		 */
+		constexpr static uint32_t getNullmoveReduction(
+			[[maybe_unused]]ply_t ply, 
+			[[maybe_unused]]int32_t depth, 
+			[[maybe_unused]]value_t beta, 
+			[[maybe_unused]]value_t staticEval,
+			[[maybe_unused]]bool isImproving) {
+			return 4;
+		}
+
+		/**
+		 * Calculates the depth for nullmove verification searches
+		 */
+		constexpr static uint32_t getNullmoveVerificationDepthReduction(
+			[[maybe_unused]]ply_t ply, 
+			[[maybe_unused]]int32_t remainingSearchDepth) {
+			return 5;
+		}
+
+
+		/**
+		 * Calculates the late move reduction
+		 */
+		constexpr static ply_t getLateMoveReduction(bool pv, ply_t ply, uint32_t moveNo) {
+			return 0;
+			ply_t res = 0;
+			if (ply >= 3) {
+				if (moveNo > 8) {
+					res++;
+				}
+				if (ply > 8 && moveNo > 5) {
+					res++;
+				}
+				if (pv && res > 0) {
+					res--;
+				}
+			}
+			return res;
+		}
+
+		static const uint32_t MAX_SEARCH_DEPTH = 128;
+		// Tested 0.4.0-037 and 0.4.0-041: 14 instead of 7: flat both times, 20000 games each
+		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
+
+		static const bool DO_NULLMOVE = true;
+		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
+
+		// Internal iterative reduction, replaces the internal iterative deepening. Both values are
+		// ply counts and stay constants, a tuning run gets no signal out of a range of a few plies.
+		// Tested 0.4.0-054: IIR instead of the IID pre search: +3.2 Elo, 17559 games
+		static const bool DO_IIR = true;
+		static const ply_t IIR_MIN_DEPTH = 4;
+		// Tested 0.4.0-055: 2 in pv nodes: -7.6 Elo, 6255 games
+		// Tested 0.4.0-056: 2 in cut nodes with an upper bound tt value: -3.4 Elo, 13138 games
+		static const ply_t IIR_REDUCTION = 1;
+
+		// Set to true to make the late move reduction and move count pruning parameters
+		// settable by UCI, see tunable.h
+		static constexpr bool optimizeLMR = false;
+
+		static const bool USE_HASH_IN_QUIESCENSE = true;
+		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
+		// Set to true to make the quiescence parameters settable by UCI, see tunable.h
+		static constexpr bool optimizeQS = false;
+
+		static const bool DO_MOVE_ORDERING_STATISTIC = false;
+		static const bool CLEAR_ORDERING_STATISTIC_BEFORE_EACH_MOVE = false;
+
+		static const bool DO_CHECK_EXTENSIONS = true;
+
+		static const bool DO_SE_EXTENSION = true;
+		// The singular extension in non pv nodes costs search depth. Switched off while the
+		// engine searches shallower than its opponents, see se(). The values tuned for it are
+		// the defaults of seNonPvMargin*, seTTMinDepthReduction 3 and seDepthDivisor 263,
+		// they belong to tag 0.4.0-032 and have to come back when this is switched on again.
+		static constexpr bool DO_SE_IN_NON_PV = false;
+		// Set to true to make the singular extension parameters settable by UCI, see tunable.h
+		static constexpr bool optimizeSE = false;
+
+		// Multi cut, computed within the singular extension search, see se(). Switched off
+		// together with the non pv singular extension, it lives inside that search
+		static const bool DO_MULTI_CUT = false;
+
+		static const bool DO_PASSED_PAWN_EXTENSIONS = false;
+
+		// Set to true to make the futility margins settable by UCI, see tunable.h
+		static constexpr bool optimizeFutility = false;
+
+		// Set to true to make the aspiration window size settable by UCI, see tunable.h
+		static constexpr bool optimizeAspiration = false;
+
+		/**
+		 * Extra draft a tablebase answer is stored with. The answer does not depend on
+		 * the depth it was found at, so the entry may outlive the subtree that produced
+		 * it and spare the next probe of the same position.
+		 */
+		static constexpr ply_t TABLEBASE_TT_DEPTH_BONUS = 6;
+
+		// Set to true to make the time management settable by UCI, see tunable.h
+		static constexpr bool optimizeTime = false;
+
+		// The margins themselves live at their call sites in search-node.h, see tunable.h.
+		// Only the depth limits stay here, they are ply counts and carry no tuning signal.
+		static const ply_t FOREWARD_FUTILITY_DEPTH = 10;
+
+		// Futility Pruning (in move loop) - predicts forward futility will prune
+		static const ply_t FUTILITY_DEPTH = 7;
+		static const uint32_t FUTILITY_PRUNING_MIN_MOVE_NUMBER = 3;
+
+		static const Rank PASSED_PAWN_EXTENSION_WHITE_MIN_TARGET_RANK = Rank::R7;
+		static const Rank PASSED_PAWN_EXTENSION_BLACK_MIN_TARGET_RANK = Rank::R2;
+
+	};
+}
+
+#endif // __SEARCH_CONFIG_H

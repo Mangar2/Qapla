@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a storage for primary variants of the search
  * An empty move in the PV line indicates the end of the PV line
@@ -23,10 +23,12 @@
 #ifndef __PV_H
 #define __PV_H
 
-#include <array>
-#include <string>
 #include "searchdef.h"
 #include "../basics/move.h"
+
+#include <array>
+#include <string>
+#include <iomanip>
 
 using namespace std;
 using namespace QaplaBasics;

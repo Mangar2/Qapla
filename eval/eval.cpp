@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include <string>
@@ -29,6 +29,7 @@
 #include "king-attack.h"
 #include "king.h"
 #include "threat.h"
+#include "space.h"
 //#include "eval-correction.h"
 
 using namespace ChessEval;
@@ -117,6 +118,9 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	
 	// Add material to the evaluation
 	EvalValue evalValue = position.getMaterialAndPSTValue();
+	EvalValue imbalanceValue = position.getImbalanceValue();
+	evalValue += imbalanceValue;
+
 
 	// Add paw value to the evaluation
 	evalValue += Pawn::eval(position, evalResults, pawnttPtr);
@@ -132,6 +136,10 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	evalValue += Knight::eval(position, evalResults);
 	evalValue += Queen::eval(position, evalResults);
 	evalValue += Threat::eval(position, evalResults);
+	// Tested 0.4.0-085: space evaluation switched on at its ported weight of 100:
+	// about -20 Elo, 2641 games. A CLOP run over -40 to 40 with 2000 samples put the weight at
+	// -2.1, so at the null point, and the game result confirms the direction.
+	// evalValue += Space::eval(position, evalResults);
 	evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
 	evalValue += King::eval(position, evalResults);
 
@@ -148,17 +156,10 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			<< std::right << std::setw(21) << evalResults.midgameInPercentV2 << endl;
 		cout << "Piece based eval:" 
 			<< std::right << std::setw(19) << result << std::endl;
+		cout << "Imbalance Correction:"
+			<< std::right << std::setw(14) << imbalanceValue << std::endl;
 	}
 
-	/*
-	if (position.getEvalVersion() == 1) {
-		result += EVAL_CORRECTION[position.getPiecesSignature()] / 2;
-	}
-	*/
-	if constexpr (PRINT) {
-		cout << "Piece Signature Correction:"
-			<< std::right << std::setw(9) << result << std::endl;
-	}
 
 	value_t endgameCorrection = EvalEndgame::eval(position, result);
 	if (endgameCorrection != result) {
@@ -201,6 +202,14 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			}
 		}
 	}
+	// Bishops on opposite colours are scaled last, after the tempo bonus and the fifty move
+	// damping, because it is a scaling of the finished value and both of those belong in it.
+	result = EvalEndgame::scaleOppositeColouredBishops(position, result);
+	if constexpr (PRINT) {
+		cout << "Opposite bishops:"
+			<< std::right << std::setw(19) << result << std::endl;
+	}
+
 	// If a value == 0, the position will not be stored in hash tables
 	// Value == 0 indicates a forced draw situation like repetetive moves 
 	// or move count without pawn move or capture == 50
@@ -209,7 +218,7 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 }
 
 void Eval::printEvalBoard(const std::vector<PieceInfo>& details, value_t midgameInPercent) {
-	// Überschrift
+	// Ãœberschrift
 	constexpr auto WIDTH = 11;
 	constexpr auto ROWS = 5;
 	std::cout 

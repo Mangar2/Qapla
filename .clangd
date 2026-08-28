@@ -1,0 +1,18 @@
+CompileFlags:
+  Add:
+    - /std:c++20
+    - /EHsc
+    - -DUSE_AVX2
+    - -DUSE_POPCNT
+    - -D_DEBUG
+    - -DUNICODE
+    - -D_UNICODE
+    - -I.
+    - -Ibasics
+    - -Ibitbase
+    - -Ieval
+    - -Iinterface
+    - -Imovegenerator
+    - -Isearch
+    - -Itraining
+  Compiler: clang-cl

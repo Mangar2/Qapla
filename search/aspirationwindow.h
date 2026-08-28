@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements an aspiration window for iterative deepening search algorithm
  * The aspiration window defines the estimation bounds for the next search
@@ -27,6 +27,8 @@
 
 #include <math.h>
 #include "../basics/types.h"
+#include "search-config.h"
+#include "tunable.h"
 
 using namespace QaplaBasics;
 
@@ -67,7 +69,7 @@ namespace QaplaSearch {
 			_state = State::Search;
 			_alternateCount = 0;
 			_retryCount /= 2;
-			value_t windowSize = calculateWindowSize(searchDepth, _positionValue, 0);
+			value_t windowSize = calculateWindowSize(searchDepth, _positionValue);
 			setWindow(_positionValue, windowSize);
 		}
 
@@ -96,7 +98,7 @@ namespace QaplaSearch {
 				_alternateCount++;
 			}
 			_positionValue = positionValue;
-			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue, _positionValue - positionValue);
+			value_t windowSize = calculateWindowSize(_searchDepth, _positionValue);
 			setWindow(_positionValue, windowSize);
 		}
 
@@ -140,17 +142,26 @@ namespace QaplaSearch {
 
 		/**
 		 * Computes the size of the original window
+		 *
+		 * The size carried a term over the jump of the position value between iterations, but it
+		 * was always zero: the previous value had been overwritten before the difference was
+		 * taken. Repairing it lost elo twice, with the old values and with values tuned for it
+		 * (0.4.0-058 flat over 20000 games, 0.4.0-059 −4.0 Elo, `dead/aspiration-delta`), so the
+		 * term is gone instead of silently computing nothing.
+		 *
 		 * @param searchDepth depth of the current search
 		 * @param positionValue positionValue of the current search
-		 * @param positionValueDelta difference between current positionValue and former positionValue
 		 */
-		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue, value_t positionValueDelta) {
-			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth) * 10;
-			const value_t deltaRelatedSize = _state == State::Rising ? std::abs(positionValueDelta) : std::abs(positionValueDelta) / 10;
-			const value_t valueRelatedSize = std::abs(positionValue) / 20;
-			const value_t retryRelatedSize = _retryCount * 30;
-			const value_t minSize = 15;
-			return minSize + deltaRelatedSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
+		value_t calculateWindowSize(ply_t searchDepth, value_t positionValue) {
+			constexpr bool OPT = SearchConfig::optimizeAspiration;
+			// Every influence carries its own coefficient
+			const value_t depthRelatedSize = std::max(0, STABLE_DEPTH - searchDepth)
+				* tunable<OPT, "awDepthFactor", 10, 0, 20>();
+			const value_t valueRelatedSize = std::abs(positionValue)
+				* tunable<OPT, "awValueFactor", 5, 0, 10>() / 100;
+			const value_t retryRelatedSize = _retryCount * tunable<OPT, "awRetryFactor", 30, 0, 60>();
+			const value_t minSize = tunable<OPT, "awMinSize", 15, 0, 30>();
+			return minSize + depthRelatedSize + valueRelatedSize + retryRelatedSize;
 		}
 
 		/**
@@ -204,7 +215,7 @@ namespace QaplaSearch {
 	/**
 	 * Prints the window
 	 */
-	static ostream& operator<<(ostream& stream, AspirationWindow& window) {
+	[[maybe_unused]] static ostream& operator<<(ostream& stream, AspirationWindow& window) {
 		stream
 			<< "[" << window.getAlpha() << ", " << window.getBeta() << "]"
 			<< " [" << window.getState() << "]"

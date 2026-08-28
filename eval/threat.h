@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements threat detection for evaluation
  */
@@ -24,10 +24,15 @@
 
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
-#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
 
 #include "evalresults.h"
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_THREAT
+#endif
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
@@ -37,6 +42,14 @@ namespace ChessEval {
 	class Threat
 	{
 	public:
+		friend class ThreatUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
 			return eval<WHITE>(position, result) - eval<BLACK>(position, result);
 		}
@@ -68,11 +81,11 @@ namespace ChessEval {
 			const bitBoard_t minorOrRookAttack = minorAttack | result.rookAttack[COLOR];
 
 			const bitBoard_t threats =
-				position.pawnAttack[COLOR] & opponentPieces
-				| nonProtectedPieces & position.attackMask[COLOR]
-				| position.getPieceBB(OPPONENT + ROOK) & minorAttack
-				| position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack
-				| position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR];
+				(position.pawnAttack[COLOR] & opponentPieces)
+				| (nonProtectedPieces & position.attackMask[COLOR])
+				| (position.getPieceBB(OPPONENT + ROOK) & minorAttack)
+				| (position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack)
+				| (position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR]);
 
 			value_t threatAmout = popCountForSparcelyPopulatedBitBoards(threats);
 			if (threatAmout > 10) {
@@ -89,11 +102,17 @@ namespace ChessEval {
 			const EvalValue evThreats = THREAT_LOOKUP[threatAmount];
 			return evThreats;
 		}
-		static constexpr array<EvalValue, 11> THREAT_LOOKUP = { {
-			{  0,   0}, { 50,  50}, { 100,  100 }, { 150, 150 }, { 200, 200 }, { 250, 250 }, 
-			{400, 400}, {400, 400}, {400, 400}, {400, 400}, {400, 400}
+
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP_DEFAULT = { {
+			{  0,   0}, { 60,  60}, { 120,  120 }, { 150, 150 }, { 150, 150 }, { 150, 150 },
+			{ 150, 150}, {150, 150}, {150, 150}, {150, 150}, {150, 150}
 		} };
 
+#ifndef PARAM_OPTIMIZE_THREAT
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP = THREAT_LOOKUP_DEFAULT;
+#else
+		inline static array<EvalValue, 11> THREAT_LOOKUP = THREAT_LOOKUP_DEFAULT;
+#endif
 	};
 }
 

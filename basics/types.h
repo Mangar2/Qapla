@@ -13,41 +13,36 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Defines basic types for a chess engine like piece and move
  */
 
-#ifndef __TYPES_H
-#define __TYPES_H
+#pragma once
 
 #include <cstdint>
 #include <array>
 #include <string>
 #include <iostream>
-#include <iomanip>
-
-using namespace std;
 
 namespace QaplaBasics {
 
 	typedef int32_t square_t;
 	typedef uint64_t bitBoard_t;
-	typedef array<bitBoard_t, 2> colorBB_t;
+	typedef std::array<bitBoard_t, 2> colorBB_t;
 
 	/**
 	 * Prints a bitboard to stdout
 	 */
 	inline void printBB(bitBoard_t bb) {
-		uint32_t lineBreak = 8;
-		for (uint64_t i = 1ULL << 63; i > 0; i /= 2) {
-			cout << ((bb & i) ? "X " : ". ");
-			lineBreak--;
-			if (lineBreak == 0) {
-				std::cout << endl;
-				lineBreak = 8;
+		for (int rank = 7; rank >= 0; --rank) {
+			for (int file = 0; file < 8; ++file) {
+				const int square = rank * 8 + file;
+				const bitBoard_t mask = 1ULL << square;
+				std::cout << ((bb & mask) ? "X " : ". ");
 			}
+			std::cout << std::endl;
 		}
 		std::cout << std::endl;
 	}
@@ -282,7 +277,7 @@ namespace QaplaBasics {
 	 * Computes the string representation of a board square
 	 * @param square Square in internal representation
 	 */
-	constexpr auto squareToString(square_t square) {
+	inline auto squareToString(square_t square) {
 		std::string result = "?";
 		result = "";
 		if (square >= Square::A1 && square <= Square::H8) {
@@ -297,7 +292,7 @@ namespace QaplaBasics {
 	 * @param squareAsString standard chess notation of a square
 	 * @expampe stringToSquare("e1")
 	 */
-	constexpr auto stringToSquare(std::string squareAsString) {
+	inline auto stringToSquare(std::string squareAsString) {
 		square_t result =
 			(squareAsString[0] - 'a') * EAST +
 			(squareAsString[1] - '1') * NORTH;
@@ -351,7 +346,7 @@ namespace QaplaBasics {
 	/**
 	 * Converts a Color to a string
 	 */
-	constexpr std::string colorToString(Piece color) {
+	inline std::string colorToString(Piece color) {
 		return color == WHITE ? "White" : "Black";
 	}
 
@@ -381,4 +376,3 @@ namespace QaplaBasics {
 
 }
 
-#endif //__TYPES_H

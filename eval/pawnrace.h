@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Trial functionality to compute pawn races
  */
@@ -101,8 +101,6 @@ namespace ChessEval {
 
 		bitBoard_t legalPositions[COLOR_COUNT];
 		bitBoard_t kingPositions[COLOR_COUNT];
-		bitBoard_t formerPositions[COLOR_COUNT];
-		bitBoard_t kingAttack[COLOR_COUNT];
 		bitBoard_t passedPawns[COLOR_COUNT];
 		bitBoard_t pawnPositions[COLOR_COUNT];
 		uint32_t bestPassedPawnDistanceInHalfmoves[COLOR_COUNT];

@@ -18,6 +18,24 @@ Qapla is available for 64 bit windows and 64 bit linux. Qapla uses hardware supp
 - I deliver additionally a visual studio project that can be used to compile it. 
 - There is a CMakeLists.txt to compile it with cmake for linux.
 
+## Third party code
+
+Qapla is mostly written from scratch, but three parts are not. All of them keep their original
+copyright headers.
+
+| where | what | origin | licence |
+| --- | --- | --- | --- |
+| `src/syzygy/` | Syzygy tablebase format layer: file mapping, index computation, decompression | `src/syzygy/tbprobe.cpp` of Stockfish 17, itself an adaptation of Ronald de Man's probing code | GPL-3.0 |
+| `bitbase/lz4.c`, `bitbase/lz4.h` | compression of the own bitbase files | LZ4 by Yann Collet | BSD 2-Clause |
+| `bitbase/miniz.c`, `bitbase/miniz.h` | compression of the own bitbase files | miniz by Rich Geldreich et al. | MIT |
+
+Qapla itself is AGPL-3.0. GPLv3 §13 explicitly permits combining GPLv3 code with an AGPLv3 work,
+so the Stockfish-derived part is compatible.
+
+The Syzygy port was reduced to the file format alone - everything that needs a board or a move was
+left out and is written in Qapla. `src/syzygy/README.md` lists what was taken, what was left and
+every deliberate change against the upstream source, so an upstream fix can be re-applied by hand.
+
 ## Version numbering
 
 Qapla's version numbers have three digits:
@@ -157,7 +175,9 @@ Each dot is a moves to mate dot. So if the first dot show up, the engine compute
 
 ### Table bases
 
-Not yet
+Syzygy support is being built. The format layer in `src/syzygy/` reads the tables already, but
+nothing in the search or at the root asks it yet, so it does not affect play. See
+`plan/syzygy-implementation.md` for the remaining steps.
 
 ### Multi-Threading
 

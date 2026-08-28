@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a UCI - Interface
  */
@@ -30,6 +30,7 @@
 #include "stdtimecontrol.h"
 #include "movescanner.h"
 #include "fenscanner.h"
+#include "computinginfoexchange.h"
 #include <functional>
 #include <thread>
 #include <mutex>
@@ -262,11 +263,35 @@ namespace QaplaInterface {
 			});
 		}
 
+		void waitUntilExactMoveTimeElapsed(const ComputingInfoExchange& info) {
+			if (_clock.getExactTimePerMoveInMilliseconds() == 0) {
+				return;
+			}
+			//if (_clock.)
+			constexpr uint64_t EXPECTED_DELAY = 2;
+			const uint64_t elapsed = info.elapsedTimeInMilliseconds;
+			const uint64_t target = _clock.getExactTimePerMoveInMilliseconds() - EXPECTED_DELAY;
+			if (elapsed >= target) {
+				return;
+			}
+			std::unique_lock<std::mutex> lock(_protectWorkerAccess);
+			_protectSearchTermination.wait_for(
+				lock,
+				std::chrono::milliseconds(target - elapsed),
+				[this] { return _isStopped; }
+			);
+		}
+
 		/**
 		 * Wait for the computing thread to end and joins the thread.
 		 */
 		void waitForComputingThreadToEnd() {
 			_computeThread.waitForTaskCompletion();
+		}
+
+		void startCompute() {
+			const lock_guard<mutex> lock(_protectWorkerAccess);
+			_isStopped = false;
 		}
 
 		/**
@@ -276,6 +301,7 @@ namespace QaplaInterface {
 			{
 				const lock_guard<mutex> lock(_protectWorkerAccess);
 				_isInfiniteSearch = false;
+				_isStopped = true;
 				_board->moveNow();
 				_protectSearchTermination.notify_one();
 			}
@@ -301,7 +327,71 @@ namespace QaplaInterface {
 			_protectSearchTermination.notify_one();
 		}
 
-	protected:
+protected:
+
+		void loadEPD() {
+			std::string fileName = getNextTokenNonBlocking();
+			if (fileName == "") {
+				std::cerr << "Error: No EPD file specified." << std::endl;
+				return;
+			}
+			loadEPD(fileName);
+		}
+		void loadEPD(const std::string & filename) {
+			std::ifstream file(filename);
+
+			if (!file) {
+				std::cerr << "Error: Could not open file " << filename << std::endl;
+				return;
+			}
+
+			_startPositions.clear();
+			std::string line;
+			while (std::getline(file, line)) {
+				if (!line.empty()) {
+					_startPositions.push_back(line);
+				}
+			}
+
+			file.close();
+			std::cout << "Loaded " << _startPositions.size() << " positions from EPD file." << std::endl;
+		}
+
+		void WMTest() {
+			[[maybe_unused]] uint32_t numThreads{};
+			uint32_t depthLimit = 10;
+			uint64_t totalNodesSearched = 0;
+			while (getNextTokenNonBlocking() != "") {
+				if (getCurrentToken() == "threads") {
+					if (getNextTokenNonBlocking() != "") {
+						numThreads = (uint32_t)getCurrentTokenAsUnsignedInt();
+					}
+				}
+				else if (getCurrentToken() == "sd") {
+					if (getNextTokenNonBlocking() != "") {
+						depthLimit = (uint32_t)getCurrentTokenAsUnsignedInt();
+					}
+				}
+
+			}
+			loadEPD("wmtest.epd");
+			_clock.setSearchDepthLimit(depthLimit);
+			getBoard()->setClock(_clock);
+			StdTimeControl timeControl;
+			timeControl.storeStartTime();
+			for (auto& epd : _startPositions) {
+				getBoard()->newGame();
+				ChessInterface::setPositionByFen(epd, getBoard());
+				getBoard()->computeMove();
+				auto info = getBoard()->getComputingInfo();
+				totalNodesSearched += info.nodesSearched;
+				std::cout << epd << " nodes: " << info.nodesSearched << " total: " << totalNodesSearched << std::endl;
+			}
+			std::cout << "Positions searched: " << _startPositions.size() 
+				<< " Total nodes searched: " << totalNodesSearched 
+				<< " Time used (s): " << (timeControl.getTimeSpentInMilliseconds() * 1.0 / 1000.0) << std::endl;
+		}
+
 		enum class Mode { WAIT, COMPUTE, ANALYZE, EDIT, PONDER, QUIT };
 		void println(const string& output) { _ioHandler->println(output); }
 		void print(const string& output) { _ioHandler->print(output); }
@@ -314,13 +404,16 @@ namespace QaplaInterface {
 		IChessBoard* getBoard() { return _board; }
 		WorkerThread& getWorkerThread() { return _computeThread; }
 
+		std::vector<std::string> _startPositions;
+
+
 	private:
 		IChessBoard* _board;
 		IInputOutput* _ioHandler;
 		condition_variable _protectSearchTermination;
 		mutex _protectWorkerAccess;
-		bool _isInfiniteSearch;
-		bool _stopRequested;
+		bool _isInfiniteSearch = false;
+		bool _isStopped = false;
 		WorkerThread _computeThread;
 	
 	protected:

@@ -13,26 +13,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a value class containing midgame and endgame evaluation components
  */
 
-#ifndef __EVALVALUE_H
-#define __EVALVALUE_H
+#pragma once
+
+#include "../basics/types.h"
 
 #include <cstdint>
 #include <ostream>
 #include <cmath>
 #include <array>
-#include "../basics/types.h"
+#include <iomanip>
 
 using namespace std;
 
 namespace QaplaBasics {
 
-	typedef int32_t value_t;
+	using value_t = int32_t;
 
 	const value_t MAX_VALUE = 30000;
 	const value_t NO_VALUE = -30001;
@@ -51,12 +52,6 @@ namespace QaplaBasics {
 			return -value;
 		}
 	}
-
-#include <cmath>
-#include <array>
-#include <cstdint>
-
-	using value_t = int32_t;
 
 	constexpr std::array<int, 9> props = { -100, -76, -61, -31, 0, 31, 61, 76, 100 };
 	constexpr std::array<int, 9> values = { -700, -300, -200, -100, 0, 100, 200, 300, 700 };
@@ -90,10 +85,13 @@ namespace QaplaBasics {
 	}
 
 	/**
-	 * Converts a properbility value to a centipawn based
-	 * Measured values are 31% = one pawn, 61% = two pawns, 76% = three pawns
-	 * @param prop the winning propabiliy from -100 (black always wins) to +100 (white always wins)
-	 * @return the corresponding value in centipawns
+	 * Converts a win probability into a centipawn evaluation value.
+	 *
+	 * Scale: -100 = black always wins, +100 = white always wins.
+	 * Symmetric around 0. Values are mapped using Hermite interpolation.
+	 *
+	 * @param prop Probability in range [-100, 100]
+	 * @return Evaluation in centipawns
 	 */
 	constexpr value_t propToValue(int prop) {
 		if (prop <= props.front()) return values.front();
@@ -112,6 +110,12 @@ namespace QaplaBasics {
 		return 0;
 	}
 
+
+	/**
+	 * Stores an evaluation value with midgame and endgame components.
+	 *
+	 * This allows for tapered evaluation based on the game phase.
+	 */
 	class EvalValue {
 	public:
 		constexpr EvalValue() : _midgame(0), _endgame(0) {}
@@ -121,8 +125,9 @@ namespace QaplaBasics {
 		constexpr EvalValue(const array<value_t, 2> value) : _midgame(value[0]), _endgame(value[1]) {}
 
 		/**
-		 * Returns the evaluation value based on the game state
-		 * @param midgameInPercent weight for the midgame, endgame weight is 100-midgameInPercent
+		 * Returns a tapered evaluation value depending on the given game phase.
+		 * @param midgameInPercent Percentage weight of the midgame component (0..100).
+		 * @return Combined tapered evaluation value.
 		 */
 		constexpr value_t getValue(value_t midgameInPercent) const {
 			return (value_t(_midgame) * midgameInPercent + value_t(_endgame) * (100 - midgameInPercent)) / 100;
@@ -132,6 +137,8 @@ namespace QaplaBasics {
 			const array<value_t, 2> result = { _midgame, _endgame };
 			return result;
 		}
+
+		constexpr bool operator==(const EvalValue&) const = default;
 
 		constexpr value_t midgame() const { return _midgame; }
 		constexpr value_t endgame() const { return _endgame; }
@@ -143,14 +150,17 @@ namespace QaplaBasics {
 		constexpr  EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
 		constexpr  EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
 		constexpr  EvalValue abs() const { return EvalValue(std::abs(_midgame), std::abs(_endgame)); }
-		// EvalValue operator*(value_t mul) { _midgame *= mul; _endgame *= mul; return *this; }
+
 
 		constexpr friend EvalValue operator+(EvalValue a, EvalValue b);
 		constexpr friend EvalValue operator-(EvalValue a, EvalValue b);
 		constexpr friend EvalValue operator-(EvalValue a);
-		constexpr friend EvalValue operator*(EvalValue a, EvalValue b);
-		constexpr friend EvalValue operator/(EvalValue a, EvalValue b);
 
+		inline friend EvalValue operator*(EvalValue v, value_t scale);
+		inline friend EvalValue operator*(value_t scale, EvalValue v);
+		inline friend EvalValue operator/(EvalValue v, value_t divisor);
+		
+		inline friend EvalValue operator*(EvalValue a, EvalValue b);
 
 		inline std::string toString() const {
 			return std::to_string(_midgame) + ", " + std::to_string(_endgame);
@@ -181,18 +191,22 @@ namespace QaplaBasics {
 		return EvalValue(-a._midgame, -a._endgame);
 	}
 
-	constexpr EvalValue operator*(EvalValue a, EvalValue b) {
+	/**
+	 * Component-wise multiplication. 
+	 */
+	inline EvalValue operator*(EvalValue a, EvalValue b) {
 		return EvalValue(value_t(a._midgame * b._midgame), value_t(a._endgame * b._endgame));
 	}
-
-	constexpr EvalValue operator/(EvalValue a, EvalValue b) {
-		return EvalValue(value_t(a._midgame / b._midgame), value_t(a._endgame / b._endgame));
+	
+	inline EvalValue operator*(EvalValue v, value_t scale) {
+		return EvalValue(v.midgame() * scale, v.endgame() * scale);
+	}
+	inline EvalValue operator*(value_t scale, EvalValue v) {
+		return v * scale;
+	}
+	inline EvalValue operator/(EvalValue v, value_t divisor) {
+		return EvalValue(v.midgame() / divisor, v.endgame() / divisor);
 	}
 
 }
 
-
-
-
-
-#endif

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Tool to generate bitbases
  */
@@ -23,6 +23,8 @@
 #ifndef __BITBASEGENERATOR_H
 #define __BITBASEGENERATOR_H
 
+#include "../search/clockmanager.h"
+
 #include <iostream>
 #include "reverseindex.h"
 #include "bitbase.h"
@@ -30,6 +32,7 @@
 #include "workpackage.h"
 #include "generationstate.h"
 #include "bitbase-reader.h"
+#include "bitbase-profiling.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -39,12 +42,22 @@ namespace QaplaBitbase {
 	class BitbaseGenerator {
 	public:
 		static const bool DO_DEBUG = true;
+		/**
+		 * Creates a bitbase generator instance.
+		 */
 		BitbaseGenerator() {
 		}
 
 		/**
-		 * Computes a bitbase for a piece string (example KPK) and
-		 * all other bitbases needed
+		 * Computes the requested bitbase and all recursively required dependent bitbases.
+		 *
+		 * @param pieceString Bitbase identifier like KPK, KPPK, 3, 4, 5, or 6.
+		 * @param cores Requested number of worker threads (capped at MAX_THREADS).
+		 * @param compress Compression algorithm used for storing generated bitbase data.
+		 * @param generateCpp If true, additionally emits generated C++ source for the bitbase.
+		 * @param traceLevel Verbosity level for tracing runtime details.
+		 * @param debugLevel Verbosity level for debug output.
+		 * @param debugIndex Optional index used to trigger focused debug output.
 		 */
 		void computeBitbaseRec(string pieceString, uint32_t cores = 1, 
 			QaplaCompress::CompressionType compress = QaplaCompress::CompressionType::Miniz,
@@ -60,11 +73,19 @@ namespace QaplaBitbase {
 			cout << endl << "All Bitbases generated!";
 			printTimeSpent(clock);
 			cout << endl;
+			BitbaseProfiling::getStaticInstance().printStatistics();
 		}
 
 
 	private:
 
+		/**
+		 * Dispatches high-level aliases (3/4/5/6) and then computes the requested bitbase.
+		 *
+		 * @param pieceString Requested bitbase identifier.
+		 * @param compression Compression algorithm used for persisted output.
+		 * @param generateCpp If true, also emits generated C++ code.
+		 */
 		void computeBitbase(string pieceString, QaplaCompress::CompressionType compression, bool generateCpp) {
 			if (pieceString == "3") {
 				computeBitbase("KPK", compression, generateCpp);
@@ -75,16 +96,15 @@ namespace QaplaBitbase {
 			}
 			else if (pieceString == "5s") {
 				computeBitbase("KPPKP", compression, generateCpp);
-				computeBitbase("KPKPP", compression, generateCpp);
 			}
 			else if (pieceString == "5") {
 				computeBitbase("KPPKP", compression, generateCpp);
-				computeBitbase("KPKPP", compression, generateCpp);
 				computeBitbase("KPPPK", compression, generateCpp);
 			}
 			else if (pieceString == "6") {
+				computeBitbase("KPPKP", compression, generateCpp);
+				computeBitbase("KPPPK", compression, generateCpp);
 				computeBitbase("KPPKPP", compression, generateCpp);
-				computeBitbase("KPKPPP", compression, generateCpp);
 				computeBitbase("KPPPKP", compression, generateCpp);
 			}
 			PieceList list(pieceString);
@@ -93,7 +113,7 @@ namespace QaplaBitbase {
 
 
 		/**
-		 * Join all running threads
+		 * Joins all currently running worker threads.
 		 */
 		void joinThreads() {
 			for (auto& thr : _threads) {
@@ -102,19 +122,25 @@ namespace QaplaBitbase {
 				}
 			}
 		}
-
+		
 		/**
-		 * Searches all captures and look up the position after capture in a bitboard.
-		 */
-		Result initialSearch(MoveGenerator& position, MoveList& moveList);
-
-		/**
-		 * Marks one candidate identified by a partially filled move and a destination square
+		 * Converts one reverse-generated move candidate into a bitbase index.
+		 *
+		 * @param wtm Side-to-move flag of the current position.
+		 * @param list Piece layout used for index mapping.
+		 * @param move Partially constructed reverse move.
+		 * @param destination Candidate destination square for the reverse move.
+		 * @param verbose Enables detailed debug output.
+		 * @returns Candidate bitbase index to revisit.
 		 */
 		uint64_t computeCandidateIndex(bool wtm, const PieceList& list, Move move, Square destination, bool verbose);
 
 		/**
-		 * Switches the sides, if the moving piece is a black piece
+		 * Mirrors a square to the opposite side when COLOR is black.
+		 *
+		 * @tparam COLOR Color context for side-dependent square handling.
+		 * @param square Square to transform.
+		 * @returns Original square for white, mirrored square for black.
 		 */
 		template <Piece COLOR>
 		constexpr Square switchSide(Square square) {
@@ -122,51 +148,107 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Reverse-Generate pawn moves - moving back to possible start positions of the pawn
+		 * Reverse-generates pawn non-capture moves to possible predecessor squares.
+		 *
+		 * @tparam COLOR Pawn color to reverse-generate.
+		 * @param candidates Output vector receiving candidate indexes.
+		 * @param position Current position.
+		 * @param list Piece layout used for index mapping.
+		 * @param move Partially constructed move with moving piece and departure set.
+		 * @param verbose Enables detailed debug output.
 		 */
+		static void addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
+			Bitbase& computedResults, GenerationState& state);
+
 		template <Piece COLOR>
-		void reverseGeneratePawnMoves(vector<uint64_t>& candidates, 
-			const MoveGenerator& position, const PieceList& list, Move move, bool verbose);
+		void reverseGeneratePawnMoves(vector<CandidateEntry>& candidates, 
+			const MoveGenerator& position, const PieceList& list, Move move, BitbaseResult result,
+			Bitbase& computedResults, bool verbose, GenerationState& state);
 
 		/**
-		 * Computes a list of candidates and pushes them to the candidates vector
+		 * Computes reverse-generated candidate positions for one specific moving piece.
+		 *
+		 * @param candidates Output vector receiving candidate indexes.
+		 * @param position Current position.
+		 * @param list Piece layout used for index mapping.
+		 * @param move Partially constructed move (piece and departure are set).
+		 * @param verbose Enables detailed debug output.
 		 */
-		void computeCandidates(vector<uint64_t>& candidates, const MoveGenerator& position,
-			const PieceList& list, Move move, bool verbose);
+		void computeCandidates(vector<CandidateEntry>& candidates, const MoveGenerator& position,
+			const PieceList& list, Move move, BitbaseResult result,
+			Bitbase& computedResults, bool verbose, GenerationState& state);
 
 		/**
-		 * Mark all candidate positions we need to look at after a new bitbase position is set to 1
-		 * Candidate positions are computed by running through the attack masks of every piece and 
-		 * computing reverse moves (ignoring all special cases like check, captures, ...)
+		 * Computes all reverse candidates after marking one position as newly won.
+		 * Candidate positions are derived from attack masks and reverse pseudo-legal moves.
+		 *
+		 * @param candidates Output vector receiving candidate indexes.
+		 * @param position Current position.
+		 * @param verbose Enables detailed debug output.
 		 */
-		void computeCandidates(vector<uint64_t>& candidates, MoveGenerator& position, bool verbose);
+		void computeCandidates(vector<CandidateEntry>& candidates, MoveGenerator& position, BitbaseResult result,
+			Bitbase& computedResults, bool verbose, GenerationState& state);
 
 		/**
-		 * Computes a position value by probing all moves and lookup the result in this bitmap
-		 * Captures are excluded, they have been tested in the initial search. 
+		 * Evaluates non-capture, non-promotion moves against already-computed bitbase entries
+		 * to determine and store the best result achievable from this position.
+		 * Capture and promotion moves are skipped — they were resolved during initialization.
+		 * Stores an intermediate lower-bound value (e.g. Draw) as soon as one is found,
+		 * even before all successors are resolved. Finalizes the value once all reachable
+		 * successors are known.
+		 *
+		 * @param index Bitbase index of the current position.
+		 * @param position Current position to evaluate.
+		 * @param state Mutable generation state providing the bitbase and storing the result.
+		 * @param verbose Enables detailed debug output.
+		 * @returns Final proven result (Win/Loss/Draw), or Unknown if any successor is still unresolved.
 		 */
-		bool computeValue(MoveGenerator& position, Bitbase& bitbase, bool verbose);
+		BitbaseResult setComputeValue(
+			uint64_t index, MoveGenerator& position, QaplaBitbase::GenerationState &state, bool verbose);
 
 		/**
-		 * Sets the bitbase index for a position by computing the position value from the bitbase itself
-		 * @returns 1, if the position is a win (now) and 0, if it is still unknown
+		 * Re-evaluates one position during iterative propagation and stores the result if resolved.
+		 *
+		 * @param index Bitbase index of the current position.
+		 * @param position Position reconstructed for this index.
+		 * @param state Mutable generation state.
+		 * @returns true if the position reached a definitive result (Win, Loss, or Draw); false if still Unknown.
 		 */
-		uint32_t computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+		BitbaseResult computePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
-		 * Prints the time spent so far
+		 * Attempts to directly set the result for a candidate position without full move evaluation.
+		 *
+		 * @param index Bitbase index of the candidate position.
+		 * @param winningMove True if the candidate move is a winning move.
+		 * @param whiteToMove True if white is to move in the candidate position.
+		 * @param state Mutable generation state.
+		 * @returns true if the position was directly resolved, false if full evaluation is needed.
+		 */
+		bool tryDirectEntry(uint64_t index, bool winningMove,
+							bool whiteToMove, GenerationState& state);
+
+		/**
+		 * Prints elapsed wall-clock time for the current generation step.
+		 *
+		 * @param clock Clock instance tracking elapsed time.
 		 */
 		void printTimeSpent(ClockManager& clock);
 
 		/**
-		 * Prints win/loss/draw/illegal statistic
+		 * Prints aggregated generation statistics.
+		 *
+		 * @param state Generation state holding counters and bitmaps.
 		 */
 		void printStatistic(GenerationState& state) {
 			state.printStatistic();
 		}
 
 		/**
-		 * Prints an information about the actual position for debugging
+		 * Prints the current position and index information for debugging.
+		 *
+		 * @param position Position to print.
+		 * @param index Optional index shown alongside computed index.
 		 */
 		void printDebugInfo(const MoveGenerator& position, uint64_t index = -1) {
 			if (index != -1) cout << "Cur: " << index;
@@ -175,66 +257,110 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Populates a position from a bitbase index for the squares and a piece list for the piece types
+		 * Reconstructs a position from reverse index squares and piece identities.
+		 *
+		 * @param position Target position that will be populated.
+		 * @param reverseIndex Reverse index providing square assignments.
+		 * @param pieceList Piece identities in fixed order.
 		 */
 		void addPiecesToPosition(MoveGenerator& position, const ReverseIndex& reverseIndex, const PieceList& pieceList);
 
 		/**
-		 * Computes a workpackage for a compute-bitbase loop
-		 * @param workpackage work provider
-		 * @param state current generation state
+		 * Processes one dynamic work package for iterative bitbase propagation.
+		 *
+		 * @param workpackage Shared work provider.
+		 * @param state Shared generation state.
 		 */
-		void computeWorkpackage(Workpackage& workpackage, GenerationState& state);
+		void computeWorkpackage(BitWorkpackage& workpackage, GenerationState& state);
 
 		/**
-		 * Compute the bitbase by checking each position for an update as long as no further update is found
-		 * @param state Current computation state
-		 * @param clock time measurement for the bitbase generation
+		 * Runs iterative propagation until no additional candidate positions remain.
+		 *
+		 * @param state Current computation state.
+		 * @param clock Clock tracking total generation time.
 		 */
 		void computeBitbase(GenerationState& state, ClockManager& clock);
 
+		/**
+		 * Sets the initial proven value for a position by consulting subordinate bitbases
+		 * via all capture and promotion moves.
+		 * Always writes at least the best already-achieved result into state:
+		 * a forced win or loss is stored as final; a reachable draw is stored as
+		 * an intermediate lower bound even when non-capture moves remain unresolved.
+		 * Returns Win or Loss when the result is fully decided by captures/promotions alone,
+		 * Draw when all evaluated moves are at least draws and no non-captures exist,
+		 * or Unknown when non-capture moves are present and no forced win was found.
+		 *
+		 * @param position Current position to evaluate.
+		 * @param index Bitbase index of the position.
+		 * @param moveList Legal moves generated for the side to move.
+		 * @param state Mutable generation state that receives the result.
+		 * @returns Final proven result, or Unknown if iterative propagation is still needed.
+		 */
+		BitbaseResult setInitialValueByCapturesAndPromotions(
+			MoveGenerator& position, const uint64_t index, MoveList& moveList, QaplaBitbase::GenerationState &state);
 
 		/**
-		 * Sets a situation to mate or stalemate 
+		 * Stores and returns the terminal result for a position with no legal moves.
+		 * Black checkmated → Win, White checkmated → Loss, no check → Draw (stalemate).
+		 * Always produces a final, non-Unknown result.
+		 *
+		 * @param position Current position with no legal moves.
+		 * @param index Bitbase index of this position.
+		 * @param state Mutable generation state that receives the result.
+		 * @returns Win, Loss, or Draw.
 		 */
-		Result setMateOrStalemate(QaplaMoveGenerator::MoveGenerator& position, const uint64_t index,
+		BitbaseResult setMateOrStalemate(QaplaMoveGenerator::MoveGenerator& position, const uint64_t index,
 			QaplaBitbase::GenerationState& state);
 
 		/**
-		 * Initially probe alle positions for a mate- draw or capture situation
+		 * Classifies one position during the initial pass before iterative propagation.
+		 * Illegal and terminal positions (mate/stalemate) are fully decided immediately.
+		 * For positions with legal moves, the best result provable via captures and promotions
+		 * is stored; positions still depending on non-capture moves return Unknown.
+		 *
+		 * @param index Bitbase index of this position.
+		 * @param position Reconstructed position.
+		 * @param state Mutable generation state that receives the result.
+		 * @returns Final proven result, or Unknown if iterative propagation is still needed.
 		 */
-		Result initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
+		BitbaseResult initialComputePosition(uint64_t index, MoveGenerator& position, GenerationState& state);
 
 		/**
-		 * Computes a workpackage for the initial situation calculation
+		 * Processes one dynamic work package for initial position classification.
+		 *
+		 * @param workpackage Shared work provider.
+		 * @param state Shared generation state.
 		 */
-		void computeInitialWorkpackage(Workpackage& workpackage, GenerationState& state);
+		void computeInitialWorkpackage(InitialWorkpackage& workpackage, GenerationState& state);
+		void markIllegalAsUnknown(GenerationState& state);
 
 		/**
-		 * Computes a bitbase for a set of pieces described by a piece list.
-		 * @param pieceList list of pieces in the bitbase
-		 * @param first true, if this is a primary bitbase and not an additionally required and recursively identified bitbase
-		 * @param compression compression type
-		 * @param generateCpp true, if a cpp file should be generated
+		 * Computes and persists one concrete bitbase described by a piece list.
+		 *
+		 * @param pieceList Piece layout of the bitbase to generate.
+		 * @param first True if this is the primary requested bitbase.
+		 * @param compression Compression algorithm used for persisted output.
+		 * @param generateCpp If true, also emits generated C++ code.
 		 */
 		void computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp);
 
 		/**
-		 * Recursively computes bitbases based on a bitbase string
-		 * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
-		 * so that any bitbase KQKP can get to is available
+		 * Recursively computes all dependent bitbases reachable via captures and promotions.
+		 * For KQKP this includes KQK, KQKQ, KQKR, KQKB, KQKN, and related dependencies.
+		 *
+		 * @param pieceList Piece layout of the current bitbase.
+		 * @param first True if this is the primary requested bitbase.
+		 * @param compression Compression algorithm used for persisted output.
+		 * @param generateCpp If true, also emits generated C++ code.
 		 */
 		void computeBitbaseRec(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp);
-
-		const bool debug = false;
-		uint64_t _numberOfIllegalPositions;
-		uint64_t _numberOfDirectLoss;
-		uint64_t _numberOfDirectDraw;
 
 		uint32_t _cores;
 		int _traceLevel;
 		uint64_t _debugIndex;
 		int _debugLevel;
+		static constexpr uint64_t _packageSize = 100000;
 
 		static constexpr uint32_t MAX_THREADS = 64;
 		array<thread, MAX_THREADS> _threads;

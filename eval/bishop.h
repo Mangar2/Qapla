@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a static class to evaluate bishops 
  */
@@ -22,20 +22,37 @@
 #ifndef __BISHOP_H
 #define __BISHOP_H
 
-#include <cstdint>
+#include "evalresults.h"
+#include "eval-helper.h"
+
 #include "../basics/types.h"
-#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
-#include "evalresults.h"
+#include "../movegenerator/magics.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
+
+#include <cstdint>
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_BISHOP
+#endif
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
+
 	class Bishop {
 	public:
+		friend class BishopUciAccess;
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
 		}
@@ -80,7 +97,7 @@ namespace ChessEval {
 				const auto mobilityValue = EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]);
 				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(1)[mobilityIndex];
 
-				const auto propertyIndex = allBishopsIndex | (isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
+				const auto propertyIndex = allBishopsIndex | (EvalHelper::isPinned(position.pinnedMask[COLOR], bishopSquare) * PINNED_INDEX);
 				const auto propertyValue = EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]);
 				//const auto propertyValue = position.getEvalVersion() == 0 ? EvalValue(BISHOP_PROPERTY_MAP[propertyIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
@@ -121,20 +138,8 @@ namespace ChessEval {
 		template<Piece COLOR>
 		static inline uint32_t calcMobilityIndex(EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
-			bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
-			results.bishopAttack[COLOR] |= attackBB;
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-
-			attackBB &= removeBB;
-			return popCount(attackBB);
-		}
-
-		/**
-		 * Returns true, if the bishop is pinned
-		 */
-		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
+			const bitBoard_t attackBB = Magics::genBishopAttackMask(square, occupiedBB);
+			return results.addPieceAttack<COLOR>(results.bishopAttack, attackBB, removeBB);
 		}
 
 		/**
@@ -142,32 +147,39 @@ namespace ChessEval {
 		 */
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
 
+		static const uint32_t BISHOP_PROPERTY_SIZE = 4;
 		static const uint32_t DOUBLE_BISHOP_INDEX = 1;
 		static const uint32_t PINNED_INDEX = 2;
 
 		/**
 		 * Additional value for two bishops on different colors
 		 */
-		static constexpr value_t _doubleBishop[2] = { 5, 15 };
-		static constexpr value_t _pinned[2] = { 0, 0 };
+		static constexpr value_t _doubleBishop[2] = { 26, 14 };
+		static constexpr value_t _pinned[2] = { -10,  -0 };
 
-		static constexpr std::array<EvalValue, 4> BISHOP_PROPERTY_MAP = { {
-			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} 
-		} };
-		static inline std::string BISHOP_PROPERTY_INFO[4] = {
+		static inline std::string BISHOP_PROPERTY_INFO[BISHOP_PROPERTY_SIZE] = {
 			"", "<par>", "<pin>", "<pin><par>"
 		};
 
-		/**
-		 * Mobility of a bishop. Having negative values for 0 or 1 fields to move to did not bring ELO
-		 * Still I kept it.
-		 */
-		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = { {
+		static constexpr std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP_DEFAULT = { {
+			{  0,   0}, { 26,  14}, {-10,   0}, { 15,  14}
+		} };
+		
+		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP_DEFAULT = { {
 			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
+#ifndef PARAM_OPTIMIZE_BISHOP
+		static constexpr std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP = BISHOP_PROPERTY_MAP_DEFAULT;
+		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = BISHOP_MOBILITY_MAP_DEFAULT;
+#else
+		inline static std::array<EvalValue, BISHOP_PROPERTY_SIZE> BISHOP_PROPERTY_MAP = BISHOP_PROPERTY_MAP_DEFAULT;
+		inline static std::array<EvalValue, 15> BISHOP_MOBILITY_MAP = BISHOP_MOBILITY_MAP_DEFAULT;
+#endif
+
 	};
+
 }
 
 

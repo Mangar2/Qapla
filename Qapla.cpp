@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 
@@ -28,10 +28,13 @@
 #include "nnue/engine.h"
 #endif
 
+#ifndef QAPLA_VERSION
+#define QAPLA_VERSION "dev"
+#endif
+
 using namespace QaplaInterface;
 
 namespace QaplaSearch {
-	value_t SearchParameter::cmdLineParam[10];
 
 	class ChessEnvironment {
 	public:
@@ -92,7 +95,7 @@ FenTests fenTests = {
 
 */
 
-int main(int argc, char* argv[])
+int main()
 {
 
 	/*
@@ -106,10 +109,7 @@ int main(int argc, char* argv[])
 	Stockfish::Engine::load_network("NNUE1", "NNUE2");
 #endif
 
-	std::cout << "Qapla 0.3.2 (C) 2025 Volker Boehm (build 018)" << std::endl;
-	// This enables setting search parameters to a static object. The search parameters are set as name, value pairs
-	// Currently this is used for testing only
-	SearchParameter::parseCommandLine(argc, argv);
+	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;
 	QaplaSearch::ChessEnvironment environment;
 	// The environment collates the interface with the chess engine. Both are separated by an adapter interface to be
 	// reusable for other engines. 

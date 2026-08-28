@@ -1,0 +1,622 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ * @Overview
+ * Implements all needed variables for search in one structure
+ */
+
+#ifndef __SEARCH_NODE_H
+#define __SEARCH_NODE_H
+
+#include <mutex>
+#include <string>
+#include "../basics/types.h"
+#include "../basics/move.h"
+#include "../movegenerator/movegenerator.h"
+#include "killermove.h"
+#include "pv.h"
+#include "moveprovider.h"
+#include "tt.h"
+#include "butterfly-boards.h"
+#include "search-config.h"
+#include "tunable.h"
+#include "extension.h"
+#include "../eval/eval.h"
+#ifdef USE_STOCKFISH_EVAL
+#include "../nnue/engine.h"
+#endif
+
+#include <iomanip>
+
+using namespace std;
+using namespace QaplaMoveGenerator;
+using namespace ChessEval;
+
+enum class Cutoff {
+	NONE, DRAW_BY_REPETITION, DRAW_BY_50_MOVES_RULE, HASH, FASTER_MATE_FOUND, RAZORING, NOT_ENOUGH_MATERIAL,
+	NULL_MOVE, FUTILITY, TABLEBASE, LOST_WINNING_BONUS, MAX_SEARCH_DEPTH, ABORT, MULTI_CUT,
+	COUNT
+};
+
+namespace QaplaSearch {
+	struct SearchNode {
+
+		enum class SearchFinding {
+			PV, NULL_WINDOW, PV_LMR, NORMAL, LMR, NULLMOVE, VERIFY, IID, SE,
+			AMOUNT
+		};
+
+		typedef uint32_t pvIndex_t;
+
+		SearchNode() {
+			cutoff = Cutoff::NONE;
+		};
+
+		/**
+		 * Adds a move to the primary variant
+		 */
+		void setPVMove(Move pvMove) {
+			moveProvider.setPVMove(pvMove);
+		}
+
+		void clearMoveProvider() {
+			moveProvider.clear();
+			//moveProvider = MoveProvider();
+		}
+
+		/**
+		 * @returns true, if the current search is a PV search
+		 */
+		inline bool isWindowZero() const { return alpha + 1 == beta;  }
+		inline bool isPVNode() const { return _nodeType == NodeType::PV;  }
+		inline bool isOldPVNode() const { return alphaAtPlyStart + 1 < betaAtPlyStart; }
+
+		void setWindowAtPlyStart(value_t newAlpha, value_t newBeta) {
+			alphaAtPlyStart = alpha = newAlpha;
+			betaAtPlyStart = beta = newBeta;
+		}	
+
+		/**
+		 * Sets all variables from previous ply
+		 */
+		void setFromParentNode(MoveGenerator& position, const SearchNode& parentNode, value_t alpha, value_t beta, ply_t depth, bool isPVNode) {
+			pv.setEmpty(ply);
+			pv.setEmpty(ply + 1);
+			bestMove.setEmpty();
+			bestValue = -MAX_VALUE;
+			cutoff = Cutoff::NONE;
+			// The tt bound flags are not reset here. They belong to the position, are set by
+			// probeTT and are read afterwards, for example by the futility pruning.
+			adjustedEval = NO_VALUE;
+			isImproving = false;
+			remainingDepth = depth;
+			remainingDepthAtPlyStart = depth;
+			setWindowAtPlyStart(alpha, beta);
+			movesTried = 0;
+			_nodeType = childNodeType(parentNode._nodeType, isPVNode);
+			isVerifyingNullmove = parentNode.isVerifyingNullmove;
+			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
+			moveProvider.init();
+		}
+
+		void setToPlyStart() {
+			pv.setEmpty(ply);
+			pv.setEmpty(ply + 1);
+			bestValue = -MAX_VALUE;
+			remainingDepth = remainingDepthAtPlyStart;
+			alpha = alphaAtPlyStart;
+			beta = betaAtPlyStart;
+			movesTried = 0;
+		}
+
+		/**
+		 * Initializes all variables to start search
+		 */
+		void initSearchAtRoot(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, ply_t searchDepth) {
+			position.computeAttackMasksForBothColors();
+			remainingDepthAtPlyStart = remainingDepth = searchDepth;
+			movesTried = 0;
+			alpha = initialAlpha;
+			beta = initialBeta;
+			alphaAtPlyStart = alpha;
+			betaAtPlyStart = beta;
+			bestMove.setEmpty();
+			bestValue = -MAX_VALUE;
+			_nodeType = NodeType::PV;
+			isVerifyingNullmove = false;
+			noNullmove = true;
+			cutoff = Cutoff::NONE;
+			positionHash = position.computeBoardHash();
+			ttValueIsGreaterOrEqualBeta = false;
+			ttValueIsLessOrEqualAlpha = false;
+			sideToMoveIsInCheck = position.isInCheck();
+			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position, ttPtr->getPawnTT()); 
+			isImproving = false;
+			moveProvider.init();
+		}
+
+		/**
+		 * Applies a move
+		 */
+		void doMove(MoveGenerator& position, Move previousPlyMove) {
+			previousMove = previousPlyMove;
+			boardStateBeforeMove = position.getBoardState();
+			incrementalBeforeMove = position.getIncrementalState();
+			position.doMove(previousMove);
+			sideToMoveIsInCheck = position.isInCheck();
+#ifdef USE_STOCKFISH_EVAL
+			Stockfish::Engine::doMove(previousMove, si);
+#endif
+		}
+
+		/**
+		 * Take back the previously applied move
+		 */
+		void undoMove(MoveGenerator& position) {
+			if (previousMove.isEmpty()) {
+				return;
+			}
+			position.undoMove(previousMove, boardStateBeforeMove, incrementalBeforeMove);
+#ifdef USE_STOCKFISH_EVAL
+			Stockfish::Engine::undoMove(previousMove);
+#endif
+		}
+
+		/**
+		 * Gets an entry from the transposition table
+		 */
+		bool probeTT(bool isPVNode, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
+			assert(positionHash != 0);
+			uint32_t ttIndex = ttPtr->getEntryIndex(positionHash);
+			ttMove = Move::EMPTY_MOVE;
+			ttValue = NO_VALUE;
+			eval = NO_VALUE;
+			ttValueIsGreaterOrEqualBeta = false;
+			ttValueIsLessOrEqualAlpha = false;
+			if (ttIndex == TT::INVALID_INDEX) return false;
+
+			const TTEntry entry = ttPtr->getEntry(ttIndex);
+			ttMove = entry.getMove();
+			eval = entry.getEval();
+			if (entry.isMaxDephtEntry()) {
+				bestValue = entry.getPositionValue(ply);
+				return true;
+			}
+
+			ttValueIsGreaterOrEqualBeta = entry.isGreaterOrEqualBeta();
+			ttValueIsLessOrEqualAlpha = entry.isLessOrEqualAlpha();
+			if (entry.isExact()) {
+				adjustedEval = entry.getPositionValue(ply);
+			}
+
+			ttValue = entry.getPositionValue(ply);
+			ttDepth = entry.getComputedDepth();
+			// We do not need to keep bestmove, as the tt will not overwrite a move with an empty move
+			// bestMove = move;
+			if (!isPVNode) {
+				const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, depth, ply);
+				// We ignore ttValue of 0 indicating repetetive draw
+				if (cutoffValue != NO_VALUE && cutoffValue != 0) {
+					bestValue = cutoffValue;
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		void setHashSignature(const MoveGenerator& position) {
+			positionHash = position.computeBoardHash();
+			ttPtr->prefetch(positionHash);
+		}
+
+		void printTTEntry() {
+			ttPtr->printHash(positionHash);
+		}
+
+		/**
+		 * Cutoff the current search
+		 */
+		inline void setCutoff(Cutoff cutoffType, value_t cutoffResult) {
+			cutoff = cutoffType;
+			bestValue = cutoffResult;
+		}
+
+		/**
+		 * Cutoff the current search
+		 */
+		inline void setCutoff(Cutoff cutoffType) {
+			cutoff = cutoffType;
+		}
+
+		inline bool isFailHigh() { 
+			return bestValue >= betaAtPlyStart; 
+		}
+
+		inline bool isNullWindowFailHigh() {
+			return bestValue >= beta;
+		}
+
+		/**
+		 * Extend the current search. Node wide extensions only, the singular extension
+		 * applies to a single move and is thus not handled here.
+		 */
+		auto extendSearch(MoveGenerator& position, ply_t depthAtRoot) {
+			searchDepthExtension = Extension::calculateExtension(position, previousMove, remainingDepth);
+			remainingDepth += searchDepthExtension;
+			return std::min(remainingDepth, depthAtRoot * 2);
+		}
+
+		/**
+		 * Examine, if we can do a futility pruning based on an evaluation score
+		 */
+		inline bool forewardFutility(MoveGenerator& position) {
+			if (SearchConfig::FOREWARD_FUTILITY_DEPTH <= remainingDepth) return false;
+			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
+			if (adjustedEval < beta) return false;
+			// We do not prune in PV nodes. 
+			if (isPVNode()) return false;
+			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
+			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
+			// Tested 0.4.0-081: no futility pruning when the tt value is <= alpha: flat at
+			// 50.0 %, undecided after 20000 games
+			// if (ttValueIsLessOrEqualAlpha) return false;
+			// Avoids discarding moves solely because no special-case loss evaluation applies. 
+			if (beta < -WINNING_BONUS) return false;
+			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
+			if (alpha > MIN_MATE_VALUE) return false;
+
+			// Each influence carries its own coefficient. The depth term and the constant part are
+			// separate, so a run can change the slope without moving the whole line.
+			constexpr bool OPT = SearchConfig::optimizeFutility;
+			const value_t margin = tunable<OPT, "ffDepthFactor", 83, 0, 166>() * remainingDepth
+				+ tunable<OPT, "ffBase", 69, 0, 138>()
+				- tunable<OPT, "ffImprovingBonus", 101, 0, 202>() * isImproving;
+			const bool doFutility = adjustedEval - margin >= beta;
+			if (doFutility) {
+				bestValue = beta + (adjustedEval - beta) / 2;
+			}
+			return doFutility;
+		}
+
+		/**
+		 * Check if a quiet move can be pruned via futility pruning (in move loop)
+		 * Futility pruning predicts that forward futility will prune after this move
+		 * 
+		 * @param position The current position
+		 * @param move The move to check (must be quiet, no capture/promotion/check)
+		 * @return true if move should be pruned
+		 */
+		inline bool canPruneFutility(MoveGenerator& position, const Move& move) {
+			// Only at low depths (more conservative than forward futility)
+			if (SearchConfig::FUTILITY_DEPTH <= remainingDepth) return false;
+			// Only after trying some moves first
+			if (movesTried < SearchConfig::FUTILITY_PRUNING_MIN_MOVE_NUMBER) return false;
+			
+			// Predict forward futility will prune: eval + moveValue + margin < alpha
+			// More conservative margin because opponent will improve position. Coefficients of
+			// its own throughout, nothing here is derived from the forward futility margin.
+			constexpr bool OPT = SearchConfig::optimizeFutility;
+			const value_t margin = tunable<OPT, "futDepthFactor", 43, 0, 86>() * remainingDepth
+				+ tunable<OPT, "futBase", 80, 0, 160>()
+				+ tunable<OPT, "futImprovingMalus", 77, 0, 154>() * isImproving;
+			const value_t capturedPieceValue = position.getPieceValueForMoveSorting(
+				getPieceType(move.getCapture())
+			);
+			const value_t promotedPieceValue = position.getPieceValueForMoveSorting(
+				getPieceType(move.getPromotion())
+			);
+			const bool canPrune = adjustedEval + capturedPieceValue + promotedPieceValue + margin < alpha;
+			
+			return canPrune;
+		}
+
+		/**
+		 * Generates all moves in the current position
+		 */
+		void computeMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
+			position.isWhiteToMove();
+			moveProvider.computeMoves(position, butterflyBoard, previousMove, ttMove);
+			bestValue = moveProvider.checkForGameEnd(position, ply);
+		}
+
+		/**
+		 * The squares from which each piece type would check the opponent king. Only the move
+		 * loop of negaMax reads them, through isCheckMove, so only it computes them - se(),
+		 * the nullmove verification and the root loop generate moves without ever asking.
+		 */
+		void computeCheckGivingSquares(const MoveGenerator& position) {
+			checkGivingSquares = position.computeCheckBitmapsForMovingColor();
+		}
+
+		bool isCheckMove(MoveGenerator& position, Move move) {
+			return position.isCheckMove(move, checkGivingSquares);
+		}
+
+		/**
+		 * Search depth remaining
+		 */
+		void setRemainingDepthAtPlyStart(ply_t newDepth) {
+			remainingDepthAtPlyStart = newDepth;
+			remainingDepth = newDepth;
+		}
+
+		/**
+		 * Search depth remaining
+		 */
+		void setRemainingDepth(ply_t newDepth) {
+			remainingDepth = newDepth;
+		}
+
+		ply_t getRemainingDepth() const {
+			return remainingDepth;
+		}
+
+		/**
+		 * Sets the search to a null window search
+		 */
+		void setNullWindow() {
+			beta = alpha + 1;
+		}
+
+		/**
+		 * Sets the search to PV (open window) search
+		 */
+		void setPVWindow() {
+			beta = betaAtPlyStart;
+		}
+
+		void setSE(value_t margin) {
+			const auto seBeta = ttValue - margin;
+			setWindowAtPlyStart(seBeta - 1, seBeta);
+			// _searchState = SearchFinding::SE;
+		}
+
+		/**
+		 * Selects the next move to try
+		 */
+		inline Move selectNextMove(MoveGenerator& position) {
+			Move result = moveProvider.selectNextMove(position);
+			movesTried++;
+			return result;
+		}
+
+		/**
+		 * Multi thread variant to select the next move
+		 */
+		Move selectNextMoveThreadSafe(MoveGenerator& position) {
+			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
+			return selectNextMove(position);
+		}
+
+		/**
+		 * applies the search result to the status
+		 */
+		void setSearchResult(value_t searchResult, const SearchNode& nextPlySearchInfo, Move currentMove) {
+			assert(abs(searchResult) < MIN_MATE_VALUE || abs(searchResult) > MAX_VALUE - 50);
+			currentValue = searchResult;
+			if (searchResult > bestValue) {
+				bestValue = searchResult;
+				if (searchResult > alpha) {
+					bestMove = currentMove;
+					if (isPVNode()) {
+						// PV line may be extended, thus always copy from pv
+						pv.copyFromPV(nextPlySearchInfo.pv, ply + 1);
+						pv.setMove(ply, bestMove);
+					}
+					if (searchResult < beta) {
+						// Never set alpha > beta, it will harm the PVS algorithm
+						alpha = searchResult;
+					}
+				}
+			}
+		}
+
+		/**
+		 * Multi-Threading version to set the search result
+		 */
+		void setSearchResultThreadSafe(value_t searchResult, const SearchNode& searchInfo, Move currentMove) {
+			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
+			setSearchResult(searchResult, searchInfo, currentMove);
+		}
+
+		/**
+		 * Sets the hash entry
+		 */
+		void setTTEntry(hash_t hashKey, bool isPV) {
+			ply_t depth = max(remainingDepthAtPlyStart, 0);
+			ttPtr->setEntry(hashKey, isPV, depth, ply, bestMove, eval, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+			// WhatIf::whatIf.setTT(ttPtr, hashKey, remainingDepthAtPlyStart, ply, bestMove, bestValue, alphaAtPlyStart, betaAtPlyStart, false);
+		}
+		void setTTEntry(hash_t hashKey, bool isPV, ply_t depth, Move move, value_t eval, value_t positionValue, value_t alpha, value_t beta) 
+		{
+			ttPtr->setEntry(hashKey, isPV, depth, ply, move, eval, positionValue, alpha, beta, false);
+		}
+
+		/**
+		 * Indicates that the PV failed low
+		 */
+		bool isFailLow() {
+			return bestValue <= alphaAtPlyStart;
+		}
+
+		/**
+		 * terminates the search-ply
+		 */
+		void updateTTandKiller(MoveGenerator& position, ButterflyBoard& butterflyBoard, bool isPV, ply_t depth) {
+			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
+				if (!bestMove.isEmpty()) {
+					moveProvider.setKillerMove(bestMove);
+					butterflyBoard.newBestMove(bestMove, depth, moveProvider.getTriedMoves(), moveProvider.getTriedMovesAmount());
+				}
+				
+				// The node owns the hash of its own position: it was stored on entry, and by the
+				// time the ply terminates every move tried below has been taken back.
+				assert(positionHash == position.computeBoardHash());
+				setTTEntry(positionHash, isPV);
+			}
+		}
+
+		Move getMoveFromPVMovesStore(ply_t ply) const { return pv.getMove(ply); }
+		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
+
+		Move getTTMove() const { return ttMove; }
+		void setTTMove(Move move) { ttMove = move; }
+
+		/** The move from the previous iteration, if this node is on the former primary variant */
+		bool hasPVMove() const { return moveProvider.hasPVMove(); }
+
+		/**
+		 * Amount of captures, en passant captures and promotions in the generated
+		 * move list. Zero means nothing resets the fifty move counter here, which is
+		 * exactly the condition under which a tablebase entry is stored exactly.
+		 */
+		uint32_t getNonSilentMoveAmount() const { return moveProvider.getNonSilentMoveAmount(); }
+
+		void setPly(ply_t curPly) { ply = curPly; }
+
+		
+		/**
+		 * Sets the transposition tables
+		 */
+		void setTT(TT* tt) {
+			ttPtr = tt;
+		}
+
+		/**
+		 * Gets a pointer to the transposition tables
+		 */
+		TT* getTT() {
+			return ttPtr;
+		}
+
+		/**
+		 * Gets the hash fill rate in permill
+		 */
+		inline uint32_t getHashFillRateInPermill() {
+			return ttPtr->getHashFillRateInPermill();
+		}
+
+		/**
+		 * prints the information 
+		 */
+		void print() {
+			std::cout << "[w:" << std::setw(6) << alphaAtPlyStart << "," << std::setw(6) << betaAtPlyStart << "]";
+			std::cout << "[d:" << remainingDepth << "]";
+			std::cout << "[v:" << std::setw(6) << bestValue << "]";
+			std::cout << "[hm:" << std::setw(5) << getTTMove().getLAN() << "]";
+			std::cout << "[bm:" << std::setw(5) << bestMove.getLAN() << "]";
+			std::cout << "[nt:" << std::setw(4) << getNodeTypeName() << "]";
+		
+			if (isPVNode()) {
+				std::cout << " [PV: ";
+				pv.print(ply);
+				std::cout << " ]";
+			}
+		
+			std::cout << std::endl;
+		}
+
+		inline bool isTTValueBelowBeta(const Board& position, ply_t ply) {
+			return ttValue < beta;
+		}
+
+
+		enum class NodeType {
+			PV, CUT, ALL, COUNT
+		};
+
+
+		/**
+		 * Returns true, if the current node is a cut node
+		 */
+		inline bool isCutNode() { return _nodeType == NodeType::CUT; }
+
+		NodeType getNodeType() const { return _nodeType; }
+
+		/**
+		 * The type a child node gets from its parent. Available before setFromParentNode has run,
+		 * which is what the code above the move loop needs.
+		 */
+		static constexpr NodeType childNodeType(NodeType parentType, bool isPVNode) {
+			return isPVNode ? NodeType::PV : parentType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
+		}
+
+		/**
+		 * Gets the name of the node type
+		 */
+		string getNodeTypeName() const {
+			return nodeTypeName[int(_nodeType)];
+		}
+
+		static constexpr array<const char*, int(NodeType::COUNT)> nodeTypeName = { "PV", "CUT", "ALL" };
+
+		static constexpr array<const char*, int(SearchFinding::AMOUNT)> searchStateNames =
+			{ "PV", "NullW", "PV_LMR", "Normal", "LMR", "NullM", "Verify", "IID", "SE"};
+
+		value_t alpha;
+		value_t alphaAtPlyStart;
+		value_t beta;
+		value_t betaAtPlyStart;
+		value_t bestValue;
+		value_t currentValue;
+		value_t adjustedEval;
+		value_t eval;
+		Move bestMove;
+		Move previousMove;
+		int32_t movesTried;
+		ply_t remainingDepth;
+		ply_t remainingDepthAtPlyStart;
+		ply_t ply;
+		ply_t searchDepthExtension;
+		BoardState boardStateBeforeMove;
+		// Snapshot of the incrementally maintained values, taken before the move of this
+		// ply. Restoring it is cheaper than letting undoMove recompute them, see
+		// plan/position-state-refactoring.md.
+		IncrementalState incrementalBeforeMove;
+		hash_t positionHash;
+		bool noNullmove;
+		bool sideToMoveIsInCheck;
+		bool ttValueIsGreaterOrEqualBeta;
+		bool ttValueIsLessOrEqualAlpha;
+		bool isVerifyingNullmove;
+		bool isImproving;
+		value_t ttValue;
+		ply_t ttDepth;
+		Move ttMove;
+
+		Cutoff cutoff;
+		mutex mtxSearchResult;
+		MoveProvider moveProvider;
+		PV pv;
+		// Bitmaps to identify checking moves faster
+		std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> checkGivingSquares;
+
+	private:
+		NodeType _nodeType;
+		TT* ttPtr;
+
+		static constexpr array<NodeType, 3> _nodeTypeMap = { NodeType::PV, NodeType::ALL, NodeType::CUT };
+#ifdef USE_STOCKFISH_EVAL
+		Stockfish::StateInfo si;
+#endif
+
+	};
+
+}
+
+#endif // __SEARCH_NODE_H

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a Winboard - Interface
  */
@@ -54,6 +54,12 @@ namespace QaplaInterface {
 		 * @brief Loads the EGTB or bitbases
 		 */
 		void loadEgtb();
+
+		/** True if some provider offers an option of that name. */
+		bool hasOption(const std::string& name);
+
+		/** Hands an option to the provider that owns it, falling back to the board. */
+		void setOptionByProvider(const std::string& name, const std::string& value);
 
 		/**
 		 * Sets a winboard option
@@ -193,7 +199,6 @@ namespace QaplaInterface {
 		bool _forceMode;
 		bool _easy;
 		string ponderMove;
-		ISendSearchInfo* _sendSearchInfo;
 	};
 
 }

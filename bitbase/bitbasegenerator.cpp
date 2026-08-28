@@ -13,23 +13,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Tool to generate bitbases
  */
 
 #include <iostream>
-#include <algorithm>
 #include <thread>
+
 #include "../search/clockmanager.h"
 #include "../movegenerator/movegenerator.h"
-#include "../search/moveprovider.h"
+
+#include "piecelist.h"
+#include "boardaccess.h"
 #include "bitbase.h"
-#include "bitbaseindex.h"
+#include "reverseindex.h"
 #include "generationstate.h"
 #include "bitbase-reader.h"
 #include "bitbasegenerator.h"
+#include "bitbase-profiling.h"
+#include "bitbase-repairfile.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -37,77 +41,146 @@ using namespace QaplaSearch;
 using namespace QaplaBitbase;
 
 /**
- * Computes a position value by probing all moves and lookup the result in this bitmap
- * Captures are excluded, they have been tested in the initial search.
+ * Checks whether all quiet moves for the side to move lead to a forced loss.
+ *
+ * This function is called during iterative propagation only when tryDirectEntry()
+ * could not resolve the position directly. It checks ONLY quiet moves (non-capture,
+ * non-promotion) in the current bitbase. Captures and promotions were already fully
+ * evaluated during initialization by setInitialValueByCapturesAndPromotions().
+ *
+ * Only Unknown positions are processed. Draw positions (draw-capture marker) are skipped
+ * because the drawing capture makes a forced Loss logically impossible — the side to move
+ * can always escape via that capture. Draw→Win upgrades are handled by tryDirectEntry().
+ *
+ * Design principles:
+ * 1) We NEVER search for winning moves here. Win detection is handled exclusively by
+ *    tryDirectEntry(), which uses results from previous, fully completed propagation
+ *    rounds. This prevents a correctness bug where a loss resolved in the current round
+ *    could immediately trigger a win in the same round, violating the invariant that
+ *    each propagation round adds exactly one depth of proven knowledge.
+ * 2) We do NOT detect or store draws. Unknown and Draw are both non-final; they are
+ *    resolved by finalizeDraws() after all propagation completes. By skipping draws
+ *    early, we improve performance without sacrificing correctness.
+ *
+ * @param index Bitbase index of the current position.
+ * @param position Current position to evaluate.
+ * @param state Mutable generation state providing the bitbase and storing the result.
+ * @param verbose Enables detailed debug output.
+ * @returns The forced-loss result if ALL quiet moves lose, or Unknown otherwise.
  */
-bool BitbaseGenerator::computeValue(MoveGenerator &position, Bitbase &bitbase, bool verbose)
+BitbaseResult BitbaseGenerator::setComputeValue(
+	uint64_t index, MoveGenerator& position, QaplaBitbase::GenerationState &state, bool verbose)
 {
 	MoveList moveList;
-	Move move;
 	bool whiteToMove = position.isWhiteToMove();
-	bool result = position.isWhiteToMove() ? false : true;
-	uint64_t index = 0;
 	PieceList pieceList(position);
+	auto& bitbase = state.getComputedResults();
 
 	if (verbose)
 	{
 		printDebugInfo(position, index);
 	}
 
+	// Guard: this function searches only for forced losses, so only Unknown positions are candidates.
+	// Draw (intermediate marker): a drawing capture was found during initialization. The drawing
+	// capture prevents the side to move from ever being forced into a Loss, regardless of quiet
+	// moves. Only Win and Loss are final; Draw is not — but it also cannot become a Loss, so
+	// there is nothing for this function to do. Upgrade Draw→Win is handled by tryDirectEntry.
+	BitbaseResult currentResult = bitbase.get2Bits(index);
+	if (currentResult != BitbaseResult::Unknown) {
+		return BitbaseResult::Unknown;
+	}
+
+	// The loss value from white's perspective for the side to move:
+	// white to move and loses → Loss; black to move and loses → Win (stored from white's view).
+	const BitbaseResult lossForSideToMove = whiteToMove ? BitbaseResult::Loss : BitbaseResult::Win;
+
 	position.genMovesOfMovingColor(moveList);
 
 	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
 	{
-		move = moveList[moveNo];
+		Move move = moveList[moveNo];
 		if (!move.isCaptureOrPromote())
 		{
-			index = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-			result = bitbase.getBit(index);
+			const auto moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
+			auto moveResult = bitbase.get2Bits(moveIndex);
+			if (moveResult == BitbaseResult::Unknown) {
+				return BitbaseResult::Unknown;
+			}
 			if (verbose)
 			{
-				std::cout << move.getLAN() << ", index: " << index
-						  << ", value: " << (result ? "win" : "draw or unknown")
+				std::cout << move.getLAN() << ", index: " << moveIndex
+						  << ", value: " << to_string(moveResult)
 						  << std::endl;
 			}
-		}
-		if (whiteToMove && result)
-		{
-			break;
-		}
-		if (!whiteToMove && !result)
-		{
-			break;
+			// Any quiet move that does NOT lose means the position has an escape.
+			if (moveResult != lossForSideToMove) {
+				return BitbaseResult::Unknown;
+			}
 		}
 	}
-	if (DO_DEBUG && _debugLevel > 1 && whiteToMove && !result)
+	// All quiet moves lead to a loss for the side to move, and captures were already
+	// evaluated during initialization (all-losing or none). This is a final forced loss.
+	state.setValue(index, lossForSideToMove);
+	return lossForSideToMove;
+}
+
+/**
+ * Re-evaluates one position during iterative propagation and stores the result if resolved.
+ *
+ * @param index Bitbase index of the current position.
+ * @param position Position reconstructed for this index.
+ * @param state Mutable generation state.
+ * @returns true if the position reached a definitive result (Win, Loss, or Draw); false if still Unknown.
+ */
+BitbaseResult BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &position, GenerationState &state)
+{
+	auto result = setComputeValue(index, position, state, false);
+	if (index == _debugIndex)
 	{
-		printDebugInfo(position);
+		setComputeValue(index, position, state, true);
+		std::cout << "Final result for index " << index << ": " << to_string(result) << std::endl;
 	}
 	return result;
 }
 
 /**
- * Sets the bitbase index for a position by computing the position value from the bitbase itself
- * @returns 1, if the position is a win (now) and 0, if it is still unknown
+ * Attempts to directly set the result for a candidate position without full move evaluation.
+ * A Win candidate with white to move can be stored immediately as Win.
+ * A Loss candidate with black to move can be stored immediately as Loss.
+ *
+ * @param index Bitbase index of the candidate position.
+ * @param winningMove True if the candidate move is a winning move for the side to move in this position.
+ * @param whiteToMove True if white is to move in the candidate position.
+ * @param state Mutable generation state.
+ * @returns true if the position was directly resolved, false if full evaluation is needed.
  */
-uint32_t BitbaseGenerator::computePosition(uint64_t index, MoveGenerator &position, GenerationState &state)
+bool BitbaseGenerator::tryDirectEntry(uint64_t index, bool winningMove,
+									  bool whiteToMove, GenerationState &state)
 {
-	uint32_t result = 0;
-	if (position.isWhiteToMove() || computeValue(position, state.getWonPositions(), false))
-	{
+	if (!winningMove) {
+		return false;
+	}
+	if (whiteToMove) {
 		if (index == _debugIndex)
 		{
-			computeValue(position, state.getWonPositions(), true);
+			std::cout << "Directly setting index " << index << " to Win based on candidate result." << std::endl;
 		}
 		state.setWin(index);
-		result++;
+		return true;
 	}
-
-	return result;
+	if (index == _debugIndex)
+	{
+		std::cout << "Directly setting index " << index << " to Loss based on candidate result." << std::endl;
+	}
+	state.setLoss(index);
+	return true;
 }
 
 /**
- * Prints the time spent so far
+ * Prints elapsed wall-clock time for the current generation step.
+ *
+ * @param clock Clock instance tracking elapsed time.
  */
 void BitbaseGenerator::printTimeSpent(ClockManager &clock)
 {
@@ -119,24 +192,63 @@ void BitbaseGenerator::printTimeSpent(ClockManager &clock)
 }
 
 /**
- * Marks one candidate identified by a partially filled move and a destination square
+ * Converts one reverse-generated move candidate into a bitbase index.
+ *
+ * @param wtm Side-to-move flag of the current position.
+ * @param list Piece layout used for index mapping.
+ * @param move Partially constructed reverse move.
+ * @param destination Candidate destination square for the reverse move.
+ * @param verbose Enables detailed debug output.
+ * @returns Candidate bitbase index to revisit.
  */
 uint64_t BitbaseGenerator::computeCandidateIndex(bool wtm, const PieceList &list, Move move,
 												 Square destination, bool verbose)
 {
 	move.setDestination(destination);
 	uint64_t index = BoardAccess::getIndex(!wtm, list, move);
-	if (DO_DEBUG && _debugLevel > 0 && (verbose || index == _debugIndex))
+	if ((DO_DEBUG && _debugLevel > 0 && verbose) || index == _debugIndex)
 	{
 		cout << "New candidate, index: " << index << " move " << move.getLAN() << endl;
 	}
 	return index;
 }
 
-template <Piece COLOR>
-void BitbaseGenerator::reverseGeneratePawnMoves(vector<uint64_t> &candidates,
-												const MoveGenerator &position, const PieceList &list, Move move, bool verbose)
+/**
+ * Adds a candidate to the vector only if the position is not already final.
+ *
+ * @param candidates Output vector receiving candidate indexes.
+ * @param entry Candidate entry to add.
+ * @param computedResults Bitbase holding current results for early filtering.
+ */
+void BitbaseGenerator::addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
+	Bitbase& computedResults, GenerationState& state)
 {
+	if (!GenerationState::isFinal(computedResults.get2Bits(entry.index))) {
+		// Skip push if the shared state already contains this candidate with sufficient priority.
+		// Atomic relaxed read — thread-safe on all architectures, near-zero cost.
+		if (!state.isCandidateSet(entry.index, entry.winningMove)) {
+			candidates.push_back(entry);
+		}
+	}
+}
+
+/**
+ * Reverse-generates pawn non-capture moves to possible predecessor squares.
+ *
+ * @tparam COLOR Pawn color to reverse-generate.
+ * @param candidates Output vector receiving candidate indexes.
+ * @param position Current position.
+ * @param list Piece layout used for index mapping.
+ * @param move Partially constructed move with moving piece and departure set.
+ * @param computedResults Bitbase holding current results for early filtering.
+ * @param verbose Enables detailed debug output.
+ */
+template <Piece COLOR>
+void BitbaseGenerator::reverseGeneratePawnMoves(vector<CandidateEntry> &candidates,
+												const MoveGenerator &position, const PieceList &list, Move move, BitbaseResult result,
+												Bitbase& computedResults, bool verbose, GenerationState& state)
+{
+	// BitbaseResult is from perspective of the current position before moving. 
 	const bool wtm = position.isWhiteToMove();
 	const Square departure = move.getDeparture();
 	const Square testDeparture = switchSide<COLOR>(departure);
@@ -145,22 +257,33 @@ void BitbaseGenerator::reverseGeneratePawnMoves(vector<uint64_t> &candidates,
 	const bool isMyPawn = move.getMovingPiece() == COLOR + PAWN;
 	if (isMyPawn && testDeparture >= A3 && position[oneRankDestination] == NO_PIECE)
 	{
-		candidates.push_back(
-			computeCandidateIndex(wtm, list, move, oneRankDestination, verbose));
+		bool wtmAfterMove = !wtm;
+		bool winningMove = (result == BitbaseResult::Win && wtmAfterMove) || (result == BitbaseResult::Loss && !wtmAfterMove);
+		addToCandidates(candidates,
+			{computeCandidateIndex(wtm, list, move, oneRankDestination, verbose), winningMove},
+			computedResults, state);
 		const Square twoRankDestination = oneRankDestination + direction;
 		if (getRank(testDeparture) == Rank::R4 && position[twoRankDestination] == NO_PIECE)
 		{
-			candidates.push_back(
-				computeCandidateIndex(wtm, list, move, twoRankDestination, verbose));
+			addToCandidates(candidates,
+				{computeCandidateIndex(wtm, list, move, twoRankDestination, verbose), winningMove},
+				computedResults, state);
 		}
 	}
 }
 
 /**
- * Mark candidates for a dedicated piece identified by a partially filled move
+ * Computes reverse-generated candidate positions for one specific moving piece.
+ *
+ * @param candidates Output vector receiving candidate indexes.
+ * @param position Current position.
+ * @param list Piece layout used for index mapping.
+ * @param move Partially constructed move (piece and departure are set).
+ * @param verbose Enables detailed debug output.
  */
-void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, const MoveGenerator &position,
-										 const PieceList &list, Move move, bool verbose)
+void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, const MoveGenerator &position,
+										 const PieceList &list, Move move, BitbaseResult result,
+										 Bitbase& computedResults, bool verbose, GenerationState& state)
 {
 	bitBoard_t attackBB = position.pieceAttackMask[move.getDeparture()];
 	const bool wtm = position.isWhiteToMove();
@@ -172,8 +295,8 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, const Mov
 	{
 		attackBB &= ~position.pieceAttackMask[position.getKingSquare<WHITE>()];
 	}
-	reverseGeneratePawnMoves<WHITE>(candidates, position, list, move, verbose);
-	reverseGeneratePawnMoves<BLACK>(candidates, position, list, move, verbose);
+	reverseGeneratePawnMoves<WHITE>(candidates, position, list, move, result, computedResults, verbose, state);
+	reverseGeneratePawnMoves<BLACK>(candidates, position, list, move, result, computedResults, verbose, state);
 	if (getPieceType(move.getMovingPiece()) != PAWN)
 	{
 		for (; attackBB; attackBB &= attackBB - 1)
@@ -184,17 +307,25 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, const Mov
 			{
 				continue;
 			}
-			candidates.push_back(computeCandidateIndex(wtm, list, move, destination, verbose));
+			bool wtmAfterMove = !wtm;
+			bool winningMove = (result == BitbaseResult::Win && wtmAfterMove) || (result == BitbaseResult::Loss && !wtmAfterMove);
+			addToCandidates(candidates,
+				{computeCandidateIndex(wtm, list, move, destination, verbose), winningMove},
+				computedResults, state);
 		}
 	}
 }
 
 /**
- * Computes all candidate positions we need to look at after a new bitbase position is set to 1
- * Candidate positions are computed by running through the attack masks of every piece and
- * computing reverse moves (ignoring all special cases like check, captures, ...)
+ * Computes all reverse candidates after marking one position as newly won.
+ * Candidate positions are derived from attack masks and reverse pseudo-legal moves.
+ *
+ * @param candidates Output vector receiving candidate indexes.
+ * @param position Current position.
+ * @param verbose Enables detailed debug output.
  */
-void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, MoveGenerator &position, bool verbose)
+void BitbaseGenerator::computeCandidates(vector<CandidateEntry> &candidates, MoveGenerator &position, BitbaseResult result,
+										 Bitbase& computedResults, bool verbose, GenerationState& state)
 {
 	PieceList pieceList(position);
 	position.computeAttackMasksForBothColors();
@@ -212,13 +343,17 @@ void BitbaseGenerator::computeCandidates(vector<uint64_t> &candidates, MoveGener
 			move.setMovingPiece(piece);
 			Square departure = lsb(pieceBB);
 			move.setDeparture(departure);
-			computeCandidates(candidates, position, pieceList, move, verbose);
+			computeCandidates(candidates, position, pieceList, move, result, computedResults, verbose, state);
 		}
 	}
 }
 
 /**
- * Populates a position from a bitbase index for the squares and a piece list for the piece types
+ * Reconstructs a position from reverse index squares and piece identities.
+ *
+ * @param position Target position that will be populated.
+ * @param reverseIndex Reverse index providing square assignments.
+ * @param pieceList Piece identities in fixed order.
  */
 void BitbaseGenerator::addPiecesToPosition(
 	MoveGenerator &position, const ReverseIndex &reverseIndex, const PieceList &pieceList)
@@ -235,23 +370,43 @@ void BitbaseGenerator::addPiecesToPosition(
 }
 
 /**
- * Computes a workpackage for a compute-bitbase loop
- * @param work list of indexes to work on
- * @param candidates resulting candidates for further checks
+ * Propagation worker using BitWorkpackage.
+ * Iterates directly over the index range; getCandidate() returns -1/0/1 by reading
+ * the copied bitmaps (no CandidateEntry vector needed).
+ *
+ * @param workpackage Shared bit-based work provider.
+ * @param state Shared generation state.
  */
-void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationState &state)
+void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, GenerationState &state)
 {
 	MoveGenerator position;
-	vector<uint64_t> candidates;
+	vector<CandidateEntry> candidates;
+	candidates.reserve(_packageSize * 2);
 
-	static const uint64_t packageSize = 50000;
-	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize);
+	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(_packageSize);
 	while (package.first < package.second)
 	{
-		for (uint64_t workNo = package.first; workNo < package.second; ++workNo)
+		for (uint64_t index = package.first; index < package.second; ++index)
 		{
-			uint64_t index = workpackage.getIndex(workNo);
+			int candidateValue = workpackage.getCandidate(index);
+			if (candidateValue < 0) continue;  // not a candidate
+
+			bool winningMove = (candidateValue == 1);
+			auto computedResult = state.getComputedResults().get2Bits(index);
+
+			if (index == _debugIndex)
+			{
+				cout << "Processing candidate index " << index << " with candidate result ";
+				cout << (winningMove ? "Winning" : "Losing") << endl;
+			}
+
+			if (GenerationState::isFinal(computedResult)) {
+				continue;
+			}
 			ReverseIndex reverseIndex(index, state.getPieceList());
+
+			bool directEntry = tryDirectEntry(index, winningMove,
+											  reverseIndex.isWhiteToMove(), state);
 
 			position.clear();
 			addPiecesToPosition(position, reverseIndex, state.getPieceList());
@@ -261,216 +416,261 @@ void BitbaseGenerator::computeWorkpackage(Workpackage &workpackage, GenerationSt
 				exit(1);
 			}
 
-			const auto success = computePosition(index, position, state);
-
-			if (success)
-			{
-				computeCandidates(candidates, position, index == _debugIndex);
+			if (!directEntry) {
+				const auto result = computePosition(index, position, state);
+				if (result == BitbaseResult::Unknown) {
+					continue;
+				}
 			}
+
+			auto resolvedResult = state.getComputedResults().get2Bits(index);
+			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex, state);
 		}
-		if (state.setCandidatesTreadSafe(candidates, false))
-		{
-			candidates.clear();
-		}
-		package = workpackage.getNextPackageToExamine(packageSize);
+		state.setCandidatesTreadSafe(candidates);
+		candidates.clear();
+		package = workpackage.getNextPackageToExamine(_packageSize);
 	}
 	state.setCandidatesTreadSafe(candidates);
 }
 
 /**
- * Compute the bitbase by checking each position for an update as long as no further update is found
- * @param state Current computation state
- * @param clock time measurement for the bitbase generation
+ * Runs iterative propagation until no additional candidate positions remain.
+ *
+ * @param state Current computation state.
+ * @param clock Clock tracking total generation time.
  */
 void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &clock)
 {
+	auto& timing = BitbaseProfiling::getStaticInstance();
 	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++)
 	{
-		Workpackage workpackage(state);
+		timing.start("workpackage setup");
+		BitWorkpackage workpackage(state);
 		state.clearAllCandidates();
+		timing.stop("workpackage setup");
+
+		timing.start("propagation parallel");
 		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 		{
-			_threads[threadNo] = thread([this, &workpackage, loopCount, &state]()
+			_threads[threadNo] = thread([this, &workpackage, &state]()
 										{ computeWorkpackage(workpackage, state); });
 		}
 
 		joinThreads();
+		timing.stop("propagation parallel");
 		std::cout << "." << std::flush;
 		if (!state.hasCandidates())
 		{
 			break;
 		}
 	}
+	// All positions that remain unresolved after propagation are draws by definition:
+	// neither side can force a win or loss from them (cycles, insufficient material, etc.).
+	timing.start("finalize draws");
+	state.finalizeDraws();
+	timing.stop("finalize draws");
+	timing.start("mark illegal as unknown");
+	markIllegalAsUnknown(state);
+	timing.stop("mark illegal as unknown");
 }
 
 /**
- * Searches all captures and look up the position after capture in a bitboard.
+ * Sets the initial proven value for a position by consulting subordinate bitbases
+ * via all capture and promotion moves.
+ * Always writes at least the best already-achieved result into state:
+ * a forced win or loss is stored as final; a reachable draw is stored as
+ * an intermediate lower bound even when non-capture moves remain unresolved.
+ * Returns Win or Loss when the result is fully decided by captures/promotions alone,
+ * Draw when all evaluated moves are at least draws and no non-captures exist,
+ * or Unknown when non-capture moves are present and no forced win was found.
+ *
+ * @param position Current position to evaluate.
+ * @param index Bitbase index of the position.
+ * @param moveList Legal moves generated for the side to move.
+ * @param state Mutable generation state that receives the result.
+ * @returns Final proven result, or Unknown if iterative propagation is still needed.
  */
-Result BitbaseGenerator::initialSearch(MoveGenerator &position, MoveList &moveList)
+BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
+	MoveGenerator &position, const uint64_t index, MoveList &moveList, QaplaBitbase::GenerationState &state)
 {
-	Move move;
+	// Note: drawDueToMissingMaterial() must NOT be used here, because even "theoretically drawn"
+	// material configurations (e.g. KNKN) can contain specific checkmate positions that are
+	// genuine wins/losses. finalizeDraws() correctly handles all unresolved positions at the end.
 
-	// The side to move starts with a most negative value (Loss)
-	Result result = position.isWhiteToMove() ? Result::Loss : Result::Win;
+	// Fundamental model: Unknown and Draw are BOTH non-final. Win and Loss are the ONLY final states.
+	//
+	// Encoding for positions with capture/promotion moves (stored from white's perspective):
+	//
+	// Case 1: A winning capture exists (Win for white-to-move, or Loss for black-to-move)
+	//   → write final Win/Loss immediately. Return Win/Loss.
+	//
+	// Case 2: A drawing capture exists (regardless of whether quiet moves remain)
+	//   → write Draw marker; return Unknown.
+	//   The drawing capture guarantees the side to move can always escape to at least a draw,
+	//   so this position can NEVER become a Loss. setComputeValue therefore skips it.
+	//   A win via a quiet move is still possible: tryDirectEntry handles the Draw→Win upgrade
+	//   in a later propagation round. Any Draw that remains after all rounds is final.
+	//
+	// Case 3: Only losing captures exist, but quiet moves remain
+	//   → leave as Unknown (fillAll default); return Unknown.
+	//   setComputeValue checks each quiet move during propagation:
+	//     - All quiet moves lose → write final Loss
+	//     - Any quiet move draws → stays Unknown → finalizeDraws() writes final Draw
+	//     - Any quiet move wins  → tryDirectEntry writes final Win
+	//
+	// Case 4: Only losing captures and no quiet moves
+	//   → write final Loss/Win. Return Loss/Win.
+	//
+	// Key insight: there are no intermediate Losses. A Loss is only written once every
+	// quiet move is proven to also lose. This makes _computedPositions unnecessary.
+
 	BoardState boardState = position.getBoardState();
+	IncrementalState incrementalState = position.getIncrementalState();
+	bool anyUnknown = false;
+	bool anyDraw = false;
 
 	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
 	{
-		move = moveList.getMove(moveNo);
-		// As we do not have any information about the current bitboard, any silent move
-		// leads to an unknown situation
+		auto move = moveList.getMove(moveNo);
+		// Non-capture, non-promotion moves cannot be evaluated yet, because the subordinate
+		// bitbases only cover positions reachable via captures or promotions.
 		if (!move.isCaptureOrPromote())
 		{
-			result = Result::Unknown;
+			anyUnknown = true;
 			continue;
 		}
 		position.doMove(move);
-		Result cur = BitbaseReader::getValueFromSingleBitbase(position);
-		position.undoMove(move, boardState);
+		BitbaseResult readerResult = BitbaseReader::getValueFromSingleBitbase(position);
+		position.undoMove(move, boardState, incrementalState);
+		assert(readerResult != BitbaseResult::Unknown); // Bitmaps of Reader are complete.
 
-		if (!position.isWhiteToMove())
+		// Results are stored from white's perspective.
+		// A single winning move is enough to declare the position won for the side to move.
+		if (readerResult == BitbaseResult::Win && position.isWhiteToMove())
 		{
-			// Seeking for Result::Loss or draw - white view
-			if (cur == Result::Unknown)
-			{
-				result = cur;
-			}
-			else if (cur != Result::Win)
-			{
-				result = cur;
-				break;
-			}
+			state.setValue(index, BitbaseResult::Win);
+			return BitbaseResult::Win;
 		}
-		else
+		if (readerResult == BitbaseResult::Loss && !position.isWhiteToMove())
 		{
-			// Seeking for Result::Win
-			if (cur == Result::Win)
-			{
-				result = cur;
-				break;
-			}
-			if (cur == Result::Draw)
-			{
-				result = cur;
-			}
+			state.setValue(index, BitbaseResult::Loss);
+			return BitbaseResult::Loss;
+		}
+		// The side to move already has a proven draw.
+		if (readerResult == BitbaseResult::Draw)
+		{
+			anyDraw = true;
 		}
 	}
-	return result;
+	if (anyDraw) {
+		// Case 2: a drawing capture exists — the side to move can always escape to at least
+		// a draw, so this position can never be forced into a Loss. Write Draw as a marker
+		// so setComputeValue skips it. Win is still possible via tryDirectEntry.
+		state.setValue(index, BitbaseResult::Draw);
+	}
+	if (anyDraw || anyUnknown) {
+		// Both Draw and Unknown are non-final: return Unknown so neither branch
+		// generates candidates (only Win/Loss do).
+		return BitbaseResult::Unknown;
+	}
+	// Case 4: all moves were captures/promotions and all lose for the side to move — final.
+	const BitbaseResult worstCase = position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
+	state.setValue(index, worstCase);
+	return worstCase;
 }
 
 /**
- * Sets a situation to mate or stalemate
+ * Classifies a no-move situation as checkmate or stalemate.
+ *
+ * @param position Current position with no legal moves.
+ * @param index Bitbase index of this position.
+ * @param state Mutable generation state.
+ * @returns Classified terminal result.
  */
-Result BitbaseGenerator::setMateOrStalemate(QaplaMoveGenerator::MoveGenerator &position, const uint64_t index,
+BitbaseResult BitbaseGenerator::setMateOrStalemate(QaplaMoveGenerator::MoveGenerator &position, const uint64_t index,
 											QaplaBitbase::GenerationState &state)
 {
-	Result result = Result::Unknown;
 	if (!position.isWhiteToMove() && position.isInCheck())
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is win by mate (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is win by mate (move generator) " << endl;
 		}
 		state.setWin(index);
-		result = Result::Win;
+		return BitbaseResult::Win;
 	}
-	else if (position.isWhiteToMove() && position.isInCheck())
+	if (position.isWhiteToMove() && position.isInCheck())
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is loss by mate (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is loss by mate (move generator) " << endl;
 		}
 		state.setLoss(index);
-		result = Result::Loss;
+		return BitbaseResult::Loss;
 	}
-	else
+	if (DO_DEBUG && index == _debugIndex)
 	{
-		if (DO_DEBUG && index == _debugIndex)
-		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is stalemate (move generator) " << endl;
-		}
-		state.setDraw(index);
-		result = Result::Draw;
+		cout << _debugIndex << " , Fen: " << position.getFen(0) << " is stalemate (move generator) " << endl;
 	}
-	return result;
+	state.setDraw(index);
+	return BitbaseResult::Draw;
 }
 
 /**
- * Initially probe alle positions for a mate- draw or capture situation
+ * Performs initial classification for one position before iterative propagation.
+ *
+ * @param index Bitbase index of this position.
+ * @param position Reconstructed position.
+ * @param state Mutable generation state.
+ * @returns Initial classification result.
  */
-Result BitbaseGenerator::initialComputePosition(uint64_t index, MoveGenerator &position, GenerationState &state)
+BitbaseResult BitbaseGenerator::initialComputePosition(
+	uint64_t index, MoveGenerator &position, GenerationState &state)
 {
 	MoveList moveList;
-	Result result = Result::Unknown;
-	bool kingInCheck = false;
-	if (DO_DEBUG && index == _debugIndex)
-	{
-		kingInCheck = false;
-	}
 
-	// Exclude all illegal positions (king not to move is in check) from future search
+	// Illegal positions can be marked as "searched".
 	if (!position.isLegal())
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen() << " is illegal (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is illegal (move generator) " << endl;
 		}
 		state.setIllegal(index);
-		return Result::IllegalIndex;
+		// Illegal positions are coded as unknown, we might change that later to improve compression. As they are 
+		// illegal, they are not relevant.
+		return BitbaseResult::Unknown;
 	}
 
 	position.genMovesOfMovingColor(moveList);
 	if (moveList.getTotalMoveAmount() > 0)
 	{
 		// Compute all captures and look up the positions in other bitboards
-		Result positionValue = initialSearch(position, moveList);
-		if (DO_DEBUG && index == _debugIndex)
-		{
-			cout << endl
-				 << "Inital search for " << _debugIndex << " result: " << ResultMap[int(positionValue)] << endl;
-		}
-		if (positionValue == Result::Win)
-		{
-			if (DO_DEBUG && index == _debugIndex)
-			{
-				cout << _debugIndex << " , Fen: " << position.getFen() << " is a win (initial search) " << endl;
-			}
-			state.setWin(index);
-			result = positionValue;
-		}
-		else if (positionValue != Result::Unknown)
-		{
-			if (DO_DEBUG && index == _debugIndex)
-			{
-				cout << _debugIndex << " , Fen: " << position.getFen() << " is a loss or draw (initial search) " << endl;
-			}
-			state.setDraw(index);
-			result = positionValue;
-		}
+		return setInitialValueByCapturesAndPromotions(position, index, moveList, state);
 	}
-	else
-	{
-		result = setMateOrStalemate(position, index, state);
-	}
-	return result;
+	return setMateOrStalemate(position, index, state);
 }
 
 /**
- * Computes a workpackage of initial positions for a bitbase;
+ * Processes one dynamic work package for initial position classification.
+ *
+ * @param workpackage Shared work provider.
+ * @param state Shared generation state.
  */
-void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, GenerationState &state)
+void BitbaseGenerator::computeInitialWorkpackage(InitialWorkpackage &workpackage, GenerationState &state)
 {
 	MoveGenerator position;
-	vector<uint64_t> candidates;
-	uint64_t sizeInBit = state.getSizeInBit();
+	vector<CandidateEntry> candidates;
+	candidates.reserve(_packageSize * 2);
+	[[maybe_unused]] uint64_t entryCount = state.getEntryCount();
 
-	uint64_t packageSize = min(static_cast<uint64_t>(50000), (state.getSizeInBit() + 5) / 5);
-	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
+	uint64_t packageSize = min(_packageSize, (state.getEntryCount() + 5) / 5);
+	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize);
 	while (package.first < package.second)
 	{
 		for (uint64_t index = package.first; index < package.second; ++index)
 		{
-			assert(index < sizeInBit);
+			assert(index < entryCount);
 			ReverseIndex reverseIndex(index, state.getPieceList());
 			if (!reverseIndex.isLegal())
 			{
@@ -486,30 +686,56 @@ void BitbaseGenerator::computeInitialWorkpackage(Workpackage &workpackage, Gener
 			}
 			else
 			{
-				Result result = initialComputePosition(index, position, state);
-				if (result == Result::Win)
+				BitbaseResult result = initialComputePosition(index, position, state);
+				// All positions that might change evaluation after having new informations are candidates.
+				// We could be lazy about draws as all positions that are neither win nor loss are draw at the end.
+				// ToDo: Check for speed optimization by ignoring draw positions as candidates.
+				// This would result in some changes as we need to set all positions initially as "draw" and 
+				// Remove the unknown state completely from all generator paths.
+				if (GenerationState::isFinal(result))
 				{
-					computeCandidates(candidates, position, index == _debugIndex);
+					computeCandidates(candidates, position, result, state.getComputedResults(), index == _debugIndex, state);
 				}
 			}
 		}
-		if (state.setCandidatesTreadSafe(candidates, false))
-		{
-			for (uint64_t index : candidates) {
-				assert(index < sizeInBit);
-			}
-			candidates.clear();
+		for ([[maybe_unused]] const auto& entry : candidates) {
+			assert(entry.index < entryCount);
 		}
-		package = workpackage.getNextPackageToExamine(packageSize, state.getSizeInBit());
+		state.setCandidatesTreadSafe(candidates);
+		candidates.clear();
+		package = workpackage.getNextPackageToExamine(packageSize);
 	}
 	state.setCandidatesTreadSafe(candidates);
-	for (uint64_t index : candidates) {
-		assert(index < sizeInBit);
+	for ([[maybe_unused]] const auto& entry : candidates) {
+		assert(entry.index < entryCount);
+	}
+}
+
+void BitbaseGenerator::markIllegalAsUnknown(GenerationState& state)
+{
+	MoveGenerator position;
+	for (uint64_t index = 0; index < state.getEntryCount(); ++index) {
+		ReverseIndex reverseIndex(index, state.getPieceList());
+		if (!reverseIndex.isLegal()) {
+			state.getComputedResults().set2Bit(index, BitbaseResult::Unknown);
+			continue;
+		}
+		position.clear();
+		addPiecesToPosition(position, reverseIndex, state.getPieceList());
+		uint64_t testIndex = BoardAccess::getIndex<0>(position);
+		if (index != testIndex || !position.isLegal()) {
+			state.getComputedResults().set2Bit(index, BitbaseResult::Unknown);
+		}
 	}
 }
 
 /**
- * Computes a bitbase for a set of pieces described by a piece list.
+ * Computes and persists one concrete bitbase described by a piece list.
+ *
+ * @param pieceList Piece layout of the bitbase to generate.
+ * @param first True if this is the primary requested bitbase.
+ * @param compression Compression algorithm used for persisted output.
+ * @param generateCpp If true, also emits generated C++ code.
  */
 void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
 {
@@ -527,7 +753,10 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	ClockManager clock;
 	clock.setStartTime();
 
-	Workpackage workpackage(state);
+	auto& timing = BitbaseProfiling::getStaticInstance();
+
+	timing.start("initial scan parallel");
+	InitialWorkpackage workpackage(state.getEntryCount());
 	state.clearAllCandidates();
 	for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
 	{
@@ -535,31 +764,101 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 			{ computeInitialWorkpackage(workpackage, state); });
 	}
 	joinThreads();
+	timing.stop("initial scan parallel");
 	cout << "." << std::flush;
 	computeBitbase(state, clock);
 
 	string fileName = pieceString + string(".btb");
 	cout << "c" << std::endl;
+	// Print statistics BEFORE storeToFile, which may compact 2-bit data to 1-bit in place.
+	timing.start("print statistic");
+	printTimeSpent(clock);
+	printStatistic(state);
+	GenerationState::printTotalStatistic();
+	timing.stop("print statistic");
+	std::cout << std::endl;
+
+	// Collect the full WDL sequence while the bitbase is still in 2-bit form.
+	// storeToFile() may compact the data to 1-bit in place, so this must happen first.
+	const uint64_t entryCount = state.getEntryCount();
+	std::vector<BitbaseResult> repairResults;
+	repairResults.reserve(entryCount);
+	timing.start("qwdl collect sequence");
+	{
+		auto& bb = state.getComputedResults();
+		for (uint64_t idx = 0; idx < entryCount; ++idx) {
+			repairResults.push_back(bb.get2Bits(idx));
+		}
+	}
+	timing.stop("qwdl collect sequence");
+
 	try {
 		state.storeToFile(fileName, pieceString, compression);
 		if (generateCpp)
 		{
 			state.generateCpp(pieceString);
 		}
-		printTimeSpent(clock);
-		printStatistic(state);
-		std::cout << std::endl;
-		BitbaseReader::setBitbase(pieceString, state.getWonPositions());
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << "Error: " << e.what() << '\n';
 	}
+
+	// Write a Re-Pair + Huffman compressed copy, register it for subordinate lookups,
+	// and verify every position.  The .qwdl file replaces the in-memory Bitbase: subsequent
+	// bitbases that depend on this one probe it via BitbaseReader::getValueFromSingleBitbase()
+	// through the memory-mapped .qwdl file instead of a heap-allocated Bitbase object.
+	string qwdlFileName = pieceString + ".qwdl";
+	try {
+		timing.start("qwdl compress+write");
+		cout << "Writing " << qwdlFileName << " ... " << std::flush;
+		BitbaseRePairFile::write(qwdlFileName, repairResults);
+		cout << "done" << std::endl;
+		timing.stop("qwdl compress+write");
+
+		// Register the file so parent bitbases can probe it via getValueFromSingleBitbase().
+		BitbaseReader::registerQwdlFile(pieceString, qwdlFileName);
+
+		// Verify every position against the original WDL sequence.
+		BitbaseRePairFile reader;
+		if (!reader.open(qwdlFileName)) {
+			std::cerr << "Re-Pair: cannot reopen " << qwdlFileName << " for verification\n";
+		} else {
+			timing.start("qwdl verify");
+			cout << "Verifying " << qwdlFileName << " (" << entryCount << " positions) ... " << std::flush;
+			uint64_t mismatches = 0;
+			for (uint64_t idx = 0; idx < entryCount; ++idx) {
+				if (repairResults[idx] == BitbaseResult::Unknown) continue; // illegal position — joker, skip
+				BitbaseResult fromFile = reader.probe(idx);
+				if (repairResults[idx] != fromFile) {
+					++mismatches;
+					if (mismatches <= 5) {
+						std::cerr << "\n  mismatch at index " << idx
+								  << ": expected " << to_string(repairResults[idx])
+								  << ", got " << to_string(fromFile);
+					}
+				}
+			}
+			if (mismatches == 0) {
+				cout << "OK" << std::endl;
+			} else {
+				std::cerr << "\n" << qwdlFileName << " verification FAILED: " << mismatches << " mismatches\n";
+			}
+			timing.stop("qwdl verify");
+		}
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Re-Pair error: " << e.what() << '\n';
+	}
 }
 
 /**
- * Recursively computes bitbases based on a bitbase string
- * For KQKP it will compute KQK, KQKQ, KQKR, KQKB, KQKN, ...
- * so that any bitbase KQKP can get to is available
+ * Recursively computes all dependent bitbases reachable via captures and promotions.
+ * For KQKP this includes KQK, KQKQ, KQKR, KQKB, KQKN, and related dependencies.
+ *
+ * @param pieceList Piece layout of the current bitbase.
+ * @param first True if this is the primary requested bitbase.
+ * @param compression Compression algorithm used for persisted output.
+ * @param generateCpp If true, also emits generated C++ code.
  */
 void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
 {

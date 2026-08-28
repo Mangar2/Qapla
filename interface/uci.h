@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a UCI - Interface
  */
@@ -23,6 +23,7 @@
 #define __UCI_H
 
 #include "chessinterface.h"
+#include "computinginfoexchange.h"
 
 using namespace std;
 
@@ -54,6 +55,7 @@ namespace QaplaInterface {
 			_clock.storeCalculationStartTime();
 			getBoard()->setClock(_clock);
 			setInfiniteSearch(_clock.isAnalyseMode() || _clock.isPonderMode());
+			startCompute();
 			getWorkerThread().startTask([this, searchMoves]() {
 				getBoard()->computeMove(searchMoves);
 				ComputingInfoExchange computingInfo = getBoard()->getComputingInfo();
@@ -61,6 +63,7 @@ namespace QaplaInterface {
 					println("info string illegal go command on " + computingInfo.error);
 				}
 				else {
+					waitUntilExactMoveTimeElapsed(computingInfo);
 					waitIfInfiniteSearchFinishedEarly();
 					print("bestmove " + computingInfo.currentConsideredMove);
 					if (computingInfo.ponderMove != "") {
@@ -74,19 +77,7 @@ namespace QaplaInterface {
 		/**
 		 * Reply on an "UCI" command
 		 */
-		void uciCommand() {
-			_clock.setTimeBetweenInfoInMilliseconds(1000);
-			println("id name " + getBoard()->getEngineInfo()["name"]);
-			println("id author " + getBoard()->getEngineInfo()["author"]);
-			println("option name Hash type spin default 32 min 1 max 32000");
-			println("option name ponder type check");
-			println("option name MultiPV type spin default 1 min 1 max 40");
-			println("option name UCI_EngineAbout type string default " + getBoard()->getEngineInfo()["engine-about"]);
-			println("option name qaplaBitbasePath type string");
-			println("option name qaplaBitbaseCache type spin default 8 min 1 max 32000");
-			getBoard()->initialize();
-			println("uciok");
-		}
+		void uciCommand();
 
 		/**
 		 * Reads a fen -input
@@ -147,28 +138,7 @@ namespace QaplaInterface {
 		/**
 		 * Sets an UCI option
 		 */
-		void setOption() {
-			string name;
-			string value;
-
-			const string first = getNextTokenBlocking(true);
-			if (first != "name") {
-				// Invalid UCI command, ignore rest
-				getToEOLBlocking();
-				return;
-			}
-
-			name = getNextTokenBlocking(true);
-
-			const string next = getNextTokenBlocking(true);
-			if (next == "value") {
-				value = getToEOLBlocking();
-			}
-
-			if (!name.empty()) {
-				getBoard()->setOption(name, value);
-			}
-		}
+		void setOption();
 
 		/**
 		 * handles a uci go command
@@ -226,6 +196,7 @@ namespace QaplaInterface {
 			else if (token == "position") setPosition();
 			else if (token == "setoption") setOption();
 			else if (token == "stop") stopCompute();
+			else if (token == "wmtest") WMTest();
 			getNextTokenBlocking(true);
 		}
 

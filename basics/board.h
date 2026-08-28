@@ -13,26 +13,48 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements basic algorithms
  * doMove
  * undoMove
  */
 
-#ifndef __BOARD_H
-#define __BOARD_H
+#pragma once
 
 #include "types.h"
 #include "move.h"
-#include "basicboard.h"
 #include "boardstate.h"
 #include "piecesignature.h"
 #include "materialbalance.h"
+#include "hashconstants.h"
 #include "pst.h"
+#include "imbalance.h"
 
 namespace QaplaBasics {
+
+	/**
+	 * The values the board keeps up to date move by move. They are derived from the
+	 * position, they are not part of it. A snapshot taken before a move restores all of
+	 * them afterwards, so undoing a move does not have to recompute a single one.
+	 *
+	 * Only the accumulators belong here. The piece value tables of the material balance
+	 * are configuration, they do not change during a search and are not snapshotted.
+	 *
+	 * Category 2 of plan/position-state-refactoring.md.
+	 */
+	struct IncrementalState {
+		EvalValue                   pstBonus;
+		EvalValue                   materialValue;
+		pieceSignature_t            pieceSignature;
+		ChessEval::Imbalance::State imbalance;
+
+		/**
+		 * Only used by the assertions that check a snapshot against a recomputed state
+		 */
+		bool operator==(const IncrementalState& other) const = default;
+	};
 
 	class Board {
 	public:
@@ -41,23 +63,32 @@ namespace QaplaBasics {
 		 * Sets a move on the board
 		 */
 		void doMove(Move move);
+		void updateStateOnDoMove(Square departure, Square destination);
+
 		/*
 		 * Undoes a previously made move on the move
+		 *
+		 * Only the piece placement is undone by moving pieces back. Everything the board
+		 * maintains incrementally - the hash, the castling rights, the en passant square,
+		 * the halfmove counters, the material balance, the piece signature, the imbalance
+		 * and the PST bonus - is restored from the two snapshots the caller took before
+		 * the move. Recomputing them here would cost more than keeping the copies.
+		 *
 		 * @param move move previously made
-		 * @param boardState a stored state from the board before doing the move incl. EP-Position
+		 * @param boardState board state from before the move, incl. EP-Position
+		 * @param incremental incrementally maintained values from before the move
 		 */
-		void undoMove(Move move, BoardState boardState);
+		void undoMove(Move move, BoardState boardState, const IncrementalState& incremental);
 		void clear();
-		inline auto getEP() const { return _basicBoard.getEP(); }
-		inline auto operator[](Square square) const { return _basicBoard[square]; }
-		inline auto isWhiteToMove() const { return _basicBoard.whiteToMove; }
-		inline void setWhiteToMove(bool whiteToMove) { _basicBoard.whiteToMove = whiteToMove; }
+		inline auto operator[](Square square) const { return _board[square]; }
+		inline auto isWhiteToMove() const { return _whiteToMove; }
+		inline void setWhiteToMove(bool whiteToMove) { _whiteToMove = whiteToMove; }
 
 		/**
 		 * Checks, if two positions are identical
 		 */
 		bool isIdenticalPosition(const Board& boardToCompare) {
-			return _basicBoard.isIdenticalPosition(boardToCompare._basicBoard);
+			return _whiteToMove == boardToCompare._whiteToMove && _board == boardToCompare._board;
 		}
 
 		/**
@@ -70,7 +101,7 @@ namespace QaplaBasics {
 		 * person to move does nothing and hand over the moving right to the opponent.
 		 */
 		inline void doNullmove() {
-			_basicBoard.clearEP();
+			clearEP();
 			setWhiteToMove(!isWhiteToMove());
 		}
 
@@ -78,39 +109,9 @@ namespace QaplaBasics {
 		 * Undoes a previously made nullmove
 		 * @param boardState a stored state from the board before doing the nullmove incl. EP-Position
 		 */
-		inline void undoNullmove(BoardState boardState) {
+		inline void undoNullmove(BoardState recentBoardState) {
 			setWhiteToMove(!isWhiteToMove());
-			_basicBoard.boardState = boardState;
-		}
-
-		/**
-		 * Checks, if king side castling is allowed
-		 */
-		template <Piece COLOR>
-		inline bool isKingSideCastleAllowed() {
-			return _basicBoard.isKingSideCastleAllowed<COLOR>();
-		}
-
-		/**
-		 * Checks, if queen side castling is allowed
-		 */
-		template <Piece COLOR>
-		inline bool isQueenSideCastleAllowed() {
-			return _basicBoard.isQueenSideCastleAllowed<COLOR>();
-		}
-
-		/**
-		 * Enable/Disable castling right
-		 */
-		void setCastlingRight(Piece color, bool kingSide, bool allow) {
-			_basicBoard.setCastlingRight(color, kingSide, allow);
-		}
-
-		/**
-		 * Sets the destination of the pawn to capture
-		 */
-		void setEP(Square destination) {
-			_basicBoard.setEP(destination);
+			_boardState = recentBoardState;
 		}
 
 		/**
@@ -131,22 +132,16 @@ namespace QaplaBasics {
 		 * @returns board hash for the current position
 		 */
 		inline auto computeBoardHash() const {
-			return _basicBoard.computeBoardHash();
+			return _boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)_whiteToMove];
 		}
 
-		/**
-		 * Gets the hash key for the pawn structure
-		 */
-		inline hash_t getPawnHash() const {
-			return _basicBoard.getPawnHash();
-		}
 
 		/**
 		 * Gets the amount of half moves without pawn move or capture to implement the repetitive moves draw rule
 		 * Note: the fen value is not included as there are no corresponding moves stored
 		 */
 		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
-			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture;
+			return _boardState.halfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
@@ -154,22 +149,22 @@ namespace QaplaBasics {
 		 * the 50-moves-draw rule
 		 */
 		inline auto getTotalHalfmovesWithoutPawnMoveOrCapture() const {
-			return _basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture 
-				+ _basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture;
+			return _boardState.halfmovesWithoutPawnMoveOrCapture 
+				+ _boardState.fenHalfmovesWithoutPawnMoveOrCapture;
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture
 		 */
 		void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
-			_basicBoard.boardState.halfmovesWithoutPawnMoveOrCapture = number;
+			_boardState.halfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture from initial fen
 		 */
 		void setFenHalfmovesWihtoutPawnMoveOrCapture(uint16_t number) {
-			_basicBoard.boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
+			_boardState.fenHalfmovesWithoutPawnMoveOrCapture = number;
 		}
 
 		/**
@@ -266,6 +261,10 @@ namespace QaplaBasics {
 			return _materialBalance.getMaterialValue() + _pstBonus;
 		}
 
+		inline auto getImbalanceValue() const {
+			return _imbalance.getValue();
+		}
+
 		/**
 		 * Get the piece square table bonus
 		 */
@@ -330,20 +329,42 @@ namespace QaplaBasics {
 		 * Gets the start square of the king rook
 		 */
 		template <Piece COLOR>
-		inline auto getKingRookStartSquare() const { return _basicBoard.kingRookStartSquare[COLOR]; }
+		inline auto getKingRookStartSquare() const { return _kingRookStartSquare[COLOR]; }
 
 		/**
 		 * Gets the start square of the king rook
 		 */
 		template <Piece COLOR>
-		inline auto getQueenRookStartSquare() const { return _basicBoard.queenRookStartSquare[COLOR]; }
+		inline auto getQueenRookStartSquare() const { return _queenRookStartSquare[COLOR]; }
 
-		BoardState getBoardState() const { return _basicBoard.boardState; }
+		BoardState getBoardState() const { return _boardState; }
+
+		/**
+		 * Reads the incrementally maintained values, to be kept until the move is undone
+		 */
+		IncrementalState getIncrementalState() const {
+			return {
+				_pstBonus,
+				_materialBalance.getMaterialValue(),
+				_pieceSignature.getPiecesSignature(),
+				_imbalance.getState()
+			};
+		}
+
+		/**
+		 * Restores the incrementally maintained values from a snapshot
+		 */
+		void setIncrementalState(const IncrementalState& state) {
+			_pstBonus = state.pstBonus;
+			_materialBalance.setMaterialValue(state.materialValue);
+			_pieceSignature.setPiecesSignature(state.pieceSignature);
+			_imbalance.setState(state.imbalance);
+		}
 
 		/**
 		 * Gets the board in Fen representation
 		 */
-		string getFen() const;
+		string getFen(int fullMoveNumber) const;
 
 		/**
 		 * Prints the board as fen to std-out
@@ -374,6 +395,54 @@ namespace QaplaBasics {
 			randomBonus = bonus;
 		}
 
+		/**
+	 * Sets the capture square for an en passant move
+	 */
+		inline void setEP(Square destination) { _boardState.setEP(destination); }
+
+		/**
+		 * Clears the capture square for an en passant move
+		 */
+		inline void clearEP() { _boardState.clearEP(); }
+
+		/**
+		 * Gets the EP square
+		 */
+		inline auto getEP() const {
+			return _boardState.getEP();
+		}
+
+		/**
+		 * Checks, if king side castling is allowed
+		 */
+		template <Piece COLOR>
+		inline bool isKingSideCastleAllowed() {
+			return _boardState.isKingSideCastleAllowed<COLOR>();
+		}
+
+		/**
+		 * Checks, if queen side castling is allowed
+		 */
+		template <Piece COLOR>
+		inline bool isQueenSideCastleAllowed() {
+			return _boardState.isQueenSideCastleAllowed<COLOR>();
+		}
+
+		/**
+		 * Enable/Disable castling right
+		 */
+		inline void setCastlingRight(Piece color, bool kingSide, bool allow) {
+			_boardState.setCastlingRight(color, kingSide, allow);
+		}
+
+		/**
+		 * Gets the hash key for the pawn structure
+		 */
+		inline hash_t getPawnHash() const {
+			return _boardState.pawnHash;
+		}
+
+
 	protected:
 		array<Square, COLOR_COUNT> kingSquares;
 
@@ -382,7 +451,10 @@ namespace QaplaBasics {
 		bitBoard_t bitBoardAllPieces;
 
 	private:
-		BasicBoard _basicBoard;
+
+
+		
+		void initClearCastleMask();
 
 		/**
 		 * Clears the bitboards
@@ -407,6 +479,14 @@ namespace QaplaBasics {
 		 * Adds a piece as part of a move (for example for promotions)
 		 */
 		void addPiece(Square squareOfPiece, Piece pieceToAdd);
+
+		// Placement-only variants, used on the undo path. They touch the board array, the
+		// bitboards and the king squares, nothing else. The hash and the incrementally
+		// maintained values are restored from the caller's snapshots afterwards, so doing
+		// that work here would only be thrown away.
+		void movePieceInPosition(Square departure, Square destination);
+		void removePieceFromPosition(Square squareOfPiece);
+		void addPieceToPosition(Square squareOfPiece, Piece pieceToAdd);
 
 
 		/**
@@ -440,6 +520,11 @@ namespace QaplaBasics {
 		}
 
 		/**
+		 * Checks that moving piece and captured piece of the move matches the board
+		 */
+		bool assertMove(Move move) const;
+
+		/**
 		 * handles EP, Castling, Promotion 
 		 */
 		void doMoveSpecialities(Move move);
@@ -447,15 +532,27 @@ namespace QaplaBasics {
 
 		void printPst(Piece piece) const;
 
+
 		value_t randomBonus = 0;
 		uint32_t evalVersion = 0;
 		EvalValue _pstBonus;
 		PieceSignature _pieceSignature;
 		MaterialBalance _materialBalance;
+		ChessEval::Imbalance _imbalance;
 
+		// Amount of half moves played befor fen
+		int32_t _startHalfmoves;
+		// Current color to move
+		bool _whiteToMove;	
+		// Board properties put on the search stack
+		BoardState _boardState;
+		array<Piece, BOARD_SIZE> _board;
 
+		// Chess 960 variables
+		array<Square, 2> _kingStartSquare;
+		array<Square, 2> _queenRookStartSquare;
+		array<Square, 2> _kingRookStartSquare;
+		array<uint16_t, static_cast<uint32_t>(BOARD_SIZE)> _clearCastleFlagMask;
 	};
 }
-
-#endif // __BOARD_H
 

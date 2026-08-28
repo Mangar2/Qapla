@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements evaluation for queens
  */
@@ -22,11 +22,24 @@
 #ifndef __QUEEN_H
 #define __QUEEN_H
 
-#include <map>
+#include <cstdint>
+#include <vector>
+#include "evalresults.h"
+#include "eval-helper.h"
+
 #include "../movegenerator/movegenerator.h"
 #include "../basics/types.h"
 #include "../basics/pst.h"
-#include "evalresults.h"
+#include "../movegenerator/magics.h"
+#include "../basics/evalvalue.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
+
+#include <map>
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_QUEEN
+#endif
 
 using namespace QaplaMoveGenerator;
 
@@ -34,6 +47,14 @@ namespace ChessEval {
 
 	class Queen {
 	public:
+		friend class QueenUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		/**
 		 * Evaluates the evaluation value for queens
 		 */
@@ -77,7 +98,7 @@ namespace ChessEval {
 				const auto mobilityValue = EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]);
 				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
 
-				const auto propertyIndex = isPinned(position.pinnedMask[COLOR], square);
+				const auto propertyIndex = EvalHelper::isPinned(position.pinnedMask[COLOR], square);
 				const auto propertyValue = QUEEN_PROPERTY_MAP[propertyIndex];
 				// const auto propertyValue = position.getEvalVersion() == 0 ? QUEEN_PROPERTY_MAP[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
 
@@ -112,32 +133,31 @@ namespace ChessEval {
 		{
 			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB & ~position.getPieceBB(ROOK + COLOR));
 			attackBB |= Magics::genBishopAttackMask(square, occupiedBB & ~position.getPieceBB(BISHOP + COLOR));
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-			results.queenAttack[COLOR] |= attackBB;
-
-			attackBB &= removeBB;
-			return popCount(attackBB);
+			return results.addPieceAttack<COLOR>(results.queenAttack, attackBB, removeBB);
 		}
 
-		/**
-		 * Returns true, if the queen is pinned
-		 */
-		static constexpr uint32_t isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
-		};
+		static constexpr value_t _pinned[2] = { 0, 0 };
 
-		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = { { { 0, 0 }, { 0, 0 } } };
+		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP_DEFAULT = { { { 0, 0 }, { 0, 0 } } };
 		static inline std::string QUEEN_PROPERTY_INFO[2] = {
 			"", "<pin>"
 		};
 
-		static constexpr array<value_t, 30> QUEEN_MOBILITY_MAP = { {
-			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10,
-			10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10
+		static constexpr std::array<EvalValue, 30> QUEEN_MOBILITY_MAP_DEFAULT = { {
+			{ -10, -10 }, { -10, -10 }, { -10, -10 }, { -5, -5 }, { 0, 0 }, { 2, 2 }, { 4, 4 }, { 5, 5 }, { 6, 6 }, { 10, 10 },
+			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 },
+			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }
 		} };
 
+#ifndef PARAM_OPTIMIZE_QUEEN
+		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = QUEEN_PROPERTY_MAP_DEFAULT;
+		static constexpr std::array<EvalValue, 30> QUEEN_MOBILITY_MAP = QUEEN_MOBILITY_MAP_DEFAULT;
+#else
+		inline static std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = QUEEN_PROPERTY_MAP_DEFAULT;
+		inline static std::array<EvalValue, 30> QUEEN_MOBILITY_MAP = QUEEN_MOBILITY_MAP_DEFAULT;
+#endif
+
 	};
-};
+}
 
 #endif // __QUEEN_H

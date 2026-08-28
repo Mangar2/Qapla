@@ -1,0 +1,129 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ */
+
+#include "king-attack.h"
+
+namespace ChessEval {
+
+#ifdef PARAM_OPTIMIZE_KING_ATTACK
+
+/**
+ * Generates attackWeight array using B-spline interpolation
+ */
+static std::array<value_t, KingAttack::MAX_WEIGHT_COUNT + 1> generateAttackWeight(
+	value_t p0,
+	value_t p2,
+	value_t p4,
+	value_t p6,
+	value_t p10,
+	value_t p15,
+	value_t p32)
+{
+	std::vector<std::pair<int, double>> points = {
+		{ 0, p0 },
+		{ 2, p2 },
+		{ 4, p4 },
+		{ 6, p6 },
+		{ 10, p10 },
+		{ 15, p15 },
+		{ 32, p32 }
+	};
+	return generateArrayBSpline<KingAttack::MAX_WEIGHT_COUNT + 1>(points, false);
+}
+
+/**
+* UCI parameter access implementation for KingAttack
+*/
+class KingAttackUciAccess : public UciParameterProvider {
+public:
+	std::vector<UciParam> getUciParameters() const override {
+		return {
+			{ .name = "kAttackP0", .defaultValue = p0_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP2", .defaultValue = p2_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP4", .defaultValue = p4_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP6", .defaultValue = p6_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP10", .defaultValue = p10_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP15", .defaultValue = p15_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackP32", .defaultValue = p32_, .minValue = -2000, .maxValue = 2000 },
+			{ .name = "kAttackQueenFactor", .defaultValue = static_cast<int32_t>(KingAttack::queenFactor), .minValue = 0, .maxValue = 10 },
+			// The full shield, index 7, has no option: it is the reference the other seven are
+			// measured against, see PAWN_INDEX_FACTOR_DEFAULT.
+			{ .name = "kShield0", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[0], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield1", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[1], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield2", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[2], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield3", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[3], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield4", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[4], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield5", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[5], .minValue = -100, .maxValue = 100 },
+			{ .name = "kShield6", .defaultValue = KingAttack::PAWN_INDEX_FACTOR_DEFAULT[6], .minValue = -100, .maxValue = 100 }
+		};
+	}
+
+	bool setUciParameter(const std::string& name, int32_t value) override {
+		if (name == "kAttackP0") {
+			p0_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP2") {
+			p2_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP4") {
+			p4_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP6") {
+			p6_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP10") {
+			p10_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP15") {
+			p15_ = static_cast<value_t>(value);
+		} else if (name == "kAttackP32") {
+			p32_ = static_cast<value_t>(value);
+		} else if (name == "kAttackQueenFactor") {
+			KingAttack::queenFactor = static_cast<uint32_t>(value);
+			return true;
+		} else if (name.rfind("kShield", 0) == 0 && name.size() == 8 && name[7] >= '0' && name[7] <= '6') {
+			KingAttack::pawnIndexFactor[static_cast<size_t>(name[7] - '0')] = static_cast<value_t>(value);
+			return true;
+		} else {
+			return false;
+		}
+
+		KingAttack::attackWeight = generateAttackWeight(p0_, p2_, p4_, p6_, p10_, p15_, p32_);
+
+		printArray("attackWeight", KingAttack::attackWeight);
+
+		return true;
+	}
+
+private:
+	value_t p0_ = KingAttack::ATTACK_WEIGHT_DEFAULT[0];
+	value_t p2_ = KingAttack::ATTACK_WEIGHT_DEFAULT[2];
+	value_t p4_ = KingAttack::ATTACK_WEIGHT_DEFAULT[4];
+	value_t p6_ = KingAttack::ATTACK_WEIGHT_DEFAULT[6];
+	value_t p10_ = KingAttack::ATTACK_WEIGHT_DEFAULT[10];
+	value_t p15_ = KingAttack::ATTACK_WEIGHT_DEFAULT[15];
+	value_t p32_ = KingAttack::ATTACK_WEIGHT_DEFAULT[32];
+};
+#endif
+
+UciParameterProvider& KingAttack::getUciAccess() {
+#ifdef PARAM_OPTIMIZE_KING_ATTACK
+	static KingAttackUciAccess instance;
+#else
+	static EmptyParameterProvider instance;
+#endif
+	return instance;
+}
+
+}

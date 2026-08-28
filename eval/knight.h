@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a static class to evaluate knights 
  */
@@ -29,6 +29,14 @@
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "evalresults.h"
+#include "eval-helper.h"
+#include "../interface/uci-parameter-provider.h"
+
+#include "array-generator.h"
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_KNIGHT
+#endif
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
@@ -38,6 +46,13 @@ namespace ChessEval {
 
 	class Knight {
 	public:
+		friend class KnightUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
 
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
@@ -107,12 +122,8 @@ namespace ChessEval {
 		 */
 		template<Piece COLOR>
 		static inline uint32_t calcMobilityIndex(EvalResults& results, Square square, bitBoard_t removeBB) {
-			bitBoard_t attackBB = BitBoardMasks::knightMoves[square];
-			results.knightAttack[COLOR] |= attackBB;
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-			attackBB &= removeBB;
-			return popCount(attackBB);
+			const bitBoard_t attackBB = BitBoardMasks::knightMoves[square];
+			return results.addPieceAttack<COLOR>(results.knightAttack, attackBB, removeBB);
 		}
 
 		/**
@@ -134,13 +145,6 @@ namespace ChessEval {
 		}
 
 		/**
-		 * Returns true, if the knight is pinned
-		 */
-		static constexpr uint32_t isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
-		}
-
-		/**
 		 * Calculates properties and their Values for Knights
 		 */
 		template<Piece COLOR>
@@ -148,20 +152,23 @@ namespace ChessEval {
 		{
 			const bitBoard_t opponentPawnBB = position.getPieceBB(PAWN + opponentColor<COLOR>());
 			uint32_t knightIndex = isOutpost<COLOR>(knightSquare, opponentPawnBB, position.pawnAttack[COLOR]) * OUTPOST;
-			knightIndex += isPinned(position.pinnedMask[COLOR], knightSquare) * PINNED;
+			knightIndex += EvalHelper::isPinned(position.pinnedMask[COLOR], knightSquare) * PINNED;
 			return knightIndex;
 		}
 
 		// Mobility Map for knights
-		static constexpr std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP = { {
+		static constexpr std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP_DEFAULT = { {
 			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
 		static const uint32_t OUTPOST = 1;
 		static const uint32_t PINNED = 2;
-		
-		static constexpr std::array<EvalValue, 4> KNIGHT_PROPERTY_MAP = { {
+
+		static constexpr value_t _outpost[2] = { 20, 0 };
+		static constexpr value_t _pinned[2] = { -43, 0 };
+
+		static constexpr std::array<EvalValue, 4> KNIGHT_PROPERTY_MAP_DEFAULT = { {
 			 {  0,   0}, { 20, 0}, { -43,  0}, {-23,  0}
 		} };
 
@@ -170,9 +177,18 @@ namespace ChessEval {
 		};
 
 		static constexpr bitBoard_t OUTPOST_BB[2] = { 0x003C3C3C00000000, 0x000000003C3C3C00 };
+
+#ifndef PARAM_OPTIMIZE_KNIGHT
+		static constexpr std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP = KNIGHT_MOBILITY_MAP_DEFAULT;
+		static constexpr std::array<EvalValue, 4> KNIGHT_PROPERTY_MAP = KNIGHT_PROPERTY_MAP_DEFAULT;
+#else
+		inline static std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP = KNIGHT_MOBILITY_MAP_DEFAULT;
+		inline static std::array<EvalValue, 4> KNIGHT_PROPERTY_MAP = KNIGHT_PROPERTY_MAP_DEFAULT;
+#endif
 	};
 }
 
 
 #endif
+
 

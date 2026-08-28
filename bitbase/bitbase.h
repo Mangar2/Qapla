@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Provides an array of bits in a
  */
@@ -27,6 +27,7 @@
 #include <ostream>
 #include <filesystem>
 #include <algorithm>
+#include <atomic>
 #include "bitbase-file.h"
 #include "compress.h"
 #include "cluster-cache.h"
@@ -36,7 +37,19 @@ namespace QaplaBitbase {
     /**
      * @class Bitbase
      * @brief Stores and manages bit-level data for chess endgame databases.
+     *
+     * 2-bit entry encoding (bitsPerEntry == 2):
      */
+    enum class BitbaseResult : int {
+        Draw = 0,
+        DrawOrLoss = 0,  ///< Used for legacy 1-bit bitbases where draw and loss are not distinguished
+        Win = 1,
+        Loss = 2,
+        Unknown = 3
+    };
+
+    std::string to_string(BitbaseResult result);
+
     class Bitbase {
     public:
         /**
@@ -45,18 +58,20 @@ namespace QaplaBitbase {
         explicit Bitbase();
 
         /**
-         * @brief Constructs a Bitbase with a given size in bits.
-         * @param sizeInBit Number of bits the bitbase should hold.
+         * @brief Constructs a Bitbase with a given entry count and bits per entry.
+         * @param entryCount Number of entries the bitbase should hold.
+         * @param bitsPerEntry Number of bits per entry (1 or 2).
 		 * @param sig Signature of the bitbase.
          */
-        explicit Bitbase(uint64_t sizeInBit, uint32_t sig);
+        explicit Bitbase(uint64_t entryCount, uint32_t bitsPerEntry, uint32_t sig);
 
         /**
          * @brief Constructs a Bitbase from a BitbaseIndex.
-         * @param index Index providing the bitbase size.
+         * @param index Index providing the entry count.
+         * @param bitsPerEntry Number of bits per entry (1 or 2).
 		 * @param sig Signature of the bitbase.
          */
-        Bitbase(const class BitbaseIndex& index, uint32_t sig);
+        Bitbase(const class BitbaseIndex& index, uint32_t bitsPerEntry, uint32_t sig);
 
         /**
          * @brief Sets the filename.
@@ -83,22 +98,29 @@ namespace QaplaBitbase {
             std::filesystem::path path = "./");
 
         /**
-         * @brief Sets the number of bits in the bitbase.
-         * @param sizeInBit New size in bits.
+         * @brief Sets the number of entries in the bitbase.
+         * @param entryCount New entry count.
          */
-        void setSize(uint64_t sizeInBit) {
-            _sizeInBits = sizeInBit;
+        void setSize(uint64_t entryCount) {
+            _entryCount = entryCount;
         }
 
-        void resize(uint64_t sizeInBit) {
-            setSize(sizeInBit);
+        void resize(uint64_t entryCount) {
+            setSize(entryCount);
 			_bitbase.resize(getSize());
         }
+
+        uint32_t getBitsPerEntry() const { return _bitsPerEntry; }
 
         /**
          * @brief Clears all bits in the bitbase (sets to 0).
          */
         void clear();
+
+        /**
+         * @brief Sets all bits in the bitbase to 1.
+         */
+        void fillAll();
 
         /**
          * @brief Sets a specific bit to 1.
@@ -107,10 +129,48 @@ namespace QaplaBitbase {
         void setBit(uint64_t index);
 
         /**
+         * @brief Sets a specific bit to 1 atomically (thread-safe, no mutex required).
+         * Uses fetch_or so multiple threads can write concurrently.
+         * @param index Bit index to set.
+         */
+        void setBitAtomic(uint64_t index) {
+            const uint64_t elem = index / BITS_IN_ELEMENT;
+            const bbt_t    mask = bbt_t(1) << (index % BITS_IN_ELEMENT);
+            std::atomic_ref<bbt_t>(_bitbase[elem]).fetch_or(mask, std::memory_order_relaxed);
+        }
+
+        /**
+         * @brief Reads one bit atomically (thread-safe, no mutex required).
+         * Uses a relaxed load — prevents compiler from caching the value in a register.
+         * @param index Bit index to read.
+         * @returns true if the bit is set.
+         */
+        bool getBitAtomic(uint64_t index) const {
+            const uint64_t elem = index / BITS_IN_ELEMENT;
+            const bbt_t    mask = bbt_t(1) << (index % BITS_IN_ELEMENT);
+            // atomic_ref<const T> is C++26; the storage itself is non-const, so cast is safe.
+            return (std::atomic_ref<bbt_t>(const_cast<bbt_t&>(_bitbase[elem])).load(std::memory_order_relaxed) & mask) != 0;
+        }
+
+        /**
+         * @brief Sets two bits as a combined integer value (for example, for win/draw/loss encoding). 
+         * Requires that the content of the two bits is currently 0 (initial or cleared state).
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
+         * @param value BitbaseResult value to set.
+         */
+        void set2Bit(uint64_t index2, BitbaseResult value);
+
+        /**
          * @brief Clears a specific bit (sets to 0).
          * @param index Bit index to clear.
          */
         void clearBit(uint64_t index);
+
+        /**
+         * @brief Clears two bits (sets to 0).
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
+         */
+        void clear2Bits(uint64_t index2);
 
         /**
          * @brief Gets the value of a specific bit.
@@ -120,24 +180,32 @@ namespace QaplaBitbase {
         int getBit(uint64_t index);
 
         /**
-         * @brief Gets the size of the bitbase in bits.
-         * @return Bit count.
+         * @brief Gets the value of two bits as a combined integer (for example, for win/draw/loss encoding).
+         * 
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
+         * @return BitbaseResult value.
          */
-        uint64_t getSizeInBit() const;
+        BitbaseResult get2Bits(uint64_t index2);
+
+        /**
+         * @brief Gets the total number of bits in the bitbase.
+         * @return Bit count (entryCount * bitsPerEntry).
+         */
+        uint64_t sizeInBits() const { return _entryCount * _bitsPerEntry; }
+
+        /**
+         * @brief Gets the number of entries in the bitbase.
+         * @return Entry count.
+         */
+        uint64_t getEntryCount() const { return _entryCount; }
 
 		/**
 		 * @brief Gets the size of the bitbase (internal vector structure) in Elements.
 		 * @return Size in Elements.
 		 */
         uint64_t getSize() const {
-            return (_sizeInBits + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
+            return (sizeInBits() + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
         }
-
-        /**
-         * @brief Returns a string describing number of won and non-won positions.
-         * @return Descriptive string.
-         */
-        std::string getStatistic();
 
         /**
          * @brief Saves the bitbase uncompressed to file.
@@ -184,11 +252,17 @@ namespace QaplaBitbase {
         void getAllIndexes(const Bitbase& andNot, std::vector<uint64_t>& indexes) const;
 
         /**
-         * @brief Counts the number of set bits (won positions).
-         * @param begin Optional starting index.
-         * @return Count of set bits.
+         * @brief Returns all indexes where the bit is set to 1.
+         * @param indexes Output vector of indices.
          */
-        uint64_t computeWonPositions(uint64_t begin = 0) const;
+        void getAllSetIndexes(std::vector<uint64_t>& indexes) const;
+
+        /**
+         * @brief Counts the number of entries matching the given result.
+         * @param result BitbaseResult to match.
+         * @return Count of matching entries.
+         */
+        uint64_t computeResults(BitbaseResult result) const;
 
         /**
          * @brief Writes the compressed bitbase as a C++ header file with a uint32_t array.
@@ -216,11 +290,31 @@ namespace QaplaBitbase {
 			cache.resize(numCluster);
 		}
 
+        /**
+         * @brief Get the Bitbase Data object   
+         * 
+         * @return const std::vector<bbt_t>& 
+         */
+        const std::vector<bbt_t>& getBitbaseData() const {
+            return _bitbase;
+        }
+
+        /**
+         * @brief Get the number of bits in one data element (bbt_t).
+         * @return Number of bits in a data element.
+         */
+        const uint32_t getBitsInDataElement() const {
+            return BITS_IN_ELEMENT;
+        }
+
 
     private:
 
         bool loadHeader(const std::filesystem::path& path);
         void verifyWrittenFile();
+        void compactTo1BitIfPossible();
+        int getBitsFromLoadedData(uint64_t bitIndex, bbt_t mask) const;
+        int getBitsFromClusterData(uint64_t bitIndex, bbt_t mask);
 
         // Caching
         uint32_t _signature;
@@ -229,7 +323,9 @@ namespace QaplaBitbase {
         static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; 
 
         static const uint64_t BITS_IN_ELEMENT = sizeof(bbt_t) * 8;
-        uint64_t _sizeInBits;
+        uint64_t _entryCount;
+
+        uint32_t _bitsPerEntry = 1;
         
         // Fully loaded bitbase data
         bool _loaded;

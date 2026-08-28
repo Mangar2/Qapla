@@ -13,13 +13,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 #include "magics.h"
-#include "bitboardmasks.h"
+
+#include "../basics/bits.h"
+
 #include <assert.h>
+
 
 using namespace QaplaMoveGenerator;
 using namespace QaplaBasics;

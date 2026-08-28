@@ -1,5 +1,52 @@
 # Qapla Test Versions
 
+## 0.4.018 2026-01-08
+
+- Enhanced array-generator.h with scale and add parameters
+- Added kAttackScale UCI parameter for king attack tuning
+- Improved dampening calculation in generateArrayPolynomialDampened
+- Updated default kAttackActivation from 360 to 250
+
+## 0.4.017 2025-12-29
+
+- Added stack->clear() in iterative deepening loop for consistent state
+- Made futility margins tunable via command line parameters (ffut, fut)
+- Set standard futility factors to 75cp per depth for ffut and fut
+- Added isImproving parameter to futility margin calculations
+
+## 0.4.016 2025-12-27
+
+- Fixed bug in futility pruning: now correctly uses absolute piece values for black pieces
+- Added promotion value consideration in futility pruning gain calculation
+- Enhanced copilot-instructions.md with Response Discipline guidelines
+
+## 0.4.015 2025-12-27
+
+- Added futility pruning in main search loop
+- Optimized common calculations (isCheckingMove, LMR) to avoid redundant computation
+- Added automated testing workflow with compare-wmtest.ps1 script
+- Versions 0.4.006 to 0.4.014: Code cleanup and refactoring (not documented individually)
+
+## 0.4 005 2025-05-19
+
+- Replacement strategy refactored
+
+## 0.4 004 2025-05-19
+
+- Uses 150% time as long as available
+
+## 0.4 003 2025-05-18
+
+- Uses twice as much time as long as time is available, reduced when time pressure
+
+## 0.4 002 2025-05-18
+
+- Really always replace the always replace entry.
+
+## 0.4 001 2025-05-18
+
+- Replaces all hash results with same key and move or same or lager searchdepth now
+
 ## 0.3.015 2025-04-15
 
 - Raiting: 54,4%

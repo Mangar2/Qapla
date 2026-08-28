@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include "perft.h"
@@ -46,13 +46,13 @@ void PerftSearch::perftRecHelper(SplitPoint& splitPoint, WorkPackage &work, bool
 	Move move;
 	uint64_t result = 0;
 	while(!(move = splitPoint.selectNextMove()).isEmpty()) {
-		uint32_t workerCount = threadPool.assignWork(&work, 0);
 		// if (splitPoint.getCurDepth() > 1 && workerCount > 0) cout << "depth " << splitPoint.getCurDepth() << endl;
 		const BoardState boardState = board.getBoardState();
+		const IncrementalState incrementalState = board.getIncrementalState();
 		board.doMove(move);
 		uint64_t movesFound = perftRec(board, splitPoint.getMaxDepth(), splitPoint.getCurDepth() + 1, splitPoint.getScipLastPly());
 		result += movesFound;
-		board.undoMove(move, boardState);
+		board.undoMove(move, boardState, incrementalState);
 	}
 	// cout << "Thread found: " << result << " nodes" << (main ? " (main thread) " : "") << endl;
 	splitPoint.addResult(result);
@@ -82,12 +82,13 @@ uint64_t PerftSearch::perftRec(
 	}
 	else {
 		// Checking move test
-		const auto checkingBitmaps = board.computeCheckBitmapsForMovingColor();
+		const auto checkGivingSquares = board.computeCheckBitmapsForMovingColor();
 		for (uint32_t index = 0; index < moveList.getTotalMoveAmount(); ++index) {
 			const Move move = moveList[index];
-			const auto isCheckingMove = board.isCheckMove(move, checkingBitmaps);
+			const auto isCheckingMove = board.isCheckMove(move, checkGivingSquares);
 			if (move.isEmpty()) break;
 			const BoardState boardState = board.getBoardState();
+			const IncrementalState incrementalState = board.getIncrementalState();
 			board.doMove(move);
 			
 			const auto isCheck = board.isInCheck();
@@ -95,14 +96,14 @@ uint64_t PerftSearch::perftRec(
 				cout << "Error: isCheck: " << isCheck << " isCheckMove: " << isCheckingMove << endl;
 				board.print();
 				cout << move.getLAN() << endl;
-				cout << std::hex << checkingBitmaps[0] << endl;
-				const auto isCheckingMove = board.isCheckMove(move, checkingBitmaps);
+				cout << std::hex << checkGivingSquares[0] << endl;
+				//const auto isCheckingMove = board.isCheckMove(move, checkGivingSquares);
 				exit(1);
 			}
 			
 			uint64_t movesFound = perftRec(board, maxDepth, curDepth + 1, scipLastPly);
 			result += movesFound;
-			board.undoMove(move, boardState);
+			board.undoMove(move, boardState, incrementalState);
 			if (verbose) {
 				cout << move.getLAN() << " " << movesFound << endl;
 			}
@@ -118,6 +119,7 @@ uint64_t PerftSearch::perftRecTT(
 {
 	MoveList moveList;
 	BoardState boardState;
+	IncrementalState incrementalState;
 	if (curDepth == maxDepth) return 1;
 	board.genMovesOfMovingColor(moveList);
 	if (scipLastPly && curDepth + 1 == maxDepth) {
@@ -132,6 +134,7 @@ uint64_t PerftSearch::perftRecTT(
 		const Move move = isSplitPoint ? _splitPoints[0].selectNextMove() : moveList[index];
 		if (move.isEmpty()) break;
 		boardState = board.getBoardState();
+		incrementalState = board.getIncrementalState();
 		board.doMove(move);
 		hash_t boardHash = board.basicBoard.computeBoardHash();
 
@@ -144,7 +147,7 @@ uint64_t PerftSearch::perftRecTT(
 			ttMoves += movesFound;
 		}
 		result += movesFound;
-		board.undoMove(move, boardState);
+		board.undoMove(move, boardState, incrementalState);
 	}
 	if (curDepth == 0) {
 		cout << "TTMoves found: " << ttMoves << endl;

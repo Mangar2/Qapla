@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a state controller recoding the search criticalness
  * The more critical a search finding is (fail low on PV for example)
@@ -30,7 +30,8 @@
 #include "../basics/evalvalue.h"
 #include "../interface/clocksetting.h"
 #include "searchdef.h"
-#include "searchparameter.h"
+#include "search-config.h"
+#include "tunable.h"
 
 using namespace std;
 using namespace QaplaBasics;
@@ -128,21 +129,27 @@ namespace QaplaSearch {
 		 * Modifies the average time by the situation found by search
 		 */
 		int64_t modifyTimeBySearchFinding(int64_t averageTime) {
+			// Every situation carries its own factor, in percent, none derived from another.
+			// The defaults are the hard values this used to have: unchanged, four times, fifteen
+			// times, a fifth.
+			constexpr bool OPT = SearchConfig::optimizeTime;
+			int64_t factor = 100;
 			switch (_rootSearchState)
 			{
 			case SearchFinding::normal:
+				factor = tunable<OPT, "timeNormalFactor", 100, 40, 160>();
 				break;
 			case SearchFinding::critical:
-				averageTime *= 4;
+				factor = tunable<OPT, "timeCriticalFactor", 400, 100, 700>();
 				break;
 			case SearchFinding::suddenDeath:
-				averageTime *= 15;
+				factor = tunable<OPT, "timeSuddenDeathFactor", 1500, 100, 2900>();
 				break;
 			case SearchFinding::book:
-				averageTime /= 5;
+				factor = tunable<OPT, "timeBookFactor", 20, 0, 40>();
 				break;
 			}
-			return averageTime;
+			return averageTime * factor / 100;
 		}
 
 	private:
@@ -177,7 +184,7 @@ namespace QaplaSearch {
 		bool _hasBookMove;
 		SearchFinding _state;
 		SearchFinding _rootSearchState;
-		array<value_t, SearchParameter::MAX_SEARCH_DEPTH> _values;
+		array<value_t, SearchConfig::MAX_SEARCH_DEPTH> _values;
 		static const value_t ONE_PAWN = 100;
 		static const value_t DEATH_DROP = ONE_PAWN;
 		static const value_t CRITICAL_DROP = ONE_PAWN / 5;

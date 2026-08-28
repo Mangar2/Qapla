@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a Winboard - Interface
  */
@@ -22,12 +22,8 @@
 #pragma once
 
 //#include "EPDTest.h"
-#include <fstream>
 #include <vector>
 #include "chessinterface.h"
-#include "candidate-trainer.h"
-#include "../search/boardadapter.h"
-#include "self-play-manager.h"
 
 using namespace std;
 
@@ -36,7 +32,6 @@ namespace QaplaInterface {
 	class Statistics : public ChessInterface {
 	public:
 		Statistics();
-
 
 		/**
 		 * Prints a game result information
@@ -96,16 +91,6 @@ namespace QaplaInterface {
 		void handleWhatIf(std::string whatif);
 		
 		/**
-		 * Sets the computer to analyze mode
-		 */
-		void analyzeMove();
-
-		/**
-		 * Starts a test of a list of EPD strings
-		 */
-		void WMTest();
-
-		/**
 		 * Sets the board from fen
 		 */
 		void setBoard();
@@ -125,19 +110,6 @@ namespace QaplaInterface {
 		 */
 		void handleInputWhileComputingMove();
 
-		void train();
-		void trainCandidates(uint32_t numThreads = 1);
-		void playEpdGames(uint32_t numThreads = 1);
-		void playStatistic(uint32_t numThreads = 1);
-		void loadEPD();
-		void loadEPD(const std::string& filename);
-		void loadGamesFromFile(const std::string& filename);
-		std::tuple<EvalValue, value_t>  computeEval(
-			ChessEval::IndexLookupMap& lookupMap, std::map<std::string, std::vector<uint64_t>>& lookupCount, bool verbose = false);
-		void trainPosition(ChessEval::IndexLookupMap& lookupMap, int32_t evalDiff);
-		
-		void computeMaterialDifference();
-
 		/**
 		 * Handles input while in "wait for user action" mode
 		 */
@@ -145,10 +117,6 @@ namespace QaplaInterface {
 		volatile Mode _mode;
 		bool _xBoardMode;
 		bool _computerIsWhite;
-		std::vector<std::string> _startPositions;
-		std::vector<ChessGame> _games;
-		ISendSearchInfo* _sendSearchInfo;
-		SelfPlayManager epdTasks;
 	};
 
 }

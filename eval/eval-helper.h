@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2024 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2024 Volker BÃ¶hm
  * @Overview
  * Implements helper functions for eval
  */
@@ -37,6 +37,14 @@ public:
 		int32_t dx = (a & 7) - (b & 7);
 		int32_t dy = (a >> 3) - (b >> 3);
 		return _distTable[(dx + 7) + 15 * (dy + 7)];
+	}
+
+	/**
+	 * True if the piece on the square is pinned against the king of its own colour.
+	 * The caller passes the pinned mask of the colour the piece belongs to.
+	 */
+	static constexpr bool isPinned(bitBoard_t pinnedBB, Square square) {
+		return (pinnedBB & squareToBB(square)) != 0;
 	}
 
 private:

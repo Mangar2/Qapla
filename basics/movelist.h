@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a list holding moves of a chess position
  * Moves are stored in one list - but different for "silent moves" and "non silent moves". Silent moves are moves 
@@ -23,8 +23,7 @@
  * are always ordered first
  */
 
-#ifndef __MOVELIST_H
-#define __MOVELIST_H
+#pragma once
 
 #include <assert.h>
 #include <array>
@@ -41,8 +40,11 @@ namespace QaplaBasics {
 		void clear() { totalMoveAmount = 0; nonSilentMoveAmount = 0; }
 
 		/**
-		 * Adds a move to the move list, inserts non silent moves to the end of the non silent move
-		 * list and pushes silent moves to the end
+		 * Adds a move to the list.
+		 * Non-silent moves (captures or promotions) are inserted at the front of the silent region,
+		 * all others (silent moves) are added to the back.
+		 *
+		 * This keeps non-silent moves contiguous and in order of addition.
 		 */
 		inline void addMove(Move move) {
 			if (move.isCaptureOrPromote()) {
@@ -76,8 +78,12 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Adds all promotion moves, promotion to queen as non silent move, all other 
-		 * promotions as silent move
+		 * Adds all promotion variants for a given pawn move.
+		 *
+		 * Queen promotion is considered non-silent (likely best),
+		 * others (rook, bishop, knight) are inserted as silent moves.
+		 *
+		 * @tparam COLOR Color of the moving side (WHITE or BLACK).
 		 */
 		template<Piece COLOR>
 		void addPromote(Square departure, Square destination, Piece capture) {
@@ -97,9 +103,11 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Moves a move in the move list from the departureIndex to the destination Index to the back
-		 * The destinationIndex must be larger than the departure index
-		 * Keeps all other moves in the original order - 
+		 * Moves a move from `destinationIndex` to `departureIndex` by shifting
+		 * the entire range one step forward, preserving order.
+		 *
+		 * Use case: reordering after move sorting.
+		 * Assumes: destinationIndex >= departureIndex
 		 */
 		void dragMoveToTheBack(uint32_t departureIndex, uint32_t destinationIndex) {
 			assert(destinationIndex >= departureIndex);
@@ -114,17 +122,34 @@ namespace QaplaBasics {
 		}
 
 		/**
-		 * Gets the best amount moves and sorts them to the beginning of the silent moves list
-		 * Sorting is done by a kind of insertion sort (search the next best move and swaps it to the front).
+		 * Sorts the best `amount` silent moves to the beginning of the silent move list.
+		 * Selection sort: search the best remaining move and swap it to the front, repeated
+		 * until `amount` moves are placed. Only moves above SORT_WEIGHT_FLOOR take part, all
+		 * others keep the order the move generator produced.
 		 */
 		void sortFirstSilentMoves(uint32_t amount) {
+			// Weight a move has to exceed to be sorted to the front. It doubles as the
+			// "nothing found" marker of bestWeight, which is what makes the early exit below
+			// work. Raising it to a value real weights can reach would break that.
+			// At -MAX_VALUE moves with a negative history take part in the sorting as well.
+			// The butterfly values are not bounded by MAX_VALUE, so a move whose history has
+			// dropped below -MAX_VALUE still keeps its generated position.
+			// Tested 0.4.0-038: -MAX_VALUE instead of 0: +11 Elo, 4674 games
+			constexpr value_t SORT_WEIGHT_FLOOR = -MAX_VALUE;
 			for (uint32_t sortIndex = nonSilentMoveAmount; sortIndex < totalMoveAmount && amount > 0; sortIndex++, amount--) {
-				value_t moveWeight = 0;
+				value_t bestWeight = SORT_WEIGHT_FLOOR;
 				uint32_t bestIndex = sortIndex;
 				for (uint32_t searchBestIndex = sortIndex; searchBestIndex < totalMoveAmount; searchBestIndex++) {
-					if (getWeight(searchBestIndex) > moveWeight) {
+					const auto weight = getWeight(searchBestIndex);
+					if (weight > bestWeight) {
+						bestWeight = weight;
 						bestIndex = searchBestIndex;
 					}
+				}
+				// Nothing above the floor is left. Every later pass searches a subrange of
+				// this one, so none of them can find anything either.
+				if (bestWeight == SORT_WEIGHT_FLOOR) {
+					break;
 				}
 				if (bestIndex != sortIndex) {
 					swapEntry(sortIndex, bestIndex);
@@ -146,8 +171,8 @@ namespace QaplaBasics {
 		value_t getWeight(uint32_t index) const { return moveWeights[index]; }
 		void setWeight(uint32_t index, value_t weight) { moveWeights[index] = weight; }
 
-		// Prints all mvoes to stdout
-		void PrintMoves()
+		// Prints all moves to stdout
+		void print()
 		{
 			for (uint32_t i = 0; i < totalMoveAmount; i++)
 			{
@@ -156,9 +181,14 @@ namespace QaplaBasics {
 			}
 		}
 
-
 	protected:
-		static const int32_t MAX_MOVE_AMOUNT = 200;
+		// Maximum number of moves stored in a single list.
+		// Must be large enough to hold all possible legal moves including promotions.
+		// The current known maximum is 218 legal moves, e.g. in the position:
+		//   3Q4/1Q4Q1/4Q3/2Q4R/Q4Q2/3Q4/1Q4Rp/1K1BBNNk w - - 0 1
+		// However, positions with artificially high material (e.g. 20 queens) can be set via FEN
+		// Thus, MAX_MOVE_AMOUNT is set conservatively to 300.
+		static const int32_t MAX_MOVE_AMOUNT = 300;
 
 		array<Move, MAX_MOVE_AMOUNT> moveList;
 		array<value_t, MAX_MOVE_AMOUNT> moveWeights;
@@ -169,6 +199,5 @@ namespace QaplaBasics {
 
 }
 
-#endif 
 
 
