@@ -7,7 +7,10 @@ BUILD_BASE   := build
 BUILD_DIR    := $(BUILD_BASE)/$(BUILD_TYPE)
 EXTRA_DEFINES ?=
 
-# Version from git tags, overridable: make QAPLA_VERSION=0.4.0 Release
+# Version: development builds carry the git description, the shipped build
+# (ReleasePGO) carries the plain release number. Bump QAPLA_RELEASE by hand
+# at a release. Overridable: make QAPLA_VERSION=0.4.0 Release
+QAPLA_RELEASE  := 0.4.0
 QAPLA_VERSION  ?= $(shell git describe --tags --always 2>/dev/null || echo unknown)
 VERSION_DEFINE := -DQAPLA_VERSION=\"$(QAPLA_VERSION)\"
 
@@ -267,12 +270,16 @@ ReleaseOpt:
 # test/epd where wmtest.epd lives), rebuild with the merged profile.
 # Old profiles are removed first - profiles from an older source state would
 # silently distort the optimization.
+# This is the shipped build, so it gets the plain release number instead of
+# the git description. The build dirs are removed as well: the version is a
+# compile flag and not a make dependency, so leftover objects would keep the
+# old version string in the binary without any warning.
 ReleasePGO:
-	rm -rf $(PGO_PROFDIR)
-	$(MAKE) BUILD_TYPE=ReleasePGOGen
+	rm -rf $(PGO_PROFDIR) $(BUILD_BASE)/ReleasePGOGen $(BUILD_BASE)/ReleasePGO
+	$(MAKE) BUILD_TYPE=ReleasePGOGen QAPLA_VERSION=$(QAPLA_RELEASE)
 	cd test/epd && printf 'wmtest sd $(PGO_TRAIN_DEPTH)\nquit\n' | $(abspath $(BUILD_BASE))/ReleasePGOGen/$(notdir $(EXE))
 	$(PROFDATA) merge -output=$(PGO_DATA) $(PGO_PROFDIR)/*.profraw
-	$(MAKE) BUILD_TYPE=ReleasePGO all
+	$(MAKE) BUILD_TYPE=ReleasePGO QAPLA_VERSION=$(QAPLA_RELEASE) all
 
 Whatif:
 	$(MAKE) BUILD_TYPE=WhatifRelease
