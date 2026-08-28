@@ -366,3 +366,6 @@ test/epd/ref/
 
 # Dear ImGui layout of the chess GUI, written whenever it runs from this directory
 imgui.ini
+
+# Delivery/release workspace (not versioned)
+/delivery/
