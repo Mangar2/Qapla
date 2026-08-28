@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Reads all bitbases to memory
  *
@@ -29,20 +29,7 @@
 
 
 namespace QaplaBitbase {
-
-    /**
-     * Represents the result of a bitbase query.
-     */
-    enum class Result {
-        Unknown,       ///< Result is unknown or bitbase unavailable
-        Loss,          ///< Loss for the side to move
-        Draw,          ///< Draw position
-        DrawOrLoss,    ///< Either draw or loss
-        Win,           ///< Win for the side to move
-        IllegalIndex   ///< Position index is illegal
-    };
-
-    static constexpr array<const char*, 6> ResultMap{ "Unknown", "Loss", "Draw", "DrawOrLoss", "Win", "IllegalIndex" };
+    static constexpr array<const char*, 4> ResultMap{ "Draw", "Win", "Loss", "Unknown" };
 
     /**
      * Class for loading, managing and querying endgame bitbases.
@@ -78,18 +65,21 @@ namespace QaplaBitbase {
         static vector<std::string> loadBitbaseRec(std::string name, bool force = false);
 
         /**
-         * Queries a bitbase for a win/draw/loss result (white perspective).
+         * Queries a single subordinate bitbase for a position reachable via a capture or promotion.
+         * Returns Win, Loss, or Draw when the bitbase uses 2-bit encoding; falls back to Win/Draw for 1-bit.
+         * for legacy 1-bit bitbases. Returns Unknown when no matching bitbase is available.
+         * Results are expressed from white's perspective.
          * @param position Position to query.
-         * @return Bitbase result.
+         * @return Bitbase result from white's perspective.
          */
-        static Result getValueFromSingleBitbase(const MoveGenerator& position);
+        static BitbaseResult getValueFromSingleBitbase(const MoveGenerator& position);
 
         /**
          * Queries a bitbase from both white and black perspectives.
          * @param position Position to query.
          * @return Bitbase result depending on side to move.
          */
-        static Result getValueFromBitbase(const MoveGenerator& position);
+        static BitbaseResult getValueFromBitbase(const MoveGenerator& position);
 
         /**
          * Queries bitbase and applies score adjustment based on result.
@@ -106,6 +96,14 @@ namespace QaplaBitbase {
          */
         static void loadBitbase(std::string pieceString, bool onlyHeader);
 
+		/**
+		 * Tries to load a single bitbase file from disk.
+		 * @param pieceString Piece configuration string.
+		 * @param onlyHeader If true, only loads header information.
+		 * @return True if file was found and loaded successfully.
+		 */
+		static bool tryLoadBitbaseFile(const std::string& pieceString, bool onlyHeader);
+
         /**
          * Checks if a bitbase is available.
          * @param pieceString Piece configuration string.
@@ -119,6 +117,16 @@ namespace QaplaBitbase {
          * @param bitBase Bitbase instance to set.
          */
         static void setBitbase(std::string pieceString, const Bitbase& bitBase);
+
+        /**
+         * Opens a .qwdl file and registers it so that getValueFromSingleBitbase()
+         * can probe it without keeping the full bitbase in RAM.
+         * Called by the generator after successfully writing each .qwdl file.
+         * @param pieceString Piece configuration string (e.g. "KPK").
+         * @param filePath    Path to the .qwdl file.
+         */
+        static void registerQwdlFile(const std::string& pieceString,
+                                     const std::string& filePath);
 
     private:
 

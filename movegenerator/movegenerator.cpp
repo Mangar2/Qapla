@@ -13,12 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 #include "movegenerator.h"
 #include "bitboardmasks.h"
+#include "magics.h"
 
 using namespace QaplaMoveGenerator;
 
@@ -78,7 +79,7 @@ void MoveGenerator::computePinnedMask()
 	// Every piece set on Ray is pinning a white piece
 	// Set every piece from pinning piece to white king
 	for (; ray; ray &= ray - 1)
-		result |= BitBoardMasks::mRay[kingSquares[COLOR] + lsb(ray) * 64];
+		result |= BitBoardMasks::Ray[kingSquares[COLOR] + lsb(ray) * 64];
 	// Now same thing with rooks
 	ray = Magics::genRookAttackMask(kingSquares[COLOR], allPieceNoPinned);
 	// Set bits on ray with white rook or queen 
@@ -86,7 +87,7 @@ void MoveGenerator::computePinnedMask()
 	// Every piece set on Ray is pinning a black piece
 	// Set every piece from pinning piece to own king
 	for (; ray; ray &= ray - 1)
-		result |= BitBoardMasks::mRay[kingSquares[COLOR] + lsb(ray) * 64];
+		result |= BitBoardMasks::Ray[kingSquares[COLOR] + lsb(ray) * 64];
 	
 	// Now every bit on result is a position with black pinned piece or a position
 	// the black piece may move to without setting the king to check
@@ -138,6 +139,16 @@ bitBoard_t MoveGenerator::computeAttackMask()
 
 	attackMask[COLOR] = result;
 	return result;
+}
+
+// -------------------------- sliderAttacksToSquare ---------------------------
+template <Piece ATTACKER_COLOR>
+inline bitBoard_t MoveGenerator::sliderAttacksToSquare(Square square, bitBoard_t occupancy) const
+{
+	return (Magics::genBishopAttackMask(square, occupancy) &
+			(bitBoardsPiece[BISHOP + ATTACKER_COLOR] | bitBoardsPiece[QUEEN + ATTACKER_COLOR])) |
+		   (Magics::genRookAttackMask(square, occupancy) &
+			(bitBoardsPiece[ROOK + ATTACKER_COLOR] | bitBoardsPiece[QUEEN + ATTACKER_COLOR]));
 }
 
 // -------------------------- computeAttackMasksForBothColors -----------------
@@ -214,7 +225,6 @@ genSilentPawnMoves(MoveList& moveList)
 	const Piece PIECE = PAWN + COLOR;
 	const bitBoard_t LAST_ROW = COLOR == WHITE ? BitBoardMasks::RANK_8_BITMASK : BitBoardMasks::RANK_1_BITMASK;
 	const bitBoard_t RANK_4 = COLOR == WHITE ? BitBoardMasks::RANK_4_BITMASK : BitBoardMasks::RANK_5_BITMASK;
-	const Square MOVE_UP = COLOR == WHITE ? NORTH : SOUTH;
 	const Square MOVE_DOWN = COLOR == WHITE ? SOUTH : NORTH;
 
 	bitBoard_t pawnTarget = (bitBoardsPiece[PIECE] & ~pinnedMask[COLOR]);
@@ -282,18 +292,13 @@ genEPMove(Square departure, Square epPos, MoveList& moveList)
 	const Square DIRECTION = COLOR == WHITE ? NORTH : -NORTH;
 
 	bitBoard_t allPiecesAfterEPMove = bitBoardAllPieces;
-	bitBoard_t attack;
 	// Set the ep move to the All Pieces bitboard to test checks
 	// Set destination bit
 	allPiecesAfterEPMove |= 1ULL << (epPos + DIRECTION);
 	// Remove starting position bit and captured piece position bit
 	allPiecesAfterEPMove &= ~ ((1ULL << departure) | (1ULL << epPos));
-	// Now test if king is in check, check bishops and queens
-	attack = Magics::genBishopAttackMask(kingSquares[COLOR], allPiecesAfterEPMove) & 
-		(bitBoardsPiece[BISHOP + OPPONENT_COLOR] | bitBoardsPiece[QUEEN  + OPPONENT_COLOR]);
-	// Check rooks and queens
-	attack |= Magics::genRookAttackMask(kingSquares[COLOR], allPiecesAfterEPMove) & 
-		(bitBoardsPiece[ROOK + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
+	// Now test if king is in check
+	const bitBoard_t attack = sliderAttacksToSquare<OPPONENT_COLOR>(kingSquares[COLOR], allPiecesAfterEPMove);
 	// if king is not in check after move, generate ep move
 	if (!attack)
 	{
@@ -325,7 +330,7 @@ genNonSilentPawnMoves(MoveList& moveList, Square epPos)
 
 	if (epPos)
 	{
-		for(bitBoard_t epPawns = BitBoardMasks::mEPMask[epPos] & pawns; epPawns; epPawns &= epPawns - 1)
+		for(bitBoard_t epPawns = BitBoardMasks::EPMask[epPos] & pawns; epPawns; epPawns &= epPawns - 1)
 		{
 			genEPMove<COLOR>(lsb(epPawns), epPos, moveList);
 		}
@@ -401,7 +406,7 @@ void MoveGenerator::genNonPinnedMovesForAllPieces(MoveList& moveList) {
 	genMovesForPiece<KING + COLOR, TYPE>(moveList);
 }
 
-template<Piece COLOR>
+template<Piece COLOR, MoveGenerator::moveGenType_t TYPE>
 void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 {
 	bitBoard_t pieces;
@@ -413,12 +418,14 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 	{
 		departure = lsb(pieces);
 		// Assure that piece stays in ray
-		allowedRayMask = BitBoardMasks::mFullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
+		allowedRayMask = BitBoardMasks::FullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
 		Piece piece = operator[](departure);
 		switch (piece) {
 		// Pinned KNIGHTS can never move.
 		case PAWN + COLOR:
-			genSilentSinglePawnMoves<COLOR>(departure, ~bitBoardAllPieces & allowedRayMask, moveList);
+			if constexpr (TYPE == ALL) {
+				genSilentSinglePawnMoves<COLOR>(departure, ~bitBoardAllPieces & allowedRayMask, moveList);
+			}
 			// Captures, not a bug: bitBoardAllPieces is ok to use. A pinned piece will never
 			// have a piece of own color in the pinning ray
 			destination = BitBoardMasks::pawnCaptures[COLOR][departure];
@@ -426,7 +433,7 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 			genPawnCaptureSinglePiece<COLOR>(departure, destination, moveList);
 
 			// En passant moves
-			if (epPos && (BitBoardMasks::mEPMask[epPos] & (1ULL << departure)))
+			if (epPos && (BitBoardMasks::EPMask[epPos] & (1ULL << departure)))
 			{
 				genEPMove<COLOR>(departure, epPos, moveList);
 			}
@@ -436,52 +443,12 @@ void MoveGenerator::genPinnedMovesForAllPieces(MoveList& moveList, Square epPos)
 		case QUEEN + COLOR:
 			destination = pieceAttackMask[departure] & allowedRayMask;
 			genMovesSinglePiece(piece, departure, destination & bitBoardAllPieces, moveList);
-			genMovesSinglePiece(piece, departure, destination & ~bitBoardAllPieces, moveList);
+			if constexpr (TYPE == ALL) {
+				genMovesSinglePiece(piece, departure, destination & ~bitBoardAllPieces, moveList);
+			}
 			break;
 		default:
 			// Intentionally left blank
-			break;
-		}
-	}
-}
-
-template<Piece COLOR>
-void MoveGenerator::genPinnedCapturesForAllPieces(MoveList& moveList, Square epPos)
-{
-	bitBoard_t pieces;
-	bitBoard_t destination;
-	bitBoard_t allowedRayMask;
-	Square departure;
-
-	for (pieces = pinnedMask[COLOR] & bitBoardAllPiecesOfOneColor[COLOR]; pieces; pieces &= pieces - 1)
-	{
-		departure = lsb(pieces);
-		// Assure that piece stays in ray
-		allowedRayMask = BitBoardMasks::mFullRay[kingSquares[COLOR] + departure * 64] & pinnedMask[COLOR];
-		Piece piece = operator[](departure);
-		switch (piece) {
-		// Pinned KNIGHTS can never move.
-		case PAWN + COLOR:
-			// Captures, not a bug: bitBoardAllPieces is ok to use. A pinned piece will never
-			// have a piece of own color in the pinning ray
-			destination = BitBoardMasks::pawnCaptures[COLOR][departure];
-			destination &= allowedRayMask & bitBoardAllPieces;
-			genPawnCaptureSinglePiece<COLOR>(departure, destination, moveList);
-
-			// En passant moves
-			if (epPos && (BitBoardMasks::mEPMask[epPos] & (1ULL << departure)))
-			{
-				genEPMove<COLOR>(departure, epPos, moveList);
-			}
-			break;
-		case BISHOP + COLOR:
-		case ROOK + COLOR:
-		case QUEEN + COLOR:
-			destination = pieceAttackMask[departure] & allowedRayMask;
-			genMovesSinglePiece(piece, departure, destination & bitBoardAllPieces, moveList);
-			break;
-		default:
-			// Nothing to do for other pieces.
 			break;
 		}
 	}
@@ -531,10 +498,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 	directAttack |= BitBoardMasks::knightMoves[kingSquares[COLOR]] & bitBoardsPiece[KNIGHT + OPPONENT_COLOR];
 
 	// Now check if a range piece is attacking king
-	rangeAttack = Magics::genBishopAttackMask(kingSquares[COLOR], bitBoardAllPieces) & 
-		(bitBoardsPiece[BISHOP + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
-	rangeAttack |= Magics::genRookAttackMask(kingSquares[COLOR], bitBoardAllPieces) &
-		(bitBoardsPiece[ROOK + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
+	rangeAttack = sliderAttacksToSquare<OPPONENT_COLOR>(kingSquares[COLOR], bitBoardAllPieces);
 
 	// Check if more than one piece is attacking the king. If yes we can�t 
 	// do anything else than moving the king
@@ -547,7 +511,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 		// i.e. the ray between king and piece
 		if (rangeAttack)
 		{
-			possibleTargetPositions = BitBoardMasks::mRay[kingSquares[COLOR] + lsb(rangeAttack) * 64];
+			possibleTargetPositions = BitBoardMasks::Ray[kingSquares[COLOR] + lsb(rangeAttack) * 64];
 		}
 		// Now targetBoard contains bits any piece may move to. Thus we now may generate the moves
 		// First try pawn
@@ -574,7 +538,7 @@ void MoveGenerator::genEvades(MoveList& moveList)
 		// En passant moves
 		if (epPos)
 		{
-			for(destination = BitBoardMasks::mEPMask[epPos] & pawns; destination; destination &= destination - 1)
+			for(destination = BitBoardMasks::EPMask[epPos] & pawns; destination; destination &= destination - 1)
 			{
 				genEPMove<COLOR>(lsb(destination), epPos, moveList);
 			}
@@ -612,7 +576,7 @@ void MoveGenerator::genNonSilentMoves(MoveList& moveList) {
 	else {
 		moveList.clear();
 		genNonPinnedMovesForAllPieces<NON_SILENT, COLOR>(moveList);
-		genPinnedCapturesForAllPieces<COLOR>(moveList, getEP());
+		genPinnedMovesForAllPieces<COLOR, NON_SILENT>(moveList, getEP());
 	}
 }
 
@@ -654,7 +618,7 @@ void MoveGenerator::genMoves(MoveList& moveList)
 			(castlePieceMaskQueenSide[COLOR] & bitBoardAllPieces) == 0)
 			moveList.addSilentMove(Move(kingSquares[COLOR], QUEEN_SIDE_CASTLE, Move::KING_CASTLES_QUEEN_SIDE + COLOR));
 
-		genPinnedMovesForAllPieces<COLOR>(moveList, getEP());
+		genPinnedMovesForAllPieces<COLOR, ALL>(moveList, getEP());
 	}
 }
 
@@ -698,7 +662,7 @@ std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitma
 	// We index the ray in a way so that it will include the king position but not the discovered attacking piece position
 	for (; potentialDiagonalDiscoveredCheckers;
 		potentialDiagonalDiscoveredCheckers &= potentialDiagonalDiscoveredCheckers - 1) {
-		discoveredCheckMask |= BitBoardMasks::mRay[kingSquares[COLOR] * 64 + lsb(potentialDiagonalDiscoveredCheckers)];
+		discoveredCheckMask |= BitBoardMasks::Ray[kingSquares[COLOR] * 64 + lsb(potentialDiagonalDiscoveredCheckers)];
 	}
 
 	// Generate a mask of all potential discovered check positions on rows and columns
@@ -711,7 +675,7 @@ std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitma
 	// This ray represents the positions where a discovered check could occur along rows or columns.
 	for (; potentialHorizontalDiscoveredCheckers;
 		potentialHorizontalDiscoveredCheckers &= potentialHorizontalDiscoveredCheckers - 1) {
-		discoveredCheckMask |= BitBoardMasks::mRay[kingSquares[COLOR] * 64 + lsb(potentialHorizontalDiscoveredCheckers)];
+		discoveredCheckMask |= BitBoardMasks::Ray[kingSquares[COLOR] * 64 + lsb(potentialHorizontalDiscoveredCheckers)];
 	}
 
 	// The final discoveredCheckMask contains all squares where a discovered check could be initiated.
@@ -755,19 +719,13 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	{
 		const auto kingPos = kingSquares[BLACK];
 		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + SOUTH)) | destinationBit;
-		const auto attack =
-			Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + WHITE] | bitBoardsPiece[QUEEN + WHITE]) |
-			Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + WHITE] | bitBoardsPiece[QUEEN + WHITE]);
-		return attack ? true : false;
+		return sliderAttacksToSquare<WHITE>(kingPos, allPiecesEPMovedBB) ? true : false;
 	}
 	case Move::BLACK_EP:
 	{
 		const auto kingPos = kingSquares[WHITE];
 		const auto allPiecesEPMovedBB = (bitBoardAllPieces & ~departureBit & ~squareToBB(move.getDestination() + NORTH)) | destinationBit;
-		const auto attack =
-			Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + BLACK] | bitBoardsPiece[QUEEN + BLACK]) |
-			Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + BLACK] | bitBoardsPiece[QUEEN + BLACK]);
-		return attack ? true : false;
+		return sliderAttacksToSquare<BLACK>(kingPos, allPiecesEPMovedBB) ? true : false;
 	}
 	// Check if the rook delivers check to the king after castling. There are two scenarios:
 	// 1. The rook is on a square that attacks the king (a computed check square).
@@ -788,5 +746,9 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 
 template void MoveGenerator::genMoves<WHITE>(MoveList&);
 template void MoveGenerator::genMoves<BLACK>(MoveList&);
-template void MoveGenerator::genPinnedMovesForAllPieces<WHITE>(MoveList&, Square);
-template void MoveGenerator::genPinnedMovesForAllPieces<BLACK>(MoveList&, Square);
+// Called from eval.cpp; without the explicit instantiation the symbol only exists
+// as long as LTO happens to inline every cross-TU call.
+template void MoveGenerator::computePinnedMask<WHITE>();
+template void MoveGenerator::computePinnedMask<BLACK>();
+template void MoveGenerator::genPinnedMovesForAllPieces<WHITE, MoveGenerator::ALL>(MoveList&, Square);
+template void MoveGenerator::genPinnedMovesForAllPieces<BLACK, MoveGenerator::ALL>(MoveList&, Square);

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements the evaluation of a king attack based on attack bitboards
  * The king attack area is two rows to north, one row to south and one file east and west,
@@ -30,7 +30,14 @@
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
-#include "evalendgame.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
+#include "../movegenerator/magics.h"
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_KING_ATTACK
+#endif
+
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -40,6 +47,13 @@ namespace ChessEval {
 	class KingAttack {
 
 	public:
+		friend class KingAttackUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
 
 		static IndexLookupMap getIndexLookup() {
 			IndexLookupMap indexLookup;
@@ -65,14 +79,9 @@ namespace ChessEval {
 		static EvalValue eval(MoveGenerator& position, EvalResults& results) {
 			computeAttacks<WHITE>(position, results);
 			computeAttacks<BLACK>(position, results);
-			/*
-			if (position.getEvalVersion() == 1) {
-				auto result = computeAttackValue<WHITE>(position, results) - computeAttackValue<BLACK>(position, results);
-				result += computePawnShieldValue<WHITE>(position, results) - computePawnShieldValue<BLACK>(position, results);
-				return result;
-			}
-			*/
-			return computeAttackValue<WHITE, false>(position, results, nullptr) - computeAttackValue<BLACK, false>(position, results, nullptr);
+
+			auto attackValue =  computeAttackValue<WHITE, false>(position, results, nullptr) - computeAttackValue<BLACK, false>(position, results, nullptr);
+			return attackValue;
 		}
 
 		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
@@ -80,6 +89,7 @@ namespace ChessEval {
 			computeAttacks<BLACK>(position, results);
 			return computeAttackValue<WHITE, true>(position, results, &details) - computeAttackValue<BLACK, true>(position, results, &details);
 		}
+		static constexpr uint32_t MAX_WEIGHT_COUNT = 32;
 
 	private:
 
@@ -104,12 +114,14 @@ namespace ChessEval {
 		}
 
 		template <Piece COLOR>
-		inline static value_t computePawnShieldValue(MoveGenerator& position, const EvalResults& results) {
+		inline static uint32_t computePawnShieldIndexOf(const MoveGenerator& position) {
 			Square kingSquare = position.getKingSquare<COLOR>();
 			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
-			uint32_t index = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			value_t pawnShieldValue = (pawnIndexFactor[index] * results.midgameInPercentV2) / 100;
-			return pawnShieldValue;
+			return computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
+		}
+
+		inline static value_t computePawnShieldValue(uint32_t index, const EvalResults& results) {
+			return (pawnIndexFactor[index] * results.midgameInPercentV2) / 100;
 		}
 
 		/**
@@ -143,7 +155,6 @@ namespace ChessEval {
 		template <Piece COLOR, bool STORE_DETAILS>
 		inline static value_t computeAttackValue(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			Square kingSquare = position.getKingSquare<COLOR>();
-			bitBoard_t myPawnBB = position.getPieceBB(PAWN + COLOR);
 			const Piece OPPONENT = opponentColor<COLOR>();
 			bitBoard_t attackArea = _kingAttackBB[COLOR][kingSquare];
 
@@ -158,15 +169,21 @@ namespace ChessEval {
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksDefended) +
 				popCountForSparcelyPopulatedBitBoards(kingDoubleAttacksUndefended) * 2 +
 				computeCheckMoves<COLOR>(position, results) +
-				(position.getPieceBB(QUEEN + COLOR) != 0) * 3;
+				// COLOR is the side whose king is examined, OPPONENT the one attacking it.
+				// An attack is more dangerous when the attacker has a queen, not the defender.
+				(position.getPieceBB(QUEEN + OPPONENT) != 0) * queenFactor;
 
 			attackIndex = std::min(MAX_WEIGHT_COUNT, attackIndex);
 			value_t attackValue = 0;
-			attackValue = attackWeight2[attackIndex];
+			attackValue = attackWeight[attackIndex];
 			attackValue = (attackValue * results.midgameInPercentV2) / 100;
-			
-			//uint32_t pawnShieldIndex = computePawnShieldIndex<COLOR>(kingSquare, myPawnBB);
-			//attackValue += (pawnIndexFactor[pawnShieldIndex] * results.midgameInPercentV2) / 100;
+
+			// The pawns in front of the king are the one part of the king safety that does not
+			// depend on what the opponent is doing. It is a term of its own, not a modifier of
+			// the attack index: a missing shield is a weakness even before an attack exists.
+			const uint32_t pawnShieldIndex = computePawnShieldIndexOf<COLOR>(position);
+			const value_t pawnShieldValue = computePawnShieldValue(pawnShieldIndex, results);
+			attackValue += pawnShieldValue;
 
 			if constexpr (STORE_DETAILS) {
 				const IndexVector indexVector{ { "kingAttack", attackIndex, COLOR } };
@@ -181,34 +198,49 @@ namespace ChessEval {
 		 */
 		template <Piece COLOR>
 		inline static void computeAttacks(const MoveGenerator& position, EvalResults& results) {
-			const Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			bitBoard_t pawnAttack = position.pawnAttack[COLOR];
 			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & pawnAttack;
 			results.piecesAttack[COLOR] |= pawnAttack;
 		}
 
-		static const uint32_t MAX_ATTACK_COUNT = 0x0F;
-		static const uint32_t QUEEN_AVAILABLE_INDEX = 0x10;
+		static constexpr uint32_t MAX_ATTACK_COUNT = 0x0F;
+		static constexpr uint32_t QUEEN_AVAILABLE_INDEX = 0x10;
 
 		
-		static const uint32_t QUEEN_INDEX = 0x01;
-		static const uint32_t PRESSURE_INDEX = 0x2;
-		static const uint32_t PRESSURE_MASK = 0x1F;
-		static const uint32_t INDEX_SIZE = 0x40;
+		static constexpr uint32_t QUEEN_INDEX = 0x01;
+		static constexpr uint32_t PRESSURE_INDEX = 0x2;
+		static constexpr uint32_t PRESSURE_MASK = 0x1F;
+		static constexpr uint32_t INDEX_SIZE = 0x40;
+		// An earlier CLOP landed on 2 and that lost against 0.4.0-025a, so 3 was restored. That
+		// run tuned the term while it still counted the defender's queen; re-run against the
+		// corrected term it came out at 2.65, which rounds back to the same 3.
+		static constexpr uint32_t QUEEN_FACTOR_DEFAULT = 3;
 
-		static struct InitStatics {
-			InitStatics();
-		} _staticConstructor;
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> ATTACK_WEIGHT_DEFAULT =
 
-		static const uint32_t MAX_WEIGHT_COUNT = 32;
-		// 100 cp = 67% winning propability. 300 cp = 85% winning propability
-		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight =
-		{ 0,  0, 0, 0, -5, -20, -35, -50, -65, -80, -100, -120, -140, -160, -180, -200, -250, -300, -350, -400, -450, -500, -600, -700, -800, -900,
-		-900, -900, -900, -900, -900, -900, -900 };
-		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight2 =
-		{ 0,  0, -5, -10, -15, -25, -35, -50, -65, -85, -105, -140, -165, -190, -215, -230, -255, -280, -305, -330, -355, -380, -410, -440, -470, -500,
-		  -530, -560, -590, -620, -650, -680, -710 };
-		static constexpr array<value_t, 8> pawnIndexFactor = { -8, -9, -9, -5, -9, -4, 5, 10 };
+		// Re-tuned by CLOP after the queen term moved to the attacking side. Generated from the
+		// seven support points 0, -3, -13, -32, -85, -234, -658. Index 0 means no attack at all
+		// and is kept at 0 by hand; CLOP proposed 0.51 there, which would be a standing bonus
+		// for nothing.
+		{ 0, -1, -3, -7, -13, -22, -32, -42, -53, -67, -85, -108, -135, -166, -199, -234, -269, -305, -341, -376, -410, -444, -476, -506, -535, -561,
+		  -585, -606, -624, -638, -649, -656, -658 };
+
+		/*
+		// Tuned king attack weights: worse result than 0.4.0-025a, therefore commented out.
+		{ 0, -8, -16, -19, -22, -25, -30, -42, -59, -79, -102, -126, -151, -177, -207, -239, -274, -313, -353, -396, -439, -482, -526, -568, -608, -647,
+		  -682, -713, -741, -763, -780, -791, -794 };
+
+		{ 0, 0, -3, -7, -13, -20, -29, -41, -54, -69, -86, -105, -125, -147, -171, -195, -221, -247, -273, -300, -327,
+			-354, -380, -406, -432, -456, -480, -504, -526, -547, -568, -587, -605 };
+		*/
+
+#ifndef PARAM_OPTIMIZE_KING_ATTACK
+		static constexpr array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = ATTACK_WEIGHT_DEFAULT;
+		static constexpr uint32_t queenFactor = QUEEN_FACTOR_DEFAULT;
+#else
+		inline static array<value_t, MAX_WEIGHT_COUNT + 1> attackWeight = ATTACK_WEIGHT_DEFAULT;
+		inline static uint32_t queenFactor = QUEEN_FACTOR_DEFAULT;
+#endif
 
 		static constexpr SquareTable<value_t> initialKingThreat = SquareTable<value_t>(
 			std::array<value_t, 64>{
@@ -269,6 +301,24 @@ namespace ChessEval {
 			}
 			return kingAttackBB;
 		} ();
+
+		// Bonus for the pawns in front of the king, indexed by FWE: F = a pawn in front, W = one
+		// to the west, E = one to the east. Both kings get the same term and the two are
+		// subtracted from each other, so a constant added to all eight entries cancels out - up
+		// to the rounding of the midgame scaling it changes nothing. It is a degree of freedom
+		// that carries no information and that a tuning run could not resolve, so the full
+		// shield, index 7, is pinned at 0 and the other seven are measured against it. The
+		// values are the original { -8, -9, -9, -5, -9, -4, 5, 10 } shifted by -10.
+		// Tuned by CLOP over 5000 samples with index 7 pinned, from { -18, -19, -19, -15, -19,
+		// -14, -5, 0 }. Indices 5 and 6 are mirror images of each other and stood 9 apart; the
+		// run pulled them to -8 and -10, which is the kind of agreement noise does not produce.
+		static constexpr array<value_t, 8> PAWN_INDEX_FACTOR_DEFAULT = { -13, -19, -24, -17, -15, -8, -10, 0 };
+
+#ifndef PARAM_OPTIMIZE_KING_ATTACK
+		static constexpr array<value_t, 8> pawnIndexFactor = PAWN_INDEX_FACTOR_DEFAULT;
+#else
+		inline static array<value_t, 8> pawnIndexFactor = PAWN_INDEX_FACTOR_DEFAULT;
+#endif
 
 	};
 }

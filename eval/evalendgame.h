@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements chess board evaluation for end games. 
  * Returns +100, if white is one pawn up
@@ -23,8 +23,6 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include "../basics/move.h"
 #include "../basics/hashed-lookup.h"
 #include "../movegenerator/movegenerator.h"
 #include "piece-signature-lookup.h"
@@ -81,6 +79,19 @@ namespace ChessEval {
 			registerEntry(pieces, EvalEntry(getFromBitbase), false);
 			registerEntry(pieces, EvalEntry(getFromBitbase), true);
 		}
+
+		/**
+		 * Bishops on opposite colours with nothing on the board but pawns: the defending bishop
+		 * covers a colour the attacking one can never reach, so a material surplus often cannot
+		 * be converted and the value is pulled towards the draw.
+		 *
+		 * This is a scaling of the finished evaluation, not an endgame pattern of its own, and
+		 * that is why it does not go through the piece signature hash. An entry there replaces
+		 * the value, which makes lazyEval skip the tempo bonus and the fifty move damping that
+		 * follow - and the damping pulls towards the draw as well. Switching it off in exactly
+		 * the positions that are to be pulled towards the draw would work against the scaling.
+		 */
+		static value_t scaleOppositeColouredBishops(const MoveGenerator& position, value_t value);
 
 	private:
 
@@ -256,6 +267,14 @@ namespace ChessEval {
 		static constexpr Square UP[COLOR_COUNT] = { NORTH, SOUTH };
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
+
+		// Percentage the value keeps in an opposite coloured bishop endgame, by the number of
+		// pawns the stronger side is ahead. Hand written, not tuned: the position type is far too
+		// rare in a normal game for a run to produce a signal on it.
+		// Index 0, equal material, is the most drawish case of all - neither side has anything to
+		// convert. From three pawns up the extra material starts to tell even against a bishop of
+		// the wrong colour, and from four the endgame is a normal win.
+		static constexpr value_t OPPOSITE_BISHOP_SCALE_PERCENT[5] = { 45, 50, 65, 85, 100 };
 
 		static inline PieceSignatureHashedLookup<EvalEntry, 32768, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
 	};

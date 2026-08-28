@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a structure containing various results from eval calculations
  */
@@ -29,9 +29,9 @@
 #include <vector>
 #include <map>
 #include "../basics/types.h"
+#include "../basics/bits.h"
 #include "../basics/evalvalue.h"
 #include "eval-exchange-structures.h"
-#include "../interface/candidate-trainer.h"
 
 using namespace QaplaBasics;
 
@@ -50,6 +50,22 @@ namespace ChessEval {
 		inline void clearAttacksBB() {
 			clearAttacksBB<WHITE>();
 			clearAttacksBB<BLACK>();
+		}
+
+		/**
+		 * Books the attacks of a single piece: into the table of its own piece type, into the
+		 * combined attack mask and into the double attack mask. Returns the mobility index,
+		 * the number of attacked squares left by removeBB.
+		 *
+		 * piecesDoubleAttack must be updated before piecesAttack, else the attack of this very
+		 * piece would make every square it covers a doubly attacked one.
+		 */
+		template <Piece COLOR>
+		inline uint32_t addPieceAttack(colorBB_t& pieceAttack, bitBoard_t attackBB, bitBoard_t removeBB) {
+			pieceAttack[COLOR] |= attackBB;
+			piecesDoubleAttack[COLOR] |= piecesAttack[COLOR] & attackBB;
+			piecesAttack[COLOR] |= attackBB;
+			return popCount(attackBB & removeBB);
 		}
 
 		// White and black queens

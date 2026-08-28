@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Workpackage for a thread in bitbase generation
  */
@@ -32,17 +32,17 @@ namespace QaplaBitbase {
 	class Workpackage
 	{
 	public:
-		Workpackage(const GenerationState& state) {
+		Workpackage(GenerationState& state) {
 			state.getWork(_workList);
 			_workIndex = 0;
-			_size = state.getSizeInBit();
+			_size = state.getEntryCount();
 			_lastInfo = 0;
 		}
 
 		/**
-		 * Gets the bitbase index of a work element
+		 * Gets the candidate entry of a work element
 		 */
-		uint64_t getIndex(uint64_t workIndex) const { 
+		CandidateEntry getCandidate(uint64_t workIndex) const { 
 			return _workList[workIndex]; 
 		}
 
@@ -80,11 +80,89 @@ namespace QaplaBitbase {
 
 
 	private:
-		std::vector<uint64_t> _workList;
+		std::vector<CandidateEntry> _workList;
 		uint64_t _workIndex;
 		uint64_t _lastInfo;
 		mutex _mtxWork;
 		uint64_t _size;
+	};
+
+	/**
+	 * Lightweight workpackage for the initial scan phase.
+	 * Distributes index ranges [0, entryCount) across threads without building
+	 * any candidate list â€” during initial scan no candidates exist yet.
+	 * Ranges are byte-aligned (multiples of 8) to avoid false sharing.
+	 */
+	class InitialWorkpackage
+	{
+	public:
+		InitialWorkpackage(uint64_t entryCount)
+			: _entryCount(entryCount), _workIndex(0) {}
+
+		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count) {
+			count = (count + 7) & ~uint64_t(7);
+			const lock_guard<mutex> lock(_mtxWork);
+			uint64_t first = _workIndex;
+			if (first >= _entryCount) return {_entryCount, _entryCount};
+			uint64_t last = min(first + count, _entryCount);
+			_workIndex = last;
+			return {first, last};
+		}
+
+	private:
+		uint64_t _entryCount;
+		uint64_t _workIndex;
+		mutex _mtxWork;
+	};
+
+	/**
+	 * Alternative Workpackage that copies the candidate bitmaps at construction time.
+	 * This avoids building a large CandidateEntry vector from the bitbase.
+	 * getNextPackageToExamine always returns byte-aligned ranges (multiples of 8)
+	 * so each thread reads its own bytes without false sharing on byte boundaries.
+	 * getCandidate returns -1 (no candidate), 0 (candidate, losing move),
+	 * or 1 (candidate, winning move).
+	 */
+	class BitWorkpackage
+	{
+	public:
+		BitWorkpackage(GenerationState& state)
+			: _candidates(state.getCandidates())
+			, _candidateResults(state.getCandidateResults())
+			, _entryCount(state.getEntryCount())
+			, _workIndex(0)
+		{
+		}
+
+		/**
+		 * Returns -1 if index is not a candidate, 0 if losing candidate, 1 if winning candidate.
+		 */
+		int getCandidate(uint64_t index) const {
+			if (!_candidates.getBitAtomic(index)) return -1;
+			return _candidateResults.getBitAtomic(index) ? 1 : 0;
+		}
+
+		/**
+		 * Returns the next byte-aligned [first, last) range of up to `count` entries.
+		 * Both first and last are multiples of 8, so each thread works on whole bytes.
+		 */
+		pair<uint64_t, uint64_t> getNextPackageToExamine(uint64_t count) {
+			// Round count up to next multiple of 8 so ranges stay byte-aligned.
+			count = (count + 7) & ~uint64_t(7);
+			const lock_guard<mutex> lock(_mtxWork);
+			uint64_t first = _workIndex;
+			if (first >= _entryCount) return {_entryCount, _entryCount};
+			uint64_t last = min(first + count, _entryCount);
+			_workIndex = last;
+			return {first, last};
+		}
+
+	private:
+		Bitbase _candidates;
+		Bitbase _candidateResults;
+		uint64_t _entryCount;
+		uint64_t _workIndex;
+		mutex _mtxWork;
 	};
 
 }

@@ -13,13 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 
 #include "winboard.h"
 #include "winboardprintsearchinfo.h"
+#include "computinginfoexchange.h"
 #include <thread>
 
 using namespace std;
@@ -52,7 +53,7 @@ void Winboard::printGameResult(GameResult result) {
 	}
 }
 
-Winboard::Winboard() : _sendSearchInfo(0) {
+Winboard::Winboard() {
 	_mode = Mode::WAIT;
 	_forceMode = false;
 	_computerIsWhite = false;
@@ -69,7 +70,15 @@ void Winboard::handleProtover() {
 		if (_protoVer > 1) {
 			println("feature done=0");
 			println("feature colors=0 pause=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1 ");
-			println("feature egt=qaplaBitbases option=qaplaBitbaseCache -spin 1 1600 ");
+			// The bitbase entries only appear while the engine still reads bitbase files,
+			// which the provider answers by offering the option or not.
+			std::string egt = "syzygy";
+			std::string options = "";
+			if (hasOption("qaplaBitbasePath")) {
+				egt += ",qaplaBitbases";
+				options = " option=qaplaBitbaseCache -spin 1 1600";
+			}
+			println("feature egt=\"" + egt + "\"" + options + " ");
 			println("feature myname=\"" + getBoard()->getEngineInfo()["name"] + " by " + getBoard()->getEngineInfo()["author"] + "\"");
 			println("feature done=1");
 		}
@@ -143,6 +152,7 @@ void Winboard::computeMove() {
 		_clock.setSearchMode();
 		setInfiniteSearch(false);
 		getBoard()->setClock(_clock);
+		startCompute();
 		getWorkerThread().startTask([this]() {
 			getBoard()->computeMove();
 			_mode = Mode::WAIT;
@@ -336,8 +346,37 @@ void Winboard::loadEgtb() {
 	std::string path = getNextTokenNonBlocking();
 
 	if (tk == "qaplaBitbases") {
-		getBoard()->setOption("qaplaBitbasePath", path);
+		setOptionByProvider("qaplaBitbasePath", path);
 	}
+	else if (tk == "syzygy") {
+		setOptionByProvider("SyzygyPath", path);
+	}
+}
+
+/** True if some provider offers an option of that name. */
+bool Winboard::hasOption(const std::string& name) {
+	for (auto* provider : getBoard()->getUciOptionProviders()) {
+		for (const auto& option : provider->getUciOptions()) {
+			if (option.name == name) return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Hands an option to the provider that owns it, falling back to the board.
+ * Winboard names an option the same way UCI does, so the same providers apply.
+ */
+void Winboard::setOptionByProvider(const std::string& name, const std::string& value) {
+	for (auto* provider : getBoard()->getUciOptionProviders()) {
+		for (const auto& option : provider->getUciOptions()) {
+			if (option.name == name) {
+				provider->setUciOption(option.name, value);
+				return;
+			}
+		}
+	}
+	getBoard()->setOption(name, value);
 }
 
 void Winboard::setOption() {
@@ -353,7 +392,7 @@ void Winboard::setOption() {
  */
 void Winboard::runLoop() {
 	_mode = Mode::WAIT;
-	string token = "";
+	string token = getCurrentToken();
 	getBoard()->initialize();
 	setPositionByFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	while (token != "quit" && !isFatalError()) {
@@ -438,6 +477,7 @@ void Winboard::handleInputWhileInPonderMode() {
 
 void Winboard::handleInput() {
 	const string token = getCurrentToken();
+	if (token == "quit") return;
 	if (token == "analyze") analyzeMove();
 	else if (token == "force") _forceMode = true;
 	else if (token == "go") computeMove();

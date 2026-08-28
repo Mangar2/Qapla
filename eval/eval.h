@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements chess board evaluation. Returns +100, if white is one pawn up
  * Used to evaluate in quiescense search
@@ -27,7 +27,6 @@
  // Idee 3: Beweglichkeit einer Figur aus der Suche evaluieren. Speichern, wie oft eine Figur von einem Startpunkt erfolgreich bewegt wurde.
 
 #include <vector>
-#include <map>
 #include "../basics/types.h"
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"

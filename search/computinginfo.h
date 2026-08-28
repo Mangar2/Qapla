@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Class containing a set of information taken from the Chess-Search algorithm
  * - The elapsed time in milliseconds for the current search
@@ -28,15 +28,16 @@
 #ifndef __COMPUTINGINFO_H
 #define __COMPUTINGINFO_H
 
-#include <array>
+
+#include "pv.h"
+#include "rootmoves.h"
+
 #include "../basics/move.h"
 #include "../interface/stdtimecontrol.h"
-#include "pv.h"
 #include "../interface/isendsearchinfo.h"
 #include "../interface/computinginfoexchange.h"
-#include "rootmoves.h"
-#include "searchparameter.h"
-#include "searchstack.h"
+
+
 
 using namespace QaplaInterface;
 
@@ -96,7 +97,7 @@ namespace QaplaSearch {
 		/**
 		 * initializes data before starting to search
 		 */
-		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard butterflyBoard) {
+		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard) {
 			_rootMoves.setMoves(position, searchMoves, butterflyBoard);
 			_nodesSearched = 0;
 			_tbHits = 0;
@@ -106,7 +107,7 @@ namespace QaplaSearch {
 		/**
 		 * Starts searching the next iteration
 		 */
-		void nextIteration(const SearchVariables& searchInfo) {
+		void nextIteration(const SearchNode& searchInfo) {
 			_totalAmountOfMovesToConcider = searchInfo.moveProvider.getTotalMoveAmount();
 			_currentConcideredMove.setEmpty();
 			_currentMoveNoSearched = 0;
@@ -167,6 +168,14 @@ namespace QaplaSearch {
 		}
 		void printSearchResult(uint32_t moveNo, uint32_t multiPVNo = 1) const {
 			const auto& rootMove = _rootMoves.getMove(moveNo);
+			const value_t reported = rootMove.getReportedValue();
+			if (reported != rootMove.getValue()) {
+				// A tablebase answer is knowledge, not a search result - it has no window it
+				// could be a bound of, so it is reported exact.
+				printSearchResult(rootMove.getPV(), reported, -MAX_VALUE, MAX_VALUE,
+					rootMove.getDepth(), multiPVNo);
+				return;
+			}
 			printSearchResult(rootMove.getPV(), rootMove.getValue(), rootMove.getAlpha(), rootMove.getBeta(), rootMove.getDepth(), multiPVNo);
 		}
 
@@ -177,7 +186,6 @@ namespace QaplaSearch {
 			if (_multiPV == 1) {
 				printSearchResult(0);
 			} else {
-				const auto& timeSinceLastInfo = _timeControl.getTimeSpentInMilliseconds() - _lastMultiPVInfo;
 				const auto& pvCount = _rootMoves.countPVSearchedMovesInWindow(_searchDepth);
 				if (pvCount >= _multiPV) {
 					_lastMultiPVInfo = _timeControl.getTimeSpentInMilliseconds();
@@ -219,7 +227,7 @@ namespace QaplaSearch {
 		 * Update status information on ply 0
 		 */
 		void printNewPV(uint32_t moveNo) {
-			const auto rootMove = _rootMoves.getMove(moveNo);
+			const auto& rootMove = _rootMoves.getMove(moveNo);
 			if (rootMove.isPVSearched() && rootMove.getValue() > _positionValueInCentiPawn) {
 				_positionValueInCentiPawn = rootMove.getValue();
 				if (_multiPV == 1 && _nodesSearched > 2000000) {

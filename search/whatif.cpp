@@ -1,3 +1,24 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ * @Overview
+ * Implements a thread pool to support multi-threading in chess
+ */
+
 #include "computinginfo.h"
 #include "../eval/eval.h"
 #include "searchstack.h"
@@ -11,7 +32,7 @@ WhatIf WhatIf::whatIf;
 
 #if (DOWHATIF == true)
 
-WhatIf::WhatIf() : maxPly(0), searchDepth(0), count(0)
+WhatIf::WhatIf() : searchDepth(0), count(0)
 {
 	clear();
 }
@@ -112,7 +133,8 @@ void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo
  */
 string getCutoffString(Cutoff cutoff)
 {
-	return array<string, int(Cutoff::COUNT)>{"NONE", "REPT", "50M", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY"}[int(cutoff)];
+	return array<string, int(Cutoff::COUNT)>{"NONE", "REPT", "50MO", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL",
+		"BITB", "LOST", "MAXD", "ABOR", "MCUT"}[int(cutoff)];
 }
 
 void WhatIf::cutoff(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, ply_t ply, Cutoff cutoff)
@@ -146,17 +168,14 @@ void WhatIf::setTT(TT *ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move mov
 {
 	if (hashKey == hash)
 	{
-		auto ttIndex = ttPtr->getTTEntryIndex(hashKey);
-		if (ttPtr->isNewEntryMoreValuable(ttIndex, depth, move, true))
-		{
-			std::cout << "set hash [w" << std::setw(6) << alpha << " "
-					  << std::setw(6) << beta << "][d:" << std::setw(2) << depth << "]"
-					  << "[v:" << std::setw(6) << bestValue << "]"
-					  << "[m:" << std::setw(5) << move.getLAN() << "]"
-					  << std::endl;
+		[[maybe_unused]] auto ttIndex = ttPtr->getEntryIndex(hashKey);
+		std::cout << "set hash [w" << std::setw(6) << alpha << " "
+					<< std::setw(6) << beta << "][d:" << std::setw(2) << depth << "]"
+					<< "[v:" << std::setw(6) << bestValue << "]"
+					<< "[m:" << std::setw(5) << move.getLAN() << "]"
+					<< std::endl;
 
-			ttPtr->printHash(hashKey);
-		}
+		ttPtr->printHash(hashKey);
 	}
 }
 

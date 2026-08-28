@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a thread pool to support multi-threading in chess
  */
@@ -36,7 +36,7 @@ namespace QaplaSearch {
 
 	class WorkPackage {
 	public:
-		WorkPackage() : _workerCount(0), _work(0), _lastToReserve(false) {}
+		WorkPackage() : _work(0), _workerCount(0), _lastToReserve(false) {}
 		
 		/**
 		 * Sets the working function

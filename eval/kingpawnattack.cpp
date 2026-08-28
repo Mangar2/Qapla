@@ -13,11 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include "kingpawnattack.h"
+#include "../movegenerator/bitboardmasks.h"
 
 using namespace ChessEval;
 
@@ -57,7 +58,6 @@ value_t KingPawnAttack::computeKingRace(MoveGenerator& board) {
 	initRace<BLACK>(board);
 	bool wtm = board.isWhiteToMove();
 	value_t pawnCaptured = 0;
-	Piece winningColor = NO_PIECE;
 
 	while (kingPositions[WHITE] != 0 || kingPositions[BLACK] != 0) {
 		if (wtm) {

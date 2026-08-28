@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Scans a fen string
  */
@@ -202,6 +202,7 @@ namespace QaplaInterface {
 				++fenIterator;
 			}
 			if (epFile != -1 && epRank != -1) {
+				// epRank adjustment to qapla is made in setEPSquare
 				chessBoard->setEPSquare(epFile, epRank);
 			}
 			else {

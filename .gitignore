@@ -17,7 +17,11 @@
 *.7z
 *.bin
 *.epd
+*.qwdl
 .editorconfig
+/.github/
+/test/log/
+*.DS_Store
 
 !CMakeLists.txt
 
@@ -38,6 +42,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 build/
+build-*/
+new-versions/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -351,3 +357,15 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# Syzygy tablebase probe code (third-party, not part of this project)
+nnue768/tbprobe.cpp
+nnue768/tbprobe.h
+# Reference binary for the interleaved timing runs, a local working aid
+test/epd/ref/
+
+# Dear ImGui layout of the chess GUI, written whenever it runs from this directory
+imgui.ini
+
+# Delivery/release workspace (not versioned)
+/delivery/

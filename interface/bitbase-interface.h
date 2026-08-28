@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a Winboard - Interface
  */
@@ -67,10 +67,7 @@ namespace QaplaInterface {
 		 */
 		void handleInput();
 		volatile Mode _mode;
-		bool _xBoardMode;
-		bool _computerIsWhite;
 		std::vector<std::string> _startPositions;
-		ISendSearchInfo* _sendSearchInfo;
 	};
 
 }

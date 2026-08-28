@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a static class to evaluate rooks 
  */
@@ -27,9 +27,17 @@
 #include "../basics/types.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "../movegenerator/magics.h"
 #include "../basics/evalvalue.h"
 #include "../basics/pst.h"
 #include "evalresults.h"
+#include "eval-helper.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_ROOK
+#endif
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
@@ -37,6 +45,14 @@ using namespace QaplaMoveGenerator;
 namespace ChessEval {
 	class Rook {
 	public:
+		friend class RookUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
 			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
 		}
@@ -117,17 +133,14 @@ namespace ChessEval {
 			uint32_t rookOnRow7Index, Square rookSquare)
 		{
 			uint32_t rookIndex = 0;
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
 			const bitBoard_t ourPawnBB = position.getPieceBB(PAWN + COLOR);
-			const bitBoard_t theirPawnBB = position.getPieceBB(PAWN + OPPONENT);
-			const Square rank8Destination = (COLOR == WHITE ? A8 : A1) + Square(getFile(rookSquare));
 			const bitBoard_t moveRay = BitBoardMasks::fileBB[int(getFile(rookSquare))];
 			rookIndex += isOnOpenFile(results.pawnsBB, moveRay) * OPEN_FILE;
 			rookIndex += isOnHalfOpenFile(ourPawnBB, moveRay) * HALF_OPEN_FILE;
 			rookIndex += trappedByKing<COLOR>(rookSquare, position.getKingSquare<COLOR>()) * TRAPPED;
 			rookIndex +=
 				protectsPassedPawnFromBehind<COLOR>(results.passedPawns[COLOR], rookSquare, moveRay) * PROTECTS_PP;
-			rookIndex += isPinned(position.pinnedMask[COLOR], rookSquare) * PINNED;
+			rookIndex += EvalHelper::isPinned(position.pinnedMask[COLOR], rookSquare) * PINNED;
 			if (squareToBB(rookSquare) & ROW_7[COLOR]) {
 				rookIndex += rookOnRow7Index;
 			}
@@ -141,13 +154,8 @@ namespace ChessEval {
 		static uint32_t calcMobilityIndex(
 			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
-			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
-			results.rookAttack[COLOR] |= attackBB;
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-
-			attackBB &= removeBB;
-			return popCount(attackBB);
+			const bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB);
+			return results.addPieceAttack<COLOR>(results.rookAttack, attackBB, removeBB);
 		}
 
 		/**
@@ -167,13 +175,6 @@ namespace ChessEval {
 			if (((rookIndex / ROW_7_INDEX) & 7) == 6) { result += "rrq7,"; }
 			if (!result.empty() && result.back() == ',') result.pop_back();
 			return result;
-		}
-
-		/**
-		 * Returns true, if the rook is pinned
-		 */
-		static constexpr bool isPinned(bitBoard_t pinnedBB, Square square) {
-			return (pinnedBB & squareToBB(square)) != 0;
 		}
 
 		/**
@@ -239,7 +240,7 @@ namespace ChessEval {
 			} };
 
 		// Mobility Map
-		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP = { {
+		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP_DEFAULT = { {
 			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
@@ -252,14 +253,15 @@ namespace ChessEval {
 		static const uint32_t PINNED = 0x10;
 		static const uint32_t DOUBLE_ROOK_INDEX = 0x20;
 		static const uint32_t ROW_7_INDEX = 0x40;
-		
-		inline static array<EvalValue, INDEX_SIZE> evalMap = [] {
-			const value_t _trapped[2] = { -50, -16 };
-			const value_t _openFile[2] = { 18, 6 };
-			const value_t _halfOpenFile[2] = { 10, 0 };
-			const value_t _protectsPP[2] = { 25, 0 };
-			const value_t _pinned[2] = { -23, 0 };
 
+		static constexpr value_t _trapped[2] = { -50, -16 };
+		static constexpr value_t _openFile[2] = { 18, 6 };
+		static constexpr value_t _halfOpenFile[2] = { 10, 0 };
+		static constexpr value_t _protectsPP[2] = { 25, 0 };
+		static constexpr value_t _pinned[2] = { -23, 0 };
+		static constexpr value_t _doubleRook[2] = { -13, 0 };
+
+		static constexpr array<EvalValue, INDEX_SIZE> EVAL_MAP_DEFAULT = [] {
 			array<EvalValue, INDEX_SIZE> map;
 			for (uint32_t bitmask = 0; bitmask < INDEX_SIZE; ++bitmask) {
 				EvalValue value;
@@ -268,12 +270,20 @@ namespace ChessEval {
 				if (bitmask & HALF_OPEN_FILE) { value += _halfOpenFile; }
 				if (bitmask & PROTECTS_PP) { value += _protectsPP; }
 				if (bitmask & PINNED) { value += _pinned; }
-				if (bitmask & DOUBLE_ROOK_INDEX) { value += { -13, 0 }; }
+				if (bitmask & DOUBLE_ROOK_INDEX) { value += _doubleRook; }
 				if (bitmask / ROW_7_INDEX) { value += ROOK_ROW_7_MAP[bitmask / ROW_7_INDEX]; }
 				map[bitmask] = value;
 			}
 			return map;
-		} ();
+		}();
+
+#ifndef PARAM_OPTIMIZE_ROOK
+		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP = ROOK_MOBILITY_MAP_DEFAULT;
+		static constexpr array<EvalValue, INDEX_SIZE> evalMap = EVAL_MAP_DEFAULT;
+#else
+		inline static std::array<EvalValue, 15> ROOK_MOBILITY_MAP = ROOK_MOBILITY_MAP_DEFAULT;
+		inline static array<EvalValue, INDEX_SIZE> evalMap = EVAL_MAP_DEFAULT;
+#endif
 	};
 }
 

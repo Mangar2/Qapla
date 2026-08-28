@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements several perft algorithms (iterative, recursive, using transposition tables, ...)
  */
@@ -45,11 +45,12 @@ namespace QaplaSearch {
 
 		void doMove(MoveGenerator& board) {
 			boardState = board.getBoardState();
+			incrementalState = board.getIncrementalState();
 			board.doMove(moveList[moveNo]);
 		}
 
 		void undoMoveAndSetToNextMove(MoveGenerator& board) {
-			board.undoMove(moveList[moveNo], boardState);
+			board.undoMove(moveList[moveNo], boardState, incrementalState);
 			moveNo++;
 		}
 
@@ -64,6 +65,7 @@ namespace QaplaSearch {
 
 		MoveList moveList;
 		BoardState boardState;
+		IncrementalState incrementalState;
 		uint16_t moveNo;
 		uint8_t curDepth;
 	};
@@ -150,15 +152,14 @@ namespace QaplaSearch {
 		static array<TTEntry, TT_SIZE> tt;
 	};
 
-	static uint64_t doPerftRec(MoveGenerator& board, uint32_t maxDepth, 
+	[[maybe_unused]] static uint64_t doPerftRec(MoveGenerator& board, uint32_t maxDepth,
 		uint32_t workerCount,  bool scipLastPly = true, bool verbose = false) {
 		board.computeAttackMasksForBothColors();
 		PerftSearch search(workerCount);
 		return search.perftRec(board, maxDepth, 0, scipLastPly, verbose);
 	}
 
-#pragma warning(suppress: 6262)
-	static uint64_t doPerftIter(MoveGenerator& board, uint32_t depth, uint32_t verbose = 1) {
+	[[maybe_unused]] static uint64_t doPerftIter(MoveGenerator& board, uint32_t depth, uint32_t verbose = 1) {
 
 		const uint32_t MAX_DEPTH = 32;
 		uint32_t curDepth = 0;

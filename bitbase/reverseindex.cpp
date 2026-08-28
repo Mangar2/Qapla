@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include "reverseindex.h"
@@ -116,7 +116,6 @@ uint64_t ReverseIndex::setKingSquaresByIndex(uint64_t index, bool hasPawn) {
 }
 
 void ReverseIndex::setPiecesByIndex(uint64_t index, const PieceList& pieceList) {
-	uint32_t piecesToAdd = pieceList.getNumberOfPiecesWithoutPawns() - NUMBER_OF_KINGS;
 	uint64_t remainingPiecePositions = NUMBER_OF_PIECE_POSITIONS - NUMBER_OF_KINGS - pieceList.getNumberOfPawns();
 	while (pieceList.getNumberOfPieces() > _pieceCount) {
 		const uint32_t count = pieceList.getNumberOfSamePieces(_pieceCount);

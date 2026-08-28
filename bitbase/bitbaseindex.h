@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Calculates an index from a board position to a _bitbase. The index is calculated by multiplying 
  * 1. One bit for white to move / black to move
@@ -108,8 +108,8 @@ namespace QaplaBitbase {
 		/**
 		 * Gets the maximum possible index + 1
 		 */
-		uint64_t getSizeInBit() const {
-			return _sizeInBit;
+		uint64_t getEntryCount() const {
+			return _entryCount;
 		}
 
 		/**
@@ -163,18 +163,18 @@ namespace QaplaBitbase {
 		 * Computes the size of the bitbase index
 		 */
 		void computeSize(const PieceList& pieceList) {
-			_sizeInBit = _pawnCount == 0 ?
+			_entryCount = _pawnCount == 0 ?
 				NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN * COLOR_COUNT :
 				NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN * COLOR_COUNT;
 			uint32_t pieceNo = 2;
 			while (pieceList.getNumberOfPieces() > pieceNo && isPawn(pieceList.getPiece(pieceNo))) {
 				const uint32_t count = pieceList.getNumberOfSamePieces(pieceNo);
-				_sizeInBit *= pawnIndexSize[count][pieceNo - 2];
+				_entryCount *= pawnIndexSize[count][pieceNo - 2];
 				pieceNo += count;
 			}
 			while (pieceList.getNumberOfPieces() > pieceNo) {
 				const uint32_t count = pieceList.getNumberOfSamePieces(pieceNo);
-				_sizeInBit *= pieceIndexSize[count][pieceNo - 2];
+				_entryCount *= pieceIndexSize[count][pieceNo - 2];
 				pieceNo += count;
 			}
 		}
@@ -376,7 +376,7 @@ namespace QaplaBitbase {
 		array<Square, MAX_PIECES_COUNT> _squares;
 		bitBoard_t _piecesBB;
 		uint64_t _index;
-		uint64_t _sizeInBit;
+		uint64_t _entryCount;
 		uint8_t _mapType;
 		bool _wtm;
 

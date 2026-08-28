@@ -13,20 +13,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements the quiescense search algorithm for the chess engine
  * Quiescense search searches captures and some checking moves until 
  * a quiet position is reached.
  */
 
-#ifndef __QUIESCENCESEARCH_H
-#define __QUIESCENCESEARCH_H
+#pragma once
 
 #include <tuple>
 #include "../basics/evalvalue.h"
 #include "computinginfo.h"
+#include "see.h"
 #include "../search/tt.h"
 #include "../movegenerator/movegenerator.h"
 #ifdef USE_STOCKFISH_EVAL
@@ -37,7 +37,7 @@ using namespace QaplaMoveGenerator;
 
 struct Signatures {
 	Signatures(Signatures* lastSignature, Board& position) 
-		: lastPly(lastSignature), hashSignature(position.computeBoardHash()) {}
+		: hashSignature(position.computeBoardHash()), lastPly(lastSignature) {}
 	QaplaBasics::hash_t hashSignature;
 	Signatures* lastPly;
 
@@ -84,14 +84,16 @@ namespace QaplaSearch {
 		 * Computes the maximal value a capture move can gain + safety margin
 		 * If this value is not enough to make it a valuable move, the move is skipped
 		 */
-		value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move);
+		value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, value_t alpha, Move move);
 
 		/**
 		 * Gets an entry from the transposition table
 		 * @returns eval, hash value, precision, move
 		 */
 		std::tuple<value_t, value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
-				
+
+		SEE _see;
+
 	public:
 
 		TT* _tt;
@@ -100,4 +102,3 @@ namespace QaplaSearch {
 
 }
 
-#endif // __QUIESCENCESEARCH_H

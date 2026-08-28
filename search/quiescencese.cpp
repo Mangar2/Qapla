@@ -13,13 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 #include "quiescence.h"
 #include "../eval/eval.h"
-#include "searchparameter.h"
+#include "search-config.h"
+#include "tunable.h"
 #include "moveprovider.h"
 #include "whatIf.h"
 #include "see.h"
@@ -30,10 +31,12 @@ using namespace ChessEval;
 using namespace QaplaSearch;
 
 /**
- * Computes the maximal value a capture move can gain + safety margin
+ * Computes the value a capture move can gain + safety margin
  * If this value is not enough to make it a valuable move, the move is skipped
+ * The gain is the exchange value of the capture. It falls back to the value of the captured
+ * piece on its own, that is the upper bound the exchange starts from.
  */
-value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t standPatValue, Move move) {
+value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t standPatValue, value_t alpha, Move move) {
 	value_t result = MAX_VALUE;
 	// A winning bonus can be fully destroyed by capturing the piece
 	bool hasWinningBonus = standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS;
@@ -42,8 +45,11 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 
 	Piece capturedPiece = move.getCapture();
 	if (position.doFutilityOnCapture(capturedPiece)) {
-		value_t maxGain = position.getAbsolutePieceValue(capturedPiece);
-		result = standPatValue + SearchParameter::PRUING_SAFETY_MARGIN_IN_CP + maxGain;
+		// Both terms must use the same margin, else a tuning run moves two halves against
+		// each other. 100: 49%, 35: 50,3%, 40: 49,3%
+		const value_t margin = tunable<SearchConfig::optimizeQS, "qsSafetyMargin", 50, 0, 100>();
+		const value_t threshold = alpha - standPatValue - margin;
+		result = standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 	}
 	return result;
 }
@@ -53,8 +59,7 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
  * @returns hash value and hash move or -MAX_VALUE, if no value found
  */
 std::tuple<value_t, value_t, uint32_t, Move> Quiescence::probeTT(MoveGenerator& position, value_t alpha, value_t beta, ply_t ply) {
-	bool cutoff = false;
-	uint32_t ttIndex = _tt->getTTEntryIndex(position.computeBoardHash());
+	uint32_t ttIndex = _tt->getEntryIndex(position.computeBoardHash());
 
 	if (ttIndex != TT::INVALID_INDEX) {
 		TTEntry entry = _tt->getEntry(ttIndex);
@@ -75,7 +80,7 @@ value_t Quiescence::search(bool isPvNode,
 	MoveGenerator& position, ComputingInfo& computingInfo, Move lastMove,
 	value_t alpha, value_t beta, ply_t ply)
 {
-	if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
+	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
 	if (alpha > MAX_VALUE - ply) {
@@ -96,7 +101,7 @@ value_t Quiescence::search(bool isPvNode,
 	moveProvider.setTTMove(ttMove);
 	if (/*alpha + 1 == beta && */ ttValue != NO_VALUE) return ttValue;
 
-	const auto evadesCheck = SearchParameter::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
+	const auto evadesCheck = SearchConfig::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
 	value_t bestValue, standPatValue;
 	if (evadesCheck) {
 		bestValue = standPatValue = -MAX_VALUE + ply;
@@ -122,24 +127,25 @@ value_t Quiescence::search(bool isPvNode,
 			moveProvider.computeCaptures(position, lastMove);
 		}
 		while (!(move = moveProvider.selectNextCaptureOrEvade(position, evadesCheck)).isEmpty()) {
-			valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, move);
+			valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, alpha, move);
 			if (valueOfNextPlySearch < alpha) {
 				if (valueOfNextPlySearch > bestValue) {
 					bestValue = valueOfNextPlySearch;
 				}
-				break;
-			}
-			if (SearchParameter::QUIESCENSE_USE_SEE_PRUNINT && SEE::isLoosingCaptureLight(position, move)) {
+				// The value is no upper bound of the remaining moves once the exchange took
+				// part in it, the moves are sorted by the value of the captured piece only
 				continue;
 			}
 
 			BoardState positionState = position.getBoardState();
+			IncrementalState incrementalState = position.getIncrementalState();
 			position.doMove(move);
+			_tt->prefetch(position.computeBoardHash());
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::doMove(move, si);
 #endif
 			valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
-			position.undoMove(move, positionState);
+			position.undoMove(move, positionState, incrementalState);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(move);
 #endif

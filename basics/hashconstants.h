@@ -13,14 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Defines a list of standard constants for calculating transposition table hashes
  */
 
-#ifndef __HASHCONSTANTS_H
-#define __HASHCONSTANTS_H
+#pragma once
 
 #include <cstdint>
 #include "types.h"
@@ -43,5 +42,5 @@ namespace QaplaBasics {
 	};
 
 }
-#endif
+
 

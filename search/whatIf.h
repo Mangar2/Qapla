@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements the debugging functionality "whatif"
  */
@@ -55,7 +55,7 @@ namespace QaplaSearch {
 			_cutoff = "";
 			_bestMove = "";
 			_ply = ply;
-			const SearchVariables& node = stack[ply];
+			const SearchNode& node = stack[ply];
 			_alpha = node.alpha;
 			_beta = node.beta;
 			_bestValue = node.bestValue;
@@ -68,7 +68,7 @@ namespace QaplaSearch {
 			_searchType = computeSearchType(searchType, node);
 			
 			_nodesSearched = info._nodesSearched;
-			_pv = node.isPVNode() && (_alpha + 1 < _beta) ? node.pvMovesStore.toString() : "";
+			_pv = node.isPVNode() && (_alpha + 1 < _beta) ? node.pv.toString() : "";
 			_curValue = curValue;
 			if (_remainingDepth >= 0) {
 				if (!stack[ply + 1].getTTMove().isEmpty()) {
@@ -79,7 +79,7 @@ namespace QaplaSearch {
 			
 		}
 
-		string computeSearchType(const string searchType, const SearchVariables& node) const {
+		string computeSearchType(const string searchType, const SearchNode& node) const {
 			if (searchType == "") {
 				return node.isWindowZero() ? (node.isPVNode() ? "ZeroW" : "Normal") : "PV";
 			}
@@ -163,7 +163,7 @@ namespace QaplaSearch {
 		string _pv;
 		const SearchStack& _stack;
 		static constexpr array<const char*, int(Cutoff::COUNT)> 
-			_cutoffString = { "NONE", "REPT", "50MO", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL", "BITB", "LOST", "MAXD", "ABOR"};
+			_cutoffString = { "NONE", "REPT", "50MO", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL", "BITB", "LOST", "MAXD", "ABOR", "MCUT"};
 	};
 
 #if (DOWHATIF == false) 
@@ -238,7 +238,6 @@ namespace QaplaSearch {
 		static const uint32_t MAX_PLY = 255;
 		array<Move, MAX_PLY> movesToSearch;
 		int32_t amountOfMovesToSearch;
-		ply_t maxPly;
 		ply_t hashFoundPly;
 		int32_t searchDepth;
 		int32_t count;
