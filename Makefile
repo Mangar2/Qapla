@@ -10,7 +10,7 @@ EXTRA_DEFINES ?=
 # Version: development builds carry the git description, the shipped build
 # (ReleasePGO) carries the plain release number. Bump QAPLA_RELEASE by hand
 # at a release. Overridable: make QAPLA_VERSION=0.4.0 Release
-QAPLA_RELEASE  := 0.4.0
+QAPLA_RELEASE  := 0.5.0
 QAPLA_VERSION  ?= $(shell git describe --tags --always 2>/dev/null || echo unknown)
 VERSION_DEFINE := -DQAPLA_VERSION=\"$(QAPLA_VERSION)\"
 
