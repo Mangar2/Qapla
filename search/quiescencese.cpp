@@ -46,12 +46,10 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 		return MAX_VALUE;
 	}
 
-	Piece capturedPiece = move.getCapture();
-
 	// Todo 4: Check with SPRT, if this test shall remain.
-	if (!position.doFutilityOnCapture(capturedPiece)) {
-		return MAX_VALUE;
-	}
+	// if (!position.doFutilityOnCapture(move.getCapture())) {
+	//	return MAX_VALUE;
+	// }
 	// Both terms must use the same margin, else a tuning run moves two halves against
 	// each other. 100: 49%, 35: 50,3%, 40: 49,3%
 	const value_t margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
