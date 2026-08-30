@@ -169,8 +169,20 @@ value_t Quiescence::search(bool isPvNode,
 	}
 
 	// ToDo 2 Early cutoff
-	// Test, if standPatValue + QueenValue + margin < alpha, return QueenValue if so. 
-	// SPRT (normal h0=-2, h1=2, maxgames=20000) if a margin of 200 results in h1, If so, CLOP the value allowing also negative values.
+	// Delta pruning on the whole node: a queen is the most a single capture can win, so once
+	// even that plus a safety margin stays below alpha, no capture can reach the window and
+	// the move generation is not worth its price. The returned value is the upper bound the
+	// node cannot exceed, which is exactly what a fail low has to report.
+	// The winning bonus is left out for the same reason as in computePruneForewardValue: it
+	// can be destroyed by capturing the piece that carries it.
+	if (standPatValue > -WINNING_BONUS && standPatValue < WINNING_BONUS) {
+		const value_t maxGain = position.getPieceValueForMoveSorting(WHITE_QUEEN)
+			+ tunable<SearchConfig::optimizeQS, "qsDeltaMargin", 200, -200, 600>();
+		if (standPatValue + maxGain < alpha) {
+			WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, standPatValue, ply);
+			return standPatValue + maxGain;
+		}
+	}
 
 	// Eval::assertSymetry(position, standPatValue);
 
