@@ -78,3 +78,38 @@ which walks the non silent part of the list only. An under promotion therefore n
 
 **Decision: reverted.** No SPRT — the two versions are the same program. The ToDo comment is
 replaced by a note that the capture generation already answers the question.
+
+---
+
+## ToDo 2 — node level delta pruning: H0
+
+The one item of the six that changed the search substantially, and it loses.
+
+| | |
+|---|---|
+| tag | `0.5.0-005` |
+| change | after the stand-pat beta cutoff, return `standPat + queen + margin` when that stays below alpha |
+| margin | 200, queen taken as `getPieceValueForMoveSorting(WHITE_QUEEN)` = 1060 |
+| EPD nodes | 54558890, −2.85 % — clearly wired in |
+| SPRT | 5+0.01, H0 = −2, H1 = +3, alpha = beta = 0.05, concurrency 16 |
+| result | **H0 accepted**, LLR −2.95 |
+| score | 48.94 % over 6399 games, W 1606 / D 3051 / L 1742, ≈ −7 Elo |
+| runtime | 66:33 |
+
+Why it loses, as far as the code says: the cutoff fires when the stand-pat value is more than
+1260 below alpha, and it then claims no capture can close that gap. Two things can:
+
+- a capturing promotion gains the promotion *and* the captured piece, up to about 1500, and
+  `computePruneForewardValue` exempts promotions from pruning for exactly that reason — the node
+  level cutoff bypasses that exemption;
+- the stand-pat value is a full evaluation, not a material count, so a capture moves the
+  positional terms with it. Only the winning bonus is guarded against here, everything below it —
+  king attack, passed pawns, threats — swings freely.
+
+A queen plus 200 is a safe bound for a material-only stand pat. It is not one for this eval.
+
+**Decision: reverted**, commented out at its place with the result. The ToDo makes the CLOP of the
+margin conditional on H1 (*"if a margin of 200 results in h1, If so, CLOP the value"*), and H0
+closes that gate. Note the direction the failure points: the margin would have to grow far beyond
+the 400 upper limit of the proposed range, not shrink into the negative values the ToDo expected,
+and at that size the cutoff stops firing at all.
