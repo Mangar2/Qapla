@@ -248,3 +248,13 @@ explore — see the range rule in the CLOP section above.
 
 Do not add search parameters via the eval-style `UciParameterProvider` classes; those stay
 for eval only.
+
+## ToDo
+
+If I ask you to work on ToDo
+- They are comments in the code
+- After doing them remove the ToDo comment and replace it by a result-measurement (usually an SPRT result)
+- If successful, create a new commit with a new version tag
+- Once the last ToDo is done, see, if there is still something to checkin, if so do so.
+- Finally push all to github.
+

@@ -420,7 +420,7 @@ nothing is shared between the forward futility and the move loop futility. The d
 constants, they are ply counts. The restructuring came out at 90280196 nodes, unchanged, with the
 flags off and on.
 
-One CLOP over all seven values including `qsSafetyMargin`, 5000 samples, 114 min. They are all
+One CLOP over all seven values including `qsAlphaSafetyMargin`, 5000 samples, 114 min. They are all
 summands of the same threshold, so none of them can cancel another.
 
 | | old | new |
@@ -431,12 +431,12 @@ summands of the same threshold, so none of them can cancel another.
 | `futDepthFactor` | 75 | 43 |
 | `futBase` | 75 | 80 |
 | `futImprovingMalus` | 100 | 77 |
-| `qsSafetyMargin` | 47 | 50 |
+| `qsAlphaSafetyMargin` | 47 | 50 |
 
 The forward futility becomes more conservative — it cuts at `eval - margin >= beta`, so a larger
 margin cuts less. The move loop futility becomes clearly more aggressive: it cuts at
 `eval + captured + margin < alpha`, where a smaller margin cuts more, and its depth slope nearly
-halves. `qsSafetyMargin` confirms itself, it had been tuned not long ago.
+halves. `qsAlphaSafetyMargin` confirms itself, it had been tuned not long ago.
 
 - EPD nodes: 90280196 → **86564295**, success rate 26 % → 24 %
 - SPRT vs 0.4.0-051 at 5+0.01: **H1 accepted**, 51.02 %, ≈ +7.1 Elo, 7624 games
