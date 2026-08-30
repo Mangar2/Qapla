@@ -41,7 +41,10 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 	if (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) {
 		return MAX_VALUE;
 	}
-	// Todo 3: Check with SPRT, if we should reduce this to Queen-Promotion only.
+	// Restricting this to queen promotions is not possible: MoveList::addPromote adds the queen
+	// promotion as the only non silent promotion, and quiescence iterates the non silent moves
+	// only, so nothing else ever arrives here. Proven by an identical node count, see
+	// plan/quiescence-todos-0.5.0.md.
 	if (move.isPromote()) {
 		return MAX_VALUE;
 	}
@@ -197,7 +200,10 @@ value_t Quiescence::search(bool isPvNode,
 		}
 
 		/*
-		ToDo 5: Optimize with Clop (only this margin) + check with sprt.
+		Tested 0.5.0-006: dead code, whatever the margin. computeExchangeValue runs with a window of
+		+-1 around a threshold derived from alpha, so its result is clamped at that threshold and
+		valueOfNextPlySearch is at most alpha + 1 - it can never exceed beta. Node count identical
+		to the baseline. This needs the beta side SEE mentioned below first, which is not a todo yet.
 		// We test, if the result is high enough above beta. Note, we currently cut SEE, once 
 		// we found anything about beta. If this here is successful, we might adapt SEE to cut only for beta + margin.
 		// We´ll try this only, if this is already successful. (but this is not yet a todo!)
