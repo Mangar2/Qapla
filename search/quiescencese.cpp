@@ -91,12 +91,12 @@ value_t Quiescence::search(bool isPvNode,
 	}
 	// Todo: test if we loose any elo, remove the following two checks (alpah >= maxvalue ... beta <= -maxvalue)
 	// Cut, if distance to mate is too high to reach the search window
-	if (alpha >= MAX_VALUE - ply) {
-		return MAX_VALUE - ply;
-	}	
-	if (beta <= -MAX_VALUE + ply) {
-		return -MAX_VALUE + ply;
-	}
+	// if (alpha >= MAX_VALUE - ply) {
+	//	return MAX_VALUE - ply;
+	// }
+	// if (beta <= -MAX_VALUE + ply) {
+	//	return -MAX_VALUE + ply;
+	// }
 	// Test Stockfish NNUE evaluation
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::StateInfo si;
