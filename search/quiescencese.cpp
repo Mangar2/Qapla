@@ -111,12 +111,10 @@ value_t Quiescence::search(bool isPvNode,
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
 	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
 	
-	// ToDo 1: Check by sprt if we should add if (std::abs(ttValue) < MIN_MATE_VALUE)  to avoid mate values in tt.
-	// To this together with the same check below.
-	// Test with h0=-6 and h1=-1, keep the new version, if it can proove h1, I accept a verry small loss for more 
-	// Mate search stability.
-	// Use 50000 games as maxvalue and 10s+0.01ms, concurrency= 32. Remove this text and replace it with 
-	// the result, once done.
+	// Tested 0.5.0-007: guarding this cutoff and the one in SearchNode::probeTT with
+	// std::abs(value) < MIN_MATE_VALUE costs 10 elo at 10+0.01, H0 accepted over 6272 games at
+	// 48.57 %. That is far more than the "very small loss" the stability would have been worth,
+	// so the mate values keep their cutoff. See plan/quiescence-todos-0.5.0.md.
 	if (ttValue != NO_VALUE) {
 		return ttValue;
 	}
