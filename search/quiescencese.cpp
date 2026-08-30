@@ -196,17 +196,17 @@ value_t Quiescence::search(bool isPvNode,
 			continue;
 		}
 
-		/*
-		ToDo 5: Optimize with Clop (only this margin) + check with sprt.
-		// We test, if the result is high enough above beta. Note, we currently cut SEE, once 
+		// ToDo 5: We test, if the result is high enough above beta. Note, we currently cut SEE, once 
 		// we found anything about beta. If this here is successful, we might adapt SEE to cut only for beta + margin.
-		// We´ll try this only, if this is already successful. (but this is not yet a todo!)
-		auto betaProbe = valueOfNextPlySearch - tunable<SearchConfig::optimizeQS, "qsBetaSafetyMargin", 200, 0, 400>();
-		if (betaProbe > beta) {
-			WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, standPatValue, ply);
-			return betaProbe;
+		// MAX_VALUE is the "do not prune" signal of computePruneForewardValue, not an estimate of
+		// what the move gains - it must never reach the probe, it would fail high on every promotion.
+		if (valueOfNextPlySearch != MAX_VALUE) {
+			auto betaProbe = valueOfNextPlySearch - tunable<SearchConfig::optimizeQS, "qsBetaSafetyMargin", 200, 0, 400>();
+			if (betaProbe > beta) {
+				WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, standPatValue, ply);
+				return betaProbe;
+			}
 		}
-		*/
 
 		// 8. Recursive quiescence search
 		// We store the state we do not want to recompute on undoMove. This is a performance optimization.
