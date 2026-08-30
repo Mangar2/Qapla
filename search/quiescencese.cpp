@@ -42,7 +42,9 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 		return MAX_VALUE;
 	}
 	// Todo 3: Check with SPRT, if we should reduce this to Queen-Promotion only.
-	if (move.isPromote()) {
+	// The exchange value knows nothing about the promotion gain, so every promotion that is
+	// not exempted here is judged by the captured piece alone and thus underestimated.
+	if (getPieceType(move.getPromotion()) == QUEEN) {
 		return MAX_VALUE;
 	}
 
