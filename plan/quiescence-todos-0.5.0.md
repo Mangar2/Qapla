@@ -113,3 +113,32 @@ margin conditional on H1 (*"if a margin of 200 results in h1, If so, CLOP the va
 closes that gate. Note the direction the failure points: the margin would have to grow far beyond
 the 400 upper limit of the proposed range, not shrink into the negative values the ToDo expected,
 and at that size the cutoff stops firing at all.
+
+---
+
+## ToDo 1 — no tt cutoff on mate values: H0
+
+The guard was added in both places at once, as the ToDo asks: the quiescence tt cutoff and the
+main search cutoff in `SearchNode::probeTT`, which is the "same check below" the comment means —
+it is the only other place that cuts on a tt value.
+
+| | |
+|---|---|
+| tag | `0.5.0-007` |
+| change | `abs(value) < MIN_MATE_VALUE` on both tt cutoffs |
+| EPD nodes | 54860445, −2.31 % |
+| EPD success | 22 % → **18 %** |
+| SPRT | 10+0.01, H0 = −6, H1 = −1, alpha = beta = 0.05, maxgames 50000, concurrency 16 |
+| result | **H0 accepted**, LLR −2.98 |
+| score | 48.57 % over 6272 games, W 1425 / D 3242 / L 1605, ≈ −10 Elo |
+| runtime | 122:36 |
+
+The ToDo set the bounds to accept a small loss in exchange for mate search stability, and named
+−1 Elo as the price it was willing to pay. The measured price is ten times that, and the EPD run
+had already pointed the same way: the success rate on `wmtest`, a set built around mates and
+tactics, dropped by four points. Blocking the cutoff does not stabilise the mate search here, it
+takes away the mate scores the search had already proven and makes it prove them again.
+
+Only 6272 of the 50000 games were needed; the run reached its bound on its own.
+
+**Decision: reverted.** The ToDo comment is replaced by the result at the cutoff itself.
