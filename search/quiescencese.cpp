@@ -37,21 +37,26 @@ using namespace QaplaSearch;
  * piece on its own, that is the upper bound the exchange starts from.
  */
 value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t standPatValue, value_t alpha, Move move) {
-	value_t result = MAX_VALUE;
-	// A winning bonus can be fully destroyed by capturing the piece
-	bool hasWinningBonus = standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS;
-	if (hasWinningBonus) return result;
-	if (move.isPromote()) return result;
+	// A winning bonus can be fully destroyed by capturing the piece so don´t prune on winning bonus eval.
+	if (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) {
+		return MAX_VALUE;
+	}
+	// Todo 3: Check with SPRT, if we should reduce this to Queen-Promotion only.
+	if (move.isPromote()) {
+		return MAX_VALUE;
+	}
 
 	Piece capturedPiece = move.getCapture();
-	if (position.doFutilityOnCapture(capturedPiece)) {
-		// Both terms must use the same margin, else a tuning run moves two halves against
-		// each other. 100: 49%, 35: 50,3%, 40: 49,3%
-		const value_t margin = tunable<SearchConfig::optimizeQS, "qsSafetyMargin", 50, 0, 100>();
-		const value_t threshold = alpha - standPatValue - margin;
-		result = standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
+
+	// Todo 4: Check with SPRT, if this test shall remain.
+	if (!position.doFutilityOnCapture(capturedPiece)) {
+		return MAX_VALUE;
 	}
-	return result;
+	// Both terms must use the same margin, else a tuning run moves two halves against
+	// each other. 100: 49%, 35: 50,3%, 40: 49,3%
+	const value_t margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
+	const value_t threshold = alpha - standPatValue - margin;
+	return standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 }
 
 /**
@@ -84,11 +89,12 @@ value_t Quiescence::search(bool isPvNode,
 	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
+	// Todo: test if we loose any elo, remove the following two checks (alpah >= maxvalue ... beta <= -maxvalue)
 	// Cut, if distance to mate is too high to reach the search window
-	if (alpha > MAX_VALUE - ply) {
+	if (alpha >= MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
 	}	
-	if (beta < -MAX_VALUE + ply) {
+	if (beta <= -MAX_VALUE + ply) {
 		return -MAX_VALUE + ply;
 	}
 	// Test Stockfish NNUE evaluation
@@ -112,16 +118,49 @@ value_t Quiescence::search(bool isPvNode,
 		return ttValue;
 	}
 
+	// 2. Handle evade case
 	const auto evadesCheck = SearchConfig::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
-	value_t bestValue, standPatValue;
-	// 2. Compute stand-pat value
-	// We search all moves, if we are in check, so stand pat is initialized to minimal value.
 	if (evadesCheck) {
-		bestValue = standPatValue = -MAX_VALUE + ply;
+		// Stand pat is not an option in check. The minimal value is both the start value and the
+		// mate value the node returns when the evade list stays empty.
+		auto bestValue = -MAX_VALUE + ply;
+
+		MoveProvider moveProvider;
+		Move move;
+		moveProvider.setTTMove(ttMove);
+		moveProvider.computeEvades(position, lastMove);
+
+		while (!(move = moveProvider.selectNextMove(position)).isEmpty()) {
+
+			const PositionSnapshot snapshot = position.getSnapshot();
+			position.doMove(move);
+			_tt->prefetch(position.computeBoardHash());
+
+		#ifdef USE_STOCKFISH_EVAL
+			Stockfish::Engine::doMove(move, si);
+		#endif
+			auto valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
+			position.undoMove(move, snapshot);
+		#ifdef USE_STOCKFISH_EVAL
+			Stockfish::Engine::undoMove(move);
+		#endif
+
+			if (valueOfNextPlySearch > bestValue) {
+				bestValue = valueOfNextPlySearch;
+				if (bestValue >= beta) {
+					break;
+				}
+				alpha = std::max(alpha, bestValue);
+			}
+		}
+		WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, bestValue, ply);
+		return bestValue;
 	}
-	else {
-		bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, _tt->getPawnTT(), ply, alpha);
-	}
+
+
+	// 2. Compute stand-pat value
+	value_t bestValue, standPatValue;
+	bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, _tt->getPawnTT(), ply, alpha);
 
 	// 3. Beta cut-off: If the stand-pat value is already above beta, we can return it immediately.
 	if (standPatValue >= beta) {
@@ -134,36 +173,40 @@ value_t Quiescence::search(bool isPvNode,
 	// SPRT (normal h0=-2, h1=2, maxgames=20000) if a margin of 200 results in h1, If so, CLOP the value allowing also negative values.
 
 	// Eval::assertSymetry(position, standPatValue);
-	value_t valueOfNextPlySearch;
 
 	// 4. Correct alpha to be at least stand-pat value.
-	if (standPatValue > alpha) {
-		alpha = standPatValue;
-	}
+	alpha = std::max(alpha, standPatValue);
 
 	// 5. Generate all moves (evades or captures) 
 	// We set the ttMove we found before. It will then select the ttMove first.
 	MoveProvider moveProvider;
 	Move move;
 	moveProvider.setTTMove(ttMove);
-
-	if (evadesCheck) {
-		moveProvider.computeEvades(position, lastMove);
-	} else {
-		moveProvider.computeCaptures(position, lastMove);
-	}
+	moveProvider.computeCaptures(position, lastMove);
 
 	// 6. Move Loop
-	while (!(move = moveProvider.selectNextCaptureOrEvade(position, evadesCheck)).isEmpty()) {
+	while (!(move = moveProvider.selectNextCapture()).isEmpty()) {
 
 		// 7. Move foreward pruning. 
 		// We compute a possible gain of the move (already including margin) and prune this move search,
 		// if it does not reach alpha.
-		valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, alpha, move);
+		auto valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, alpha, move);
 		if (valueOfNextPlySearch < alpha) {
 			bestValue = std::max(valueOfNextPlySearch, bestValue);
 			continue;
 		}
+
+		/*
+		ToDo 5: Optimize with Clop (only this margin) + check with sprt.
+		// We test, if the result is high enough above beta. Note, we currently cut SEE, once 
+		// we found anything about beta. If this here is successful, we might adapt SEE to cut only for beta + margin.
+		// We´ll try this only, if this is already successful. (but this is not yet a todo!)
+		auto betaProbe = valueOfNextPlySearch - tunable<SearchConfig::optimizeQS, "qsBetaSafetyMargin", 200, 0, 400>();
+		if (betaProbe > beta) {
+			WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, standPatValue, ply);
+			return betaProbe;
+		}
+		*/
 
 		// 8. Recursive quiescence search
 		// We store the state we do not want to recompute on undoMove. This is a performance optimization.
@@ -186,9 +229,7 @@ value_t Quiescence::search(bool isPvNode,
 			if (bestValue >= beta) {
 				break;
 			}
-			if (bestValue > alpha) {
-				alpha = bestValue;
-			}
+			alpha = std::max(alpha, bestValue);
 		}
 	}
 
