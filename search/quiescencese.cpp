@@ -108,13 +108,10 @@ value_t Quiescence::search(bool isPvNode,
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
 	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
 	
-	// ToDo 1: Check by sprt if we should add if (std::abs(ttValue) < MIN_MATE_VALUE)  to avoid mate values in tt.
-	// To this together with the same check below.
-	// Test with h0=-6 and h1=-1, keep the new version, if it can proove h1, I accept a verry small loss for more 
-	// Mate search stability.
-	// Use 50000 games as maxvalue and 10s+0.01ms, concurrency= 32. Remove this text and replace it with 
-	// the result, once done.
-	if (ttValue != NO_VALUE) {
+	// ToDo 1: a mate value out of the tt is a distance, and the distance it was stored with does not
+	// have to be the distance from here. Cutting on it hands the search a mate score it cannot back up.
+	// The same guard sits on the tt cutoff of the main search, see SearchNode::probeTT.
+	if (ttValue != NO_VALUE && std::abs(ttValue) < MIN_MATE_VALUE) {
 		return ttValue;
 	}
 

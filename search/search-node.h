@@ -208,8 +208,9 @@ namespace QaplaSearch {
 			// bestMove = move;
 			if (!isPVNode) {
 				const auto cutoffValue = entry.getTTCutoffValue(alpha, beta, depth, ply);
-				// We ignore ttValue of 0 indicating repetetive draw
-				if (cutoffValue != NO_VALUE && cutoffValue != 0) {
+				// We ignore ttValue of 0 indicating repetetive draw and mate values, whose distance
+				// is only valid for the path they were stored on - see the same guard in Quiescence::search.
+				if (cutoffValue != NO_VALUE && cutoffValue != 0 && std::abs(cutoffValue) < MIN_MATE_VALUE) {
 					bestValue = cutoffValue;
 					return true;
 				}
