@@ -41,8 +41,6 @@ namespace QaplaBasics {
 	 *
 	 * Only the accumulators belong here. The piece value tables of the material balance
 	 * are configuration, they do not change during a search and are not snapshotted.
-	 *
-	 * Category 2 of plan/position-state-refactoring.md.
 	 */
 	struct IncrementalState {
 		EvalValue                   pstBonus;
@@ -54,6 +52,16 @@ namespace QaplaBasics {
 		 * Only used by the assertions that check a snapshot against a recomputed state
 		 */
 		bool operator==(const IncrementalState& other) const = default;
+	};
+
+	/**
+	 * Everything undoMove needs to restore beyond the piece placement: the position state
+	 * and the incrementally maintained values. Both are always taken together, so they
+	 * travel as one snapshot.
+	 */
+	struct PositionSnapshot {
+		BoardState       board;
+		IncrementalState incremental;
 	};
 
 	class Board {
@@ -71,14 +79,13 @@ namespace QaplaBasics {
 		 * Only the piece placement is undone by moving pieces back. Everything the board
 		 * maintains incrementally - the hash, the castling rights, the en passant square,
 		 * the halfmove counters, the material balance, the piece signature, the imbalance
-		 * and the PST bonus - is restored from the two snapshots the caller took before
-		 * the move. Recomputing them here would cost more than keeping the copies.
+		 * and the PST bonus - is restored from the snapshot the caller took before the
+		 * move. Recomputing them here would cost more than keeping the copy.
 		 *
 		 * @param move move previously made
-		 * @param boardState board state from before the move, incl. EP-Position
-		 * @param incremental incrementally maintained values from before the move
+		 * @param snapshot state from before the move, incl. EP-Position
 		 */
-		void undoMove(Move move, BoardState boardState, const IncrementalState& incremental);
+		void undoMove(Move move, const PositionSnapshot& snapshot);
 		void clear();
 		inline auto operator[](Square square) const { return _board[square]; }
 		inline auto isWhiteToMove() const { return _whiteToMove; }
@@ -338,6 +345,11 @@ namespace QaplaBasics {
 		inline auto getQueenRookStartSquare() const { return _queenRookStartSquare[COLOR]; }
 
 		BoardState getBoardState() const { return _boardState; }
+
+		/**
+		 * Reads everything undoMove needs, to be kept until the move is undone
+		 */
+		PositionSnapshot getSnapshot() const { return { _boardState, getIncrementalState() }; }
 
 		/**
 		 * Reads the incrementally maintained values, to be kept until the move is undone

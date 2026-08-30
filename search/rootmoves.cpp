@@ -29,8 +29,8 @@ using QaplaSyzygy::Wdl;
 
 namespace {
 
-	// The whole probing layer follows plan/syzygy-probe.md, which holds the rules extracted from
-	// Ronald de Man's own probing tool.
+	// The whole probing layer follows the rules extracted from Ronald de Man's own probing
+	// tool.
 
 	/** The same outcome seen from the other side. Wdl is symmetric around Draw, so it is a flip. */
 	constexpr Wdl negateWdl(Wdl wdl) {
@@ -77,12 +77,11 @@ namespace {
 			const Move move = moveList[i];
 			if (!move.isCapture()) continue;
 
-			BoardState state = position.getBoardState();
-			IncrementalState incremental = position.getIncrementalState();
+			const PositionSnapshot snapshot = position.getSnapshot();
 			position.doMove(move);
 			const std::optional<Wdl> replyValue =
 				resolveCaptures(position, negateWdl(beta), negateWdl(alpha));
-			position.undoMove(move, state, incremental);
+			position.undoMove(move, snapshot);
 			// undoMove does not restore the attack masks, and the move generation of the caller
 			// reads them - see the note at the end of negaMaxPreSearch in search.cpp.
 			position.computeAttackMasksForBothColors();
@@ -132,12 +131,11 @@ namespace {
 			const Move move = moveList[i];
 			if (!move.isCapture()) continue;
 
-			BoardState state = position.getBoardState();
-			IncrementalState incremental = position.getIncrementalState();
+			const PositionSnapshot snapshot = position.getSnapshot();
 			position.doMove(move);
 			const std::optional<Wdl> replyValue =
 				resolveCaptures(position, Wdl::Loss, negateWdl(bestCapture));
-			position.undoMove(move, state, incremental);
+			position.undoMove(move, snapshot);
 			position.computeAttackMasksForBothColors();
 
 			if (!replyValue) return std::nullopt;
@@ -196,8 +194,7 @@ namespace {
 	 * like the win/draw/loss value: positive wins, negative loses, magnitude above 100 is a value
 	 * the fifty move rule turns into a draw. A mate answers -1.
 	 *
-	 * The figure assumes a halfmove counter of zero and may be one too low; see the usability
-	 * rules in plan/syzygy-probe.md.
+	 * The figure assumes a halfmove counter of zero and may be one too low.
 	 *
 	 * @returns the distance, or std::nullopt if a table needed along the way is missing.
 	 */
@@ -216,11 +213,10 @@ namespace {
 				const Move move = moveList[i];
 				if (move.isCapture() || !isPawn(move.getMovingPiece())) continue;
 
-				BoardState state = position.getBoardState();
-				IncrementalState incremental = position.getIncrementalState();
+				const PositionSnapshot snapshot = position.getSnapshot();
 				position.doMove(move);
 				const std::optional<WdlValue> replyWdl = computeWdl(position);
-				position.undoMove(move, state, incremental);
+				position.undoMove(move, snapshot);
 				position.computeAttackMasksForBothColors();
 
 				if (!replyWdl) return std::nullopt;
@@ -252,8 +248,7 @@ namespace {
 			const Move move = moveList[i];
 			if (move.isCapture() || isPawn(move.getMovingPiece())) continue;
 
-			BoardState state = position.getBoardState();
-			IncrementalState incremental = position.getIncrementalState();
+			const PositionSnapshot snapshot = position.getSnapshot();
 			position.doMove(move);
 
 			const std::optional<int32_t> replyDtz = computeDtz(position);
@@ -264,7 +259,7 @@ namespace {
 				isMate = replies.getTotalMoveAmount() == 0;
 			}
 
-			position.undoMove(move, state, incremental);
+			position.undoMove(move, snapshot);
 			position.computeAttackMasksForBothColors();
 
 			if (!replyDtz) return std::nullopt;
@@ -293,7 +288,7 @@ namespace {
 
 	/**
 	 * The outcome group of a root move, from its distance and the halfmove counter active at the
-	 * root - the rank rule of plan/syzygy-probe.md, reduced to the five groups the root move list
+	 * root - the rank rule of the probing layer, reduced to the five groups the root move list
 	 * sorts by. A nominal win whose distance no longer fits the fifty move budget is a cursed win.
 	 */
 	inline Wdl rootBucket(int32_t dtz, uint32_t cnt50) {
@@ -336,8 +331,7 @@ bool RootMove::computeTablebaseInfo(MoveGenerator& rootPosition, uint32_t cnt50,
 
 	const bool isZeroingMove = _move.isCapture() || isPawn(_move.getMovingPiece());
 
-	BoardState state = rootPosition.getBoardState();
-	IncrementalState incremental = rootPosition.getIncrementalState();
+	const PositionSnapshot snapshot = rootPosition.getSnapshot();
 	rootPosition.doMove(_move);
 
 	// No value means the move could not be classified - a single source of truth, instead of
@@ -374,7 +368,7 @@ bool RootMove::computeTablebaseInfo(MoveGenerator& rootPosition, uint32_t cnt50,
 		if (replyWdl) outcome = negateWdl(replyWdl->value);
 	}
 
-	rootPosition.undoMove(_move, state, incremental);
+	rootPosition.undoMove(_move, snapshot);
 	rootPosition.computeAttackMasksForBothColors();
 
 	if (dtz) {

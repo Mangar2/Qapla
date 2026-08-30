@@ -45,8 +45,7 @@ namespace ChessEval {
 
 	/**
 	 * Value of a position a cursed win or blessed loss leads to, used by the distance
-	 * mapping. The win/draw/loss mapping scores them as plain draws instead - see
-	 * plan/syzygy-value-log.md.
+	 * mapping. The win/draw/loss mapping scores them as plain draws instead.
 	 */
 	constexpr value_t TB_CURSED_BONUS = QaplaBasics::MaterialBalance::PAWN_VALUE_EG;
 
@@ -61,8 +60,8 @@ namespace ChessEval {
 	 *
 	 * A win is one constant, not the evaluation plus a bonus. The tables say "won" and
 	 * nothing about how to convert it, and a run of 20000 games could not separate a
-	 * mapping that keeps the evaluation underneath from this one - see
-	 * plan/syzygy-value-log.md. So the shape that cannot go wrong is the one kept: a
+	 * mapping that keeps the evaluation underneath from this one. So the shape that
+	 * cannot go wrong is the one kept: a
 	 * constant cannot leave its band, and it cannot pick up NO_VALUE from a position that
 	 * was never evaluated because its side to move stood in check.
 	 *

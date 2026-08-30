@@ -524,8 +524,7 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 	// Key insight: there are no intermediate Losses. A Loss is only written once every
 	// quiet move is proven to also lose. This makes _computedPositions unnecessary.
 
-	BoardState boardState = position.getBoardState();
-	IncrementalState incrementalState = position.getIncrementalState();
+	const PositionSnapshot snapshot = position.getSnapshot();
 	bool anyUnknown = false;
 	bool anyDraw = false;
 
@@ -541,7 +540,7 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 		}
 		position.doMove(move);
 		BitbaseResult readerResult = BitbaseReader::getValueFromSingleBitbase(position);
-		position.undoMove(move, boardState, incrementalState);
+		position.undoMove(move, snapshot);
 		assert(readerResult != BitbaseResult::Unknown); // Bitmaps of Reader are complete.
 
 		// Results are stored from white's perspective.

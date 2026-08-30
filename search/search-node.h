@@ -154,8 +154,7 @@ namespace QaplaSearch {
 		 */
 		void doMove(MoveGenerator& position, Move previousPlyMove) {
 			previousMove = previousPlyMove;
-			boardStateBeforeMove = position.getBoardState();
-			incrementalBeforeMove = position.getIncrementalState();
+			snapshotBeforeMove = position.getSnapshot();
 			position.doMove(previousMove);
 			sideToMoveIsInCheck = position.isInCheck();
 #ifdef USE_STOCKFISH_EVAL
@@ -170,7 +169,7 @@ namespace QaplaSearch {
 			if (previousMove.isEmpty()) {
 				return;
 			}
-			position.undoMove(previousMove, boardStateBeforeMove, incrementalBeforeMove);
+			position.undoMove(previousMove, snapshotBeforeMove);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(previousMove);
 #endif
@@ -583,11 +582,9 @@ namespace QaplaSearch {
 		ply_t remainingDepthAtPlyStart;
 		ply_t ply;
 		ply_t searchDepthExtension;
-		BoardState boardStateBeforeMove;
-		// Snapshot of the incrementally maintained values, taken before the move of this
-		// ply. Restoring it is cheaper than letting undoMove recompute them, see
-		// plan/position-state-refactoring.md.
-		IncrementalState incrementalBeforeMove;
+		// State taken before the move of this ply. Restoring it is cheaper than letting
+		// undoMove recompute the incrementally maintained values.
+		PositionSnapshot snapshotBeforeMove;
 		hash_t positionHash;
 		bool noNullmove;
 		bool sideToMoveIsInCheck;

@@ -256,7 +256,7 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	if (ply <= MIN_PLY) return 0;
 
 	// Captures are never reduced. Reducing the loosing ones by a tuned amount was tried in
-	// 0.4.0-049 and did not pay, see plan/version-log.md.
+	// 0.4.0-049 and did not pay.
 	if (move.isCapture()) return 0;
 
 	// The reduction is the product of two ramps, one over the move number and one over the

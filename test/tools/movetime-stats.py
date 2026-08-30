@@ -6,8 +6,7 @@ move carries its elapsed time as a comment, `{0.24s}`, possibly followed by the 
 game ended, `{0.07s, Draw by threefold repetition}`.
 
 The games start from a book position, so the PGN move numbers do not start at one. The blocks
-count from the first move a player actually searched, which is what the tables in
-plan/version-log.md list.
+count from the first move a player actually searched.
 
     python test/tools/movetime-stats.py <file.pgn> [--engine <name>] [--blocks 40]
 
