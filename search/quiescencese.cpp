@@ -80,84 +80,114 @@ value_t Quiescence::search(bool isPvNode,
 	MoveGenerator& position, ComputingInfo& computingInfo, Move lastMove,
 	value_t alpha, value_t beta, ply_t ply)
 {
+	// Unclear, we need MAX_SEARCH_DEPTH in normal depth to reduce stack size, but maybe not in quiescence search.
 	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
+	// Cut, if distance to mate is too high to reach the search window
 	if (alpha > MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
 	}	
 	if (beta < -MAX_VALUE + ply) {
 		return -MAX_VALUE + ply;
 	}
+	// Test Stockfish NNUE evaluation
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::StateInfo si;
 #endif
-	MoveProvider moveProvider;
-	Move move;
+
+	// 1. Access the tt and return the ttValue, if available
+	// Note: the ttValue is ensured to be valide, Exact/Lower/Upper bound is handled already.
 	computingInfo._nodesSearched++;
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
 	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
 	
-	moveProvider.setTTMove(ttMove);
-	if (/*alpha + 1 == beta && */ ttValue != NO_VALUE) return ttValue;
+	// ToDo 1: Check by sprt if we should add if (std::abs(ttValue) < MIN_MATE_VALUE)  to avoid mate values in tt.
+	// To this together with the same check below.
+	// Test with h0=-6 and h1=-1, keep the new version, if it can proove h1, I accept a verry small loss for more 
+	// Mate search stability.
+	// Use 50000 games as maxvalue and 10s+0.01ms, concurrency= 32. Remove this text and replace it with 
+	// the result, once done.
+	if (ttValue != NO_VALUE) {
+		return ttValue;
+	}
 
 	const auto evadesCheck = SearchConfig::EVADES_CHECK_IN_QUIESCENSE && position.isInCheck();
 	value_t bestValue, standPatValue;
+	// 2. Compute stand-pat value
+	// We search all moves, if we are in check, so stand pat is initialized to minimal value.
 	if (evadesCheck) {
 		bestValue = standPatValue = -MAX_VALUE + ply;
 	}
 	else {
 		bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, _tt->getPawnTT(), ply, alpha);
-		if (std::abs(ttValue) < MIN_MATE_VALUE && (ttPrecision == TTEntry::EXACT || 
-			(ttPrecision == (standPatValue < ttValue ? TTEntry::GREATER_OR_EQUAL : TTEntry::LESSER_OR_EQUAL))))
-		{
-			bestValue = standPatValue = ttValue;
-		}
 	}
+
+	// 3. Beta cut-off: If the stand-pat value is already above beta, we can return it immediately.
+	if (standPatValue >= beta) {
+		WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, standPatValue, ply);
+		return standPatValue;
+	}
+
+	// ToDo 2 Early cutoff
+	// Test, if standPatValue + QueenValue + margin < alpha, return QueenValue if so. 
+	// SPRT (normal h0=-2, h1=2, maxgames=20000) if a margin of 200 results in h1, If so, CLOP the value allowing also negative values.
+
 	// Eval::assertSymetry(position, standPatValue);
 	value_t valueOfNextPlySearch;
 
-	if (standPatValue < beta) {
-		if (standPatValue > alpha) {
-			alpha = standPatValue;
+	// 4. Correct alpha to be at least stand-pat value.
+	if (standPatValue > alpha) {
+		alpha = standPatValue;
+	}
+
+	// 5. Generate all moves (evades or captures) 
+	// We set the ttMove we found before. It will then select the ttMove first.
+	MoveProvider moveProvider;
+	Move move;
+	moveProvider.setTTMove(ttMove);
+
+	if (evadesCheck) {
+		moveProvider.computeEvades(position, lastMove);
+	} else {
+		moveProvider.computeCaptures(position, lastMove);
+	}
+
+	// 6. Move Loop
+	while (!(move = moveProvider.selectNextCaptureOrEvade(position, evadesCheck)).isEmpty()) {
+
+		// 7. Move foreward pruning. 
+		// We compute a possible gain of the move (already including margin) and prune this move search,
+		// if it does not reach alpha.
+		valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, alpha, move);
+		if (valueOfNextPlySearch < alpha) {
+			bestValue = std::max(valueOfNextPlySearch, bestValue);
+			continue;
 		}
-		if (evadesCheck) {
-			moveProvider.computeEvades(position, lastMove);
-		} else {
-			moveProvider.computeCaptures(position, lastMove);
-		}
-		while (!(move = moveProvider.selectNextCaptureOrEvade(position, evadesCheck)).isEmpty()) {
-			valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, alpha, move);
-			if (valueOfNextPlySearch < alpha) {
-				if (valueOfNextPlySearch > bestValue) {
-					bestValue = valueOfNextPlySearch;
-				}
-				// The value is no upper bound of the remaining moves once the exchange took
-				// part in it, the moves are sorted by the value of the captured piece only
-				continue;
+
+		// 8. Recursive quiescence search
+		// We store the state we do not want to recompute on undoMove. This is a performance optimization.
+		const PositionSnapshot snapshot = position.getSnapshot();
+		position.doMove(move);
+		_tt->prefetch(position.computeBoardHash());
+
+#ifdef USE_STOCKFISH_EVAL
+		Stockfish::Engine::doMove(move, si);
+#endif
+		valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
+		position.undoMove(move, snapshot);
+#ifdef USE_STOCKFISH_EVAL
+		Stockfish::Engine::undoMove(move);
+#endif
+
+		// 9. Use the search - value to update the search window, including beta-cutoff.
+		if (valueOfNextPlySearch > bestValue) {
+			bestValue = valueOfNextPlySearch;
+			if (bestValue >= beta) {
+				break;
 			}
-
-			BoardState positionState = position.getBoardState();
-			IncrementalState incrementalState = position.getIncrementalState();
-			position.doMove(move);
-			_tt->prefetch(position.computeBoardHash());
-#ifdef USE_STOCKFISH_EVAL
-			Stockfish::Engine::doMove(move, si);
-#endif
-			valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
-			position.undoMove(move, positionState, incrementalState);
-#ifdef USE_STOCKFISH_EVAL
-			Stockfish::Engine::undoMove(move);
-#endif
-
-			if (valueOfNextPlySearch > bestValue) {
-				bestValue = valueOfNextPlySearch;
-				if (bestValue >= beta) {
-					break;
-				}
-				if (bestValue > alpha) {
-					alpha = bestValue;
-				}
+			if (bestValue > alpha) {
+				alpha = bestValue;
 			}
 		}
 	}

@@ -100,8 +100,7 @@ namespace QaplaSearch {
 		 * Checks whether any position occurred twice since the last move that reset the halfmove
 		 * counter - not necessarily the current one. This is the weaker question isDrawByRepetition
 		 * does not answer: the game is not drawn yet, but it has stopped making progress, and the
-		 * root tablebase ranking has to switch to strictly decreasing distances to get out of it
-		 * (see plan/syzygy-probe.md).
+		 * root tablebase ranking has to switch to strictly decreasing distances to get out of it.
 		 */
 		bool hasRepeatedPosition(const MoveGenerator& board) const {
 			std::vector<hash_t> hashes;

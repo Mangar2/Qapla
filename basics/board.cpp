@@ -268,7 +268,7 @@ void Board::undoMoveSpecialities(Move move) {
 
 }
 
-void Board::undoMove(Move move, BoardState recentBoardState, const IncrementalState& incremental) {
+void Board::undoMove(Move move, const PositionSnapshot& snapshot) {
 
 	Square departure = move.getDeparture();
 	Square destination = move.getDestination();
@@ -286,8 +286,8 @@ void Board::undoMove(Move move, BoardState recentBoardState, const IncrementalSt
 		}
 	}
 	_whiteToMove = !_whiteToMove;
-	_boardState = recentBoardState;
-	setIncrementalState(incremental);
+	_boardState = snapshot.board;
+	setIncrementalState(snapshot.incremental);
 	assert(_board[departure] != NO_PIECE);
 }
 

@@ -1,5 +1,17 @@
 # Qapla2 — Project Instructions
 
+## Building
+
+The release build used throughout the test phase is, on **every** platform:
+
+```
+make Release -j
+```
+
+Not `make BUILD_TYPE=Release -j` — the `Release` target sets `BUILD_TYPE` itself. The
+binary lands in `build/Release/Qapla.exe` (`build/Release/Qapla` on Linux/macOS) and that
+is the path the EPD, SPRT and CLOP runs below refer to.
+
 ## Mandatory: node-count comparison run for behaviour-neutral engine changes
 
 Any change to the engine that is **not supposed to change how it plays** (refactorings,
@@ -11,7 +23,7 @@ c:\development\bin\qet.exe --settingsfile=test/epd/epd-wmtest-depth.ini --engine
 ```
 
 Run it from the repository root (the paths in the ini are relative to it). Rebuild
-(`make BUILD_TYPE=Release -j`) between the two runs.
+(`make Release -j`) between the two runs.
 
 **Do not set `rapid=true`** (neither in the ini nor on the command line). Rapid mode drops
 all engine `info` lines to gain speed, and the node counts come from exactly those lines —
@@ -53,7 +65,8 @@ success rate.
    so the engine reports `Qapla 0.4.0-028` and the tag is visible in the test output. A
    build made before the tag shows `<tag>-<n>-g<hash>` instead — no code edit needed, only
    the right order. The version is a compile flag, not a make dependency: after tagging use
-   `make BUILD_TYPE=Release clean` first, otherwise the old string stays in the binary.
+   `make BUILD_TYPE=Release clean` first (the `clean` target needs `BUILD_TYPE`
+   spelled out), otherwise the old string stays in the binary.
    Verify with `printf 'uci\nquit\n' | ./build/Release/Qapla.exe | grep "^id name"`.
 4. Run the EPD test once: the node count must differ, otherwise the change is not active.
 5. Run (from the repo root, own state file per experiment):
@@ -152,7 +165,7 @@ Instead add the define of the affected file only, above its `#ifdef PARAM_OPTIMI
 #define PARAM_OPTIMIZE_KING_ATTACK
 ```
 
-and build the normal `make BUILD_TYPE=Release -j`. Only that file's parameters become UCI
+and build the normal `make Release -j`. Only that file's parameters become UCI
 options, the rest of the eval keeps its compile time constants.
 
 Steps 2 and 3 of the search flow apply unchanged, only the path differs: the engine is

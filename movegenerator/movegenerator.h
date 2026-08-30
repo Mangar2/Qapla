@@ -110,13 +110,13 @@ namespace QaplaMoveGenerator {
 		 * Undoes a move and restores the board state.
 		 * Handles null moves as well.
 		 */
-		void undoMove(Move move, BoardState boardState, const IncrementalState& incremental) {
+		void undoMove(Move move, const PositionSnapshot& snapshot) {
 			if (move.isNullMove()) {
 				// A nullmove changes no piece, so it leaves the incremental values untouched
-				Board::undoNullmove(boardState);
+				Board::undoNullmove(snapshot.board);
 			}
 			else {
-				Board::undoMove(move, boardState, incremental);
+				Board::undoMove(move, snapshot);
 			}
 		}
 
