@@ -171,9 +171,17 @@ value_t Quiescence::search(bool isPvNode,
 		return standPatValue;
 	}
 
-	// ToDo 2 Early cutoff
-	// Test, if standPatValue + QueenValue + margin < alpha, return QueenValue if so. 
-	// SPRT (normal h0=-2, h1=2, maxgames=20000) if a margin of 200 results in h1, If so, CLOP the value allowing also negative values.
+	// Tested 0.5.0-005: node level delta pruning, H0 accepted at -7 elo over 6399 games, 48.94 %.
+	// A queen plus 200 is not a safe bound for this eval: a capture also moves the positional
+	// terms, and a capturing promotion gains more than a queen on its own. The item asked to
+	// CLOP the margin only if the SPRT proved H1, so it ends here.
+	// if (standPatValue > -WINNING_BONUS && standPatValue < WINNING_BONUS) {
+	//	const value_t maxGain = position.getPieceValueForMoveSorting(WHITE_QUEEN)
+	//		+ tunable<SearchConfig::optimizeQS, "qsDeltaMargin", 200, -200, 600>();
+	//	if (standPatValue + maxGain < alpha) {
+	//		return standPatValue + maxGain;
+	//	}
+	// }
 
 	// Eval::assertSymetry(position, standPatValue);
 
