@@ -1282,7 +1282,7 @@ The confirming SPRT rejects them. The node count says the term widens the margin
 the older measurements in the code comment at that line (`100: 49%, 35: 50,3%, 40: 49,3%`) say the
 engine wants the margin *smaller*, not larger. Two changes pushed that way at once — the fixed
 margin from 50 to 56 and the new term — so this run cannot say which one cost the Elo.
-`0.5.0-010` isolates the term by putting the fixed margin back. Code on `dead/qs-evalmargin`.
+`0.5.0-010` isolates the term by putting the fixed margin back. Code on `qs-evalmargin`.
 
 ## 0.5.0-010 — the evaluation dependent margin alone, fixed margin back at 50
 
@@ -1297,7 +1297,7 @@ not the cause.
 The node count is the substance: five percent more nodes means the margin widens enough that the
 forward pruning stops working. The idea behind the term is sound — a captured piece takes its
 positional bonus with it — but protecting those captures costs pruning on every other capture in
-the position, and that trade is negative here. Code on `dead/qs-evalmargin`.
+the position, and that trade is negative here. Code on `qs-evalmargin`.
 
 ## 0.5.0-011 — the same weight with the fixed margin at 30
 
