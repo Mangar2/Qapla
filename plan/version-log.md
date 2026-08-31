@@ -1186,3 +1186,79 @@ Seven SPRTs ran in sequence over the same code area, keeping whatever passed. At
 each single run has a 5 % chance of accepting a change that is worth nothing, and over a chain
 that adds up. A closing SPRT of the head against 0.4.0-035 is the honest number for the two
 survivors, not the sum of the two individual gains.
+
+## 0.5.0-002 — quiescence ToDo 4, the `doFutilityOnCapture` guard removed
+
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.97 % over 6532
+games, about −7 Elo. EPD nodes 56158265 → 56158290, twenty-five nodes of difference on the whole
+set.
+
+The guard turns futility pruning off for a capture whose owner is down to two pieces or fewer,
+where the evaluation is no longer a smooth function of material. That the EPD run barely reaches
+such positions and the games decide on them by 7 Elo is the useful part of this entry: a node
+count difference near zero says the test set does not reach the change, not that the change is
+harmless. Code on `dead/qs-todo4`.
+
+## 0.5.0-003 — quiescence ToDo 3, only queen promotions exempt from the capture pruning
+
+Reverted, and it never was a change. `MoveList::addPromote` files the queen promotion as the only
+non silent promotion; rook, bishop and knight promotions are silent, and quiescence iterates the
+non silent moves alone. Inside `computePruneForewardValue`, `move.isPromote()` and
+`getPieceType(move.getPromotion()) == QUEEN` are therefore the same predicate, for every position.
+
+Identical EPD node count, 56158265, confirming the argument. No SPRT was run — there were not two
+programs to compare. Code on `dead/qs-todo3`.
+
+## 0.5.0-004 — the two mate distance cutoffs at the quiescence node entry removed
+
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 49.50 % over
+12540 games, about −3 Elo. Identical EPD node count, 56158265.
+
+The pair of entries this log should be read together with `0.5.0-002`. Both changes were invisible
+in the fixed depth run and both cost Elo in games; this one needed 12540 games to settle, twice
+the usual. The checks fire when the search window already carries a mate score, which the
+aspiration window produces in games and the depth 14 EPD run rarely reaches. Code on
+`dead/qs-todomate`.
+
+## 0.5.0-005 — quiescence ToDo 2, node level delta pruning
+
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.94 % over 6399
+games, about −7 Elo. EPD nodes 56158265 → 54558890, −2.85 %.
+
+Returning `standPat + queen + margin` when that stays below alpha, with the margin at 200. The
+bound is not safe against this evaluation: a capturing promotion gains more than a queen, and the
+stand pat value is a full eval whose positional terms move with the capture — only the winning
+bonus is guarded against. The ToDo made the CLOP of the margin conditional on H1, so no tuning run
+was started, and the failure points at a margin far above the proposed upper limit of 400, not at
+the negative values the item expected. Code on `dead/qs-todo2`.
+
+## 0.5.0-006 — quiescence ToDo 5, the beta side probe on the pruning estimate
+
+Reverted, and untestable as written. `SEE::computeExchangeValue` searches a window of ±1 around a
+threshold derived from alpha and clamps its result into it, so the pruning estimate is at most
+`alpha + 1` and can never exceed beta — for any position and any value of `qsBetaSafetyMargin`.
+The CLOP run the item asked for would have tuned a parameter with no effect.
+
+Identical EPD node count, 56158265. The ToDo's own note names the prerequisite, a SEE that cuts at
+the beta side, and marks it as not a ToDo yet; that is where the item has to restart. Code on
+`dead/qs-todo5`.
+
+## 0.5.0-007 — ToDo 1, no tt cutoff on mate values
+
+Reverted. SPRT against `0.5.0-001` at 10+0.01 with the bounds the item asked for, H0 = −6 and
+H1 = −1, maxgames 50000: **H0 accepted** after 6272 games, 48.57 %, about −10 Elo. EPD nodes
+56158265 → 54860445, success rate 22 % → 18 %.
+
+`abs(value) < MIN_MATE_VALUE` on the quiescence cutoff and on the one in `SearchNode::probeTT`,
+the two places that cut on a tt value. The item was willing to pay a small loss for mate search
+stability and named −1 Elo as the limit; the price is ten times that, and the drop on `wmtest`,
+a mate and tactics set, had already pointed the same way. Blocking the cutoff does not stabilise
+the mate search, it discards mate scores the search had proven and makes it prove them again.
+Code on `dead/qs-todo1`.
+
+### The round as a whole
+
+Six quiescence ToDos, six reverts, no closing SPRT — the rule for a series exists to check a chain
+of accepted changes, and this chain has none. Four SPRTs, 31743 games, about 6½ hours at
+concurrency 16 with two runs at a time. Two of the six items were settled by reading the code
+instead of running anything. Details in `plan/quiescence-todos-0.5.0.md`.
