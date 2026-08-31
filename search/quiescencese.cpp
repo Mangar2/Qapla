@@ -41,19 +41,14 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 	if (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) {
 		return MAX_VALUE;
 	}
-	// Restricting this to queen promotions is not possible: MoveList::addPromote adds the queen
-	// promotion as the only non silent promotion, and quiescence iterates the non silent moves
-	// only, so nothing else ever arrives here. Proven by an identical node count, see
-	// plan/quiescence-todos-0.5.0.md.
+	// Promotion is only Queen promotion, sub-promotes are not in the quiescence search.
 	if (move.isPromote()) {
 		return MAX_VALUE;
 	}
 
 	Piece capturedPiece = move.getCapture();
 
-	// Tested 0.5.0-002: it shall. Removing it costs 7 elo, H0 accepted over 6532 games at 48.97 %.
-	// It fires on 25 of 56 million nodes in the fixed depth EPD run and still decides that much -
-	// it is the guard for the positions where the material left is too thin for a futility bound.
+	// Tested 0.5.0-002: Removing it costs 7 elo, H0 accepted over 6532 games at 48.97 %.
 	if (!position.doFutilityOnCapture(capturedPiece)) {
 		return MAX_VALUE;
 	}
@@ -95,9 +90,7 @@ value_t Quiescence::search(bool isPvNode,
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
 	// Tested 0.5.0-004: removing the two checks costs 3 elo, H0 accepted over 12540 games at
-	// 49.50 %. They never fire in the fixed depth EPD run - identical node count - but they do
-	// fire in games, once the search carries a mate score in its window. They stay.
-	// Cut, if distance to mate is too high to reach the search window
+	// 49.50 %. 
 	if (alpha >= MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
 	}	
@@ -117,8 +110,7 @@ value_t Quiescence::search(bool isPvNode,
 	
 	// Tested 0.5.0-007: guarding this cutoff and the one in SearchNode::probeTT with
 	// std::abs(value) < MIN_MATE_VALUE costs 10 elo at 10+0.01, H0 accepted over 6272 games at
-	// 48.57 %. That is far more than the "very small loss" the stability would have been worth,
-	// so the mate values keep their cutoff. See plan/quiescence-todos-0.5.0.md.
+	// 48.57 %. 
 	if (ttValue != NO_VALUE) {
 		return ttValue;
 	}
@@ -208,21 +200,6 @@ value_t Quiescence::search(bool isPvNode,
 			bestValue = std::max(valueOfNextPlySearch, bestValue);
 			continue;
 		}
-
-		/*
-		Tested 0.5.0-006: dead code, whatever the margin. computeExchangeValue runs with a window of
-		+-1 around a threshold derived from alpha, so its result is clamped at that threshold and
-		valueOfNextPlySearch is at most alpha + 1 - it can never exceed beta. Node count identical
-		to the baseline. This needs the beta side SEE mentioned below first, which is not a todo yet.
-		// We test, if the result is high enough above beta. Note, we currently cut SEE, once 
-		// we found anything about beta. If this here is successful, we might adapt SEE to cut only for beta + margin.
-		// We´ll try this only, if this is already successful. (but this is not yet a todo!)
-		auto betaProbe = valueOfNextPlySearch - tunable<SearchConfig::optimizeQS, "qsBetaSafetyMargin", 200, 0, 400>();
-		if (betaProbe > beta) {
-			WhatIf::whatIf.moveSearched(position, computingInfo, lastMove, alpha, beta, bestValue, standPatValue, ply);
-			return betaProbe;
-		}
-		*/
 
 		// 8. Recursive quiescence search
 		// We store the state we do not want to recompute on undoMove. This is a performance optimization.
