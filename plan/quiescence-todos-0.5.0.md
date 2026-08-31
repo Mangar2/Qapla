@@ -234,3 +234,130 @@ from the code.
 The direction of the results is also worth noting on its own: the quiescence search as it stands
 resists every one of the four loosenings tried here. Its pruning is not obviously too conservative
 in the places these items suspected.
+
+---
+
+# Nachtrag — three follow-up items
+
+Asked for after the first round was closed. The baseline stays `0.5.0-001`; the working branch had
+only comments on top of it at that point, so the saved baseline binary is still the right opponent.
+
+## A — ToDo 2 with `abs(eval) < WINNING_BONUS`: the guard was already in the tested version
+
+The proposal was to gate the node level delta pruning on `abs(eval) < WINNING_BONUS`, on the
+grounds that once a winning bonus is in the evaluation, the gain a capture can produce is to take
+that bonus away. `0.5.0-005` already carried exactly that gate:
+
+```cpp
+if (standPatValue > -WINNING_BONUS && standPatValue < WINNING_BONUS) {
+    const value_t maxGain = position.getPieceValueForMoveSorting(WHITE_QUEEN) + margin;
+    if (standPatValue + maxGain < alpha) return standPatValue + maxGain;
+}
+```
+
+It was taken over from `computePruneForewardValue`, which guards its own pruning the same way.
+The −7 Elo therefore have a different cause, and the two named in the ToDo 2 section above still
+stand: a capturing promotion gains about 1500, more than the queen the bound allows, and the
+evaluation terms *below* the winning bonus move with the capture.
+
+One leak in the guard is worth writing down for whoever picks this up again. `evalendgame.cpp`
+adds the bonus as `WINNING_BONUS - knightDistance` and `WINNING_BONUS + distanceValue * 2` in
+places, so a position that carries a winning bonus can evaluate just under 10000 and slip through
+`abs(standPat) < WINNING_BONUS`. The same leak exists in `computePruneForewardValue` today.
+
+**No new run.** Repeating `0.5.0-005` unchanged would have measured the same thing twice. What the
+proposal is really after — captures gaining more than material when the evaluation says the
+position is worth more than its material — is item C, applied per move instead of per node.
+
+## B — mate distance cutoff, `>=` and `<=`
+
+The quiescence entry already used `>=` and `<=`. The two that differed were in
+`Search::nonSearchingCutoff` ([search.cpp:453](../search/search.cpp#L453)):
+
+```cpp
+if (TYPE != SearchRegion::PV && alpha > MAX_VALUE - value_t(ply)) {
+else if (TYPE != SearchRegion::PV && beta < -MAX_VALUE + value_t(ply)) {
+```
+
+`>` and `<` leave out the boundary itself, and the boundary is already unreachable: a mate at this
+ply is worth exactly `MAX_VALUE - ply`, so `alpha == MAX_VALUE - ply` cannot be improved either.
+Corrected to `>=` and `<=`, which also makes the two places agree.
+
+| | |
+|---|---|
+| tag | `0.5.0-008` |
+| EPD nodes | 56158265, identical — the boundary case does not occur at fixed depth 14 |
+| SPRT | 5+0.01, **H0 = −5, H1 = 0**, maxgames 40000, concurrency 16 |
+
+The bounds are the point here: this is a correctness tidy-up whose effect should be near zero, so
+the run asks whether it *loses* Elo, not whether it wins any. H1 accepted means the correction is
+free and stays.
+
+*Result pending — the run is at 17495 games, 49.93 %, LLR 1.28 against the 2.94 bound.*
+
+## C — an evaluation dependent part of the forward futility margin
+
+The forward pruning skips a capture when `standPat + margin + see <= alpha`. The margin was one
+fixed number. The idea behind the second term: everything the evaluation grants beyond the plain
+material sits on pieces — an advanced passed pawn, the piece that carries a king attack. Capturing
+such a piece takes the bonus with it, so the capture gains more than the exchange value says, and
+the margin that decides whether it may be pruned has to grow with that part of the evaluation.
+
+```cpp
+const value_t fixedMargin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 56, 0, 100>();
+const value_t evalWeight  = tunable<SearchConfig::optimizeQS, "qsEvalMarginWeight", 20, -100, 100>();
+return fixedMargin + (Eval::materialValue(position) - standPatValue) * evalWeight / 100;
+```
+
+The difference is taken as **material minus evaluation**, both from the view of the side to move,
+so it is positive exactly when the opponent stands better than the material alone justifies — and
+a positive weight then widens the margin, which is the direction the idea wants.
+`Eval::materialValue` was added for it: the tapered material balance on the evaluation's own
+scale, so the difference really contains nothing but the non material part.
+
+Two things about the shape. The margin does not depend on the move, so it is computed once per
+node now and handed to `computePruneForewardValue` — that also keeps the two places that use it
+in step, which the existing comment there demands. And the weight starts at 0, which reproduces
+the old expression exactly: node count 56158265 with the group flag false *and* true, as the rule
+for a reformulation requires.
+
+### The CLOP run
+
+| | |
+|---|---|
+| build | `make Release` with `optimizeQS = true` |
+| settings | `test/clop/clop-standard.ini`, 3000 samples, 4 games per sample, concurrency 16 |
+| ranges | `qsAlphaSafetyMargin` 0..100 (centred on 50), `qsEvalMarginWeight` −100..100 (centred on 0) |
+| runtime | 126:37 |
+
+| parameter | estimate | rounded |
+|---|---|---|
+| `qsAlphaSafetyMargin` | 56.19 | 56 |
+| `qsEvalMarginWeight` | 19.63 | 20 |
+
+The weight comes out clearly positive, which is the sign the idea predicted. Twenty percent of the
+distance between evaluation and material, on top of a fixed margin that moved from 50 to 56.
+
+Both parameters were tuned in one run, as asked. They are additive terms over different inputs,
+not two halves of one quotient, so they do not cancel each other out — but they do trade off
+partially, and that is the reason the closing SPRT tests the pair, not each on its own.
+
+### The SPRT
+
+| | |
+|---|---|
+| tag | `0.5.0-009` |
+| EPD nodes | 56595020, +436755 against the baseline — the new term is reached |
+| EPD success | 19 % |
+| SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 16, against `0.5.0-001` |
+
+*Result pending.*
+
+### A note on the build
+
+`make ReleaseOpt`, which CLAUDE.md prescribed for search parameter runs, does not compile:
+`PARAM_OPTIMIZE` turns `MaterialBalance::PAWN_VALUE_EG` into a runtime variable and
+`eval/tablebase-value.h:50` initialises the `constexpr TB_CURSED_BONUS` from it. It is not needed
+either — `tunable<>` never reads `PARAM_OPTIMIZE`, the group flag alone exposes the options, so a
+normal `Release` build is the correct one and avoids the hundreds of eval options ReleaseOpt would
+add. CLAUDE.md is corrected accordingly.
