@@ -379,8 +379,18 @@ run. One variable instead of two.
 | EPD nodes | 58956880, +2798615 against the baseline, **+5.0 %** |
 | EPD success | 18 % |
 | SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 14, against `0.5.0-001` |
+| result | **H0 accepted**, LLR −2.95 |
+| score | 48.86 % over 5936 games, W 1443 / D 2915 / L 1578, ≈ −8 Elo |
+| runtime | 70:27 |
 
-*Result pending.*
+So the term does not carry the loss of `0.5.0-009` — it loses on its own, and by slightly more.
+With the fixed margin held at the value it always had, adding the evaluation dependent part costs
+8 Elo, and the node count says why it is not a small effect: **+5.0 %**, the margin widens
+substantially and the forward pruning stops doing its work.
+
+The mechanism the item describes is sound — a captured piece takes its positional bonus with it —
+but the price of protecting those captures is paid on every other capture in the position, and
+that trade comes out negative here.
 
 Worth noting that the node count does not move monotonically with the margin: the fixed 56 build
 searched *fewer* nodes than the fixed 50 build at the same weight. The margin enters twice, once
@@ -448,3 +458,35 @@ question only: does the looser fail low bound cost more than the skipped move ge
 delta2 is the version that asks it cleanly, and it is the one to run.
 
 *SPRT pending — queued behind the two follow-up runs.*
+
+### The fixed margin scan, and where the item stands
+
+`0.5.0-011` holds the weight at 20 and puts the fixed margin at 30, below the 50 it always had.
+It is built, tagged and measured, but **its SPRT has not been run** — the machine is needed
+elsewhere.
+
+| version | fixed margin | weight | EPD nodes | vs. baseline | EPD success | SPRT |
+|---|---|---|---|---|---|---|
+| baseline `0.5.0-001` | 50 | 0 | 56158265 | — | 22 % | — |
+| `0.5.0-009` | 56 | 20 | 56595020 | +0.8 % | 19 % | H0, −7 Elo, 6522 games |
+| `0.5.0-010` | 50 | 20 | 58956880 | +5.0 % | 18 % | H0, −8 Elo, 5936 games |
+| `0.5.0-011` | 30 | 20 | 55459078 | **−1.2 %** | **22 %** | not run |
+
+`0.5.0-011` is the only one of the three whose node count falls below the baseline and whose EPD
+success rate stays at 22 %. Both of the measured ones lose, and both search *more* nodes than the
+baseline — the same direction the old comment at that line already recorded for a widened margin.
+
+If `0.5.0-011` is ever run and looks good, it needs a control at **fixed margin 30 with weight 0**
+before anything is attributed to the new term. Two things differ from the baseline in it, and the
+old data (`35: 50,3%`) says a smaller fixed margin may well win on its own.
+
+## Open at the end of this session
+
+Built and tagged, not run:
+
+- `0.5.0-011` — fixed margin 30, weight 20. State file `test/log/sprt-qs-fixed30.state` holds a few
+  hundred games from a run that was stopped; the same call continues it.
+- **delta2** — branch `qs-delta2`, the node level delta pruning with all three exemptions mirrored.
+  Proven to leave the search identical apart from the returned fail low value; the SPRT asks
+  whether that looser bound costs more than the saved move generation gains.
+- **0.5.0-008**, the mate distance `>=` / `<=` correction, is still running at the time of writing.
