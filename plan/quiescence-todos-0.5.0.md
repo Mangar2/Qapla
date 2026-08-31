@@ -361,3 +361,56 @@ partially, and that is the reason the closing SPRT tests the pair, not each on i
 either — `tunable<>` never reads `PARAM_OPTIMIZE`, the group flag alone exposes the options, so a
 normal `Release` build is the correct one and avoids the hundreds of eval options ReleaseOpt would
 add. CLAUDE.md is corrected accordingly.
+
+---
+
+## D — ToDo 2 re-examined: the move loop was never the point
+
+Objection raised after the first round: if `standPat + queen + 200 < alpha`, then the loop below
+must forward prune every capture anyway, because the exchange value can never exceed the captured
+piece and the captured piece is at most a queen. The cutoff should therefore be a pure saving of
+the move generation and change nothing. So −7 Elo needs a different explanation than the one given
+in the ToDo 2 section.
+
+The objection is right. `computePruneForewardValue` returns at most
+`standPat + margin + queen = standPat + 50 + 1060 = standPat + 1110`, and the cutoff condition
+asks for `standPat + 1260 < alpha`, so every move it covers is below alpha and gets pruned.
+
+Two variants, both built from `70b0565`, separate the possible causes.
+
+**delta2** — the same cutoff, but with all three exemptions of `computePruneForewardValue`
+mirrored at node level, not just the winning bonus: no promoting pawn on the seventh rank, and
+`doFutilityOnCapture` true for the opponent's colour. That last one is one query, not one per
+move, because the map is indexed by the colour of the captured piece alone.
+
+**delta3** — a diagnostic build. The identical condition, but the move loop runs **unchanged** and
+only the returned value is replaced at the end. It isolates the looser bound from the skipped loop.
+
+| build | EPD nodes | vs. baseline |
+|---|---|---|
+| baseline `0.5.0-001` | 56158265 | — |
+| `0.5.0-005`, as tested, no promotion / futility exemption | 54558890 | −1599375 |
+| delta2, all exemptions mirrored, loop skipped | 54818593 | −1339672 |
+| delta3, all exemptions mirrored, loop **kept**, value replaced | **54818593** | −1339672 |
+
+delta2 and delta3 agree to the node. Skipping the loop changes nothing whatsoever — the objection
+is confirmed exactly, not approximately. What is left splits like this:
+
+| cause | nodes |
+|---|---|
+| the replaced fail low value | 1339672 |
+| the two missing exemptions | 259703 |
+| skipping the move loop | **0** |
+
+So the dominant effect, by five to one, is the one the ToDo 2 section named last and treated as
+secondary: the returned value. A node with no capture at all returns `standPat` in the old code and
+`standPat + 1260` in the new one. Both are sound upper bounds for a fail low, the new one is just
+1260 centipawns looser, and it travels into the parent's `bestValue` and from there into the
+transposition table.
+
+That reframes the item. The cutoff is not a pruning decision at all — it is a *value* change with a
+free move generation saving attached. Whether it is worth anything therefore depends on one
+question only: does the looser fail low bound cost more than the skipped move generation gains.
+delta2 is the version that asks it cleanly, and it is the one to run.
+
+*SPRT pending — queued behind the two follow-up runs.*
