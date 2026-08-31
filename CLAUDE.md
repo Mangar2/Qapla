@@ -123,20 +123,30 @@ revert, check that the entry is still in the file.
 
 Values are tuned with a CLOP run, then confirmed by an SPRT like any other change.
 
-**Search and eval parameters are exposed differently and need different builds.** Read the
-section that matches what is being tuned and do not mix the two — the eval flow with a
-`ReleaseOpt` build, or the search flow with a per-file define, both go wrong silently.
+**Search and eval parameters are exposed differently.** Both flows build the normal `Release`
+binary and differ only in what makes the options appear: a group flag for search values, a
+per-file define for eval values. Read the section that matches what is being tuned and do not mix
+the two — the wrong switch simply exposes nothing, or exposes hundreds of options that have
+nothing to do with the run.
+
+`ReleaseOpt` is used by neither flow. It only sets `PARAM_OPTIMIZE` globally, and it does not
+compile: `PARAM_OPTIMIZE` turns `MaterialBalance::PAWN_VALUE_EG` into a runtime variable, which
+`eval/tablebase-value.h` uses to initialise the `constexpr TB_CURSED_BONUS`.
 
 ### Search parameters only
 
+**`ReleaseOpt` has nothing to do with search parameters.** It only sets `PARAM_OPTIMIZE`, which is
+the eval switch. `tunable<>` does not read that define — the group flag alone decides whether the
+UCI option exists — so a search parameter run uses the normal `Release` build.
+
 1. Set the group flag of the parameters to be tuned to true — do not commit that — and build
-   `make ReleaseOpt -j`. Check the options are there:
-   `printf 'uci\nquit\n' | ./build/ReleaseOpt/Qapla.exe | grep "^option name"`.
+   `make Release -j`. Check the options are there:
+   `printf 'uci\nquit\n' | ./build/Release/Qapla.exe | grep "^option name"`.
 2. Run (engine as parameter, the ini defines none — a command line `--engine` adds an engine
    instead of replacing one):
 
 ```powershell
-c:\development\bin\qet.exe --settingsfile=test/clop/clop-standard.ini --engine name=Qapla cmd=c:/development/qapla2/build/ReleaseOpt/Qapla.exe --clop samples=<N> --clopvalue name=<UciOption> min=<min> max=<max> [--clopvalue ...]
+c:\development\bin\qet.exe --settingsfile=test/clop/clop-standard.ini --engine name=Qapla cmd=c:/development/qapla2/build/Release/Qapla.exe --clop samples=<N> --clopvalue name=<UciOption> min=<min> max=<max> [--clopvalue ...]
 ```
 
 3. Round the estimates, put them in as the new defaults, set the group flag back to false,
@@ -168,9 +178,8 @@ Instead add the define of the affected file only, above its `#ifdef PARAM_OPTIMI
 and build the normal `make Release -j`. Only that file's parameters become UCI
 options, the rest of the eval keeps its compile time constants.
 
-Steps 2 and 3 of the search flow apply unchanged, only the path differs: the engine is
-`build/Release/Qapla.exe`, not `build/ReleaseOpt/Qapla.exe`. Remove the define again when the
-run is done — it must never be committed.
+Steps 2 and 3 of the search flow apply unchanged. Remove the define again when the run is done —
+it must never be committed.
 
 ### Applies to both
 
