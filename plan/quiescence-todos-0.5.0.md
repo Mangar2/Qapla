@@ -173,3 +173,64 @@ code is dead — that needs an argument from the code, as in ToDo 3 and ToDo 5, 
 argument exists and holds for every position.
 
 **Decision: reverted**, the checks stay. The ToDo comment is replaced by the result.
+
+---
+
+## ToDo 4 — the `doFutilityOnCapture` guard: H0
+
+| | |
+|---|---|
+| tag | `0.5.0-002` |
+| change | the guard removed, so captures are pruned in thin material too |
+| EPD nodes | 56158290, +25 against the baseline |
+| SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 16 |
+| result | **H0 accepted**, LLR −2.95 |
+| score | 48.97 % over 6532 games, W 1630 / D 3137 / L 1765, ≈ −7 Elo |
+| runtime | 72:22 |
+
+Twenty-five nodes out of fifty-six million, and 7 Elo. `futilityOnCaptureMap` is false exactly
+when the side owning the captured piece is down to two pieces or fewer, which is where the
+evaluation stops being a smooth function of material and a futility bound stops meaning anything.
+`wmtest` at depth 14 barely reaches those positions; games at 5+0.01 reach them constantly.
+
+**Decision: reverted**, the guard stays.
+
+---
+
+## Summary
+
+All six items are decided and all six are negative. Nothing from this round goes into the engine.
+
+| # | item | evidence | outcome |
+|---|---|---|---|
+| 1 | no tt cutoff on mate values | SPRT H0, −10 Elo, 6272 games | reverted |
+| 2 | node level delta pruning | SPRT H0, −7 Elo, 6399 games | reverted |
+| 3 | only queen promotions exempt | dead code, proven from the move generation | reverted |
+| 4 | no `doFutilityOnCapture` guard | SPRT H0, −7 Elo, 6532 games | reverted |
+| 5 | beta probe on the pruning estimate | dead code, proven from the SEE window | reverted |
+| — | no mate distance cutoffs | SPRT H0, −3 Elo, 12540 games | reverted |
+
+Machine time: four SPRTs, 31743 games, about 6 hours 30 minutes of wall clock at concurrency 16,
+two runs at a time on a 32 core machine. The two dead code items cost nothing — they were settled
+by reading the code, and the identical node counts confirmed the reading.
+
+Since every item was reverted, the working branch ends where it started, plus the comments that
+record the results. No closing SPRT is needed: the rule exists to check a chain of *accepted*
+changes, and this chain has none. `70b0565` remains the strongest known version.
+
+### What the round is worth
+
+Four of the six ToDos asked for an SPRT on code that had never been checked for reachability, and
+two of those four could not have produced a result at all. Reading the code first — the move
+generation for ToDo 3, the SEE window for ToDo 5 — settled both in minutes and saved two runs of
+several hours each. That check is cheap and belongs before the tag, not after the run.
+
+The opposite lesson comes from ToDo 4 and the mate distance cutoffs. Both looked inert in the EPD
+run, 25 nodes and 0 nodes of difference, and both cost real Elo in games. A near zero node count
+difference is not evidence that a change is harmless; it only says the test set does not reach it.
+The two claims that *were* safe to make from the node count were the ones backed by an argument
+from the code.
+
+The direction of the results is also worth noting on its own: the quiescence search as it stands
+resists every one of the four loosenings tried here. Its pruning is not obviously too conservative
+in the places these items suspected.
