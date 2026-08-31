@@ -1283,3 +1283,28 @@ the older measurements in the code comment at that line (`100: 49%, 35: 50,3%, 4
 engine wants the margin *smaller*, not larger. Two changes pushed that way at once — the fixed
 margin from 50 to 56 and the new term — so this run cannot say which one cost the Elo.
 `0.5.0-010` isolates the term by putting the fixed margin back. Code on `dead/qs-evalmargin`.
+
+## 0.5.0-010 — the evaluation dependent margin alone, fixed margin back at 50
+
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.86 % over 5936
+games, about −8 Elo. EPD nodes 56158265 → 58956880, +5.0 %.
+
+`0.5.0-009` moved two things at once, the fixed margin and the new weight, so it could not say
+which one cost the Elo. This run holds the fixed margin at the 50 it always had and changes only
+the weight. It loses on its own, by slightly more than the pair did, so the fixed margin move was
+not the cause.
+
+The node count is the substance: five percent more nodes means the margin widens enough that the
+forward pruning stops working. The idea behind the term is sound — a captured piece takes its
+positional bonus with it — but protecting those captures costs pruning on every other capture in
+the position, and that trade is negative here. Code on `dead/qs-evalmargin`.
+
+## 0.5.0-011 — the same weight with the fixed margin at 30
+
+Built, tagged and measured, **SPRT not run**. EPD nodes 55459078, −1.2 % against the baseline,
+success rate 22 %, the only one of the three variants that stays at the baseline's level on both.
+
+Third point of a scan over the fixed margin at weight 20, after 56 and 50, both of which lost. If
+it is ever run and wins, it needs a control at fixed margin 30 with weight 0 before the gain is
+credited to the new term: two things differ from the baseline in it, and the older measurements at
+that line (`35: 50,3%`) suggest a smaller fixed margin may win on its own.
