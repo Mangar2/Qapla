@@ -350,8 +350,42 @@ partially, and that is the reason the closing SPRT tests the pair, not each on i
 | EPD nodes | 56595020, +436755 against the baseline — the new term is reached |
 | EPD success | 19 % |
 | SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 16, against `0.5.0-001` |
+| result | **H0 accepted**, LLR −2.95 |
+| score | 48.96 % over 6522 games, W 1616 / D 3154 / L 1752, ≈ −7 Elo |
+| runtime | 67:46 |
+
+CLOP found a point that loses. That happens — the estimate is a fit through noisy samples — but
+the direction is readable and it is not noise.
+
+The node count is the clue: 56595020 against 56158265, **+0.78 %**. The new term widens the margin
+on average, so less gets pruned and more gets searched. And a wider futility margin is exactly
+what the old measurements in the code comment say the engine does not want:
+`100: 49%, 35: 50,3%, 40: 49,3%` — the fixed margin was tested below 50 and scored better there,
+above 50 and scored worse.
+
+So two things pushed the same wrong way at once: the fixed margin moved 50 → 56, and the new term
+widened it further. Which of the two did the damage cannot be read off this run, and that is the
+warning CLAUDE.md gives about parameters that trade off partially — they were tuned together
+because the item asked for it, and the result cannot be split afterwards.
+
+### Isolating the new term
+
+`0.5.0-010`: the weight stays at 20, the fixed margin goes back to the 50 it had before the CLOP
+run. One variable instead of two.
+
+| | |
+|---|---|
+| tag | `0.5.0-010` |
+| EPD nodes | 58956880, +2798615 against the baseline, **+5.0 %** |
+| EPD success | 18 % |
+| SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 14, against `0.5.0-001` |
 
 *Result pending.*
+
+Worth noting that the node count does not move monotonically with the margin: the fixed 56 build
+searched *fewer* nodes than the fixed 50 build at the same weight. The margin enters twice, once
+in the returned value and once in the SEE threshold, and the two pull against each other — which
+is what the comment at that line has always warned about.
 
 ### A note on the build
 

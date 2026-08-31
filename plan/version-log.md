@@ -1262,3 +1262,24 @@ Six quiescence ToDos, six reverts, no closing SPRT — the rule for a series exi
 of accepted changes, and this chain has none. Four SPRTs, 31743 games, about 6½ hours at
 concurrency 16 with two runs at a time. Two of the six items were settled by reading the code
 instead of running anything. Details in `plan/quiescence-todos-0.5.0.md`.
+
+## 0.5.0-009 — quiescence futility margin with an evaluation dependent part, CLOP values
+
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.96 % over 6522
+games, about −7 Elo. EPD nodes 56158265 → 56595020, +0.78 %.
+
+The forward futility margin gets a second term, `(material - eval) * weight / 100`, both from the
+view of the side to move, so it widens exactly when the opponent stands better than the material
+alone justifies. The reasoning behind it: what the evaluation grants beyond the material sits on
+pieces — an advanced passed pawn, the piece carrying a king attack — and capturing such a piece
+takes the bonus with it, so the capture gains more than the exchange value says.
+
+The reformulation itself was clean: the weight defaults to 0 and reproduces the old expression
+exactly, identical node count with the group flag both false and true. A CLOP run over 3000 samples
+estimated `qsAlphaSafetyMargin` 56.19 and `qsEvalMarginWeight` 19.63, rounded to 56 and 20.
+
+The confirming SPRT rejects them. The node count says the term widens the margin on average, and
+the older measurements in the code comment at that line (`100: 49%, 35: 50,3%, 40: 49,3%`) say the
+engine wants the margin *smaller*, not larger. Two changes pushed that way at once — the fixed
+margin from 50 to 56 and the new term — so this run cannot say which one cost the Elo.
+`0.5.0-010` isolates the term by putting the fixed margin back. Code on `dead/qs-evalmargin`.
