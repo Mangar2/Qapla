@@ -92,7 +92,9 @@ value_t Quiescence::search(bool isPvNode,
 	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
-	// Todo: test if we loose any elo, remove the following two checks (alpah >= maxvalue ... beta <= -maxvalue)
+	// Tested 0.5.0-004: removing the two checks costs 3 elo, H0 accepted over 12540 games at
+	// 49.50 %. They never fire in the fixed depth EPD run - identical node count - but they do
+	// fire in games, once the search carries a mate score in its window. They stay.
 	// Cut, if distance to mate is too high to reach the search window
 	if (alpha >= MAX_VALUE - ply) {
 		return MAX_VALUE - ply;

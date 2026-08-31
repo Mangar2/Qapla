@@ -142,3 +142,34 @@ takes away the mate scores the search had already proven and makes it prove them
 Only 6272 of the 50000 games were needed; the run reached its bound on its own.
 
 **Decision: reverted.** The ToDo comment is replaced by the result at the cutoff itself.
+
+---
+
+## The unnumbered ToDo — the two mate distance cutoffs: H0
+
+*"test if we loose any elo, remove the following two checks"* — we do.
+
+| | |
+|---|---|
+| tag | `0.5.0-004` |
+| change | the two `alpha >= MAX_VALUE - ply` / `beta <= -MAX_VALUE + ply` returns at the node entry removed |
+| EPD nodes | 56158265, identical to the baseline |
+| SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 16 |
+| result | **H0 accepted**, LLR −2.98 |
+| score | 49.50 % over 12540 games, W 3008 / D 6398 / L 3134, ≈ −3 Elo |
+| runtime | 129:02 |
+
+This is the item worth keeping in mind for later work. The EPD run said the two checks never
+fire — identical node count over 56 million nodes — and on that evidence alone they look like two
+comparisons per quiescence node paying for nothing. The games say otherwise: they cost 3 Elo when
+removed, and the run needed 12540 games, twice as many as any other item here, to reach its bound.
+
+The reason is what the fixed depth run cannot contain. The checks fire when the search window
+already carries a mate score, which is what the aspiration window does once a mate is found in a
+real game. `wmtest` at depth 14 stops before that state is reached often enough to show up.
+
+An identical node count proves a change is not reached *by that test set*. It does not prove the
+code is dead — that needs an argument from the code, as in ToDo 3 and ToDo 5, and there the
+argument exists and holds for every position.
+
+**Decision: reverted**, the checks stay. The ToDo comment is replaced by the result.
