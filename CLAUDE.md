@@ -12,6 +12,19 @@ Not `make BUILD_TYPE=Release -j` — the `Release` target sets `BUILD_TYPE` itse
 binary lands in `build/Release/Qapla.exe` (`build/Release/Qapla` on Linux/macOS) and that
 is the path the EPD, SPRT and CLOP runs below refer to.
 
+## Concurrency of test runs
+
+**30 in total, never more — and that is a budget for the whole machine, not per run.** Two runs
+side by side get `--concurrency=15` each, not 30 each.
+
+`nproc` is not the number to size this by: it counts SMT threads, and the box here has 16 physical
+cores behind its 32 threads. The ini files set 30 for the case that one run has the machine to
+itself; override it on the command line as soon as something else is running at the same time.
+
+The two free threads are not spare capacity, they are for qapla-engine-tester itself. It is lean,
+but it drives every engine process, writes the pgn and keeps the state file — a run that claims
+every thread starves its own driver.
+
 ## Mandatory: node-count comparison run for behaviour-neutral engine changes
 
 Any change to the engine that is **not supposed to change how it plays** (refactorings,
