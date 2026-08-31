@@ -53,11 +53,14 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 		return MAX_VALUE;
 	}
 	auto value = position.getMaterialValue().getValue(50);
-	auto evalMargin = ((position.isWhiteToMove() ? value : -value)- standPatValue) * 30 / 100;
-	evalMargin = std::max(0, evalMargin - 100);
+	auto evalMargin = ((position.isWhiteToMove() ? value : -value)- standPatValue);
+	evalMargin = std::max(0, evalMargin - tunable<SearchConfig::optimizeQS, "qsEvalMarginSub", 200, 0, 400>());
+	evalMargin = evalMargin * tunable<SearchConfig::optimizeQS, "qsEvalMarginFactor", 30, 0, 60>() / 100;
 
-	const value_t margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
-	const value_t threshold = alpha - standPatValue - margin - evalMargin;
+	auto margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
+	margin += evalMargin;
+
+	const value_t threshold = alpha - standPatValue - margin;
 	return standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 }
 
