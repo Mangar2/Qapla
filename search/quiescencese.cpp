@@ -52,10 +52,12 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 	if (!position.doFutilityOnCapture(capturedPiece)) {
 		return MAX_VALUE;
 	}
-	// Both terms must use the same margin, else a tuning run moves two halves against
-	// each other. 100: 49%, 35: 50,3%, 40: 49,3%
+	auto value = position.getMaterialValue().getValue(50);
+	auto evalMargin = ((position.isWhiteToMove() ? value : -value)- standPatValue) * 30 / 100;
+	evalMargin = std::max(0, evalMargin - 100);
+
 	const value_t margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
-	const value_t threshold = alpha - standPatValue - margin;
+	const value_t threshold = alpha - standPatValue - margin - evalMargin;
 	return standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 }
 
