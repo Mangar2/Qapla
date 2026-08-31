@@ -1308,3 +1308,50 @@ Third point of a scan over the fixed margin at weight 20, after 56 and 50, both 
 it is ever run and wins, it needs a control at fixed margin 30 with weight 0 before the gain is
 credited to the new term: two things differ from the baseline in it, and the older measurements at
 that line (`35: 50,3%`) suggest a smaller fixed margin may win on its own.
+
+## 0.5.0-008 — mate distance cutoff with `>=` and `<=`
+
+Not decided. SPRT against `0.5.0-001` at 5+0.01 with H0 = −5 and H1 = 0, the bounds of a non
+regression test: **inconclusive at the 40000 game limit**, LLR 0.54, score 49.79 %. EPD nodes
+56158265, identical.
+
+`Search::nonSearchingCutoff` tested `alpha > MAX_VALUE - ply` while `Quiescence::search` tested
+`alpha >= MAX_VALUE - ply`. The boundary itself is unreachable — a mate at this ply is worth
+exactly `MAX_VALUE - ply` — so `>=` is the correct comparison and the two places now agree.
+
+A run that ends at its game limit rather than at a bound has no stopping bias, so its score is an
+honest estimate for once: 49.79 % over 40000 games is about **−1.5 Elo with one sigma near 1.2**,
+which is consistent with zero and also with a small loss. The correction is a tidy-up whose effect
+is provably confined to one boundary case; it is kept on `qs-matecmp` and not merged, because
+nothing here argues for it beyond correctness.
+
+## 0.5.0-012 — evaluation dependent margin, author's version, term only in the threshold
+
+Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**, LLR −2.72
+just short of the H0 bound, score 49.72 %, about **−2 Elo, one sigma near 1.7**. EPD nodes
+56053705, −0.19 %, success rate 29 %.
+
+The term reached only the SEE threshold, not the returned value. Because `computeExchangeValue`
+clamps its result at `threshold + 1`, that caps the return at `alpha - evalMargin + 1`, so in every
+node where the term was active *all* captures were pruned — the exact opposite of the intent, which
+was to protect them. The version is therefore a different heuristic than the one it was meant to
+be: prune harder when the opponent's advantage is positional rather than material. As that
+heuristic it is worth about −2 Elo.
+
+The EPD success rate of 29 % against the baseline's 22 % is what a hundred positions can do; the
+run over 20000 games says the opposite, and the run is what counts.
+
+## 0.5.0-013 — the same term, corrected into both the threshold and the returned value
+
+Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**, LLR −1.65,
+score 49.85 %, about **−1 Elo, one sigma near 1.7**. EPD nodes 57257112, +1.96 %.
+
+The first version of the idea that acts in the direction it was designed for: the node searches
+*more*, so the captures carrying a positional bonus are protected from the forward pruning instead
+of being cut. Costs nothing measurable and gains nothing measurable at the guessed values 30 and
+100.
+
+That is the honest starting point for tuning rather than a result: the shape is right and free, the
+coefficients were never fitted. Code on `qs-evalmargin-fixed`; the author's revision on
+`release0.5` decouples the two coefficients so that the offset sets where the term starts and the
+factor how steeply it grows, which is what a CLOP run needs.
