@@ -158,8 +158,8 @@ Only 6272 of the 50000 games were needed; the run reached its bound on its own.
 
 This is the item worth keeping in mind for later work. The EPD run said the two checks never
 fire — identical node count over 56 million nodes — and on that evidence alone they look like two
-comparisons per quiescence node paying for nothing. The games say otherwise: they cost 3 Elo when
-removed, and the run needed 12540 games, twice as many as any other item here, to reach its bound.
+comparisons per quiescence node paying for nothing. The games say otherwise: removing them was
+rejected, and the run needed 12540 games, twice as many as any other item here, to reach its bound.
 
 The reason is what the fixed depth run cannot contain. The checks fire when the search window
 already carries a mate score, which is what the aspiration window does once a mate is found in a
@@ -497,7 +497,7 @@ Nothing survives. Details per version in `plan/version-log.md`.
 
 **Point 1 retired a number that had been guiding decisions.** The comment `100: 49%, 35: 50,3%,
 40: 49,3%` above the margin read as a measured curve pointing at 35. Measured properly, 35 loses
-two Elo. Three percentages without an error range are three indistinguishable numbers, and in the
+rejected. Three percentages without an error range are three indistinguishable numbers, and in the
 source they were worse than nothing, because they suggested a direction. They are gone.
 
 **Point 2 closed the evaluation dependent margin.** Five versions, two CLOP runs, and the best
