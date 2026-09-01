@@ -12,6 +12,31 @@ Not `make BUILD_TYPE=Release -j` — the `Release` target sets `BUILD_TYPE` itse
 binary lands in `build/Release/Qapla.exe` (`build/Release/Qapla` on Linux/macOS) and that
 is the path the EPD, SPRT and CLOP runs below refer to.
 
+## Everything a test produces stays inside the repository
+
+**Logs, state files, pgn files, builds, baseline binaries, scratch files — all of it lives under
+the repository directory.** Nothing in `/tmp`, nothing in a home directory, nothing beside the
+repo. If I cannot find an artefact by looking inside the working copy, it is in the wrong place.
+
+The places that already exist and are the ones to use:
+
+| what | where |
+|---|---|
+| SPRT state, pgn and run logs | `test/log/` |
+| EPD reports | `test/epd/log/` |
+| CLOP logs | `test/clop/log/` |
+| builds | `build/<BUILD_TYPE>/` |
+| binaries kept for comparison, e.g. a baseline | `new-versions/` |
+
+`.gitignore` keeps them out of commits; staying in the repo is about being findable, not about
+being versioned.
+
+**One working copy, one build directory.** Do not create git worktrees to build several versions
+side by side. Builds are cheap and sequential: build a version, copy its binary to `new-versions/`
+under a name that says which version it is, then build the next. Two runs that need two binaries at
+once get two files there, not two checkouts. A second checkout hides the build from me — the
+`build/` directory of the working copy stops being the version that was last tested.
+
 ## Concurrency of test runs
 
 **30 in total, never more — and that is a budget for the whole machine, not per run.** Two runs
