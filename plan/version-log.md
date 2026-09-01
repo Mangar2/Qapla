@@ -1501,3 +1501,22 @@ reverted; the code is on the `dead/qs-todo*`, `qs-evalmargin*`, `qs-delta*`, `qs
 
 Node count is expected to differ from `0.5.0-001` — the operator change is reached, at depth 18 but
 not at depth 14, which is why the EPD ini now runs depth 18.
+
+## 0.5.0-021 — the tt move ordered first among the quiescence captures
+
+Reverted. SPRT against **`0.5.0-020`**, standard bounds: **H0 accepted** after 11587 games. EPD
+nodes 243290670 → 243758240 at depth 18, different.
+
+A second attempt at what `0.4.0-057` had already rejected, this time by the cheap route: a new
+`MoveProvider::computeCaptures` overload that gives the tt move `MAX_CAPTURE_WEIGHT` right after
+the capture weights are computed, so `findNextBestCaptureMove` picks it first. One weight
+assignment, no extra selection stage, no separate list pass.
+
+Making it cheaper does not make it right. The answer is the same as in 0.4.0-057.
+
+The overload stays in `moveprovider.h` with the result recorded on it, unused; the quiescence uses
+the two argument version again. Removing the call restores the node count of `0.5.0-020` exactly,
+243290670.
+
+This is also the first entry measured against `0.5.0-020` rather than `0.5.0-001` — from here on
+that is the version a change has to beat.
