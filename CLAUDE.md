@@ -93,12 +93,22 @@ Report both numbers (baseline vs. new) when presenting such a change.
 difference below 50 % carries no information about size at all, and must never appear as one —
 not in the version log, not in a code comment, not in an answer to me.
 
-The search is chaotic. One decision taken differently propagates through the transposition table,
-the move ordering and the window of every node after it, and where the count lands afterwards has
-no relation to how often or how strongly the change acted. Twenty-five nodes and three percent are
-the same statement, and that statement is: **the change is reached**. Nothing follows from the
-figure being small — "only 25 nodes" is not evidence that a change is harmless, and several
-changes in this project that looked inert by that measure were rejected by their SPRT.
+Why the size means nothing: it takes one position to move the whole figure. A minimal change can
+make a threat visible exactly at the last searched ply. From there the node fails high or fails
+low where it did not before, and an entirely different set of nodes gets searched — two to five
+times as many for that one position is ordinary. `wmtest` is not balanced either, it holds cheap
+and expensive positions, and the same event in an expensive one dominates the total on its own.
+
+It cancels just as easily. Several positions can run completely differently and their surpluses and
+deficits can nearly balance, leaving a total that looks almost unchanged. So a small difference does
+not even mean that few positions changed — it means nothing at all.
+
+Twenty-five nodes and three percent are therefore the same statement: **the change is reached**.
+"Only 25 nodes" is not evidence that a change is harmless; several changes in this project that
+looked inert by that measure were rejected by their SPRT.
+
+Exact identity is the one figure that does carry weight, because cancelling out to the very node is
+not something that happens by accident.
 
 So write "identical" or "different", and give the two counts. Do not write "−2.85 %", "only 25
 nodes of difference", "barely changed", "a large change". Only a difference of the order of 50 % or
