@@ -60,19 +60,8 @@ namespace QaplaSearch {
 										// captures dropped by GOOD_CAPTURES, unsorted, then the silent moves
 	};
 
-	enum class QMoveType {
-		PV,
-		WEIGHT_CAPTURES, 				// Prepares: weights every capture. Nothing is sorted, the order
-										// emerges from searching the maximum on every single selection
-		CAPTURES						// Select all captures
-	};
-
 	constexpr MoveType operator+(MoveType a, int b) { return MoveType(int(a) + b); }
 	inline MoveType operator++(MoveType& a) { return a = MoveType(a + 1); }
-
-	constexpr QMoveType operator+(QMoveType a, int b) { return QMoveType(int(a) + b); }
-	inline QMoveType operator++(QMoveType& a) { return a = QMoveType(a + 1); }
-
 
 	class MoveProvider {
 	public:
@@ -80,7 +69,6 @@ namespace QaplaSearch {
 
 		MoveProvider() : curMoveNo(0), _butterflyBoard(0) {
 			selectStage = MoveType::PV + 1;
-			selectQStage = QMoveType::PV;
 			pvMove = Move::EMPTY_MOVE;
 			_ttMove = Move::EMPTY_MOVE;
 			previousMove = Move::EMPTY_MOVE;
@@ -175,12 +163,24 @@ namespace QaplaSearch {
 			triedMovesAmount = 0;
 		}
 
-		inline void computeCapturesNew(MoveGenerator& board, Move previousPlyMove, Move ttMove) {
-			_ttMove = ttMove;
+		/**
+		 * Initializes the move provider to provide captures, with the tt move first
+		 */
+		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove, Move ttMove) {
 			previousMove = previousPlyMove;
 			board.genNonSilentMovesOfMovingColor(moveList);
+			computeAllCaptureWeight(board);
 			curMoveNo = 0;
 			triedMovesAmount = 0;
+			if (!ttMove.isCaptureOrPromote()) {
+				return;
+			}
+			for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
+				if (moveList[moveNo] == ttMove) {
+					moveList.setWeight(moveNo, MAX_CAPTURE_WEIGHT);
+					break;
+				}
+			}
 		}
 
 		/**
@@ -259,42 +259,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Selects the next move to play
-		 */
-		Move selectNextQMove(const MoveGenerator& board) {
-			int32_t selectedMoveNo = -1;
-			Move move;
-
-			while (selectedMoveNo == -1 && move.isEmpty()) {
-				switch (selectQStage) {
-				case QMoveType::PV:
-					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove);
-					pvMove.setEmpty();
-					++selectQStage;
-					break;
-				case QMoveType::WEIGHT_CAPTURES:
-					computeAllCaptureWeight(board);
-					++selectQStage;
-					break;
-				case  QMoveType::CAPTURES:
-					return selectNextCapture();
-					break;
-				default: break;
-				}
-			}
-			if (selectedMoveNo != -1 && selectedMoveNo < (int32_t)moveList.getTotalMoveAmount()) {
-				move = moveList[(uint32_t)selectedMoveNo];
-				moveList[(uint32_t)selectedMoveNo].setEmpty();
-
-				assert(triedMovesAmount < TRIED_MOVES_STORE_SIZE);
-				triedMoves[triedMovesAmount] = move;
-				triedMovesAmount++;
-
-			}
-			return move;
-		}
-
-		/**
 		 * Retrieves the current move
 		 */
 		Move getCurrentMove() {
@@ -310,23 +274,21 @@ namespace QaplaSearch {
 		 */
 		Move selectNextCapture() {
 			Move move;
-			auto selectedMoveNo = selectNextCaptureMove();
-
-			if (selectedMoveNo != -1) {
-				move = moveList[selectedMoveNo];
-				moveList[selectedMoveNo].setEmpty();
+			// Search the move list for the next best capture move beginning with curMoveNo.
+			int32_t bestMoveNo = findNextBestCaptureMove();
+			if (bestMoveNo == -1) {
+				return Move::EMPTY_MOVE;
 			}
+			// Move the best capture to the front of the list, shifting everything else one step back. 
+			// This preserves the order of the remaining moves.
+			moveList.dragMoveToTheBack(curMoveNo, bestMoveNo);
+
+			// get the move
+			move = moveList[curMoveNo];
+			//moveList[curMoveNo].setEmpty();
+			curMoveNo++;
 
 			return move;
-		}
-
-		Move selectNextCaptureOrEvade(const MoveGenerator& board, bool isCheck) {
-			if (isCheck) {
-				return selectNextMove(board);
-			}
-			else {
-				return selectNextCapture();
-			}
 		}
 
 		uint32_t getTotalMoveAmount() const { return moveList.getTotalMoveAmount(); }
@@ -420,22 +382,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Gets the index of the next capture move
-		 */
-		int32_t selectNextCaptureMove() {
-			int32_t bestMoveNo = findNextBestCaptureMove();
-			if (bestMoveNo == -1) {
-				++selectStage;
-			}
-			else {
-				moveList.dragMoveToTheBack(curMoveNo, bestMoveNo);
-				bestMoveNo = curMoveNo;
-				curMoveNo++;
-			}
-			return bestMoveNo;
-		}
-
-		/**
 		 * searches for a proposed move and if available - selet it
 		 */
 		int16_t selectProposedMove(Move move) {
@@ -495,7 +441,6 @@ namespace QaplaSearch {
 			"a deferred capture must fall below the -MAX_VALUE floor of findNextBestCaptureMove");
 
 		MoveType selectStage;
-		QMoveType selectQStage;
 		uint32_t curMoveNo;
 		Move pvMove;
 		Move _ttMove;
