@@ -1189,13 +1189,12 @@ survivors, not the sum of the two individual gains.
 
 ## 0.5.0-002 — quiescence ToDo 4, the `doFutilityOnCapture` guard removed
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.97 % over 6532
-games, about −7 Elo. EPD nodes 56158265 → 56158290, twenty-five nodes of difference on the whole
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6532 games. EPD nodes 56158265 → 56158290, twenty-five nodes of difference on the whole
 set.
 
 The guard turns futility pruning off for a capture whose owner is down to two pieces or fewer,
 where the evaluation is no longer a smooth function of material. That the EPD run barely reaches
-such positions and the games decide on them by 7 Elo is the useful part of this entry: a node
+such positions and the games reject the removal is the useful part of this entry: a node
 count difference near zero says the test set does not reach the change, not that the change is
 harmless. Code on `dead/qs-todo4`.
 
@@ -1211,19 +1210,17 @@ programs to compare. Code on `dead/qs-todo3`.
 
 ## 0.5.0-004 — the two mate distance cutoffs at the quiescence node entry removed
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 49.50 % over
-12540 games, about −3 Elo. Identical EPD node count, 56158265.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 12540 games. Identical EPD node count, 56158265.
 
 The pair of entries this log should be read together with `0.5.0-002`. Both changes were invisible
-in the fixed depth run and both cost Elo in games; this one needed 12540 games to settle, twice
+in the fixed depth run and both were rejected in games; this one needed 12540 games to settle, twice
 the usual. The checks fire when the search window already carries a mate score, which the
 aspiration window produces in games and the depth 14 EPD run rarely reaches. Code on
 `dead/qs-todomate`.
 
 ## 0.5.0-005 — quiescence ToDo 2, node level delta pruning
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.94 % over 6399
-games, about −7 Elo. EPD nodes 56158265 → 54558890, −2.85 %.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6399 games. EPD nodes 56158265 → 54558890, −2.85 %.
 
 Returning `standPat + queen + margin` when that stays below alpha, with the margin at 200. The
 bound is not safe against this evaluation: a capturing promotion gains more than a queen, and the
@@ -1246,12 +1243,12 @@ the beta side, and marks it as not a ToDo yet; that is where the item has to res
 ## 0.5.0-007 — ToDo 1, no tt cutoff on mate values
 
 Reverted. SPRT against `0.5.0-001` at 10+0.01 with the bounds the item asked for, H0 = −6 and
-H1 = −1, maxgames 50000: **H0 accepted** after 6272 games, 48.57 %, about −10 Elo. EPD nodes
+H1 = −1, maxgames 50000: **H0 accepted** after 6272 games. EPD nodes
 56158265 → 54860445, success rate 22 % → 18 %.
 
 `abs(value) < MIN_MATE_VALUE` on the quiescence cutoff and on the one in `SearchNode::probeTT`,
 the two places that cut on a tt value. The item was willing to pay a small loss for mate search
-stability and named −1 Elo as the limit; the price is ten times that, and the drop on `wmtest`,
+stability and set H1 to −1 for exactly that; the run rejects even that, and the drop on `wmtest`,
 a mate and tactics set, had already pointed the same way. Blocking the cutoff does not stabilise
 the mate search, it discards mate scores the search had proven and makes it prove them again.
 Code on `dead/qs-todo1`.
@@ -1265,8 +1262,7 @@ instead of running anything. Details in `plan/quiescence-todos-0.5.0.md`.
 
 ## 0.5.0-009 — quiescence futility margin with an evaluation dependent part, CLOP values
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.96 % over 6522
-games, about −7 Elo. EPD nodes 56158265 → 56595020, +0.78 %.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6522 games. EPD nodes 56158265 → 56595020, +0.78 %.
 
 The forward futility margin gets a second term, `(material - eval) * weight / 100`, both from the
 view of the side to move, so it widens exactly when the opponent stands better than the material
@@ -1281,16 +1277,15 @@ estimated `qsAlphaSafetyMargin` 56.19 and `qsEvalMarginWeight` 19.63, rounded to
 The confirming SPRT rejects them. The node count says the term widens the margin on average, and
 the older measurements in the code comment at that line (`100: 49%, 35: 50,3%, 40: 49,3%`) say the
 engine wants the margin *smaller*, not larger. Two changes pushed that way at once — the fixed
-margin from 50 to 56 and the new term — so this run cannot say which one cost the Elo.
+margin from 50 to 56 and the new term — so this run cannot say which one caused the rejection.
 `0.5.0-010` isolates the term by putting the fixed margin back. Code on `qs-evalmargin`.
 
 ## 0.5.0-010 — the evaluation dependent margin alone, fixed margin back at 50
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted**, 48.86 % over 5936
-games, about −8 Elo. EPD nodes 56158265 → 58956880, +5.0 %.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 5936 games. EPD nodes 56158265 → 58956880, +5.0 %.
 
 `0.5.0-009` moved two things at once, the fixed margin and the new weight, so it could not say
-which one cost the Elo. This run holds the fixed margin at the 50 it always had and changes only
+which one caused it. This run holds the fixed margin at the 50 it always had and changes only
 the weight. It loses on its own, by slightly more than the pair did, so the fixed margin move was
 not the cause.
 
@@ -1312,44 +1307,40 @@ that line (`35: 50,3%`) suggest a smaller fixed margin may win on its own.
 ## 0.5.0-008 — mate distance cutoff with `>=` and `<=`
 
 Not decided. SPRT against `0.5.0-001` at 5+0.01 with H0 = −5 and H1 = 0, the bounds of a non
-regression test: **inconclusive at the 40000 game limit**, LLR 0.54, score 49.79 %. EPD nodes
+regression test: **inconclusive at the 40000 game limit**. EPD nodes
 56158265, identical.
 
 `Search::nonSearchingCutoff` tested `alpha > MAX_VALUE - ply` while `Quiescence::search` tested
 `alpha >= MAX_VALUE - ply`. The boundary itself is unreachable — a mate at this ply is worth
 exactly `MAX_VALUE - ply` — so `>=` is the correct comparison and the two places now agree.
 
-A run that ends at its game limit rather than at a bound has no stopping bias, so its score is an
-honest estimate for once: 49.79 % over 40000 games is about **−1.5 Elo with one sigma near 1.2**,
-which is consistent with zero and also with a small loss. The correction is a tidy-up whose effect
-is provably confined to one boundary case; it is kept on `qs-matecmp` and not merged, because
-nothing here argues for it beyond correctness.
+Undecided is the answer: 40000 games did not separate the correction from the baseline against
+bounds of −5 and 0. It is a tidy-up whose effect is provably confined to one boundary case; it is
+kept on `qs-matecmp` and not merged, because nothing here argues for it beyond correctness.
 
 ## 0.5.0-012 — evaluation dependent margin, author's version, term only in the threshold
 
-Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**, LLR −2.72
-just short of the H0 bound, score 49.72 %, about **−2 Elo, one sigma near 1.7**. EPD nodes
-56053705, −0.19 %, success rate 29 %.
+Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**, the LLR
+stopping just short of the H0 bound. EPD nodes 56053705, −0.19 %, EPD success rate 29 %.
 
 The term reached only the SEE threshold, not the returned value. Because `computeExchangeValue`
 clamps its result at `threshold + 1`, that caps the return at `alpha - evalMargin + 1`, so in every
 node where the term was active *all* captures were pruned — the exact opposite of the intent, which
 was to protect them. The version is therefore a different heuristic than the one it was meant to
 be: prune harder when the opponent's advantage is positional rather than material. As that
-heuristic it is worth about −2 Elo.
+heuristic it was not rejected and not accepted; the run ran out of games near the H0 bound.
 
 The EPD success rate of 29 % against the baseline's 22 % is what a hundred positions can do; the
 run over 20000 games says the opposite, and the run is what counts.
 
 ## 0.5.0-013 — the same term, corrected into both the threshold and the returned value
 
-Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**, LLR −1.65,
-score 49.85 %, about **−1 Elo, one sigma near 1.7**. EPD nodes 57257112, +1.96 %.
+Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**. EPD nodes
+57257112, +1.96 %.
 
 The first version of the idea that acts in the direction it was designed for: the node searches
 *more*, so the captures carrying a positional bonus are protected from the forward pruning instead
-of being cut. Costs nothing measurable and gains nothing measurable at the guessed values 30 and
-100.
+of being cut. Neither accepted nor rejected at the guessed values 30 and 100.
 
 That is the honest starting point for tuning rather than a result: the shape is right and free, the
 coefficients were never fitted. Code on `qs-evalmargin-fixed`; the author's revision on
@@ -1358,8 +1349,7 @@ factor how steeply it grows, which is what a CLOP run needs.
 
 ## 0.5.0-014 — alpha safety margin 35 instead of 50
 
-Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted**, 49.66 % over 18238 games,
-about −2 Elo. EPD nodes 56158265 → 56261698, +0.18 %.
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 18238 games. EPD nodes 56158265 → 56261698, +0.18 %.
 
 This settles an old comment that used to sit above the parameter, `100: 49%, 35: 50,3%, 40: 49,3%`.
 Read as a curve it said 35 was the better value; measured against its own decision it is worse than
@@ -1372,8 +1362,7 @@ searches around that value.
 
 ## 0.5.0-015 — the evaluation dependent margin with its CLOP values
 
-Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted**, 49.44 % over 11641 games,
-about −4 Elo. EPD nodes 55197564 → 54750353 against the untuned version, −2.5 % against the
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 11641 games. EPD nodes 55197564 → 54750353 against the untuned version, −2.5 % against the
 baseline.
 
 CLOP over both coefficients, 3000 samples, `qsAlphaSafetyMargin` held at 50 because `0.5.0-014`
@@ -1387,11 +1376,11 @@ Starting earlier is what the confirming run rejects.
 
 | version | shape | result |
 |---|---|---|
-| `0.5.0-009` | tapered material, weight 20, fixed margin 56 | H0, −7 Elo |
-| `0.5.0-010` | same, fixed margin back at 50 | H0, −8 Elo |
-| `0.5.0-012` | author's version, term only in the SEE threshold | inconclusive, ≈ −2 Elo |
-| `0.5.0-013` | the same, corrected into both terms | inconclusive, ≈ −1 Elo |
-| `0.5.0-015` | decoupled shape with CLOP values | H0, −4 Elo |
+| `0.5.0-009` | tapered material, weight 20, fixed margin 56 | H0 after 6522 games |
+| `0.5.0-010` | same, fixed margin back at 50 | H0 after 5936 games |
+| `0.5.0-012` | author's version, term only in the SEE threshold | undecided, 20000 games |
+| `0.5.0-013` | the same, corrected into both terms | undecided, 20000 games |
+| `0.5.0-015` | decoupled shape with CLOP values | H0 after 11641 games |
 
 No closing run is needed: every one of these ran against `0.5.0-001` directly, none was built on
 its predecessor, so `0.5.0-015` already is the run the rule asks for.
@@ -1407,10 +1396,9 @@ anything on its own, which is what the confirming run is for.
 
 ## 0.5.0-016 — node level delta pruning, all three exemptions mirrored
 
-Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted**, 49.09 % over 7401 games,
-about −6 Elo. EPD nodes 56158265 → 54818593, −2.4 %.
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 7401 games. EPD nodes 56158265 → 54818593, −2.4 %.
 
-The second attempt at the old ToDo 2, after the first one (`0.5.0-005`, −7 Elo) turned out to have
+The second attempt at the old ToDo 2, after the first one (`0.5.0-005`, also rejected) turned out to have
 skipped two of the three exemptions of `computePruneForewardValue`. This version mirrors all three
 at node level: no winning bonus, no pawn on the seventh rank, `doFutilityOnCapture` true for the
 opponent's colour. It fires only where the move loop would prune every capture anyway, because the
@@ -1423,9 +1411,27 @@ all. So the only difference this SPRT measures is the returned fail low value:
 `standPat + queen + 200` instead of `max(standPat, the pruned forward values)`, at most 1260
 centipawns looser.
 
-**That is worth −6 Elo.** A quiescence node that fails low reports a bound, and the search is
-sensitive to how tight that bound is, far more than to the move generation the cutoff saves. Worth
-remembering before the next idea that trades bound precision for speed in the quiescence.
+**That alone is enough to be rejected.** A quiescence node that fails low reports a bound, and the
+search is sensitive to how tight that bound is — the run reached H0 after 7401 games, faster than
+any other version of this item. Worth remembering before the next idea that trades bound precision
+for speed in the quiescence. How much it costs is a separate question and would need its own run
+with the bounds placed there.
 
 The saving itself is real but small: the move generation and the SEE calls of a node whose every
 move is pruned. It does not come close to paying for the loss.
+
+## 0.5.0-017 — the fixed margin lowered to 10, the term left to cover the critical cases
+
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 4702 games. EPD nodes
+57289722, +2.0 %.
+
+`qsAlphaSafetyMargin` 50 → 10, offset 100, factor 20. The sharpest formulation of the item so far:
+a margin is only needed where there is more to win than material, so a flat margin pays in every
+position for a danger that exists in few. Lower the flat part and let the term raise it where it
+matters. Crossover at 300 centipawns of difference — below that the margin is smaller than the old
+50, above it larger.
+
+The run reached its bound after 4702 games, fewer than any other version of this item, and
+`0.5.0-014` had already rejected 35 in place of 50. Untested and the obvious control if the item is
+picked up again: `qsAlphaSafetyMargin` 10 with the term switched off, which would say whether the
+flat margin alone is responsible.

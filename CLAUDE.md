@@ -106,6 +106,25 @@ the thousands say nothing, do not read a tendency into them.
 qet signals the result via its exit code: 14 = H1 accepted, 15 = H0 accepted, 16 = undecided
 within maxgames. A non-zero exit code here is a result, not an error.
 
+### An SPRT has exactly one output
+
+**H0, H1, or undecided. Nothing else.** Not an Elo figure, not "about −7", not a winrate read as a
+strength. The run is a decision procedure against two bounds, and the decision is the whole of what
+it proved.
+
+The score at the stopping point is not an estimate of the effect. A run stops the moment the LLR
+reaches a bound, and *that* is what stopped it — the score is biased downwards for H0 and upwards
+for H1, precisely by the mechanism that ended the run. Reading a magnitude out of it invents a
+number the run never measured, and two such numbers from two runs cannot be compared or added.
+
+This binds everything written down, not just the summary line: **version log entries, code comments
+and answers to me.** Write "H0 accepted after 6532 games, bounds −2/+3". Do not write "costs 7 Elo".
+The game count is a fact about the run and may be reported; it says how quickly the bounds were
+reached, not how large the effect is.
+
+If the magnitude is the question, that is a different run: place the bounds where the question is
+(H0 = 5, H1 = 12 asks whether something is worth about ten) and run that.
+
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
 
