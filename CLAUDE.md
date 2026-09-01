@@ -115,8 +115,9 @@ nodes of difference", "barely changed", "a large change". Only a difference of t
 more says something in its own right, namely that the search effort itself moved.
 
 And identical is a statement about *this* test set at *this* depth, never about the code being
-dead. Rerun at a greater depth before concluding anything from identity — a change invisible at
-depth 14 here turned out to be reached at depth 16.
+dead. The ini runs depth 18 for that reason: a change that was invisible at depth 14 here turned
+out to be reached at 16, and 18 costs only a few seconds more. If identity still matters for a
+conclusion, rerun deeper before drawing it.
 
 When a change *is* meant to alter play, the node count is expected to differ — then the run
 serves as proof that the new code is actually wired in and reached.
