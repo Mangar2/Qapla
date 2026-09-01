@@ -1338,8 +1338,13 @@ The first version of the idea that acts in the direction it was designed for: th
 *more*, so the captures carrying a positional bonus are protected from the forward pruning instead
 of being cut. Neither accepted nor rejected at the guessed values 30 and 100.
 
-That is the honest starting point for tuning rather than a result: the shape is right and free, the
-coefficients were never fitted. Code on `qs-evalmargin-fixed`; the author's revision on
+Repeated with the same bounds against the same baseline, `013b`: **H0 accepted** after 15345 games.
+Undecided once and rejected once, so unlike `0.5.0-018` the repeat does not overturn the first run,
+it sharpens it. No version of this idea ever reached H1, and this is the one that carried it in its
+intended form.
+
+The shape is right and free, the coefficients were never fitted - but two CLOP runs and six SPRTs
+found nothing to fit them to. Code on `qs-evalmargin-fixed`; the author's revision on
 `release0.5` decouples the two coefficients so that the offset sets where the term starts and the
 factor how steeply it grows, which is what a CLOP run needs.
 
