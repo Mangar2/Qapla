@@ -87,6 +87,27 @@ Acceptance criteria:
 
 Report both numbers (baseline vs. new) when presenting such a change.
 
+### The node count answers one question: identical or not
+
+**Identical, or not identical. There is no "barely different" and no "very different".** A
+difference below 50 % carries no information about size at all, and must never appear as one —
+not in the version log, not in a code comment, not in an answer to me.
+
+The search is chaotic. One decision taken differently propagates through the transposition table,
+the move ordering and the window of every node after it, and where the count lands afterwards has
+no relation to how often or how strongly the change acted. Twenty-five nodes and three percent are
+the same statement, and that statement is: **the change is reached**. Nothing follows from the
+figure being small — "only 25 nodes" is not evidence that a change is harmless, and several
+changes in this project that looked inert by that measure were rejected by their SPRT.
+
+So write "identical" or "different", and give the two counts. Do not write "−2.85 %", "only 25
+nodes of difference", "barely changed", "a large change". Only a difference of the order of 50 % or
+more says something in its own right, namely that the search effort itself moved.
+
+And identical is a statement about *this* test set at *this* depth, never about the code being
+dead. Rerun at a greater depth before concluding anything from identity — a change invisible at
+depth 14 here turned out to be reached at depth 16.
+
 When a change *is* meant to alter play, the node count is expected to differ — then the run
 serves as proof that the new code is actually wired in and reached.
 
