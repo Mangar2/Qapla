@@ -450,10 +450,13 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	node.cutoff = Cutoff::NONE;
 	node.setHashSignature(position);
 
-	if (TYPE != SearchRegion::PV && alpha > MAX_VALUE - value_t(ply)) {
+	// The bound itself is unreachable as well - the best value reachable at ply q is
+	// MAX_VALUE - q - 1 - so it belongs inside the test, as in Quiescence::search.
+	// Tested 0.5.0-018, SPRT h0 = -10, h1 = 0: H0 accepted once, H1 accepted in both repeats.
+	if (TYPE != SearchRegion::PV && alpha >= MAX_VALUE - value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
 	}
-	else if (TYPE != SearchRegion::PV && beta < -MAX_VALUE + value_t(ply)) {
+	else if (TYPE != SearchRegion::PV && beta <= -MAX_VALUE + value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 	}
 	else if (position.drawDueToMissingMaterial()) {
