@@ -155,8 +155,8 @@ has to prove itself in a final run against the version the item started from.
 
 Every single run accepts at alpha = 0.05, so over a series the chance that one of the survivors is
 worth nothing is no longer small — and a run stops at the moment it reaches its bound, which
-favours whatever was fluctuating upwards. The individual gains must not be added up either; the
-closing run is the only honest number for the item as a whole.
+favours whatever was fluctuating upwards. Nor can the single runs be added up — they are
+decisions, not amounts. The closing run is the only statement that covers the item as a whole.
 
 If it fails, the series produced nothing, whatever the single runs said.
 
@@ -314,7 +314,8 @@ for eval only.
 
 If I ask you to work on ToDo
 - They are comments in the code
-- After doing them remove the ToDo comment and replace it by a result-measurement (usually an SPRT result)
+- After doing them remove the ToDo comment and replace it by the result, usually the decision of an
+  SPRT — see the rule on what an SPRT does and does not say
 - If successful, create a new commit with a new version tag
 - Once the last ToDo is done, see, if there is still something to checkin, if so do so.
 - Finally push all to github.
