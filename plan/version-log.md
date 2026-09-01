@@ -1404,3 +1404,28 @@ positive at any value tried.
 Two CLOP runs were made on this term and both produced points that their confirming SPRT rejected.
 On a surface this flat, four games per sample fit noise; the CLOP estimate is not evidence of
 anything on its own, which is what the confirming run is for.
+
+## 0.5.0-016 — node level delta pruning, all three exemptions mirrored
+
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted**, 49.09 % over 7401 games,
+about −6 Elo. EPD nodes 56158265 → 54818593, −2.4 %.
+
+The second attempt at the old ToDo 2, after the first one (`0.5.0-005`, −7 Elo) turned out to have
+skipped two of the three exemptions of `computePruneForewardValue`. This version mirrors all three
+at node level: no winning bonus, no pawn on the seventh rank, `doFutilityOnCapture` true for the
+opponent's colour. It fires only where the move loop would prune every capture anyway, because the
+exchange value can never exceed the captured piece and that is at most a queen.
+
+What makes this run worth more than its verdict is what was established before it. A diagnostic
+build, delta3, ran the identical condition but kept the move loop and replaced only the returned
+value — and gave the same node count to the node, 54818593. Skipping the loop changes nothing at
+all. So the only difference this SPRT measures is the returned fail low value:
+`standPat + queen + 200` instead of `max(standPat, the pruned forward values)`, at most 1260
+centipawns looser.
+
+**That is worth −6 Elo.** A quiescence node that fails low reports a bound, and the search is
+sensitive to how tight that bound is, far more than to the move generation the cutoff saves. Worth
+remembering before the next idea that trades bound precision for speed in the quiescence.
+
+The saving itself is real but small: the move generation and the SEE calls of a node whose every
+move is pruned. It does not come close to paying for the loss.

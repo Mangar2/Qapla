@@ -480,7 +480,7 @@ If `0.5.0-011` is ever run and looks good, it needs a control at **fixed margin 
 before anything is attributed to the new term. Two things differ from the baseline in it, and the
 old data (`35: 50,3%`) says a smaller fixed margin may well win on its own.
 
-## Open at the end of this session
+## Open at the end of the first session
 
 Built and tagged, not run:
 
@@ -490,3 +490,56 @@ Built and tagged, not run:
   Proven to leave the search identical apart from the returned fail low value; the SPRT asks
   whether that looser bound costs more than the saved move generation gains.
 - **0.5.0-008**, the mate distance `>=` / `<=` correction, is still running at the time of writing.
+
+---
+
+# The three follow-up points, all decided
+
+Run in the order agreed: the fixed margin first, because it sits inside every other variant, then
+the tuning of the new term around it, then the node level cutoff.
+
+| # | version | change | result |
+|---|---|---|---|
+| 1 | `0.5.0-014` | `qsAlphaSafetyMargin` 35 instead of 50 | H0, −2 Elo, 18238 games |
+| 2 | `0.5.0-015` | evaluation dependent margin, CLOP values 144 / 31 | H0, −4 Elo, 11641 games |
+| 3 | `0.5.0-016` | node level delta pruning, all exemptions mirrored | H0, −6 Elo, 7401 games |
+
+Nothing survives. Details per version in `plan/version-log.md`.
+
+## What the three add up to
+
+**Point 1 retired a number that had been guiding decisions.** The comment `100: 49%, 35: 50,3%,
+40: 49,3%` above the margin read as a measured curve pointing at 35. Measured properly, 35 loses
+two Elo. Three percentages without an error range are three indistinguishable numbers, and in the
+source they were worse than nothing, because they suggested a direction. They are gone.
+
+**Point 2 closed the evaluation dependent margin.** Five versions, two CLOP runs, and the best
+outcome the idea ever reached is "costs nothing, gains nothing" (`0.5.0-013`). Both CLOP runs
+produced points their confirming SPRT rejected — on a surface this flat, four games per sample fit
+noise, and the estimate is worth nothing until the SPRT has spoken.
+
+**Point 3 put a number on bound precision.** Because delta3 had already proven that skipping the
+move loop changes nothing, this run measured one thing in isolation: a fail low value up to 1260
+centipawns looser than necessary. That alone is −6 Elo, far more than the move generation it saves.
+
+## Loop invariance, measured
+
+The margin computation was suspected of being loop invariant waste, recomputed for every capture
+although it depends only on the position and the stand pat value. Hoisting it to the node is
+behaviour neutral — identical node count, 55197564 — so the runtime criterion decides. Three
+interleaved pairs:
+
+| | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| in the loop | 3.065 | 3.063 | 3.086 |
+| hoisted | 3.077 | 3.070 | 3.095 |
+
+The hoisted version is slower in every pair, by about 0.3 %. `computePruneForewardValue` has three
+early returns in front of the computation — winning bonus, promotion, `doFutilityOnCapture` — so in
+the loop it runs only for moves that pass all three, and never at all in a node above the winning
+bonus. Hoisted it runs once per node unconditionally. Below roughly one surviving move per node
+that is a loss, and quiescence is below it.
+
+The computation stays in the loop. The compiler cannot hoist it either — `doMove` writes the
+material balance inside the same loop — but here that is the better outcome, not a missed
+optimisation.
