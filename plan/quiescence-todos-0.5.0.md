@@ -9,12 +9,12 @@ one's change. The EPD run at fixed depth 14 is the reachability proof.
 | tag | item | EPD nodes | vs. baseline | success |
 |---|---|---|---|---|
 | — | baseline `0.5.0-001` | 56158265 | — | 22 % |
-| 0.5.0-002 | 4, no `doFutilityOnCapture` guard | 56158290 | +25 | 22 % |
+| 0.5.0-002 | 4, no `doFutilityOnCapture` guard | 56158290 | different | 22 % |
 | 0.5.0-003 | 3, only queen promotions exempt | 56158265 | **0** | 22 % |
 | 0.5.0-004 | —, no mate distance cutoffs | 56158265 | **0** | 22 % |
-| 0.5.0-005 | 2, node level delta pruning | 54558890 | −1599375 | 22 % |
+| 0.5.0-005 | 2, node level delta pruning | 54558890 | different | 22 % |
 | 0.5.0-006 | 5, beta probe on the pruning estimate | 56158265 | **0** | 22 % |
-| 0.5.0-007 | 1, no tt cutoff on mate values | 54860445 | −1297820 | 18 % |
+| 0.5.0-007 | 1, no tt cutoff on mate values | 54860445 | different | 18 % |
 
 Three of the six change nothing at all, and one of those three cannot change anything in any
 position. That result is worked out per item below.
@@ -90,10 +90,9 @@ The one item of the six that changed the search substantially, and it loses.
 | tag | `0.5.0-005` |
 | change | after the stand-pat beta cutoff, return `standPat + queen + margin` when that stays below alpha |
 | margin | 200, queen taken as `getPieceValueForMoveSorting(WHITE_QUEEN)` = 1060 |
-| EPD nodes | 54558890, −2.85 % — clearly wired in |
+| EPD nodes | 54558890, different |
 | SPRT | 5+0.01, H0 = −2, H1 = +3, alpha = beta = 0.05, concurrency 16 |
 | result | **H0 accepted**, LLR −2.95 |
-| score | 48.94 % over 6399 games, W 1606 / D 3051 / L 1742, ≈ −7 Elo |
 | runtime | 66:33 |
 
 Why it loses, as far as the code says: the cutoff fires when the stand-pat value is more than
@@ -126,15 +125,14 @@ it is the only other place that cuts on a tt value.
 |---|---|
 | tag | `0.5.0-007` |
 | change | `abs(value) < MIN_MATE_VALUE` on both tt cutoffs |
-| EPD nodes | 54860445, −2.31 % |
+| EPD nodes | 54860445, different |
 | EPD success | 22 % → **18 %** |
 | SPRT | 10+0.01, H0 = −6, H1 = −1, alpha = beta = 0.05, maxgames 50000, concurrency 16 |
 | result | **H0 accepted**, LLR −2.98 |
-| score | 48.57 % over 6272 games, W 1425 / D 3242 / L 1605, ≈ −10 Elo |
 | runtime | 122:36 |
 
 The ToDo set the bounds to accept a small loss in exchange for mate search stability, and named
-−1 Elo as the price it was willing to pay. The measured price is ten times that, and the EPD run
+−1 Elo as the price it was willing to pay. The run rejects even that, and the EPD run
 had already pointed the same way: the success rate on `wmtest`, a set built around mates and
 tactics, dropped by four points. Blocking the cutoff does not stabilise the mate search here, it
 takes away the mate scores the search had already proven and makes it prove them again.
@@ -156,7 +154,6 @@ Only 6272 of the 50000 games were needed; the run reached its bound on its own.
 | EPD nodes | 56158265, identical to the baseline |
 | SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 16 |
 | result | **H0 accepted**, LLR −2.98 |
-| score | 49.50 % over 12540 games, W 3008 / D 6398 / L 3134, ≈ −3 Elo |
 | runtime | 129:02 |
 
 This is the item worth keeping in mind for later work. The EPD run said the two checks never
@@ -182,13 +179,12 @@ argument exists and holds for every position.
 |---|---|
 | tag | `0.5.0-002` |
 | change | the guard removed, so captures are pruned in thin material too |
-| EPD nodes | 56158290, +25 against the baseline |
+| EPD nodes | 56158290, different |
 | SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 16 |
 | result | **H0 accepted**, LLR −2.95 |
-| score | 48.97 % over 6532 games, W 1630 / D 3137 / L 1765, ≈ −7 Elo |
 | runtime | 72:22 |
 
-Twenty-five nodes out of fifty-six million, and 7 Elo. `futilityOnCaptureMap` is false exactly
+`futilityOnCaptureMap` is false exactly
 when the side owning the captured piece is down to two pieces or fewer, which is where the
 evaluation stops being a smooth function of material and a futility bound stops meaning anything.
 `wmtest` at depth 14 barely reaches those positions; games at 5+0.01 reach them constantly.
@@ -203,12 +199,12 @@ All six items are decided and all six are negative. Nothing from this round goes
 
 | # | item | evidence | outcome |
 |---|---|---|---|
-| 1 | no tt cutoff on mate values | SPRT H0, −10 Elo, 6272 games | reverted |
-| 2 | node level delta pruning | SPRT H0, −7 Elo, 6399 games | reverted |
+| 1 | no tt cutoff on mate values | SPRT H0 after 6272 games | reverted |
+| 2 | node level delta pruning | SPRT H0 after 6399 games | reverted |
 | 3 | only queen promotions exempt | dead code, proven from the move generation | reverted |
-| 4 | no `doFutilityOnCapture` guard | SPRT H0, −7 Elo, 6532 games | reverted |
+| 4 | no `doFutilityOnCapture` guard | SPRT H0 after 6532 games | reverted |
 | 5 | beta probe on the pruning estimate | dead code, proven from the SEE window | reverted |
-| — | no mate distance cutoffs | SPRT H0, −3 Elo, 12540 games | reverted |
+| — | no mate distance cutoffs | SPRT H0 after 12540 games | reverted |
 
 Machine time: four SPRTs, 31743 games, about 6 hours 30 minutes of wall clock at concurrency 16,
 two runs at a time on a 32 core machine. The two dead code items cost nothing — they were settled
@@ -226,8 +222,9 @@ generation for ToDo 3, the SEE window for ToDo 5 — settled both in minutes and
 several hours each. That check is cheap and belongs before the tag, not after the run.
 
 The opposite lesson comes from ToDo 4 and the mate distance cutoffs. Both looked inert in the EPD
-run, 25 nodes and 0 nodes of difference, and both cost real Elo in games. A near zero node count
-difference is not evidence that a change is harmless; it only says the test set does not reach it.
+run — one identical, one merely different — and both were rejected in games. A node count that
+barely moves is not evidence that a change is harmless; it only says the test set reaches it
+rarely, and how rarely cannot be read off the figure either.
 The two claims that *were* safe to make from the node count were the ones backed by an argument
 from the code.
 
@@ -256,7 +253,7 @@ if (standPatValue > -WINNING_BONUS && standPatValue < WINNING_BONUS) {
 ```
 
 It was taken over from `computePruneForewardValue`, which guards its own pruning the same way.
-The −7 Elo therefore have a different cause, and the two named in the ToDo 2 section above still
+The rejection therefore has a different cause, and the two named in the ToDo 2 section above still
 stand: a capturing promotion gains about 1500, more than the queen the bound allows, and the
 evaluation terms *below* the winning bonus move with the capture.
 
@@ -347,18 +344,16 @@ partially, and that is the reason the closing SPRT tests the pair, not each on i
 | | |
 |---|---|
 | tag | `0.5.0-009` |
-| EPD nodes | 56595020, +436755 against the baseline — the new term is reached |
+| EPD nodes | 56595020, different |
 | EPD success | 19 % |
 | SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 16, against `0.5.0-001` |
 | result | **H0 accepted**, LLR −2.95 |
-| score | 48.96 % over 6522 games, W 1616 / D 3154 / L 1752, ≈ −7 Elo |
 | runtime | 67:46 |
 
 CLOP found a point that loses. That happens — the estimate is a fit through noisy samples — but
 the direction is readable and it is not noise.
 
-The node count is the clue: 56595020 against 56158265, **+0.78 %**. The new term widens the margin
-on average, so less gets pruned and more gets searched. And a wider futility margin is exactly
+The new term widens the margin, so less gets pruned. And a wider futility margin is exactly
 what the old measurements in the code comment say the engine does not want:
 `100: 49%, 35: 50,3%, 40: 49,3%` — the fixed margin was tested below 50 and scored better there,
 above 50 and scored worse.
@@ -376,17 +371,15 @@ run. One variable instead of two.
 | | |
 |---|---|
 | tag | `0.5.0-010` |
-| EPD nodes | 58956880, +2798615 against the baseline, **+5.0 %** |
+| EPD nodes | 58956880, different |
 | EPD success | 18 % |
 | SPRT | 5+0.01, H0 = −2, H1 = +3, concurrency 14, against `0.5.0-001` |
 | result | **H0 accepted**, LLR −2.95 |
-| score | 48.86 % over 5936 games, W 1443 / D 2915 / L 1578, ≈ −8 Elo |
 | runtime | 70:27 |
 
 So the term does not carry the loss of `0.5.0-009` — it loses on its own, and by slightly more.
 With the fixed margin held at the value it always had, adding the evaluation dependent part costs
-8 Elo, and the node count says why it is not a small effect: **+5.0 %**, the margin widens
-substantially and the forward pruning stops doing its work.
+the node count differs from the baseline, so the term is reached.
 
 The mechanism the item describes is sound — a captured piece takes its positional bonus with it —
 but the price of protecting those captures is paid on every other capture in the position, and
@@ -413,7 +406,7 @@ add. CLAUDE.md is corrected accordingly.
 Objection raised after the first round: if `standPat + queen + 200 < alpha`, then the loop below
 must forward prune every capture anyway, because the exchange value can never exceed the captured
 piece and the captured piece is at most a queen. The cutoff should therefore be a pure saving of
-the move generation and change nothing. So −7 Elo needs a different explanation than the one given
+the move generation and change nothing. So the rejection needs a different explanation than the one given
 in the ToDo 2 section.
 
 The objection is right. `computePruneForewardValue` returns at most
@@ -430,26 +423,21 @@ move, because the map is indexed by the colour of the captured piece alone.
 **delta3** — a diagnostic build. The identical condition, but the move loop runs **unchanged** and
 only the returned value is replaced at the end. It isolates the looser bound from the skipped loop.
 
-| build | EPD nodes | vs. baseline |
+| build | EPD nodes | against the baseline |
 |---|---|---|
 | baseline `0.5.0-001` | 56158265 | — |
-| `0.5.0-005`, as tested, no promotion / futility exemption | 54558890 | −1599375 |
-| delta2, all exemptions mirrored, loop skipped | 54818593 | −1339672 |
-| delta3, all exemptions mirrored, loop **kept**, value replaced | **54818593** | −1339672 |
+| `0.5.0-005`, as tested, no promotion / futility exemption | 54558890 | different |
+| delta2, all exemptions mirrored, loop skipped | 54818593 | different |
+| delta3, all exemptions mirrored, loop **kept**, value replaced | **54818593** | different |
 
-delta2 and delta3 agree to the node. Skipping the loop changes nothing whatsoever — the objection
-is confirmed exactly, not approximately. What is left splits like this:
+delta2 and delta3 agree **to the node**. That is the whole finding, and it is an identity, not a
+size: keeping the move loop or skipping it produces exactly the same search. The objection is
+confirmed exactly, not approximately.
 
-| cause | nodes |
-|---|---|
-| the replaced fail low value | 1339672 |
-| the two missing exemptions | 259703 |
-| skipping the move loop | **0** |
-
-So the dominant effect, by five to one, is the one the ToDo 2 section named last and treated as
-secondary: the returned value. A node with no capture at all returns `standPat` in the old code and
-`standPat + 1260` in the new one. Both are sound upper bounds for a fail low, the new one is just
-1260 centipawns looser, and it travels into the parent's `bestValue` and from there into the
+So what is left is the returned value alone — the one the ToDo 2 section named last and treated as
+secondary. A node with no capture at all returns `standPat` in the old code and `standPat + 1260`
+in the new one. Both are sound upper bounds for a fail low, the new one is just up to 1260
+centipawns looser, and it travels into the parent's `bestValue` and from there into the
 transposition table.
 
 That reframes the item. The cutoff is not a pruning decision at all — it is a *value* change with a
@@ -465,16 +453,15 @@ delta2 is the version that asks it cleanly, and it is the one to run.
 It is built, tagged and measured, but **its SPRT has not been run** — the machine is needed
 elsewhere.
 
-| version | fixed margin | weight | EPD nodes | vs. baseline | EPD success | SPRT |
-|---|---|---|---|---|---|---|
-| baseline `0.5.0-001` | 50 | 0 | 56158265 | — | 22 % | — |
-| `0.5.0-009` | 56 | 20 | 56595020 | +0.8 % | 19 % | H0, −7 Elo, 6522 games |
-| `0.5.0-010` | 50 | 20 | 58956880 | +5.0 % | 18 % | H0, −8 Elo, 5936 games |
-| `0.5.0-011` | 30 | 20 | 55459078 | **−1.2 %** | **22 %** | not run |
+| version | fixed margin | weight | EPD nodes | SPRT |
+|---|---|---|---|---|
+| baseline `0.5.0-001` | 50 | 0 | 56158265 | — |
+| `0.5.0-009` | 56 | 20 | 56595020 | H0 after 6522 games |
+| `0.5.0-010` | 50 | 20 | 58956880 | H0 after 5936 games |
+| `0.5.0-011` | 30 | 20 | 55459078 | not run |
 
-`0.5.0-011` is the only one of the three whose node count falls below the baseline and whose EPD
-success rate stays at 22 %. Both of the measured ones lose, and both search *more* nodes than the
-baseline — the same direction the old comment at that line already recorded for a widened margin.
+All three counts differ from the baseline, so all three are reached. Which of them is closer to the
+baseline says nothing — the counts are not a scale.
 
 If `0.5.0-011` is ever run and looks good, it needs a control at **fixed margin 30 with weight 0**
 before anything is attributed to the new term. Two things differ from the baseline in it, and the
@@ -500,9 +487,9 @@ the tuning of the new term around it, then the node level cutoff.
 
 | # | version | change | result |
 |---|---|---|---|
-| 1 | `0.5.0-014` | `qsAlphaSafetyMargin` 35 instead of 50 | H0, −2 Elo, 18238 games |
-| 2 | `0.5.0-015` | evaluation dependent margin, CLOP values 144 / 31 | H0, −4 Elo, 11641 games |
-| 3 | `0.5.0-016` | node level delta pruning, all exemptions mirrored | H0, −6 Elo, 7401 games |
+| 1 | `0.5.0-014` | `qsAlphaSafetyMargin` 35 instead of 50 | H0 after 18238 games |
+| 2 | `0.5.0-015` | evaluation dependent margin, CLOP values 144 / 31 | H0 after 11641 games |
+| 3 | `0.5.0-016` | node level delta pruning, all exemptions mirrored | H0 after 7401 games |
 
 Nothing survives. Details per version in `plan/version-log.md`.
 
@@ -520,7 +507,8 @@ noise, and the estimate is worth nothing until the SPRT has spoken.
 
 **Point 3 put a number on bound precision.** Because delta3 had already proven that skipping the
 move loop changes nothing, this run measured one thing in isolation: a fail low value up to 1260
-centipawns looser than necessary. That alone is −6 Elo, far more than the move generation it saves.
+centipawns looser than necessary. That alone was enough to be rejected, and faster than any other
+version of the item — the move generation it saves does not pay for it.
 
 ## Loop invariance, measured
 

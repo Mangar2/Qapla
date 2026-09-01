@@ -1189,8 +1189,7 @@ survivors, not the sum of the two individual gains.
 
 ## 0.5.0-002 — quiescence ToDo 4, the `doFutilityOnCapture` guard removed
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6532 games. EPD nodes 56158265 → 56158290, twenty-five nodes of difference on the whole
-set.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6532 games. EPD nodes 56158265 → 56158290, different.
 
 The guard turns futility pruning off for a capture whose owner is down to two pieces or fewer,
 where the evaluation is no longer a smooth function of material. That the EPD run barely reaches
@@ -1220,7 +1219,7 @@ aspiration window produces in games and the depth 14 EPD run rarely reaches. Cod
 
 ## 0.5.0-005 — quiescence ToDo 2, node level delta pruning
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6399 games. EPD nodes 56158265 → 54558890, −2.85 %.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6399 games. EPD nodes 56158265 → 54558890, different.
 
 Returning `standPat + queen + margin` when that stays below alpha, with the margin at 200. The
 bound is not safe against this evaluation: a capturing promotion gains more than a queen, and the
@@ -1262,7 +1261,7 @@ instead of running anything. Details in `plan/quiescence-todos-0.5.0.md`.
 
 ## 0.5.0-009 — quiescence futility margin with an evaluation dependent part, CLOP values
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6522 games. EPD nodes 56158265 → 56595020, +0.78 %.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 6522 games. EPD nodes 56158265 → 56595020, different.
 
 The forward futility margin gets a second term, `(material - eval) * weight / 100`, both from the
 view of the side to move, so it widens exactly when the opponent stands better than the material
@@ -1282,22 +1281,20 @@ margin from 50 to 56 and the new term — so this run cannot say which one cause
 
 ## 0.5.0-010 — the evaluation dependent margin alone, fixed margin back at 50
 
-Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 5936 games. EPD nodes 56158265 → 58956880, +5.0 %.
+Reverted. SPRT against `0.5.0-001` at 5+0.01, standard bounds: **H0 accepted** after 5936 games. EPD nodes 56158265 → 58956880, different.
 
 `0.5.0-009` moved two things at once, the fixed margin and the new weight, so it could not say
 which one caused it. This run holds the fixed margin at the 50 it always had and changes only
 the weight. It loses on its own, by slightly more than the pair did, so the fixed margin move was
 not the cause.
 
-The node count is the substance: five percent more nodes means the margin widens enough that the
-forward pruning stops working. The idea behind the term is sound — a captured piece takes its
+The idea behind the term is sound — a captured piece takes its
 positional bonus with it — but protecting those captures costs pruning on every other capture in
 the position, and that trade is negative here. Code on `qs-evalmargin`.
 
 ## 0.5.0-011 — the same weight with the fixed margin at 30
 
-Built, tagged and measured, **SPRT not run**. EPD nodes 55459078, −1.2 % against the baseline,
-success rate 22 %, the only one of the three variants that stays at the baseline's level on both.
+Built, tagged and measured, **SPRT not run**. EPD nodes 55459078, different from the baseline.
 
 Third point of a scan over the fixed margin at weight 20, after 56 and 50, both of which lost. If
 it is ever run and wins, it needs a control at fixed margin 30 with weight 0 before the gain is
@@ -1321,7 +1318,7 @@ kept on `qs-matecmp` and not merged, because nothing here argues for it beyond c
 ## 0.5.0-012 — evaluation dependent margin, author's version, term only in the threshold
 
 Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**, the LLR
-stopping just short of the H0 bound. EPD nodes 56053705, −0.19 %, EPD success rate 29 %.
+stopping just short of the H0 bound. EPD nodes 56053705, different.
 
 The term reached only the SEE threshold, not the returned value. Because `computeExchangeValue`
 clamps its result at `threshold + 1`, that caps the return at `alpha - evalMargin + 1`, so in every
@@ -1335,8 +1332,7 @@ run over 20000 games says the opposite, and the run is what counts.
 
 ## 0.5.0-013 — the same term, corrected into both the threshold and the returned value
 
-Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**. EPD nodes
-57257112, +1.96 %.
+Not decided. SPRT against `0.5.0-001`, standard bounds: **inconclusive at 20000 games**. EPD nodes 57257112, different.
 
 The first version of the idea that acts in the direction it was designed for: the node searches
 *more*, so the captures carrying a positional bonus are protected from the forward pruning instead
@@ -1349,7 +1345,7 @@ factor how steeply it grows, which is what a CLOP run needs.
 
 ## 0.5.0-014 — alpha safety margin 35 instead of 50
 
-Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 18238 games. EPD nodes 56158265 → 56261698, +0.18 %.
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 18238 games. EPD nodes 56158265 → 56261698, different.
 
 This settles an old comment that used to sit above the parameter, `100: 49%, 35: 50,3%, 40: 49,3%`.
 Read as a curve it said 35 was the better value; measured against its own decision it is worse than
@@ -1362,8 +1358,7 @@ searches around that value.
 
 ## 0.5.0-015 — the evaluation dependent margin with its CLOP values
 
-Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 11641 games. EPD nodes 55197564 → 54750353 against the untuned version, −2.5 % against the
-baseline.
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 11641 games. EPD nodes 55197564 → 54750353, different.
 
 CLOP over both coefficients, 3000 samples, `qsAlphaSafetyMargin` held at 50 because `0.5.0-014`
 had just shown 50 is not to be moved. Estimates: offset 144.25, factor 31.38, rounded to 144 and
@@ -1396,7 +1391,7 @@ anything on its own, which is what the confirming run is for.
 
 ## 0.5.0-016 — node level delta pruning, all three exemptions mirrored
 
-Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 7401 games. EPD nodes 56158265 → 54818593, −2.4 %.
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 7401 games. EPD nodes 56158265 → 54818593, different.
 
 The second attempt at the old ToDo 2, after the first one (`0.5.0-005`, also rejected) turned out to have
 skipped two of the three exemptions of `computePruneForewardValue`. This version mirrors all three
@@ -1422,8 +1417,7 @@ move is pruned. It does not come close to paying for the loss.
 
 ## 0.5.0-017 — the fixed margin lowered to 10, the term left to cover the critical cases
 
-Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 4702 games. EPD nodes
-57289722, +2.0 %.
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted** after 4702 games. EPD nodes 57289722, different.
 
 `qsAlphaSafetyMargin` 50 → 10, offset 100, factor 20. The sharpest formulation of the item so far:
 a margin is only needed where there is more to win than material, so a flat margin pays in every
