@@ -108,22 +108,32 @@ within maxgames. A non-zero exit code here is a result, not an error.
 
 ### An SPRT has exactly one output
 
-**H0, H1, or undecided. Nothing else.** Not an Elo figure, not "about −7", not a winrate read as a
-strength. The run is a decision procedure against two bounds, and the decision is the whole of what
-it proved.
+**H0 accepted, H1 accepted, or undecided. Nothing else.**
 
-The score at the stopping point is not an estimate of the effect. A run stops the moment the LLR
-reaches a bound, and *that* is what stopped it — the score is biased downwards for H0 and upwards
-for H1, precisely by the mechanism that ended the run. Reading a magnitude out of it invents a
-number the run never measured, and two such numbers from two runs cannot be compared or added.
+And "accepted" means less than it sounds like. An SPRT weighs exactly two candidate values against
+each other, the ones given as `eloh0` and `eloh1`. "H0 accepted" says: of those two, H0 is the more
+likely one — the data favour it over H1 at the chosen alpha and beta. It does **not** say the true
+value is `eloh0`, nor that it lies below `eloh0`, and it says nothing whatsoever about any value
+that was not one of the two.
+
+So the run yields no Elo figure, and the score at the stopping point is not one either. A run stops
+the moment the LLR reaches a bound, and that is what stopped it, so the score is biased by the very
+mechanism that ended the run. Reading a magnitude out of it invents a number the run never measured,
+and two such numbers from two runs can be neither compared nor added.
+
+Two consequences follow from it being a comparison of two candidates. The bounds must be genuinely
+different values — a test that weighs a candidate against itself has nothing to weigh. And the
+closer the two sit, the more games are needed, because the test has to tell two nearly identical
+candidates apart: bounds far apart decide quickly, narrow bounds can run for tens of thousands of
+games without deciding. Narrow is not the careful choice, it is the expensive one.
 
 This binds everything written down, not just the summary line: **version log entries, code comments
 and answers to me.** Write "H0 accepted after 6532 games, bounds −2/+3". Do not write "costs 7 Elo".
-The game count is a fact about the run and may be reported; it says how quickly the bounds were
-reached, not how large the effect is.
+The game count is a fact about the run and may be reported; it says how quickly the two candidates
+separated, not how large the effect is.
 
-If the magnitude is the question, that is a different run: place the bounds where the question is
-(H0 = 5, H1 = 12 asks whether something is worth about ten) and run that.
+If the magnitude is the question, it needs its own run with the bounds placed around the value in
+question.
 
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
