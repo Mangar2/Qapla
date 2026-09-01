@@ -70,8 +70,6 @@ namespace QaplaSearch {
 			pieceToTryBitBoard[BLACK] = 0;
 			pieceToTryBitBoard[WHITE] = 0;
 
-			alpha = -MAX_VALUE;
-			beta = MAX_VALUE;
 		}
 
 			
@@ -113,15 +111,13 @@ namespace QaplaSearch {
 				allPiecesLeft &= ~(1ULL << move.getDeparture());
 				whiteToMove = !position.isWhiteToMove();
 				clear();
-				alpha = -1;
-				beta = 1;
 				if (position.isWhiteToMove()) {
 					if (isDefendedByPawn<BLACK>(position, move.getDestination())) {
 						result = true;
 					}
 					else {
 						nextPiece[BLACK] = BLACK_KNIGHT;
-						resultValue = computeSEEValue(position, square, position.getPieceValueForMoveSorting(movingPiece));
+						resultValue = computeSEEFailSoft(position, square, position.getPieceValueForMoveSorting(movingPiece), -1, 1);
 						result = resultValue < 0;
 					}
 				}
@@ -131,7 +127,7 @@ namespace QaplaSearch {
 					}
 					else {
 						nextPiece[WHITE] = WHITE_KNIGHT;
-						resultValue = computeSEEValue(position, square, position.getPieceValueForMoveSorting(movingPiece));
+						resultValue = computeSEEFailSoft(position, square, position.getPieceValueForMoveSorting(movingPiece), -1, 1);
 						result = resultValue > 0;
 					}
 				}
@@ -160,10 +156,9 @@ namespace QaplaSearch {
 			whiteToMove = !whiteMoves;
 			clear();
 			// Must be after clear, it resets the window
-			alpha = whiteThreshold - 1;
-			beta = whiteThreshold + 1;
-			const value_t exchangeValue = computeSEEValue(position, move.getDestination(),
-				position.getPieceValueForMoveSorting(move.getMovingPiece()));
+			const value_t exchangeValue = computeSEEFailSoft(position, move.getDestination(),
+				position.getPieceValueForMoveSorting(move.getMovingPiece()),
+				whiteThreshold - 1, whiteThreshold + 1);
 			return whiteMoves ? exchangeValue : -exchangeValue;
 		}
 
@@ -212,40 +207,108 @@ namespace QaplaSearch {
 
 		/**
 		 * Computes an static exchange value for a piece of the position
+		 * @param position the position to compute the exchange value for
+		 * @param square the square of the piece to compute the exchange value for
+		 * @param valueOfCurrentPieceOnSquare the value of the piece on the square
+		 * @returns the static exchange value of the piece on the square
+		 * gain is the see result so far from white view
+		 * allPiecesLeft is a bitboard with all remaining pieces on the position.
+		 * whiteToMove is true, if white is at move, false otherwise
+		 * nextPiece is the next piece to try for each color
+		 * currentValue is the value of the next piece to try for each color
+		 * valueOfNextPieceOnTargetField is the value of the next piece to try for the other color
+		 * nodeCountStatistic is a statistic of the number of nodes computed
 		 */
 		value_t computeSEEValue(const MoveGenerator& position, Square square, value_t valueOfCurrentPieceOnSquare) {
-
+			value_t alpha = -MAX_VALUE;
+			value_t beta = MAX_VALUE;
 			while (valueOfCurrentPieceOnSquare != 0) {
 				if (whiteToMove) {
-					if (gain > alpha) {
-						alpha = gain;
-					}
-					if (gain - valueOfCurrentPieceOnSquare <= alpha) {
+					// alpha holds the value white already gained (exception, alpha was preset by caller).
+					alpha = std::max(alpha, gain);
+					// We add the (negative) value of the black piece to white´s gain.
+					gain -= valueOfCurrentPieceOnSquare;
+					// Break, if gain cannot surpass alpha anymore.
+					if (gain <= alpha) {
 						gain = alpha;
 						break;
 					}
 					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<WHITE>(position, square);
-					if (valueOfNextPieceOnTargetField != 0) {
-						gain -= valueOfCurrentPieceOnSquare;
-					}
-					else {
+					// Break, if no more opponent attackers are left.
+					if (valueOfNextPieceOnTargetField == 0) {
 						gain = alpha;
+						break;
 					}
 				}
 				else {
-					if (gain < beta) {
-						beta = gain;
-					}
-					if (gain - valueOfCurrentPieceOnSquare >= beta) {
+					beta = std::min(beta, gain);
+					gain -= valueOfCurrentPieceOnSquare;
+					if (gain >= beta) {
 						gain = beta;
 						break;
 					}
 					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<BLACK>(position, square);
-					if (valueOfNextPieceOnTargetField != 0) {
-						gain -= valueOfCurrentPieceOnSquare;
-					}
-					else {
+					if (valueOfNextPieceOnTargetField == 0) {
 						gain = beta;
+						break;
+					}
+				}
+				whiteToMove = !whiteToMove;
+				valueOfCurrentPieceOnSquare = valueOfNextPieceOnTargetField;
+			}
+			return gain;
+		}
+
+				/**
+		 * Computes an static exchange value for a piece of the position
+		 * @param position the position to compute the exchange value for
+		 * @param square the square of the piece to compute the exchange value for
+		 * @param valueOfCurrentPieceOnSquare the value of the piece on the square
+		 * @param alpha is a preset lower bound
+		 * @param beta is a preset upper bound
+		 * @returns the static exchange value of the piece on the square
+		 * gain is the see result so far from white view
+		 * allPiecesLeft is a bitboard with all remaining pieces on the position.
+		 * whiteToMove is true, if white is at move, false otherwise
+		 * nextPiece is the next piece to try for each color
+		 * currentValue is the value of the next piece to try for each color
+		 * valueOfNextPieceOnTargetField is the value of the next piece to try for the other color
+		 * nodeCountStatistic is a statistic of the number of nodes computed
+		 */
+		value_t computeSEEFailSoft(const MoveGenerator& position, Square square, value_t valueOfCurrentPieceOnSquare, value_t alpha, value_t beta) {
+
+			while (valueOfCurrentPieceOnSquare != 0) {
+				if (whiteToMove) {
+					// We add the (negative) value of the black piece to white´s gain.
+					// alpha = std::max(alpha, gain);
+					gain -= valueOfCurrentPieceOnSquare;
+					// Break, if gain cannot surpass alpha anymore.
+					if (gain <= alpha) {
+						return gain;
+						gain = alpha;
+						break;
+					}
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<WHITE>(position, square);
+					// Break, if no more opponent attackers are left.
+					if (valueOfNextPieceOnTargetField == 0) {
+						return gain;
+						gain = alpha;
+						break;
+					}
+				}
+				else {
+					// beta = std::min(beta, gain);
+					gain -= valueOfCurrentPieceOnSquare;
+					if (gain >= beta) {
+						return gain;
+						gain = beta;
+						break;
+					}
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<BLACK>(position, square);
+					if (valueOfNextPieceOnTargetField == 0) {
+						return gain;
+						gain = beta;
+						break;
 					}
 				}
 				whiteToMove = !whiteToMove;
@@ -300,6 +363,14 @@ namespace QaplaSearch {
 			return pieces & allPiecesLeft;
 		}
 
+		/**
+		 * @brief Gets a bitboard of all pieces of one type and color attacking a square
+		 * 
+		 * @tparam COLOR 
+		 * @param position board position and move generator to compute the attacking pieces
+		 * @param square the square to check for attacking pieces
+		 * @return a bitboard of all pieces of one type and color attacking a square
+		 */
 		template <Piece COLOR>
 		bitBoard_t getAttackingPieces(const MoveGenerator& position, Square square) {
 			bitBoard_t result;
@@ -328,6 +399,7 @@ namespace QaplaSearch {
 			case ROOK + COLOR:
 				result = computeRookAttacking(square, position.getPieceBB(ROOK + COLOR));
 				if (result != 0) {
+					// A rook never hides a bishop, so we can safely set queen as next peice to try.
 					nextPiece[COLOR] = QUEEN + COLOR;
 					currentValue[COLOR] = position.getPieceValueForMoveSorting(ROOK + COLOR);
 					break;
@@ -335,6 +407,8 @@ namespace QaplaSearch {
 			case QUEEN + COLOR:
 				result = computeQueenAttacking(square, position.getPieceBB(QUEEN + COLOR));
 				if (result != 0) {
+					// The queen may hide bishops and rooks but never pawn and knights so the next piece to try after a 
+					// queen move is a bishop.
 					nextPiece[COLOR] = BISHOP + COLOR;
 					currentValue[COLOR] = position.getPieceValueForMoveSorting(QUEEN + COLOR);
 					break;
@@ -377,8 +451,6 @@ namespace QaplaSearch {
 		bitBoard_t allPiecesLeft;
 		value_t valueOfNextPieceOnTargetField;
 		bool whiteToMove;
-		value_t alpha;
-		value_t beta;
 		value_t gain;
 
 		uint64_t nodeCountStatistic;
