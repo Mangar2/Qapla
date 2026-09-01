@@ -1435,3 +1435,42 @@ The run reached its bound after 4702 games, fewer than any other version of this
 `0.5.0-014` had already rejected 35 in place of 50. Untested and the obvious control if the item is
 picked up again: `qsAlphaSafetyMargin` 10 with the term switched off, which would say whether the
 flat margin alone is responsible.
+
+## 0.5.0-018 — quiescence cleanup plus the mate bound tested with `>=` and `<=`
+
+Reverted, and it turned the earlier `0.5.0-008` into a real finding. SPRT against `0.5.0-001` with
+H0 = −10 and H1 = 0: **H0 accepted** after 9887 games. EPD nodes 56158265, identical, runtime
+equal to the baseline in three interleaved pairs.
+
+The version carries two things: every ToDo comment reduced to the decision of its SPRT, the
+commented out delta cutoff and beta probe deleted outright — and `Search::nonSearchingCutoff`
+testing the mate bound with `>=` and `<=` instead of `>` and `<`.
+
+The first half cannot be the cause. Built without the second half it produces **byte identical
+object files** for both changed translation units, `quiescencese.o` and `search.o`, against a fresh
+build of `0.5.0-001`. Comments and dead code leave no trace in the machine code.
+
+So the comparison operator is. And `alpha == MAX_VALUE - ply` is not the unreachable boundary it
+looks like: it is exactly the window the root sets after finding a mate in N, at the ply where that
+mate falls. With `>` the node searches on and derives the mate again; with `>=` it is cut off and
+returns the bound. The score is right and the variation is never produced — but the search has to
+re-derive its mate in every iteration, not merely confirm a bound on it.
+
+`0.5.0-008` had tested the same change alone with H0 = −5 and H1 = 0 and stayed undecided over
+40000 games. Undecided was the correct answer to that question; it took bounds far enough apart to
+get a decision. The two bounds are candidates, and the closer they sit the less a run can separate.
+
+The comparison stays `>` and `<`. Branch `qs-matecmp` keeps the change as documentation.
+
+## 0.5.0-019 — the quiescence cleanup alone
+
+The version to keep. Against `0.5.0-001` it changes nothing but comments and dead code:
+
+- every `ToDo` comment replaced by the decision of the SPRT that answered it, bounds and outcome,
+  nothing else — no Elo figures, no percentages
+- the commented out node level delta cutoff and the commented out beta probe deleted, together
+  with the comments that described them
+
+**No SPRT.** Both changed translation units compile to object files byte identical to those of
+`0.5.0-001`, which is a stronger statement than any run could make. The EPD node count is
+56158265 as expected.
