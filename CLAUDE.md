@@ -132,8 +132,24 @@ and answers to me.** Write "H0 accepted after 6532 games, bounds −2/+3". Do no
 The game count is a fact about the run and may be reported; it says how quickly the two candidates
 separated, not how large the effect is.
 
-If the magnitude is the question, it needs its own run with the bounds placed around the value in
-question.
+### When an Elo figure is wanted after all
+
+Usually it is not. We are looking for *better*, and that is exactly the question an SPRT answers.
+Ask for a magnitude only when something actually depends on it.
+
+When it does, there are two honest ways, and neither is reading a number off an SPRT.
+
+**A tournament.** Engine A against engine B, run until the error bound qet reports next to the Elo
+difference has fallen below the target — under ±5 Elo, say. That yields a figure *and* its
+uncertainty, which is what an Elo number has to carry to mean anything. This is the normal way.
+
+**A series of SPRTs that brackets the value.** Bounds are candidates, so a run that stays undecided
+at its game limit says the two candidates could not be separated — the value plausibly lies between
+them. Undecided at H0 = 10 and H1 = 15 over 20000 games is an argument for "somewhere around 10 to
+15". It is weaker than a tournament and costs more, so use it only when the runs exist anyway.
+
+Whichever it is, the figure is written with its uncertainty. Without one it claims a precision it
+does not have.
 
 H1 accepted → the change stays. H0 accepted → move the commit to a branch `dead/<change>`
 as documentation of what was already tried and revert it on the working branch.
