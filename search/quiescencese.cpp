@@ -41,26 +41,22 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 	if (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) {
 		return MAX_VALUE;
 	}
-	// Promotion is only Queen promotion, sub-promotes are not in the quiescence search.
+	// Only queen promotions arrive here, the generator files sub promotions as silent moves.
 	if (move.isPromote()) {
 		return MAX_VALUE;
 	}
 
 	Piece capturedPiece = move.getCapture();
 
-	// Tested 0.5.0-002: removing it was rejected. SPRT vs 0.5.0-001, bounds -2/+3, H0 accepted
-	// after 6532 games. How much it is worth is not part of that answer.
+	// Tested 0.5.0-002, removing it: SPRT h0 = -2, h1 = 3, H0 accepted.
 	if (!position.doFutilityOnCapture(capturedPiece)) {
 		return MAX_VALUE;
 	}
-	auto value = position.getMaterialValue().getValue(50);
-	auto evalMargin = ((position.isWhiteToMove() ? value : -value)- standPatValue);
-	evalMargin = std::max(0, evalMargin - tunable<SearchConfig::optimizeQS, "qsEvalMarginSub", 200, 0, 400>());
-	evalMargin = evalMargin * tunable<SearchConfig::optimizeQS, "qsEvalMarginFactor", 30, 0, 60>() / 100;
-
-	auto margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
-	margin += evalMargin;
-
+	// Both terms must use the same margin, else a tuning run moves two halves against each other.
+	// Tested 0.5.0-014, margin 35 instead of 50: SPRT h0 = -2, h1 = 3, H0 accepted.
+	// Tested 0.5.0-009, -010, -015, -017, an eval dependent addition to this margin:
+	// SPRT h0 = -2, h1 = 3, H0 accepted. 0.5.0-012 and -013 undecided.
+	const value_t margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
 	const value_t threshold = alpha - standPatValue - margin;
 	return standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 }
@@ -95,9 +91,8 @@ value_t Quiescence::search(bool isPvNode,
 	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
-	// Tested 0.5.0-004: removing the two checks was rejected. SPRT vs 0.5.0-001, bounds -2/+3,
-	// H0 accepted after 12540 games. They never fire in the fixed depth EPD run - identical node
-	// count - but they do fire in games.
+	// Tested 0.5.0-004, removing the two checks: SPRT h0 = -2, h1 = 3, H0 accepted.
+	// Cut, if distance to mate is too high to reach the search window
 	if (alpha >= MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
 	}	
@@ -115,10 +110,8 @@ value_t Quiescence::search(bool isPvNode,
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
 	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
 	
-	// Tested 0.5.0-007: guarding this cutoff and the one in SearchNode::probeTT with
-	// std::abs(value) < MIN_MATE_VALUE was rejected. SPRT at 10+0.01 with the bounds the item
-	// asked for, H0 = -6 and H1 = -1, H0 accepted after 6272 games - so not even the small loss
-	// the item was willing to pay for mate search stability.
+	// Tested 0.5.0-007, guarding this and the cutoff in SearchNode::probeTT with
+	// abs(value) < MIN_MATE_VALUE: SPRT h0 = -6, h1 = -1, H0 accepted.
 	if (ttValue != NO_VALUE) {
 		return ttValue;
 	}
@@ -173,18 +166,8 @@ value_t Quiescence::search(bool isPvNode,
 		return standPatValue;
 	}
 
-	// Tested 0.5.0-005: node level delta pruning rejected, SPRT vs 0.5.0-001, bounds -2/+3, H0
-	// accepted after 6399 games. Retried as 0.5.0-016 with all exemptions mirrored, rejected again.
-	// A queen plus 200 is not a safe bound for this eval: a capture also moves the positional
-	// terms, and a capturing promotion gains more than a queen on its own. The item asked to
-	// CLOP the margin only if the SPRT proved H1, so it ends here.
-	// if (standPatValue > -WINNING_BONUS && standPatValue < WINNING_BONUS) {
-	//	const value_t maxGain = position.getPieceValueForMoveSorting(WHITE_QUEEN)
-	//		+ tunable<SearchConfig::optimizeQS, "qsDeltaMargin", 200, -200, 600>();
-	//	if (standPatValue + maxGain < alpha) {
-	//		return standPatValue + maxGain;
-	//	}
-	// }
+	// Tested 0.5.0-005 and 0.5.0-016, a node level delta cutoff here:
+	// SPRT h0 = -2, h1 = 3, H0 accepted.
 
 	// Eval::assertSymetry(position, standPatValue);
 
