@@ -178,8 +178,7 @@ value_t Quiescence::search(bool isPvNode,
 	// We set the ttMove we found before. It will then select the ttMove first.
 	MoveProvider moveProvider;
 	Move move;
-	moveProvider.setTTMove(ttMove);
-	moveProvider.computeCaptures(position, lastMove);
+	moveProvider.computeCaptures(position, lastMove, ttMove);
 
 	// 6. Move Loop
 	while (!(move = moveProvider.selectNextCapture()).isEmpty()) {
