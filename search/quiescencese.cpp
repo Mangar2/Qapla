@@ -48,7 +48,8 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 
 	Piece capturedPiece = move.getCapture();
 
-	// Tested 0.5.0-002: Removing it costs 7 elo, H0 accepted over 6532 games at 48.97 %.
+	// Tested 0.5.0-002: removing it was rejected. SPRT vs 0.5.0-001, bounds -2/+3, H0 accepted
+	// after 6532 games. How much it is worth is not part of that answer.
 	if (!position.doFutilityOnCapture(capturedPiece)) {
 		return MAX_VALUE;
 	}
@@ -94,8 +95,9 @@ value_t Quiescence::search(bool isPvNode,
 	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
-	// Tested 0.5.0-004: removing the two checks costs 3 elo, H0 accepted over 12540 games at
-	// 49.50 %. 
+	// Tested 0.5.0-004: removing the two checks was rejected. SPRT vs 0.5.0-001, bounds -2/+3,
+	// H0 accepted after 12540 games. They never fire in the fixed depth EPD run - identical node
+	// count - but they do fire in games.
 	if (alpha >= MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
 	}	
@@ -114,8 +116,9 @@ value_t Quiescence::search(bool isPvNode,
 	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
 	
 	// Tested 0.5.0-007: guarding this cutoff and the one in SearchNode::probeTT with
-	// std::abs(value) < MIN_MATE_VALUE costs 10 elo at 10+0.01, H0 accepted over 6272 games at
-	// 48.57 %. 
+	// std::abs(value) < MIN_MATE_VALUE was rejected. SPRT at 10+0.01 with the bounds the item
+	// asked for, H0 = -6 and H1 = -1, H0 accepted after 6272 games - so not even the small loss
+	// the item was willing to pay for mate search stability.
 	if (ttValue != NO_VALUE) {
 		return ttValue;
 	}
@@ -170,7 +173,8 @@ value_t Quiescence::search(bool isPvNode,
 		return standPatValue;
 	}
 
-	// Tested 0.5.0-005: node level delta pruning, H0 accepted at -7 elo over 6399 games, 48.94 %.
+	// Tested 0.5.0-005: node level delta pruning rejected, SPRT vs 0.5.0-001, bounds -2/+3, H0
+	// accepted after 6399 games. Retried as 0.5.0-016 with all exemptions mirrored, rejected again.
 	// A queen plus 200 is not a safe bound for this eval: a capture also moves the positional
 	// terms, and a capturing promotion gains more than a queen on its own. The item asked to
 	// CLOP the margin only if the SPRT proved H1, so it ends here.
