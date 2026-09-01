@@ -41,28 +41,24 @@ value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t s
 	if (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) {
 		return MAX_VALUE;
 	}
-	// Promotion is only Queen promotion, sub-promotes are not in the quiescence search.
+	// Only queen promotions arrive here, the generator files sub promotions as silent moves.
 	if (move.isPromote()) {
 		return MAX_VALUE;
 	}
 
 	Piece capturedPiece = move.getCapture();
 
-	// Tested 0.5.0-002: Removing it costs 7 elo, H0 accepted over 6532 games at 48.97 %.
+	// Tested 0.5.0-002, removing it: SPRT h0 = -2, h1 = 3, H0 accepted.
 	if (!position.doFutilityOnCapture(capturedPiece)) {
 		return MAX_VALUE;
 	}
-	auto value = position.getMaterialValue().getValue(50);
-	auto evalMargin = ((position.isWhiteToMove() ? value : -value)- standPatValue) * 30 / 100;
-	evalMargin = std::max(0, evalMargin - 100);
-
+	// Both terms must use the same margin, else a tuning run moves two halves against each other.
+	// Tested 0.5.0-014, margin 35 instead of 50: SPRT h0 = -2, h1 = 3, H0 accepted.
+	// Tested 0.5.0-009, -010, -015, -017, an eval dependent addition to this margin:
+	// SPRT h0 = -2, h1 = 3, H0 accepted. 0.5.0-012 and -013 undecided.
 	const value_t margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
-	// Both terms must use the same margin, else a tuning run moves two halves against each other -
-	// and here it is not even a matter of precision. computeExchangeValue clamps its result at
-	// threshold + 1, so leaving evalMargin out of the return caps it at alpha - evalMargin + 1,
-	// which prunes every capture in exactly the nodes the term is meant to protect.
-	const value_t threshold = alpha - standPatValue - margin - evalMargin;
-	return standPatValue + margin + evalMargin + _see.computeExchangeValue(position, move, threshold);
+	const value_t threshold = alpha - standPatValue - margin;
+	return standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
 }
 
 /**
@@ -95,8 +91,8 @@ value_t Quiescence::search(bool isPvNode,
 	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
-	// Tested 0.5.0-004: removing the two checks costs 3 elo, H0 accepted over 12540 games at
-	// 49.50 %. 
+	// Tested 0.5.0-004, removing the two checks: SPRT h0 = -2, h1 = 3, H0 accepted.
+	// Cut, if distance to mate is too high to reach the search window
 	if (alpha >= MAX_VALUE - ply) {
 		return MAX_VALUE - ply;
 	}	
@@ -114,9 +110,8 @@ value_t Quiescence::search(bool isPvNode,
 	WhatIf::whatIf.moveSelected(position, computingInfo, lastMove, ply, true);
 	auto [ttEval, ttValue, ttPrecision, ttMove] = probeTT(position, alpha, beta, ply);
 	
-	// Tested 0.5.0-007: guarding this cutoff and the one in SearchNode::probeTT with
-	// std::abs(value) < MIN_MATE_VALUE costs 10 elo at 10+0.01, H0 accepted over 6272 games at
-	// 48.57 %. 
+	// Tested 0.5.0-007, guarding this and the cutoff in SearchNode::probeTT with
+	// abs(value) < MIN_MATE_VALUE: SPRT h0 = -6, h1 = -1, H0 accepted.
 	if (ttValue != NO_VALUE) {
 		return ttValue;
 	}
@@ -171,17 +166,8 @@ value_t Quiescence::search(bool isPvNode,
 		return standPatValue;
 	}
 
-	// Tested 0.5.0-005: node level delta pruning, H0 accepted at -7 elo over 6399 games, 48.94 %.
-	// A queen plus 200 is not a safe bound for this eval: a capture also moves the positional
-	// terms, and a capturing promotion gains more than a queen on its own. The item asked to
-	// CLOP the margin only if the SPRT proved H1, so it ends here.
-	// if (standPatValue > -WINNING_BONUS && standPatValue < WINNING_BONUS) {
-	//	const value_t maxGain = position.getPieceValueForMoveSorting(WHITE_QUEEN)
-	//		+ tunable<SearchConfig::optimizeQS, "qsDeltaMargin", 200, -200, 600>();
-	//	if (standPatValue + maxGain < alpha) {
-	//		return standPatValue + maxGain;
-	//	}
-	// }
+	// Tested 0.5.0-005 and 0.5.0-016, a node level delta cutoff here:
+	// SPRT h0 = -2, h1 = 3, H0 accepted.
 
 	// Eval::assertSymetry(position, standPatValue);
 
