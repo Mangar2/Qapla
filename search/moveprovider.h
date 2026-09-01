@@ -153,8 +153,8 @@ namespace QaplaSearch {
 		/**
 		 * Initializes the move provider to provide captures
 		 */
-		// Tested 0.4.0-057: quiescence tries the tt move first, in this list and in the evades:
-		// -4.6 Elo, 9826 games
+		// Tested 0.4.0-057, quiescence trying the tt move first, in this list and in the evades:
+		// SPRT rejected it over 9826 games.
 		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove) {
 			previousMove = previousPlyMove;
 			board.genNonSilentMovesOfMovingColor(moveList);
@@ -164,7 +164,12 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Initializes the move provider to provide captures, with the tt move first
+		 * Initializes the move provider to provide captures, with the tt move first.
+		 *
+		 * Tested 0.5.0-021 in Quiescence::search: SPRT h0 = -2, h1 = 3 against 0.5.0-020,
+		 * H0 accepted after 11587 games. This is the cheap ordering variant - one weight set
+		 * instead of a separate selection stage - and it does not change the answer of
+		 * 0.4.0-057 above. Currently unused; the quiescence uses the two argument overload.
 		 */
 		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove, Move ttMove) {
 			previousMove = previousPlyMove;
