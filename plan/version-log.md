@@ -1477,3 +1477,22 @@ The version to keep. Against `0.5.0-001` it changes nothing but comments and dea
 **No SPRT.** Both changed translation units compile to object files byte identical to those of
 `0.5.0-001`, which is a stronger statement than any run could make. The EPD node count is
 56158265 as expected.
+
+## 0.5.0-020 — the state for release 0.5.0
+
+The end of the quiescence work. Against `0.5.0-001` it carries exactly two things:
+
+- the cleanup of `0.5.0-019` — every `ToDo` comment replaced by the decision of the SPRT that
+  answered it, bounds and outcome and nothing else, and the commented out node level delta cutoff
+  and beta probe deleted together with the comments describing them. Byte identical object code.
+- `Search::nonSearchingCutoff` testing the mate bound with `>=` and `<=`, so it agrees with
+  `Quiescence::search`. Correct, because the best value reachable at ply *q* is `MAX_VALUE - q - 1`
+  and the bound itself is therefore out of reach too. SPRT with H0 = −10 and H1 = 0: H0 accepted
+  once, H1 accepted in both repeats, see the `0.5.0-018` entry.
+
+Everything else tried between `0.5.0-002` and `0.5.0-017` was rejected or left undecided and is
+reverted; the code is on the `dead/qs-todo*`, `qs-evalmargin*`, `qs-delta*`, `qs-margin35` and
+`qs-matecmp` branches with its tags.
+
+Node count is expected to differ from `0.5.0-001` — the operator change is reached, at depth 18 but
+not at depth 14, which is why the EPD ini now runs depth 18.
