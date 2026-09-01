@@ -1355,3 +1355,17 @@ That is the honest starting point for tuning rather than a result: the shape is 
 coefficients were never fitted. Code on `qs-evalmargin-fixed`; the author's revision on
 `release0.5` decouples the two coefficients so that the offset sets where the term starts and the
 factor how steeply it grows, which is what a CLOP run needs.
+
+## 0.5.0-014 — alpha safety margin 35 instead of 50
+
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted**, 49.66 % over 18238 games,
+about −2 Elo. EPD nodes 56158265 → 56261698, +0.18 %.
+
+This settles an old comment that used to sit above the parameter, `100: 49%, 35: 50,3%, 40: 49,3%`.
+Read as a curve it said 35 was the better value; measured against its own decision it is worse than
+50. The three percentages were three indistinguishable numbers without an error range, and carrying
+them in the source as prior information for a tuning run was worse than having nothing there. They
+are gone from the code, and this entry replaces them with a decision.
+
+`qsAlphaSafetyMargin` stays at 50, and the CLOP run for the evaluation dependent term therefore
+searches around that value.
