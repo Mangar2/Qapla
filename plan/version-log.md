@@ -1369,3 +1369,38 @@ are gone from the code, and this entry replaces them with a decision.
 
 `qsAlphaSafetyMargin` stays at 50, and the CLOP run for the evaluation dependent term therefore
 searches around that value.
+
+## 0.5.0-015 — the evaluation dependent margin with its CLOP values
+
+Reverted. SPRT against `0.5.0-001`, standard bounds: **H0 accepted**, 49.44 % over 11641 games,
+about −4 Elo. EPD nodes 55197564 → 54750353 against the untuned version, −2.5 % against the
+baseline.
+
+CLOP over both coefficients, 3000 samples, `qsAlphaSafetyMargin` held at 50 because `0.5.0-014`
+had just shown 50 is not to be moved. Estimates: offset 144.25, factor 31.38, rounded to 144 and
+31. The factor did not move — 30 to 31 is inside the noise of the fit — so the run's whole content
+is that the term should start earlier, at 144 instead of 200.
+
+Starting earlier is what the confirming run rejects.
+
+**This closes the item.** Everything tried on it:
+
+| version | shape | result |
+|---|---|---|
+| `0.5.0-009` | tapered material, weight 20, fixed margin 56 | H0, −7 Elo |
+| `0.5.0-010` | same, fixed margin back at 50 | H0, −8 Elo |
+| `0.5.0-012` | author's version, term only in the SEE threshold | inconclusive, ≈ −2 Elo |
+| `0.5.0-013` | the same, corrected into both terms | inconclusive, ≈ −1 Elo |
+| `0.5.0-015` | decoupled shape with CLOP values | H0, −4 Elo |
+
+No closing run is needed: every one of these ran against `0.5.0-001` directly, none was built on
+its predecessor, so `0.5.0-015` already is the run the rule asks for.
+
+The best the idea ever reached is `0.5.0-013`: costs nothing, gains nothing. The mechanism is
+sound — a captured piece takes its positional bonus with it — but protecting those few captures is
+paid for with pruning on every other capture in the position, and that trade does not come out
+positive at any value tried.
+
+Two CLOP runs were made on this term and both produced points that their confirming SPRT rejected.
+On a surface this flat, four games per sample fit noise; the CLOP estimate is not evidence of
+anything on its own, which is what the confirming run is for.
