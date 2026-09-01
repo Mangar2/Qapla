@@ -1432,29 +1432,38 @@ flat margin alone is responsible.
 
 ## 0.5.0-018 — quiescence cleanup plus the mate bound tested with `>=` and `<=`
 
-Reverted, and it turned the earlier `0.5.0-008` into a real finding. SPRT against `0.5.0-001` with
-H0 = −10 and H1 = 0: **H0 accepted** after 9887 games. EPD nodes 56158265, identical, runtime
-equal to the baseline in three interleaved pairs.
+**Three runs, the same two binaries, and not the same answer.** All against `0.5.0-001` with
+H0 = -10 and H1 = 0:
 
-The version carries two things: every ToDo comment reduced to the decision of its SPRT, the
-commented out delta cutoff and beta probe deleted outright — and `Search::nonSearchingCutoff`
-testing the mate bound with `>=` and `<=` instead of `>` and `<`.
+| run | opening seed | result |
+|---|---|---|
+| 018 | default | **H0** after 9887 games |
+| 018b | 20260901 | **H1** after 4253 games |
+| 018c | default, fresh state file | **H1** after 2489 games |
 
-The first half cannot be the cause. Built without the second half it produces **byte identical
-object files** for both changed translation units, `quiescencese.o` and `search.o`, against a fresh
-build of `0.5.0-001`. Comments and dead code leave no trace in the machine code.
+The first run is the outlier, and 018c rules out the openings as the cause - same seed, same
+positions, opposite decision. At alpha = 0.05 a run adopts the wrong hypothesis one time in twenty,
+and this series ran about fifteen SPRTs. One of them landing wrong was to be expected; this was it.
 
-So the comparison operator is. And `alpha == MAX_VALUE - ply` is not the unreachable boundary it
-looks like: it is exactly the window the root sets after finding a mate in N, at the ply where that
-mate falls. With `>` the node searches on and derives the mate again; with `>=` it is cut off and
-returns the bound. The score is right and the variation is never produced — but the search has to
-re-derive its mate in every iteration, not merely confirm a bound on it.
+That matters beyond this entry. **A single SPRT is one decision at its error rate, not a fact.**
+Where a result is surprising relative to what the code can plausibly do, repeat it before building
+an explanation on it - repeating is cheaper than the explanation, and far cheaper than the wrong
+conclusion drawn from it.
 
-`0.5.0-008` had tested the same change alone with H0 = −5 and H1 = 0 and stayed undecided over
-40000 games. Undecided was the correct answer to that question; it took bounds far enough apart to
-get a decision. The two bounds are candidates, and the closer they sit the less a run can separate.
+The change itself is correct, and the argument is short. Quiescence scores a mated side at ply *p*
+as `-MAX_VALUE + p`, so the parent at *p-1* gets at most `MAX_VALUE - p`; the best value reachable
+at ply *q* is `MAX_VALUE - q - 1`. Once alpha has reached `MAX_VALUE - ply` the window cannot be
+reached any more, and returning that bound is a correct upper bound. Mirrored for beta. `>=` would
+even be safe one ply earlier. So `Search::nonSearchingCutoff` may test the bound the way
+`Quiescence::search` does.
 
-The comparison stays `>` and `<`. Branch `qs-matecmp` keeps the change as documentation.
+The cleanup half cannot affect play at all: built without the operator change it produces **byte
+identical object files** for both changed translation units, and with the same `QAPLA_VERSION` the
+whole binary is byte identical to `0.5.0-001` - same SHA-256.
+
+What stood here before, that the cutoff prevents the search from re-deriving a mate it had already
+found, was invented to explain the first run. It is wrong: the cutoff only removes work that could
+not have changed the value.
 
 ## 0.5.0-019 — the quiescence cleanup alone
 
