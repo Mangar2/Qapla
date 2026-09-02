@@ -1520,3 +1520,29 @@ the two argument version again. Removing the call restores the node count of `0.
 
 This is also the first entry measured against `0.5.0-020` rather than `0.5.0-001` — from here on
 that is the version a change has to beat.
+
+## 0.5.0-022 — fail soft SEE with a threshold parameter
+
+Kept as it is. SPRT against `0.5.0-020`, standard bounds: **undecided** at the 20000 game limit.
+EPD nodes 243290670 → 251447508 at depth 18, different.
+
+`computeSEEValue` is replaced by `computeSEEFailSoft`, which takes the threshold as a parameter and
+exits early against it, instead of the caller setting a ±1 window on the member `alpha`/`beta`
+before the call. The window members are gone from `clear()`, the bounds are local to the
+computation.
+
+The measurement that does say something here is throughput. Two EPD runs each, depth 18:
+
+| | nodes | runtime | nodes per second |
+|---|---|---|---|
+| `0.5.0-020` | 243290670 | 13.259 | 18.3 M |
+| `0.5.0-022` | 251447508 | 12.395 / 12.402 | 20.3 M |
+
+About a tenth more nodes per second, far outside the tenth-of-a-second spread every other timing
+comparison in this series produced. The caveat belongs with it: the two runs do not search the same
+tree, so this is throughput on different work, not the same work done faster — the fail soft version
+also returns values the clamped one could not, so the search shape moved as well.
+
+Ten percent more nodes per second did not separate the two engines over 20000 games. Undecided is
+the honest answer, and it is worth remembering the next time a speed gain is taken as a strength
+gain: at these bounds it was not one.
