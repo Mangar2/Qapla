@@ -117,7 +117,8 @@ namespace QaplaSearch {
 					}
 					else {
 						nextPiece[BLACK] = BLACK_KNIGHT;
-						resultValue = computeSEEFailSoft(position, square, position.getPieceValueForMoveSorting(movingPiece), -1, 1);
+						resultValue = computeSEEFailSoft(position, square,
+							 position.getPieceValueForMoveSorting(movingPiece), 0);
 						result = resultValue < 0;
 					}
 				}
@@ -127,7 +128,8 @@ namespace QaplaSearch {
 					}
 					else {
 						nextPiece[WHITE] = WHITE_KNIGHT;
-						resultValue = computeSEEFailSoft(position, square, position.getPieceValueForMoveSorting(movingPiece), -1, 1);
+						resultValue = computeSEEFailSoft(position, square, 
+							position.getPieceValueForMoveSorting(movingPiece), 0);
 						result = resultValue > 0;
 					}
 				}
@@ -158,7 +160,7 @@ namespace QaplaSearch {
 			// Must be after clear, it resets the window
 			const value_t exchangeValue = computeSEEFailSoft(position, move.getDestination(),
 				position.getPieceValueForMoveSorting(move.getMovingPiece()),
-				whiteThreshold - 1, whiteThreshold + 1);
+				whiteThreshold);
 			return whiteMoves ? exchangeValue : -exchangeValue;
 		}
 
@@ -224,7 +226,7 @@ namespace QaplaSearch {
 			value_t beta = MAX_VALUE;
 			while (valueOfCurrentPieceOnSquare != 0) {
 				if (whiteToMove) {
-					// alpha holds the value white already gained (exception, alpha was preset by caller).
+					// Compute stand pat value and store it to alpha
 					alpha = std::max(alpha, gain);
 					// We add the (negative) value of the black piece to white´s gain.
 					gain -= valueOfCurrentPieceOnSquare;
@@ -264,8 +266,7 @@ namespace QaplaSearch {
 		 * @param position the position to compute the exchange value for
 		 * @param square the square of the piece to compute the exchange value for
 		 * @param valueOfCurrentPieceOnSquare the value of the piece on the square
-		 * @param alpha is a preset lower bound
-		 * @param beta is a preset upper bound
+		 * @param treshold the threshold to stop the exchange early, if the result is already above or below it
 		 * @returns the static exchange value of the piece on the square
 		 * gain is the see result so far from white view
 		 * allPiecesLeft is a bitboard with all remaining pieces on the position.
@@ -275,40 +276,48 @@ namespace QaplaSearch {
 		 * valueOfNextPieceOnTargetField is the value of the next piece to try for the other color
 		 * nodeCountStatistic is a statistic of the number of nodes computed
 		 */
-		value_t computeSEEFailSoft(const MoveGenerator& position, Square square, value_t valueOfCurrentPieceOnSquare, value_t alpha, value_t beta) {
+		value_t computeSEEFailSoft(const MoveGenerator& position, Square square, value_t valueOfCurrentPieceOnSquare, 
+			value_t treshold) {
+
+			value_t alpha = -MAX_VALUE;
+			value_t beta = MAX_VALUE;
 
 			while (valueOfCurrentPieceOnSquare != 0) {
 				if (whiteToMove) {
-					// We add the (negative) value of the black piece to white´s gain.
-					// alpha = std::max(alpha, gain);
+					// Compute stand pat value and store it to alpha
+					alpha = std::max(alpha, gain);
 					gain -= valueOfCurrentPieceOnSquare;
 					// Break, if gain cannot surpass alpha anymore.
 					if (gain <= alpha) {
-						return gain;
-						gain = alpha;
-						break;
+						//return std::max(alpha, treshold - 1); // Fail Hard
+						return alpha; // Fail Soft
+					}
+					if (gain < treshold) {
+						// return std::max(alpha, treshold - 1); // Fail Hard
+						return gain; // Fail Soft
 					}
 					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<WHITE>(position, square);
 					// Break, if no more opponent attackers are left.
 					if (valueOfNextPieceOnTargetField == 0) {
-						return gain;
-						gain = alpha;
-						break;
+						// return std::max(alpha, treshold - 1); // Fail Hard
+						return alpha; // Fail Soft
 					}
 				}
 				else {
-					// beta = std::min(beta, gain);
+					beta = std::min(beta, gain);
 					gain -= valueOfCurrentPieceOnSquare;
 					if (gain >= beta) {
-						return gain;
-						gain = beta;
-						break;
+						// return std::min(beta, treshold + 1); // Fail Hard
+						return beta; // Fail Soft
+					}
+					if (gain > treshold) {
+						// return std::min(beta, treshold + 1); // Fail Hard
+						return gain; // Fail Soft
 					}
 					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<BLACK>(position, square);
 					if (valueOfNextPieceOnTargetField == 0) {
-						return gain;
-						gain = beta;
-						break;
+						// return std::min(beta, treshold + 1); // Fail Hard
+						return beta; // Fail Soft
 					}
 				}
 				whiteToMove = !whiteToMove;
