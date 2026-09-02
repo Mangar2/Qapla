@@ -85,6 +85,13 @@ Acceptance criteria:
   though play is unchanged. Note that runtime is noisier than node counts — repeat the run
   before concluding that a difference is real.
 
+**That runtime criterion holds only while the node counts are identical.** The ini runs the 100
+positions at concurrency 10, so the reported time is a makespan and not a sum: it depends on how
+the per position costs happen to divide among ten workers. Once the counts differ, the packets
+differ too, and the wall clock can fall while the total computing time rises — this has happened
+here, by a tenth, in a version that was in fact a shade slower per node. To compare speed across
+different searches, measure nodes per second one position at a time, single threaded.
+
 Report both numbers (baseline vs. new) when presenting such a change.
 
 ### The node count answers one question: identical or not

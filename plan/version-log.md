@@ -1531,18 +1531,32 @@ exits early against it, instead of the caller setting a ±1 window on the member
 before the call. The window members are gone from `clear()`, the bounds are local to the
 computation.
 
-The measurement that does say something here is throughput. Two EPD runs each, depth 18:
+It looked at first as though it bought throughput. It does not, and the way that came out is worth
+keeping.
 
-| | nodes | runtime | nodes per second |
-|---|---|---|---|
-| `0.5.0-020` | 243290670 | 13.259 | 18.3 M |
-| `0.5.0-022` | 251447508 | 12.395 / 12.402 | 20.3 M |
+The EPD run at depth 18 showed `0.5.0-022` finishing in 12.40 s against 13.26 s, with more nodes -
+apparently a tenth more nodes per second. Measured properly, one position at a time and single
+threaded, the two are the same speed: 2.21 against 2.19 million nodes per second, `0.5.0-022` a
+shade slower, and the same in every phase group.
 
-About a tenth more nodes per second, far outside the tenth-of-a-second spread every other timing
-comparison in this series produced. The caveat belongs with it: the two runs do not search the same
-tree, so this is throughput on different work, not the same work done faster — the fail soft version
-also returns values the clamped one could not, so the search shape moved as well.
+The wall clock difference is load balancing. The EPD ini runs concurrency 10 over 100 positions, so
+the wall time is a makespan, not a sum. Summed over the single position runs, `0.5.0-020` needs
+110.05 s of computing time and `0.5.0-022` needs 114.86 s - more, as it must, since it searches
+more nodes at the same rate. Scheduling those per position times greedily onto ten workers predicts
+12.91 s and 12.10 s, within 0.3 s of what the runs actually took. `0.5.0-020` loses 17 % of the
+wall clock to idle workers, `0.5.0-022` only 5 %, because its packets happen to divide better.
 
-Ten percent more nodes per second did not separate the two engines over 20000 games. Undecided is
-the honest answer, and it is worth remembering the next time a speed gain is taken as a strength
-gain: at these bounds it was not one.
+**A wall clock time from the EPD run is not a speed measurement when the node counts differ.** The
+runtime criterion in `CLAUDE.md` applies to behaviour neutral changes, where the counts are
+identical and the work per worker is the same; outside that case it measures how the positions
+happened to distribute.
+
+The per position counts also put a number on the chaos the node count rule describes: 44 positions
+searched more, 56 searched fewer, single positions moved by factors from 0.44 to 1.77, and the
+twenty largest deviations sum to 146 % of the total difference - they nearly cancel. The net
+difference between the two totals is a residue, not a trend. There is no phase pattern behind it
+either: the opening and middlegame group moved by a factor of 1.06, the late middlegame by 0.89,
+and those two groups pull against each other.
+
+So: the restructuring is free, not faster. Undecided over 20000 games is the whole of what the
+SPRT says about it.
