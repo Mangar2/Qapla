@@ -1560,3 +1560,37 @@ and those two groups pull against each other.
 
 So: the restructuring is free, not faster. Undecided over 20000 games is the whole of what the
 SPRT says about it.
+
+## 0.5.0-023 — SEE skips the exchange when the opponent cannot recapture
+
+Kept. SPRT against the state before the change, standard bounds: **H1 accepted**, +6 Elo from 9051
+games, LLR 2.96, winrate 50.85 % (W:2374 D:4456 L:2221), 50 minutes.
+EPD nodes 243290670 -> 251565903 at depth 18, different.
+
+`computeExchangeValue` tests the destination square against `attackMask[opponent]` before it sets
+up the exchange. Is the square undefended, the captured piece is the whole result and the sweep
+over pawn, knight, bishop, rook and queen - three magic lookups among them - never runs. In the
+quiescence that case is the bread and butter, not the exception.
+
+The mask is a lower bound on the attackers of the square. During an exchange pieces are only
+removed from `allPiecesLeft`, and the capturing piece lands on the target square itself, where it
+blocks no ray to that square. A defender that the departing piece was covering is therefore
+missed. The value comes out too positive, so a move is searched that would have been pruned - the
+error can cost nodes, never a move.
+
+That the masks are built without the enemy king does not reach SEE. The distortion needs a
+checking slider whose ray continues past the king, and the squares behind the king are the only
+ones affected. Capturing the checker happens on the near side of the ray; the king capturing there
+would stay in check; and any other capture behind the king neither takes the checker nor blocks
+the ray, so it is not a legal evasion and never generated.
+
+The 3.4 % extra nodes are the missed defenders, the 5.2 % shorter runtime the saved probes. Both
+numbers come from three interleaved pairs against the baseline binary, node counts identical
+within each engine, so the wall clock comparison of `0.5.0-022` does not apply here - it was the
+same binary shape and the same worker packing on both sides.
+
+Still open: presetting `nextPiece` from per piece type attack masks, so the probes for types that
+cannot reach the square are skipped as well. `computeAttackMask` already builds those masks and
+discards them. A rook can never hide a bishop attack on the same square - only the queen sits on
+both ray kinds - and the `QUEEN` branch already falls back to `BISHOP`, so the preset stays
+complete.
