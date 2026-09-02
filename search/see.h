@@ -148,11 +148,25 @@ namespace QaplaSearch {
 			const value_t whiteThreshold = wtm ? threshold : -threshold;
 			// Gain is the current value of the position gain, changing with each capture
 			gain = -position.getPieceValueForMoveSorting(move.getCapture());
-			// Pre-check: the maximum possible gain is the captured piece
+			// 1. Pre-check max. possible gain is the piece captured
 			// If gain does not reach the threshold, we can return immediately
 			if (wtm ? gain < whiteThreshold : gain > whiteThreshold) {
 				return wtm ? gain : -gain;
 			}
+			// 2. Pre-check does the opponent has any piece taking back the captured piece
+			// We ignore the possible covered attack freed by the capture because it is rare and
+			// it will only return more gain and thus lead to less cuts in quiescence search,
+			// my might search more but we will not miss a move.
+			const auto opponent = wtm ? BLACK : WHITE;
+			auto opponentAttackMask = position.attackMask[opponent];
+			auto exchangePositionMask = 1ULL << move.getDestination();
+			if ((opponentAttackMask & exchangePositionMask) == 0) {
+				return wtm ? gain : -gain;
+			}
+			// ToDo: preset nextPiece[opponent] from per piece type attack masks, so the probes for
+			// the types that cannot reach the square are skipped. computeAttackMask already builds
+			// those masks per type and throws them away, keeping them costs four stores per color.
+
 			allPiecesLeft = position.getAllPiecesBB();
 			allPiecesLeft &= ~(1ULL << move.getDeparture());
 			whiteToMove = !wtm;
