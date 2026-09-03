@@ -29,6 +29,76 @@
 using namespace QaplaInterface;
 using namespace ChessEval;
 using namespace QaplaSearch;
+using QaplaBasics::MoveList;
+
+/**
+ * Computes the weight of all captures
+ */
+void Quiescence::computeAllCaptureWeight(const MoveGenerator& board, MoveList& moveList, Move previousMove) {
+	for (uint32_t moveNo = 0; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
+		Move move = moveList[moveNo];
+		if (move != Move::EMPTY_MOVE) {
+			value_t weight = board.getAbsolutePieceValue(move.getCapture());
+			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
+				// order recaptures to the front
+				// Tested 0.4.0-039: real piece values, every recapture ahead of every other
+				// capture: -4.5 Elo, 10018 games
+				weight += 10;
+			}
+			moveList.setWeight(moveNo, weight);
+		}
+	}
+}
+
+/**
+ * Generates the non silent moves of the position and weights them for the ordering
+ */
+// Tested 0.4.0-057, quiescence trying the tt move first, in this list and in the evades:
+// SPRT rejected it over 9826 games.
+// Tested 0.5.0-021, the tt move weighted to the front of this list instead: SPRT h0 = -2,
+// h1 = 3 against 0.5.0-020, H0 accepted after 11587 games.
+void Quiescence::computeCaptures(MoveGenerator& board, MoveList& moveList, Move previousMove) {
+	board.genNonSilentMovesOfMovingColor(moveList);
+	computeAllCaptureWeight(board, moveList, previousMove);
+}
+
+/**
+ * Gets the index of the highest weighted capture from curMoveNo on, -1 if none is left
+ */
+int32_t Quiescence::findNextBestCaptureMove(MoveList& moveList, uint32_t curMoveNo) {
+	int32_t bestMoveNo = -1;
+	value_t maxWeight = -MAX_VALUE;
+	value_t curWeight;
+	Move move;
+	for (uint32_t moveNo = curMoveNo; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
+		move = moveList[moveNo];
+		if (move != Move::EMPTY_MOVE) {
+			curWeight = moveList.getWeight(moveNo);
+			if (curWeight > maxWeight) {
+				maxWeight = curWeight;
+				bestMoveNo = static_cast<int32_t>(moveNo);
+			}
+		}
+	}
+	return bestMoveNo;
+}
+
+/**
+ * Provides the next capture, highest weight first
+ */
+Move Quiescence::selectNextCapture(MoveList& moveList, uint32_t& curMoveNo) {
+	// Search the move list for the next best capture move beginning with curMoveNo.
+	const int32_t bestMoveNo = findNextBestCaptureMove(moveList, curMoveNo);
+	if (bestMoveNo == -1) {
+		return Move::EMPTY_MOVE;
+	}
+	// Move the best capture to the front of the list, shifting everything else one step back.
+	// This preserves the order of the remaining moves.
+	moveList.dragMoveToTheBack(curMoveNo, static_cast<uint32_t>(bestMoveNo));
+	const Move move = moveList[curMoveNo];
+	curMoveNo++;
+	return move;
+}
 
 
 /**
@@ -153,15 +223,14 @@ value_t Quiescence::search(bool isPvNode,
 		MAX_VALUE : 
 		standPatValue + tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
 
-	// 6. Generate all moves (evades or captures) 
-	// We set the ttMove we found before. It will then select the ttMove first.
-	MoveProvider moveProvider;
+	// 6. Generate the captures and weight them for the ordering
+	MoveList moveList;
+	uint32_t curMoveNo = 0;
 	Move move;
-	moveProvider.setTTMove(ttMove);
-	moveProvider.computeCaptures(position, lastMove);
+	computeCaptures(position, moveList, lastMove);
 
-	// 6. Move Loop
-	while (!(move = moveProvider.selectNextCapture()).isEmpty()) {
+	// 7. Move Loop
+	while (!(move = selectNextCapture(moveList, curMoveNo)).isEmpty()) {
 
 		// 8. Move foreward pruning. 
 		// We compute a possible gain of the move (already including margin) and prune this move search,
