@@ -37,17 +37,17 @@ using QaplaBasics::MoveList;
 void Quiescence::computeAllCaptureWeight(const MoveGenerator& board, MoveList& moveList, Move previousMove) {
 	for (uint32_t moveNo = 0; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
 		Move move = moveList[moveNo];
-		if (move != Move::EMPTY_MOVE) {
-			value_t weight = board.getAbsolutePieceValue(move.getCapture());
-			// Tested 0.5.0-024, removing this bonus: SPRT h0 = -4, h1 = 1, undecided at 20000 games.
-			// Tested 0.4.0-039, the stronger form with real piece values that puts every recapture
-			// ahead of every other capture: SPRT rejected it over 10018 games.
-			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
-				// order recaptures to the front
-				weight += 10;
-			}
-			moveList.setWeight(moveNo, weight);
+		value_t weight = board.getAbsolutePieceValue(move.getCapture());
+		// ToDo 1: Keep this enabled for ToDo 2.
+		weight += board.getAbsolutePieceValue(move.getPromotion());
+		// Tested 0.5.0-024, removing this bonus: SPRT h0 = -4, h1 = 1, undecided at 20000 games.
+		// Tested 0.4.0-039, the stronger form with real piece values that puts every recapture
+		// ahead of every other capture: SPRT rejected it over 10018 games.
+		if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
+			// order recaptures to the front
+			weight += 10;
 		}
+		moveList.setWeight(moveNo, weight);
 	}
 }
 
@@ -64,43 +64,38 @@ void Quiescence::computeCaptures(MoveGenerator& board, MoveList& moveList, Move 
 }
 
 /**
- * Gets the index of the highest weighted capture from curMoveNo on, -1 if none is left
+ * Provides the next capture, highest weight first
  */
-int32_t Quiescence::findNextBestCaptureMove(MoveList& moveList, uint32_t curMoveNo) {
+Move Quiescence::selectNextCapture(MoveList& moveList, uint32_t& curMoveNo) {
+	// Search the move list for the next best capture move beginning with curMoveNo.
 	int32_t bestMoveNo = -1;
 	value_t maxWeight = -MAX_VALUE;
-	value_t curWeight;
-	Move move;
 	for (uint32_t moveNo = curMoveNo; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
-		move = moveList[moveNo];
+		auto move = moveList[moveNo];
 		if (move != Move::EMPTY_MOVE) {
-			curWeight = moveList.getWeight(moveNo);
+			auto curWeight = moveList.getWeight(moveNo);
 			if (curWeight > maxWeight) {
 				maxWeight = curWeight;
 				bestMoveNo = static_cast<int32_t>(moveNo);
 			}
 		}
 	}
-	return bestMoveNo;
-}
-
-/**
- * Provides the next capture, highest weight first
- */
-Move Quiescence::selectNextCapture(MoveList& moveList, uint32_t& curMoveNo) {
-	// Search the move list for the next best capture move beginning with curMoveNo.
-	const int32_t bestMoveNo = findNextBestCaptureMove(moveList, curMoveNo);
 	if (bestMoveNo == -1) {
 		return Move::EMPTY_MOVE;
 	}
+	const Move move = moveList[bestMoveNo];
+	moveList[bestMoveNo] = Move::EMPTY_MOVE;
+	if (bestMoveNo == curMoveNo) {
+		curMoveNo++;
+	}
+
 	// Move the best capture to the front of the list, shifting everything else one step back.
-	// This preserves the order of the remaining moves, which decides the ties: findNextBestCaptureMove
-	// takes the first move of equal weight.
+	// This preserves the order of the remaining moves. This is relevant because the moves are generated
+	// from the smallest attacker to the largest attacker. 
 	// Tested 0.5.0-025, swapping instead of shifting, which is constant instead of linear work but
 	// reorders the rest: SPRT h0 = -2, h1 = 3, undecided at 20000 games.
-	moveList.dragMoveToTheBack(curMoveNo, static_cast<uint32_t>(bestMoveNo));
-	const Move move = moveList[curMoveNo];
-	curMoveNo++;
+	// moveList.dragMoveToTheBack(curMoveNo, static_cast<uint32_t>(bestMoveNo));
+	
 	return move;
 }
 
@@ -224,10 +219,12 @@ value_t Quiescence::search(bool isPvNode,
 	// Tested 0.5.0-009, -010, -015, -017, an eval dependent addition to this margin:
 	// SPRT h0 = -2, h1 = 3, H0 accepted. 0.5.0-012 and -013 undecided.
 	auto safeValue = 
-		(standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS || 
-			!position.doFutilityOnCapture(position.isWhiteToMove() ? BLACK: WHITE)) ? 
+		(standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) ?
 		MAX_VALUE : 
 		standPatValue + tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
+
+	bool doFutility = safeValue != MAX_VALUE && 
+		position.doFutilityOnCapture(position.isWhiteToMove() ? BLACK: WHITE);
 
 	// 6. Generate the captures and weight them for the ordering
 	MoveList moveList;
@@ -249,7 +246,7 @@ value_t Quiescence::search(bool isPvNode,
 		// We compute a possible gain of the move (already including margin) and prune this move search,
 		// if it does not reach alpha.
 		// Tested 0.5.0-002, removing it: SPRT h0 = -2, h1 = 3, H0 accepted.
-		if (safeValue != MAX_VALUE && !move.isPromote()) {
+		if (doFutility && !move.isPromote()) {
 			const value_t threshold = alpha - safeValue;
 			auto futilityValue = safeValue + _see.computeExchangeValue(position, move, threshold);
 			if (futilityValue < alpha) {
