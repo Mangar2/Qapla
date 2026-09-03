@@ -234,7 +234,7 @@ value_t Quiescence::search(bool isPvNode,
 	// ToDo 3: sortiere gleich die züge raus, die sicher futility geprunt werden bevor die gewichte berechnet werden
 	// Übergebe treshold (alpha - safeValue) als parameter wenn dann der captured move nicht midestens >= treshold ist
 	// und kein promote, dann nehme ihn direkt aus der zugliste. Wir bekommen dann eine kürzere zugliste. Sollte node-neutral
-	// sein wenn ich keinen denkfehler habe.
+	// sein wenn ich keinen denkfehler habe. Todo Teste mit Sprt -3, +2
 	computeCaptures(position, moveList, lastMove);
 
 	// 7. Move Loop
