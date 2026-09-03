@@ -39,6 +39,7 @@ void Quiescence::computeAllCaptureWeight(const MoveGenerator& board, MoveList& m
 		Move move = moveList[moveNo];
 		if (move != Move::EMPTY_MOVE) {
 			value_t weight = board.getAbsolutePieceValue(move.getCapture());
+			// ToDo: SPRT test 1: remove this recapture logic. H0 = -4, H1 = 1
 			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
 				// order recaptures to the front
 				// Tested 0.4.0-039: real piece values, every recapture ahead of every other
@@ -94,6 +95,7 @@ Move Quiescence::selectNextCapture(MoveList& moveList, uint32_t& curMoveNo) {
 	}
 	// Move the best capture to the front of the list, shifting everything else one step back.
 	// This preserves the order of the remaining moves.
+	// ToDo: SPRT Test 2, swap the move used to the front instead of dragmMoveToTheBack, it is not required to keep the order 
 	moveList.dragMoveToTheBack(curMoveNo, static_cast<uint32_t>(bestMoveNo));
 	const Move move = moveList[curMoveNo];
 	curMoveNo++;
