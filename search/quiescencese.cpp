@@ -39,11 +39,11 @@ void Quiescence::computeAllCaptureWeight(const MoveGenerator& board, MoveList& m
 		Move move = moveList[moveNo];
 		if (move != Move::EMPTY_MOVE) {
 			value_t weight = board.getAbsolutePieceValue(move.getCapture());
-			// ToDo: SPRT test 1: remove this recapture logic. H0 = -4, H1 = 1
+			// Tested 0.5.0-024, removing this bonus: SPRT h0 = -4, h1 = 1, undecided at 20000 games.
+			// Tested 0.4.0-039, the stronger form with real piece values that puts every recapture
+			// ahead of every other capture: SPRT rejected it over 10018 games.
 			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
 				// order recaptures to the front
-				// Tested 0.4.0-039: real piece values, every recapture ahead of every other
-				// capture: -4.5 Elo, 10018 games
 				weight += 10;
 			}
 			moveList.setWeight(moveNo, weight);
@@ -94,8 +94,10 @@ Move Quiescence::selectNextCapture(MoveList& moveList, uint32_t& curMoveNo) {
 		return Move::EMPTY_MOVE;
 	}
 	// Move the best capture to the front of the list, shifting everything else one step back.
-	// This preserves the order of the remaining moves.
-	// ToDo: SPRT Test 2, swap the move used to the front instead of dragmMoveToTheBack, it is not required to keep the order 
+	// This preserves the order of the remaining moves, which decides the ties: findNextBestCaptureMove
+	// takes the first move of equal weight.
+	// Tested 0.5.0-025, swapping instead of shifting, which is constant instead of linear work but
+	// reorders the rest: SPRT h0 = -2, h1 = 3, undecided at 20000 games.
 	moveList.dragMoveToTheBack(curMoveNo, static_cast<uint32_t>(bestMoveNo));
 	const Move move = moveList[curMoveNo];
 	curMoveNo++;
@@ -231,10 +233,13 @@ value_t Quiescence::search(bool isPvNode,
 	MoveList moveList;
 	uint32_t curMoveNo = 0;
 	Move move;
-	// ToDo 3: sortiere gleich die züge raus, die sicher futility geprunt werden bevor die gewichte berechnet werden
-	// Übergebe treshold (alpha - safeValue) als parameter wenn dann der captured move nicht midestens >= treshold ist
-	// und kein promote, dann nehme ihn direkt aus der zugliste. Wir bekommen dann eine kürzere zugliste. Sollte node-neutral
-	// sein wenn ich keinen denkfehler habe. Todo Teste mit Sprt -3, +2
+	// Tested 0.5.0-026, dropping the captures that will certainly be pruned before the weights are
+	// computed: SPRT h0 = -3, h1 = 2, undecided at 20000 games. Node count identical and the same
+	// speed, so there was nothing for the run to find. The threshold is alpha - safeValue and alpha
+	// sits near the stand pat value in most nodes, so it is usually negative and nothing can be
+	// filtered at all. Two traps if it is ever picked up again: the loop folds the futility value of
+	// a pruned move into bestValue, so a filter has to carry that out with it, and the removal has
+	// to be stable or the ties above change.
 	computeCaptures(position, moveList, lastMove);
 
 	// 7. Move Loop
