@@ -81,12 +81,6 @@ namespace QaplaSearch {
 	private:
 
 		/**
-		 * Computes the maximal value a capture move can gain + safety margin
-		 * If this value is not enough to make it a valuable move, the move is skipped
-		 */
-		value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, value_t alpha, Move move);
-
-		/**
 		 * Gets an entry from the transposition table
 		 * @returns eval, hash value, precision, move
 		 */
