@@ -1616,3 +1616,21 @@ The ordering added 10 to the weight of a capture on the square the previous move
 recaptures come ahead of equal captures. Removing it does not separate from keeping it at these
 bounds. `0.4.0-039` had already rejected the stronger form of the same idea, every recapture ahead
 of every other capture.
+
+## 0.5.0-025 — the selected capture swapped to the front instead of dragged
+
+Kept or reverted at will. SPRT against `0.5.0-023`, standard bounds: **undecided** at the 20000
+game limit. EPD nodes 251565903 → 253591386, different.
+
+`selectNextCapture` moved the chosen capture to the front with `dragMoveToTheBack`, shifting
+everything between it and the front one step back to keep the relative order of the rest. The order
+is not needed — the next move is chosen by weight — so a swap does the same job in constant time
+instead of linear.
+
+It is not free of play effects: `findNextBestCaptureMove` takes the first move of equal weight, so
+reordering the remainder changes the tie breaks, which is why the node count differs. The run does
+not separate the two at these bounds. As a simplification with no measurable price it can stay;
+as an improvement it is not one.
+
+Note that the runtime criterion cannot be used here: the node counts differ, and a wall clock from
+the EPD run is a makespan, see the `0.5.0-022` entry.
