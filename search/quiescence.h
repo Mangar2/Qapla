@@ -25,6 +25,7 @@
 
 #include <tuple>
 #include "../basics/evalvalue.h"
+#include "../basics/movelist.h"
 #include "computinginfo.h"
 #include "see.h"
 #include "../search/tt.h"
@@ -85,6 +86,35 @@ namespace QaplaSearch {
 		 * @returns eval, hash value, precision, move
 		 */
 		std::tuple<value_t, value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
+
+		/**
+		 * Generates the non silent moves of the position and weights them for the ordering.
+		 * The move providing side of the quiescence lives here and not in MoveProvider, so the
+		 * ordering can be changed without touching the main search.
+		 */
+		static void computeCaptures(MoveGenerator& board, QaplaBasics::MoveList& moveList, Move previousMove);
+
+		/**
+		 * Provides the next capture, highest weight first, and an empty move once the list is used
+		 * up. curMoveNo is the amount of moves already provided and is advanced by one per call.
+		 */
+		static Move selectNextCapture(QaplaBasics::MoveList& moveList, uint32_t& curMoveNo);
+
+		/**
+		 * Calculate the weight (winning material in centi-pawn) of a capture move for more ordering
+		 */
+		static value_t computeCaptureWeight(const MoveGenerator& board, Move move, Move previousMove);
+
+		/**
+		 * Computes the weight of all captures
+		 */
+		static void computeAllCaptureWeight(const MoveGenerator& board, QaplaBasics::MoveList& moveList,
+			Move previousMove);
+
+		/**
+		 * Gets the index of the highest weighted capture from curMoveNo on, -1 if none is left
+		 */
+		static int32_t findNextBestCaptureMove(QaplaBasics::MoveList& moveList, uint32_t curMoveNo);
 
 		SEE _see;
 

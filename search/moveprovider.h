@@ -151,44 +151,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Initializes the move provider to provide captures
-		 */
-		// Tested 0.4.0-057, quiescence trying the tt move first, in this list and in the evades:
-		// SPRT rejected it over 9826 games.
-		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove) {
-			previousMove = previousPlyMove;
-			board.genNonSilentMovesOfMovingColor(moveList);
-			computeAllCaptureWeight(board);
-			curMoveNo = 0;
-			triedMovesAmount = 0;
-		}
-
-		/**
-		 * Initializes the move provider to provide captures, with the tt move first.
-		 *
-		 * Tested 0.5.0-021 in Quiescence::search: SPRT h0 = -2, h1 = 3 against 0.5.0-020,
-		 * H0 accepted after 11587 games. This is the cheap ordering variant - one weight set
-		 * instead of a separate selection stage - and it does not change the answer of
-		 * 0.4.0-057 above. Currently unused; the quiescence uses the two argument overload.
-		 */
-		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove, Move ttMove) {
-			previousMove = previousPlyMove;
-			board.genNonSilentMovesOfMovingColor(moveList);
-			computeAllCaptureWeight(board);
-			curMoveNo = 0;
-			triedMovesAmount = 0;
-			if (!ttMove.isCaptureOrPromote()) {
-				return;
-			}
-			for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
-				if (moveList[moveNo] == ttMove) {
-					moveList.setWeight(moveNo, MAX_CAPTURE_WEIGHT);
-					break;
-				}
-			}
-		}
-
-		/**
 		 * Initializes the move provider to provide evades
 		 */
 		inline void computeEvades(MoveGenerator& board, Move previousPlyMove) {
@@ -277,24 +239,6 @@ namespace QaplaSearch {
 		/**
 		 * Select the next capture move
 		 */
-		Move selectNextCapture() {
-			Move move;
-			// Search the move list for the next best capture move beginning with curMoveNo.
-			int32_t bestMoveNo = findNextBestCaptureMove();
-			if (bestMoveNo == -1) {
-				return Move::EMPTY_MOVE;
-			}
-			// Move the best capture to the front of the list, shifting everything else one step back. 
-			// This preserves the order of the remaining moves.
-			moveList.dragMoveToTheBack(curMoveNo, bestMoveNo);
-
-			// get the move
-			move = moveList[curMoveNo];
-			//moveList[curMoveNo].setEmpty();
-			curMoveNo++;
-
-			return move;
-		}
 
 		uint32_t getTotalMoveAmount() const { return moveList.getTotalMoveAmount(); }
 		uint32_t getNonSilentMoveAmount() const { return moveList.getNonSilentMoveAmount(); }
