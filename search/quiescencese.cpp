@@ -221,7 +221,9 @@ value_t Quiescence::search(bool isPvNode,
 	// Tested 0.5.0-014, margin 35 instead of 50: SPRT h0 = -2, h1 = 3, H0 accepted.
 	// Tested 0.5.0-009, -010, -015, -017, an eval dependent addition to this margin:
 	// SPRT h0 = -2, h1 = 3, H0 accepted. 0.5.0-012 and -013 undecided.
-	auto safeValue = (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) ? 
+	auto safeValue = 
+		(standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS || 
+			!position.doFutilityOnCapture(position.isWhiteToMove() ? BLACK: WHITE)) ? 
 		MAX_VALUE : 
 		standPatValue + tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
 
@@ -229,6 +231,10 @@ value_t Quiescence::search(bool isPvNode,
 	MoveList moveList;
 	uint32_t curMoveNo = 0;
 	Move move;
+	// ToDo 3: sortiere gleich die züge raus, die sicher futility geprunt werden bevor die gewichte berechnet werden
+	// Übergebe treshold (alpha - safeValue) als parameter wenn dann der captured move nicht midestens >= treshold ist
+	// und kein promote, dann nehme ihn direkt aus der zugliste. Wir bekommen dann eine kürzere zugliste. Sollte node-neutral
+	// sein wenn ich keinen denkfehler habe.
 	computeCaptures(position, moveList, lastMove);
 
 	// 7. Move Loop
@@ -238,8 +244,7 @@ value_t Quiescence::search(bool isPvNode,
 		// We compute a possible gain of the move (already including margin) and prune this move search,
 		// if it does not reach alpha.
 		// Tested 0.5.0-002, removing it: SPRT h0 = -2, h1 = 3, H0 accepted.
-		if (safeValue != MAX_VALUE && !move.isPromote() && position.doFutilityOnCapture(move.getCapture()) 
-		) {
+		if (safeValue != MAX_VALUE && !move.isPromote()) {
 			const value_t threshold = alpha - safeValue;
 			auto futilityValue = safeValue + _see.computeExchangeValue(position, move, threshold);
 			if (futilityValue < alpha) {

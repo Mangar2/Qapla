@@ -291,10 +291,10 @@ namespace QaplaBasics
 		/**
 		 * Checks for futility pruning for a capture
 		 */
-		bool doFutilityOnCapture(Piece capturedPiece) const
+		bool doFutilityOnCapture(Piece opponentColor) const
 		{
 			bool result = true;
-			if (getPieceColor(capturedPiece) == WHITE)
+			if (opponentColor == WHITE)
 			{
 				result = futilityOnCaptureMap[_signature & SignatureMask::ALL];
 			}

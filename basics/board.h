@@ -206,8 +206,8 @@ namespace QaplaBasics {
 		/**
 		 * Computes if futility pruning should be applied based on the captured piece
 		 */
-		inline auto doFutilityOnCapture(Piece capturedPiece) const {
-			return _pieceSignature.doFutilityOnCapture(capturedPiece);
+		inline auto doFutilityOnCapture(Piece opponenColor) const {
+			return _pieceSignature.doFutilityOnCapture(opponenColor);
 		}
 
 		/**
