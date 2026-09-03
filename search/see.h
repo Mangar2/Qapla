@@ -157,15 +157,14 @@ namespace QaplaSearch {
 			// We ignore the possible covered attack freed by the capture because it is rare and
 			// it will only return more gain and thus lead to less cuts in quiescence search,
 			// my might search more but we will not miss a move.
+			// H0 after 9000 games [-3, 2]
 			const auto opponent = wtm ? BLACK : WHITE;
 			auto opponentAttackMask = position.attackMask[opponent];
 			auto exchangePositionMask = 1ULL << move.getDestination();
 			if ((opponentAttackMask & exchangePositionMask) == 0) {
 				return wtm ? gain : -gain;
 			}
-			// ToDo: preset nextPiece[opponent] from per piece type attack masks, so the probes for
-			// the types that cannot reach the square are skipped. computeAttackMask already builds
-			// those masks per type and throws them away, keeping them costs four stores per color.
+
 
 			allPiecesLeft = position.getAllPiecesBB();
 			allPiecesLeft &= ~(1ULL << move.getDeparture());

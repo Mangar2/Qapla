@@ -30,36 +30,6 @@ using namespace QaplaInterface;
 using namespace ChessEval;
 using namespace QaplaSearch;
 
-/**
- * Computes the value a capture move can gain + safety margin
- * If this value is not enough to make it a valuable move, the move is skipped
- * The gain is the exchange value of the capture. It falls back to the value of the captured
- * piece on its own, that is the upper bound the exchange starts from.
- */
-value_t Quiescence::computePruneForewardValue(MoveGenerator& position, value_t standPatValue, value_t alpha, Move move) {
-	// A winning bonus can be fully destroyed by capturing the piece so don´t prune on winning bonus eval.
-	if (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) {
-		return MAX_VALUE;
-	}
-	// Only queen promotions arrive here, the generator files sub promotions as silent moves.
-	if (move.isPromote()) {
-		return MAX_VALUE;
-	}
-
-	Piece capturedPiece = move.getCapture();
-
-	// Tested 0.5.0-002, removing it: SPRT h0 = -2, h1 = 3, H0 accepted.
-	if (!position.doFutilityOnCapture(capturedPiece)) {
-		return MAX_VALUE;
-	}
-	// Both terms must use the same margin, else a tuning run moves two halves against each other.
-	// Tested 0.5.0-014, margin 35 instead of 50: SPRT h0 = -2, h1 = 3, H0 accepted.
-	// Tested 0.5.0-009, -010, -015, -017, an eval dependent addition to this margin:
-	// SPRT h0 = -2, h1 = 3, H0 accepted. 0.5.0-012 and -013 undecided.
-	const value_t margin = tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
-	const value_t threshold = alpha - standPatValue - margin;
-	return standPatValue + margin + _see.computeExchangeValue(position, move, threshold);
-}
 
 /**
  * Gets an entry from the transposition table
@@ -174,7 +144,16 @@ value_t Quiescence::search(bool isPvNode,
 	// 4. Correct alpha to be at least stand-pat value.
 	alpha = std::max(alpha, standPatValue);
 
-	// 5. Generate all moves (evades or captures) 
+	// 5. Compute futility pruing treshold
+	// A winning bonus can be fully destroyed by capturing the piece so don´t prune on winning bonus eval.
+	// Tested 0.5.0-014, margin 35 instead of 50: SPRT h0 = -2, h1 = 3, H0 accepted.
+	// Tested 0.5.0-009, -010, -015, -017, an eval dependent addition to this margin:
+	// SPRT h0 = -2, h1 = 3, H0 accepted. 0.5.0-012 and -013 undecided.
+	auto safeValue = (standPatValue < -WINNING_BONUS || standPatValue > WINNING_BONUS) ? 
+		MAX_VALUE : 
+		standPatValue + tunable<SearchConfig::optimizeQS, "qsAlphaSafetyMargin", 50, 0, 100>();
+
+	// 6. Generate all moves (evades or captures) 
 	// We set the ttMove we found before. It will then select the ttMove first.
 	MoveProvider moveProvider;
 	Move move;
@@ -184,16 +163,21 @@ value_t Quiescence::search(bool isPvNode,
 	// 6. Move Loop
 	while (!(move = moveProvider.selectNextCapture()).isEmpty()) {
 
-		// 7. Move foreward pruning. 
+		// 8. Move foreward pruning. 
 		// We compute a possible gain of the move (already including margin) and prune this move search,
 		// if it does not reach alpha.
-		auto valueOfNextPlySearch = computePruneForewardValue(position, standPatValue, alpha, move);
-		if (valueOfNextPlySearch < alpha) {
-			bestValue = std::max(valueOfNextPlySearch, bestValue);
-			continue;
+		// Tested 0.5.0-002, removing it: SPRT h0 = -2, h1 = 3, H0 accepted.
+		if (safeValue != MAX_VALUE && !move.isPromote() && position.doFutilityOnCapture(move.getCapture()) 
+		) {
+			const value_t threshold = alpha - safeValue;
+			auto futilityValue = safeValue + _see.computeExchangeValue(position, move, threshold);
+			if (futilityValue < alpha) {
+				bestValue = std::max(futilityValue, bestValue);
+				continue;
+			}
 		}
 
-		// 8. Recursive quiescence search
+		// 9. Recursive quiescence search
 		// We store the state we do not want to recompute on undoMove. This is a performance optimization.
 		const PositionSnapshot snapshot = position.getSnapshot();
 		position.doMove(move);
@@ -202,13 +186,13 @@ value_t Quiescence::search(bool isPvNode,
 #ifdef USE_STOCKFISH_EVAL
 		Stockfish::Engine::doMove(move, si);
 #endif
-		valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
+		auto valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
 		position.undoMove(move, snapshot);
 #ifdef USE_STOCKFISH_EVAL
 		Stockfish::Engine::undoMove(move);
 #endif
 
-		// 9. Use the search - value to update the search window, including beta-cutoff.
+		// 10. Use the search - value to update the search window, including beta-cutoff.
 		if (valueOfNextPlySearch > bestValue) {
 			bestValue = valueOfNextPlySearch;
 			if (bestValue >= beta) {
