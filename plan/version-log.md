@@ -1634,3 +1634,46 @@ as an improvement it is not one.
 
 Note that the runtime criterion cannot be used here: the node counts differ, and a wall clock from
 the EPD run is a makespan, see the `0.5.0-022` entry.
+
+## 0.5.0-026 — the certainly futile captures dropped before weighting
+
+Kept or reverted at will. SPRT against `0.5.0-023`, with the bounds the ToDo asked for, H0 = −3 and
+H1 = +2: **undecided** at the 20000 game limit. EPD nodes 251565903, **identical**.
+
+A capture cannot gain more than the piece it takes, so once that value stays below
+`alpha - safeValue` the move loop prunes it for certain. Those moves are dropped in one compacting
+pass before the weights are computed, which shortens the list the selection scans.
+
+Two things had to be right for the node count to stay identical, and both were worth finding:
+
+- the loop folds the futility value of a pruned move into `bestValue`, so the filter has to carry
+  that contribution out with it. For these moves it is `safeValue` plus the captured piece, known
+  without a SEE call. Dropping them silently would have lowered the returned bound - and lowered it
+  below what the node can actually reach, which is not a valid fail low.
+- the removal has to be stable. `findNextBestCaptureMove` takes the first move of equal weight, so
+  swapping the survivors around changes the tie breaks. Compacting in order keeps them.
+
+It does not pay. The threshold is `alpha - safeValue` and alpha sits near the stand pat value in
+most nodes, so it is usually negative and there is nothing to filter; without a guard for that case
+the pass costs more than it saves. With the guard, eight alternating EPD runs give minima of 12.112
+against 12.128 seconds and equal means - the same speed, within what can be measured.
+
+So the search is identical and the speed is identical, and the run says undecided, which is the
+only thing it could say. Worth noting that two binaries which search identically still score 50.04 %
+rather than exactly even: at a time control the same code does not produce the same games.
+
+## The three quiescence tests, together
+
+None of the three separated from `0.5.0-023`. All are simplifications without a measurable price,
+none is an improvement:
+
+| tag | test | node count | result |
+|---|---|---|---|
+| 0.5.0-024 | no recapture ordering bonus | different | undecided, bounds −4/+1 |
+| 0.5.0-025 | swap instead of drag in the selection | different | undecided, standard bounds |
+| 0.5.0-026 | futile captures dropped before weighting | identical | undecided, bounds −3/+2 |
+
+Whether they go in is a question about the code, not about playing strength. `0.5.0-025` is the
+clearest case for taking it: linear work replaced by constant work, at no measurable cost.
+`0.5.0-026` is the clearest case for leaving it out: it adds a filter and a `MoveList` method that
+buy nothing.
