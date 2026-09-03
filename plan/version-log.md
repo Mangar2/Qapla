@@ -1594,3 +1594,25 @@ cannot reach the square are skipped as well. `computeAttackMask` already builds 
 discards them. A rook can never hide a bishop attack on the same square - only the queen sits on
 both ray kinds - and the `QUEEN` branch already falls back to `BISHOP`, so the preset stays
 complete.
+
+## 0.5.0-023 — the quiescence capture handling moved out of MoveProvider
+
+Untested against `0.5.0-022`, and **not** node neutral: EPD nodes 251447508 → 251565903 at depth 18.
+It is the baseline the three quiescence tests below were measured against, so what it is worth on
+its own is still open.
+
+The capture generation, weighting and selection move from `MoveProvider` into `Quiescence`, which
+owns a local move list per node. One thing changed with them: `doFutilityOnCapture` took the
+captured piece and derived the colour from it, and for a move that captures nothing — a plain
+promotion — `getPieceColor(NO_PIECE)` is WHITE whatever the side to move. It now takes the
+opponent's colour directly. That is the node count difference.
+
+## 0.5.0-024 — no recapture bonus in the capture ordering
+
+Reverted. SPRT against `0.5.0-023` with the bounds the ToDo asked for, H0 = −4 and H1 = +1:
+**undecided** at the 20000 game limit. EPD nodes 251565903 → 245850456, different.
+
+The ordering added 10 to the weight of a capture on the square the previous move captured on, so
+recaptures come ahead of equal captures. Removing it does not separate from keeping it at these
+bounds. `0.4.0-039` had already rejected the stronger form of the same idea, every recapture ahead
+of every other capture.
