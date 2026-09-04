@@ -1677,3 +1677,29 @@ Whether they go in is a question about the code, not about playing strength. `0.
 clearest case for taking it: linear work replaced by constant work, at no measurable cost.
 `0.5.0-026` is the clearest case for leaving it out: it adds a filter and a `MoveList` method that
 buy nothing.
+
+## The capture weight rework, split into its two halves
+
+`1b4c400` carries two things at once: a restructuring of the capture weight computation and move
+selection, and one line that adds the promotion value to the weight, so a queen promotion sorts to
+the front. Tested apart, because otherwise whatever the restructuring is worth would sit inside the
+answer for the line.
+
+| what | node count | SPRT | result |
+|---|---|---|---|
+| restructuring alone, against the state before it | 251565903, **identical** | h0 = −3, h1 = 2 | undecided at 20000 games |
+| the promotion line, against the restructuring | 251565903 → 243826086 | h0 = −2, h1 = 3 | undecided at 20000 games |
+
+The restructuring is node identical, so only its speed could have shown, and it does not separate.
+That is the answer a safety run can give: it costs nothing.
+
+The promotion line changes the search and does not separate either.
+
+### A correction to the record above
+
+The entry `0.5.0-023 — the quiescence capture handling moved out of MoveProvider` is wrong and the
+number is used twice. It claims the restructuring is not node neutral and blames a colour derived
+from `NO_PIECE` in `doFutilityOnCapture`. Measured: the restructuring is node neutral. The node
+count difference against `0.5.0-022` comes from the SEE change of the *other* `0.5.0-023` entry,
+which was tested and accepted, and whose entry already records exactly the count 251565903. The
+number belongs to that one.
