@@ -40,8 +40,7 @@ void Quiescence::computeAllCaptureWeight(const MoveGenerator& board, MoveList& m
 		value_t weight = board.getAbsolutePieceValue(move.getCapture());
 		// Promotions (to queen) ordered to the front.
 		// Tested against the same code without this line: SPRT h0 = -2, h1 = 3, undecided at
-		// 20000 games. The restructuring around it was measured separately and is node identical.
-		weight += board.getAbsolutePieceValue(move.getPromotion());
+		// 20000 games. 
 		// Tested 0.5.0-024, removing this bonus: SPRT h0 = -4, h1 = 1, undecided at 20000 games.
 		// Tested 0.4.0-039, the stronger form with real piece values that puts every recapture
 		// ahead of every other capture: SPRT rejected it over 10018 games.
