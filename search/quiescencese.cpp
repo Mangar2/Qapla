@@ -38,7 +38,9 @@ void Quiescence::computeAllCaptureWeight(const MoveGenerator& board, MoveList& m
 	for (uint32_t moveNo = 0; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
 		Move move = moveList[moveNo];
 		value_t weight = board.getAbsolutePieceValue(move.getCapture());
-		// ToDo 1: Keep this enabled for ToDo 2.
+		// Promotions (to queen) ordered to the front.
+		// Tested against the same code without this line: SPRT h0 = -2, h1 = 3, undecided at
+		// 20000 games. The restructuring around it was measured separately and is node identical.
 		weight += board.getAbsolutePieceValue(move.getPromotion());
 		// Tested 0.5.0-024, removing this bonus: SPRT h0 = -4, h1 = 1, undecided at 20000 games.
 		// Tested 0.4.0-039, the stronger form with real piece values that puts every recapture
