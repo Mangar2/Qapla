@@ -1703,3 +1703,23 @@ from `NO_PIECE` in `doFutilityOnCapture`. Measured: the restructuring is node ne
 count difference against `0.5.0-022` comes from the SEE change of the *other* `0.5.0-023` entry,
 which was tested and accepted, and whose entry already records exactly the count 251565903. The
 number belongs to that one.
+
+## Endgame: more positions capped at a draw
+
+Kept. SPRT against the state before the change, H0 = 0 and H1 = 5: **undecided** at the 20000 game
+limit. EPD nodes 251565903 → 248740566, different.
+
+A set of endgames that cannot be won by the stronger side is registered against `notBetterThanDraw`,
+which caps the evaluation at the draw value. The point is not Elo: without it the stronger side
+avoids a capture because it knows the resulting position is drawn, and plays on in a position that
+is drawn anyway. KRN against KRP was the case that prompted it.
+
+The cap was written as `std::min(value, DRAW_VALUE)` for both colours. `REGISTER` instantiates the
+function for WHITE and for BLACK, and at that point in `lazyEval` the value is from white's view —
+`Eval::eval` applies the side to move afterwards. So `min` capped only the WHITE instantiation and
+did nothing where black is the strong side. It now caps by the strong side of the pattern.
+
+On the bounds: undecided does not mean nothing was learned. The LLR drifts in proportion to the
+distance of the truth from the *midpoint* of the bounds, so undecided places it near that midpoint —
+here below it, the run drifted towards H0. That is what the change was expected to be: correct play
+in rare positions, not measurable strength.
