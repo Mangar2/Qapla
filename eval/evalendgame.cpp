@@ -43,8 +43,12 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KQR*B*N*P*KN", forceToCornerWithBonus);
 	REGISTER("KQKR", KQKR);
 	REGISTER("KQNKQ", forceToAnyCornerButDraw);
+	REGISTER("KQNKQP+", notBetterThanDraw);
 	REGISTER("KQP+KRP+", KQPsKRPs);
 	REGISTER("KQNKRR", forceToAnyCornerButDraw);
+	REGISTER("KQNKRRP+", notBetterThanDraw);
+	REGISTER("KQBKRR", forceToAnyCornerButDraw);
+	REGISTER("KQBKRRP+", notBetterThanDraw);
 
 	// Rook
 	/*
@@ -81,10 +85,15 @@ EvalEndgame::InitStatics::InitStatics() {
 	REGISTER("KRRP*KN", winningValue);
 	REGISTER("KRRP*KB", winningValue);
 	REGISTER("KRBKR", forceToAnyCornerButDraw);
+	REGISTER("KRBKRP+", notBetterThanDraw);
 	REGISTER("KRNKR", forceToAnyCornerButDraw);
+	REGISTER("KRNKRP+", notBetterThanDraw);
 	REGISTER("KRNKBB", forceToAnyCornerButDraw);
+	REGISTER("KRNKBBP+", notBetterThanDraw);
 	REGISTER("KRKB", forceToAnyCornerButDraw);
+	REGISTER("KRKBP+", notBetterThanDraw);
 	REGISTER("KRKN", forceToAnyCornerButDraw);
+	REGISTER("KRKNP+", notBetterThanDraw);
 	REGISTER("KP+KR", KPsKR);
 
 	// Bishop
@@ -100,7 +109,17 @@ EvalEndgame::InitStatics::InitStatics() {
 	*/
 	REGISTER("KB+N+K", KBNK);
 	REGISTER("KBBKR", forceToAnyCornerButDraw);
+	REGISTER("KBBKRP+", notBetterThanDraw);
+	REGISTER("KBBKB", forceToAnyCornerButDraw);
+	REGISTER("KBBKBP+", notBetterThanDraw);
+	REGISTER("KBBKN", forceToAnyCornerButDraw);
+	REGISTER("KBBKNP+", notBetterThanDraw);
 	REGISTER("KBNKR", forceToAnyCornerButDraw);
+	REGISTER("KBNKRP+", notBetterThanDraw);
+	REGISTER("KBNKB", forceToAnyCornerButDraw);
+	REGISTER("KBNKBP+", notBetterThanDraw);
+	REGISTER("KBNKN", forceToAnyCornerButDraw);
+	REGISTER("KBNKNP+", notBetterThanDraw);
 	REGISTER("KB+P+K", KBsPsK);
 	REGISTER("KBB+KN", winningValue);
 	REGISTER("KBB+K", KBBK);
@@ -116,13 +135,19 @@ EvalEndgame::InitStatics::InitStatics() {
 	*/
 	REGISTER("KNP+K", KNPsK);
 	REGISTER("KNNNK", forceToAnyCornerToMate);
-	REGISTER("KNNPK", winningValue);
+	REGISTER("KNNP+K", winningValue);
 	REGISTER("KNNKR", forceToAnyCornerButDraw);
+	REGISTER("KNNKRP+", notBetterThanDraw);
 	regVal("KNKPP+", -MaterialBalance::PAWN_VALUE_EG);
 	regVal("KNKPP", -MaterialBalance::PAWN_VALUE_EG * 3 / 2);
 	regVal("KNKP", -MaterialBalance::KNIGHT_VALUE_EG + MaterialBalance::PAWN_VALUE_EG);
-	REGISTER("KNK", drawValue);
 	REGISTER("KNNK", drawValue);
+	REGISTER("KNNKP+", notBetterThanDraw);
+	REGISTER("KNNKB", drawValue);
+	REGISTER("KNNKBP+", notBetterThanDraw);
+	REGISTER("KNNKN", drawValue);
+	REGISTER("KNNKNP+", notBetterThanDraw);
+	REGISTER("KNK", drawValue);
 
 	// Pawn
 	REGISTER("KP+K", KPsK);
@@ -259,6 +284,12 @@ value_t EvalEndgame::nearDrawValue(MoveGenerator& position, value_t value) {
 template <Piece COLOR>
 value_t EvalEndgame::winningValue(MoveGenerator& position, value_t value) {
 	return value + whiteValue<COLOR>(WINNING_BONUS);
+}
+
+template <Piece COLOR>
+value_t EvalEndgame::notBetterThanDraw(MoveGenerator& position, value_t value) {
+	value = std::min(value, DRAW_VALUE);
+	return value;
 }
 
 template <Piece COLOR>

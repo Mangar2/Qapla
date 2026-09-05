@@ -143,6 +143,12 @@ namespace ChessEval {
 		static value_t winningValue(MoveGenerator& board, value_t currentValue);
 
 		/**
+		 * Forces a value not better than a draw
+		 */
+		template <Piece COLOR>
+		static value_t notBetterThanDraw(MoveGenerator& board, value_t currentValue);
+
+		/**
 		 * Gets a value from a bitbase
 		 */
 		static value_t getFromBitbase(MoveGenerator& position, value_t currentValue);
