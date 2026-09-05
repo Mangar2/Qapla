@@ -288,8 +288,18 @@ value_t EvalEndgame::winningValue(MoveGenerator& position, value_t value) {
 
 template <Piece COLOR>
 value_t EvalEndgame::notBetterThanDraw(MoveGenerator& position, value_t value) {
-	value = std::min(value, DRAW_VALUE);
-	return value;
+	// The value is from white's view here, the side to move is applied later in Eval::eval, so the
+	// cap has to follow the strong side of the registered pattern: white cannot stand better than
+	// a draw, black cannot stand better than a draw the other way round.
+	// Tested with the registrations it enables: SPRT h0 = 0, h1 = 5, undecided at 20000 games.
+	// Kept - the cases are rare, so a measurable gain was not expected; what it buys is that the
+	// stronger side stops avoiding a capture only because it knows the result is drawn anyway.
+	if constexpr (COLOR == WHITE) {
+		return std::min(value, DRAW_VALUE);
+	}
+	else {
+		return std::max(value, DRAW_VALUE);
+	}
 }
 
 template <Piece COLOR>
