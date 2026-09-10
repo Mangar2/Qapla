@@ -24,6 +24,8 @@
 #include <cstring>
 #include <fstream>
 #include <numeric>
+#include <queue>
+#include <unordered_map>
 #include <stdexcept>
 
 namespace QaplaSyzygy {
@@ -34,79 +36,242 @@ namespace QaplaSyzygy {
 
 		constexpr uint8_t WdlMagic[4] = { 0x71, 0xE8, 0x23, 0x5D };
 
-		/** 64 byte blocks and one sparse index entry per 128 positions, as de Man uses. */
-		constexpr uint8_t LOG2_BLOCK_BYTES = 6;
-		constexpr uint8_t LOG2_SPAN = 7;
+		/**
+		 * Block sizes to try. Small blocks waste less on the padding behind the last
+		 * symbol of a block, large ones need fewer entries in the length array and in
+		 * the index. Which one wins depends on the table, and de Man's own files use
+		 * anything from 32 to 64 bytes - so the table is packed with each of them and
+		 * the smallest result is kept.
+		 */
+		constexpr uint8_t LOG2_BLOCK_CANDIDATES[] = { 4, 5, 6, 7 };
 
-		/** A block never holds more terminals than blockLength, stored as count - 1, can say. */
-		constexpr uint32_t MAX_TERMINALS_PER_BLOCK = 65536;
+		/**
+		 * How far one sparse index entry may reach, in blocks. The index only shortens
+		 * the walk over the block lengths, so the span is made as wide as this allows -
+		 * a wide span costs a few steps of that walk and saves six bytes per entry.
+		 * de Man spends four entries on a table of a megabyte.
+		 */
+		constexpr uint64_t SPARSE_INDEX_BLOCK_REACH = 32;
 
 		// ------------------------------------------------------------------
-		// Huffman over the stored values
+		// Recursive pairing, then Huffman over what it leaves
 		// ------------------------------------------------------------------
+
+		/** Symbols are twelve bits wide in the tree, so this is the whole vocabulary. */
+		constexpr uint32_t MAX_SYMBOLS = 4096;
+
+		/**
+		 * A symbol may not expand to more terminals than this. The reader keeps the
+		 * expansion count in a byte and stores it as count - 1, so 256 is the ceiling
+		 * and a rule that would cross it is not built.
+		 */
+		constexpr uint32_t MAX_TERMINALS_PER_SYMBOL = 256;
+
+		/** The reader shifts by 64 - length, so a code has to stay well inside that. */
+		constexpr int MAX_CODE_LENGTH = 32;
+
+		/**
+		 * Below this a rule costs more than it saves: three bytes of tree plus its
+		 * place in the code table, against a few bits per occurrence. Measured on the
+		 * three and four piece tables, four is the point where lowering it further
+		 * stops paying.
+		 */
+		constexpr uint32_t MIN_PAIR_COUNT = 4;
+
+		/**
+		 * Terminals per block. blockLength stores the count minus one in sixteen bits,
+		 * and a sparse index entry has to name an offset inside a block in sixteen bits
+		 * as well - with half a span added on top for the entries that sit past the end
+		 * of the table. Half of the range for the block and a quarter for the span
+		 * leaves both inside sixteen bits with room to spare.
+		 */
+		constexpr uint32_t MAX_TERMINALS_PER_BLOCK = 32768;
+
+		/** Half of the widest span fits in what is left of the offset above. */
+		constexpr uint8_t MAX_LOG2_SPAN = 15;
+
+		/**
+		 * The sequence of symbols and the rules that produce them.
+		 *
+		 * A symbol with right == 0xFFF is a leaf and left is the stored value; every
+		 * other symbol stands for its two children, one after the other. That is the
+		 * shape the reader walks in decompressPairs(), so the grammar is written out
+		 * as it stands here.
+		 */
+		struct Grammar {
+			std::vector<uint16_t> sequence;    // the table, as symbols
+			std::vector<uint16_t> left;
+			std::vector<uint16_t> right;
+			std::vector<uint32_t> terminals;   // values the symbol expands to
+		};
+
+		/**
+		 * Builds the grammar by repeatedly replacing the most frequent adjacent pair
+		 * with a new symbol - recursive pairing.
+		 *
+		 * Runs of one value are what this finds first: the pair (v, v) becomes a
+		 * symbol, the pair of that symbol with itself the next one, and so on until
+		 * the expansion limit stops the doubling. That is where nearly all of the
+		 * compression of an endgame table comes from.
+		 */
+		Grammar buildGrammar(const std::vector<uint8_t>& values) {
+
+			Grammar grammar;
+
+			std::vector<int> symbolOfValue(256, -1);
+			for (const uint8_t value : values)
+				if (symbolOfValue[value] < 0) {
+					symbolOfValue[value] = int(grammar.left.size());
+					grammar.left.push_back(value);
+					grammar.right.push_back(0xFFF);
+					grammar.terminals.push_back(1);
+				}
+
+			grammar.sequence.reserve(values.size());
+			for (const uint8_t value : values)
+				grammar.sequence.push_back(uint16_t(symbolOfValue[value]));
+
+			while (grammar.left.size() < MAX_SYMBOLS && grammar.sequence.size() > 1) {
+
+				// Adjacent pairs, counted with overlap. A run of length n reports n - 1
+				// occurrences of (v, v) and the replacement below reaches half of them,
+				// which is what a doubling step is.
+				std::unordered_map<uint32_t, uint32_t> occurrences;
+				occurrences.reserve(grammar.sequence.size() / 2 + 16);
+
+				for (size_t i = 0; i + 1 < grammar.sequence.size(); ++i)
+					occurrences[(uint32_t(grammar.sequence[i]) << 16) | grammar.sequence[i + 1]]++;
+
+				uint32_t bestKey = 0;
+				uint32_t bestCount = 0;
+
+				for (const auto& [key, count] : occurrences) {
+					if (count <= bestCount) continue;
+
+					const uint16_t a = uint16_t(key >> 16);
+					const uint16_t b = uint16_t(key & 0xFFFF);
+					if (grammar.terminals[a] + grammar.terminals[b] > MAX_TERMINALS_PER_SYMBOL)
+						continue;
+
+					bestKey = key;
+					bestCount = count;
+				}
+
+				// A rule pays for itself only if it is common in what is left. A pair
+				// that covers a small share of the sequence shortens it barely and
+				// spreads the code lengths of everything else, which costs more than
+				// it saves.
+				if (bestCount < MIN_PAIR_COUNT) break;
+
+				const uint16_t a = uint16_t(bestKey >> 16);
+				const uint16_t b = uint16_t(bestKey & 0xFFFF);
+				const uint16_t symbol = uint16_t(grammar.left.size());
+
+				grammar.left.push_back(a);
+				grammar.right.push_back(b);
+				grammar.terminals.push_back(grammar.terminals[a] + grammar.terminals[b]);
+
+				std::vector<uint16_t> replaced;
+				replaced.reserve(grammar.sequence.size());
+
+				for (size_t i = 0; i < grammar.sequence.size(); ) {
+					if (i + 1 < grammar.sequence.size()
+						&& grammar.sequence[i] == a && grammar.sequence[i + 1] == b) {
+						replaced.push_back(symbol);
+						i += 2;
+					}
+					else {
+						replaced.push_back(grammar.sequence[i]);
+						++i;
+					}
+				}
+
+				grammar.sequence.swap(replaced);
+			}
+
+			return grammar;
+		}
 
 		struct HuffCode {
 			uint32_t code = 0;
 			uint8_t  length = 0;
 		};
 
-		/**
-		 * Code lengths by frequency. The alphabet is the stored value set, so at most
-		 * five symbols - repeatedly merging the two lightest nodes is all it takes.
-		 */
+		/** Code lengths by frequency. Symbols of frequency zero get no code. */
 		std::vector<uint8_t> huffmanLengths(const std::vector<uint64_t>& frequency) {
 
 			struct Node {
-				uint64_t weight;
+				uint64_t weight = 0;
 				int      left = -1;
 				int      right = -1;
 			};
 
 			std::vector<Node> nodes;
-			std::vector<int>  live;
-			std::vector<int>  nodeOfValue(frequency.size(), -1);
+			std::vector<int>  nodeOfSymbol(frequency.size(), -1);
 
-			for (size_t value = 0; value < frequency.size(); ++value)
-				if (frequency[value] > 0) {
-					nodeOfValue[value] = int(nodes.size());
-					live.push_back(int(nodes.size()));
-					nodes.push_back({ frequency[value] });
+			using Item = std::pair<uint64_t, int>;   // weight, node
+			std::priority_queue<Item, std::vector<Item>, std::greater<Item>> queue;
+
+			for (size_t symbol = 0; symbol < frequency.size(); ++symbol)
+				if (frequency[symbol] > 0) {
+					nodeOfSymbol[symbol] = int(nodes.size());
+					queue.emplace(frequency[symbol], int(nodes.size()));
+					nodes.push_back({ frequency[symbol] });
 				}
 
-			while (live.size() > 1) {
-				// The two lightest nodes become the children of a new one
-				std::partial_sort(live.begin(), live.begin() + 2, live.end(),
-					[&](int a, int b) { return nodes[a].weight < nodes[b].weight; });
+			std::vector<uint8_t> lengths(frequency.size(), 0);
+			if (nodes.empty()) return lengths;
 
-				const int a = live[0];
-				const int b = live[1];
+			while (queue.size() > 1) {
+				const Item a = queue.top(); queue.pop();
+				const Item b = queue.top(); queue.pop();
 				const int merged = int(nodes.size());
-				nodes.push_back({ nodes[a].weight + nodes[b].weight, a, b });
-
-				live.erase(live.begin(), live.begin() + 2);
-				live.push_back(merged);
+				nodes.push_back({ a.first + b.first, a.second, b.second });
+				queue.emplace(a.first + b.first, merged);
 			}
 
-			// Depth of every leaf, walked iteratively so a degenerate tree cannot
-			// exhaust the stack
+			// A single symbol still needs a bit to be written, so its depth is one
+			if (nodes.size() == 1) {
+				lengths[std::find(nodeOfSymbol.begin(), nodeOfSymbol.end(), 0)
+					- nodeOfSymbol.begin()] = 1;
+				return lengths;
+			}
+
 			std::vector<uint8_t> depth(nodes.size(), 0);
-			std::vector<int> stack{ live.front() };
+			std::vector<int> stack{ queue.top().second };
 
 			while (!stack.empty()) {
-				const int n = stack.back();
+				const int node = stack.back();
 				stack.pop_back();
-				if (nodes[n].left < 0) continue;
-				depth[nodes[n].left] = depth[nodes[n].right] = uint8_t(depth[n] + 1);
-				stack.push_back(nodes[n].left);
-				stack.push_back(nodes[n].right);
+				if (nodes[node].left < 0) continue;
+				depth[nodes[node].left] = depth[nodes[node].right] = uint8_t(depth[node] + 1);
+				stack.push_back(nodes[node].left);
+				stack.push_back(nodes[node].right);
 			}
 
-			std::vector<uint8_t> lengths(frequency.size(), 0);
-			for (size_t value = 0; value < frequency.size(); ++value)
-				if (nodeOfValue[value] >= 0)
-					lengths[value] = depth[nodeOfValue[value]];
+			for (size_t symbol = 0; symbol < frequency.size(); ++symbol)
+				if (nodeOfSymbol[symbol] >= 0)
+					lengths[symbol] = depth[nodeOfSymbol[symbol]];
 
 			return lengths;
+		}
+
+		/**
+		 * The same, with the longest code bounded. Flattening the frequencies and
+		 * trying again converges towards a balanced tree, whose depth is the logarithm
+		 * of the vocabulary and therefore well inside the limit.
+		 */
+		std::vector<uint8_t> limitedHuffmanLengths(std::vector<uint64_t> frequency, int limit) {
+
+			for (;;) {
+				const std::vector<uint8_t> lengths = huffmanLengths(frequency);
+
+				int longest = 0;
+				for (const uint8_t length : lengths) longest = std::max(longest, int(length));
+				if (longest <= limit) return lengths;
+
+				for (uint64_t& f : frequency) if (f > 1) f = (f + 1) / 2;
+			}
 		}
 
 		/** One (side, file) table in the shape the file stores it. */
@@ -118,24 +283,38 @@ namespace QaplaSyzygy {
 			uint8_t  minSymLen = 0;
 			std::vector<uint16_t> lowestSym;    // one entry per length, longest last
 			std::vector<uint8_t>  btree;        // three bytes per symbol
-			uint16_t symbolCount = 0;
+			uint16_t symbolCount = 0;           // coded symbols and rule-only ones together
 
 			uint32_t blocksNum = 0;
 			uint8_t  padding = 0;
+			uint8_t  log2Span = 0;
+			uint8_t  log2BlockBytes = 0;
 			std::vector<uint8_t>  sparseIndex;  // six bytes per entry
 			std::vector<uint16_t> blockLength;  // terminals per block, as count - 1
 			std::vector<uint8_t>  data;
 		};
 
-		/** Fills the slots no position reached with their nearest neighbour. */
-		void fillUnreached(std::vector<uint8_t>& values) {
+		/**
+		 * Resolves everything the caller left open, always towards the value that is
+		 * already running: a slot no position reached takes its predecessor, a slot
+		 * that may be stored lower takes its predecessor as well whenever that is not
+		 * above its ceiling. Both cases exist to make runs longer, and this is the
+		 * cheapest rule that does it.
+		 */
+		void resolveOpenValues(std::vector<uint8_t>& values) {
+
 			uint8_t last = StoredDraw;
 			for (const uint8_t v : values)
-				if (v != TB_UNREACHED) { last = v; break; }
+				if (v != TB_UNREACHED) { last = uint8_t(v & ~TB_REDUCIBLE); break; }
 
 			for (uint8_t& v : values) {
-				if (v == TB_UNREACHED) v = last;
-				else last = v;
+				if (v == TB_UNREACHED)
+					v = last;
+				else if (v & TB_REDUCIBLE) {
+					const uint8_t ceiling = uint8_t(v & ~TB_REDUCIBLE);
+					v = last <= ceiling ? last : ceiling;
+				}
+				last = v;
 			}
 		}
 
@@ -146,20 +325,23 @@ namespace QaplaSyzygy {
 		 * usual one: the longest codes carry the lowest symbol numbers, and the first
 		 * code of a length follows from the next longer one,
 		 *     base(len) = (base(len + 1) + count(len + 1)) / 2
-		 * which is exactly what the reader undoes when it rebuilds base64[].
+		 * which is exactly what the reader undoes when it rebuilds base64[] from the
+		 * stored lowestSym[]. Symbols that appear only inside a rule get no code at
+		 * all; they are numbered after the coded ones, where the reader can reach them
+		 * as children but never out of the bit stream. de Man's own files do the same.
 		 */
 		EncodedTable encodeTable(std::vector<uint8_t> values) {
 
 			EncodedTable table;
-			fillUnreached(values);
+			resolveOpenValues(values);
 
-			std::vector<uint64_t> frequency(StoredWin + 1, 0);
+			std::vector<uint64_t> valueFrequency(StoredWin + 1, 0);
 			for (const uint8_t v : values) {
 				if (v > StoredWin) throw std::runtime_error("tbwrite: value out of range");
-				frequency[v]++;
+				valueFrequency[v]++;
 			}
 
-			const size_t distinct = std::count_if(frequency.begin(), frequency.end(),
+			const size_t distinct = std::count_if(valueFrequency.begin(), valueFrequency.end(),
 				[](uint64_t f) { return f > 0; });
 
 			if (distinct <= 1) {
@@ -168,134 +350,176 @@ namespace QaplaSyzygy {
 				return table;
 			}
 
-			const std::vector<uint8_t> lengths = huffmanLengths(frequency);
+			const Grammar grammar = buildGrammar(values);
+
+			std::vector<uint64_t> frequency(grammar.left.size(), 0);
+			for (const uint16_t symbol : grammar.sequence) frequency[symbol]++;
+
+			const std::vector<uint8_t> lengths = limitedHuffmanLengths(frequency, MAX_CODE_LENGTH);
 
 			table.minSymLen = 0xFF;
-			for (const uint8_t len : lengths)
-				if (len > 0) {
-					table.minSymLen = std::min(table.minSymLen, len);
-					table.maxSymLen = std::max(table.maxSymLen, len);
+			for (const uint8_t length : lengths)
+				if (length > 0) {
+					table.minSymLen = std::min(table.minSymLen, length);
+					table.maxSymLen = std::max(table.maxSymLen, length);
 				}
 
 			const int classCount = table.maxSymLen - table.minSymLen + 1;
 			std::vector<uint32_t> countOfLength(classCount, 0);
-			for (const uint8_t len : lengths)
-				if (len > 0) countOfLength[len - table.minSymLen]++;
+			for (const uint8_t length : lengths)
+				if (length > 0) countOfLength[length - table.minSymLen]++;
 
 			// base and the lowest symbol number of every length, from the longest down
-			std::vector<uint32_t> base(classCount, 0);
+			std::vector<uint64_t> base(classCount, 0);
 			table.lowestSym.assign(classCount, 0);
 			for (int i = classCount - 2; i >= 0; --i) {
 				base[i] = (base[i + 1] + countOfLength[i + 1]) / 2;
 				table.lowestSym[i] = uint16_t(table.lowestSym[i + 1] + countOfLength[i + 1]);
 			}
 
-			if (base[0] + countOfLength[0] != (1u << table.minSymLen))
-				throw std::runtime_error("tbwrite: the huffman code is not complete");
+			if (base[0] + countOfLength[0] > (uint64_t(1) << table.minSymLen))
+				throw std::runtime_error("tbwrite: the huffman code does not fit its length");
 
-			// Within a length the symbols follow the value order, codes and numbers
-			// ascending together
-			std::vector<HuffCode> codeOfValue(lengths.size());
-			std::vector<uint32_t> nextInClass(classCount, 0);
-			table.symbolCount = uint16_t(distinct);
+			// Numbers: the longest codes lowest, ascending with the code inside a
+			// length, and everything that carries no code behind all of them
+			std::vector<uint16_t> numberOf(grammar.left.size(), 0xFFFF);
+			std::vector<HuffCode> codeOf(grammar.left.size());
+			uint32_t next = 0;
+
+			for (int i = classCount - 1; i >= 0; --i)
+				for (size_t symbol = 0; symbol < lengths.size(); ++symbol) {
+					if (lengths[symbol] != i + table.minSymLen) continue;
+					codeOf[symbol] = HuffCode{ uint32_t(base[i] + (next - table.lowestSym[i])),
+						lengths[symbol] };
+					numberOf[symbol] = uint16_t(next++);
+				}
+
+			for (size_t symbol = 0; symbol < lengths.size(); ++symbol)
+				if (lengths[symbol] == 0) numberOf[symbol] = uint16_t(next++);
+
+			table.symbolCount = uint16_t(next);
 			table.btree.assign(size_t(table.symbolCount) * 3, 0);
 
-			for (size_t value = 0; value < lengths.size(); ++value) {
-				if (lengths[value] == 0) continue;
+			for (size_t symbol = 0; symbol < grammar.left.size(); ++symbol) {
+				const uint16_t left = grammar.right[symbol] == 0xFFF
+					? grammar.left[symbol] : numberOf[grammar.left[symbol]];
+				const uint16_t right = grammar.right[symbol] == 0xFFF
+					? uint16_t(0xFFF) : numberOf[grammar.right[symbol]];
 
-				const int      li = lengths[value] - table.minSymLen;
-				const uint32_t n = nextInClass[li]++;
-				const uint32_t symbol = table.lowestSym[li] + n;
-
-				codeOfValue[value] = HuffCode{ base[li] + n, lengths[value] };
-
-				// A leaf: left holds the value, right is the marker 0xFFF
-				uint8_t* const lr = &table.btree[size_t(symbol) * 3];
-				lr[0] = uint8_t(value & 0xFF);
-				lr[1] = uint8_t(((value >> 8) & 0xF) | 0xF0);
-				lr[2] = 0xFF;
+				uint8_t* const lr = &table.btree[size_t(numberOf[symbol]) * 3];
+				lr[0] = uint8_t(left & 0xFF);
+				lr[1] = uint8_t(((left >> 8) & 0xF) | ((right & 0xF) << 4));
+				lr[2] = uint8_t(right >> 4);
 			}
 
-			// ---- bit packing, most significant bit first, blocks never crossed ----
+			// ---- packing, tried with every block size ----
 
-			const size_t blockBytes = size_t(1) << LOG2_BLOCK_BYTES;
-			const size_t blockBits = blockBytes * 8;
+			// Most significant bit first, and a symbol never crosses a block: the reader
+			// starts every block with a fresh bit buffer.
+			const auto pack = [&](uint8_t log2BlockBytes, EncodedTable& out) {
 
-			std::vector<uint8_t> block(blockBytes, 0);
-			std::vector<uint64_t> terminalsBeforeBlock{ 0 };
-			size_t   bitPos = 0;
-			uint32_t inBlock = 0;
-			uint64_t written = 0;
+				const size_t blockBytes = size_t(1) << log2BlockBytes;
+				const size_t blockBits = blockBytes * 8;
 
-			const auto closeBlock = [&]() {
-				table.data.insert(table.data.end(), block.begin(), block.end());
-				table.blockLength.push_back(uint16_t(inBlock - 1));
-				written += inBlock;
-				terminalsBeforeBlock.push_back(written);
-				std::fill(block.begin(), block.end(), uint8_t(0));
-				bitPos = 0;
-				inBlock = 0;
+				std::vector<uint8_t> block(blockBytes, 0);
+				std::vector<uint64_t> terminalsBeforeBlock{ 0 };
+				size_t   bitPos = 0;
+				uint32_t inBlock = 0;
+				uint64_t written = 0;
+
+				const auto closeBlock = [&]() {
+					out.data.insert(out.data.end(), block.begin(), block.end());
+					out.blockLength.push_back(uint16_t(inBlock - 1));
+					written += inBlock;
+					terminalsBeforeBlock.push_back(written);
+					std::fill(block.begin(), block.end(), uint8_t(0));
+					bitPos = 0;
+					inBlock = 0;
+				};
+
+				for (const uint16_t symbol : grammar.sequence) {
+					const HuffCode code = codeOf[symbol];
+					const uint32_t terminals = grammar.terminals[symbol];
+
+					if (bitPos + code.length > blockBits
+						|| inBlock + terminals > MAX_TERMINALS_PER_BLOCK)
+						closeBlock();
+
+					for (int bit = code.length - 1; bit >= 0; --bit) {
+						if ((code.code >> bit) & 1)
+							block[bitPos >> 3] |= uint8_t(0x80 >> (bitPos & 7));
+						++bitPos;
+					}
+					inBlock += terminals;
+				}
+
+				if (inBlock > 0) closeBlock();
+				out.blocksNum = uint32_t(out.blockLength.size());
+				out.log2BlockBytes = log2BlockBytes;
+
+				// One entry per span positions, made as wide as the sixteen bit offset of an
+				// entry allows: a wide span only means that the reader walks a few more block
+				// lengths before it decodes.
+				const uint64_t total = values.size();
+				const uint64_t dataBytes = uint64_t(out.blocksNum) * blockBytes;
+
+				for (out.log2Span = MAX_LOG2_SPAN; ; --out.log2Span) {
+
+					const uint64_t span = uint64_t(1) << out.log2Span;
+					const uint64_t entries = (total + span - 1) / span;
+
+					if (out.log2Span > 6 && entries * SPARSE_INDEX_BLOCK_REACH < out.blocksNum) continue;
+
+					out.sparseIndex.clear();
+					out.sparseIndex.reserve(size_t(entries) * 6);
+					bool fits = true;
+
+					for (uint64_t k = 0; k < entries; ++k) {
+
+						// The entry describes the position half a span into its range. That
+						// position may sit past the last value of the table, and is then counted
+						// on past the end of the last block: the reader adds idx % span - span / 2
+						// before it looks at any block length, so the correction lands back inside
+						// the table for every index it is asked about.
+						const uint64_t position = k * span + span / 2;
+
+						const auto it = std::upper_bound(terminalsBeforeBlock.begin(),
+							terminalsBeforeBlock.end(), std::min(position, total - 1));
+						const uint32_t blockIndex = uint32_t(it - terminalsBeforeBlock.begin() - 1);
+						const uint64_t offset = position - terminalsBeforeBlock[blockIndex];
+
+						if (offset > 0xFFFF) { fits = false; break; }
+
+						for (int i = 0; i < 4; ++i)
+							out.sparseIndex.push_back(uint8_t(blockIndex >> (8 * i)));
+						for (int i = 0; i < 2; ++i)
+							out.sparseIndex.push_back(uint8_t(offset >> (8 * i)));
+					}
+
+					if (fits) break;
+					if (out.log2Span == 6) throw std::runtime_error("tbwrite: no usable span");
+				}
+
+				return dataBytes + out.blockLength.size() * 2 + out.sparseIndex.size();
 			};
 
-			for (const uint8_t v : values) {
-				const HuffCode code = codeOfValue[v];
+			uint64_t best = UINT64_MAX;
+			for (const uint8_t log2BlockBytes : LOG2_BLOCK_CANDIDATES) {
+				EncodedTable candidate;
+				const uint64_t bytes = pack(log2BlockBytes, candidate);
+				if (bytes >= best) continue;
 
-				if (bitPos + code.length > blockBits || inBlock == MAX_TERMINALS_PER_BLOCK)
-					closeBlock();
-
-				for (int bit = code.length - 1; bit >= 0; --bit) {
-					if ((code.code >> bit) & 1)
-						block[bitPos >> 3] |= uint8_t(0x80 >> (bitPos & 7));
-					++bitPos;
-				}
-				++inBlock;
+				best = bytes;
+				table.data.swap(candidate.data);
+				table.blockLength.swap(candidate.blockLength);
+				table.sparseIndex.swap(candidate.sparseIndex);
+				table.blocksNum = candidate.blocksNum;
+				table.log2Span = candidate.log2Span;
+				table.log2BlockBytes = candidate.log2BlockBytes;
 			}
-
-			if (inBlock > 0) closeBlock();
-			table.blocksNum = uint32_t(table.blockLength.size());
-
-			// ---- sparse index ----
-
-			const uint64_t span = uint64_t(1) << LOG2_SPAN;
-			const uint64_t total = values.size();
-			const uint64_t entries = (total + span - 1) / span;
-			uint64_t phantomBlocks = 0;
-
-			table.sparseIndex.reserve(size_t(entries) * 6);
-
-			for (uint64_t k = 0; k < entries; ++k) {
-				const uint64_t position = k * span + span / 2;
-				uint32_t blockIndex;
-				uint32_t offset;
-
-				if (position < total) {
-					const auto it = std::upper_bound(terminalsBeforeBlock.begin(),
-						terminalsBeforeBlock.end(), position);
-					blockIndex = uint32_t(it - terminalsBeforeBlock.begin() - 1);
-					offset = uint32_t(position - terminalsBeforeBlock[blockIndex]);
-				}
-				else {
-					// Past the last value. The entry still has to point somewhere, so it
-					// points into phantom blocks of one terminal each, which the reader
-					// walks back through to reach a real one.
-					blockIndex = uint32_t(table.blocksNum + (position - total));
-					offset = 0;
-					phantomBlocks = std::max(phantomBlocks, position - total + 1);
-				}
-
-				if (offset > 0xFFFF) throw std::runtime_error("tbwrite: sparse offset too large");
-
-				for (int i = 0; i < 4; ++i) table.sparseIndex.push_back(uint8_t(blockIndex >> (8 * i)));
-				for (int i = 0; i < 2; ++i) table.sparseIndex.push_back(uint8_t(offset >> (8 * i)));
-			}
-
-			table.padding = uint8_t(std::min<uint64_t>(phantomBlocks, 255));
-			if (phantomBlocks > 255) throw std::runtime_error("tbwrite: too many phantom blocks");
-			table.blockLength.resize(table.blocksNum + table.padding, 0);
 
 			return table;
 		}
-
 		// ------------------------------------------------------------------
 		// Byte output
 		// ------------------------------------------------------------------
@@ -467,8 +691,8 @@ namespace QaplaSyzygy {
 				}
 
 				put8(out, 0);
-				put8(out, LOG2_BLOCK_BYTES);
-				put8(out, LOG2_SPAN);
+				put8(out, t.log2BlockBytes);
+				put8(out, t.log2Span);
 				put8(out, t.padding);
 				put32(out, t.blocksNum);
 				put8(out, t.maxSymLen);
@@ -496,10 +720,16 @@ namespace QaplaSyzygy {
 					encoded[side][file].data.end());
 			}
 
-		// The reader refills its bit buffer a word at a time and may reach a few bytes
-		// past the last block. de Man's files end in a 16 byte checksum, which covers
-		// the same ground; here it is plain padding.
+		// The reader takes a file whose size is not 64n + 16 for corrupt, so the data
+		// ends on a block boundary and the last sixteen bytes are a trailer. de Man
+		// puts a checksum there; nothing reads it, and here it is padding - which the
+		// reader needs anyway, because it refills its bit buffer a word at a time and
+		// may reach past the last block.
+		alignTo(out, 64);
 		out.insert(out.end(), 16, 0);
+
+		if (out.size() % 64 != 16)
+			throw std::runtime_error("tbwrite: the file size is not 64n + 16");
 
 		std::ofstream file(filePath, std::ios::binary | std::ios::trunc);
 		if (!file) throw std::runtime_error("tbwrite: cannot open " + filePath);

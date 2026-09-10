@@ -154,14 +154,17 @@ namespace QaplaBitbase {
 			return fen;
 		}
 
+		std::optional<Wdl> resolveWdl(MoveGenerator& position);
+
 		/**
-		 * The resolved win/draw/loss value: the stored entry combined with everything
-		 * the captures reach. See plan/syzygy-probe.md.
+		 * The best value the captures of this position reach, from the side to move.
+		 * A loss when there is no capture, which is the neutral element of the maximum
+		 * the reader takes between the entry and the captures.
 		 *
-		 * @returns nothing when a table is missing, or when an en passant capture makes
-		 *          the entry inapplicable
+		 * @returns nothing when a table below is missing or an en passant capture is
+		 *          available, because then the answer cannot be established
 		 */
-		std::optional<Wdl> resolveWdl(MoveGenerator& position) {
+		std::optional<Wdl> bestCaptureValue(MoveGenerator& position) {
 
 			MoveList moveList;
 			position.genMovesOfMovingColor(moveList);
@@ -188,12 +191,27 @@ namespace QaplaBitbase {
 				if (int(value) > int(best)) best = value;
 			}
 
+			return best;
+		}
+
+		/**
+		 * The resolved win/draw/loss value: the stored entry combined with everything
+		 * the captures reach. See plan/syzygy-probe.md.
+		 *
+		 * @returns nothing when a table is missing, or when an en passant capture makes
+		 *          the entry inapplicable
+		 */
+		std::optional<Wdl> resolveWdl(MoveGenerator& position) {
+
+			const std::optional<Wdl> best = bestCaptureValue(position);
+			if (!best) return std::nullopt;
+
 			TbPosition tbPosition{};
 			if (!buildTbPosition(position, tbPosition)) return std::nullopt;
 			const WdlEntry entry = probeWdlEntry(tbPosition);
 			if (entry.status != Status::Ok) return std::nullopt;
 
-			return int(entry.value) > int(best) ? entry.value : best;
+			return int(entry.value) > int(*best) ? entry.value : *best;
 		}
 
 		/** -1, 0 or 1 - the win/draw/loss answer with the fifty move rule folded away. */
@@ -253,28 +271,34 @@ namespace QaplaBitbase {
 				values[side][file].assign(size_t(writer.tableSize(side, file)), TB_UNREACHED),
 				sourceIndex[side][file].assign(size_t(writer.tableSize(side, file)), 0);
 
+		// Tables of the materials a capture leads into answer from the same directory.
+		// They decide whether an entry may be stored below its true value; where one is
+		// missing, the true value is stored and nothing is lost but size.
+		setPath(outDir);
+
 		MoveGenerator position;
 		uint64_t written = 0;
 		uint64_t illegal = 0;
 		uint64_t conflicts = 0;
+		uint64_t reducible = 0;
 
 		for (uint64_t index = 0; index < entryCount; ++index) {
 
-			// The file cannot say which entries are illegal: the compressor treats
-			// them as jokers and hands back a neighbour's value. So legality is
-			// established here, exactly as the generator establishes it - a position
-			// that is not legal, or whose index is not the canonical one of its
-			// symmetry class, carries no value at all.
+			// The file cannot say which entries are illegal: the compressor treats them
+			// as jokers and hands back a neighbour's value. So legality is established
+			// here, on the position itself.
+			//
+			// The value is read at the index the position computes, not at the one the
+			// walk is on. The two differ where the reverse index hands back another
+			// member of the same symmetry class, and the generator marks exactly those
+			// as illegal - skipping them would leave the whole class without a value.
 			const ReverseIndex reverseIndex(index, pieceList);
 			if (!reverseIndex.isLegal()) { ++illegal; continue; }
 
 			buildPosition(position, reverseIndex, pieceList);
-			if (index != BoardAccess::getIndex<0>(position) || !position.isLegal()) {
-				++illegal;
-				continue;
-			}
+			if (!position.isLegal()) { ++illegal; continue; }
 
-			const BitbaseResult result = source.probe(index);
+			const BitbaseResult result = source.probe(BoardAccess::getIndex<0>(position));
 
 			TbPosition tbPosition{};
 			if (!buildTbPosition(position, tbPosition)) {
@@ -283,7 +307,15 @@ namespace QaplaBitbase {
 			}
 
 			const WdlSlot slot = writer.slotOf(tbPosition);
-			const uint8_t value = toStoredValue(result, position.isWhiteToMove());
+			uint8_t value = toStoredValue(result, position.isWhiteToMove());
+
+			// Where a capture already reaches the value, the entry is free to sit below
+			// it. That is what keeps a table short, so it is worth the move generation.
+			const std::optional<Wdl> best = bestCaptureValue(position);
+			if (best && int(*best) + 2 == int(value)) {
+				value |= TB_REDUCIBLE;
+				++reducible;
+			}
 
 			uint8_t& stored = values[slot.side][slot.file][size_t(slot.index)];
 			if (stored != TB_UNREACHED && stored != value) {
@@ -305,6 +337,8 @@ namespace QaplaBitbase {
 			stored = value;
 			++written;
 		}
+
+		release();
 
 		uint64_t slots = 0;
 		uint64_t unreached = 0;
@@ -328,7 +362,8 @@ namespace QaplaBitbase {
 
 		log << code << ": " << entryCount << " indexed positions, " << illegal
 			<< " illegal, " << written << " values placed in " << slots << " slots, "
-			<< unreached << " never reached" << std::endl;
+			<< unreached << " never reached, " << reducible
+			<< " reached by a capture and therefore free to store lower" << std::endl;
 		log << "written " << filePath.string() << " ("
 			<< std::filesystem::file_size(filePath) << " bytes)" << std::endl;
 
@@ -340,10 +375,15 @@ namespace QaplaBitbase {
 	}
 
 	bool compareSyzygyWdl(const std::string& pieceString, const std::string& ourDir,
-		const std::string& refDir, std::ostream& log) {
+		const std::string& refDir, const std::string& qwdlFile, std::ostream& log) {
 
 		const std::string code = toFormatCode(pieceString);
 		const PieceList pieceList(pieceString);
+
+		// Optional third opinion: what the generator itself holds for the position.
+		// It says which side of the bridge a difference sits on.
+		BitbaseRePairFile source;
+		const bool haveSource = !qwdlFile.empty() && source.open(qwdlFile);
 
 		const std::vector<PositionCase> cases = allPositions(pieceList);
 		log << code << ": " << cases.size() << " legal positions" << std::endl;
@@ -396,9 +436,18 @@ namespace QaplaBitbase {
 			if (int(reference) == 1 || int(reference) == -1) ++cursed;
 
 			if (sign(ours) != sign(reference)) {
-				if (++differences <= 10)
+				if (++differences <= 10) {
 					log << "  " << toFen(pieceList, cases[i]) << " : ours " << wdlName(ours)
-					<< ", reference " << wdlName(reference) << std::endl;
+						<< ", reference " << wdlName(reference);
+
+					if (haveSource) {
+						setUpPosition(position, pieceList, cases[i]);
+						const uint64_t index = BoardAccess::getIndex<0>(position);
+						log << ", generator " << to_string(source.probe(index))
+							<< " (white view, index " << index << ")";
+					}
+					log << std::endl;
+				}
 			}
 		}
 

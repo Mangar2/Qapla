@@ -208,31 +208,29 @@ Free parameters of the format. Chosen once, stored in the file, used by `encodeI
 
 ## 4. Step 2 - compression and container
 
-### 4.1 Keep the algorithm, replace the serialisation
+### 4.1 Compression
 
-`QaplaRePair::compress()` stays. `QaplaRePair::serialize()` cannot be used - the byte stream is
-Qapla's own. The deltas, all mechanical:
+`QaplaRePair` in [recursive-pairing.h](../bitbase/recursive-pairing.h) is the same algorithm class
+and its tree packing is already the Syzygy `LR` layout - but it lives in `bitbase/` and pulls the
+engine's headers behind it, and `src/syzygy` is free of the engine by design. The writer therefore
+carries its own recursive pairing, which is ~150 lines and answers to the format's own limits
+directly:
 
-| item | Qapla today | Syzygy needs |
-|---|---|---|
-| symbol numbering | original grammar ids plus a `symOrder[]` indirection | ids **renumbered** so that every Huffman length class is a consecutive id range; `lowestSym[len]` is the lowest id of that class, no indirection table exists |
-| decode table | `symCount[]` written, `base64[]` derived | `lowestSym[]` written, `base64[]` derived from it ([tbprobe.cpp:975-990](../src/syzygy/tbprobe.cpp#L975-L990)) |
-| symbol count | implicit | explicit `uint16` before the btree |
-| terminals | `NUM_TERMINALS` fixed leaves | a leaf is a rule with `right == 0xFFF`; its `left` is the value ([tbprobe.cpp:934-947](../src/syzygy/tbprobe.cpp#L934-L947)) |
-| sparse index | derived at load | **stored**, 6 bytes per entry (`uint32` block, `uint16` offset), `ceil(tbSize / span)` entries |
-| block lengths | `blocksNum` entries | `blocksNum + padding` entries, `padding` stored as its own byte |
-| block data | packed | aligned to **64 bytes** before each `(side, file)` block array |
-| header | own magic + entry count | section 4.2 |
-
-The renumbering is the only part that is more than bookkeeping: once the Huffman code lengths are
-known, symbols are sorted by length, given new consecutive ids in that order, and the btree children
-plus the encoded stream are rewritten through the permutation. A separate, testable pass
-(`renumberForSyzygy`), verified by round-tripping through the *reader's* `setSizes` +
-`decompressPairs` before a single file is written.
-
-Block size and span stay at the Syzygy convention (`log2` bytes each in the header). The reader
-wants `blockLength[b] + 1` terminals per block and each block padded to `sizeofBlock` - the shape
-the compressor already produces.
+- **a symbol expands to at most 256 terminals**, because the reader keeps that count in a byte
+  (`std::vector<uint8_t> symlen`, [tbprobe.cpp:256](../src/syzygy/tbprobe.cpp#L256)). A pair that
+  would cross the limit is not made a rule;
+- **4096 symbols**, the width of a tree child;
+- **the canonical code runs the other way round** than the usual one: the longest codes carry the
+  lowest symbol numbers, and the first code of a length follows from the next longer one,
+  `base(len) = (base(len + 1) + count(len + 1)) / 2`, which is what the reader undoes when it
+  rebuilds `base64[]` from the stored `lowestSym[]`;
+- **a symbol that appears only inside a rule carries no code at all.** It is numbered behind the
+  coded ones, where the reader reaches it as a child but never out of the bit stream. de Man's own
+  `KRvK` does this - nine of its ten symbols are coded;
+- **block size and span are chosen by measurement.** The table is packed with 16, 32, 64 and 128
+  byte blocks and the smallest result kept; the span is then made as wide as the sixteen bit offset
+  of an index entry allows. Both are what de Man's generator does, and both are worth real bytes:
+  the sparse index of a 4 piece table shrinks from 2.7 KB to under 200 bytes.
 
 ### 4.2 The container, byte for byte
 
@@ -379,42 +377,56 @@ Zero differences, or a list of positions to explain. Then the WDL part is done.
 
 ---
 
-## 8.1 What the first table taught
+## 8.1 What the first tables taught
 
-`KRvK` is written and compared. What had to be found out on the way, so that the next material
-does not have to find it again:
+`KRvK`, `KQvK`, `KRRvK` and `KRvKR` are written and compared - the pawnless shapes that matter:
+a unique piece and none, two kings as the leading group and three pieces, two sides stored and one.
+Every legal position of all four gives the same resolved value as de Man's file.
 
-- **`initMaps()` was reader-only.** The map tables are filled when a path is set, and a writer
-  never sets one - every index came out zero. Both directions now go through `ensureMaps()`.
+| material | ours | de Man |
+|---|---|---|
+| KRvK | 208 | 208 |
+| KQvK | 336 | 272 |
+| KRRvK | 3152 | 1936 |
+| KRvKR | 15056 | 12944 |
+
+What had to be found out on the way:
+
+- **The entry is a lower bound, and that is where the size of a table lives.** de Man's `KRvK`
+  holds nine entries that are not a loss, out of 31332 - because wherever a capture already reaches
+  the true value, the stored entry may sit below it, and lowering them all to the same value turns
+  the table into one long run. Writing the exact value instead cost a factor of four. The writer
+  now marks such an entry `TB_REDUCIBLE` and the fill lowers it as far as the run it sits in
+  allows. Deciding it needs the tables one capture down, so the writer registers its own output
+  directory and probes them; where one is missing, the exact value is stored and only size is lost.
+- **The reader rejects any file whose size is not 64n + 16**
+  ([tbprobe.cpp:118-122](../src/syzygy/tbprobe.cpp#L118-L122)). The data has to end on a block
+  boundary and the last sixteen bytes are the trailer de Man fills with a checksum. This cost an
+  hour: a 176 byte table was silently refused, the material one capture up therefore found no child
+  table, and its own file came out five times too large - with no error anywhere, because a missing
+  child table is a legal reason not to lower an entry.
+- **`initMaps()` was reader-only.** The map tables are filled when a path is set, and a writer never
+  sets one - every index came out zero. Both directions now go through `ensureMaps()`.
 - **The `.qwdl` file cannot say which entries are illegal.** The compressor treats
   `BitbaseResult::Unknown` as a joker and returns a neighbour's value instead
   ([recursive-pairing.h:29-32](../bitbase/recursive-pairing.h#L29-L32)), so an illegal entry comes
-  back looking like an ordinary one. The writer re-establishes legality the way the generator does -
-  `ReverseIndex::isLegal()`, the position legal, and the index the canonical one of its class
-  ([bitbasegenerator.cpp:713-729](../bitbase/bitbasegenerator.cpp#L713-L729)). Without that test
-  the joker values land in the file: 85 slots of `KRvK` were filled twice with values that
-  contradicted each other, every one of them from a non-canonical index.
-- **The double-write check earned its place.** It is what turned both faults above from a wrong
-  file into a message naming two positions - and the two it named were mirror images of each
+  back looking like an ordinary one. Legality is established on the position instead.
+- **The value is read at the index the position computes, not at the one the walk is on.** The two
+  differ where Qapla's reverse index hands back another member of the same symmetry class, and the
+  generator marks exactly those as illegal. Skipping them leaves the whole class without a value:
+  in `KRRvK` that put a draw where a mate in a few moves belongs, 3048 positions of 22 million.
+- **The double-write check earned its place.** It is what turned two of the faults above from a
+  wrong file into a message naming two positions - and the two it named were mirror images of each
   other, which said immediately that the fault sat on the Qapla side of the index, not in the
   format.
 - **Read the reference file before writing one.** `KRvK.rtbw` is 208 bytes and shows the whole
   shape: the white to move table is a single value (every position a win, flag `SingleValue`), the
-  black to move table is two terminals with a one bit code each, and the file ends in a 16 byte
-  trailer the reader never looks at - a checksum. It also settles the free choices: de Man puts the
-  kings first in one of the two tables and not in the other, so the piece order really is free
-  within the constraints of section 3.
-- **The flags byte carries the piece count** in its upper nibble. This prober ignores it, others
-  may not, so it is written.
+  black to move table is a doubling chain up to the 256 terminal limit, and 121 of its 145 symbols
+  are that one chain top. Decoding it by hand settled every question the reader's source left open.
+- **The flags byte carries the piece count** in its upper nibble. This prober ignores it, others may
+  not, so it is written.
 
-Numbers of the run: 57288 indexed positions, 7273 of them illegal, 50015 values placed in 62664
-slots, 12649 slots never reached and filled with a neighbour. The file is 5648 bytes against de
-Man's 208 - that difference is the recursive pairing grammar, which is not built here. All 399112
-legal positions of the material give the same resolved value as the reference, and the value
-distribution matches entry for entry: 201700 losses, 22244 draws, 175168 wins, no cursed win in
-this material.
-
-Still open from the ladder of section 4.3: the file has not been read by a foreign
+Still open from the ladder of section 4.3: the files have not been read by a foreign
 implementation - `python-chess` is not installed here.
 
 ## 9. Afterwards: distance to mate
@@ -486,10 +498,6 @@ readers, which is the point of the exercise: directory, not extension.
 
 ## 10. Open decisions
 
-- Whether the WDL writer should fold exact values down to lower bounds where a capture already
-  reaches them. It compresses better and is legal - the reader takes `max(entry, best capture)`, so
-  an exact entry can never be raised. It also makes the step 3 comparison harder to read.
-  Recommendation: not before the files are proven correct.
 - Whether to write real `.rtbz` DTZ files as the by-product of step 4 (section 6), and when.
 - Which side to store per distance table - the format allows one; the stronger side to move is the
   natural choice, but the one-ply recovery for the other side has to be written either way.

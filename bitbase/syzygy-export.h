@@ -62,6 +62,6 @@ namespace QaplaBitbase {
 	 * @returns true when no position differs
 	 */
 	bool compareSyzygyWdl(const std::string& pieceString, const std::string& ourDir,
-		const std::string& refDir, std::ostream& log);
+		const std::string& refDir, const std::string& qwdlFile, std::ostream& log);
 
 }

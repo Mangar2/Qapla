@@ -42,6 +42,18 @@ namespace QaplaSyzygy {
 	/** Marks a slot no legal position reaches. Such slots may hold anything. */
 	constexpr uint8_t TB_UNREACHED = 0xFF;
 
+	/**
+	 * Added to a value it says: the entry may be stored lower than this, down to a
+	 * loss, because a capture already reaches the true value and the reader takes the
+	 * better of the two.
+	 *
+	 * This is where the size of a table is decided. Nearly every entry of a won
+	 * endgame carries it, and letting the writer lower them all to the same value
+	 * turns the table into one long run - de Man's KRvK holds nine entries that are
+	 * not a loss, out of 31332.
+	 */
+	constexpr uint8_t TB_REDUCIBLE = 0x80;
+
 	/** The stored value set, from the side to move. */
 	enum TbStoredWdl : uint8_t {
 		StoredLoss = 0, StoredBlessedLoss = 1, StoredDraw = 2, StoredCursedWin = 3, StoredWin = 4

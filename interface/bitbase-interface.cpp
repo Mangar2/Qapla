@@ -123,12 +123,16 @@ void BitbaseInterface::writeSyzygy() {
 void BitbaseInterface::checkSyzygy() {
 	const string pieceString = getNextTokenBlocking(true);
 	if (pieceString == "\r" || pieceString == "\n") {
-		println("usage bitsyzygycheck pieces ourDir referenceDir");
+		println("usage bitsyzygycheck pieces ourDir referenceDir [qwdl file]");
 		return;
 	}
 	const string ourDir = getNextTokenBlocking(true);
 	const string referenceDir = getNextTokenBlocking(true);
-	const bool equal = QaplaBitbase::compareSyzygyWdl(pieceString, ourDir, referenceDir, std::cout);
+	string qwdlFile;
+	const string token = getNextTokenBlocking(true);
+	if (token == "qwdl") qwdlFile = getNextTokenBlocking(true);
+	const bool equal = QaplaBitbase::compareSyzygyWdl(pieceString, ourDir, referenceDir,
+		qwdlFile, std::cout);
 	println(equal ? "identical" : "DIFFERENT");
 }
 
