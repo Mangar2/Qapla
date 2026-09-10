@@ -53,6 +53,16 @@ namespace QaplaInterface {
 		void generateBitbases();
 
 		/**
+		 * Writes a generated bitbase as a Syzygy win/draw/loss file
+		 */
+		void writeSyzygy();
+
+		/**
+		 * Compares written Syzygy files against a reference set
+		 */
+		void checkSyzygy();
+
+		/**
 		 * handles a verify EGTB command
 		 */
 		void verifyBitbases();

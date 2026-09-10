@@ -19,6 +19,7 @@
 
 
 #include "bitbase-interface.h"
+#include "../bitbase/syzygy-export.h"
 
 using namespace std;
 
@@ -101,6 +102,36 @@ void BitbaseInterface::verifyBitbases() {
 	}
 	getBoard()->verifyBitbases(piecesString, cores, traceLevel, debugLevel);
 }
+void BitbaseInterface::writeSyzygy() {
+	const string pieceString = getNextTokenBlocking(true);
+	if (pieceString == "\r" || pieceString == "\n") {
+		println("usage bitsyzygy pieces [qwdl file] [out dir]");
+		return;
+	}
+	string qwdlFile = pieceString + ".qwdl";
+	string outDir = ".";
+	string token = getNextTokenBlocking(true);
+	while (token != "\n" && token != "\r") {
+		if (token == "qwdl") qwdlFile = getNextTokenBlocking(true);
+		else if (token == "out") outDir = getNextTokenBlocking(true);
+		else break;
+		token = getNextTokenBlocking(true);
+	}
+	QaplaBitbase::writeSyzygyWdl(pieceString, qwdlFile, outDir, std::cout);
+}
+
+void BitbaseInterface::checkSyzygy() {
+	const string pieceString = getNextTokenBlocking(true);
+	if (pieceString == "\r" || pieceString == "\n") {
+		println("usage bitsyzygycheck pieces ourDir referenceDir");
+		return;
+	}
+	const string ourDir = getNextTokenBlocking(true);
+	const string referenceDir = getNextTokenBlocking(true);
+	const bool equal = QaplaBitbase::compareSyzygyWdl(pieceString, ourDir, referenceDir, std::cout);
+	println(equal ? "identical" : "DIFFERENT");
+}
+
 /*
  * Processes any input from stdio
  */
@@ -127,4 +158,6 @@ void BitbaseInterface::handleInput() {
 	const string token = getCurrentToken();
 	if (token == "bitgenerate") generateBitbases();
 	else if (token == "bitverify") verifyBitbases();
+	else if (token == "bitsyzygy") writeSyzygy();
+	else if (token == "bitsyzygycheck") checkSyzygy();
 }

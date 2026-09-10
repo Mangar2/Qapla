@@ -58,7 +58,7 @@ namespace QaplaInterface {
 			Statistics statistics;
 			statistics.run(board, ioHandler);
 		} 
-		else if (startsWith(firstToken, { "bitgenerate", "bitverify" })) {
+		else if (startsWith(firstToken, { "bitgenerate", "bitverify", "bitsyzygy" })) {
 			BitbaseInterface bitboardInterface;
 			bitboardInterface.run(board, ioHandler);
 		}

@@ -21,6 +21,8 @@ to mate is a decision to take afterwards, not a promise made now.
 | 1 | conversion layer for everything Qapla does differently - perspective, piece codes, value set | a function that answers "Syzygy's value of this position" from Qapla's table, no file involved |
 | 2 | the file: Syzygy WDL container, still without cursed win / blessed loss | `.rtbw` files the engine's own reader probes |
 | 3 | comparison against real Syzygy files, folded: their win **or** cursed win must be our win | a number - how many positions differ, and how many differ only by the fold |
+
+Steps 1 to 3 are done for pawnless material, see section 8.1.
 | 4 | distance to zeroing move in the generator - the "move counter" | a DTZ value per position, verified by its own invariants |
 | 5 | cursed win / blessed loss from it, in the WDL file | `.rtbw` files with all five values |
 | 6 | comparison against real Syzygy files again, now exact | zero differences |
@@ -238,8 +240,9 @@ Both file types share everything except the magic and the map section. Order as 
 ([tbprobe.cpp:1033-1094](../src/syzygy/tbprobe.cpp#L1033-L1094)) walks it:
 
 ```
-  4  magic                     WDL: D7 66 0C A5      DTZ: 71 E8 23 5D
-  1  flags                     bit0 Split (key != key2), bit1 HasPawns
+  4  magic                     WDL: 71 E8 23 5D      DTZ: D7 66 0C A5
+  1  flags                     bit0 Split (key != key2), bit1 HasPawns,
+                               upper nibble the piece count
      for f in 0..maxFile:                       maxFile = hasPawns ? 3 : 0
   1    order                   low nibble side 0, high nibble side 1
  (1)   order2                  only when pawns on both sides (remaining-pawn group)
@@ -375,6 +378,44 @@ Same harness as step 3, fold removed: `ours == theirs` for every legal position,
 Zero differences, or a list of positions to explain. Then the WDL part is done.
 
 ---
+
+## 8.1 What the first table taught
+
+`KRvK` is written and compared. What had to be found out on the way, so that the next material
+does not have to find it again:
+
+- **`initMaps()` was reader-only.** The map tables are filled when a path is set, and a writer
+  never sets one - every index came out zero. Both directions now go through `ensureMaps()`.
+- **The `.qwdl` file cannot say which entries are illegal.** The compressor treats
+  `BitbaseResult::Unknown` as a joker and returns a neighbour's value instead
+  ([recursive-pairing.h:29-32](../bitbase/recursive-pairing.h#L29-L32)), so an illegal entry comes
+  back looking like an ordinary one. The writer re-establishes legality the way the generator does -
+  `ReverseIndex::isLegal()`, the position legal, and the index the canonical one of its class
+  ([bitbasegenerator.cpp:713-729](../bitbase/bitbasegenerator.cpp#L713-L729)). Without that test
+  the joker values land in the file: 85 slots of `KRvK` were filled twice with values that
+  contradicted each other, every one of them from a non-canonical index.
+- **The double-write check earned its place.** It is what turned both faults above from a wrong
+  file into a message naming two positions - and the two it named were mirror images of each
+  other, which said immediately that the fault sat on the Qapla side of the index, not in the
+  format.
+- **Read the reference file before writing one.** `KRvK.rtbw` is 208 bytes and shows the whole
+  shape: the white to move table is a single value (every position a win, flag `SingleValue`), the
+  black to move table is two terminals with a one bit code each, and the file ends in a 16 byte
+  trailer the reader never looks at - a checksum. It also settles the free choices: de Man puts the
+  kings first in one of the two tables and not in the other, so the piece order really is free
+  within the constraints of section 3.
+- **The flags byte carries the piece count** in its upper nibble. This prober ignores it, others
+  may not, so it is written.
+
+Numbers of the run: 57288 indexed positions, 7273 of them illegal, 50015 values placed in 62664
+slots, 12649 slots never reached and filled with a neighbour. The file is 5648 bytes against de
+Man's 208 - that difference is the recursive pairing grammar, which is not built here. All 399112
+legal positions of the material give the same resolved value as the reference, and the value
+distribution matches entry for entry: 201700 losses, 22244 draws, 175168 wins, no cursed win in
+this material.
+
+Still open from the ladder of section 4.3: the file has not been read by a foreign
+implementation - `python-chess` is not installed here.
 
 ## 9. Afterwards: distance to mate
 

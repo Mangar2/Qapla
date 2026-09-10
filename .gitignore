@@ -18,6 +18,8 @@
 *.bin
 *.epd
 *.qwdl
+*.rtbw
+*.rtbz
 .editorconfig
 /.github/
 /test/log/
