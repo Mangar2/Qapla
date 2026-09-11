@@ -47,15 +47,6 @@ namespace QaplaBitbase {
 
         /** Loads all relevant bitbases. */
         static std::vector<std::string> loadBitbase();
-        static void registerBitbaseFromHeader();
-
-        /**
-         * Registers a bitbase using embedded header data.
-         * @param pieceString A string describing the piece configuration.
-         * @param data Array of bitbase data.
-         * @param sizeInBytes Size of data in bytes.
-         */
-        static void registerBitbaseFromHeader(std::string pieceString, const uint32_t data[], uint32_t sizeInBytes);
 
         /**
          * Recursively loads bitbases based on wildcard piece string.

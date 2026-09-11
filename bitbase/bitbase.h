@@ -272,13 +272,6 @@ namespace QaplaBitbase {
         void writeAsCppFile(const std::string& varName, const std::string& filename);
 
         /**
-         * @brief Loads a compressed bitbase from a compiled-in uint32_t array.
-         * @param data32 Input data.
-         * @param verbose Enable output.
-         */
-        void loadFromEmbeddedData(const uint32_t* data32, bool verbose = false);
-
-        /**
          * @brief Prints debug information about the current bitbase.
          */
         void print() const;

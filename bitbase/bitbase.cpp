@@ -261,45 +261,6 @@ namespace QaplaBitbase {
         out.close();
     }
 
-    void Bitbase::loadFromEmbeddedData(const uint32_t* data32, bool verbose) {
-        vector<uint8_t> compressed;
-        const size_t sizeInBytes = getSize() * sizeof(bbt_t);
-
-        compressed.reserve(sizeInBytes);
-
-        for (uint32_t i = 0; i < sizeInBytes / 4; ++i) {
-            uint32_t val = data32[i];
-            compressed.push_back(static_cast<uint8_t>(val & 0xFF));
-            compressed.push_back(static_cast<uint8_t>((val >> 8) & 0xFF));
-            compressed.push_back(static_cast<uint8_t>((val >> 16) & 0xFF));
-            compressed.push_back(static_cast<uint8_t>((val >> 24) & 0xFF));
-        }
-
-        if (sizeInBytes % 4 != 0) {
-            uint32_t val = data32[sizeInBytes / 4];
-            for (uint32_t i = 0; i < sizeInBytes % 4; ++i) {
-                compressed.push_back(static_cast<uint8_t>((val >> (8 * i)) & 0xFF));
-            }
-        }
-
-        const auto decompressFn = QaplaCompress::Compress::getDecompressor(QaplaCompress::CompressionType::Miniz);
-        const size_t expectedSize = getSize();
-
-        std::vector<uint8_t> decompressed = decompressFn(
-            compressed.data(),
-            compressed.size(),
-            expectedSize
-        );
-
-        _bitbase.resize(expectedSize);
-        std::memcpy(_bitbase.data(), decompressed.data(), decompressed.size());
-        setLoaded();
-
-        if (verbose) {
-            cout << "Bitbase loaded from embedded data, sizeInBit = " << sizeInBits() << endl;
-        }
-    }
-
     void Bitbase::Bitbase::print() const {
         std::cout << "Bitbase Information:\n";
         std::cout << "  Loaded: " << std::boolalpha << _loaded << '\n';

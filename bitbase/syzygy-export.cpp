@@ -428,6 +428,7 @@ namespace QaplaBitbase {
 		}
 
 		uint64_t histogram[2][5] = {};
+		uint64_t generatorDifferences = 0;
 		uint64_t compared = 0;
 		uint64_t missing = 0;
 		uint64_t cursed = 0;
@@ -446,6 +447,19 @@ namespace QaplaBitbase {
 			histogram[1][int(reference) + 2]++;
 
 			if (int(reference) == 1 || int(reference) == -1) ++cursed;
+
+			// The generator's own value against the reference, for every position and not
+			// only where our file differs: Qapla stores the true value, so it has to equal
+			// the resolved answer of the reference. This is the check of the data itself,
+			// with the writer out of the way.
+			if (haveSource) {
+				setUpPosition(position, pieceList, cases[i]);
+				const BitbaseResult stored = source.probe(BoardAccess::getIndex<0>(position));
+				const int fromWhite = stored == BitbaseResult::Win ? 1
+					: stored == BitbaseResult::Loss ? -1 : 0;
+				const int fromMover = cases[i].whiteToMove ? fromWhite : -fromWhite;
+				if (fromMover != sign(reference)) ++generatorDifferences;
+			}
 
 			if (sign(ours) != sign(reference)) {
 				if (++differences <= 10) {
@@ -476,6 +490,10 @@ namespace QaplaBitbase {
 		log << cursed << " of them are a cursed win or a blessed loss in the reference and a "
 			"plain win or loss here" << std::endl;
 		log << differences << " positions differ in sign" << std::endl;
+
+		if (haveSource)
+			log << generatorDifferences << " positions where the generator itself differs from "
+				"the reference" << std::endl;
 
 		return differences == 0;
 	}

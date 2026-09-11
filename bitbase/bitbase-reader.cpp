@@ -25,7 +25,6 @@
 #include "../eval/evalendgame.h"
 
 #include "boardaccess.h"
-#include "KPK.h"
 #include "bitbase-reader.h"
 #include "bitbase-repairfile.h"
 
@@ -61,10 +60,6 @@ std::vector<std::string> BitbaseReader::loadBitbase() {
 	return messages;
 }
 
-void BitbaseReader::registerBitbaseFromHeader() {
-	registerBitbaseFromHeader("KPK", KPK, KPK_size);
-}
-
 bool BitbaseReader::setBitbasePath(const std::string& path) {
 	try {
 		const std::filesystem::path p(path);
@@ -79,20 +74,6 @@ bool BitbaseReader::setBitbasePath(const std::string& path) {
 		return false;
 	}
 	return true;
-}
-
-void BitbaseReader::registerBitbaseFromHeader(std::string pieceString, const uint32_t data[], uint32_t sizeInBytes) {
-	PieceSignature signature;
-	signature.set(pieceString);
-	pieceSignature_t sig = signature.getPiecesSignature();
-	if (_bitbases.find(sig) != _bitbases.end()) {
-		return;
-	}
-	BitbaseIndex index(pieceString);
-	Bitbase bitbase(index, 1, sig);
-	_bitbases[sig] = bitbase;
-	_bitbases[sig].loadFromEmbeddedData(data);
-	ChessEval::EvalEndgame::registerBitbase(pieceString);
 }
 
 std::vector<std::string> BitbaseReader::loadBitbaseRec(std::string name, bool force) {
