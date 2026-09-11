@@ -84,6 +84,26 @@ namespace QaplaBitbase {
 			position.setWhiteToMove(reverseIndex.isWhiteToMove());
 		}
 
+		/**
+		 * The same position mirrored on the file axis. Qapla's index maps a pawn position
+		 * and its mirror to one class, the format does not always: it mirrors by the file
+		 * of the leading pawn, so a pawn set that is symmetric itself - a2 and h2 - leaves
+		 * both images on the same file and they end up in different slots. Both have to be
+		 * written, and the value is the same for either.
+		 */
+		void mirrorFiles(MoveGenerator& position, const PieceList& pieceList,
+			const ReverseIndex& reverseIndex) {
+
+			position.clear();
+			position.unsafeSetPiece(Square(int(reverseIndex.getSquare(0)) ^ 7), WHITE_KING);
+			position.unsafeSetPiece(Square(int(reverseIndex.getSquare(1)) ^ 7), BLACK_KING);
+			for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); ++pieceNo)
+				position.unsafeSetPiece(Square(int(reverseIndex.getSquare(pieceNo)) ^ 7),
+					pieceList.getPiece(pieceNo));
+			position.computeAttackMasksForBothColors();
+			position.setWhiteToMove(reverseIndex.isWhiteToMove());
+		}
+
 		/** A legal placement of the material, in the piece order of the piece list. */
 		struct PositionCase {
 			uint8_t square[TB_MAX_PIECES] = {};
@@ -294,6 +314,7 @@ namespace QaplaBitbase {
 		setPath(outDir);
 
 		MoveGenerator position;
+		MoveGenerator mirrorPosition;
 		uint64_t written = 0;
 		uint64_t illegal = 0;
 		uint64_t conflicts = 0;
@@ -317,13 +338,17 @@ namespace QaplaBitbase {
 
 			const BitbaseResult result = source.probe(BoardAccess::getIndex<0>(position));
 
+			mirrorFiles(mirrorPosition, pieceList, reverseIndex);
+
 			TbPosition tbPosition{};
+			TbPosition tbMirror{};
+			if (!buildTbPosition(mirrorPosition, tbMirror)) { ++illegal; continue; }
 			if (!buildTbPosition(position, tbPosition)) {
 				log << "position of index " << index << " does not fit the format" << std::endl;
 				return false;
 			}
 
-			const WdlSlot slot = writer.slotOf(tbPosition);
+			const WdlSlot slots[2] = { writer.slotOf(tbPosition), writer.slotOf(tbMirror) };
 			uint8_t value = toStoredValue(result, position.isWhiteToMove());
 
 			// Where a capture already reaches the value, the entry is free to sit below
@@ -334,24 +359,30 @@ namespace QaplaBitbase {
 				++reducible;
 			}
 
-			uint8_t& stored = values[slot.side][slot.file][size_t(slot.index)];
-			if (stored != TB_UNREACHED && stored != value) {
-				if (++conflicts <= 5) {
-					PositionCase a, b;
-					const ReverseIndex other(sourceIndex[slot.side][slot.file][size_t(slot.index)], pieceList);
-					for (uint32_t i = 0; i < pieceList.getNumberOfPieces(); ++i) {
-						a.square[i] = uint8_t(other.getSquare(i));
-						b.square[i] = uint8_t(reverseIndex.getSquare(i));
+			// The mirror may or may not be a slot of its own - where it is not, the second
+			// write lands on the first and carries the same value.
+			for (const WdlSlot& slot : slots) {
+
+				uint8_t& stored = values[slot.side][slot.file][size_t(slot.index)];
+				if (stored != TB_UNREACHED && stored != value) {
+					if (++conflicts <= 5) {
+						PositionCase a, b;
+						const ReverseIndex other(sourceIndex[slot.side][slot.file][size_t(slot.index)],
+							pieceList);
+						for (uint32_t i = 0; i < pieceList.getNumberOfPieces(); ++i) {
+							a.square[i] = uint8_t(other.getSquare(i));
+							b.square[i] = uint8_t(reverseIndex.getSquare(i));
+						}
+						a.whiteToMove = other.isWhiteToMove();
+						b.whiteToMove = reverseIndex.isWhiteToMove();
+						log << "conflict at side " << slot.side << " offset " << slot.index << ":\n"
+							<< "   " << toFen(pieceList, a) << " value " << int(stored) << "\n"
+							<< "   " << toFen(pieceList, b) << " value " << int(value) << std::endl;
 					}
-					a.whiteToMove = other.isWhiteToMove();
-					b.whiteToMove = reverseIndex.isWhiteToMove();
-					log << "conflict at side " << slot.side << " offset " << slot.index << ":\n"
-						<< "   " << toFen(pieceList, a) << " value " << int(stored) << "\n"
-						<< "   " << toFen(pieceList, b) << " value " << int(value) << std::endl;
 				}
+				sourceIndex[slot.side][slot.file][size_t(slot.index)] = index;
+				stored = value;
 			}
-			sourceIndex[slot.side][slot.file][size_t(slot.index)] = index;
-			stored = value;
 			++written;
 		}
 
@@ -407,19 +438,31 @@ namespace QaplaBitbase {
 			if (entry.status != Status::Ok) continue;
 
 			const BitbaseResult result = source.probe(BoardAccess::getIndex<0>(position));
-			const int expected = int(toStoredValue(result, position.isWhiteToMove())) - 2;
+			const uint8_t written = toStoredValue(result, position.isWhiteToMove());
+			const WdlSlot slot = writer.slotOf(tbPosition);
+			const bool mayBeLower =
+				(values[slot.side][slot.file][size_t(slot.index)] & TB_REDUCIBLE) != 0;
+			const int expected = int(written) - 2;
 			++checked;
 
-			if (int(entry.value) > expected && ++wrong <= 5)
-				log << "  the file answers above what was written for "
+			// Lower is what the format allows where a capture reaches the value, and only
+			// there. Anything else means the entry the reader finds is not the one that was
+			// written - a different slot, or one that was written over.
+			const bool ok = mayBeLower ? int(entry.value) <= expected
+				: int(entry.value) == expected;
+
+			if (!ok && ++wrong <= 5)
+				log << "  the file answers " << int(entry.value) << " where " << expected
+					<< " was written" << (mayBeLower ? " (may be lower)" : "") << " for "
 					<< toFen(pieceList, positionCaseOf(reverseIndex, pieceList))
-					<< ": " << int(entry.value) << " against " << expected << std::endl;
+					<< " [side " << slot.side << " file " << slot.file
+					<< " offset " << slot.index << "]" << std::endl;
 		}
 
 		release();
 		if (wrong > 0)
 			log << "WARNING: " << wrong << " of " << checked
-			<< " entries read back above the value that was written" << std::endl;
+			<< " entries did not read back as they were written" << std::endl;
 
 		log << "written " << filePath.string() << " ("
 			<< std::filesystem::file_size(filePath) << " bytes, check bytes "
@@ -727,6 +770,29 @@ namespace QaplaBitbase {
 
 		log << board << (whiteToMove ? " w" : " b") << "  in " << directory << ":" << std::endl;
 		log << "  legal: " << (position.isLegal() ? "yes" : "no") << std::endl;
+
+		// The index of the position, and what the reverse index makes of that index again.
+		// The writer walks the index space, so a class whose representative comes back
+		// illegal is a class it never sees.
+		{
+			const PieceList pieceList(position);
+			const uint64_t index = BoardAccess::getIndex<0>(position);
+			const ReverseIndex reverseIndex(index, pieceList);
+			MoveGenerator back;
+			back.clear();
+			back.unsafeSetPiece(reverseIndex.getSquare(0), WHITE_KING);
+			back.unsafeSetPiece(reverseIndex.getSquare(1), BLACK_KING);
+			for (uint32_t i = 2; i < pieceList.getNumberOfPieces(); ++i)
+				back.unsafeSetPiece(reverseIndex.getSquare(i), pieceList.getPiece(i));
+			back.computeAttackMasksForBothColors();
+			back.setWhiteToMove(reverseIndex.isWhiteToMove());
+			log << "  qapla index:    " << index
+				<< ", reverse gives " << back.getFen(0)
+				<< (reverseIndex.isLegal() ? "" : " [reverse index says illegal]")
+				<< (back.isLegal() ? "" : " [ILLEGAL]")
+				<< (BoardAccess::getIndex<0>(back) == index ? "" : " [does not round-trip]")
+				<< std::endl;
+		}
 
 		TbPosition tbPosition{};
 		if (buildTbPosition(position, tbPosition)) {

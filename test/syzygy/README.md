@@ -74,24 +74,27 @@ illegal and the compressor fills them with a neighbour, so there is nothing ther
 
 All three are zero for every material below.
 
-## Measured, 2026-09-11
+## Measured, 2026-09-11: every three and four piece table
 
-| material | positions | our size | de Man |
-|---|---|---|---|
-| KRvK | 399112 | 208 | 208 |
-| KQvK | 368452 | 336 | 272 |
-| KPvK | 331352 | 9232 | 7824 |
-| KRvKR | 21561456 | 15184 | 12944 |
-| KQvKR | 19733336 | 40464 | 20496 |
-| KQvKP | 16704944 | 72720 | 58064 |
-| KBvKP | 18854368 | - | - |
-| KPvKP | 14872176 | 321488 | 245328 |
+All 35 materials of three and four pieces, generated with
 
-Every one `identical`, and the generator's own values agree with the reference on all 92.8
-million positions between them. `tbcheck` accepts all twenty files of a `KPKP` run.
+```
+cd test/bitbase-all
+{ for m in KQK KRK KBK KNK KPK KQQK KQRK KQBK KQNK KQPK KRRK KRBK KRNK KRPK KBBK \
+           KBNK KBPK KNNK KNPK KPPK KQKQ KQKR KQKB KQKN KQKP KRKR KRKB KRKN KRKP \
+           KBKB KBKN KBKP KNKN KNKP KPKP; do
+    echo "bitgenerate $m cores 8 syzygy ../syzygy-all"; done; echo quit; } \
+  | ../../build/Release/Qapla
+```
 
-The probe times in the table at the top were measured before the pawn tables existed; the policy
-behind them - a cap on the symbols per block - is unchanged.
+and checked against the reference one material per process, eight at a time.
+
+**All 35 `identical`, over 623652134 legal positions**, and the generator's own values agree with
+the reference everywhere - nothing below the true value, nothing above it, nothing without a
+value of its own. `tbcheck` accepts all 35 files; `tbstat` reports the same legal counts and
+percentages for ours as for his.
+
+Together the 35 files are 1758320 bytes against de Man's 1262704, a factor of 1.39.
 
 ## The writer checks itself
 
@@ -99,6 +102,15 @@ Every `bitsyzygy` run reads each written position back out of the file and holds
 value that went in. The entry may be lower - that is what the format allows where a capture
 reaches the value - but never higher, and never different where nothing was allowed to lower it.
 
-That check is what found the symbol limit: 0xFFF is the leaf marker of the tree, so a vocabulary
-of 4096 gives symbol 4095 a number that reads back as a terminal. Only tables large enough to
-reach the cap were affected, which at the time meant the pawn tables alone.
+Two things that check found, and one it could not:
+
+- **The symbol limit.** 0xFFF is the leaf marker of the tree, so a vocabulary of 4096 gives
+  symbol 4095 a number that reads back as a terminal. Only tables large enough to reach the cap
+  were affected, which at the time meant the pawn tables alone.
+- **Nothing about KPPvK** - and that is the instructive one. The self check walks the same index
+  space the writer walks, so it cannot see a class the writer never visits. Qapla's index folds a
+  pawn position and its file mirror into one class; the format mirrors by the file of the leading
+  pawn, so a pawn set that is symmetric itself - a2 and h2 - leaves both images on the same file
+  and in different slots. One of the two was never written. The comparison against the reference
+  found it because it walks positions, not indices. A check that shares the assumptions of what
+  it checks does not check those assumptions.
