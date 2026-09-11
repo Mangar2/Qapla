@@ -64,79 +64,41 @@ counts positions whose index does not round-trip through the reverse index - the
 marks those illegal and the compressor fills them with a neighbour, so there is nothing there
 to compare.
 
-### En passant: KPvKP does not match, and will not
+### What the check reports
 
-`KPvKP` differs on 28220 of 14872176 positions, and every example of it looks the same: a pawn
-on its start square with an enemy pawn on the fourth rank of the next file, so that the double
-step can be answered en passant - and the position is a mutual zugzwang, where the single
-tempo decides.
+Three parts, and they mean different things. Below the true value is what the format allows:
+the reader takes the better of the entry and the captures, so an entry may sit low wherever a
+capture reaches the value. Above it is an error under any reading. The third part counts
+positions whose index does not round-trip through the reverse index - the generator marks those
+illegal and the compressor fills them with a neighbour, so there is nothing there to compare.
 
-Qapla does not model en passant. The index has no room for it, and the generator computes the
-child of a double step as a position without the right. de Man's tables store the same
-ep-less value, but his generator knows about the capture while it computes. The two therefore
-disagree exactly where an en passant capture changes the outcome, and only in a material with
-pawns on both sides - which is why `KPvKP` is the only table of the four that shows it.
-
-## 4. Measure the probe speed
-
-```
-printf 'bitsyzygyspeed KRK test/syzygy <reference> positions 1000000\nquit\n' | ./build/Release/Qapla
-```
-
-A million random legal positions from a fixed seed, the same ones in the same order for both
-sets, three runs each of which the fastest counts. What is measured is the stored entry alone -
-the capture resolution above it is engine work and would add the same constant to both sides.
-
-The reference is measured in the same run rather than written down, because only the ratio is a
-property of the files; the absolute numbers below belong to one machine and one day.
-
-**Expected: `not slower`.** The test fails above 1.05 times the reference.
-
-The entry sums printed per side are not a cross check and do not have to match: a stored entry
-is a lower bound, so the two sets legitimately differ wherever a capture already reaches the
-value. Step 3 is what compares the answers.
-
-## 5. Let de Man's own tools read the files
-
-His generator is not part of this repository; where it is checked out, `src/tbcheck` and
-`src/tbstat` are built alongside it.
-
-```
-cd test/syzygy
-<syzygy>/src/tbcheck *.rtbw          # the check bytes
-<syzygy>/src/tbstat KRvK             # reads the table itself
-```
-
-`tbcheck` recomputes the sixteen check bytes at the end of each file. `tbstat` walks the whole
-table with his probing code - a second implementation, sharing no line with this engine - and
-prints what it finds. Running it once in each directory and comparing the numbers is the only
-check here that does not depend on our own reader:
-
-| material | white to move | black to move | draws, black to move |
-|---|---|---|---|
-| KRvK | 139806 legal, 100 % win | 179068 legal | 9.928 % |
-| KQvK | 115302 legal, 100 % win | 179068 legal | 10.299 % |
-| KRRvK | 109265 legal, 100 % win | 179183 legal | 0.275 % |
-| KRvKR | 141209 legal, 28.917 % win | 141549 legal | 70.377 % |
-
-**Expected: `OK!` from tbcheck, and the same numbers from tbstat for both directories.**
+All three are zero for every material below.
 
 ## Measured, 2026-09-11
 
-| material | our size | de Man | probe, ours | probe, reference | ratio |
-|---|---|---|---|---|---|
-| KRvK | 208 | 208 | 128.0 ns | 160.3 ns | 0.80 |
-| KQvK | 336 | 272 | 176.0 ns | 201.2 ns | 0.87 |
-| KRRvK | 3152 | 1936 | 213.1 ns | 231.1 ns | 0.92 |
-| KRvKR | 15184 | 12944 | 450.2 ns | 453.7 ns | 0.99 |
+| material | positions | our size | de Man |
+|---|---|---|---|
+| KRvK | 399112 | 208 | 208 |
+| KQvK | 368452 | 336 | 272 |
+| KPvK | 331352 | 9232 | 7824 |
+| KRvKR | 21561456 | 15184 | 12944 |
+| KQvKR | 19733336 | 40464 | 20496 |
+| KQvKP | 16704944 | 72720 | 58064 |
+| KBvKP | 18854368 | - | - |
+| KPvKP | 14872176 | 321488 | 245328 |
 
-The probe cost is dominated by the walk from the start of a block to the wanted entry, so it
-follows the symbols per block - which is capped at 128 for exactly this reason. Buying a few
-bytes with a larger block was measured at 1.25 and 1.53 times the reference and is not worth
-it.
+Every one `identical`, and the generator's own values agree with the reference on all 92.8
+million positions between them. `tbcheck` accepts all twenty files of a `KPKP` run.
 
-The remaining size difference is the grammar. At equal sequence length - 4344 symbols against
-de Man's 4437 for `KRRvK` - his code costs 2.67 bits per symbol and ours 4.48, because his
-tail sits on 74 symbols and ours on 306. Neither a wider search over the vocabulary, nor
-dissolving the rare rules, nor weighting the rule choice by the terminals it covers changed
-that; see `plan/syzygy-writer.md`.
+The probe times in the table at the top were measured before the pawn tables existed; the policy
+behind them - a cap on the symbols per block - is unchanged.
+
+## The writer checks itself
+
+Every `bitsyzygy` run reads each written position back out of the file and holds it against the
+value that went in. The entry may be lower - that is what the format allows where a capture
+reaches the value - but never higher, and never different where nothing was allowed to lower it.
+
+That check is what found the symbol limit: 0xFFF is the leaf marker of the tree, so a vocabulary
+of 4096 gives symbol 4095 a number that reads back as a terminal. Only tables large enough to
+reach the cap were affected, which at the time meant the pawn tables alone.
