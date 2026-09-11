@@ -212,7 +212,6 @@ namespace QaplaBitbase {
          * @param fileName Output file path.
 		 * @param compression Compression type.
          */
-        void storeToFile(const std::string& fileName, QaplaCompress::CompressionType compression);
 
         /**
          * @brief Loads a bitbase from disk
@@ -311,8 +310,6 @@ namespace QaplaBitbase {
     private:
 
         bool loadHeader(const std::filesystem::path& path);
-        void verifyWrittenFile();
-        void compactTo1BitIfPossible();
         int getBitsFromLoadedData(uint64_t bitIndex, bbt_t mask) const;
         int getBitsFromClusterData(uint64_t bitIndex, bbt_t mask);
 

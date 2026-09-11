@@ -53,14 +53,12 @@ namespace QaplaBitbase {
 		 *
 		 * @param pieceString Bitbase identifier like KPK, KPPK, 3, 4, 5, or 6.
 		 * @param cores Requested number of worker threads (capped at MAX_THREADS).
-		 * @param compress Compression algorithm used for storing generated bitbase data.
 		 * @param generateCpp If true, additionally emits generated C++ source for the bitbase.
 		 * @param traceLevel Verbosity level for tracing runtime details.
 		 * @param debugLevel Verbosity level for debug output.
 		 * @param debugIndex Optional index used to trigger focused debug output.
 		 */
-		void computeBitbaseRec(string pieceString, uint32_t cores = 1, 
-			QaplaCompress::CompressionType compress = QaplaCompress::CompressionType::Miniz,
+		void computeBitbaseRec(string pieceString, uint32_t cores = 1,
 			bool generateCpp = false, int traceLevel = 0, int debugLevel = 0, uint64_t debugIndex = 64)
 		{
 			_cores = std::min(MAX_THREADS, cores);
@@ -69,7 +67,7 @@ namespace QaplaBitbase {
 			_debugLevel = debugLevel;
 			ClockManager clock;
 			clock.setStartTime();
-			computeBitbase(pieceString, compress, generateCpp);
+			computeBitbase(pieceString, generateCpp);
 			cout << endl << "All Bitbases generated!";
 			printTimeSpent(clock);
 			cout << endl;
@@ -83,32 +81,31 @@ namespace QaplaBitbase {
 		 * Dispatches high-level aliases (3/4/5/6) and then computes the requested bitbase.
 		 *
 		 * @param pieceString Requested bitbase identifier.
-		 * @param compression Compression algorithm used for persisted output.
 		 * @param generateCpp If true, also emits generated C++ code.
 		 */
-		void computeBitbase(string pieceString, QaplaCompress::CompressionType compression, bool generateCpp) {
+		void computeBitbase(string pieceString, bool generateCpp) {
 			if (pieceString == "3") {
-				computeBitbase("KPK", compression, generateCpp);
+				computeBitbase("KPK", generateCpp);
 			} 
 			else if (pieceString == "4") {
-				computeBitbase("KPPK", compression, generateCpp);
-				computeBitbase("KPKP", compression, generateCpp);
+				computeBitbase("KPPK", generateCpp);
+				computeBitbase("KPKP", generateCpp);
 			}
 			else if (pieceString == "5s") {
-				computeBitbase("KPPKP", compression, generateCpp);
+				computeBitbase("KPPKP", generateCpp);
 			}
 			else if (pieceString == "5") {
-				computeBitbase("KPPKP", compression, generateCpp);
-				computeBitbase("KPPPK", compression, generateCpp);
+				computeBitbase("KPPKP", generateCpp);
+				computeBitbase("KPPPK", generateCpp);
 			}
 			else if (pieceString == "6") {
-				computeBitbase("KPPKP", compression, generateCpp);
-				computeBitbase("KPPPK", compression, generateCpp);
-				computeBitbase("KPPKPP", compression, generateCpp);
-				computeBitbase("KPPPKP", compression, generateCpp);
+				computeBitbase("KPPKP", generateCpp);
+				computeBitbase("KPPPK", generateCpp);
+				computeBitbase("KPPKPP", generateCpp);
+				computeBitbase("KPPPKP", generateCpp);
 			}
 			PieceList list(pieceString);
-			computeBitbaseRec(list, true, compression, generateCpp);
+			computeBitbaseRec(list, true, generateCpp);
 		}
 
 
@@ -340,10 +337,9 @@ namespace QaplaBitbase {
 		 *
 		 * @param pieceList Piece layout of the bitbase to generate.
 		 * @param first True if this is the primary requested bitbase.
-		 * @param compression Compression algorithm used for persisted output.
 		 * @param generateCpp If true, also emits generated C++ code.
 		 */
-		void computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp);
+		void computeBitbase(PieceList& pieceList, bool first, bool generateCpp);
 
 		/**
 		 * Recursively computes all dependent bitbases reachable via captures and promotions.
@@ -351,10 +347,9 @@ namespace QaplaBitbase {
 		 *
 		 * @param pieceList Piece layout of the current bitbase.
 		 * @param first True if this is the primary requested bitbase.
-		 * @param compression Compression algorithm used for persisted output.
 		 * @param generateCpp If true, also emits generated C++ code.
 		 */
-		void computeBitbaseRec(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp);
+		void computeBitbaseRec(PieceList& pieceList, bool first, bool generateCpp);
 
 		uint32_t _cores;
 		int _traceLevel;

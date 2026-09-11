@@ -733,10 +733,9 @@ void BitbaseGenerator::markIllegalAsUnknown(GenerationState& state)
  *
  * @param pieceList Piece layout of the bitbase to generate.
  * @param first True if this is the primary requested bitbase.
- * @param compression Compression algorithm used for persisted output.
  * @param generateCpp If true, also emits generated C++ code.
  */
-void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
+void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, bool generateCpp)
 {
 	MoveGenerator position;
 	string pieceString = pieceList.getPieceString();
@@ -767,9 +766,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	cout << "." << std::flush;
 	computeBitbase(state, clock);
 
-	string fileName = pieceString + string(".btb");
 	cout << "c" << std::endl;
-	// Print statistics BEFORE storeToFile, which may compact 2-bit data to 1-bit in place.
 	timing.start("print statistic");
 	printTimeSpent(clock);
 	printStatistic(state);
@@ -777,8 +774,6 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	timing.stop("print statistic");
 	std::cout << std::endl;
 
-	// Collect the full WDL sequence while the bitbase is still in 2-bit form.
-	// storeToFile() may compact the data to 1-bit in place, so this must happen first.
 	const uint64_t entryCount = state.getEntryCount();
 	std::vector<BitbaseResult> repairResults;
 	repairResults.reserve(entryCount);
@@ -791,15 +786,9 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
 	}
 	timing.stop("qwdl collect sequence");
 
-	try {
-		state.storeToFile(fileName, pieceString, compression);
-		if (generateCpp)
-		{
-			state.generateCpp(pieceString);
-		}
-	}
-	catch (const std::runtime_error& e) {
-		std::cerr << "Error: " << e.what() << '\n';
+	if (generateCpp)
+	{
+		state.generateCpp(pieceString);
 	}
 
 	// Write a Re-Pair + Huffman compressed copy, register it for subordinate lookups,
@@ -856,10 +845,9 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, QaplaCom
  *
  * @param pieceList Piece layout of the current bitbase.
  * @param first True if this is the primary requested bitbase.
- * @param compression Compression algorithm used for persisted output.
  * @param generateCpp If true, also emits generated C++ code.
  */
-void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, QaplaCompress::CompressionType compression, bool generateCpp)
+void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, bool generateCpp)
 {
 	if (pieceList.getNumberOfPieces() <= 2)
 		return;
@@ -876,16 +864,16 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, Qapla
 			for (Piece piece = QUEEN; piece >= KNIGHT; piece -= 2)
 			{
 				newPieceList.promotePawn(pieceNo, piece);
-				computeBitbaseRec(newPieceList, false, compression, generateCpp);
+				computeBitbaseRec(newPieceList, false, generateCpp);
 				newPieceList = pieceList;
 			}
 		}
 		newPieceList.removePiece(pieceNo);
-		computeBitbaseRec(newPieceList, false, compression, generateCpp);
+		computeBitbaseRec(newPieceList, false, generateCpp);
 	}
 
 	if (first || !BitbaseReader::isBitbaseAvailable(pieceString))
 	{
-		computeBitbase(pieceList, first, compression, generateCpp);
+		computeBitbase(pieceList, first, generateCpp);
 	}
 }

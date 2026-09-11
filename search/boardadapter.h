@@ -137,18 +137,11 @@ namespace QaplaSearch {
 		 * to compute this bitabase (if they cannot be loaded)
 		 */
 		
-		virtual void generateBitbases(string signature, uint32_t cores, std::string compression, bool generateCpp = false,
+		virtual void generateBitbases(string signature, uint32_t cores, bool generateCpp = false,
 			uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64)
 		{
 			QaplaBitbase::BitbaseGenerator generator;
-			QaplaCompress::CompressionType compressionType = QaplaCompress::CompressionType::Miniz;
-			if (compression == "lz4") {
-				compressionType = QaplaCompress::CompressionType::LZ4;
-			}
-			else if (compression == "none") {
-				compressionType = QaplaCompress::CompressionType::None;
-			}
-			generator.computeBitbaseRec(signature, cores, compressionType, generateCpp, traceLevel, debugLevel, debugIndex);
+			generator.computeBitbaseRec(signature, cores, generateCpp, traceLevel, debugLevel, debugIndex);
 		}
 
 		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)

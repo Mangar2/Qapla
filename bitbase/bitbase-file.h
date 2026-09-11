@@ -49,27 +49,6 @@ namespace QaplaBitbase {
 			uint32_t bitsPerEntry;  // 1 = 1-bit, 2 = 2-bit
 		};
         /**
-         * Writes a bitbase file to disk.
-         *
-         * @param fileNameWithPath Destination file path (e.g. "kpk.bb").
-		 * @param sizeInBits Total number of bits in the bitbase.
-         * @param data Uncompressed bitbase data (vector of bbt_t).
-         * @param clusterElements Number of elements per cluster.
-         * @param compression Compression type identifier.
-         * @param compressFn Compression function to apply per cluster.
-         * @param bitsPerEntry 1 = 1-bit, 2 = 2-bit.
-         */
-        static void write(
-            const std::string& fileNameWithPath,
-			uint64_t sizeInBits,
-            const std::vector<bbt_t>& data,
-            uint32_t clusterElements,
-            QaplaCompress::CompressionType compression,
-            const QaplaCompress::CompressFn& compressFn,
-            uint32_t bitsPerEntry = 1
-        );
-
-        /**
          * Reads only the file header and cluster offset table.
          *
          * @param filePath Path to the bitbase file.
@@ -114,8 +93,7 @@ namespace QaplaBitbase {
 
     private:
         /**
-         * Compact, binary-safe bitbase file header (32 bytes).
-         * Structured as 8� uint32_t, with explicit constructor for all fields.
+         * Compact, binary-safe bitbase file header, ten uint32_t.
          */
         struct BitbaseHeader {
             static constexpr size_t WordCount = 10;
@@ -124,30 +102,6 @@ namespace QaplaBitbase {
             static constexpr uint32_t CURRENT_VERSION = 2;
 
             uint32_t words[WordCount];
-
-            /**
-             * Constructs a BitbaseHeader with required metadata.
-             *
-             * @param compression CompressionType as integer.
-             * @param cluster_size Size of uncompressed cluster in bytes.
-             * @param cluster_count Number of clusters in file.
-             * @param totalBits Total number of uncompressed bits in the entire bitbase.
-             * @param bitsPerEntry 1 = 1-bit, 2 = 2-bit.
-             */
-            BitbaseHeader(QaplaCompress::CompressionType compression, uint32_t cluster_size, uint32_t cluster_count, uint64_t sizeInBits, uint32_t bitsPerEntry = 1) {
-                words[0] = MAGIC_1;
-                words[1] = MAGIC_2;
-                words[2] = CURRENT_VERSION;
-                words[3] = static_cast<uint32_t>(compression);
-                words[4] = cluster_size;
-                words[5] = cluster_count;
-
-                // Split sizeInBits into two 32-bit words (little-endian order)
-                words[6] = static_cast<uint32_t>(sizeInBits & 0xFFFFFFFF);
-                words[7] = static_cast<uint32_t>((sizeInBits >> 32) & 0xFFFFFFFF);
-                words[8] = (bitsPerEntry >= 2) ? 1u : 0u;  // entryFormat: 0 = 1-bit, 1 = 2-bit
-                words[9] = 0;
-            }
 
             BitbaseHeader() {
                 std::fill(std::begin(words), std::end(words), 0u);
@@ -170,11 +124,6 @@ namespace QaplaBitbase {
 
             uint32_t entryFormat() const { return words[8]; }
 
-            void write(std::ostream& out) const {
-                out.write(reinterpret_cast<const char*>(words), sizeof(words));
-                if (!out) throw std::runtime_error("Failed to write bitbase header");
-            }
-
             static BitbaseHeader read(std::istream& in) {
                 BitbaseHeader h = BitbaseHeader();
                 in.read(reinterpret_cast<char*>(h.words), sizeof(h.words));
@@ -184,24 +133,6 @@ namespace QaplaBitbase {
             }
         };
 
-        static std::vector<std::vector<uint8_t>> compressClusters(
-            const std::vector<bbt_t>& data,
-            uint32_t clusterElements,
-            const QaplaCompress::CompressFn& compressFn
-        );
-
-        static void computeOffsets(
-            const std::vector<std::vector<uint8_t>>& compressedClusters,
-            std::vector<uint64_t>& outOffsets,
-            size_t headerSize
-        );
-
-        static void writeToFile(
-            const std::string& tempFile,
-            const BitbaseHeader& header,
-            const std::vector<uint64_t>& offsets,
-            const std::vector<std::vector<uint8_t>>& compressedClusters
-        );
     };
 
 }

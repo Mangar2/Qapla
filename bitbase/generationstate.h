@@ -331,18 +331,6 @@ namespace QaplaBitbase {
 		}
 
 		/**
-		 * Persists the won-position bitbase to disk.
-		 *
-		 * @param fileName Output filename.
-		 * @param signature Signature used in bitbase metadata.
-		 * @param compression Compression algorithm for file storage.
-		 */
-		void storeToFile(string fileName, string signature, QaplaCompress::CompressionType compression) {
-			_computedResults.setFilename(signature, ".btb");
-			_computedResults.storeToFile(fileName, compression);
-		}
-
-		/**
 		 * Generates C++ source output for the won-position bitbase.
 		 *
 		 * @param signature Signature used for generated artifact names.
