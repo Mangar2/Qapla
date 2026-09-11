@@ -54,7 +54,28 @@ that a cursed win counts as a win. The generator does not know the fifty move ru
 `qwdl` is optional and only makes a difference when something differs: the generator's own value
 is then printed next to the two answers, which says on which side of the bridge the fault sits.
 
-**Expected: `identical` for all four.**
+**Expected: `identical`** - with one exception, see below.
+
+With a `.qwdl` given, the check also compares the generator's own value against the reference
+for every position and reports it in three parts. Below the true value is what the format
+allows: the reader takes the better of the entry and the captures, so an entry may sit low
+wherever a capture reaches the value. Above it is an error under any reading. The third part
+counts positions whose index does not round-trip through the reverse index - the generator
+marks those illegal and the compressor fills them with a neighbour, so there is nothing there
+to compare.
+
+### En passant: KPvKP does not match, and will not
+
+`KPvKP` differs on 28220 of 14872176 positions, and every example of it looks the same: a pawn
+on its start square with an enemy pawn on the fourth rank of the next file, so that the double
+step can be answered en passant - and the position is a mutual zugzwang, where the single
+tempo decides.
+
+Qapla does not model en passant. The index has no room for it, and the generator computes the
+child of a double step as a position without the right. de Man's tables store the same
+ep-less value, but his generator knows about the capture while it computes. The two therefore
+disagree exactly where an en passant capture changes the outcome, and only in a material with
+pawns on both sides - which is why `KPvKP` is the only table of the four that shows it.
 
 ## 4. Measure the probe speed
 
