@@ -383,12 +383,14 @@ Zero differences, or a list of positions to explain. Then the WDL part is done.
 a unique piece and none, two kings as the leading group and three pieces, two sides stored and one.
 Every legal position of all four gives the same resolved value as de Man's file.
 
-| material | ours | de Man |
-|---|---|---|
-| KRvK | 208 | 208 |
-| KQvK | 336 | 272 |
-| KRRvK | 3152 | 1936 |
-| KRvKR | 15056 | 12944 |
+| material | ours | de Man | probe, ours | probe, reference |
+|---|---|---|---|---|
+| KRvK | 208 | 208 | 128.0 ns | 160.3 ns |
+| KQvK | 336 | 272 | 176.0 ns | 201.2 ns |
+| KRRvK | 3152 | 1936 | 213.1 ns | 231.1 ns |
+| KRvKR | 15184 | 12944 | 450.2 ns | 453.7 ns |
+
+How to run all of it is in [test/syzygy/README.md](../test/syzygy/README.md).
 
 What had to be found out on the way:
 
@@ -425,6 +427,48 @@ What had to be found out on the way:
   are that one chain top. Decoding it by hand settled every question the reader's source left open.
 - **The flags byte carries the piece count** in its upper nibble. This prober ignores it, others may
   not, so it is written.
+
+### Where the remaining size difference sits
+
+Measured, not guessed. For `KRRvK` the sequence is the same length on both sides - 4344 symbols
+against de Man's 4437, and the same 200 terminals per symbol - so the grammar covers the table
+equally well. The difference is the code: **2.67 bits per symbol for him, 4.48 for us.** His
+dominant symbol carries 70 % of the stream against our 59 %, and his tail sits on 74 symbols
+against our 306, which is what the extra bits pay for.
+
+Three things were tried against it and none of them helped:
+
+- **a wider search over the vocabulary** - the build keeps the sequence at thirteen vocabulary
+  sizes and the caller encodes every one of them. The full vocabulary wins on every table;
+  smaller ones lengthen the sequence faster than they shorten the codes.
+- **dissolving the rare rules** - undo a rule, put its two children back in its place, and keep
+  the result where the entropy says it pays. Every variant it produced was larger.
+- **weighting the rule choice** by the terminals a rule would cover instead of its frequency
+  alone, and by frequency squared. Both are worse on every table.
+
+So the greedy sits in a local optimum and the next lever is a different one: **the parse.** The
+sequence a greedy recursive pairing leaves behind is a by-product of how the rules were found,
+not the best way to write the table with the rules it ended up with. Parsing the value sequence
+again against the finished dictionary - longest match, or a shortest path with the code lengths
+as weights - is what would push more of the stream onto the one cheap symbol. That needs a
+matching structure over the expansions and is a piece of work, not a knob.
+
+### Probe speed
+
+A probe decodes its way from the start of a block to the entry it wants, so half a block is what
+an average one costs, and the number of *symbols* in a block is what that means in work. Picking
+the block size by file size alone bought a few bytes at 1.25 and 1.53 times the reference probe
+cost; with the symbols per block capped at 128 all four tables are at or below it, at a cost of
+0.8 % in size. [test/syzygy/README.md](../test/syzygy/README.md) holds the measurement and how
+to repeat it.
+
+### Check bytes
+
+The last sixteen bytes are a checksum, where de Man puts his - the reader needs the file to be
+64n + 16 bytes long anyway. His algorithm is not part of the probing code and did not fall out
+of the obvious guesses (MD5 over the body, over the whole file, over either with the trailer
+zeroed), so ours is its own: two FNV-1a lanes over the body, one forwards and one backwards.
+`verifyChecksum` recomputes them, and the writer calls it on what it just wrote.
 
 Still open from the ladder of section 4.3: the files have not been read by a foreign
 implementation - `python-chess` is not installed here.

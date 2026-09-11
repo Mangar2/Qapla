@@ -22,6 +22,8 @@
 #include "syzygy-export.h"
 
 #include <algorithm>
+#include <chrono>
+#include <iomanip>
 #include <filesystem>
 #include <optional>
 #include <vector>
@@ -364,8 +366,12 @@ namespace QaplaBitbase {
 			<< " illegal, " << written << " values placed in " << slots << " slots, "
 			<< unreached << " never reached, " << reducible
 			<< " reached by a capture and therefore free to store lower" << std::endl;
+		std::string checksumReason;
+		const bool checksumOk = verifyChecksum(filePath.string(), checksumReason);
+
 		log << "written " << filePath.string() << " ("
-			<< std::filesystem::file_size(filePath) << " bytes)" << std::endl;
+			<< std::filesystem::file_size(filePath) << " bytes, check bytes "
+			<< (checksumOk ? "ok" : checksumReason) << ")" << std::endl;
 
 		if (conflicts > 0)
 			log << "WARNING: " << conflicts << " slots were filled twice with different values."
@@ -466,6 +472,121 @@ namespace QaplaBitbase {
 		log << differences << " positions differ in sign" << std::endl;
 
 		return differences == 0;
+	}
+
+
+	/**
+	 * Measures how long a probe takes against two sets of files.
+	 *
+	 * The same positions in the same order, drawn from a fixed seed so that a rerun
+	 * measures the same work, and the entry alone - no capture resolution - because
+	 * that is what the file decides. The reference is measured in the same run rather
+	 * than written down: only the ratio is a property of the files.
+	 */
+	bool measureSyzygySpeed(const std::string& pieceString, const std::string& ourDir,
+		const std::string& refDir, uint64_t amount, std::ostream& log) {
+
+		const std::string code = toFormatCode(pieceString);
+		const PieceList pieceList(pieceString);
+
+		// splitmix64, so that the positions do not depend on the standard library
+		uint64_t state = 0x9E3779B97F4A7C15ULL;
+		const auto random = [&state]() {
+			uint64_t z = (state += 0x9E3779B97F4A7C15ULL);
+			z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+			z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+			return z ^ (z >> 31);
+		};
+
+		std::vector<TbPosition> probes;
+		probes.reserve(size_t(amount));
+
+		MoveGenerator position;
+		PositionCase item;
+		uint64_t tries = 0;
+
+		while (probes.size() < amount) {
+			++tries;
+			uint64_t used = 0;
+			bool ok = true;
+
+			for (uint32_t piece = 0; piece < pieceList.getNumberOfPieces(); ++piece) {
+				const uint8_t square = uint8_t(random() & 63);
+				if (used & (1ULL << square)) { ok = false; break; }
+				used |= 1ULL << square;
+				item.square[piece] = square;
+			}
+			if (!ok) continue;
+
+			item.whiteToMove = (random() & 1) != 0;
+			setUpPosition(position, pieceList, item);
+			if (!position.isLegal()) continue;
+
+			TbPosition tbPosition{};
+			if (!buildTbPosition(position, tbPosition)) continue;
+			probes.push_back(tbPosition);
+		}
+
+		log << code << ": " << probes.size() << " random legal positions from " << tries
+			<< " draws" << std::endl;
+
+		const std::string paths[2] = { ourDir, refDir };
+		const char* names[2] = { "ours     ", "reference" };
+		double nanoseconds[2] = { 0, 0 };
+
+		for (int pass = 0; pass < 2; ++pass) {
+
+			if (setPath(paths[pass]).wdlFiles == 0) {
+				log << "no table found in " << paths[pass] << std::endl;
+				release();
+				return false;
+			}
+
+			int64_t answers = 0;
+			uint64_t missing = 0;
+			double best = 0;
+
+			// Three runs, the fastest counts: the first one pays for the page faults of
+			// the freshly mapped file, and a stray interrupt must not decide the outcome.
+			for (int run = 0; run < 3; ++run) {
+
+				const auto start = std::chrono::steady_clock::now();
+
+				for (const TbPosition& probe : probes) {
+					const WdlEntry entry = probeWdlEntry(probe);
+					answers += int(entry.value);
+					missing += entry.status != Status::Ok;
+				}
+
+				const double elapsed = std::chrono::duration<double, std::nano>(
+					std::chrono::steady_clock::now() - start).count() / double(probes.size());
+				if (run == 0 || elapsed < best) best = elapsed;
+			}
+
+			nanoseconds[pass] = best;
+			// The sum is not a cross check: a stored entry is a lower bound, so ours and
+			// de Man's may differ wherever a capture already reaches the value. What has
+			// to match is the resolved value, which is what bitsyzygycheck compares.
+			log << "  " << names[pass] << "  " << std::fixed << std::setprecision(1) << best
+				<< " ns per probe, " << 1000.0 / best << " million per second"
+				<< (missing ? "  (WITH MISSING TABLES)" : "")
+				<< "  [entry sum " << answers << "]" << std::endl;
+
+			release();
+		}
+
+		const double ratio = nanoseconds[0] / nanoseconds[1];
+		log << "  ours takes " << std::setprecision(3) << ratio
+			<< " times the reference" << std::endl;
+
+		// A probe walks block lengths and decodes symbols; the two files differ in both,
+		// so a few per cent either way says nothing. Anything beyond that does.
+		constexpr double TOLERANCE = 1.05;
+		if (ratio > TOLERANCE) {
+			log << "  TOO SLOW: more than " << TOLERANCE << " times the reference" << std::endl;
+			return false;
+		}
+		return true;
 	}
 
 }

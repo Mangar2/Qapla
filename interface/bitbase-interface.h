@@ -63,6 +63,11 @@ namespace QaplaInterface {
 		void checkSyzygy();
 
 		/**
+		 * Measures probe speed against a reference set
+		 */
+		void speedSyzygy();
+
+		/**
 		 * handles a verify EGTB command
 		 */
 		void verifyBitbases();

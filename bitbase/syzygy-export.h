@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <ostream>
 #include <string>
 
@@ -63,5 +64,19 @@ namespace QaplaBitbase {
 	 */
 	bool compareSyzygyWdl(const std::string& pieceString, const std::string& ourDir,
 		const std::string& refDir, const std::string& qwdlFile, std::ostream& log);
+
+
+	/**
+	 * Measures the cost of a probe against our files and against a reference set.
+	 *
+	 * The same random positions in the same order for both, drawn from a fixed seed,
+	 * and the stored entry alone - the capture resolution above it is engine work and
+	 * would only add the same constant to both sides.
+	 *
+	 * @param amount number of positions to probe
+	 * @returns false when our files are measurably slower than the reference
+	 */
+	bool measureSyzygySpeed(const std::string& pieceString, const std::string& ourDir,
+		const std::string& refDir, uint64_t amount, std::ostream& log);
 
 }

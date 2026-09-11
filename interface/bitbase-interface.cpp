@@ -136,6 +136,25 @@ void BitbaseInterface::checkSyzygy() {
 	println(equal ? "identical" : "DIFFERENT");
 }
 
+void BitbaseInterface::speedSyzygy() {
+	const string pieceString = getNextTokenBlocking(true);
+	if (pieceString == "\r" || pieceString == "\n") {
+		println("usage bitsyzygyspeed pieces ourDir referenceDir [positions n]");
+		return;
+	}
+	const string ourDir = getNextTokenBlocking(true);
+	const string referenceDir = getNextTokenBlocking(true);
+	uint64_t amount = 1000000;
+	const string token = getNextTokenBlocking(true);
+	if (token == "positions") {
+		getNextTokenBlocking(true);
+		amount = getCurrentTokenAsUnsignedInt();
+	}
+	const bool fastEnough = QaplaBitbase::measureSyzygySpeed(pieceString, ourDir, referenceDir,
+		amount, std::cout);
+	println(fastEnough ? "not slower" : "SLOWER");
+}
+
 /*
  * Processes any input from stdio
  */
@@ -164,4 +183,5 @@ void BitbaseInterface::handleInput() {
 	else if (token == "bitverify") verifyBitbases();
 	else if (token == "bitsyzygy") writeSyzygy();
 	else if (token == "bitsyzygycheck") checkSyzygy();
+	else if (token == "bitsyzygyspeed") speedSyzygy();
 }

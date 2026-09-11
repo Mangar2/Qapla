@@ -21,6 +21,7 @@
 #include "tbindex.h"
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <fstream>
 #include <numeric>
@@ -87,6 +88,15 @@ namespace QaplaSyzygy {
 		 */
 		constexpr uint32_t MAX_TERMINALS_PER_BLOCK = 32768;
 
+		/**
+		 * Symbols per block. A probe decodes its way from the start of a block to the
+		 * entry it wants, so half a block is what an average probe costs - and a block
+		 * that is large in bytes and cheap in bits per symbol would hold a thousand of
+		 * them. de Man's tables sit below a hundred; this bound keeps the choice of the
+		 * block size from buying a few bytes with a slower probe.
+		 */
+		constexpr uint32_t MAX_SYMBOLS_PER_BLOCK = 128;
+
 		/** Half of the widest span fits in what is left of the offset above. */
 		constexpr uint8_t MAX_LOG2_SPAN = 15;
 
@@ -101,9 +111,21 @@ namespace QaplaSyzygy {
 		struct Grammar {
 			std::vector<uint16_t> sequence;    // the table, as symbols
 			std::vector<uint16_t> left;
-			std::vector<uint16_t> right;
+			std::vector<uint16_t> right;       // 0xFFF marks a leaf, left is then the value
 			std::vector<uint32_t> terminals;   // values the symbol expands to
+
+			/**
+			 * The sequence as it looked at a few vocabulary sizes on the way. More rules
+			 * always shorten the sequence and always lengthen the codes of everything
+			 * else; which of the two wins is a property of the table, so the caller
+			 * encodes each of these and keeps the smallest.
+			 */
+			std::vector<std::vector<uint16_t>> stage;
+			std::vector<uint32_t>              stageVocabulary;
 		};
+
+		/** Vocabulary sizes a snapshot is taken at. */
+		constexpr uint32_t STAGE_VOCABULARY[] = { 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 1024, 2048 };
 
 		/**
 		 * Builds the grammar by repeatedly replacing the most frequent adjacent pair
@@ -145,13 +167,14 @@ namespace QaplaSyzygy {
 				uint32_t bestKey = 0;
 				uint32_t bestCount = 0;
 
+				// Plain frequency. Weighting it by the terminals a rule would cover was
+				// measured and is worse on every table tried.
 				for (const auto& [key, count] : occurrences) {
 					if (count <= bestCount) continue;
 
 					const uint16_t a = uint16_t(key >> 16);
 					const uint16_t b = uint16_t(key & 0xFFFF);
-					if (grammar.terminals[a] + grammar.terminals[b] > MAX_TERMINALS_PER_SYMBOL)
-						continue;
+					if (grammar.terminals[a] + grammar.terminals[b] > MAX_TERMINALS_PER_SYMBOL) continue;
 
 					bestKey = key;
 					bestCount = count;
@@ -187,8 +210,16 @@ namespace QaplaSyzygy {
 				}
 
 				grammar.sequence.swap(replaced);
+
+				for (const uint32_t size : STAGE_VOCABULARY)
+					if (grammar.left.size() == size) {
+						grammar.stage.push_back(grammar.sequence);
+						grammar.stageVocabulary.push_back(uint32_t(grammar.left.size()));
+					}
 			}
 
+			grammar.stage.push_back(grammar.sequence);
+			grammar.stageVocabulary.push_back(uint32_t(grammar.left.size()));
 			return grammar;
 		}
 
@@ -319,41 +350,36 @@ namespace QaplaSyzygy {
 		}
 
 		/**
-		 * Compresses one table.
+		 * Compresses one table with a given vocabulary: the sequence of a stage of the
+		 * grammar, everything the sequence can reach, and nothing else.
 		 *
-		 * The canonical code the format expects runs the other way round than the
-		 * usual one: the longest codes carry the lowest symbol numbers, and the first
-		 * code of a length follows from the next longer one,
+		 * The canonical code the format expects runs the other way round than the usual
+		 * one: the longest codes carry the lowest symbol numbers, and the first code of a
+		 * length follows from the next longer one,
 		 *     base(len) = (base(len + 1) + count(len + 1)) / 2
 		 * which is exactly what the reader undoes when it rebuilds base64[] from the
-		 * stored lowestSym[]. Symbols that appear only inside a rule get no code at
-		 * all; they are numbered after the coded ones, where the reader can reach them
-		 * as children but never out of the bit stream. de Man's own files do the same.
+		 * stored lowestSym[]. A symbol that appears only inside a rule gets no code at
+		 * all; it is numbered behind the coded ones, where the reader reaches it as a
+		 * child but never out of the bit stream. de Man's own files do the same.
+		 *
+		 * @returns the bytes the table costs in the file, so that the caller can compare
+		 *          the stages against each other
 		 */
-		EncodedTable encodeTable(std::vector<uint8_t> values) {
+		uint64_t encodeStage(const Grammar& grammar, const std::vector<uint16_t>& sequence,
+			uint64_t total, EncodedTable& table) {
 
-			EncodedTable table;
-			resolveOpenValues(values);
-
-			std::vector<uint64_t> valueFrequency(StoredWin + 1, 0);
-			for (const uint8_t v : values) {
-				if (v > StoredWin) throw std::runtime_error("tbwrite: value out of range");
-				valueFrequency[v]++;
-			}
-
-			const size_t distinct = std::count_if(valueFrequency.begin(), valueFrequency.end(),
-				[](uint64_t f) { return f > 0; });
-
-			if (distinct <= 1) {
-				table.singleValue = true;
-				table.value = values.empty() ? uint8_t(StoredDraw) : values.front();
-				return table;
-			}
-
-			const Grammar grammar = buildGrammar(values);
-
+			// Everything the sequence reaches. A rule refers to symbols made before it, so
+			// one pass downwards marks them all.
 			std::vector<uint64_t> frequency(grammar.left.size(), 0);
-			for (const uint16_t symbol : grammar.sequence) frequency[symbol]++;
+			std::vector<bool>     used(grammar.left.size(), false);
+
+			for (const uint16_t symbol : sequence) { frequency[symbol]++; used[symbol] = true; }
+
+			for (size_t symbol = grammar.left.size(); symbol-- > 0; ) {
+				if (!used[symbol] || grammar.right[symbol] == 0xFFF) continue;
+				used[grammar.left[symbol]] = true;
+				used[grammar.right[symbol]] = true;
+			}
 
 			const std::vector<uint8_t> lengths = limitedHuffmanLengths(frequency, MAX_CODE_LENGTH);
 
@@ -380,8 +406,8 @@ namespace QaplaSyzygy {
 			if (base[0] + countOfLength[0] > (uint64_t(1) << table.minSymLen))
 				throw std::runtime_error("tbwrite: the huffman code does not fit its length");
 
-			// Numbers: the longest codes lowest, ascending with the code inside a
-			// length, and everything that carries no code behind all of them
+			// Numbers: the longest codes lowest, ascending with the code inside a length,
+			// and the symbols that carry no code behind all of them
 			std::vector<uint16_t> numberOf(grammar.left.size(), 0xFFFF);
 			std::vector<HuffCode> codeOf(grammar.left.size());
 			uint32_t next = 0;
@@ -395,12 +421,14 @@ namespace QaplaSyzygy {
 				}
 
 			for (size_t symbol = 0; symbol < lengths.size(); ++symbol)
-				if (lengths[symbol] == 0) numberOf[symbol] = uint16_t(next++);
+				if (lengths[symbol] == 0 && used[symbol]) numberOf[symbol] = uint16_t(next++);
 
 			table.symbolCount = uint16_t(next);
 			table.btree.assign(size_t(table.symbolCount) * 3, 0);
 
 			for (size_t symbol = 0; symbol < grammar.left.size(); ++symbol) {
+				if (!used[symbol]) continue;
+
 				const uint16_t left = grammar.right[symbol] == 0xFFF
 					? grammar.left[symbol] : numberOf[grammar.left[symbol]];
 				const uint16_t right = grammar.right[symbol] == 0xFFF
@@ -425,6 +453,7 @@ namespace QaplaSyzygy {
 				std::vector<uint64_t> terminalsBeforeBlock{ 0 };
 				size_t   bitPos = 0;
 				uint32_t inBlock = 0;
+				uint32_t symbolsInBlock = 0;
 				uint64_t written = 0;
 
 				const auto closeBlock = [&]() {
@@ -437,12 +466,13 @@ namespace QaplaSyzygy {
 					inBlock = 0;
 				};
 
-				for (const uint16_t symbol : grammar.sequence) {
+				for (const uint16_t symbol : sequence) {
 					const HuffCode code = codeOf[symbol];
 					const uint32_t terminals = grammar.terminals[symbol];
 
 					if (bitPos + code.length > blockBits
-						|| inBlock + terminals > MAX_TERMINALS_PER_BLOCK)
+						|| inBlock + terminals > MAX_TERMINALS_PER_BLOCK
+						|| symbolsInBlock == MAX_SYMBOLS_PER_BLOCK)
 						closeBlock();
 
 					for (int bit = code.length - 1; bit >= 0; --bit) {
@@ -451,6 +481,7 @@ namespace QaplaSyzygy {
 						++bitPos;
 					}
 					inBlock += terminals;
+					++symbolsInBlock;
 				}
 
 				if (inBlock > 0) closeBlock();
@@ -460,7 +491,6 @@ namespace QaplaSyzygy {
 				// One entry per span positions, made as wide as the sixteen bit offset of an
 				// entry allows: a wide span only means that the reader walks a few more block
 				// lengths before it decodes.
-				const uint64_t total = values.size();
 				const uint64_t dataBytes = uint64_t(out.blocksNum) * blockBytes;
 
 				for (out.log2Span = MAX_LOG2_SPAN; ; --out.log2Span) {
@@ -518,11 +548,83 @@ namespace QaplaSyzygy {
 				table.log2BlockBytes = candidate.log2BlockBytes;
 			}
 
+			// Everything this table costs: the header of the size block, the code table, the
+			// tree, and what the packing reported
+			return 12 + 2 * uint64_t(table.lowestSym.size()) + 3 * uint64_t(table.symbolCount) + best;
+		}
+
+		/** Compresses one table, keeping the best of the vocabulary sizes the grammar offers. */
+		EncodedTable encodeTable(std::vector<uint8_t> values) {
+
+			EncodedTable table;
+			resolveOpenValues(values);
+
+			std::vector<uint64_t> valueFrequency(StoredWin + 1, 0);
+			for (const uint8_t v : values) {
+				if (v > StoredWin) throw std::runtime_error("tbwrite: value out of range");
+				valueFrequency[v]++;
+			}
+
+			const size_t distinct = std::count_if(valueFrequency.begin(), valueFrequency.end(),
+				[](uint64_t f) { return f > 0; });
+
+			if (distinct <= 1) {
+				table.singleValue = true;
+				table.value = values.empty() ? uint8_t(StoredDraw) : values.front();
+				return table;
+			}
+
+
+			const Grammar grammar = buildGrammar(values);
+
+			uint64_t best = UINT64_MAX;
+			for (const std::vector<uint16_t>& sequence : grammar.stage) {
+				EncodedTable candidate;
+				const uint64_t bytes = encodeStage(grammar, sequence, values.size(), candidate);
+
+				if (bytes >= best) continue;
+
+				best = bytes;
+				table = std::move(candidate);
+			}
+
 			return table;
 		}
+
 		// ------------------------------------------------------------------
 		// Byte output
 		// ------------------------------------------------------------------
+
+		/**
+		 * The sixteen check bytes at the end of the file.
+		 *
+		 * de Man puts a checksum there and the probing code never looks at it; the
+		 * algorithm is not part of what he published for probing, so this is our own: two
+		 * independent FNV-1a lanes over the body, one forwards and one backwards, which
+		 * makes it sensitive to the order of the bytes as well as to their values.
+		 *
+		 * @param body the file without its last sixteen bytes
+		 */
+		std::array<uint8_t, 16> checksumOf(const uint8_t* body, size_t size) {
+
+			constexpr uint64_t OFFSET = 0xCBF29CE484222325ULL;
+			constexpr uint64_t PRIME = 0x100000001B3ULL;
+
+			uint64_t forwards = OFFSET;
+			uint64_t backwards = OFFSET ^ size;
+
+			for (size_t i = 0; i < size; ++i) {
+				forwards = (forwards ^ body[i]) * PRIME;
+				backwards = (backwards ^ body[size - 1 - i]) * PRIME;
+			}
+
+			std::array<uint8_t, 16> result{};
+			for (int i = 0; i < 8; ++i) {
+				result[i] = uint8_t(forwards >> (8 * i));
+				result[8 + i] = uint8_t(backwards >> (8 * i));
+			}
+			return result;
+		}
 
 		void put8(std::vector<uint8_t>& out, uint8_t v) { out.push_back(v); }
 
@@ -721,12 +823,13 @@ namespace QaplaSyzygy {
 			}
 
 		// The reader takes a file whose size is not 64n + 16 for corrupt, so the data
-		// ends on a block boundary and the last sixteen bytes are a trailer. de Man
-		// puts a checksum there; nothing reads it, and here it is padding - which the
-		// reader needs anyway, because it refills its bit buffer a word at a time and
-		// may reach past the last block.
+		// ends on a block boundary and the last sixteen bytes are the check bytes. They
+		// double as the padding the reader needs: it refills its bit buffer a word at a
+		// time and may reach past the last block.
 		alignTo(out, 64);
-		out.insert(out.end(), 16, 0);
+
+		const std::array<uint8_t, 16> checksum = checksumOf(out.data(), out.size());
+		out.insert(out.end(), checksum.begin(), checksum.end());
 
 		if (out.size() % 64 != 16)
 			throw std::runtime_error("tbwrite: the file size is not 64n + 16");
@@ -735,6 +838,31 @@ namespace QaplaSyzygy {
 		if (!file) throw std::runtime_error("tbwrite: cannot open " + filePath);
 		file.write(reinterpret_cast<const char*>(out.data()), std::streamsize(out.size()));
 		if (!file) throw std::runtime_error("tbwrite: cannot write " + filePath);
+	}
+
+
+	bool verifyChecksum(const std::string& filePath, std::string& reason) {
+
+		std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+		if (!file) { reason = "cannot open " + filePath; return false; }
+
+		const std::streamsize size = file.tellg();
+		if (size < 16 || size % 64 != 16) {
+			reason = "the file size is not 64n + 16";
+			return false;
+		}
+
+		std::vector<uint8_t> content(static_cast<size_t>(size));
+		file.seekg(0);
+		file.read(reinterpret_cast<char*>(content.data()), size);
+		if (!file) { reason = "cannot read " + filePath; return false; }
+
+		const std::array<uint8_t, 16> expected = checksumOf(content.data(), content.size() - 16);
+		if (!std::equal(expected.begin(), expected.end(), content.end() - 16)) {
+			reason = "the check bytes do not match the content";
+			return false;
+		}
+		return true;
 	}
 
 }

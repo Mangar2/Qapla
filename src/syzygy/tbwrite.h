@@ -66,6 +66,15 @@ namespace QaplaSyzygy {
 		uint64_t index = 0;
 	};
 
+	/**
+	 * Recomputes the check bytes of a table file and compares them against the ones it
+	 * carries. de Man puts a checksum in the last sixteen bytes and no probing code
+	 * looks at it; this verifies the ones written here.
+	 *
+	 * @param reason filled with what is wrong when the answer is false
+	 */
+	bool verifyChecksum(const std::string& filePath, std::string& reason);
+
 	class WdlWriter {
 	public:
 		/**
