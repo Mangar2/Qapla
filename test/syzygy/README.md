@@ -64,6 +64,31 @@ The entry sums printed per side are not a cross check and do not have to match: 
 is a lower bound, so the two sets legitimately differ wherever a capture already reaches the
 value. Step 3 is what compares the answers.
 
+## 5. Let de Man's own tools read the files
+
+His generator is not part of this repository; where it is checked out, `src/tbcheck` and
+`src/tbstat` are built alongside it.
+
+```
+cd test/syzygy
+<syzygy>/src/tbcheck *.rtbw          # the check bytes
+<syzygy>/src/tbstat KRvK             # reads the table itself
+```
+
+`tbcheck` recomputes the sixteen check bytes at the end of each file. `tbstat` walks the whole
+table with his probing code - a second implementation, sharing no line with this engine - and
+prints what it finds. Running it once in each directory and comparing the numbers is the only
+check here that does not depend on our own reader:
+
+| material | white to move | black to move | draws, black to move |
+|---|---|---|---|
+| KRvK | 139806 legal, 100 % win | 179068 legal | 9.928 % |
+| KQvK | 115302 legal, 100 % win | 179068 legal | 10.299 % |
+| KRRvK | 109265 legal, 100 % win | 179183 legal | 0.275 % |
+| KRvKR | 141209 legal, 28.917 % win | 141549 legal | 70.377 % |
+
+**Expected: `OK!` from tbcheck, and the same numbers from tbstat for both directories.**
+
 ## Measured, 2026-09-11
 
 | material | our size | de Man | probe, ours | probe, reference | ratio |

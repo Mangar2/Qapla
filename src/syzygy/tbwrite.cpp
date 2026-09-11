@@ -20,6 +20,10 @@
 #include "tbwrite.h"
 #include "tbindex.h"
 
+extern "C" {
+#include "cityhash/citycrc.h"
+}
+
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -596,32 +600,33 @@ namespace QaplaSyzygy {
 		// ------------------------------------------------------------------
 
 		/**
-		 * The sixteen check bytes at the end of the file.
-		 *
-		 * de Man puts a checksum there and the probing code never looks at it; the
-		 * algorithm is not part of what he published for probing, so this is our own: two
-		 * independent FNV-1a lanes over the body, one forwards and one backwards, which
-		 * makes it sensitive to the order of the bytes as well as to their values.
+		 * The sixteen check bytes at the end of the file, as de Man computes them:
+		 * CityHashCrc256 over every 16 MB chunk of the body, and CityHashCrc128 over the
+		 * results of that. Taken from his checksum.c so that his own tbcheck accepts what
+		 * is written here - anything else there would make the file fail his tool.
 		 *
 		 * @param body the file without its last sixteen bytes
 		 */
 		std::array<uint8_t, 16> checksumOf(const uint8_t* body, size_t size) {
 
-			constexpr uint64_t OFFSET = 0xCBF29CE484222325ULL;
-			constexpr uint64_t PRIME = 0x100000001B3ULL;
+			constexpr size_t CHUNK = size_t(1) << 24;
 
-			uint64_t forwards = OFFSET;
-			uint64_t backwards = OFFSET ^ size;
+			const size_t chunks = (size + CHUNK - 1) / CHUNK;
+			std::vector<uint64_t> perChunk(4 * chunks);
 
-			for (size_t i = 0; i < size; ++i) {
-				forwards = (forwards ^ body[i]) * PRIME;
-				backwards = (backwards ^ body[size - 1 - i]) * PRIME;
+			for (size_t chunk = 0; chunk < chunks; ++chunk) {
+				const size_t start = chunk * CHUNK;
+				CityHashCrc256(reinterpret_cast<const char*>(body + start),
+					std::min(CHUNK, size - start), &perChunk[4 * chunk]);
 			}
+
+			uint64_t sum[2] = { 0, 0 };
+			CityHashCrc128(reinterpret_cast<const char*>(perChunk.data()), 32 * chunks, sum);
 
 			std::array<uint8_t, 16> result{};
 			for (int i = 0; i < 8; ++i) {
-				result[i] = uint8_t(forwards >> (8 * i));
-				result[8 + i] = uint8_t(backwards >> (8 * i));
+				result[i] = uint8_t(sum[0] >> (8 * i));
+				result[8 + i] = uint8_t(sum[1] >> (8 * i));
 			}
 			return result;
 		}

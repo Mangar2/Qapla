@@ -465,13 +465,23 @@ to repeat it.
 ### Check bytes
 
 The last sixteen bytes are a checksum, where de Man puts his - the reader needs the file to be
-64n + 16 bytes long anyway. His algorithm is not part of the probing code and did not fall out
-of the obvious guesses (MD5 over the body, over the whole file, over either with the trailer
-zeroed), so ours is its own: two FNV-1a lanes over the body, one forwards and one backwards.
-`verifyChecksum` recomputes them, and the writer calls it on what it just wrote.
+64n + 16 bytes long anyway, and that is exactly why: the trailer is what makes up the
+difference.
 
-Still open from the ladder of section 4.3: the files have not been read by a foreign
-implementation - `python-chess` is not installed here.
+His algorithm is not in the probing code and did not fall out of guessing, but his generator is
+on this machine and `src/checksum.c` has it: `CityHashCrc256` over every 16 MB chunk of the
+body, then `CityHashCrc128` over those results. The four files CityHash needs are copied into
+[src/syzygy/cityhash](../src/syzygy/cityhash/README.md) and `checksumOf()` does the chunking.
+
+That is worth the copied code because it buys the item that was open in section 4.3:
+
+- **`tbcheck`**, his own tool, accepts our files. It rejected them while the checksum was ours.
+- **`tbstat`**, also his, walks the whole table with his probing code - a second implementation
+  that shares no line with this engine - and prints the same statistics for our files as for
+  his own, for all four materials.
+
+So the container is now read by foreign code, not only by the reader it was written against.
+`python-chess` would add a third opinion and is still not installed here.
 
 ## 9. Afterwards: distance to mate
 
