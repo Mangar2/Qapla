@@ -229,7 +229,8 @@ namespace QaplaSyzygy {
 			int     pieceCount = 0;
 			bool    hasPawns = false;
 			bool    hasUniquePieces = false;
-			uint8_t pawnCount[2] = { 0, 0 };
+			uint8_t pawnCount[2] = { 0, 0 };   // leading colour first
+			int     leadPawnColour = 0;        // whose pawns the file is indexed by
 		};
 
 		/** The piece order of one (side, file) table and the group sizes it implies. */
@@ -266,6 +267,7 @@ namespace QaplaSyzygy {
 
 			material.pawnCount[0] = uint8_t(counts.count[c ? 0 : 1][PAWN]);
 			material.pawnCount[1] = uint8_t(counts.count[c ? 1 : 0][PAWN]);
+			material.leadPawnColour = c ? 0 : 1;
 			return material;
 		}
 

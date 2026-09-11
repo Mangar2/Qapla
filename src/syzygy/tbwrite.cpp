@@ -668,39 +668,58 @@ namespace QaplaSyzygy {
 		_sideCount = (m.key != m.key2) ? 2 : 1;
 		_fileCount = m.hasPawns ? 4 : 1;
 
-		if (m.pieceCount < 3)
-			_unsupported = "a table needs at least three pieces";
-		else if (m.hasPawns)
-			_unsupported = "pawn tables are not written yet";
-
+		if (m.pieceCount < 3) _unsupported = "a table needs at least three pieces";
 		if (!_unsupported.empty()) return;
 
-		// The piece order. Both kings lead: without a unique piece they are the whole
-		// leading group and the king map expects them there, with one they are the
-		// first two of three. The third slot must hold a piece that occurs exactly
-		// once, otherwise two identical pieces would be encoded as distinguishable.
 		const internal::MaterialCounts counts = internal::countsFromCode(code);
-
 		std::vector<uint8_t> order;
-		order.push_back(uint8_t(internal::makePiece(0, internal::KING)));
-		order.push_back(uint8_t(internal::makePiece(1, internal::KING)));
 
 		int uniqueColour = -1;
 		int uniqueType = -1;
-		if (m.hasUniquePieces) {
-			for (int colour = 0; colour < 2 && uniqueType < 0; ++colour)
-				for (int type = internal::PAWN; type < internal::KING; ++type)
-					if (counts.count[colour][type] == 1) {
-						uniqueColour = colour;
-						uniqueType = type;
-						break;
-					}
-			order.push_back(uint8_t(internal::makePiece(uniqueColour, uniqueType)));
+
+		if (m.hasPawns) {
+
+			// With pawns the leading group is the pawns of the leading colour, and the
+			// other colour's pawns are the group behind it - that is what the second
+			// entry of the chain in the file means. The index computation reads the
+			// colour off pieces[0], so this order is not a free choice.
+			const int lead = m.leadPawnColour;
+
+			for (int i = 0; i < counts.count[lead][internal::PAWN]; ++i)
+				order.push_back(uint8_t(internal::makePiece(lead, internal::PAWN)));
+			for (int i = 0; i < counts.count[1 - lead][internal::PAWN]; ++i)
+				order.push_back(uint8_t(internal::makePiece(1 - lead, internal::PAWN)));
+
+			order.push_back(uint8_t(internal::makePiece(0, internal::KING)));
+			order.push_back(uint8_t(internal::makePiece(1, internal::KING)));
+		}
+		else {
+
+			// Without pawns both kings lead: without a unique piece they are the whole
+			// leading group and the king map expects them there, with one they are the
+			// first two of three. The third slot must then hold a piece that occurs
+			// exactly once, otherwise two identical pieces would be encoded as
+			// distinguishable.
+			order.push_back(uint8_t(internal::makePiece(0, internal::KING)));
+			order.push_back(uint8_t(internal::makePiece(1, internal::KING)));
+
+			if (m.hasUniquePieces) {
+				for (int colour = 0; colour < 2 && uniqueType < 0; ++colour)
+					for (int type = internal::PAWN; type < internal::KING; ++type)
+						if (counts.count[colour][type] == 1) {
+							uniqueColour = colour;
+							uniqueType = type;
+							break;
+						}
+				order.push_back(uint8_t(internal::makePiece(uniqueColour, uniqueType)));
+			}
 		}
 
+		// Everything that is not placed yet, pieces of a kind next to each other
 		for (int colour = 0; colour < 2; ++colour)
 			for (int type = internal::KING - 1; type >= internal::PAWN; --type) {
 				if (colour == uniqueColour && type == uniqueType) continue;
+				if (type == internal::PAWN && m.hasPawns) continue;
 				for (int i = 0; i < counts.count[colour][type]; ++i)
 					order.push_back(uint8_t(internal::makePiece(colour, type)));
 			}
@@ -713,7 +732,7 @@ namespace QaplaSyzygy {
 				internal::IndexGroups& groups = _layout->groups[side][file];
 				std::copy(order.begin(), order.end(), groups.pieces);
 
-				const int chain[2] = { 0, 0xF };
+				const int chain[2] = { 0, m.pawnCount[1] ? 1 : 0xF };
 				internal::setGroups(m, groups, chain, file);
 
 				const int last = int(std::find(groups.groupLen, groups.groupLen + 7, 0)
@@ -772,9 +791,15 @@ namespace QaplaSyzygy {
 		put8(out, uint8_t((m.pieceCount << 4) | (m.hasPawns ? 2 : 0)
 			| ((m.key != m.key2) ? 1 : 0)));
 
+		// Pawns on both sides mean a second group that is placed by hand, and the
+		// reader then expects a second order byte.
+		const bool bothSidesHavePawns = m.hasPawns && m.pawnCount[1];
+
 		for (int file = 0; file < _fileCount; ++file) {
-			// Both sides put their leading group first in the multiplication chain
+			// Both sides put their leading group first in the multiplication chain, and
+			// the remaining pawns right behind it
 			put8(out, 0x00);
+			if (bothSidesHavePawns) put8(out, 0x11);
 
 			for (int k = 0; k < m.pieceCount; ++k) {
 				const uint8_t side0 = _layout->groups[0][file].pieces[k];

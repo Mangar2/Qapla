@@ -57,11 +57,14 @@ namespace QaplaBitbase {
 		 * @param traceLevel Verbosity level for tracing runtime details.
 		 * @param debugLevel Verbosity level for debug output.
 		 * @param debugIndex Optional index used to trigger focused debug output.
+		 * @param syzygyPath Directory the Syzygy files are written to.
 		 */
 		void computeBitbaseRec(string pieceString, uint32_t cores = 1,
-			bool generateCpp = false, int traceLevel = 0, int debugLevel = 0, uint64_t debugIndex = 64)
+			bool generateCpp = false, int traceLevel = 0, int debugLevel = 0, uint64_t debugIndex = 64,
+			const string& syzygyPath = ".")
 		{
 			_cores = std::min(MAX_THREADS, cores);
+			_syzygyPath = syzygyPath;
 			_traceLevel = traceLevel;
 			_debugIndex = debugIndex;
 			_debugLevel = debugLevel;
@@ -76,6 +79,8 @@ namespace QaplaBitbase {
 
 
 	private:
+
+		string _syzygyPath = ".";
 
 		/**
 		 * Dispatches high-level aliases (3/4/5/6) and then computes the requested bitbase.

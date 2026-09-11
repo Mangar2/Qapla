@@ -32,6 +32,7 @@
 #include "generationstate.h"
 #include "bitbase-reader.h"
 #include "bitbasegenerator.h"
+#include "syzygy-export.h"
 #include "bitbase-profiling.h"
 #include "bitbase-repairfile.h"
 
@@ -805,6 +806,13 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, bool gen
 
 		// Register the file so parent bitbases can probe it via getValueFromSingleBitbase().
 		BitbaseReader::registerQwdlFile(pieceString, qwdlFileName);
+
+		// And the Syzygy file. It has to be written here, in the recursion, because
+		// whether an entry may be stored below its true value is decided by probing
+		// the tables one capture down - which exist at this point, and only here.
+		timing.start("syzygy write");
+		writeSyzygyWdl(pieceString, qwdlFileName, _syzygyPath, std::cout);
+		timing.stop("syzygy write");
 
 		// Verify every position against the original WDL sequence.
 		BitbaseRePairFile reader;

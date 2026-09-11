@@ -28,7 +28,7 @@ using namespace QaplaInterface;
 void BitbaseInterface::generateBitbases() {
 	string piecesString = getNextTokenBlocking(true);
 	if (piecesString == "\r" || piecesString == "\n") {
-		println("usage bitgenerate pieces [cores n] [path p] [cpp] [trace n] [debug n] [index n]");
+		println("usage bitgenerate pieces [cores n] [path p] [syzygy dir] [cpp] [trace n] [debug n] [index n]");
 		return;
 	}
 	string token = getNextTokenBlocking(true);
@@ -36,11 +36,15 @@ void BitbaseInterface::generateBitbases() {
 	uint32_t traceLevel = 1;
 	uint32_t debugLevel = 0;
 	uint64_t debugIndex = -1;
+	std::string syzygyPath = ".";
 	bool generateCpp = false;
 	while (token != "\n" && token != "\r") {
 		if (token == "cores") {
 			getNextTokenBlocking(true);
 			cores = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "syzygy") {
+			syzygyPath = getNextTokenBlocking(true);
 		}
 		else if (token == "path") {
 			getBoard()->setOption("qaplaBitbasePathNL", getNextTokenBlocking(true));
@@ -65,7 +69,8 @@ void BitbaseInterface::generateBitbases() {
 		}
 		token = getNextTokenBlocking(true);
 	}
-	getBoard()->generateBitbases(piecesString, cores, generateCpp, traceLevel, debugLevel, debugIndex);
+	getBoard()->generateBitbases(piecesString, cores, generateCpp, traceLevel, debugLevel, debugIndex,
+		syzygyPath);
 }
 
 void BitbaseInterface::verifyBitbases() {

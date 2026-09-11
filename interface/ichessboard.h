@@ -176,7 +176,8 @@ namespace QaplaInterface {
 			                          [[maybe_unused]] bool generateCpp = false,
                                       [[maybe_unused]] uint32_t traceLevel = 0,
                                       [[maybe_unused]] uint32_t debugLevel = 0,
-                                      [[maybe_unused]] uint64_t debugIndex = 64) {}
+                                      [[maybe_unused]] uint64_t debugIndex = 64,
+                                      [[maybe_unused]] std::string syzygyPath = ".") {}
 
         /** Verifies bitbases for the given signature. */
         virtual void verifyBitbases([[maybe_unused]] std::string signature,

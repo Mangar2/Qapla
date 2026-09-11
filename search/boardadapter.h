@@ -138,10 +138,12 @@ namespace QaplaSearch {
 		 */
 		
 		virtual void generateBitbases(string signature, uint32_t cores, bool generateCpp = false,
-			uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64)
+			uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64,
+			std::string syzygyPath = ".")
 		{
 			QaplaBitbase::BitbaseGenerator generator;
-			generator.computeBitbaseRec(signature, cores, generateCpp, traceLevel, debugLevel, debugIndex);
+			generator.computeBitbaseRec(signature, cores, generateCpp, traceLevel, debugLevel, debugIndex,
+				syzygyPath);
 		}
 
 		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)

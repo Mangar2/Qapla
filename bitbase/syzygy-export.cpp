@@ -108,8 +108,14 @@ namespace QaplaBitbase {
 				return;
 			}
 
+			// A pawn on the first or the last rank is not a position, and the format
+			// has no index for one - the move generator does not object, so it is
+			// ruled out here.
+			const bool pawn = isPawn(pieceList.getPiece(pieceNo));
+
 			for (uint8_t square = 0; square < 64; ++square) {
 				if (used & (1ULL << square)) continue;
+				if (pawn && (square < 8 || square >= 56)) continue;
 				current.square[pieceNo] = square;
 				placeAndCollect(pieceList, position, cases, current, pieceNo + 1,
 					used | (1ULL << square));
@@ -513,6 +519,10 @@ namespace QaplaBitbase {
 			for (uint32_t piece = 0; piece < pieceList.getNumberOfPieces(); ++piece) {
 				const uint8_t square = uint8_t(random() & 63);
 				if (used & (1ULL << square)) { ok = false; break; }
+				if (isPawn(pieceList.getPiece(piece)) && (square < 8 || square >= 56)) {
+					ok = false;
+					break;
+				}
 				used |= 1ULL << square;
 				item.square[piece] = square;
 			}

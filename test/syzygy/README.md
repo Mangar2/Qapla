@@ -20,13 +20,24 @@ printf 'bitgenerate KRKR cores 8\nquit\n' | ../../build/Release/Qapla
 
 ## 2. Write the Syzygy files
 
+The generator writes them itself, for every material of the dependency tree:
+
+```
+cd test/bitbase
+printf 'bitgenerate KPKP cores 8 syzygy ../syzygy\nquit\n' | ../../build/Release/Qapla
+```
+
+`KPKP` alone produces twenty tables that way. The order is what makes it work: whether an
+entry may be stored below its true value is decided by probing the tables one capture down,
+and in the recursion those exist by the time the parent is written.
+
+Writing one table on its own, from an existing `.qwdl`:
+
 ```
 printf 'bitsyzygy KRK qwdl test/bitbase/KRK.qwdl out test/syzygy\nquit\n' | ./build/Release/Qapla
 ```
 
-and the same for `KQK`, `KRRK`, `KRKR`. Materials one capture down have to be written first:
-whether an entry may be stored below its true value is decided by probing them, and a missing
-one costs size, silently.
+Materials one capture down have to be written first here: a missing one costs size, silently.
 
 Each run reports the slot coverage and verifies the check bytes it wrote.
 
