@@ -20,9 +20,7 @@
 #include "tbwrite.h"
 #include "tbindex.h"
 
-extern "C" {
 #include "cityhash/citycrc.h"
-}
 
 #include <algorithm>
 #include <array>

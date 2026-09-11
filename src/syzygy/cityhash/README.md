@@ -9,12 +9,16 @@ It is here for one reason: the sixteen check bytes at the end of a table file ar
 what `tbcheck` verifies. Writing anything else there would make our files fail his tool.
 The code that uses it is `checksumOf()` in [../tbwrite.cpp](../tbwrite.cpp).
 
-Two deliberate deviations from the copy:
+Three deliberate deviations from the copy:
 
-- `crc32c.c` is named `crc32c.inc` here. It is `#include`d into `city-c.c` rather than
-  compiled on its own, and the build globs every `.c` file in the repository - under its
+- `city-c.c` is named `city-c.cpp` here, so that the project is built by one compiler
+  instead of two. The source needs no change for it: it compiles as C++ without a warning
+  under `-Wall -Wextra`, and the files it produces are byte for byte the ones the C build
+  produced.
+- `crc32c.c` is named `crc32c.inc`. It is `#include`d into `city-c.cpp` rather than
+  compiled on its own, and the build globs every source file in the repository - under its
   original name it would be compiled twice and `_mm_crc32_u64` would be defined twice.
-- Nothing else. In particular the `#ifdef __SSE_4_2__` in `city-c.c` is left as it is,
+- Nothing else. In particular the `#ifdef __SSE_4_2__` in `city-c.cpp` is left as it is,
   although the macro the compiler actually defines is `__SSE4_2__`: the branch it guards
   therefore never fires and the software implementation of `_mm_crc32_u64` in `crc32c.inc`
   is always used. That is how de Man's own generator computed the checksums of the tables
