@@ -142,6 +142,14 @@ namespace QaplaBitbase {
 			position.computeAttackMasksForBothColors();
 		}
 
+		PositionCase positionCaseOf(const ReverseIndex& reverseIndex, const PieceList& pieceList) {
+			PositionCase item;
+			for (uint32_t i = 0; i < pieceList.getNumberOfPieces(); ++i)
+				item.square[i] = uint8_t(reverseIndex.getSquare(i));
+			item.whiteToMove = reverseIndex.isWhiteToMove();
+			return item;
+		}
+
 		std::string toFen(const PieceList& pieceList, const PositionCase& item) {
 			char board[64] = {};
 			for (uint32_t i = 0; i < pieceList.getNumberOfPieces(); ++i)
@@ -375,6 +383,43 @@ namespace QaplaBitbase {
 			<< " reached by a capture and therefore free to store lower" << std::endl;
 		std::string checksumReason;
 		const bool checksumOk = verifyChecksum(filePath.string(), checksumReason);
+
+
+		// Read every position back out of the file that was just written and hold it
+		// against the value that went in. The writer may store below the true value where
+		// a capture reaches it, so the entry may be lower - never higher, and never
+		// different where nothing was allowed to lower it.
+		setPath(outDir);
+		uint64_t checked = 0;
+		uint64_t wrong = 0;
+
+		for (uint64_t index = 0; index < entryCount; ++index) {
+
+			const ReverseIndex reverseIndex(index, pieceList);
+			if (!reverseIndex.isLegal()) continue;
+			buildPosition(position, reverseIndex, pieceList);
+			if (!position.isLegal()) continue;
+
+			TbPosition tbPosition{};
+			if (!buildTbPosition(position, tbPosition)) continue;
+
+			const WdlEntry entry = probeWdlEntry(tbPosition);
+			if (entry.status != Status::Ok) continue;
+
+			const BitbaseResult result = source.probe(BoardAccess::getIndex<0>(position));
+			const int expected = int(toStoredValue(result, position.isWhiteToMove())) - 2;
+			++checked;
+
+			if (int(entry.value) > expected && ++wrong <= 5)
+				log << "  the file answers above what was written for "
+					<< toFen(pieceList, positionCaseOf(reverseIndex, pieceList))
+					<< ": " << int(entry.value) << " against " << expected << std::endl;
+		}
+
+		release();
+		if (wrong > 0)
+			log << "WARNING: " << wrong << " of " << checked
+			<< " entries read back above the value that was written" << std::endl;
 
 		log << "written " << filePath.string() << " ("
 			<< std::filesystem::file_size(filePath) << " bytes, check bytes "
@@ -698,14 +743,67 @@ namespace QaplaBitbase {
 		// Asked the way the generator asks it: registered by material, and read through
 		// getValueFromSingleBitbase, which mirrors when the position has the material the
 		// other way round. Reading the file directly would answer the wrong table.
-		if (!qwdlFile.empty()) {
+		BitbaseRePairFile source;
+		if (!qwdlFile.empty() && source.open(qwdlFile)) {
 			const std::filesystem::path path(qwdlFile);
 			const std::string pieces = path.stem().string();
-			BitbaseReader::registerQwdlFile(pieces, qwdlFile);
+
+			// Every table of the directory, the way the generator has them registered
+			// while it computes: a capture answered by only one of them would look
+			// unanswered here and send the reader on a false trail.
+			for (const auto& entry : std::filesystem::directory_iterator(path.parent_path()))
+				if (entry.path().extension() == ".qwdl")
+					BitbaseReader::registerQwdlFile(entry.path().stem().string(),
+						entry.path().string());
 			log << "  generator:      " << to_string(BitbaseReader::getValueFromSingleBitbase(position))
-				<< " (white view, from " << pieces << ")" << std::endl;
+				<< " (white view, from " << pieces << ", index "
+				<< BoardAccess::getIndex<0>(position) << ")" << std::endl;
 		}
 
+
+		// What the propagation sees for this position: every quiet move with the value of
+		// its child, and for a double step the en passant captures that answer it.
+		if (!qwdlFile.empty()) {
+			MoveList moveList;
+			position.genMovesOfMovingColor(moveList);
+			const PieceList pieceList(position);
+			const bool whiteToMove = position.isWhiteToMove();
+
+			for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); ++moveNo) {
+				const Move move = moveList[moveNo];
+				if (move.isCaptureOrPromote()) {
+					log << "    " << move.getLAN() << "  capture" << std::endl;
+					continue;
+				}
+
+				const uint64_t childIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
+				log << "    " << move.getLAN() << "  child " << to_string(source.probe(childIndex))
+					<< " (index " << childIndex << ")";
+
+				if (isPawn(move.getMovingPiece())
+					&& abs(int(move.getDestination()) - int(move.getDeparture())) == 16) {
+
+					const PositionSnapshot snapshot = position.getSnapshot();
+					position.doMove(move);
+					MoveList childMoves;
+					position.genMovesOfMovingColor(childMoves);
+					uint32_t epCount = 0;
+					for (uint32_t i = 0; i < childMoves.getTotalMoveAmount(); ++i) {
+						if (!childMoves[i].isEPMove()) continue;
+						++epCount;
+						const PositionSnapshot childSnapshot = position.getSnapshot();
+						position.doMove(childMoves[i]);
+						log << ", en passant " << childMoves[i].getLAN() << " -> "
+							<< to_string(BitbaseReader::getValueFromSingleBitbase(position));
+						position.undoMove(childMoves[i], childSnapshot);
+					}
+					if (epCount == 0) log << ", no en passant answer";
+					position.undoMove(move, snapshot);
+					position.computeAttackMasksForBothColors();
+				}
+				log << std::endl;
+			}
+		}
 		release();
 		return true;
 	}

@@ -42,6 +42,96 @@ using namespace QaplaSearch;
 using namespace QaplaBitbase;
 
 /**
+ * Of two results, both written from white's point of view, the one the given side
+ * prefers. Unknown must not be passed in - it would rank as a draw.
+ */
+static BitbaseResult betterFor(BitbaseResult a, BitbaseResult b, bool forWhite)
+{
+	const auto rank = [](BitbaseResult result) {
+		return result == BitbaseResult::Win ? 1 : result == BitbaseResult::Loss ? -1 : 0;
+	};
+	if (forWhite) return rank(a) >= rank(b) ? a : b;
+	return rank(a) <= rank(b) ? a : b;
+}
+
+/**
+ * The value of the position a double pawn step leads to, with the en passant capture
+ * it hands the opponent taken into account.
+ *
+ * The index has no room for the en passant right, so the stored entry is the value of
+ * the position without it - which is right for every position that is asked about, and
+ * wrong for exactly this one child. The capture itself needs no table of its own: it
+ * removes a pawn and therefore lands in a subordinate bitbase.
+ *
+ * Three cases, all of them the opponent's choice:
+ *  - the capture is better for him than the entry: it is the value,
+ *  - it is worse: he does not play it, the entry stands,
+ *  - the position without the right has no move at all: then it is not stalemate as
+ *    the entry says, the capture is the only move there is, and it is the value even
+ *    when it is worse for him.
+ *
+ * @param withoutEnPassant the stored entry of the child, from white's point of view
+ * @returns the corrected value, or Unknown while the child is not decided yet
+ */
+BitbaseResult BitbaseGenerator::valueAfterDoubleStep(MoveGenerator& position, Move move,
+	BitbaseResult withoutEnPassant)
+{
+	const PositionSnapshot snapshot = position.getSnapshot();
+	position.doMove(move);
+
+	MoveList childMoves;
+	position.genMovesOfMovingColor(childMoves);
+
+	const bool opponentIsWhite = position.isWhiteToMove();
+	BitbaseResult bestCapture = BitbaseResult::Unknown;
+	uint32_t otherMoves = 0;
+
+	for (uint32_t moveNo = 0; moveNo < childMoves.getTotalMoveAmount(); ++moveNo) {
+		const Move childMove = childMoves[moveNo];
+		if (!childMove.isEPMove()) {
+			++otherMoves;
+			continue;
+		}
+
+		const PositionSnapshot childSnapshot = position.getSnapshot();
+		position.doMove(childMove);
+		const BitbaseResult value = BitbaseReader::getValueFromSingleBitbase(position);
+		const string missingMaterial = value == BitbaseResult::Unknown
+			? PieceList(position).getPieceString() : string();
+		position.undoMove(childMove, childSnapshot);
+
+		if (value == BitbaseResult::Unknown) {
+			if (_missingDependencies++ == 0)
+				cerr << endl << "Error: no bitbase for " << missingMaterial
+					<< ", reached by an en passant capture - the table being computed"
+					" will be wrong" << endl;
+			continue;
+		}
+
+		bestCapture = bestCapture == BitbaseResult::Unknown
+			? value : betterFor(bestCapture, value, opponentIsWhite);
+	}
+
+	position.undoMove(move, snapshot);
+
+	// undoMove does not restore the attack masks, and the caller reads them - to
+	// generate its candidates backwards, and to generate moves in the next round.
+	position.computeAttackMasksForBothColors();
+
+	if (bestCapture == BitbaseResult::Unknown) return withoutEnPassant;
+
+	// Nothing can beat the best there is, so the entry need not even be known
+	if (bestCapture == (opponentIsWhite ? BitbaseResult::Win : BitbaseResult::Loss))
+		return bestCapture;
+
+	// The only move: what the entry says about stalemate or mate does not hold
+	if (otherMoves == 0) return bestCapture;
+
+	if (withoutEnPassant == BitbaseResult::Unknown) return BitbaseResult::Unknown;
+	return betterFor(withoutEnPassant, bestCapture, opponentIsWhite);
+}
+
+/**
  * Checks whether all quiet moves for the side to move lead to a forced loss.
  *
  * This function is called during iterative propagation only when tryDirectEntry()
@@ -82,48 +172,63 @@ BitbaseResult BitbaseGenerator::setComputeValue(
 		printDebugInfo(position, index);
 	}
 
-	// Guard: this function searches only for forced losses, so only Unknown positions are candidates.
-	// Draw (intermediate marker): a drawing capture was found during initialization. The drawing
-	// capture prevents the side to move from ever being forced into a Loss, regardless of quiet
-	// moves. Only Win and Loss are final; Draw is not — but it also cannot become a Loss, so
-	// there is nothing for this function to do. Upgrade Draw→Win is handled by tryDirectEntry.
-	BitbaseResult currentResult = bitbase.get2Bits(index);
-	if (currentResult != BitbaseResult::Unknown) {
+	// Win and Loss are final, there is nothing left to find here. A Draw written during
+	// initialization is a marker instead: it says a drawing capture exists, so the
+	// position can never be forced into a loss - but a quiet move may still win it, and
+	// the double step below may need the correction, so it is not skipped.
+	const BitbaseResult currentResult = bitbase.get2Bits(index);
+	if (GenerationState::isFinal(currentResult)) {
 		return BitbaseResult::Unknown;
 	}
+	const bool canStillLose = currentResult == BitbaseResult::Unknown;
 
-	// The loss value from white's perspective for the side to move:
-	// white to move and loses → Loss; black to move and loses → Win (stored from white's view).
+	// From white's point of view, for the side to move: white to move and losing is a
+	// Loss, black to move and losing is a Win.
 	const BitbaseResult lossForSideToMove = whiteToMove ? BitbaseResult::Loss : BitbaseResult::Win;
+	const BitbaseResult winForSideToMove = whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss;
 
 	position.genMovesOfMovingColor(moveList);
+	bool allMovesLose = true;
 
 	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
 	{
 		Move move = moveList[moveNo];
-		if (!move.isCaptureOrPromote())
-		{
-			const auto moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-			auto moveResult = bitbase.get2Bits(moveIndex);
-			if (moveResult == BitbaseResult::Unknown) {
-				return BitbaseResult::Unknown;
-			}
-			if (verbose)
-			{
-				std::cout << move.getLAN() << ", index: " << moveIndex
-						  << ", value: " << to_string(moveResult)
-						  << std::endl;
-			}
-			// Any quiet move that does NOT lose means the position has an escape.
-			if (moveResult != lossForSideToMove) {
-				return BitbaseResult::Unknown;
-			}
+		if (move.isCaptureOrPromote()) continue;
+
+		const auto moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
+		auto moveResult = bitbase.get2Bits(moveIndex);
+
+		// A pawn stepping two squares hands the opponent an en passant capture, and the
+		// entry of the child knows nothing about it - the index has no room for that
+		// right. See valueAfterDoubleStep.
+		if (isPawn(move.getMovingPiece())
+			&& abs(int(move.getDestination()) - int(move.getDeparture())) == 16) {
+			moveResult = valueAfterDoubleStep(position, move, moveResult);
 		}
+
+		if (verbose)
+		{
+			std::cout << move.getLAN() << ", index: " << moveIndex
+				<< ", value: " << to_string(moveResult) << std::endl;
+		}
+
+		// One move into a position the side to move wins is enough.
+		if (moveResult == winForSideToMove) {
+			state.setValue(index, winForSideToMove);
+			return winForSideToMove;
+		}
+
+		// Anything that is not a loss is an escape, and Unknown is not decided yet.
+		if (moveResult != lossForSideToMove) allMovesLose = false;
 	}
-	// All quiet moves lead to a loss for the side to move, and captures were already
-	// evaluated during initialization (all-losing or none). This is a final forced loss.
-	state.setValue(index, lossForSideToMove);
-	return lossForSideToMove;
+
+	// All quiet moves lead to a loss for the side to move, and the captures were
+	// evaluated during initialization. This is a final forced loss.
+	if (canStillLose && allMovesLose) {
+		state.setValue(index, lossForSideToMove);
+		return lossForSideToMove;
+	}
+	return BitbaseResult::Unknown;
 }
 
 /**
@@ -266,8 +371,19 @@ void BitbaseGenerator::reverseGeneratePawnMoves(vector<CandidateEntry> &candidat
 		const Square twoRankDestination = oneRankDestination + direction;
 		if (getRank(testDeparture) == Rank::R4 && position[twoRankDestination] == NO_PIECE)
 		{
+			// A pawn of the other colour beside the square this pawn stands on could have
+			// answered the double step en passant. The value the candidate would be raised
+			// from is the one without that right, so the shortcut does not hold here: the
+			// candidate carries no winning mark and the full evaluation decides it, which
+			// corrects for the capture. Everywhere else the shortcut stands.
+			const Piece opponentPawn = switchColor(COLOR) + PAWN;
+			const bool enPassantPossible =
+				(getFile(departure) != File::A && position[departure + WEST] == opponentPawn)
+				|| (getFile(departure) != File::H && position[departure + EAST] == opponentPawn);
+
 			addToCandidates(candidates,
-				{computeCandidateIndex(wtm, list, move, twoRankDestination, verbose), winningMove},
+				{computeCandidateIndex(wtm, list, move, twoRankDestination, verbose),
+					enPassantPossible ? false : winningMove},
 				computedResults, state);
 		}
 	}

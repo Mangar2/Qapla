@@ -348,6 +348,14 @@ namespace QaplaBitbase {
 		 * @param first True if this is the primary requested bitbase.
 		 * @param generateCpp If true, also emits generated C++ code.
 		 */
+		/**
+		 * Corrects the value of the child of a double pawn step for the en passant capture
+		 * the step allows. The index cannot hold that right, so the entry is the value
+		 * without it and the capture is played out here.
+		 */
+		BitbaseResult valueAfterDoubleStep(QaplaMoveGenerator::MoveGenerator& position,
+			QaplaBasics::Move move, BitbaseResult withoutEnPassant);
+
 		void computeBitbase(PieceList& pieceList, bool first, bool generateCpp);
 
 		/**

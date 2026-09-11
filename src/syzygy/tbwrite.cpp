@@ -60,8 +60,13 @@ namespace QaplaSyzygy {
 		// Recursive pairing, then Huffman over what it leaves
 		// ------------------------------------------------------------------
 
-		/** Symbols are twelve bits wide in the tree, so this is the whole vocabulary. */
-		constexpr uint32_t MAX_SYMBOLS = 4096;
+		/**
+		 * Symbols are twelve bits wide in the tree, which would allow 4096 of them - but
+		 * 0xFFF is the leaf marker: a rule whose right child is symbol 4095 is read back
+		 * as a terminal. So the last number is not a symbol, and the vocabulary ends one
+		 * below the width.
+		 */
+		constexpr uint32_t MAX_SYMBOLS = 4095;
 
 		/**
 		 * A symbol may not expand to more terminals than this. The reader keeps the
