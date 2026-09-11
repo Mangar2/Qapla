@@ -428,7 +428,9 @@ namespace QaplaBitbase {
 		}
 
 		uint64_t histogram[2][5] = {};
-		uint64_t generatorDifferences = 0;
+		uint64_t generatorTooLow = 0;
+		uint64_t generatorNoValue = 0;
+		uint64_t generatorTooHigh = 0;
 		uint64_t compared = 0;
 		uint64_t missing = 0;
 		uint64_t cursed = 0;
@@ -454,11 +456,37 @@ namespace QaplaBitbase {
 			// with the writer out of the way.
 			if (haveSource) {
 				setUpPosition(position, pieceList, cases[i]);
-				const BitbaseResult stored = source.probe(BoardAccess::getIndex<0>(position));
+				const uint64_t index = BoardAccess::getIndex<0>(position);
+
+				// An index whose reverse hands back another member of the same class is
+				// marked illegal by the generator, and the compressor fills such an entry
+				// with a neighbour's value. There is no value to compare there.
+				const ReverseIndex reverseIndex(index, pieceList);
+				MoveGenerator canonical;
+				bool hasValue = reverseIndex.isLegal();
+				if (hasValue) {
+					canonical.clear();
+					canonical.unsafeSetPiece(reverseIndex.getSquare(0), WHITE_KING);
+					canonical.unsafeSetPiece(reverseIndex.getSquare(1), BLACK_KING);
+					for (uint32_t p = 2; p < pieceList.getNumberOfPieces(); ++p)
+						canonical.unsafeSetPiece(reverseIndex.getSquare(p), pieceList.getPiece(p));
+					canonical.computeAttackMasksForBothColors();
+					canonical.setWhiteToMove(reverseIndex.isWhiteToMove());
+					hasValue = canonical.isLegal() && BoardAccess::getIndex<0>(canonical) == index;
+				}
+
+				if (!hasValue) { ++generatorNoValue; }
+				else {
+				const BitbaseResult stored = source.probe(index);
 				const int fromWhite = stored == BitbaseResult::Win ? 1
 					: stored == BitbaseResult::Loss ? -1 : 0;
 				const int fromMover = cases[i].whiteToMove ? fromWhite : -fromWhite;
-				if (fromMover != sign(reference)) ++generatorDifferences;
+				// Below the true value is what the format allows: the reader takes the
+				// better of the entry and the captures, so an entry may sit low wherever a
+				// capture reaches the value. Above it is an error under any reading.
+				if (fromMover < sign(reference)) ++generatorTooLow;
+				if (fromMover > sign(reference)) ++generatorTooHigh;
+				}
 			}
 
 			if (sign(ours) != sign(reference)) {
@@ -492,8 +520,9 @@ namespace QaplaBitbase {
 		log << differences << " positions differ in sign" << std::endl;
 
 		if (haveSource)
-			log << generatorDifferences << " positions where the generator itself differs from "
-				"the reference" << std::endl;
+			log << "the generator itself: " << generatorTooLow << " below the true value, "
+				<< generatorTooHigh << " above it, " << generatorNoValue
+				<< " with no value of their own" << std::endl;
 
 		return differences == 0;
 	}
