@@ -79,4 +79,12 @@ namespace QaplaBitbase {
 	bool measureSyzygySpeed(const std::string& pieceString, const std::string& ourDir,
 		const std::string& refDir, uint64_t amount, std::ostream& log);
 
+
+	/**
+	 * Prints the stored entry and the resolved value of one position, for a set of
+	 * files. The board is the placement part of a FEN.
+	 */
+	bool probeSyzygyPosition(const std::string& board, bool whiteToMove,
+		const std::string& directory, const std::string& qwdlFile, std::ostream& log);
+
 }

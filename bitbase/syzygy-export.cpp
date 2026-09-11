@@ -30,6 +30,7 @@
 
 #include "bitbase.h"
 #include "boardaccess.h"
+#include "bitbase-reader.h"
 #include "bitbase-repairfile.h"
 #include "bitbaseindex.h"
 #include "piecelist.h"
@@ -643,6 +644,69 @@ namespace QaplaBitbase {
 			log << "  TOO SLOW: more than " << TOLERANCE << " times the reference" << std::endl;
 			return false;
 		}
+		return true;
+	}
+
+
+	/**
+	 * Prints what one position gets out of a set of files: the stored entry as it
+	 * stands, and the value after the captures are resolved.
+	 *
+	 * The two differ wherever a capture already reaches the value - that is what the
+	 * format allows and what the writer uses. Anything that reads the entry without
+	 * resolving gets the first number, and it is a lower bound, not an answer.
+	 */
+	bool probeSyzygyPosition(const std::string& board, bool whiteToMove,
+		const std::string& directory, const std::string& qwdlFile, std::ostream& log) {
+
+		MoveGenerator position;
+		position.clear();
+
+		int square = 56;
+		for (const char c : board) {
+			if (c == '/') { square -= 16; continue; }
+			if (c >= '1' && c <= '8') { square += c - '0'; continue; }
+			const Piece piece = charToPiece(c);
+			if (piece == NO_PIECE) { log << "cannot read " << board << std::endl; return false; }
+			position.unsafeSetPiece(Square(square), piece);
+			++square;
+		}
+		position.setWhiteToMove(whiteToMove);
+		position.computeAttackMasksForBothColors();
+
+		if (setPath(directory).wdlFiles == 0) {
+			log << "no table found in " << directory << std::endl;
+			release();
+			return false;
+		}
+
+		log << board << (whiteToMove ? " w" : " b") << "  in " << directory << ":" << std::endl;
+		log << "  legal: " << (position.isLegal() ? "yes" : "no") << std::endl;
+
+		TbPosition tbPosition{};
+		if (buildTbPosition(position, tbPosition)) {
+			const WdlEntry entry = probeWdlEntry(tbPosition);
+			log << "  stored entry:   "
+				<< (entry.status == Status::Ok ? wdlName(entry.value) : "no table") << std::endl;
+		}
+
+		const std::optional<Wdl> resolved = resolveWdl(position);
+		log << "  after captures: " << (resolved ? wdlName(*resolved) : "unknown") << std::endl;
+
+		// What the generator itself holds, unlowered - the file cannot say, because the
+		// writer is free to store below the true value wherever a capture reaches it.
+		// Asked the way the generator asks it: registered by material, and read through
+		// getValueFromSingleBitbase, which mirrors when the position has the material the
+		// other way round. Reading the file directly would answer the wrong table.
+		if (!qwdlFile.empty()) {
+			const std::filesystem::path path(qwdlFile);
+			const std::string pieces = path.stem().string();
+			BitbaseReader::registerQwdlFile(pieces, qwdlFile);
+			log << "  generator:      " << to_string(BitbaseReader::getValueFromSingleBitbase(position))
+				<< " (white view, from " << pieces << ")" << std::endl;
+		}
+
+		release();
 		return true;
 	}
 

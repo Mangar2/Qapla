@@ -25,6 +25,7 @@
 
 #include "../search/clockmanager.h"
 
+#include <atomic>
 #include <iostream>
 #include "reverseindex.h"
 #include "bitbase.h"
@@ -81,6 +82,9 @@ namespace QaplaBitbase {
 	private:
 
 		string _syzygyPath = ".";
+
+		/** Captures that no table could answer while the current material was computed. */
+		std::atomic<uint64_t> _missingDependencies = 0;
 
 		/**
 		 * Dispatches high-level aliases (3/4/5/6) and then computes the requested bitbase.

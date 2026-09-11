@@ -541,8 +541,23 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 		}
 		position.doMove(move);
 		BitbaseResult readerResult = BitbaseReader::getValueFromSingleBitbase(position);
+		const string missingMaterial = readerResult == BitbaseResult::Unknown
+			? PieceList(position).getPieceString() : string();
 		position.undoMove(move, snapshot);
-		assert(readerResult != BitbaseResult::Unknown); // Bitmaps of Reader are complete.
+
+		// No table for the material this capture leads into. Every branch below reacts to
+		// Win, Loss or Draw, so an unanswered capture would simply drop out of the
+		// reckoning and the position would be decided as if the move did not exist - which
+		// is how a missing dependency used to turn into a wrong value instead of an error.
+		if (readerResult == BitbaseResult::Unknown) {
+			if (_missingDependencies++ == 0) {
+				cerr << endl << "Error: no bitbase for " << missingMaterial
+					<< ", reached by " << move.getLAN() << " from " << position.getFen(0)
+					<< " - the table being computed will be wrong" << endl;
+			}
+			anyUnknown = true;
+			continue;
+		}
 
 		// Results are stored from white's perspective.
 		// A single winning move is enough to declare the position won for the side to move.
@@ -748,6 +763,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, bool gen
 
 	cout << pieceString << " using " << _cores << " threads " << std::flush;
 
+	_missingDependencies = 0;
 	GenerationState state(pieceList, pieceSignature.getPiecesSignature());
 	ClockManager clock;
 	clock.setStartTime();
@@ -791,6 +807,11 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, bool gen
 	{
 		state.generateCpp(pieceString);
 	}
+
+	if (_missingDependencies > 0)
+		cerr << pieceString << ": " << _missingDependencies
+			<< " captures had no bitbase to answer them - this table is not trustworthy"
+			<< endl;
 
 	// Write a Re-Pair + Huffman compressed copy, register it for subordinate lookups,
 	// and verify every position.  The .qwdl file replaces the in-memory Bitbase: subsequent
@@ -860,7 +881,18 @@ void BitbaseGenerator::computeBitbaseRec(PieceList &pieceList, bool first, bool 
 	if (pieceList.getNumberOfPieces() <= 2)
 		return;
 	string pieceString = pieceList.getPieceString();
-	if (pieceString.substr(0, 2) == "KK") return;
+
+	// White holds nothing but the king. There is no table of that shape - it is the
+	// mirror of a white-strong one, and that is the table a capture into this material
+	// is answered from. Asking for the mirror here is what makes it a dependency;
+	// without it the parent is computed while the answer does not exist yet.
+	if (pieceString.substr(0, 2) == "KK") {
+		PieceList mirrored(pieceList);
+		mirrored.toSymetric();
+		computeBitbaseRec(mirrored, false, generateCpp);
+		return;
+	}
+
 	if (!first && BitbaseReader::isBitbaseAvailable(pieceString)) return;
 	BitbaseReader::loadBitbase(pieceString, false);
 

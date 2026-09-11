@@ -68,6 +68,11 @@ namespace QaplaInterface {
 		void speedSyzygy();
 
 		/**
+		 * Prints stored entry and resolved value of one position
+		 */
+		void probeSyzygy();
+
+		/**
 		 * handles a verify EGTB command
 		 */
 		void verifyBitbases();

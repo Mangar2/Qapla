@@ -156,6 +156,19 @@ void BitbaseInterface::speedSyzygy() {
 	println(fastEnough ? "not slower" : "SLOWER");
 }
 
+void BitbaseInterface::probeSyzygy() {
+	const string board = getNextTokenBlocking(true);
+	if (board == "\r" || board == "\n") {
+		println("usage bitsyzygyprobe board w|b directory [qwdl file]");
+		return;
+	}
+	const bool whiteToMove = getNextTokenBlocking(true) != "b";
+	const string directory = getNextTokenBlocking(true);
+	string qwdlFile;
+	if (getNextTokenBlocking(true) == "qwdl") qwdlFile = getNextTokenBlocking(true);
+	QaplaBitbase::probeSyzygyPosition(board, whiteToMove, directory, qwdlFile, std::cout);
+}
+
 /*
  * Processes any input from stdio
  */
@@ -185,4 +198,5 @@ void BitbaseInterface::handleInput() {
 	else if (token == "bitsyzygy") writeSyzygy();
 	else if (token == "bitsyzygycheck") checkSyzygy();
 	else if (token == "bitsyzygyspeed") speedSyzygy();
+	else if (token == "bitsyzygyprobe") probeSyzygy();
 }
