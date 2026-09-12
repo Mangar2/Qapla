@@ -324,10 +324,21 @@ namespace QaplaBitbase {
 		 */
 		void printStatistic() {
 			_totalEntryCount += _entryCount;
-			uint64_t draw    = _computedResults.computeResults(BitbaseResult::Draw);
-			uint64_t loss    = _computedResults.computeResults(BitbaseResult::Loss);
-			uint64_t win     = _computedResults.computeResults(BitbaseResult::Win);
-			uint64_t illegal = _computedResults.computeResults(BitbaseResult::Unknown);
+			uint64_t draw = 0, loss = 0, win = 0, illegal = 0;
+			for (uint64_t index = 0; index < _entryCount; ++index) {
+				// The distance pass leaves the value seen from the side to move.
+				BitbaseResult result = Dtz::toResult(_computedResults.getRawByte(index));
+				if ((index & 1) != 0) {
+					if (result == BitbaseResult::Win) result = BitbaseResult::Loss;
+					else if (result == BitbaseResult::Loss) result = BitbaseResult::Win;
+				}
+				switch (result) {
+				case BitbaseResult::Win:     ++win; break;
+				case BitbaseResult::Loss:    ++loss; break;
+				case BitbaseResult::Draw:    ++draw; break;
+				default:                     ++illegal; break;
+				}
+			}
 			uint64_t unknown = _entryCount - win - draw - loss - illegal;
 
 			cout

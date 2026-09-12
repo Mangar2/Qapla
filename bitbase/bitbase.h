@@ -50,6 +50,99 @@ namespace QaplaBitbase {
 
     std::string to_string(BitbaseResult result);
 
+    /**
+     * @brief What the byte of the generation state holds once distances are computed.
+     *
+     * The codes are de Man's, taken from rtbgenp.c of his generator, so that the two
+     * generators speak the same language and a value can be held against his without a
+     * translation in between. His pawn generator is the wider of the two: the pawnless
+     * one simply never writes the PAWN_ values.
+     *
+     * Unlike everything else in this generator the value is seen from the side to move,
+     * because that is how he writes it - he keeps a table per colour where we keep the
+     * colour in the lowest bit of the index. The two boundaries convert.
+     *
+     * A distance is the number of plies to the move that zeroes the fifty move counter:
+     * a capture, a pawn move, or the mate that ends the game. WIN_IN_ONE + i is a win in
+     * i + 1 plies, LOSS_IN_ONE - i a loss in i + 1, and MATE a loss in none.
+     */
+    namespace Dtz {
+        constexpr uint8_t ILLEGAL     = 0;
+        constexpr uint8_t CAPT_WIN    = 1;     ///< a capture wins: one ply to the zeroing
+        constexpr uint8_t PAWN_WIN    = 2;     ///< a pawn move wins: one ply to the zeroing
+        constexpr uint8_t WIN_IN_ONE  = 3;     ///< win in one ply, + i for i + 1 plies
+        constexpr uint8_t LOSS_IN_ONE = 0xf8;  ///< loss in one ply, - i for i + 1 plies
+        constexpr uint8_t MATE        = 0xf9;  ///< loss in no ply at all
+        constexpr uint8_t CAPT_DRAW   = 0xfa;  ///< a capture holds the draw
+        constexpr uint8_t PAWN_DRAW   = 0xfb;  ///< a pawn move holds the draw
+        constexpr uint8_t CAPT_CLOSS  = 0xfc;  ///< a capture leads into a cursed loss
+        constexpr uint8_t CHANGED     = 0xfd;  ///< marker of his iteration
+        constexpr uint8_t UNKNOWN     = 0xfe;
+        constexpr uint8_t BROKEN      = 0xff;
+
+        /// The fifty move rule in plies: a win beyond it is a cursed win.
+        constexpr int DRAW_RULE = 100;
+
+        constexpr uint8_t CAPT_CWIN = uint8_t(WIN_IN_ONE + DRAW_RULE);  ///< cursed win by capture
+        constexpr uint8_t PAWN_CWIN = uint8_t(CAPT_CWIN + 1);          ///< cursed win by pawn move
+
+        /**
+         * Decided, but the distance is not computed yet.
+         *
+         * He has no such state: his iteration finds the result and the distance in one
+         * pass, so a position is either decided with its distance or UNKNOWN. The two
+         * phases here need it, and his encoding has room for exactly two codes - the
+         * ones where the win ladder ends and the loss ladder ends. Using them caps a
+         * distance at what fits below, which is around 120 plies. Three and four piece
+         * tables reach 66, so the cap is a limit of this generator, not of the format:
+         * he goes deeper by saving a layer to disk and rescaling the byte.
+         */
+        constexpr uint8_t WIN_OPEN  = 126;
+        constexpr uint8_t LOSS_OPEN = 127;
+
+        /// The longest distance that fits below the two open codes.
+        constexpr int MAX_PLIES = 120;
+
+        /// Won by the side to move, whether or not the distance is known yet.
+        inline bool isWin(uint8_t value) {
+            return value >= CAPT_WIN && value <= WIN_OPEN;
+        }
+        /// Lost by the side to move, whether or not the distance is known yet.
+        inline bool isLoss(uint8_t value) {
+            return value >= LOSS_OPEN && value <= MATE;
+        }
+        inline bool isOpen(uint8_t value) {
+            return value == WIN_OPEN || value == LOSS_OPEN;
+        }
+        /// Decided and with its distance computed.
+        inline bool hasDistance(uint8_t value) {
+            return (value >= CAPT_WIN && value < WIN_OPEN)
+                || (value > LOSS_OPEN && value <= MATE);
+        }
+
+        /// Plies to the zeroing move. Only meaningful for a value that carries a distance.
+        inline int plies(uint8_t value) {
+            if (value == CAPT_WIN || value == PAWN_WIN) return 1;
+            if (value > LOSS_OPEN) return MATE - value;
+            return value - WIN_IN_ONE + 1;
+        }
+
+        /// The value for a distance, on the side the open value names.
+        inline uint8_t of(uint8_t openValue, int plies) {
+            return openValue == WIN_OPEN ? uint8_t(WIN_IN_ONE + plies - 1)
+                                         : uint8_t(MATE - plies);
+        }
+
+        /// Win, draw or loss of the entry, seen from the side to move. Everything that
+        /// is neither decided nor illegal is a draw, which is what UNKNOWN means once
+        /// the passes are through.
+        inline BitbaseResult toResult(uint8_t value) {
+            if (isWin(value))  return BitbaseResult::Win;
+            if (isLoss(value)) return BitbaseResult::Loss;
+            return value == ILLEGAL ? BitbaseResult::Unknown : BitbaseResult::Draw;
+        }
+    }
+
     class Bitbase {
     public:
         /**
@@ -210,6 +303,12 @@ namespace QaplaBitbase {
         void setByte(uint64_t index, BitbaseResult value) {
             _bitbase[index] = bbt_t(value);
         }
+
+        /** @brief The raw byte of an entry, for the distance encoding. */
+        uint8_t getRawByte(uint64_t index) const { return _bitbase[index]; }
+
+        /** @brief Writes the raw byte of an entry, for the distance encoding. */
+        void setRawByte(uint64_t index, uint8_t value) { _bitbase[index] = value; }
 
         /**
          * @brief Clears two bits (sets to 0).

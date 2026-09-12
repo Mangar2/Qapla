@@ -163,7 +163,7 @@ namespace QaplaBitbase {
 		 * @param move Partially constructed move with moving piece and departure set.
 		 * @param verbose Enables detailed debug output.
 		 */
-		static void addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
+		void addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
 			Bitbase& computedResults, GenerationState& state);
 
 		template <Piece COLOR>
@@ -288,6 +288,51 @@ namespace QaplaBitbase {
 		void computeBitbase(GenerationState& state, ClockManager& clock);
 
 		/**
+		 * Computes the distance to the zeroing move for every decided position.
+		 *
+		 * Runs after the win, draw and loss of every position is known, and needs it:
+		 * whether a capture or a pawn move keeps the win is a question the result
+		 * answers, and only then does the distance of the position follow.
+		 *
+		 * @param state Current computation state, holding the finished result.
+		 */
+		void computeDistances(GenerationState& state);
+
+		/**
+		 * Writes the distance of one position if it can be computed now.
+		 *
+		 * The winner takes the shortest way to a zeroing move, the loser the longest.
+		 * A quiet move adds one ply to the distance of the position it leads to; a
+		 * capture, a promotion or a pawn move is itself the zeroing move and counts one.
+		 * Mate is zero: the game ends there.
+		 *
+		 * The winner can be answered as soon as one move is resolved, because distances
+		 * are found in ascending order and the first one is therefore the smallest. The
+		 * loser needs every move resolved.
+		 *
+		 * @param index Bitbase index of the position.
+		 * @param position The position itself.
+		 * @param state Mutable generation state.
+		 * @returns true when a distance was written.
+		 */
+		bool setDistance(uint64_t index, MoveGenerator& position, GenerationState& state);
+
+		/**
+		 * The distances a position has without any other position being known: mate,
+		 * and the zeroing move that keeps the win - which is answered by the tables one
+		 * capture down and, for a pawn move, by this table's own result.
+		 *
+		 * @returns true when a distance was written.
+		 */
+		bool setInitialDistance(uint64_t index, MoveGenerator& position, GenerationState& state);
+
+		/** Processes one work package of the initial distance pass. */
+		void computeInitialDistanceWorkpackage(InitialWorkpackage& workpackage, GenerationState& state);
+
+		/** Processes one work package of one ply of the distance propagation. */
+		void computeDistanceWorkpackage(BitWorkpackage& workpackage, GenerationState& state);
+
+		/**
 		 * Sets the initial proven value for a position by consulting subordinate bitbases
 		 * via all capture and promotion moves.
 		 * Always writes at least the best already-achieved result into state:
@@ -338,7 +383,17 @@ namespace QaplaBitbase {
 		 * @param workpackage Shared work provider.
 		 * @param state Shared generation state.
 		 */
-		void computeInitialWorkpackage(InitialWorkpackage& workpackage, GenerationState& state);
+		/**
+		 * Processes one work package of the initial classification.
+		 *
+		 * @param level Only positions whose pawns have advanced this far are looked at,
+		 *              -1 for all of them.
+		 */
+		void computeInitialWorkpackage(InitialWorkpackage& workpackage, GenerationState& state,
+									   int level, bool firstLevel);
+
+		/** Runs the propagation rounds until no candidate is left. */
+		void propagate(GenerationState& state);
 		void markIllegalAsUnknown(GenerationState& state);
 
 		/**
@@ -373,6 +428,16 @@ namespace QaplaBitbase {
 		uint64_t _debugIndex;
 		int _debugLevel;
 		static constexpr uint64_t _packageSize = 100000;
+
+		/// True while the distance pass runs, which changes what "already decided" means
+		/// for the candidate filter in addToCandidates.
+		bool _distancePhase = false;
+
+		/// True while the table is computed level by level of pawn advancement.
+		bool _levelWise = false;
+
+		/// Distances that did not fit in the byte of the generation state.
+		std::atomic<uint64_t> _distanceOverflow{ 0 };
 
 		static constexpr uint32_t MAX_THREADS = 64;
 		array<thread, MAX_THREADS> _threads;
