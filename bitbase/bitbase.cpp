@@ -70,6 +70,11 @@ namespace QaplaBitbase {
         std::fill(_bitbase.begin(), _bitbase.end(), bbt_t(value));
     }
 
+    void Bitbase::fillAll(uint8_t value) {
+        assert(_bitsPerEntry == 8);
+        std::fill(_bitbase.begin(), _bitbase.end(), value);
+    }
+
     void Bitbase::setBit(uint64_t index) {
 		assert(isLoaded());
         if (index >= sizeInBits()) return;

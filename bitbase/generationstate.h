@@ -54,7 +54,7 @@ namespace QaplaBitbase {
 			// It is also the shape a distance needs, once the value is one.
 			_computedResults = Bitbase(_entryCount, 8, sig);
 			_computedResults.resize(_entryCount);
-			_computedResults.fillAll(BitbaseResult::Unknown);
+			_computedResults.fillAll(Dtz::UNKNOWN);
 			_computedResults.setLoaded();
 			_candidates = Bitbase(_entryCount, 1, sig);
 			_candidates.resize(_entryCount);
@@ -84,6 +84,11 @@ namespace QaplaBitbase {
 			return r == BitbaseResult::Win || r == BitbaseResult::Loss;
 		}
 
+		/** Nothing more to compute for this entry. */
+		bool isFinal(uint64_t index) const {
+			return Dtz::isDone(_computedResults.getRawByte(index));
+		}
+
 		/**
 		 * Checks whether a position should be processed in the current pass.
 		 *
@@ -92,8 +97,7 @@ namespace QaplaBitbase {
 		 * @returns True when the position is not yet computed and passes candidate filtering.
 		 */
 		bool isPositionToCheck(uint64_t index, bool onlyCandidates) {
-			return !isFinal(_computedResults.getByte(index)) &&
-				(!onlyCandidates || _candidates.getBit(index));
+			return !isFinal(index) && (!onlyCandidates || _candidates.getBit(index));
 		}
 
 		/**
@@ -103,7 +107,7 @@ namespace QaplaBitbase {
 		 * @returns True if the position is marked as computed.
 		 */
 		bool isPositionComputed(uint64_t index) {
-			return isFinal(_computedResults.getByte(index));
+			return isFinal(index);
 		}
 
 		/**
@@ -233,15 +237,29 @@ namespace QaplaBitbase {
 			_candidates.clearBit(index);
 		}
 
-		void setValue(uint64_t index, BitbaseResult value) {
-			_computedResults.setByte(index, value);
-			// Draw written here is an intermediate marker (drawing capture found during initialization),
-			// not a final result. It is NOT counted here; finalizeDraws() counts it when confirmed final.
-			_won  += (value == BitbaseResult::Win)  ? 1 : 0;
-			_loss += (value == BitbaseResult::Loss) ? 1 : 0;
-			_totalWon  += (value == BitbaseResult::Win)  ? 1 : 0;
-			_totalLoss += (value == BitbaseResult::Loss) ? 1 : 0;
+		/**
+		 * Writes a value in de Man's codes, seen from the side to move.
+		 *
+		 * @param index Bitbase index of the position.
+		 * @param value One of the codes of the Dtz namespace.
+		 */
+		void setValue(uint64_t index, uint8_t value) {
+			_computedResults.setRawByte(index, value);
+
+			// A draw marker says a zeroing move holds the draw; it is not a result and is
+			// not counted. Only a decided entry with a distance counts.
+			const bool whiteToMove = (index & 1) == 0;
+			if (Dtz::hasDistance(value)) {
+				const bool whiteWins = Dtz::isWin(value) == whiteToMove;
+				_won  += whiteWins ? 1 : 0;
+				_loss += whiteWins ? 0 : 1;
+				_totalWon  += whiteWins ? 1 : 0;
+				_totalLoss += whiteWins ? 0 : 1;
+			}
 		}
+
+		/** The raw value of an entry, in de Man's codes. */
+		uint8_t getValue(uint64_t index) const { return _computedResults.getRawByte(index); }
 
 		/**
 		 * Marks one index as won and computed.
@@ -249,9 +267,7 @@ namespace QaplaBitbase {
 		 * @param index Bitbase index to mark.
 		 */
 		void setWin(uint64_t index) {
-			_won++;
-			_totalWon++;
-			_computedResults.setByte(index, BitbaseResult::Win);
+			setValue(index, Dtz::WIN_IN_ONE);
 		}
 
 		/**
@@ -260,9 +276,7 @@ namespace QaplaBitbase {
 		 * @param index Bitbase index to mark.
 		 */
 		void setLoss(uint64_t index) {
-			_loss++;
-			_totalLoss++;
-			_computedResults.setByte(index, BitbaseResult::Loss);
+			setValue(index, Dtz::MATE);
 		}
 
 		/**
@@ -271,7 +285,7 @@ namespace QaplaBitbase {
 		 * @param index Bitbase index to mark.
 		 */
 		void setDraw(uint64_t index) {
-			_computedResults.setByte(index, BitbaseResult::Draw);
+			setValue(index, Dtz::UNKNOWN);
 		}
 
 
@@ -283,10 +297,9 @@ namespace QaplaBitbase {
 		void setIllegal(uint64_t index) {
 			_illegal++;
 			_totalIllegal++;
-			// Illegal positions are marked as Win so that isFinal() returns true and
-			// propagation never reclassifies them. Win=1 fits in 1 bit, preserving
-			// compressibility. Illegal indices are never queried during lookup.
-			_computedResults.setByte(index, BitbaseResult::Win);
+			// Illegal positions get their own code, which isDone() answers for, so the
+			// propagation never looks at them again. They are never queried on lookup.
+			_computedResults.setRawByte(index, Dtz::ILLEGAL);
 		}
 
 		/**
@@ -296,13 +309,12 @@ namespace QaplaBitbase {
 		 * initialization) are already Draw in the bitbase and need no write.
 		 * The draw counter is computed arithmetically at the end: no extra bitbase reads.
 		 */
-		void finalizeDraws() {
-			for (uint64_t index = 0; index < _entryCount; ++index) {
-				if (_computedResults.getByte(index) == BitbaseResult::Unknown) {
-					_computedResults.setByte(index, BitbaseResult::Draw);
-				}
-			}
-		}
+		/**
+		 * Nothing to do: what the passes could not prove is a draw, and UNKNOWN is the
+		 * code a draw carries - the same as in de Man's generator, whose iteration also
+		 * leaves them where they are.
+		 */
+		void finalizeDraws() {}
 
 		/**
 		 * Prints cumulative statistics across all generated bitbases.
@@ -326,7 +338,7 @@ namespace QaplaBitbase {
 			_totalEntryCount += _entryCount;
 			uint64_t draw = 0, loss = 0, win = 0, illegal = 0;
 			for (uint64_t index = 0; index < _entryCount; ++index) {
-				// The distance pass leaves the value seen from the side to move.
+				// The value is seen from the side to move, the statistic from white.
 				BitbaseResult result = Dtz::toResult(_computedResults.getRawByte(index));
 				if ((index & 1) != 0) {
 					if (result == BitbaseResult::Win) result = BitbaseResult::Loss;

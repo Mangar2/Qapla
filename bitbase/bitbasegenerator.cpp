@@ -164,7 +164,7 @@ BitbaseResult BitbaseGenerator::setComputeValue(
 	uint64_t index, MoveGenerator& position, QaplaBitbase::GenerationState &state, bool verbose)
 {
 	MoveList moveList;
-	bool whiteToMove = position.isWhiteToMove();
+	const bool whiteToMove = position.isWhiteToMove();
 	PieceList pieceList(position);
 	auto& bitbase = state.getComputedResults();
 
@@ -173,66 +173,76 @@ BitbaseResult BitbaseGenerator::setComputeValue(
 		printDebugInfo(position, index);
 	}
 
-	// Win and Loss are final, there is nothing left to find here. A Draw written during
-	// initialization is a marker instead: it says a drawing capture exists, so the
-	// position can never be forced into a loss - but a quiet move may still win it, and
-	// the double step below may need the correction, so it is not skipped.
-	const BitbaseResult currentResult = bitbase.getByte(index);
-	if (GenerationState::isFinal(currentResult)) {
-		return BitbaseResult::Unknown;
-	}
-	const bool canStillLose = currentResult == BitbaseResult::Unknown;
+	const uint8_t current = bitbase.getRawByte(index);
+	if (Dtz::isDone(current)) return BitbaseResult::Unknown;
 
-	// From white's point of view, for the side to move: white to move and losing is a
-	// Loss, black to move and losing is a Win.
-	const BitbaseResult lossForSideToMove = whiteToMove ? BitbaseResult::Loss : BitbaseResult::Win;
-	const BitbaseResult winForSideToMove = whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss;
+	// A zeroing move that holds the draw was written as a marker during the initial
+	// pass: the position can never be forced into a loss, but a quiet move may still
+	// win it.
+	const bool canStillLose = current == Dtz::UNKNOWN;
 
 	position.genMovesOfMovingColor(moveList);
+
+	// The winner takes the shortest way to the zeroing move, the loser the longest. The
+	// minimum over the moves that are answered already is the true minimum, because the
+	// distances are found in ascending order - what is still open can only be longer.
+	int shortestWin = INT_MAX;
+	int longestLoss = 1;
 	bool allMovesLose = true;
 
 	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
 	{
 		Move move = moveList[moveNo];
-		if (move.isCaptureOrPromote()) continue;
 
-		// In level mode the pawn moves were answered by the initial pass, together with
-		// the captures, and their value is not read again here.
+		// Captures, promotions and, in level mode, pawn moves zero the counter and were
+		// answered by the initial pass. What lies behind them never enters the distance
+		// of what lies before them.
+		if (move.isCaptureOrPromote()) continue;
 		if (_levelWise && isPawn(move.getMovingPiece())) continue;
 
 		const auto moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-		auto moveResult = bitbase.getByte(moveIndex);
-
-		// A pawn stepping two squares hands the opponent an en passant capture, and the
-		// entry of the child knows nothing about it - the index has no room for that
-		// right. See valueAfterDoubleStep.
-		if (isPawn(move.getMovingPiece())
-			&& abs(int(move.getDestination()) - int(move.getDeparture())) == 16) {
-			moveResult = valueAfterDoubleStep(position, move, moveResult);
-		}
+		const uint8_t child = bitbase.getRawByte(moveIndex);
 
 		if (verbose)
 		{
 			std::cout << move.getLAN() << ", index: " << moveIndex
-				<< ", value: " << to_string(moveResult) << std::endl;
+				<< ", value: " << int(child) << std::endl;
 		}
 
-		// One move into a position the side to move wins is enough.
-		if (moveResult == winForSideToMove) {
-			state.setValue(index, winForSideToMove);
-			return winForSideToMove;
+		if (!Dtz::hasDistance(child))
+		{
+			// Not answered yet, or a draw: either way this move is an escape.
+			allMovesLose = false;
+			continue;
 		}
 
-		// Anything that is not a loss is an escape, and Unknown is not decided yet.
-		if (moveResult != lossForSideToMove) allMovesLose = false;
+		// The position behind the move is seen from the opponent: his loss is our win.
+		if (Dtz::isLoss(child)) shortestWin = std::min(shortestWin, Dtz::plies(child) + 1);
+		else                    longestLoss = std::max(longestLoss, Dtz::plies(child) + 1);
 	}
 
-	// All quiet moves lead to a loss for the side to move, and the captures were
-	// evaluated during initialization. This is a final forced loss.
-	if (canStillLose && allMovesLose) {
-		state.setValue(index, lossForSideToMove);
-		return lossForSideToMove;
+	if (shortestWin != INT_MAX)
+	{
+		if (shortestWin > Dtz::MAX_PLIES && _distanceOverflow++ == 0)
+			cerr << endl << "Error: a distance of " << shortestWin
+				 << " plies does not fit in the byte of the generation state" << endl;
+
+		state.setValue(index, uint8_t(Dtz::WIN_IN_ONE + std::min(shortestWin, Dtz::MAX_PLIES) - 1));
+		return whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss;
 	}
+
+	// Every move loses, and the captures and pawn moves were established as losing by
+	// the initial pass - their zeroing is one ply, which is where longestLoss starts.
+	if (canStillLose && allMovesLose)
+	{
+		if (longestLoss > Dtz::MAX_PLIES && _distanceOverflow++ == 0)
+			cerr << endl << "Error: a distance of " << longestLoss
+				 << " plies does not fit in the byte of the generation state" << endl;
+
+		state.setValue(index, uint8_t(Dtz::MATE - std::min(longestLoss, Dtz::MAX_PLIES)));
+		return whiteToMove ? BitbaseResult::Loss : BitbaseResult::Win;
+	}
+
 	return BitbaseResult::Unknown;
 }
 
@@ -553,23 +563,14 @@ void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, Generatio
 				const uint64_t index = base + uint64_t(std::countr_zero(bits));
 				bits &= uint8_t(bits - 1);
 
-				const bool winningMove = workpackage.getCandidate(index) == 1;
-				const auto computedResult = state.getComputedResults().getByte(index);
-
 				if (index == _debugIndex)
 				{
-					cout << "Processing candidate index " << index << " with candidate result ";
-					cout << (winningMove ? "Winning" : "Losing") << endl;
+					cout << "Processing candidate index " << index << endl;
 				}
 
-				if (GenerationState::isFinal(computedResult)) {
-					continue;
-				}
+				if (state.isFinal(index)) continue;
+
 				ReverseIndex reverseIndex(index, state.getPieceList());
-
-				const bool directEntry = tryDirectEntry(index, winningMove,
-													   reverseIndex.isWhiteToMove(), state);
-
 				position.clear();
 				addPiecesToPosition(position, reverseIndex, state.getPieceList());
 				if (DO_DEBUG && _debugLevel > 0 && index != BoardAccess::getIndex<0>(position))
@@ -578,15 +579,13 @@ void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, Generatio
 					exit(1);
 				}
 
-				if (!directEntry) {
-					const auto result = computePosition(index, position, state);
-					if (result == BitbaseResult::Unknown) {
-						continue;
-					}
-				}
+				// The distance needs the moves, so there is no shortcut for a position
+				// that a candidate already names as won - the shortest of its moves has
+				// to be found.
+				const auto result = computePosition(index, position, state);
+				if (result == BitbaseResult::Unknown) continue;
 
-				const auto resolvedResult = state.getComputedResults().getByte(index);
-				computeCandidates(candidates, position, resolvedResult,
+				computeCandidates(candidates, position, result,
 								  state.getComputedResults(), index == _debugIndex, state);
 			}
 		}
@@ -650,6 +649,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 	// there is one level and nothing to order.
 	const uint32_t pawnCount = state.getPieceList().getNumberOfPawns();
 	_levelWise = pawnCount > 0;
+	_distanceOverflow = 0;
 
 	const int maxLevel = _levelWise ? 6 * int(pawnCount) : 0;
 	const int minLevel = _levelWise ? int(pawnCount) : 0;
@@ -685,7 +685,7 @@ void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &cloc
 	markIllegalAsUnknown(state);
 	timing.stop("mark illegal as unknown");
 
-	computeDistances(state);
+	reportDistances(state);
 }
 
 /**
@@ -743,6 +743,7 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 	bool anyDraw = false;
 
 	const bool pawnMovesAnswered = _levelWise;
+	bool drawByPawnMove = false;
 	PieceList pieceList(position);
 
 	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
@@ -765,11 +766,21 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 
 			const uint64_t moveIndex =
 				BoardAccess::getIndex(!position.isWhiteToMove(), pieceList, move);
-			readerResult = state.getComputedResults().getByte(moveIndex);
 
-			// The entry of a level that is through knows no Unknown any more: what was
-			// not proven is a draw.
-			if (readerResult == BitbaseResult::Unknown) readerResult = BitbaseResult::Draw;
+			// The entry is in de Man's codes and seen from its own side to move, which
+			// is the opponent here; the tables below answer from white, so this one is
+			// turned to white as well. What a finished level did not prove is a draw,
+			// which is what its UNKNOWN says.
+			const uint8_t childValue = state.getComputedResults().getRawByte(moveIndex);
+			const BitbaseResult childMoverView = Dtz::toResult(childValue);
+
+			readerResult = position.isWhiteToMove()
+				? (childMoverView == BitbaseResult::Win  ? BitbaseResult::Loss
+				 : childMoverView == BitbaseResult::Loss ? BitbaseResult::Win
+														 : BitbaseResult::Draw)
+				: (childMoverView == BitbaseResult::Win  ? BitbaseResult::Win
+				 : childMoverView == BitbaseResult::Loss ? BitbaseResult::Loss
+														 : BitbaseResult::Draw);
 
 			// A pawn stepping two squares hands the opponent an en passant capture, and
 			// the entry of the child knows nothing about it.
@@ -799,39 +810,40 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 			continue;
 		}
 
-		// Results are stored from white's perspective.
-		// A single winning move is enough to declare the position won for the side to move.
-		if (readerResult == BitbaseResult::Win && position.isWhiteToMove())
+		// The tables answer from white's point of view, the value written here is seen
+		// from the side to move. A move that wins leads to a position the opponent has
+		// lost, and the move zeroes the counter - so the distance is one ply, and which
+		// kind of move it was is what de Man's two codes say.
+		const bool movePawn = !move.isCaptureOrPromote();
+
+		if (readerResult == (position.isWhiteToMove() ? BitbaseResult::Win : BitbaseResult::Loss))
 		{
-			state.setValue(index, BitbaseResult::Win);
-			return BitbaseResult::Win;
+			state.setValue(index, movePawn ? Dtz::PAWN_WIN : Dtz::CAPT_WIN);
+			return position.isWhiteToMove() ? BitbaseResult::Win : BitbaseResult::Loss;
 		}
-		if (readerResult == BitbaseResult::Loss && !position.isWhiteToMove())
-		{
-			state.setValue(index, BitbaseResult::Loss);
-			return BitbaseResult::Loss;
-		}
+
 		// The side to move already has a proven draw.
 		if (readerResult == BitbaseResult::Draw)
 		{
 			anyDraw = true;
+			drawByPawnMove = drawByPawnMove || movePawn;
 		}
 	}
 	if (anyDraw) {
-		// Case 2: a drawing capture exists — the side to move can always escape to at least
-		// a draw, so this position can never be forced into a Loss. Write Draw as a marker
-		// so setComputeValue skips it. Win is still possible via tryDirectEntry.
-		state.setValue(index, BitbaseResult::Draw);
+		// A zeroing move holds the draw, so this position can never be forced into a
+		// loss - which is what the marker tells the propagation. A win through a quiet
+		// move is still open.
+		state.setValue(index, drawByPawnMove ? Dtz::PAWN_DRAW : Dtz::CAPT_DRAW);
 	}
 	if (anyDraw || anyUnknown) {
-		// Both Draw and Unknown are non-final: return Unknown so neither branch
-		// generates candidates (only Win/Loss do).
+		// Neither is a result: return Unknown so that no candidates are generated.
 		return BitbaseResult::Unknown;
 	}
-	// Case 4: all moves were captures/promotions and all lose for the side to move — final.
-	const BitbaseResult worstCase = position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
-	state.setValue(index, worstCase);
-	return worstCase;
+
+	// Every move zeroes the counter and every one of them loses. The longest way to the
+	// zeroing move is therefore one ply.
+	state.setValue(index, uint8_t(Dtz::MATE - 1));
+	return position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
 }
 
 /**
@@ -845,23 +857,17 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 BitbaseResult BitbaseGenerator::setMateOrStalemate(QaplaMoveGenerator::MoveGenerator &position, const uint64_t index,
 											QaplaBitbase::GenerationState &state)
 {
-	if (!position.isWhiteToMove() && position.isInCheck())
+	if (position.isInCheck())
 	{
 		if (DO_DEBUG && index == _debugIndex)
 		{
-			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is win by mate (move generator) " << endl;
+			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is mate (move generator) " << endl;
 		}
-		state.setWin(index);
-		return BitbaseResult::Win;
-	}
-	if (position.isWhiteToMove() && position.isInCheck())
-	{
-		if (DO_DEBUG && index == _debugIndex)
-		{
-			cout << _debugIndex << " , Fen: " << position.getFen(0) << " is loss by mate (move generator) " << endl;
-		}
-		state.setLoss(index);
-		return BitbaseResult::Loss;
+
+		// Mate is a loss for the side to move in no ply at all: the game ends here, and
+		// the fifty move counter never has to be zeroed again.
+		state.setValue(index, Dtz::MATE);
+		return position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
 	}
 	if (DO_DEBUG && index == _debugIndex)
 	{
@@ -975,292 +981,31 @@ void BitbaseGenerator::computeInitialWorkpackage(InitialWorkpackage &workpackage
 	}
 }
 
-bool BitbaseGenerator::setDistance(uint64_t index, MoveGenerator& position, GenerationState& state)
+/**
+ * Reports what the distances came out at, and that none is missing.
+ *
+ * A decided position always has a distance: a forced win ends in mate, and mate is
+ * zero. One without is a fault of the passes, not a draw.
+ */
+void BitbaseGenerator::reportDistances(GenerationState& state)
 {
-	auto& bitbase = state.getComputedResults();
-	const uint8_t open = bitbase.getRawByte(index);
-	if (!Dtz::isOpen(open)) return false;
-
-	const bool whiteToMove = position.isWhiteToMove();
-	const bool moverWins = open == Dtz::WIN_OPEN;
-
-	MoveList moveList;
-	position.genMovesOfMovingColor(moveList);
-	PieceList pieceList(position);
-
-	int distance = moverWins ? INT_MAX : 0;
-
-	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
-	{
-		const Move move = moveList[moveNo];
-
-		// A capture, a promotion and a pawn move zero the counter. What the position
-		// behind them is worth does not enter the distance, only that the zeroing move
-		// is one ply away. For the winner such a move is worth taking only when it keeps
-		// the win, which the initial pass has already answered; here it is enough that
-		// the loser cannot do better than one.
-		if (move.isCaptureOrPromote() || isPawn(move.getMovingPiece()))
-		{
-			if (!moverWins) distance = std::max(distance, 1);
-			continue;
-		}
-
-		const uint64_t moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-		const uint8_t child = bitbase.getRawByte(moveIndex);
-
-		if (moverWins)
-		{
-			// A move that keeps the win leads to a position the opponent has lost, and
-			// it counts only once that position has its distance.
-			if (!Dtz::isLoss(child) || !Dtz::hasDistance(child)) continue;
-			distance = std::min(distance, Dtz::plies(child) + 1);
-		}
-		else
-		{
-			// Every move of a lost position leads to one the opponent has won, so an
-			// entry without a distance means the longest way is not known yet.
-			if (!Dtz::hasDistance(child)) return false;
-			distance = std::max(distance, Dtz::plies(child) + 1);
-		}
-	}
-
-	if (moverWins && distance == INT_MAX) return false;
-
-	if (distance > Dtz::MAX_PLIES) {
-		if (_distanceOverflow++ == 0)
-			cerr << endl << "Error: a distance of " << distance
-				 << " plies does not fit in the byte of the generation state" << endl;
-		distance = Dtz::MAX_PLIES;
-	}
-
-	bitbase.setRawByte(index, Dtz::of(open, distance));
-	return true;
-}
-
-bool BitbaseGenerator::setInitialDistance(uint64_t index, MoveGenerator& position, GenerationState& state)
-{
-	auto& bitbase = state.getComputedResults();
-	const uint8_t open = bitbase.getRawByte(index);
-	if (!Dtz::isOpen(open)) return false;
-
-	const bool whiteToMove = position.isWhiteToMove();
-
-	// The loser has nothing to look up: mate and a position whose every move zeroes the
-	// counter are the two cases the general rule settles on its own.
-	if (open != Dtz::WIN_OPEN) return setDistance(index, position, state);
-
-	MoveList moveList;
-	position.genMovesOfMovingColor(moveList);
-	PieceList pieceList(position);
-	const PositionSnapshot snapshot = position.getSnapshot();
-
-	// The position behind a move that keeps the win is one the opponent has lost. Seen
-	// from white that is a Win when black moves there and a Loss when white does.
-	const BitbaseResult keepsTheWin = whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss;
-
-	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
-	{
-		const Move move = moveList[moveNo];
-		const bool capture = move.isCaptureOrPromote();
-
-		if (!capture && !isPawn(move.getMovingPiece())) continue;
-
-		if (capture)
-		{
-			// The material changes, so the answer comes from the table one capture down,
-			// which answers from white's point of view like every table here.
-			position.doMove(move);
-			const BitbaseResult afterMove = BitbaseReader::getValueFromSingleBitbase(position);
-			position.undoMove(move, snapshot);
-
-			if (afterMove == keepsTheWin) {
-				bitbase.setRawByte(index, Dtz::CAPT_WIN);
-				return true;
-			}
-			continue;
-		}
-
-		// A pawn move stays in this table, and the result of the position it leads to is
-		// known: the distance pass runs after the result is finished. The entry there is
-		// seen from its own side to move, so it has to be a loss for it.
-		const uint64_t moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-		const uint8_t child = bitbase.getRawByte(moveIndex);
-		BitbaseResult afterMove = Dtz::toResult(child) == BitbaseResult::Win
-			? (whiteToMove ? BitbaseResult::Loss : BitbaseResult::Win)
-			: Dtz::toResult(child) == BitbaseResult::Loss
-				? (whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss)
-				: BitbaseResult::Draw;
-
-		// A pawn stepping two squares hands the opponent an en passant capture, which
-		// the entry of the position behind it knows nothing about.
-		if (abs(int(move.getDestination()) - int(move.getDeparture())) == 16)
-			afterMove = valueAfterDoubleStep(position, move, afterMove);
-
-		if (afterMove == keepsTheWin) {
-			bitbase.setRawByte(index, Dtz::PAWN_WIN);
-			return true;
-		}
-	}
-
-	return false;
-}
-
-void BitbaseGenerator::computeInitialDistanceWorkpackage(InitialWorkpackage& workpackage, GenerationState& state)
-{
-	MoveGenerator position;
-	vector<CandidateEntry> candidates;
-	candidates.reserve(_packageSize * 2);
-
-	const uint64_t packageSize = min(_packageSize, (state.getEntryCount() + 5) / 5);
-	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(packageSize);
-
-	while (package.first < package.second)
-	{
-		for (uint64_t index = package.first; index < package.second; ++index)
-		{
-			if (!Dtz::isOpen(state.getComputedResults().getRawByte(index))) continue;
-
-			ReverseIndex reverseIndex(index, state.getPieceList());
-			position.clear();
-			addPiecesToPosition(position, reverseIndex, state.getPieceList());
-
-			if (!setInitialDistance(index, position, state)) continue;
-
-			computeCandidates(candidates, position,
-							  Dtz::toResult(state.getComputedResults().getRawByte(index)),
-							  state.getComputedResults(), index == _debugIndex, state);
-		}
-		state.setCandidatesTreadSafe(candidates);
-		candidates.clear();
-		package = workpackage.getNextPackageToExamine(packageSize);
-	}
-	state.setCandidatesTreadSafe(candidates);
-}
-
-void BitbaseGenerator::computeDistanceWorkpackage(BitWorkpackage& workpackage, GenerationState& state)
-{
-	MoveGenerator position;
-	vector<CandidateEntry> candidates;
-	candidates.reserve(_packageSize * 2);
-
-	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(_packageSize);
-	while (package.first < package.second)
-	{
-		for (uint64_t base = package.first; base < package.second; base += 8)
-		{
-			uint8_t bits = workpackage.getCandidateByte(base);
-
-			while (bits)
-			{
-				const uint64_t index = base + uint64_t(std::countr_zero(bits));
-				bits &= uint8_t(bits - 1);
-
-				if (!Dtz::isOpen(state.getComputedResults().getRawByte(index))) continue;
-
-				ReverseIndex reverseIndex(index, state.getPieceList());
-				position.clear();
-				addPiecesToPosition(position, reverseIndex, state.getPieceList());
-
-				if (!setDistance(index, position, state)) continue;
-
-				computeCandidates(candidates, position,
-								  Dtz::toResult(state.getComputedResults().getRawByte(index)),
-								  state.getComputedResults(), index == _debugIndex, state);
-			}
-		}
-		state.setCandidatesTreadSafe(candidates);
-		candidates.clear();
-		package = workpackage.getNextPackageToExamine(_packageSize);
-	}
-	state.setCandidatesTreadSafe(candidates);
-}
-
-void BitbaseGenerator::computeDistances(GenerationState& state)
-{
-	auto& timing = BitbaseProfiling::getStaticInstance();
-	auto& bitbase = state.getComputedResults();
 	const uint64_t entryCount = state.getEntryCount();
+	auto& bitbase = state.getComputedResults();
 
-	_distancePhase = true;
-	_distanceOverflow = 0;
-
-	// The finished result becomes the starting point: decided, distance still open.
-	timing.start("distance start");
-	for (uint64_t index = 0; index < entryCount; ++index)
-	{
-		// The result is seen from white, the distance from the side to move - and the
-		// side to move is the lowest bit of the index, even for white.
-		const bool whiteToMove = (index & 1) == 0;
-
-		switch (bitbase.getByte(index))
-		{
-		case BitbaseResult::Win:
-			bitbase.setRawByte(index, whiteToMove ? Dtz::WIN_OPEN : Dtz::LOSS_OPEN);
-			break;
-		case BitbaseResult::Loss:
-			bitbase.setRawByte(index, whiteToMove ? Dtz::LOSS_OPEN : Dtz::WIN_OPEN);
-			break;
-		case BitbaseResult::Draw:
-			bitbase.setRawByte(index, Dtz::UNKNOWN);
-			break;
-		default:
-			bitbase.setRawByte(index, Dtz::ILLEGAL);
-			break;
-		}
-	}
-	state.clearAllCandidates();
-	timing.stop("distance start");
-
-	// Mate, and the zeroing move that keeps the win.
-	timing.start("distance initial parallel");
-	{
-		InitialWorkpackage workpackage(entryCount);
-		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
-			_threads[threadNo] = thread([this, &workpackage, &state]()
-										{ computeInitialDistanceWorkpackage(workpackage, state); });
-		joinThreads();
-	}
-	timing.stop("distance initial parallel");
-
-	// One ply per round, one side to move per round, exactly as the result pass.
-	timing.start("distance propagation parallel");
-	int parity = 0;
-	for (uint32_t loopCount = 0; loopCount < 8192; loopCount++)
-	{
-		if (state.candidateCount(0) == 0 && state.candidateCount(1) == 0) break;
-
-		if (state.candidateCount(parity) > 0)
-		{
-			BitWorkpackage workpackage(state, parity);
-			state.clearCandidatesOfParity(parity);
-
-			for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
-				_threads[threadNo] = thread([this, &workpackage, &state]()
-											{ computeDistanceWorkpackage(workpackage, state); });
-			joinThreads();
-		}
-		parity = 1 - parity;
-	}
-	timing.stop("distance propagation parallel");
-
-	_distancePhase = false;
-
-	// What is left open is a bug: a forced win ends in mate, and mate is zero.
-	uint64_t open = 0;
 	uint64_t longest = 0;
 	uint64_t beyondFiftyMoves = 0;
+
 	for (uint64_t index = 0; index < entryCount; ++index)
 	{
 		const uint8_t value = bitbase.getRawByte(index);
-		if (Dtz::isOpen(value)) { ++open; continue; }
 		if (!Dtz::hasDistance(value)) continue;
+
 		longest = max<uint64_t>(longest, uint64_t(Dtz::plies(value)));
 		if (Dtz::plies(value) > Dtz::DRAW_RULE) ++beyondFiftyMoves;
 	}
 
 	cout << "Distances: longest " << longest << " plies, " << beyondFiftyMoves
 		 << " beyond the fifty move rule";
-	if (open > 0) cout << ", ERROR: " << open << " decided positions without a distance";
 	if (_distanceOverflow > 0) cout << ", ERROR: " << _distanceOverflow << " did not fit";
 	cout << endl;
 }
@@ -1271,14 +1016,14 @@ void BitbaseGenerator::markIllegalAsUnknown(GenerationState& state)
 	for (uint64_t index = 0; index < state.getEntryCount(); ++index) {
 		ReverseIndex reverseIndex(index, state.getPieceList());
 		if (!reverseIndex.isLegal()) {
-			state.getComputedResults().setByte(index, BitbaseResult::Unknown);
+			state.getComputedResults().setRawByte(index, Dtz::ILLEGAL);
 			continue;
 		}
 		position.clear();
 		addPiecesToPosition(position, reverseIndex, state.getPieceList());
 		uint64_t testIndex = BoardAccess::getIndex<0>(position);
 		if (index != testIndex || !position.isLegal()) {
-			state.getComputedResults().setByte(index, BitbaseResult::Unknown);
+			state.getComputedResults().setRawByte(index, Dtz::ILLEGAL);
 		}
 	}
 }
@@ -1327,7 +1072,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, bool gen
 		auto& bb = state.getComputedResults();
 		for (uint64_t idx = 0; idx < entryCount; ++idx) {
 			// Back from the side to move to white, which is what everything outside
-			// the distance pass reads.
+			// the generator reads.
 			const BitbaseResult mover = Dtz::toResult(bb.getRawByte(idx));
 			const bool whiteToMove = (idx & 1) == 0;
 			repairResults.push_back(

@@ -287,50 +287,8 @@ namespace QaplaBitbase {
 		 */
 		void computeBitbase(GenerationState& state, ClockManager& clock);
 
-		/**
-		 * Computes the distance to the zeroing move for every decided position.
-		 *
-		 * Runs after the win, draw and loss of every position is known, and needs it:
-		 * whether a capture or a pawn move keeps the win is a question the result
-		 * answers, and only then does the distance of the position follow.
-		 *
-		 * @param state Current computation state, holding the finished result.
-		 */
-		void computeDistances(GenerationState& state);
-
-		/**
-		 * Writes the distance of one position if it can be computed now.
-		 *
-		 * The winner takes the shortest way to a zeroing move, the loser the longest.
-		 * A quiet move adds one ply to the distance of the position it leads to; a
-		 * capture, a promotion or a pawn move is itself the zeroing move and counts one.
-		 * Mate is zero: the game ends there.
-		 *
-		 * The winner can be answered as soon as one move is resolved, because distances
-		 * are found in ascending order and the first one is therefore the smallest. The
-		 * loser needs every move resolved.
-		 *
-		 * @param index Bitbase index of the position.
-		 * @param position The position itself.
-		 * @param state Mutable generation state.
-		 * @returns true when a distance was written.
-		 */
-		bool setDistance(uint64_t index, MoveGenerator& position, GenerationState& state);
-
-		/**
-		 * The distances a position has without any other position being known: mate,
-		 * and the zeroing move that keeps the win - which is answered by the tables one
-		 * capture down and, for a pawn move, by this table's own result.
-		 *
-		 * @returns true when a distance was written.
-		 */
-		bool setInitialDistance(uint64_t index, MoveGenerator& position, GenerationState& state);
-
-		/** Processes one work package of the initial distance pass. */
-		void computeInitialDistanceWorkpackage(InitialWorkpackage& workpackage, GenerationState& state);
-
-		/** Processes one work package of one ply of the distance propagation. */
-		void computeDistanceWorkpackage(BitWorkpackage& workpackage, GenerationState& state);
+		/** Reports the distances that came out, and whether any is missing. */
+		void reportDistances(GenerationState& state);
 
 		/**
 		 * Sets the initial proven value for a position by consulting subordinate bitbases

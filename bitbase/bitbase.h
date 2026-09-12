@@ -114,10 +114,17 @@ namespace QaplaBitbase {
         inline bool isOpen(uint8_t value) {
             return value == WIN_OPEN || value == LOSS_OPEN;
         }
+        /// Nothing more to compute here: the distance is known, or there is no position.
+        inline bool isDone(uint8_t value);
+
         /// Decided and with its distance computed.
         inline bool hasDistance(uint8_t value) {
             return (value >= CAPT_WIN && value < WIN_OPEN)
                 || (value > LOSS_OPEN && value <= MATE);
+        }
+
+        inline bool isDone(uint8_t value) {
+            return hasDistance(value) || value == ILLEGAL;
         }
 
         /// Plies to the zeroing move. Only meaningful for a value that carries a distance.
@@ -220,6 +227,12 @@ namespace QaplaBitbase {
          * @param value Value to write into every entry.
          */
         void fillAll(BitbaseResult value);
+
+        /**
+         * @brief Fills every entry of a byte wide bitbase with one raw value.
+         * @param value Value to write into every entry.
+         */
+        void fillAll(uint8_t value);
 
         /**
          * @brief Clears every bit whose index has the given lowest bit.
