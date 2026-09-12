@@ -26,6 +26,7 @@
 #include <array>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <numeric>
 #include <queue>
 #include <unordered_map>
@@ -42,19 +43,25 @@ namespace QaplaSyzygy {
 		/**
 		 * Block sizes to try. Small blocks waste less on the padding behind the last
 		 * symbol of a block, large ones need fewer entries in the length array and in
-		 * the index. Which one wins depends on the table, and de Man's own files use
-		 * anything from 32 to 64 bytes - so the table is packed with each of them and
-		 * the smallest result is kept.
+		 * the index, so the table is packed with each of them and the smallest result is
+		 * kept.
+		 *
+		 * The list stops at 64 bytes because a probe pays for the block size: it decodes
+		 * its way from the start of the block to the entry it wants, so a block twice as
+		 * long is twice the decoding. 128 byte blocks were measured at 1.4 times the
+		 * probe time of de Man's tables for a few percent of size - his own files use
+		 * nothing above 64 bytes either.
 		 */
-		constexpr uint8_t LOG2_BLOCK_CANDIDATES[] = { 4, 5, 6, 7 };
+		constexpr uint8_t LOG2_BLOCK_CANDIDATES[] = { 4, 5, 6 };
 
 		/**
 		 * How far one sparse index entry may reach, in blocks. The index only shortens
 		 * the walk over the block lengths, so the span is made as wide as this allows -
 		 * a wide span costs a few steps of that walk and saves six bytes per entry.
-		 * de Man spends four entries on a table of a megabyte.
+		 * The bound is de Man's: he sets the span to sixteen times the entries an
+		 * average block holds, which is one entry per sixteen blocks.
 		 */
-		constexpr uint64_t SPARSE_INDEX_BLOCK_REACH = 32;
+		constexpr uint64_t SPARSE_INDEX_BLOCK_REACH = 16;
 
 		// ------------------------------------------------------------------
 		// Recursive pairing, then Huffman over what it leaves
@@ -87,25 +94,39 @@ namespace QaplaSyzygy {
 		constexpr uint32_t MIN_PAIR_COUNT = 4;
 
 		/**
-		 * Terminals per block. blockLength stores the count minus one in sixteen bits,
-		 * and a sparse index entry has to name an offset inside a block in sixteen bits
-		 * as well - with half a span added on top for the entries that sit past the end
-		 * of the table. Half of the range for the block and a quarter for the span
-		 * leaves both inside sixteen bits with room to spare.
+		 * Terminals per block: blockLength stores the count minus one in sixteen bits,
+		 * so this is the whole range the format offers.
+		 *
+		 * A sparse index entry has to name an offset inside a block in sixteen bits too,
+		 * and the entries past the end of the table would need more than that. They get
+		 * blocks that do not exist instead - see the padding below.
 		 */
-		constexpr uint32_t MAX_TERMINALS_PER_BLOCK = 32768;
+		constexpr uint32_t MAX_TERMINALS_PER_BLOCK = 65536;
+
+		/** Vocabulary of the estimate that ranks layouts against each other. */
+		constexpr uint32_t QUICK_SYMBOLS = 1024;
 
 		/**
-		 * Symbols per block. A probe decodes its way from the start of a block to the
-		 * entry it wants, so half a block is what an average probe costs - and a block
-		 * that is large in bytes and cheap in bits per symbol would hold a thousand of
-		 * them. de Man's tables sit below a hundred; this bound keeps the choice of the
-		 * block size from buying a few bytes with a slower probe.
+		 * Symbols a block may hold on average. A probe decodes its way from the start of
+		 * a block to the entry it wants, so half a block is what it costs, and the byte
+		 * size of the block alone does not say how much that is - a table whose codes are
+		 * one or two bits long packs several hundred symbols into 64 bytes.
+		 *
+		 * Without the bound the block size is chosen on size alone, and the largest one
+		 * usually wins by a few percent. KBvKP came out at 1.11 times the probe time of
+		 * de Man's tables that way, with 76 symbols in a 64 byte block where he holds 35
+		 * in a 32 byte one. At this bound it takes 0.86 times his time and three percent
+		 * more space.
 		 */
-		constexpr uint32_t MAX_SYMBOLS_PER_BLOCK = 128;
+		constexpr uint64_t MAX_AVERAGE_SYMBOLS_PER_BLOCK = 64;
 
-		/** Half of the widest span fits in what is left of the offset above. */
-		constexpr uint8_t MAX_LOG2_SPAN = 15;
+		/**
+		 * The widest span the search below will try. The stored offset of a sparse index
+		 * entry is how far into its block the position sits and therefore always fits in
+		 * its sixteen bits; what a wide span costs is the walk over block lengths, and
+		 * that is what SPARSE_INDEX_BLOCK_REACH bounds.
+		 */
+		constexpr uint8_t MAX_LOG2_SPAN = 24;
 
 		/**
 		 * The sequence of symbols and the rules that produce them.
@@ -143,7 +164,8 @@ namespace QaplaSyzygy {
 		 * the expansion limit stops the doubling. That is where nearly all of the
 		 * compression of an endgame table comes from.
 		 */
-		Grammar buildGrammar(const std::vector<uint8_t>& values) {
+		Grammar buildGrammar(const std::vector<uint8_t>& values,
+			uint32_t maxSymbols = MAX_SYMBOLS) {
 
 			Grammar grammar;
 
@@ -160,7 +182,7 @@ namespace QaplaSyzygy {
 			for (const uint8_t value : values)
 				grammar.sequence.push_back(uint16_t(symbolOfValue[value]));
 
-			while (grammar.left.size() < MAX_SYMBOLS && grammar.sequence.size() > 1) {
+			while (grammar.left.size() < maxSymbols && grammar.sequence.size() > 1) {
 
 				// Adjacent pairs, counted with overlap. A run of length n reports n - 1
 				// occurrences of (v, v) and the replacement below reaches half of them,
@@ -330,6 +352,8 @@ namespace QaplaSyzygy {
 			std::vector<uint8_t>  sparseIndex;  // six bytes per entry
 			std::vector<uint16_t> blockLength;  // terminals per block, as count - 1
 			std::vector<uint8_t>  data;
+
+			uint64_t bytes = 0;                 // what this table costs in the file
 		};
 
 		/**
@@ -373,7 +397,7 @@ namespace QaplaSyzygy {
 		 *          the stages against each other
 		 */
 		uint64_t encodeStage(const Grammar& grammar, const std::vector<uint16_t>& sequence,
-			uint64_t total, EncodedTable& table) {
+			uint64_t total, EncodedTable& table, bool quick = false) {
 
 			// Everything the sequence reaches. A rule refers to symbols made before it, so
 			// one pass downwards marks them all.
@@ -460,7 +484,6 @@ namespace QaplaSyzygy {
 				std::vector<uint64_t> terminalsBeforeBlock{ 0 };
 				size_t   bitPos = 0;
 				uint32_t inBlock = 0;
-				uint32_t symbolsInBlock = 0;
 				uint64_t written = 0;
 
 				const auto closeBlock = [&]() {
@@ -478,8 +501,7 @@ namespace QaplaSyzygy {
 					const uint32_t terminals = grammar.terminals[symbol];
 
 					if (bitPos + code.length > blockBits
-						|| inBlock + terminals > MAX_TERMINALS_PER_BLOCK
-						|| symbolsInBlock == MAX_SYMBOLS_PER_BLOCK)
+						|| inBlock + terminals > MAX_TERMINALS_PER_BLOCK)
 						closeBlock();
 
 					for (int bit = code.length - 1; bit >= 0; --bit) {
@@ -488,16 +510,15 @@ namespace QaplaSyzygy {
 						++bitPos;
 					}
 					inBlock += terminals;
-					++symbolsInBlock;
 				}
 
 				if (inBlock > 0) closeBlock();
 				out.blocksNum = uint32_t(out.blockLength.size());
 				out.log2BlockBytes = log2BlockBytes;
 
-				// One entry per span positions, made as wide as the sixteen bit offset of an
-				// entry allows: a wide span only means that the reader walks a few more block
-				// lengths before it decodes.
+				// One entry per span positions, made as wide as the walk over the block
+				// lengths bears: a wide span costs the reader a few more steps of that walk
+				// and saves six bytes per entry.
 				const uint64_t dataBytes = uint64_t(out.blocksNum) * blockBytes;
 
 				for (out.log2Span = MAX_LOG2_SPAN; ; --out.log2Span) {
@@ -506,6 +527,20 @@ namespace QaplaSyzygy {
 					const uint64_t entries = (total + span - 1) / span;
 
 					if (out.log2Span > 6 && entries * SPARSE_INDEX_BLOCK_REACH < out.blocksNum) continue;
+					if (out.log2Span > 6 && (uint64_t(1) << (out.log2Span - 1)) > total) continue;
+
+					// An entry describes the position half a span into its range, and the last
+					// of them lies past the end of the table. It is given blocks that do not
+					// exist: block lengths are written for them so that the offset of the entry
+					// stays inside its sixteen bits, while the data ends with the last real
+					// block. The reader only ever walks from such an entry towards the position
+					// it was asked about, which lies inside the table, so it never decodes one.
+					const uint64_t last = (entries - 1) * span + span / 2;
+					const uint64_t missing = last < total ? 0
+						: (last - total) / MAX_TERMINALS_PER_BLOCK + 1;
+
+					if (missing > 0xFF) continue;
+					out.padding = uint8_t(missing);
 
 					out.sparseIndex.clear();
 					out.sparseIndex.reserve(size_t(entries) * 6);
@@ -513,17 +548,22 @@ namespace QaplaSyzygy {
 
 					for (uint64_t k = 0; k < entries; ++k) {
 
-						// The entry describes the position half a span into its range. That
-						// position may sit past the last value of the table, and is then counted
-						// on past the end of the last block: the reader adds idx % span - span / 2
-						// before it looks at any block length, so the correction lands back inside
-						// the table for every index it is asked about.
 						const uint64_t position = k * span + span / 2;
 
-						const auto it = std::upper_bound(terminalsBeforeBlock.begin(),
-							terminalsBeforeBlock.end(), std::min(position, total - 1));
-						const uint32_t blockIndex = uint32_t(it - terminalsBeforeBlock.begin() - 1);
-						const uint64_t offset = position - terminalsBeforeBlock[blockIndex];
+						uint32_t blockIndex;
+						uint64_t offset;
+
+						if (position < total) {
+							const auto it = std::upper_bound(terminalsBeforeBlock.begin(),
+								terminalsBeforeBlock.end(), position);
+							blockIndex = uint32_t(it - terminalsBeforeBlock.begin() - 1);
+							offset = position - terminalsBeforeBlock[blockIndex];
+						}
+						else {
+							const uint64_t beyond = position - total;
+							blockIndex = out.blocksNum + uint32_t(beyond / MAX_TERMINALS_PER_BLOCK);
+							offset = beyond % MAX_TERMINALS_PER_BLOCK;
+						}
 
 						if (offset > 0xFFFF) { fits = false; break; }
 
@@ -537,20 +577,39 @@ namespace QaplaSyzygy {
 					if (out.log2Span == 6) throw std::runtime_error("tbwrite: no usable span");
 				}
 
+				// The lengths of the blocks that do not exist, each the full range
+				out.blockLength.resize(out.blocksNum + out.padding, uint16_t(0xFFFF));
+
 				return dataBytes + out.blockLength.size() * 2 + out.sparseIndex.size();
 			};
 
+			// The smallest table among the block sizes that keep a probe's decoding
+			// inside the bound - and if none of them does, the one that decodes least.
 			uint64_t best = UINT64_MAX;
+			uint64_t leastSymbols = UINT64_MAX;
+
 			for (const uint8_t log2BlockBytes : LOG2_BLOCK_CANDIDATES) {
+				if (quick && log2BlockBytes != LOG2_BLOCK_CANDIDATES[1]) continue;
+
 				EncodedTable candidate;
 				const uint64_t bytes = pack(log2BlockBytes, candidate);
-				if (bytes >= best) continue;
+				const uint64_t symbols = sequence.size() / std::max(1u, candidate.blocksNum);
+
+				const bool withinBound = symbols <= MAX_AVERAGE_SYMBOLS_PER_BLOCK;
+				const bool better = best == UINT64_MAX
+					|| (withinBound && (leastSymbols > MAX_AVERAGE_SYMBOLS_PER_BLOCK || bytes < best))
+					|| (!withinBound && leastSymbols > MAX_AVERAGE_SYMBOLS_PER_BLOCK
+						&& symbols < leastSymbols);
+
+				if (!better) continue;
 
 				best = bytes;
+				leastSymbols = symbols;
 				table.data.swap(candidate.data);
 				table.blockLength.swap(candidate.blockLength);
 				table.sparseIndex.swap(candidate.sparseIndex);
 				table.blocksNum = candidate.blocksNum;
+				table.padding = candidate.padding;
 				table.log2Span = candidate.log2Span;
 				table.log2BlockBytes = candidate.log2BlockBytes;
 			}
@@ -560,8 +619,16 @@ namespace QaplaSyzygy {
 			return 12 + 2 * uint64_t(table.lowestSym.size()) + 3 * uint64_t(table.symbolCount) + best;
 		}
 
-		/** Compresses one table, keeping the best of the vocabulary sizes the grammar offers. */
-		EncodedTable encodeTable(std::vector<uint8_t> values) {
+		/**
+		 * Compresses one table, keeping the best of the vocabulary sizes the grammar
+		 * offers.
+		 *
+		 * @param quick stops at the largest vocabulary and one block size. The result is
+		 *              then not the smallest file this table can become, only a figure
+		 *              that ranks one table against another - which is what choosing a
+		 *              layout needs, and it costs a fraction of the full search.
+		 */
+		EncodedTable encodeTable(std::vector<uint8_t>& values, bool quick = false) {
 
 			EncodedTable table;
 			resolveOpenValues(values);
@@ -578,16 +645,20 @@ namespace QaplaSyzygy {
 			if (distinct <= 1) {
 				table.singleValue = true;
 				table.value = values.empty() ? uint8_t(StoredDraw) : values.front();
+				table.bytes = 2;
 				return table;
 			}
 
 
-			const Grammar grammar = buildGrammar(values);
+			const Grammar grammar = buildGrammar(values, quick ? QUICK_SYMBOLS : MAX_SYMBOLS);
 
 			uint64_t best = UINT64_MAX;
-			for (const std::vector<uint16_t>& sequence : grammar.stage) {
+			for (size_t stage = quick ? grammar.stage.size() - 1 : 0;
+				stage < grammar.stage.size(); ++stage) {
+
 				EncodedTable candidate;
-				const uint64_t bytes = encodeStage(grammar, sequence, values.size(), candidate);
+				const uint64_t bytes = encodeStage(grammar, grammar.stage[stage],
+					values.size(), candidate, quick);
 
 				if (bytes >= best) continue;
 
@@ -595,6 +666,7 @@ namespace QaplaSyzygy {
 				table = std::move(candidate);
 			}
 
+			table.bytes = best;
 			return table;
 		}
 
@@ -657,10 +729,42 @@ namespace QaplaSyzygy {
 
 	/** Material and the piece order of every table, built once. */
 	struct WdlWriter::Layout {
+
+		/** One way to group the pieces and to chain the groups. */
+		struct Candidate {
+			std::vector<uint8_t>  pieces;
+			int                   chain[2] = { 0, 0xF };
+			internal::IndexGroups groups[4];
+			uint64_t              size[4] = {};
+		};
+
 		internal::IndexMaterial material;
-		internal::IndexGroups   groups[2][4];
-		uint64_t                size[2][4] = {};
+		std::vector<Candidate>  candidate;
+		int                     chosen[2][4] = {};
 	};
+
+	namespace {
+
+		/** The kinds a material holds, each with how often it occurs. */
+		struct Kind { uint8_t piece; int count; };
+
+		/**
+		 * Every ordering of the kinds. Pieces of a kind stay next to each other - the
+		 * index encodes them as a set, so splitting them would make them
+		 * distinguishable and count every position twice.
+		 */
+		void forEachOrdering(std::vector<Kind>& kinds, size_t next,
+			const std::function<void(const std::vector<Kind>&)>& action) {
+
+			if (next == kinds.size()) { action(kinds); return; }
+
+			for (size_t i = next; i < kinds.size(); ++i) {
+				std::swap(kinds[next], kinds[i]);
+				forEachOrdering(kinds, next + 1, action);
+				std::swap(kinds[next], kinds[i]);
+			}
+		}
+	}
 
 	WdlWriter::WdlWriter(const std::string& code)
 		: _code(code), _layout(std::make_unique<Layout>()) {
@@ -677,75 +781,96 @@ namespace QaplaSyzygy {
 		if (!_unsupported.empty()) return;
 
 		const internal::MaterialCounts counts = internal::countsFromCode(code);
-		std::vector<uint8_t> order;
 
-		int uniqueColour = -1;
-		int uniqueType = -1;
+		// The leading group is fixed where the format fixes it: with pawns it is the
+		// pawns of the leading colour, and the other colour's pawns follow, because
+		// beginIndex() reads the colour of the file off pieces[0]. Everything behind
+		// that is free.
+		std::vector<uint8_t> head;
+		std::vector<Kind>    kinds;
 
 		if (m.hasPawns) {
-
-			// With pawns the leading group is the pawns of the leading colour, and the
-			// other colour's pawns are the group behind it - that is what the second
-			// entry of the chain in the file means. The index computation reads the
-			// colour off pieces[0], so this order is not a free choice.
 			const int lead = m.leadPawnColour;
-
-			for (int i = 0; i < counts.count[lead][internal::PAWN]; ++i)
-				order.push_back(uint8_t(internal::makePiece(lead, internal::PAWN)));
-			for (int i = 0; i < counts.count[1 - lead][internal::PAWN]; ++i)
-				order.push_back(uint8_t(internal::makePiece(1 - lead, internal::PAWN)));
-
-			order.push_back(uint8_t(internal::makePiece(0, internal::KING)));
-			order.push_back(uint8_t(internal::makePiece(1, internal::KING)));
-		}
-		else {
-
-			// Without pawns both kings lead: without a unique piece they are the whole
-			// leading group and the king map expects them there, with one they are the
-			// first two of three. The third slot must then hold a piece that occurs
-			// exactly once, otherwise two identical pieces would be encoded as
-			// distinguishable.
-			order.push_back(uint8_t(internal::makePiece(0, internal::KING)));
-			order.push_back(uint8_t(internal::makePiece(1, internal::KING)));
-
-			if (m.hasUniquePieces) {
-				for (int colour = 0; colour < 2 && uniqueType < 0; ++colour)
-					for (int type = internal::PAWN; type < internal::KING; ++type)
-						if (counts.count[colour][type] == 1) {
-							uniqueColour = colour;
-							uniqueType = type;
-							break;
-						}
-				order.push_back(uint8_t(internal::makePiece(uniqueColour, uniqueType)));
-			}
+			for (int colour : { lead, 1 - lead })
+				for (int i = 0; i < counts.count[colour][internal::PAWN]; ++i)
+					head.push_back(uint8_t(internal::makePiece(colour, internal::PAWN)));
 		}
 
-		// Everything that is not placed yet, pieces of a kind next to each other
 		for (int colour = 0; colour < 2; ++colour)
-			for (int type = internal::KING - 1; type >= internal::PAWN; --type) {
-				if (colour == uniqueColour && type == uniqueType) continue;
+			for (int type = internal::KING; type >= internal::PAWN; --type) {
 				if (type == internal::PAWN && m.hasPawns) continue;
-				for (int i = 0; i < counts.count[colour][type]; ++i)
-					order.push_back(uint8_t(internal::makePiece(colour, type)));
+				if (counts.count[colour][type] > 0)
+					kinds.push_back(Kind{ uint8_t(internal::makePiece(colour, type)),
+						counts.count[colour][type] });
 			}
 
-		if (int(order.size()) != m.pieceCount)
-			throw std::runtime_error("tbwrite: piece order does not match the material");
+		// Only the grouping of the leading pieces is prescribed, and only without
+		// pawns: with a piece that occurs once the first three squares are encoded
+		// together, so the first three kinds have to be single ones; without such a
+		// piece the two kings are encoded together and have to come first.
+		const size_t leadingSingles = m.hasPawns ? 0 : m.hasUniquePieces ? 3 : 2;
 
-		for (int side = 0; side < _sideCount; ++side)
-			for (int file = 0; file < _fileCount; ++file) {
-				internal::IndexGroups& groups = _layout->groups[side][file];
-				std::copy(order.begin(), order.end(), groups.pieces);
+		std::vector<Layout::Candidate> found;
 
-				const int chain[2] = { 0, m.pawnCount[1] ? 1 : 0xF };
-				internal::setGroups(m, groups, chain, file);
+		forEachOrdering(kinds, 0, [&](const std::vector<Kind>& ordering) {
 
-				const int last = int(std::find(groups.groupLen, groups.groupLen + 7, 0)
-					- groups.groupLen);
-				_layout->size[side][file] = groups.groupIdx[last];
+			for (size_t i = 0; i < leadingSingles; ++i) {
+				if (ordering[i].count != 1) return;
+				if (leadingSingles == 2 && internal::typeOf(ordering[i].piece) != internal::KING)
+					return;
 			}
+
+			std::vector<uint8_t> pieces(head);
+			for (const Kind& kind : ordering)
+				for (int i = 0; i < kind.count; ++i)
+					pieces.push_back(kind.piece);
+
+			if (int(pieces.size()) != m.pieceCount) return;
+
+			// How many groups this ordering has, and thus how many places the chain
+			// offers the leading groups
+			internal::IndexGroups probe;
+			std::copy(pieces.begin(), pieces.end(), probe.pieces);
+			const int chainStart[2] = { 0, m.pawnCount[1] ? 1 : 0xF };
+			internal::setGroups(m, probe, chainStart, 0);
+
+			const int groupCount = int(std::find(probe.groupLen, probe.groupLen + 7, 0)
+				- probe.groupLen);
+
+			for (int first = 0; first < groupCount; ++first)
+				for (int second = 0; second < groupCount; ++second) {
+
+					// Without pawns on both sides there is no second leading group, and
+					// 0xF is what the format writes for it
+					if (!m.pawnCount[1]) { if (second != 0) continue; }
+					else if (second == first) continue;
+
+					Layout::Candidate candidate;
+					candidate.pieces = pieces;
+					candidate.chain[0] = first;
+					candidate.chain[1] = m.pawnCount[1] ? second : 0xF;
+
+					for (int file = 0; file < _fileCount; ++file) {
+						internal::IndexGroups& groups = candidate.groups[file];
+						std::copy(pieces.begin(), pieces.end(), groups.pieces);
+						internal::setGroups(m, groups, candidate.chain, file);
+
+						const int last = int(std::find(groups.groupLen, groups.groupLen + 7, 0)
+							- groups.groupLen);
+						candidate.size[file] = groups.groupIdx[last];
+					}
+
+					found.push_back(std::move(candidate));
+				}
+		});
+
+		if (found.empty()) {
+			_unsupported = "no usable group layout for this material";
+			return;
+		}
+
+		_layout->candidate = std::move(found);
 	}
-
 	WdlWriter::~WdlWriter() = default;
 
 	bool WdlWriter::isSupported(std::string& reason) const {
@@ -753,22 +878,79 @@ namespace QaplaSyzygy {
 		return _unsupported.empty();
 	}
 
-	uint64_t WdlWriter::tableSize(int side, int file) const {
-		return _layout->size[side][file];
+	int WdlWriter::layoutCount() const {
+		return int(_layout->candidate.size());
 	}
 
-	WdlSlot WdlWriter::slotOf(const TbPosition& pos) const {
+	uint64_t WdlWriter::tableSizeOf(int layout, int file) const {
+		return _layout->candidate[layout].size[file];
+	}
+
+	uint64_t WdlWriter::tableSize(int side, int file) const {
+		return tableSizeOf(_layout->chosen[side][file], file);
+	}
+
+	void WdlWriter::chooseLayout(int side, int file, int layout) {
+		_layout->chosen[side][file] = layout;
+	}
+
+	/**
+	 * Which table a position belongs to and where in it. Side and file come out of
+	 * beginIndex() and do not depend on the layout - the first is the side to move
+	 * seen from the reference colour, the second the file of the leading pawn - so
+	 * the layout only enters the index itself.
+	 */
+	WdlSlot WdlWriter::slotOf(const TbPosition& pos, int layout) const {
 
 		const internal::ProbeBoard board = internal::toProbeBoard(pos);
-		internal::IndexContext ctx =
-			internal::beginIndex(_layout->material, _layout->groups[0][0], board);
+		internal::IndexContext ctx = internal::beginIndex(_layout->material,
+			_layout->candidate[layout].groups[0], board);
 
 		WdlSlot slot;
 		slot.side = ctx.stm % _sideCount;
 		slot.file = ctx.tbFile;
 		slot.index = internal::finishIndex(_layout->material,
-			_layout->groups[slot.side][slot.file], board, ctx);
+			_layout->candidate[layout].groups[slot.file], board, ctx);
 		return slot;
+	}
+
+	WdlSlot WdlWriter::slotOf(const TbPosition& pos) const {
+
+		const internal::ProbeBoard board = internal::toProbeBoard(pos);
+		internal::IndexContext ctx = internal::beginIndex(_layout->material,
+			_layout->candidate[0].groups[0], board);
+
+		WdlSlot slot;
+		slot.side = ctx.stm % _sideCount;
+		slot.file = ctx.tbFile;
+
+		const Layout::Candidate& candidate =
+			_layout->candidate[_layout->chosen[slot.side][slot.file]];
+
+		slot.index = internal::finishIndex(_layout->material,
+			candidate.groups[slot.file], board, ctx);
+		return slot;
+	}
+
+	void WdlWriter::slotsOf(const TbPosition& pos, const int* layouts, int count,
+		WdlSlot* out) const {
+
+		const internal::ProbeBoard board = internal::toProbeBoard(pos);
+		const internal::IndexContext shared = internal::beginIndex(_layout->material,
+			_layout->candidate[layouts[0]].groups[0], board);
+
+		for (int i = 0; i < count; ++i) {
+			internal::IndexContext ctx = shared;
+			out[i].side = ctx.stm % _sideCount;
+			out[i].file = ctx.tbFile;
+			out[i].index = internal::finishIndex(_layout->material,
+				_layout->candidate[layouts[i]].groups[ctx.tbFile], board, ctx);
+		}
+	}
+
+	uint64_t WdlWriter::compressedSize(const std::vector<uint8_t>& values, bool quick) const {
+		std::vector<uint8_t> copy(values);
+		return encodeTable(copy, quick).bytes;
 	}
 
 	void WdlWriter::write(const std::string& filePath,
@@ -784,7 +966,8 @@ namespace QaplaSyzygy {
 			for (int side = 0; side < _sideCount; ++side) {
 				if (values[side][file].size() != tableSize(side, file))
 					throw std::runtime_error("tbwrite: table size does not match the layout");
-				encoded[side][file] = encodeTable(values[side][file]);
+				std::vector<uint8_t> copy(values[side][file]);
+				encoded[side][file] = encodeTable(copy);
 			}
 
 		std::vector<uint8_t> out;
@@ -801,16 +984,19 @@ namespace QaplaSyzygy {
 		const bool bothSidesHavePawns = m.hasPawns && m.pawnCount[1];
 
 		for (int file = 0; file < _fileCount; ++file) {
-			// Both sides put their leading group first in the multiplication chain, and
-			// the remaining pawns right behind it
-			put8(out, 0x00);
-			if (bothSidesHavePawns) put8(out, 0x11);
+			// Where each side puts its leading group in the multiplication chain, and
+			// the remaining pawns behind it. Low nibble is side 0, high nibble side 1.
+			const Layout::Candidate& first =
+				_layout->candidate[_layout->chosen[0][file]];
+			const Layout::Candidate& second =
+				_layout->candidate[_layout->chosen[_sideCount - 1][file]];
 
-			for (int k = 0; k < m.pieceCount; ++k) {
-				const uint8_t side0 = _layout->groups[0][file].pieces[k];
-				const uint8_t side1 = _layout->groups[_sideCount - 1][file].pieces[k];
-				put8(out, uint8_t((side0 & 0xF) | (side1 << 4)));
-			}
+			put8(out, uint8_t((first.chain[0] & 0xF) | ((second.chain[0] & 0xF) << 4)));
+			if (bothSidesHavePawns)
+				put8(out, uint8_t((first.chain[1] & 0xF) | ((second.chain[1] & 0xF) << 4)));
+
+			for (int k = 0; k < m.pieceCount; ++k)
+				put8(out, uint8_t((first.pieces[k] & 0xF) | (second.pieces[k] << 4)));
 		}
 
 		alignTo(out, 2);

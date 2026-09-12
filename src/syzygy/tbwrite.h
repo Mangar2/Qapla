@@ -99,11 +99,48 @@ namespace QaplaSyzygy {
 		/** Number of file tables: 1 without pawns, 4 with them. */
 		int fileCount() const { return _fileCount; }
 
-		/** Number of values one table holds. */
+		/** Number of values one table holds, in the layout chosen for it. */
 		uint64_t tableSize(int side, int file) const;
 
-		/** The slot the value of this position belongs to. */
+		/**
+		 * How many group layouts this material can be written in.
+		 *
+		 * Which pieces form the leading group and where each group sits in the
+		 * multiplication chain are free parameters of the format: the file names them
+		 * per table, and the reader follows. Every layout is a correct file, they
+		 * differ only in the order the values end up in - and that is what the
+		 * compression lives on. Between the best and the worst layout lies a factor of
+		 * three on the tables measured here, so the writer tries them.
+		 */
+		int layoutCount() const;
+
+		/** Number of values one table holds under a layout - the grouping changes it. */
+		uint64_t tableSizeOf(int layout, int file) const;
+
+		/** Fixes the layout one table is written in. Every table starts at layout 0. */
+		void chooseLayout(int side, int file, int layout);
+
+		/** The slot the value of this position belongs to, in the chosen layout. */
 		WdlSlot slotOf(const TbPosition& pos) const;
+
+		/** The same under a layout that is not chosen yet, to compare layouts. */
+		WdlSlot slotOf(const TbPosition& pos, int layout) const;
+
+		/**
+		 * The slots of one position under several layouts at once. Side and file and
+		 * everything else the layouts share is computed once, which is what makes a
+		 * search over dozens of layouts affordable.
+		 */
+		void slotsOf(const TbPosition& pos, const int* layouts, int count, WdlSlot* out) const;
+
+		/**
+		 * What a table would cost in the file, so that layouts can be compared.
+		 *
+		 * @param quick leaves out the search over vocabulary and block sizes; the
+		 *              figure is then no longer the exact file size, but it ranks
+		 *              layouts at a fraction of the cost
+		 */
+		uint64_t compressedSize(const std::vector<uint8_t>& values, bool quick) const;
 
 		/**
 		 * Writes the file.

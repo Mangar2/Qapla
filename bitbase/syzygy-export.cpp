@@ -51,11 +51,31 @@ namespace QaplaBitbase {
 
 		/** "KRK" as the format spells it in a file name: "KRvK". */
 		std::string toFormatCode(const std::string& pieceString) {
-			std::string code = pieceString;
-			const size_t secondKing = code.find('K', 1);
-			if (secondKing == std::string::npos) return code;
-			code.insert(secondKing, "v");
-			return code;
+
+			const size_t secondKing = pieceString.find('K', 1);
+			if (secondKing == std::string::npos) return pieceString;
+
+			std::string first = pieceString.substr(1, secondKing - 1);
+			std::string second = pieceString.substr(secondKing + 1);
+
+			// The stronger side names the file: the format stores one table for both
+			// colours and mirrors a position whose key does not match, so KBvKQ and
+			// KQvKB are the same table and only one of the two names is the file.
+			const auto rank = [](char piece) {
+				const size_t order = std::string("PNBRQ").find(piece);
+				return order == std::string::npos ? 0 : int(order) + 1;
+			};
+
+			bool swap = first.size() < second.size();
+			if (first.size() == second.size())
+				for (size_t i = 0; i < first.size(); ++i)
+					if (rank(first[i]) != rank(second[i])) {
+						swap = rank(first[i]) < rank(second[i]);
+						break;
+					}
+
+			if (swap) first.swap(second);
+			return "K" + first + "vK" + second;
 		}
 
 		/**
@@ -91,14 +111,28 @@ namespace QaplaBitbase {
 		 * both images on the same file and they end up in different slots. Both have to be
 		 * written, and the value is the same for either.
 		 */
-		void mirrorFiles(MoveGenerator& position, const PieceList& pieceList,
-			const ReverseIndex& reverseIndex) {
+		/** The square mirrored at the d-e file boundary: a1 becomes h1. */
+		int mirroredFile(int square) { return square ^ 7; }
+
+		/** The square mirrored at the a1-h8 diagonal: file and rank change places. */
+		int mirroredDiagonal(int square) { return ((square >> 3) | (square << 3)) & 63; }
+
+		/**
+		 * The image of the position under one of the symmetries of the board.
+		 *
+		 * Qapla's index folds a symmetry class into a single entry, the format does not
+		 * always: it decides its own mirroring from the leading group, and where that
+		 * group cannot decide, both images of the class get a slot of their own. So the
+		 * value is written to the slot of the image as well - see the call site.
+		 */
+		void buildMirror(MoveGenerator& position, const PieceList& pieceList,
+			const ReverseIndex& reverseIndex, int (*mirror)(int)) {
 
 			position.clear();
-			position.unsafeSetPiece(Square(int(reverseIndex.getSquare(0)) ^ 7), WHITE_KING);
-			position.unsafeSetPiece(Square(int(reverseIndex.getSquare(1)) ^ 7), BLACK_KING);
+			position.unsafeSetPiece(Square(mirror(int(reverseIndex.getSquare(0)))), WHITE_KING);
+			position.unsafeSetPiece(Square(mirror(int(reverseIndex.getSquare(1)))), BLACK_KING);
 			for (uint32_t pieceNo = 2; pieceNo < pieceList.getNumberOfPieces(); ++pieceNo)
-				position.unsafeSetPiece(Square(int(reverseIndex.getSquare(pieceNo)) ^ 7),
+				position.unsafeSetPiece(Square(mirror(int(reverseIndex.getSquare(pieceNo)))),
 					pieceList.getPiece(pieceNo));
 			position.computeAttackMasksForBothColors();
 			position.setWhiteToMove(reverseIndex.isWhiteToMove());
@@ -269,6 +303,155 @@ namespace QaplaBitbase {
 			return "?";
 		}
 
+
+		/** How many layouts of the sample ranking are tried on the whole table. */
+		constexpr int LAYOUT_SHORT_LIST = 3;
+
+		/**
+		 * Picks the group layout every table is written in.
+		 *
+		 * The format leaves two things open per table: which pieces form the leading
+		 * group, and where each group sits in the multiplication chain. Both decide the
+		 * order the values lie in, and the compression lives on that order - the same
+		 * table came out three times as large in the worst layout as in the best one.
+		 *
+		 * The layouts are compared on a sample rather than on the whole table: windows
+		 * spread evenly over the index, each a contiguous stretch, because it is exactly
+		 * the neighbourhood of the values that is being judged. The estimate is scaled
+		 * up to the size of the table, so that a layout which needs fewer entries - two
+		 * equal pieces in one group instead of two groups - is credited for it.
+		 *
+		 * The sample ranks, it does not decide: the caller writes the first few layouts
+		 * out in full and keeps the smallest.
+		 *
+		 * Layouts are done in batches so that the memory stays bounded when a material
+		 * offers hundreds of them; every batch costs one walk over the positions.
+		 */
+		void chooseLayouts(WdlWriter& writer, const PieceList& pieceList,
+			const std::vector<uint8_t>& valueOf, int (*mirror)(int),
+			std::vector<int> shortList[2][4]) {
+
+			constexpr uint64_t SAMPLE_WINDOWS = 32;
+			constexpr uint64_t SAMPLE_WINDOW_ENTRIES = 4096;
+			constexpr int      BATCH = 64;
+
+			const int layouts = writer.layoutCount();
+
+			for (int side = 0; side < 2; ++side)
+				for (int file = 0; file < 4; ++file) shortList[side][file].assign(1, 0);
+
+			if (layouts <= 1) return;
+
+			// The best few of the sample ranking, in ascending estimate
+			uint64_t bestBytes[2][4][LAYOUT_SHORT_LIST];
+			int      bestLayout[2][4][LAYOUT_SHORT_LIST] = {};
+			for (auto& sideRow : bestBytes)
+				for (auto& fileRow : sideRow)
+					for (auto& entry : fileRow) entry = UINT64_MAX;
+
+			MoveGenerator position;
+			MoveGenerator mirrorPosition;
+
+			for (int first = 0; first < layouts; first += BATCH) {
+
+				const int count = std::min(BATCH, layouts - first);
+
+				// sample[layout - first][side][file], and the window geometry per layout
+				std::vector<std::vector<uint8_t>> sample(size_t(count) * 8);
+				std::vector<uint64_t> stride(size_t(count) * 4, 1);
+				std::vector<uint64_t> length(size_t(count) * 4, 0);
+
+				for (int layout = 0; layout < count; ++layout)
+					for (int file = 0; file < writer.fileCount(); ++file) {
+
+						const uint64_t size = writer.tableSizeOf(first + layout, file);
+						const uint64_t windowStride = std::max<uint64_t>(1, size / SAMPLE_WINDOWS);
+						const uint64_t windowLength = std::min(SAMPLE_WINDOW_ENTRIES, windowStride);
+
+						stride[size_t(layout) * 4 + file] = windowStride;
+						length[size_t(layout) * 4 + file] = windowLength;
+
+						for (int side = 0; side < writer.sideCount(); ++side)
+							sample[size_t(layout) * 8 + size_t(side) * 4 + file]
+								.assign(size_t(windowLength * SAMPLE_WINDOWS), TB_UNREACHED);
+					}
+
+				std::vector<int> batch(size_t(count), 0);
+				for (int layout = 0; layout < count; ++layout) batch[size_t(layout)] = first + layout;
+				std::vector<WdlSlot> slots(size_t(count) * 2);
+
+				for (uint64_t index = 0; index < valueOf.size(); ++index) {
+
+					const uint8_t value = valueOf[size_t(index)];
+					if (value == TB_UNREACHED) continue;
+
+					const ReverseIndex reverseIndex(index, pieceList);
+					buildPosition(position, reverseIndex, pieceList);
+					buildMirror(mirrorPosition, pieceList, reverseIndex, mirror);
+
+					TbPosition tbPosition{};
+					TbPosition tbMirror{};
+					if (!buildTbPosition(position, tbPosition)) continue;
+					if (!buildTbPosition(mirrorPosition, tbMirror)) continue;
+
+					writer.slotsOf(tbPosition, batch.data(), count, slots.data());
+					writer.slotsOf(tbMirror, batch.data(), count, slots.data() + count);
+
+					for (int layout = 0; layout < count; ++layout)
+						for (int which = 0; which < 2; ++which) {
+
+							const WdlSlot& slot = slots[size_t(which) * count + layout];
+							const uint64_t windowStride = stride[size_t(layout) * 4 + slot.file];
+							const uint64_t windowLength = length[size_t(layout) * 4 + slot.file];
+							const uint64_t window = slot.index / windowStride;
+							const uint64_t offset = slot.index - window * windowStride;
+
+							if (window >= SAMPLE_WINDOWS || offset >= windowLength) continue;
+
+							sample[size_t(layout) * 8 + size_t(slot.side) * 4 + slot.file]
+								[size_t(window * windowLength + offset)] = value;
+						}
+				}
+
+				for (int layout = 0; layout < count; ++layout)
+					for (int side = 0; side < writer.sideCount(); ++side)
+						for (int file = 0; file < writer.fileCount(); ++file) {
+
+							const std::vector<uint8_t>& entries =
+								sample[size_t(layout) * 8 + size_t(side) * 4 + file];
+							if (entries.empty()) continue;
+
+							// Scaled to the whole table, so that layouts of different
+							// index sizes can be held against each other
+							const uint64_t bytes = writer.compressedSize(entries, true)
+								* writer.tableSizeOf(first + layout, file) / entries.size();
+
+							// Sorted insert into the short list
+							for (int rank = 0; rank < LAYOUT_SHORT_LIST; ++rank) {
+								if (bytes >= bestBytes[side][file][rank]) continue;
+								for (int k = LAYOUT_SHORT_LIST - 1; k > rank; --k) {
+									bestBytes[side][file][k] = bestBytes[side][file][k - 1];
+									bestLayout[side][file][k] = bestLayout[side][file][k - 1];
+								}
+								bestBytes[side][file][rank] = bytes;
+								bestLayout[side][file][rank] = first + layout;
+								break;
+							}
+						}
+			}
+
+			for (int side = 0; side < writer.sideCount(); ++side)
+				for (int file = 0; file < writer.fileCount(); ++file) {
+
+					std::vector<int>& list = shortList[side][file];
+					list.clear();
+					for (int rank = 0; rank < LAYOUT_SHORT_LIST; ++rank)
+						if (bestBytes[side][file][rank] != UINT64_MAX)
+							list.push_back(bestLayout[side][file][rank]);
+					if (list.empty()) list.push_back(0);
+				}
+		}
+
 	}   // anonymous namespace
 
 	bool writeSyzygyWdl(const std::string& pieceString, const std::string& qwdlFile,
@@ -299,15 +482,6 @@ namespace QaplaBitbase {
 			return false;
 		}
 
-		// The index of the position a slot was filled from, so that a slot filled
-		// twice can name both positions
-		std::vector<uint64_t> sourceIndex[2][4];
-		std::vector<uint8_t>  values[2][4];
-		for (int side = 0; side < writer.sideCount(); ++side)
-			for (int file = 0; file < writer.fileCount(); ++file)
-				values[side][file].assign(size_t(writer.tableSize(side, file)), TB_UNREACHED),
-				sourceIndex[side][file].assign(size_t(writer.tableSize(side, file)), 0);
-
 		// Tables of the materials a capture leads into answer from the same directory.
 		// They decide whether an entry may be stored below its true value; where one is
 		// missing, the true value is stored and nothing is lost but size.
@@ -319,6 +493,22 @@ namespace QaplaBitbase {
 		uint64_t illegal = 0;
 		uint64_t conflicts = 0;
 		uint64_t reducible = 0;
+
+		// Qapla's index folds a whole symmetry class into one entry, the format does
+		// not always. Without pawns it settles file and rank from its leading group but
+		// cannot settle the diagonal when that group stands on it; with pawns it mirrors
+		// by the file of the leading pawn, which settles nothing when the pawns are
+		// their own mirror. In both cases the class has two slots, and the second one is
+		// reached through this image of the position.
+		int (*const mirror)(int) = pieceList.getNumberOfPawns() > 0
+			? mirroredFile : mirroredDiagonal;
+
+		// ---- the value of every position, computed once ----
+		//
+		// The second pass below places these values, and the search between the two
+		// passes needs them as well. Keeping them costs one byte per indexed position
+		// and saves the move generation of bestCaptureValue() a second time.
+		std::vector<uint8_t> valueOf(size_t(entryCount), TB_UNREACHED);
 
 		for (uint64_t index = 0; index < entryCount; ++index) {
 
@@ -338,7 +528,7 @@ namespace QaplaBitbase {
 
 			const BitbaseResult result = source.probe(BoardAccess::getIndex<0>(position));
 
-			mirrorFiles(mirrorPosition, pieceList, reverseIndex);
+			buildMirror(mirrorPosition, pieceList, reverseIndex, mirror);
 
 			TbPosition tbPosition{};
 			TbPosition tbMirror{};
@@ -348,7 +538,6 @@ namespace QaplaBitbase {
 				return false;
 			}
 
-			const WdlSlot slots[2] = { writer.slotOf(tbPosition), writer.slotOf(tbMirror) };
 			uint8_t value = toStoredValue(result, position.isWhiteToMove());
 
 			// Where a capture already reaches the value, the entry is free to sit below
@@ -359,34 +548,117 @@ namespace QaplaBitbase {
 				++reducible;
 			}
 
-			// The mirror may or may not be a slot of its own - where it is not, the second
-			// write lands on the first and carries the same value.
-			for (const WdlSlot& slot : slots) {
+			valueOf[size_t(index)] = value;
+		}
 
-				uint8_t& stored = values[slot.side][slot.file][size_t(slot.index)];
-				if (stored != TB_UNREACHED && stored != value) {
-					if (++conflicts <= 5) {
-						PositionCase a, b;
-						const ReverseIndex other(sourceIndex[slot.side][slot.file][size_t(slot.index)],
-							pieceList);
-						for (uint32_t i = 0; i < pieceList.getNumberOfPieces(); ++i) {
-							a.square[i] = uint8_t(other.getSquare(i));
-							b.square[i] = uint8_t(reverseIndex.getSquare(i));
+		release();
+
+		// ---- which layout each table is written in ----
+		std::vector<int> shortList[2][4];
+		chooseLayouts(writer, pieceList, valueOf, mirror, shortList);
+
+		// The index of the position a slot was filled from, so that a slot filled
+		// twice can name both positions
+		std::vector<uint64_t> sourceIndex[2][4];
+		std::vector<uint8_t>  values[2][4];
+
+		// One table per short-listed layout. The sample of the search only ranks them,
+		// the whole table decides - the ranking is close but not exact, and the
+		// difference between the first and the second layout is a few percent of the
+		// file.
+		std::vector<std::vector<uint8_t>> attempt[2][4];
+
+		for (int side = 0; side < writer.sideCount(); ++side)
+			for (int file = 0; file < writer.fileCount(); ++file) {
+				sourceIndex[side][file].assign(size_t(writer.tableSizeOf(
+					shortList[side][file][0], file)), 0);
+				for (const int layout : shortList[side][file])
+					attempt[side][file].emplace_back(
+						size_t(writer.tableSizeOf(layout, file)), TB_UNREACHED);
+			}
+
+		// ---- placing the values ----
+		for (uint64_t index = 0; index < entryCount; ++index) {
+
+			const uint8_t value = valueOf[size_t(index)];
+			if (value == TB_UNREACHED) continue;
+
+			const ReverseIndex reverseIndex(index, pieceList);
+			buildPosition(position, reverseIndex, pieceList);
+			buildMirror(mirrorPosition, pieceList, reverseIndex, mirror);
+
+			TbPosition tbPosition{};
+			TbPosition tbMirror{};
+			buildTbPosition(mirrorPosition, tbMirror);
+			buildTbPosition(position, tbPosition);
+
+			// Side and file do not depend on the layout, so one lookup names the table
+			// and with it the layouts this position has to be placed in.
+			const WdlSlot where = writer.slotOf(tbPosition, shortList[0][0][0]);
+			const std::vector<int>& list = shortList[where.side][where.file];
+
+			WdlSlot placed[2 * LAYOUT_SHORT_LIST];
+			writer.slotsOf(tbPosition, list.data(), int(list.size()), placed);
+			writer.slotsOf(tbMirror, list.data(), int(list.size()), placed + list.size());
+
+			for (size_t rank = 0; rank < list.size(); ++rank) {
+
+				// The mirror may or may not be a slot of its own - where it is not, the
+				// second write lands on the first and carries the same value.
+				const WdlSlot slots[2] = { placed[rank], placed[list.size() + rank] };
+
+				for (const WdlSlot& slot : slots) {
+
+					uint8_t& stored =
+						attempt[slot.side][slot.file][rank][size_t(slot.index)];
+
+					if (rank == 0 && stored != TB_UNREACHED && stored != value) {
+						if (++conflicts <= 5) {
+							PositionCase a, b;
+							const ReverseIndex other(
+								sourceIndex[slot.side][slot.file][size_t(slot.index)], pieceList);
+							for (uint32_t i = 0; i < pieceList.getNumberOfPieces(); ++i) {
+								a.square[i] = uint8_t(other.getSquare(i));
+								b.square[i] = uint8_t(reverseIndex.getSquare(i));
+							}
+							a.whiteToMove = other.isWhiteToMove();
+							b.whiteToMove = reverseIndex.isWhiteToMove();
+							log << "conflict at side " << slot.side << " offset " << slot.index
+								<< ":\n   " << toFen(pieceList, a) << " value " << int(stored)
+								<< "\n   " << toFen(pieceList, b) << " value " << int(value)
+								<< std::endl;
 						}
-						a.whiteToMove = other.isWhiteToMove();
-						b.whiteToMove = reverseIndex.isWhiteToMove();
-						log << "conflict at side " << slot.side << " offset " << slot.index << ":\n"
-							<< "   " << toFen(pieceList, a) << " value " << int(stored) << "\n"
-							<< "   " << toFen(pieceList, b) << " value " << int(value) << std::endl;
 					}
+					if (rank == 0)
+						sourceIndex[slot.side][slot.file][size_t(slot.index)] = index;
+					stored = value;
 				}
-				sourceIndex[slot.side][slot.file][size_t(slot.index)] = index;
-				stored = value;
 			}
 			++written;
 		}
 
-		release();
+		// ---- the layout that came out smallest ----
+		for (int side = 0; side < writer.sideCount(); ++side)
+			for (int file = 0; file < writer.fileCount(); ++file) {
+
+				uint64_t best = UINT64_MAX;
+				size_t   bestRank = 0;
+
+				for (size_t rank = 0; rank < attempt[side][file].size(); ++rank) {
+					const uint64_t bytes =
+						writer.compressedSize(attempt[side][file][rank], false);
+					if (bytes >= best) continue;
+					best = bytes;
+					bestRank = rank;
+				}
+
+				writer.chooseLayout(side, file, shortList[side][file][bestRank]);
+				values[side][file] = std::move(attempt[side][file][bestRank]);
+
+				log << "  side " << side << " file " << file << ": layout "
+					<< shortList[side][file][bestRank] << " of " << writer.layoutCount()
+					<< ", " << best << " bytes" << std::endl;
+			}
 
 		uint64_t slots = 0;
 		uint64_t unreached = 0;
