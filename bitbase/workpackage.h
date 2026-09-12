@@ -112,6 +112,7 @@ namespace QaplaBitbase {
 	private:
 		uint64_t _entryCount;
 		uint64_t _workIndex;
+		uint8_t _parityMask;
 		mutex _mtxWork;
 	};
 
@@ -126,11 +127,17 @@ namespace QaplaBitbase {
 	class BitWorkpackage
 	{
 	public:
-		BitWorkpackage(GenerationState& state)
+		/**
+		 * @param parity the side to move this round works on: 0 white, 1 black. The
+		 *        lowest bit of the index is the side to move, so a round is every
+		 *        second entry.
+		 */
+		BitWorkpackage(GenerationState& state, int parity)
 			: _candidates(state.getCandidates())
 			, _candidateResults(state.getCandidateResults())
 			, _entryCount(state.getEntryCount())
 			, _workIndex(0)
+			, _parityMask(parity == 0 ? uint8_t(0x55) : uint8_t(0xAA))
 		{
 		}
 
@@ -140,6 +147,15 @@ namespace QaplaBitbase {
 		int getCandidate(uint64_t index) const {
 			if (!_candidates.getBitAtomic(index)) return -1;
 			return _candidateResults.getBitAtomic(index) ? 1 : 0;
+		}
+
+		/**
+		 * The eight candidate bits of one byte, with the bits of the other colour
+		 * masked away. Zero means the whole byte can be skipped, which is what a round
+		 * spends most of its time doing once the candidates become sparse.
+		 */
+		uint8_t getCandidateByte(uint64_t index) const {
+			return uint8_t(_candidates.getBitByte(index / 8)) & _parityMask;
 		}
 
 		/**
@@ -162,6 +178,7 @@ namespace QaplaBitbase {
 		Bitbase _candidateResults;
 		uint64_t _entryCount;
 		uint64_t _workIndex;
+		uint8_t _parityMask;
 		mutex _mtxWork;
 	};
 

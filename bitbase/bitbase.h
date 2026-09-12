@@ -129,6 +129,22 @@ namespace QaplaBitbase {
         void fillAll(BitbaseResult value);
 
         /**
+         * @brief Clears every bit whose index has the given lowest bit.
+         *
+         * The lowest bit of a bitbase index is the side to move, so this clears the
+         * candidates of one colour and leaves the other colour's untouched.
+         *
+         * @param parity 0 clears the even indexes (white to move), 1 the odd ones.
+         */
+        void clearBitsOfParity(int parity);
+
+        /**
+         * @brief Eight candidate bits at once, for scanning over empty stretches.
+         * @param byteIndex Index of the byte, that is the entry index divided by eight.
+         */
+        bbt_t getBitByte(uint64_t byteIndex) const { return _bitbase[byteIndex]; }
+
+        /**
          * @brief Sets a specific bit to 1.
          * @param index Bit index to set.
          */

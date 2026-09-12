@@ -59,6 +59,12 @@ namespace QaplaBitbase {
         std::fill(_bitbase.begin(), _bitbase.end(), bbt_t(0xFF));
     }
 
+    void Bitbase::clearBitsOfParity(int parity) {
+        // Even indexes sit in bits 0, 2, 4, 6 of their byte, odd ones in 1, 3, 5, 7.
+        const bbt_t keep = parity == 0 ? bbt_t(0xAA) : bbt_t(0x55);
+        for (auto& element : _bitbase) element &= keep;
+    }
+
     void Bitbase::fillAll(BitbaseResult value) {
         assert(_bitsPerEntry == 8);
         std::fill(_bitbase.begin(), _bitbase.end(), bbt_t(value));

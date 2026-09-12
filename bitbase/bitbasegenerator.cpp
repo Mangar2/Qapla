@@ -19,6 +19,7 @@
  * Tool to generate bitbases
  */
 
+#include <bit>
 #include <iostream>
 #include <thread>
 
@@ -503,45 +504,54 @@ void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, Generatio
 	pair<uint64_t, uint64_t> package = workpackage.getNextPackageToExamine(_packageSize);
 	while (package.first < package.second)
 	{
-		for (uint64_t index = package.first; index < package.second; ++index)
+		// Eight candidate bits at a time, with the other colour already masked away by
+		// the work package. Once the candidates are sparse - and with one ply per round
+		// they are - this skips whole bytes instead of asking index by index.
+		for (uint64_t base = package.first; base < package.second; base += 8)
 		{
-			int candidateValue = workpackage.getCandidate(index);
-			if (candidateValue < 0) continue;  // not a candidate
+			uint8_t bits = workpackage.getCandidateByte(base);
 
-			bool winningMove = (candidateValue == 1);
-			auto computedResult = state.getComputedResults().getByte(index);
-
-			if (index == _debugIndex)
+			while (bits)
 			{
-				cout << "Processing candidate index " << index << " with candidate result ";
-				cout << (winningMove ? "Winning" : "Losing") << endl;
-			}
+				const uint64_t index = base + uint64_t(std::countr_zero(bits));
+				bits &= uint8_t(bits - 1);
 
-			if (GenerationState::isFinal(computedResult)) {
-				continue;
-			}
-			ReverseIndex reverseIndex(index, state.getPieceList());
+				const bool winningMove = workpackage.getCandidate(index) == 1;
+				const auto computedResult = state.getComputedResults().getByte(index);
 
-			bool directEntry = tryDirectEntry(index, winningMove,
-											  reverseIndex.isWhiteToMove(), state);
+				if (index == _debugIndex)
+				{
+					cout << "Processing candidate index " << index << " with candidate result ";
+					cout << (winningMove ? "Winning" : "Losing") << endl;
+				}
 
-			position.clear();
-			addPiecesToPosition(position, reverseIndex, state.getPieceList());
-			if (DO_DEBUG && _debugLevel > 0 && index != BoardAccess::getIndex<0>(position))
-			{
-				cout << "Error, programming bug, index is not correct " << index << endl;
-				exit(1);
-			}
-
-			if (!directEntry) {
-				const auto result = computePosition(index, position, state);
-				if (result == BitbaseResult::Unknown) {
+				if (GenerationState::isFinal(computedResult)) {
 					continue;
 				}
-			}
+				ReverseIndex reverseIndex(index, state.getPieceList());
 
-			auto resolvedResult = state.getComputedResults().getByte(index);
-			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex, state);
+				const bool directEntry = tryDirectEntry(index, winningMove,
+													   reverseIndex.isWhiteToMove(), state);
+
+				position.clear();
+				addPiecesToPosition(position, reverseIndex, state.getPieceList());
+				if (DO_DEBUG && _debugLevel > 0 && index != BoardAccess::getIndex<0>(position))
+				{
+					cout << "Error, programming bug, index is not correct " << index << endl;
+					exit(1);
+				}
+
+				if (!directEntry) {
+					const auto result = computePosition(index, position, state);
+					if (result == BitbaseResult::Unknown) {
+						continue;
+					}
+				}
+
+				const auto resolvedResult = state.getComputedResults().getByte(index);
+				computeCandidates(candidates, position, resolvedResult,
+								  state.getComputedResults(), index == _debugIndex, state);
+			}
 		}
 		state.setCandidatesTreadSafe(candidates);
 		candidates.clear();
@@ -549,6 +559,7 @@ void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, Generatio
 	}
 	state.setCandidatesTreadSafe(candidates);
 }
+
 
 /**
  * Runs iterative propagation until no additional candidate positions remain.
@@ -559,27 +570,37 @@ void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, Generatio
 void BitbaseGenerator::computeBitbase(GenerationState &state, ClockManager &clock)
 {
 	auto& timing = BitbaseProfiling::getStaticInstance();
-	for (uint32_t loopCount = 0; loopCount < 1024; loopCount++)
+
+	// One side to move per round, alternating. Within a material every successor of a
+	// position has the other side to move, so a round reads only entries of the colour
+	// it is not writing: no thread can see what another one writes in the same round,
+	// and a value becomes visible exactly one round later. That makes a round one ply,
+	// which is what a distance needs - and it removes the need for a second buffer.
+	int parity = 0;
+
+	for (uint32_t loopCount = 0; loopCount < 8192; loopCount++)
 	{
-		timing.start("workpackage setup");
-		BitWorkpackage workpackage(state);
-		state.clearAllCandidates();
-		timing.stop("workpackage setup");
+		if (state.candidateCount(0) == 0 && state.candidateCount(1) == 0) break;
 
-		timing.start("propagation parallel");
-		for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
+		if (state.candidateCount(parity) > 0)
 		{
-			_threads[threadNo] = thread([this, &workpackage, &state]()
-										{ computeWorkpackage(workpackage, state); });
-		}
+			timing.start("workpackage setup");
+			BitWorkpackage workpackage(state, parity);
+			state.clearCandidatesOfParity(parity);
+			timing.stop("workpackage setup");
 
-		joinThreads();
-		timing.stop("propagation parallel");
-		std::cout << "." << std::flush;
-		if (!state.hasCandidates())
-		{
-			break;
+			timing.start("propagation parallel");
+			for (uint32_t threadNo = 0; threadNo < _cores; ++threadNo)
+			{
+				_threads[threadNo] = thread([this, &workpackage, &state]()
+											{ computeWorkpackage(workpackage, state); });
+			}
+
+			joinThreads();
+			timing.stop("propagation parallel");
+			std::cout << "." << std::flush;
 		}
+		parity = 1 - parity;
 	}
 	// All positions that remain unresolved after propagation are draws by definition:
 	// neither side can force a win or loss from them (cycles, insufficient material, etc.).

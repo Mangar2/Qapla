@@ -201,8 +201,28 @@ namespace QaplaBitbase {
 		void clearAllCandidates() {
 			_candidates.clear();
 			_candidateResults.clear();
+			_candidateCount[0] = 0;
+			_candidateCount[1] = 0;
 			_hasCandidates = false;
 		}
+
+		/**
+		 * Clears the candidates of one side to move, leaving the other side's alone.
+		 *
+		 * @param parity 0 for white to move, 1 for black to move.
+		 */
+		void clearCandidatesOfParity(int parity) {
+			_candidates.clearBitsOfParity(parity);
+			_candidateResults.clearBitsOfParity(parity);
+			_candidateCount[parity] = 0;
+		}
+
+		/**
+		 * How many candidates of one side to move are waiting.
+		 *
+		 * @param parity 0 for white to move, 1 for black to move.
+		 */
+		uint64_t candidateCount(int parity) const { return _candidateCount[parity]; }
 
 		/**
 		 * Removes one index from the candidate bitmap.
@@ -386,6 +406,7 @@ namespace QaplaBitbase {
 			// harmless because setBitAtomic uses fetch_or (idempotent).
 			if (!_candidates.getBit(index)) {
 				_hasCandidates = true;
+				_candidateCount[index & 1]++;
 				_candidates.setBit(index);
 			}
 			if (winningMove && !_candidateResults.getBit(index)) {
@@ -398,6 +419,7 @@ namespace QaplaBitbase {
 		std::atomic<uint64_t> _loss;
 		std::atomic<uint64_t>  _won;
 		std::atomic<uint64_t>  _hasCandidates;
+		std::atomic<uint64_t>  _candidateCount[2]{};
 
 		inline static std::atomic<uint64_t> _totalWon{ 0 };
 		inline static std::atomic<uint64_t> _totalEntryCount{ 0 };
