@@ -176,7 +176,7 @@ BitbaseResult BitbaseGenerator::setComputeValue(
 	// initialization is a marker instead: it says a drawing capture exists, so the
 	// position can never be forced into a loss - but a quiet move may still win it, and
 	// the double step below may need the correction, so it is not skipped.
-	const BitbaseResult currentResult = bitbase.get2Bits(index);
+	const BitbaseResult currentResult = bitbase.getByte(index);
 	if (GenerationState::isFinal(currentResult)) {
 		return BitbaseResult::Unknown;
 	}
@@ -196,7 +196,7 @@ BitbaseResult BitbaseGenerator::setComputeValue(
 		if (move.isCaptureOrPromote()) continue;
 
 		const auto moveIndex = BoardAccess::getIndex(!whiteToMove, pieceList, move);
-		auto moveResult = bitbase.get2Bits(moveIndex);
+		auto moveResult = bitbase.getByte(moveIndex);
 
 		// A pawn stepping two squares hands the opponent an en passant capture, and the
 		// entry of the child knows nothing about it - the index has no room for that
@@ -329,7 +329,7 @@ uint64_t BitbaseGenerator::computeCandidateIndex(bool wtm, const PieceList &list
 void BitbaseGenerator::addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
 	Bitbase& computedResults, GenerationState& state)
 {
-	if (!GenerationState::isFinal(computedResults.get2Bits(entry.index))) {
+	if (!GenerationState::isFinal(computedResults.getByte(entry.index))) {
 		// Skip push if the shared state already contains this candidate with sufficient priority.
 		// Atomic relaxed read — thread-safe on all architectures, near-zero cost.
 		if (!state.isCandidateSet(entry.index, entry.winningMove)) {
@@ -509,7 +509,7 @@ void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, Generatio
 			if (candidateValue < 0) continue;  // not a candidate
 
 			bool winningMove = (candidateValue == 1);
-			auto computedResult = state.getComputedResults().get2Bits(index);
+			auto computedResult = state.getComputedResults().getByte(index);
 
 			if (index == _debugIndex)
 			{
@@ -540,7 +540,7 @@ void BitbaseGenerator::computeWorkpackage(BitWorkpackage &workpackage, Generatio
 				}
 			}
 
-			auto resolvedResult = state.getComputedResults().get2Bits(index);
+			auto resolvedResult = state.getComputedResults().getByte(index);
 			computeCandidates(candidates, position, resolvedResult, state.getComputedResults(), index == _debugIndex, state);
 		}
 		state.setCandidatesTreadSafe(candidates);
@@ -848,14 +848,14 @@ void BitbaseGenerator::markIllegalAsUnknown(GenerationState& state)
 	for (uint64_t index = 0; index < state.getEntryCount(); ++index) {
 		ReverseIndex reverseIndex(index, state.getPieceList());
 		if (!reverseIndex.isLegal()) {
-			state.getComputedResults().set2Bit(index, BitbaseResult::Unknown);
+			state.getComputedResults().setByte(index, BitbaseResult::Unknown);
 			continue;
 		}
 		position.clear();
 		addPiecesToPosition(position, reverseIndex, state.getPieceList());
 		uint64_t testIndex = BoardAccess::getIndex<0>(position);
 		if (index != testIndex || !position.isLegal()) {
-			state.getComputedResults().set2Bit(index, BitbaseResult::Unknown);
+			state.getComputedResults().setByte(index, BitbaseResult::Unknown);
 		}
 	}
 }
@@ -914,7 +914,7 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, bool gen
 	{
 		auto& bb = state.getComputedResults();
 		for (uint64_t idx = 0; idx < entryCount; ++idx) {
-			repairResults.push_back(bb.get2Bits(idx));
+			repairResults.push_back(bb.getByte(idx));
 		}
 	}
 	timing.stop("qwdl collect sequence");

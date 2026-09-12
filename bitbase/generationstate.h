@@ -47,9 +47,14 @@ namespace QaplaBitbase {
 		{
 			BitbaseIndex bitbaseIndexType(pieceList);
 			_entryCount = bitbaseIndexType.getEntryCount();
-			_computedResults = Bitbase(_entryCount, 2, sig);
+			// One byte per entry, not two bits. A byte is a memory location of its own,
+			// so the threads of a round write different entries without touching each
+			// other; with two bit entries a write is a read-modify-write of the four
+			// entries that share the byte, and two threads in one byte lose a value.
+			// It is also the shape a distance needs, once the value is one.
+			_computedResults = Bitbase(_entryCount, 8, sig);
 			_computedResults.resize(_entryCount);
-			_computedResults.fillAll();
+			_computedResults.fillAll(BitbaseResult::Unknown);
 			_computedResults.setLoaded();
 			_candidates = Bitbase(_entryCount, 1, sig);
 			_candidates.resize(_entryCount);
@@ -87,7 +92,7 @@ namespace QaplaBitbase {
 		 * @returns True when the position is not yet computed and passes candidate filtering.
 		 */
 		bool isPositionToCheck(uint64_t index, bool onlyCandidates) {
-			return !isFinal(_computedResults.get2Bits(index)) &&
+			return !isFinal(_computedResults.getByte(index)) &&
 				(!onlyCandidates || _candidates.getBit(index));
 		}
 
@@ -98,7 +103,7 @@ namespace QaplaBitbase {
 		 * @returns True if the position is marked as computed.
 		 */
 		bool isPositionComputed(uint64_t index) {
-			return isFinal(_computedResults.get2Bits(index));
+			return isFinal(_computedResults.getByte(index));
 		}
 
 		/**
@@ -209,7 +214,7 @@ namespace QaplaBitbase {
 		}
 
 		void setValue(uint64_t index, BitbaseResult value) {
-			_computedResults.set2Bit(index, value);
+			_computedResults.setByte(index, value);
 			// Draw written here is an intermediate marker (drawing capture found during initialization),
 			// not a final result. It is NOT counted here; finalizeDraws() counts it when confirmed final.
 			_won  += (value == BitbaseResult::Win)  ? 1 : 0;
@@ -226,7 +231,7 @@ namespace QaplaBitbase {
 		void setWin(uint64_t index) {
 			_won++;
 			_totalWon++;
-			_computedResults.set2Bit(index, BitbaseResult::Win);
+			_computedResults.setByte(index, BitbaseResult::Win);
 		}
 
 		/**
@@ -237,7 +242,7 @@ namespace QaplaBitbase {
 		void setLoss(uint64_t index) {
 			_loss++;
 			_totalLoss++;
-			_computedResults.set2Bit(index, BitbaseResult::Loss);
+			_computedResults.setByte(index, BitbaseResult::Loss);
 		}
 
 		/**
@@ -246,7 +251,7 @@ namespace QaplaBitbase {
 		 * @param index Bitbase index to mark.
 		 */
 		void setDraw(uint64_t index) {
-			_computedResults.set2Bit(index, BitbaseResult::Draw);
+			_computedResults.setByte(index, BitbaseResult::Draw);
 		}
 
 
@@ -261,7 +266,7 @@ namespace QaplaBitbase {
 			// Illegal positions are marked as Win so that isFinal() returns true and
 			// propagation never reclassifies them. Win=1 fits in 1 bit, preserving
 			// compressibility. Illegal indices are never queried during lookup.
-			_computedResults.set2Bit(index, BitbaseResult::Win);
+			_computedResults.setByte(index, BitbaseResult::Win);
 		}
 
 		/**
@@ -273,8 +278,8 @@ namespace QaplaBitbase {
 		 */
 		void finalizeDraws() {
 			for (uint64_t index = 0; index < _entryCount; ++index) {
-				if (_computedResults.get2Bits(index) == BitbaseResult::Unknown) {
-					_computedResults.set2Bit(index, BitbaseResult::Draw);
+				if (_computedResults.getByte(index) == BitbaseResult::Unknown) {
+					_computedResults.setByte(index, BitbaseResult::Draw);
 				}
 			}
 		}

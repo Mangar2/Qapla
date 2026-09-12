@@ -59,6 +59,11 @@ namespace QaplaBitbase {
         std::fill(_bitbase.begin(), _bitbase.end(), bbt_t(0xFF));
     }
 
+    void Bitbase::fillAll(BitbaseResult value) {
+        assert(_bitsPerEntry == 8);
+        std::fill(_bitbase.begin(), _bitbase.end(), bbt_t(value));
+    }
+
     void Bitbase::setBit(uint64_t index) {
 		assert(isLoaded());
         if (index >= sizeInBits()) return;
@@ -216,7 +221,7 @@ namespace QaplaBitbase {
     uint64_t Bitbase::computeResults(BitbaseResult result) const {
         uint64_t count = 0;
         for (uint64_t index = 0; index < sizeInBits(); index += _bitsPerEntry) {
-            auto mask = _bitsPerEntry == 1 ? bbt_t(1) : bbt_t(3);   
+            const auto mask = bbt_t((uint32_t(1) << _bitsPerEntry) - 1);
             if (getBitsFromLoadedData(index, mask) == static_cast<int>(result)) {
                 ++count;
             }

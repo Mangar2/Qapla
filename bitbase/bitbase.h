@@ -60,7 +60,7 @@ namespace QaplaBitbase {
         /**
          * @brief Constructs a Bitbase with a given entry count and bits per entry.
          * @param entryCount Number of entries the bitbase should hold.
-         * @param bitsPerEntry Number of bits per entry (1 or 2).
+         * @param bitsPerEntry Number of bits per entry (1, 2 or 8).
 		 * @param sig Signature of the bitbase.
          */
         explicit Bitbase(uint64_t entryCount, uint32_t bitsPerEntry, uint32_t sig);
@@ -68,7 +68,7 @@ namespace QaplaBitbase {
         /**
          * @brief Constructs a Bitbase from a BitbaseIndex.
          * @param index Index providing the entry count.
-         * @param bitsPerEntry Number of bits per entry (1 or 2).
+         * @param bitsPerEntry Number of bits per entry (1, 2 or 8).
 		 * @param sig Signature of the bitbase.
          */
         Bitbase(const class BitbaseIndex& index, uint32_t bitsPerEntry, uint32_t sig);
@@ -123,6 +123,12 @@ namespace QaplaBitbase {
         void fillAll();
 
         /**
+         * @brief Fills every entry of a byte wide bitbase with one value.
+         * @param value Value to write into every entry.
+         */
+        void fillAll(BitbaseResult value);
+
+        /**
          * @brief Sets a specific bit to 1.
          * @param index Bit index to set.
          */
@@ -165,6 +171,29 @@ namespace QaplaBitbase {
          * @param index Bit index to clear.
          */
         void clearBit(uint64_t index);
+
+        /**
+         * @brief Reads one entry of a byte wide bitbase.
+         *
+         * One entry, one byte. That is what the generation state uses while it computes:
+         * a byte is a memory location of its own, so threads that write different entries
+         * do not touch each other - with two bit entries four of them share a byte and a
+         * write is a read-modify-write of all four.
+         *
+         * @param index Entry index.
+         */
+        BitbaseResult getByte(uint64_t index) const {
+            return BitbaseResult(_bitbase[index]);
+        }
+
+        /**
+         * @brief Writes one entry of a byte wide bitbase.
+         * @param index Entry index.
+         * @param value Value to store.
+         */
+        void setByte(uint64_t index, BitbaseResult value) {
+            _bitbase[index] = bbt_t(value);
+        }
 
         /**
          * @brief Clears two bits (sets to 0).
