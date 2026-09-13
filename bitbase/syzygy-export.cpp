@@ -751,6 +751,66 @@ namespace QaplaBitbase {
 		return conflicts == 0;
 	}
 
+	bool checkGeneratorIndex(const std::string& pieceString, std::ostream& log) {
+
+		const std::string code = toFormatCode(pieceString);
+
+		WdlWriter writer(code);
+		std::string reason;
+		if (!writer.isSupported(reason)) {
+			log << "cannot use " << code << ": " << reason << std::endl;
+			return false;
+		}
+
+		const uint64_t size = writer.generatorSize();
+		uint64_t entries = 0;
+		uint64_t positions = 0;
+		uint64_t wrong = 0;
+
+		log << code << ": " << writer.fileCount() << " file tables of " << size
+			<< " entries each" << std::endl;
+
+		for (int file = 0; file < writer.fileCount(); ++file) {
+			for (uint64_t index = 0; index < size; ++index) {
+
+				int squares[TB_MAX_PIECES];
+				if (!writer.generatorSquares(file, index, squares)) continue;
+				++entries;
+
+				// Back to a position and forward again: the index has to come out the
+				// same. With the same material on both sides only one of them is stored
+				// and the other one is the mirror, which is an entry of its own - so
+				// that case is asked once.
+				for (int side = 0; side < writer.sideCount(); ++side) {
+
+					TbPosition position{};
+					position.pieceCount = uint8_t(writer.pieceCount());
+					position.whiteToMove = side == 0;
+					for (int i = 0; i < writer.pieceCount(); ++i) {
+						position.square[i] = uint8_t(squares[i]);
+						position.piece[i] = uint8_t(writer.generatorPiece(i));
+					}
+
+					const WdlSlot slot = writer.generatorSlotOf(position);
+					++positions;
+
+					if (slot.file == file && slot.index == index) continue;
+
+					if (++wrong <= 5)
+						log << "  entry " << index << " of file " << file
+							<< " comes back as " << slot.index << " of file " << slot.file
+							<< std::endl;
+				}
+			}
+		}
+
+		log << entries << " of " << size * writer.fileCount()
+			<< " entries stand for a position, " << positions << " round trips, "
+			<< wrong << " of them wrong" << std::endl;
+
+		return wrong == 0;
+	}
+
 	bool compareSyzygyWdl(const std::string& pieceString, const std::string& ourDir,
 		const std::string& refDir, const std::string& qwdlFile, std::ostream& log) {
 

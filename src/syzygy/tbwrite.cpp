@@ -775,6 +775,7 @@ namespace QaplaSyzygy {
 		const internal::IndexMaterial& m = _layout->material;
 
 		_sideCount = (m.key != m.key2) ? 2 : 1;
+		_pieceCount = m.pieceCount;
 		_fileCount = m.hasPawns ? 4 : 1;
 
 		if (m.pieceCount < 3) _unsupported = "a table needs at least three pieces";
@@ -946,6 +947,52 @@ namespace QaplaSyzygy {
 			out[i].index = internal::finishIndex(_layout->material,
 				_layout->candidate[layouts[i]].groups[ctx.tbFile], board, ctx);
 		}
+	}
+
+	uint64_t WdlWriter::generatorSize() const {
+		return internal::generatorSize(_layout->material);
+	}
+
+	WdlSlot WdlWriter::generatorSlotOf(const TbPosition& pos) const {
+
+		const internal::ProbeBoard board = internal::toProbeBoard(pos);
+		const internal::IndexGroups& groups = _layout->candidate[0].groups[0];
+		internal::IndexContext ctx = internal::beginIndex(_layout->material, groups, board);
+
+		WdlSlot slot;
+		slot.side = ctx.stm % _sideCount;
+		slot.file = ctx.tbFile;
+
+		// The squares of the position, leading pawns already in front, the rest behind
+		int size = ctx.size;
+		uint64_t b = board.occupancy ^ ctx.leadPawns;
+		do {
+			const int s = internal::popLsb(b);
+			ctx.squares[size] = s ^ ctx.flipSquares;
+			ctx.pieces[size++] = uint8_t(int(board.board[s]) ^ ctx.flipColour);
+		} while (b);
+
+		const internal::IndexGroups& forFile =
+			_layout->candidate[0].groups[slot.file];
+
+		internal::canonicalise(_layout->material, forFile, ctx.squares, ctx.pieces,
+							   size, ctx.leadPawnsCnt);
+
+		slot.index = internal::packGeneratorIndex(_layout->material, ctx.squares);
+		return slot;
+	}
+
+	bool WdlWriter::generatorSquares(int file, uint64_t index, int* squares) const {
+		return internal::unpackGeneratorIndex(_layout->material,
+			_layout->candidate[0].groups[file], file, index, squares);
+	}
+
+	int WdlWriter::generatorPiece(int i) const {
+		// Back from the internal encoding into the one the interface speaks
+		const int piece = _layout->candidate[0].groups[0].pieces[i];
+		const int colour = internal::colourOf(piece);
+		const int type = internal::typeOf(piece);
+		return (colour ? int(BlackPawn) : int(WhitePawn)) + type - internal::PAWN;
 	}
 
 	uint64_t WdlWriter::compressedSize(const std::vector<uint8_t>& values, bool quick) const {

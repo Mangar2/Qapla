@@ -62,6 +62,12 @@ namespace QaplaBitbase {
 	 * @param refDir      directory holding the reference files
 	 * @returns true when no position differs
 	 */
+	/**
+	 * Checks the index the generator is to work in: every entry that stands for a
+	 * position has to come back as itself when the position is encoded again.
+	 */
+	bool checkGeneratorIndex(const std::string& pieceString, std::ostream& log);
+
 	bool compareSyzygyWdl(const std::string& pieceString, const std::string& ourDir,
 		const std::string& refDir, const std::string& qwdlFile, std::ostream& log);
 

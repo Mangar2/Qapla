@@ -61,6 +61,7 @@ namespace QaplaInterface {
 		 * Compares written Syzygy files against a reference set
 		 */
 		void checkSyzygy();
+		void checkGeneratorIndex();
 
 		/**
 		 * Measures probe speed against a reference set

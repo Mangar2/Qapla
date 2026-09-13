@@ -99,6 +99,9 @@ namespace QaplaSyzygy {
 		/** Number of file tables: 1 without pawns, 4 with them. */
 		int fileCount() const { return _fileCount; }
 
+		/** Number of pieces of this material. */
+		int pieceCount() const { return _pieceCount; }
+
 		/** Number of values one table holds, in the layout chosen for it. */
 		uint64_t tableSize(int side, int file) const;
 
@@ -134,6 +137,29 @@ namespace QaplaSyzygy {
 		void slotsOf(const TbPosition& pos, const int* layouts, int count, WdlSlot* out) const;
 
 		/**
+		 * How many entries one file table of the generator index holds.
+		 *
+		 * The generator works in de Man's index, not in the packed one the file uses:
+		 * six bits per piece, the leading square folded, and the pawns in the leading
+		 * digits so that one pawn constellation is one stretch of the index.
+		 */
+		uint64_t generatorSize() const;
+
+		/** Which file table and which entry of the generator index a position sits in. */
+		WdlSlot generatorSlotOf(const TbPosition& pos) const;
+
+		/**
+		 * The squares an entry of the generator index stands for.
+		 *
+		 * @param squares receives one square per piece, in the order of the layout
+		 * @returns false when the entry stands for no position at all
+		 */
+		bool generatorSquares(int file, uint64_t index, int* squares) const;
+
+		/** The piece on square i of what generatorSquares() hands back, as a TbPieceCode. */
+		int generatorPiece(int i) const;
+
+		/**
 		 * What a table would cost in the file, so that layouts can be compared.
 		 *
 		 * @param quick leaves out the search over vocabulary and block sizes; the
@@ -158,6 +184,7 @@ namespace QaplaSyzygy {
 
 		std::string              _code;
 		int                      _sideCount = 2;
+		int                      _pieceCount = 0;
 		int                      _fileCount = 1;
 		std::string              _unsupported;
 		std::unique_ptr<Layout>  _layout;

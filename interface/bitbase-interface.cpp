@@ -121,6 +121,16 @@ void BitbaseInterface::writeSyzygy() {
 	QaplaBitbase::writeSyzygyWdl(pieceString, qwdlFile, outDir, std::cout);
 }
 
+void BitbaseInterface::checkGeneratorIndex() {
+	const string pieceString = getNextTokenBlocking(true);
+	if (pieceString == "\r" || pieceString == "\n") {
+		println("usage bitgenindex pieces");
+		return;
+	}
+	const bool ok = QaplaBitbase::checkGeneratorIndex(pieceString, std::cout);
+	println(ok ? "index ok" : "INDEX BROKEN");
+}
+
 void BitbaseInterface::checkSyzygy() {
 	const string pieceString = getNextTokenBlocking(true);
 	if (pieceString == "\r" || pieceString == "\n") {
@@ -197,6 +207,7 @@ void BitbaseInterface::handleInput() {
 	else if (token == "bitverify") verifyBitbases();
 	else if (token == "bitsyzygy") writeSyzygy();
 	else if (token == "bitsyzygycheck") checkSyzygy();
+	else if (token == "bitgenindex") checkGeneratorIndex();
 	else if (token == "bitsyzygyspeed") speedSyzygy();
 	else if (token == "bitsyzygyprobe") probeSyzygy();
 }

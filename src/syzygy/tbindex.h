@@ -124,6 +124,7 @@ namespace QaplaSyzygy {
 		inline int MapPawns[SQUARE_AMOUNT];
 		inline int MapB1H1H7[SQUARE_AMOUNT];
 		inline int MapA1D1D4[SQUARE_AMOUNT];
+		inline int MapA1D1D4Inverse[10];   ///< the square a triangle value stands for
 		inline int MapKK[10][SQUARE_AMOUNT];
 
 		inline int Binomial[6][SQUARE_AMOUNT];
@@ -238,6 +239,10 @@ namespace QaplaSyzygy {
 			uint8_t  pieces[TBPIECES] = {};
 			uint64_t groupIdx[TBPIECES + 1] = {};
 			int      groupLen[TBPIECES + 1] = {};
+
+			/// How many arrangements a group has. groupIdx is its place value in the
+			/// chain, this is its radix - which is what taking an index apart needs.
+			uint64_t groupSize[TBPIECES + 1] = {};
 		};
 
 		/**
@@ -302,16 +307,19 @@ namespace QaplaSyzygy {
 			for (int k = 0; next < n || k == order[0] || k == order[1]; ++k)
 				if (k == order[0]) {          // Leading pawns or pieces
 					g.groupIdx[0] = idx;
-					idx *= e.hasPawns ? LeadPawnsSize[g.groupLen[0]][f]
+					g.groupSize[0] = e.hasPawns ? LeadPawnsSize[g.groupLen[0]][f]
 						: e.hasUniquePieces ? 31332 : 462;
+					idx *= g.groupSize[0];
 				}
 				else if (k == order[1]) {     // Remaining pawns
 					g.groupIdx[1] = idx;
-					idx *= Binomial[g.groupLen[1]][48 - g.groupLen[0]];
+					g.groupSize[1] = Binomial[g.groupLen[1]][48 - g.groupLen[0]];
+					idx *= g.groupSize[1];
 				}
 				else {                        // Remaining pieces
 					g.groupIdx[next] = idx;
-					idx *= Binomial[g.groupLen[next]][freeSquares];
+					g.groupSize[next] = Binomial[g.groupLen[next]][freeSquares];
+					idx *= g.groupSize[next];
 					freeSquares -= g.groupLen[next++];
 				}
 
@@ -420,6 +428,189 @@ namespace QaplaSyzygy {
 		 *
 		 * @param d the grouping of the (side, file) table beginIndex selected
 		 */
+		/**
+		 * Sorts what is a set and not a sequence: equal pieces of one group stand in
+		 * ascending square order, and the leading pawns with the highest MapPawns[] in
+		 * front and the rest ascending. Two arrangements that differ only in this are
+		 * the same position, and the format stores it once.
+		 */
+		inline void sortGroups(const IndexMaterial& e, const IndexGroups& d,
+			int* squares, int leadPawns) {
+
+			if (leadPawns > 1) {
+				std::swap(squares[0],
+					*std::max_element(squares, squares + leadPawns, pawnsComp));
+				std::stable_sort(squares + 1, squares + leadPawns, pawnsComp);
+			}
+
+			int* groupSq = squares + d.groupLen[0];
+			for (int group = 0; d.groupLen[++group]; ) {
+				std::stable_sort(groupSq, groupSq + d.groupLen[group]);
+				groupSq += d.groupLen[group];
+			}
+		}
+
+		/**
+		 * Folds a set of squares into the one form of its symmetry class that the format
+		 * stores, and puts them in the order the grouping names.
+		 *
+		 * Which square leads decides the folding, and which square leads is what the
+		 * grouping says - so two groupings of the same position can end in different
+		 * squares. That is why this is a step of its own: the generator folds for its
+		 * own arrangement, the file for the one it is written in, and the way from one
+		 * to the other runs through here.
+		 *
+		 * @param squares  the squares, leading pawns first, folded in place
+		 * @param pieces   the piece of every square, reordered along with them
+		 * @param size     how many pieces there are
+		 * @param leadPawns how many of them are the leading pawns, which stay in front
+		 */
+		inline void canonicalise(const IndexMaterial& e, const IndexGroups& d,
+			int* squares, uint8_t* pieces, int size, int leadPawns) {
+
+			// Reorder into the sequence stored in pieces[], the one that compresses best
+			for (int i = leadPawns; i < size - 1; ++i)
+				for (int j = i + 1; j < size; ++j)
+					if (d.pieces[i] == pieces[j]) {
+						std::swap(pieces[i], pieces[j]);
+						std::swap(squares[i], squares[j]);
+						break;
+					}
+
+			// Map the squares so that the leading piece lands in the triangle A1-D1-D4
+			if (fileOf(squares[0]) > 3)
+				for (int i = 0; i < size; ++i)
+					squares[i] = flipFile(squares[i]);
+
+			if (e.hasPawns) return;   // Pawns fold by file and by nothing else
+
+			// Without pawns, flip again so the leading piece is below rank 5
+			if (rankOf(squares[0]) > 3)
+				for (int i = 0; i < size; ++i)
+					squares[i] = flipRank(squares[i]);
+
+			// Find the first piece of the leading group off the A1-D4 diagonal and
+			// make sure it is mapped below it
+			for (int i = 0; i < d.groupLen[0]; ++i) {
+				if (!offA1H8(squares[i])) continue;
+
+				if (offA1H8(squares[i]) > 0)   // Flip along A1-H8: A3 -> C1
+					for (int j = i; j < size; ++j)
+						squares[j] = ((squares[j] >> 3) | (squares[j] << 3)) & 63;
+				break;
+			}
+
+			sortGroups(e, d, squares, leadPawns);
+		}
+
+		/**
+		 * How many entries one file of the generator index holds.
+		 *
+		 * This is de Man's shape, not the packed one the file uses: the leading square
+		 * takes the ten of the triangle or the six ranks its pawn can stand on, every
+		 * further piece takes six bits of its own. It wastes the room of the positions
+		 * that cannot exist - two pieces on one square - and buys two things for it:
+		 * taking an index apart is a shift, and the positions of one pawn constellation
+		 * lie next to each other, because the pawns are the leading digits.
+		 */
+		inline uint64_t generatorSize(const IndexMaterial& e) {
+			uint64_t size = e.hasPawns ? 6 : 10;
+			for (int i = 1; i < e.pieceCount; ++i) size *= 64;
+			return size;
+		}
+
+		/**
+		 * Packs canonical squares the generator's way.
+		 *
+		 * @param squares the squares in the order of the grouping, already folded
+		 */
+		inline uint64_t packGeneratorIndex(const IndexMaterial& e, const int* squares) {
+
+			uint64_t index = e.hasPawns ? uint64_t(rankOf(squares[0]) - 1)
+										: uint64_t(MapA1D1D4[squares[0]]);
+
+			for (int i = 1; i < e.pieceCount; ++i)
+				index = index * 64 + uint64_t(squares[i]);
+
+			return index;
+		}
+
+		/**
+		 * Takes an index of the generator apart, and says whether it stands for anything.
+		 *
+		 * An index is a position exactly when no two pieces share a square, no pawn
+		 * stands on the first or the last rank, and the squares are already the folded
+		 * form of their symmetry class - the class is stored once, under the index its
+		 * own folding produces, and every other index of it is empty.
+		 *
+		 * @param file    which file table this index belongs to
+		 * @param squares receives the squares in the order of the grouping
+		 * @returns false when the index holds no position
+		 */
+		inline bool unpackGeneratorIndex(const IndexMaterial& e, const IndexGroups& d,
+			int file, uint64_t index, int* squares) {
+
+			for (int i = e.pieceCount - 1; i >= 1; --i) {
+				squares[i] = int(index & 63);
+				index >>= 6;
+			}
+
+			if (e.hasPawns) {
+				// The leading pawn stands on the file of its table, on the rank the
+				// remaining digit names.
+				if (index > 5) return false;
+				squares[0] = makeSquare(file, int(index) + 1);
+			}
+			else {
+				if (index > 9) return false;
+				squares[0] = MapA1D1D4Inverse[index];
+			}
+
+			// No two pieces on one square, and no pawn where a pawn cannot be
+			uint64_t occupied = 0;
+			for (int i = 0; i < e.pieceCount; ++i) {
+				const uint64_t bit = uint64_t(1) << squares[i];
+				if (occupied & bit) return false;
+				occupied |= bit;
+
+				if (typeOf(d.pieces[i]) == PAWN && (rankOf(squares[i]) == 0 || rankOf(squares[i]) == 7))
+					return false;
+			}
+
+			// Within a group the squares of equal pieces are stored ascending, and the
+			// leading pawns are stored with the highest MapPawns[] in front and the rest
+			// ascending. An arrangement that breaks it is another index's arrangement.
+			if (e.hasPawns) {
+				for (int i = 1; i < d.groupLen[0]; ++i) {
+					if (MapPawns[squares[i]] > MapPawns[squares[0]]) return false;
+					if (i > 1 && MapPawns[squares[i]] < MapPawns[squares[i - 1]]) return false;
+				}
+			}
+
+			for (int group = 0, first = d.groupLen[0]; d.groupLen[++group]; ) {
+				for (int i = 1; i < d.groupLen[group]; ++i)
+					if (squares[first + i] < squares[first + i - 1]) return false;
+				first += d.groupLen[group];
+			}
+
+			// The class is stored under the index its own folding produces. Everything
+			// that folds somewhere else is another index's business.
+			int folded[TBPIECES];
+			uint8_t pieces[TBPIECES];
+			for (int i = 0; i < e.pieceCount; ++i) {
+				folded[i] = squares[i];
+				pieces[i] = d.pieces[i];
+			}
+
+			const int leadPawns = e.hasPawns ? d.groupLen[0] : 0;
+			canonicalise(e, d, folded, pieces, e.pieceCount, leadPawns);
+
+			for (int i = 0; i < e.pieceCount; ++i)
+				if (folded[i] != squares[i]) return false;
+
+			return true;
+		}
+
 		inline uint64_t finishIndex(const IndexMaterial& e, const IndexGroups& d,
 			const ProbeBoard& pos, IndexContext& ctx) {
 
@@ -439,46 +630,16 @@ namespace QaplaSyzygy {
 
 			assert(size >= 2);
 
-			// Reorder into the sequence stored in pieces[], the one that compresses best
-			for (int i = ctx.leadPawnsCnt; i < size - 1; ++i)
-				for (int j = i + 1; j < size; ++j)
-					if (d.pieces[i] == pieces[j]) {
-						std::swap(pieces[i], pieces[j]);
-						std::swap(squares[i], squares[j]);
-						break;
-					}
-
-			// Map the squares so that the leading piece lands in the triangle A1-D1-D4
-			if (fileOf(squares[0]) > 3)
-				for (int i = 0; i < size; ++i)
-					squares[i] = flipFile(squares[i]);
+			canonicalise(e, d, squares, pieces, size, ctx.leadPawnsCnt);
 
 			// Encode the leading pawns, starting with the lowest MapPawns[] and ascending
 			if (e.hasPawns) {
 				idx = LeadPawnIdx[ctx.leadPawnsCnt][squares[0]];
 
-				std::stable_sort(squares + 1, squares + ctx.leadPawnsCnt, pawnsComp);
-
 				for (int i = 1; i < ctx.leadPawnsCnt; ++i)
 					idx += Binomial[i][MapPawns[squares[i]]];
 
 				goto encode_remaining;   // Pawns need no further special treatment
-			}
-
-			// Without pawns, flip again so the leading piece is below rank 5
-			if (rankOf(squares[0]) > 3)
-				for (int i = 0; i < size; ++i)
-					squares[i] = flipRank(squares[i]);
-
-			// Find the first piece of the leading group off the A1-D4 diagonal and
-			// make sure it is mapped below it
-			for (int i = 0; i < d.groupLen[0]; ++i) {
-				if (!offA1H8(squares[i])) continue;
-
-				if (offA1H8(squares[i]) > 0)   // Flip along A1-H8: A3 -> C1
-					for (int j = i; j < size; ++j)
-						squares[j] = ((squares[j] >> 3) | (squares[j] << 3)) & 63;
-				break;
 			}
 
 			// Encode the leading group. With at least three unique pieces (kings included)
@@ -514,7 +675,6 @@ namespace QaplaSyzygy {
 			bool remainingPawns = e.hasPawns && e.pawnCount[1];
 
 			while (d.groupLen[++next]) {
-				std::stable_sort(groupSq, groupSq + d.groupLen[next]);
 				uint64_t n = 0;
 
 				// Map a square down when it comes later than one of a previous group
@@ -534,6 +694,12 @@ namespace QaplaSyzygy {
 
 
 		/** Builds the constant maps. Runs once, when a path is set. */
+		/// The square a value of MapPawns[] belongs to, for taking a pawn index apart.
+		inline int MapPawnsInverse[64];
+
+		/// The two squares a value of MapKK[] stands for, likewise.
+		inline int MapKKInverse[462][2];
+
 		inline void initMaps() {
 
 			// MapB1H1H7[] encodes a square below the a1-h8 diagonal to 0..27
@@ -552,6 +718,10 @@ namespace QaplaSyzygy {
 
 			// Diagonal squares come last
 			for (const int s : diagonal) MapA1D1D4[s] = code++;
+
+			for (int s = 0; s <= makeSquare(3, 3); ++s)
+				if (fileOf(s) <= 3 && rankOf(s) <= 3 && fileOf(s) >= rankOf(s))
+					MapA1D1D4Inverse[MapA1D1D4[s]] = s;
 
 			// MapKK[] encodes the 462 legal king placements with the first king in the
 			// a1-d1-d4 triangle. If it sits on the a1-d4 diagonal, the other one must not
