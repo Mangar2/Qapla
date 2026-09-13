@@ -45,7 +45,9 @@ namespace QaplaBitbase {
         DrawOrLoss = 0,  ///< Used for legacy 1-bit bitbases where draw and loss are not distinguished
         Win = 1,
         Loss = 2,
-        Unknown = 3
+        CursedWin = 3,   ///< won, but the fifty move rule takes the win away
+        BlessedLoss = 4, ///< lost, but the fifty move rule saves the loss
+        Unknown = 5
     };
 
     std::string to_string(BitbaseResult result);
@@ -75,77 +77,71 @@ namespace QaplaBitbase {
         constexpr uint8_t MATE        = 0xf9;  ///< loss in no ply at all
         constexpr uint8_t CAPT_DRAW   = 0xfa;  ///< a capture holds the draw
         constexpr uint8_t PAWN_DRAW   = 0xfb;  ///< a pawn move holds the draw
-        constexpr uint8_t CAPT_CLOSS  = 0xfc;  ///< a capture leads into a cursed loss
+        constexpr uint8_t CAPT_CLOSS  = 0xfc;  ///< the only escape is into a loss the rule saves
         constexpr uint8_t CHANGED     = 0xfd;  ///< marker of his iteration
-        constexpr uint8_t UNKNOWN     = 0xfe;
+        constexpr uint8_t UNKNOWN     = 0xfe;  ///< nothing proven, which in the end is a draw
         constexpr uint8_t BROKEN      = 0xff;
 
-        /// The fifty move rule in plies: a win beyond it is a cursed win.
+        /// The fifty move rule in plies: a win that needs longer is a cursed win.
         constexpr int DRAW_RULE = 100;
 
-        constexpr uint8_t CAPT_CWIN = uint8_t(WIN_IN_ONE + DRAW_RULE);  ///< cursed win by capture
-        constexpr uint8_t PAWN_CWIN = uint8_t(CAPT_CWIN + 1);          ///< cursed win by pawn move
-
-        /**
-         * Decided, but the distance is not computed yet.
-         *
-         * He has no such state: his iteration finds the result and the distance in one
-         * pass, so a position is either decided with its distance or UNKNOWN. The two
-         * phases here need it, and his encoding has room for exactly two codes - the
-         * ones where the win ladder ends and the loss ladder ends. Using them caps a
-         * distance at what fits below, which is around 120 plies. Three and four piece
-         * tables reach 66, so the cap is a limit of this generator, not of the format:
-         * he goes deeper by saving a layer to disk and rescaling the byte.
-         */
-        constexpr uint8_t WIN_OPEN  = 126;
-        constexpr uint8_t LOSS_OPEN = 127;
-
-        /// The longest distance that fits below the two open codes.
+        /// The longest distance the byte holds. His generator goes further by saving a
+        /// layer to disk and rescaling the byte, which is not built here: beyond this
+        /// the distance saturates, which keeps the win or loss and its cursed state but
+        /// not the exact number.
         constexpr int MAX_PLIES = 120;
 
-        /// Won by the side to move, whether or not the distance is known yet.
+        /// A capture or a pawn move that wins, but only so slowly that the rule takes
+        /// the win away. They sit where the distances 101 and 102 sit, which is his
+        /// numbering, and mean the least a cursed win can be.
+        constexpr uint8_t CAPT_CWIN = uint8_t(WIN_IN_ONE + DRAW_RULE);
+        constexpr uint8_t PAWN_CWIN = uint8_t(CAPT_CWIN + 1);
+
+        /// Won by the side to move.
         inline bool isWin(uint8_t value) {
-            return value >= CAPT_WIN && value <= WIN_OPEN;
+            return value >= CAPT_WIN && value <= WIN_IN_ONE + MAX_PLIES - 1;
         }
-        /// Lost by the side to move, whether or not the distance is known yet.
+        /// Lost by the side to move.
         inline bool isLoss(uint8_t value) {
-            return value >= LOSS_OPEN && value <= MATE;
+            return value >= MATE - MAX_PLIES && value <= MATE;
         }
-        inline bool isOpen(uint8_t value) {
-            return value == WIN_OPEN || value == LOSS_OPEN;
-        }
-        /// Nothing more to compute here: the distance is known, or there is no position.
-        inline bool isDone(uint8_t value);
-
-        /// Decided and with its distance computed.
+        /// Carries a distance, which every won and every lost entry does.
         inline bool hasDistance(uint8_t value) {
-            return (value >= CAPT_WIN && value < WIN_OPEN)
-                || (value > LOSS_OPEN && value <= MATE);
+            return isWin(value) || isLoss(value);
         }
 
-        inline bool isDone(uint8_t value) {
-            return hasDistance(value) || value == ILLEGAL;
-        }
-
-        /// Plies to the zeroing move. Only meaningful for a value that carries a distance.
+        /// Plies to the zeroing move.
         inline int plies(uint8_t value) {
             if (value == CAPT_WIN || value == PAWN_WIN) return 1;
-            if (value > LOSS_OPEN) return MATE - value;
+            if (value > MATE) return 0;
+            if (value >= MATE - MAX_PLIES) return MATE - value;
             return value - WIN_IN_ONE + 1;
         }
 
-        /// The value for a distance, on the side the open value names.
-        inline uint8_t of(uint8_t openValue, int plies) {
-            return openValue == WIN_OPEN ? uint8_t(WIN_IN_ONE + plies - 1)
-                                         : uint8_t(MATE - plies);
+        /// Whether the fifty move rule takes this win or loss away.
+        inline bool isCursed(uint8_t value) {
+            return hasDistance(value) && plies(value) > DRAW_RULE;
         }
 
-        /// Win, draw or loss of the entry, seen from the side to move. Everything that
-        /// is neither decided nor illegal is a draw, which is what UNKNOWN means once
-        /// the passes are through.
+        /**
+         * Nothing more to compute here.
+         *
+         * A win that a capture or a pawn move reaches only as a cursed one is not done:
+         * a quiet move may still win it inside the rule, which is shorter and therefore
+         * better. The same holds for the escape into a loss the rule saves.
+         */
+        inline bool isDone(uint8_t value) {
+            return value == ILLEGAL
+                || (hasDistance(value) && value != CAPT_CWIN && value != PAWN_CWIN);
+        }
+
+        /// Win, draw or loss of the entry with the rule applied, seen from the side to move.
         inline BitbaseResult toResult(uint8_t value) {
-            if (isWin(value))  return BitbaseResult::Win;
-            if (isLoss(value)) return BitbaseResult::Loss;
+            if (isWin(value))
+                return isCursed(value) ? BitbaseResult::CursedWin : BitbaseResult::Win;
+            if (isLoss(value))
+                return isCursed(value) ? BitbaseResult::BlessedLoss : BitbaseResult::Loss;
+            if (value == CAPT_CLOSS) return BitbaseResult::BlessedLoss;
             return value == ILLEGAL ? BitbaseResult::Unknown : BitbaseResult::Draw;
         }
     }

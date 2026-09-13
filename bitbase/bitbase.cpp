@@ -39,6 +39,8 @@ namespace QaplaBitbase {
             case BitbaseResult::Win: return "WIN";
             case BitbaseResult::Loss: return "LOSS";
             case BitbaseResult::Draw: return "DRAW";
+            case BitbaseResult::CursedWin: return "CURSED_WIN";
+            case BitbaseResult::BlessedLoss: return "BLESSED_LOSS";
             default: return "INVALID_RESULT";
         }
     }

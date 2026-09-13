@@ -85,9 +85,13 @@ namespace QaplaBitbase {
 		 */
 		uint8_t toStoredValue(BitbaseResult result, bool whiteToMove) {
 			switch (result) {
-			case BitbaseResult::Win:  return whiteToMove ? StoredWin : StoredLoss;
-			case BitbaseResult::Loss: return whiteToMove ? StoredLoss : StoredWin;
-			default:                  return StoredDraw;
+			case BitbaseResult::Win:         return whiteToMove ? StoredWin : StoredLoss;
+			case BitbaseResult::Loss:        return whiteToMove ? StoredLoss : StoredWin;
+			case BitbaseResult::CursedWin:   return whiteToMove ? StoredCursedWin
+																: StoredBlessedLoss;
+			case BitbaseResult::BlessedLoss: return whiteToMove ? StoredBlessedLoss
+																: StoredCursedWin;
+			default:                         return StoredDraw;
 			}
 		}
 

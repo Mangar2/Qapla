@@ -190,6 +190,11 @@ BitbaseResult BitbaseGenerator::setComputeValue(
 	int longestLoss = 1;
 	bool allMovesLose = true;
 
+	// A capture or a pawn move that wins outside the rule is what the position has so
+	// far; a quiet move only counts if it is shorter.
+	if (current == Dtz::CAPT_CWIN || current == Dtz::PAWN_CWIN)
+		shortestWin = Dtz::plies(current);
+
 	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
 	{
 		Move move = moveList[moveNo];
@@ -366,11 +371,7 @@ static int pawnAdvancement(const PieceList& list, const ReverseIndex& reverseInd
 void BitbaseGenerator::addToCandidates(vector<CandidateEntry>& candidates, const CandidateEntry& entry,
 	Bitbase& computedResults, GenerationState& state)
 {
-	const bool stillOpen = _distancePhase
-		? Dtz::isOpen(computedResults.getRawByte(entry.index))
-		: !GenerationState::isFinal(computedResults.getByte(entry.index));
-
-	if (stillOpen) {
+	if (!Dtz::isDone(computedResults.getRawByte(entry.index))) {
 		// Skip push if the shared state already contains this candidate with sufficient priority.
 		// Atomic relaxed read — thread-safe on all architectures, near-zero cost.
 		if (!state.isCandidateSet(entry.index, entry.winningMove)) {
@@ -743,8 +744,21 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 	bool anyDraw = false;
 
 	const bool pawnMovesAnswered = _levelWise;
-	bool drawByPawnMove = false;
+	const bool whiteToMove = position.isWhiteToMove();
 	PieceList pieceList(position);
+
+	// What the position behind a zeroing move is worth, seen from white as the tables
+	// answer, in the four shapes that matter for the side to move here.
+	const BitbaseResult cleanWin  = whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss;
+	const BitbaseResult cursedWin = whiteToMove ? BitbaseResult::CursedWin
+												: BitbaseResult::BlessedLoss;
+	const BitbaseResult savedLoss = whiteToMove ? BitbaseResult::BlessedLoss
+												: BitbaseResult::CursedWin;
+
+	bool drawByPawnMove = false;
+	bool anyCursedWin = false;
+	bool cursedWinByPawnMove = false;
+	bool anySavedLoss = false;
 
 	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++)
 	{
@@ -816,34 +830,59 @@ BitbaseResult BitbaseGenerator::setInitialValueByCapturesAndPromotions(
 		// kind of move it was is what de Man's two codes say.
 		const bool movePawn = !move.isCaptureOrPromote();
 
-		if (readerResult == (position.isWhiteToMove() ? BitbaseResult::Win : BitbaseResult::Loss))
+		if (readerResult == cleanWin)
 		{
 			state.setValue(index, movePawn ? Dtz::PAWN_WIN : Dtz::CAPT_WIN);
-			return position.isWhiteToMove() ? BitbaseResult::Win : BitbaseResult::Loss;
+			return whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss;
 		}
 
+		// The move wins, but so slowly that the rule takes the win away. It is worth
+		// remembering and not worth deciding on: a quiet move may still win inside the
+		// rule, and that is shorter.
+		if (readerResult == cursedWin)
+		{
+			anyCursedWin = true;
+			cursedWinByPawnMove = cursedWinByPawnMove || movePawn;
+		}
 		// The side to move already has a proven draw.
-		if (readerResult == BitbaseResult::Draw)
+		else if (readerResult == BitbaseResult::Draw)
 		{
 			anyDraw = true;
 			drawByPawnMove = drawByPawnMove || movePawn;
 		}
+		// The move loses, but so slowly that the rule saves it - which is an escape as
+		// good as a draw, and leaves the position lost only without the rule.
+		else if (readerResult == savedLoss)
+		{
+			anySavedLoss = true;
+		}
 	}
-	if (anyDraw) {
+
+	if (anyCursedWin) {
+		state.setValue(index, cursedWinByPawnMove ? Dtz::PAWN_CWIN : Dtz::CAPT_CWIN);
+	}
+	else if (anyDraw) {
 		// A zeroing move holds the draw, so this position can never be forced into a
 		// loss - which is what the marker tells the propagation. A win through a quiet
 		// move is still open.
 		state.setValue(index, drawByPawnMove ? Dtz::PAWN_DRAW : Dtz::CAPT_DRAW);
 	}
-	if (anyDraw || anyUnknown) {
-		// Neither is a result: return Unknown so that no candidates are generated.
+	else if (anySavedLoss) {
+		// Every zeroing move loses and one of them only outside the rule. The position
+		// is lost without the rule and saved by it: a blessed loss, unless a quiet move
+		// wins it after all.
+		state.setValue(index, Dtz::CAPT_CLOSS);
+	}
+
+	if (anyCursedWin || anyDraw || anySavedLoss || anyUnknown) {
+		// None of them is a result: return Unknown so that no candidates are generated.
 		return BitbaseResult::Unknown;
 	}
 
 	// Every move zeroes the counter and every one of them loses. The longest way to the
 	// zeroing move is therefore one ply.
 	state.setValue(index, uint8_t(Dtz::MATE - 1));
-	return position.isWhiteToMove() ? BitbaseResult::Loss : BitbaseResult::Win;
+	return whiteToMove ? BitbaseResult::Loss : BitbaseResult::Win;
 }
 
 /**
@@ -1071,14 +1110,31 @@ void BitbaseGenerator::computeBitbase(PieceList& pieceList, bool first, bool gen
 	{
 		auto& bb = state.getComputedResults();
 		for (uint64_t idx = 0; idx < entryCount; ++idx) {
-			// Back from the side to move to white, which is what everything outside
-			// the generator reads.
-			const BitbaseResult mover = Dtz::toResult(bb.getRawByte(idx));
+
+			// Back from the side to move to white, which is what everything outside the
+			// generator reads. An index that is no position gets a draw: the file holds
+			// five values and has no room for a sixth, and nothing ever asks for one.
 			const bool whiteToMove = (idx & 1) == 0;
-			repairResults.push_back(
-				whiteToMove || mover == BitbaseResult::Draw || mover == BitbaseResult::Unknown
-					? mover
-					: mover == BitbaseResult::Win ? BitbaseResult::Loss : BitbaseResult::Win);
+
+			switch (Dtz::toResult(bb.getRawByte(idx))) {
+			case BitbaseResult::Win:
+				repairResults.push_back(whiteToMove ? BitbaseResult::Win : BitbaseResult::Loss);
+				break;
+			case BitbaseResult::Loss:
+				repairResults.push_back(whiteToMove ? BitbaseResult::Loss : BitbaseResult::Win);
+				break;
+			case BitbaseResult::CursedWin:
+				repairResults.push_back(whiteToMove ? BitbaseResult::CursedWin
+													: BitbaseResult::BlessedLoss);
+				break;
+			case BitbaseResult::BlessedLoss:
+				repairResults.push_back(whiteToMove ? BitbaseResult::BlessedLoss
+													: BitbaseResult::CursedWin);
+				break;
+			default:
+				repairResults.push_back(BitbaseResult::Draw);
+				break;
+			}
 		}
 	}
 	timing.stop("qwdl collect sequence");

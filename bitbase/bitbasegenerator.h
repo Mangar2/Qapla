@@ -387,10 +387,6 @@ namespace QaplaBitbase {
 		int _debugLevel;
 		static constexpr uint64_t _packageSize = 100000;
 
-		/// True while the distance pass runs, which changes what "already decided" means
-		/// for the candidate filter in addToCandidates.
-		bool _distancePhase = false;
-
 		/// True while the table is computed level by level of pawn advancement.
 		bool _levelWise = false;
 
