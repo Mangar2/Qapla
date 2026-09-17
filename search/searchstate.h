@@ -21,14 +21,12 @@
  * the more time we will take to search for a better move
  */
 
-#ifndef _CLOCKSTATE_H
-#define _CLOCKSTATE_H
+#pragma once
 
 #include <time.h>
 #include <algorithm>
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
-#include "../interface/clocksetting.h"
 #include "searchdef.h"
 #include "search-config.h"
 #include "tunable.h"
@@ -184,12 +182,10 @@ namespace QaplaSearch {
 		bool _hasBookMove;
 		SearchFinding _state;
 		SearchFinding _rootSearchState;
-		array<value_t, SearchConfig::MAX_SEARCH_DEPTH> _values;
+		array<value_t, QaplaBasics::MAX_SEARCH_DEPTH> _values;
 		static const value_t ONE_PAWN = 100;
 		static const value_t DEATH_DROP = ONE_PAWN;
 		static const value_t CRITICAL_DROP = ONE_PAWN / 5;
 		static const value_t WINNING_SITUATION = ONE_PAWN * 3;
 	};
 }
-
-#endif // _CLOCKSTATE_H

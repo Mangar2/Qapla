@@ -22,24 +22,19 @@
 #ifndef __SEARCH_H
 #define __SEARCH_H
 
-#include <thread>
 #include "../movegenerator/movegenerator.h"
 #include "computinginfo.h"
 #include "clockmanager.h"
 #include "searchstack.h"
 #include "rootmoves.h"
-#include "../eval/eval.h"
 #include "clockmanager.h"
-#include "aspirationwindow.h"
 #include "tt.h"
 #include "butterfly-boards.h"
-#include "whatIf.h"
 #include "quiescence.h"
 #include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif
- // #include "razoring.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
@@ -252,7 +247,6 @@ namespace QaplaSearch {
 		// of the search while _tbRootWin is set.
 		bool     _tbRootWin = false;
 		uint32_t _tbSearchableMoves = 0;
-		// RootMoves _rootMoves;
 	public:
 		ButterflyBoard _butterflyBoard;
 	};
