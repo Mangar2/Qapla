@@ -220,7 +220,6 @@ namespace QaplaSearch {
 
 		void setHashSignature(MoveGenerator& position, ply_t ply) {
 			positionHash = position.computeBoardHash();
-			position.storeCurrentHash(ply);
 			ttPtr->prefetch(positionHash);
 		}
 
