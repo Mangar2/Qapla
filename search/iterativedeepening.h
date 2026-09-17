@@ -83,6 +83,10 @@ namespace QaplaSearch {
 			_search->setMultiPV(count);
 		}
 
+		void setThreads(int32_t threads) {
+			_search->setThreads(threads);
+		}
+
 		/**
 		 * true, if the search found a mate
 		 */
