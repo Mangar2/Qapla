@@ -219,8 +219,15 @@ namespace QaplaSearch {
 		 */
 		template <SearchRegion TYPE>
 		inline value_t searchChild(MoveGenerator& position, SearchStack& stack,
-			value_t alpha, value_t beta, ply_t childDepth, ply_t childPly)
+			value_t alpha, value_t beta, ply_t childDepth, ply_t childPly, bool onWorker = false)
 		{
+			// Parallel search test, PV nodes only - the other regions, NEAR_LEAF in particular,
+			// must not carry any thread logic. A near leaf child is not worth a hand-over.
+			if constexpr (TYPE == SearchRegion::PV) {
+				if (onWorker && childDepth > 1) {
+					return negaMaxOnWorker<SearchRegion::INNER>(position, stack, alpha, beta, childDepth, childPly);
+				}
+			}
 			return TYPE != SearchRegion::NEAR_LEAF && childDepth > 1 ?
 				negaMax<SearchRegion::INNER>(position, stack, alpha, beta, childDepth, childPly) :
 				negaMax<SearchRegion::NEAR_LEAF>(position, stack, alpha, beta, childDepth, childPly);
@@ -229,23 +236,13 @@ namespace QaplaSearch {
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-		 * Searches one move of the move loop in negaMax: the reduced search, the null window
-		 * search and the full window search, as far as each is needed. The move has already been
-		 * applied to position and stack[ply + 1]. Reads the node at ply, never writes it.
-		 * @param lmrFailed set, if the reduced search stayed below alpha and the move is done with
+		 * Searches a child node on the worker thread, with the worker's own stack and position
+		 * copy; this thread waits for the result. Nothing runs in parallel yet - the test is that
+		 * a node searched on another stack yields exactly what this stack would have. Called from
+		 * PV nodes only, see negaMax.
 		 */
-		template <SearchRegion TYPE>
-		value_t searchMove(MoveGenerator& position, SearchStack& stack, Move curMove,
-			ply_t moveDepth, ply_t lmr, ply_t depth, ply_t ply, bool& lmrFailed);
-
-		/**
-		 * Same as searchMove, but on the worker thread with its own stack and position. This
-		 * thread waits for the result, so nothing runs in parallel - the test is whether a move
-		 * searched on another stack yields exactly what this stack would have yielded.
-		 */
-		template <SearchRegion TYPE>
-		value_t searchMoveOnWorker(MoveGenerator& position, SearchStack& stack, Move curMove,
-			ply_t moveDepth, ply_t lmr, ply_t depth, ply_t ply, bool& lmrFailed);
+		template <SearchRegion CHILD>
+		value_t negaMaxOnWorker(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves
