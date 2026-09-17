@@ -30,6 +30,7 @@
 #include "clockmanager.h"
 #include "tt.h"
 #include "butterfly-boards.h"
+#include "search-worker.h"
 #include "quiescence.h"
 #include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
@@ -114,6 +115,14 @@ namespace QaplaSearch {
 
 		void setMultiPV(uint32_t multiPV) {
 			_computingInfo.setMultiPV(multiPV);
+		}
+
+		/**
+		 * Sets the number of threads the search may use. The second thread is started with
+		 * the first search that needs it, see negaMaxRoot.
+		 */
+		void setThreads(uint32_t threads) {
+			_threads = threads;
 		}
 
 	private:
@@ -220,6 +229,25 @@ namespace QaplaSearch {
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
+		 * Searches one move of the move loop in negaMax: the reduced search, the null window
+		 * search and the full window search, as far as each is needed. The move has already been
+		 * applied to position and stack[ply + 1]. Reads the node at ply, never writes it.
+		 * @param lmrFailed set, if the reduced search stayed below alpha and the move is done with
+		 */
+		template <SearchRegion TYPE>
+		value_t searchMove(MoveGenerator& position, SearchStack& stack, Move curMove,
+			ply_t moveDepth, ply_t lmr, ply_t depth, ply_t ply, bool& lmrFailed);
+
+		/**
+		 * Same as searchMove, but on the worker thread with its own stack and position. This
+		 * thread waits for the result, so nothing runs in parallel - the test is whether a move
+		 * searched on another stack yields exactly what this stack would have yielded.
+		 */
+		template <SearchRegion TYPE>
+		value_t searchMoveOnWorker(MoveGenerator& position, SearchStack& stack, Move curMove,
+			ply_t moveDepth, ply_t lmr, ply_t depth, ply_t ply, bool& lmrFailed);
+
+		/**
 		 * Returns the information about the root moves
 		 */
 		const RootMoves& getRootMoves() const {
@@ -247,6 +275,15 @@ namespace QaplaSearch {
 		// of the search while _tbRootWin is set.
 		bool     _tbRootWin = false;
 		uint32_t _tbSearchableMoves = 0;
+
+		// Second search thread, see setThreads. Stack and position are its own; the search
+		// state - node count, history, hash - is shared, which is safe only because this thread
+		// waits while the worker searches.
+		uint32_t _threads = 1;
+		bool _workerBusy = false;
+		SearchWorker _worker;
+		std::unique_ptr<SearchStack> _workerStack;
+		MoveGenerator _workerPosition;
 	public:
 		ButterflyBoard _butterflyBoard;
 	};

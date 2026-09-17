@@ -592,40 +592,23 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 		childNode.doMove(position, curMove);
 
-		// 3. Late move reduction search
-		// We continue with the next move, if the lmr search returns a value less than alpha
-		if (lmr > 0) {
-			result = -searchChild<TYPE>(
-				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
-			if (result <= node.alpha) {
-				childNode.undoMove(position);
-				// We improve value on lmr result. Especially important to not get false mate values due to skipped escape moves
-				if (result > node.bestValue) {
-					node.bestValue = result;
-				}
-				continue;
+		// Parallel search test: in PV nodes with enough depth left every second move is searched
+		// on the worker thread, this thread waits for the result. Nothing runs in parallel yet.
+		bool lmrFailed = false;
+		// Only while the worker is idle: the worker itself passes through here for the PV nodes
+		// of its own subtree and must search them itself.
+		const bool onWorker = TYPE == SearchRegion::PV && _threads > 1 && !_workerBusy
+			&& depth >= 5 && node.movesTried % 2 == 0;
+		result = onWorker ?
+			searchMoveOnWorker<TYPE>(position, stack, curMove, moveDepth, lmr, depth, ply, lmrFailed) :
+			searchMove<TYPE>(position, stack, curMove, moveDepth, lmr, depth, ply, lmrFailed);
+		if (lmrFailed) {
+			childNode.undoMove(position);
+			// We improve value on lmr result. Especially important to not get false mate values due to skipped escape moves
+			if (result > node.bestValue) {
+				node.bestValue = result;
 			}
-			// searching modifies the attack masks. But they are required for the next move generation
-			position.computeAttackMasksForBothColors();
-		}
-		// 4. Searching with null window either because of non pv search or because it is not the first move in pv.
-		// Additionally we do not go to null window search on PV, if depth is 1 or 0
-		// We do not return fail high from a null window search in PV node
-		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.movesTried == 1 || depth <= 1);
-		if (!isDirectPVWindowSearch) {
-			result = -searchChild<TYPE>(
-				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
-		}
-		// 5. Full window PV search or research the move with full window, if result is better than alpha
-		if (TYPE == SearchRegion::PV && (isDirectPVWindowSearch || result > node.alpha)) {
-			const ply_t adjustedDepth = moveDepth <= 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : moveDepth;
-			if (!isDirectPVWindowSearch) {
-				position.computeAttackMasksForBothColors();
-			}
-			result = -negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, adjustedDepth - 1, ply, result, "PV");
+			continue;
 		}
 
 		node.setSearchResult(result, childNode, curMove);
@@ -641,6 +624,64 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	}
 	return node.bestValue;
+}
+
+template <Search::SearchRegion TYPE>
+value_t Search::searchMove(MoveGenerator& position, SearchStack& stack, Move curMove,
+	ply_t moveDepth, ply_t lmr, ply_t depth, ply_t ply, bool& lmrFailed)
+{
+	const SearchNode& node = stack[ply];
+	value_t result = -MAX_VALUE;
+
+	// 3. Late move reduction search
+	// The move is done with, if the lmr search returns a value less than alpha
+	if (lmr > 0) {
+		result = -searchChild<TYPE>(
+			position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
+		if (result <= node.alpha) {
+			lmrFailed = true;
+			return result;
+		}
+		// searching modifies the attack masks. But they are required for the next move generation
+		position.computeAttackMasksForBothColors();
+	}
+	// 4. Searching with null window either because of non pv search or because it is not the first move in pv.
+	// Additionally we do not go to null window search on PV, if depth is 1 or 0
+	// We do not return fail high from a null window search in PV node
+	bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.movesTried == 1 || depth <= 1);
+	if (!isDirectPVWindowSearch) {
+		result = -searchChild<TYPE>(
+			position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
+	}
+	// 5. Full window PV search or research the move with full window, if result is better than alpha
+	if (TYPE == SearchRegion::PV && (isDirectPVWindowSearch || result > node.alpha)) {
+		const ply_t adjustedDepth = moveDepth <= 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : moveDepth;
+		if (!isDirectPVWindowSearch) {
+			position.computeAttackMasksForBothColors();
+		}
+		result = -negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1);
+		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, adjustedDepth - 1, ply, result, "PV");
+	}
+	return result;
+}
+
+template <Search::SearchRegion TYPE>
+value_t Search::searchMoveOnWorker(MoveGenerator& position, SearchStack& stack, Move curMove,
+	ply_t moveDepth, ply_t lmr, ply_t depth, ply_t ply, bool& lmrFailed)
+{
+	_workerStack->copyForHandover(stack, ply);
+	_workerPosition = position;
+	value_t result = -MAX_VALUE;
+	_workerBusy = true;
+	_worker.run([&] {
+		result = searchMove<TYPE>(_workerPosition, *_workerStack, curMove, moveDepth, lmr, depth, ply, lmrFailed);
+	});
+	_worker.wait();
+	_workerBusy = false;
+	stack.copyFromHandover(*_workerStack, ply);
+	return result;
 }
 
 void Search::storePVToTT(MoveGenerator& position, SearchStack& stack, const RootMove& rootMove, ply_t ply) {
@@ -669,6 +710,10 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 
 	_quiescence.setTT(stack[0].getTT());
 	_clockManager = &clockManager;
+	if (_threads > 1 && !_workerStack) {
+		_workerStack = std::make_unique<SearchStack>(stack[0].getTT());
+		_worker.start();
+	}
 	position.computeAttackMasksForBothColors();
 	SearchNode& node = stack[0];
 	value_t result;

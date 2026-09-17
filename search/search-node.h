@@ -22,7 +22,6 @@
 #ifndef __SEARCH_NODE_H
 #define __SEARCH_NODE_H
 
-#include <mutex>
 #include <string>
 #include "../basics/types.h"
 #include "../basics/move.h"
@@ -431,13 +430,6 @@ namespace QaplaSearch {
 			return result;
 		}
 
-		/**
-		 * Multi thread variant to select the next move
-		 */
-		Move selectNextMoveThreadSafe(MoveGenerator& position) {
-			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
-			return selectNextMove(position);
-		}
 
 		/**
 		 * applies the search result to the status
@@ -460,14 +452,6 @@ namespace QaplaSearch {
 					}
 				}
 			}
-		}
-
-		/**
-		 * Multi-Threading version to set the search result
-		 */
-		void setSearchResultThreadSafe(value_t searchResult, const SearchNode& searchInfo, Move currentMove) {
-			std::lock_guard<std::mutex> lockGuard(mtxSearchResult);
-			setSearchResult(searchResult, searchInfo, currentMove);
 		}
 
 		/**
@@ -634,7 +618,6 @@ namespace QaplaSearch {
 		Move ttMove;
 
 		Cutoff cutoff;
-		mutex mtxSearchResult;
 		MoveProvider moveProvider;
 		PV pv;
 		// Bitmaps to identify checking moves faster

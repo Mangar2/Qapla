@@ -76,6 +76,28 @@ namespace QaplaSearch {
 		}
 
 		/**
+		 * Takes over everything a search starting at ply + 1 reads from a stack: the nodes up to
+		 * and including ply + 1 in full - hashes for the repetition check, evals for isImproving,
+		 * node types, the root depth and the move already applied at ply + 1 - and the move
+		 * ordering memory of the plies below.
+		 */
+		void copyForHandover(const SearchStack& from, ply_t ply) {
+			for (ply_t index = 0; index <= ply + 1; index++) {
+				copyNode(from, index);
+			}
+			copyMoveOrdering(from, ply + 2);
+		}
+
+		/**
+		 * Takes back what a search at ply + 1 on another stack left behind: its node with pv,
+		 * best value and best move, and the killers it set in the plies below.
+		 */
+		void copyFromHandover(const SearchStack& from, ply_t ply) {
+			copyNode(from, ply + 1);
+			copyMoveOrdering(from, ply + 2);
+		}
+
+		/**
 		 * Check, if there is a two fold repetition in the search tree.
 		 */
 		bool isDrawByRepetitionInSearchTree(const Board& board, ply_t ply) {
@@ -112,6 +134,21 @@ namespace QaplaSearch {
 		}
 
 	private:
+		/**
+		 * Copies one node. The pv needs its own copy: the assignment of PV copies from index 0
+		 * up to the first empty move, but a node's line starts at its own ply.
+		 */
+		void copyNode(const SearchStack& from, ply_t ply) {
+			_stack[ply] = from._stack[ply];
+			_stack[ply].pv.copyFromPV(from._stack[ply].pv, ply);
+		}
+
+		void copyMoveOrdering(const SearchStack& from, ply_t fromPly) {
+			for (ply_t index = fromPly; index < ply_t(_stack.size()); index++) {
+				_stack[index].moveProvider.copyMoveOrdering(from._stack[index].moveProvider);
+			}
+		}
+
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 
 		array<SearchNode, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;

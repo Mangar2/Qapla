@@ -96,7 +96,8 @@ namespace QaplaSearch {
 		virtual std::vector<UciOption> getUciOptions() const {
 			return {
 				UciOption::spin("Hash", 32, 1, 32000),
-				UciOption::spin("MultiPV", 1, 1, 40)
+				UciOption::spin("MultiPV", 1, 1, 40),
+				UciOption::spin("Threads", 1, 1, 2)
 			};
 		}
 
@@ -109,6 +110,11 @@ namespace QaplaSearch {
 
 			if (name == "MultiPV") {
 				iterativeDeepening.setMultiPV(std::clamp(uciValueToInt(value, 1), 1, 40));
+				return true;
+			}
+
+			if (name == "Threads") {
+				iterativeDeepening.setThreads(std::clamp(uciValueToInt(value, 1), 1, 2));
 				return true;
 			}
 
