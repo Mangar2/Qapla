@@ -33,6 +33,8 @@ using namespace QaplaBasics;
 
 namespace QaplaSearch {
 
+	using QaplaMoveGenerator::MoveGenerator;
+
 	class MoveHistory {
 	public:
 		MoveHistory() {};

@@ -22,10 +22,8 @@
 #ifndef __SEARCH_CONFIG_H
 #define __SEARCH_CONFIG_H
 
-#include <map>
-#include <algorithm>
-#include "../basics/piecesignature.h"
 #include "searchdef.h"
+#include "../basics/evalvalue.h"
 
 using namespace QaplaBasics;
 
@@ -75,7 +73,6 @@ namespace QaplaSearch {
 			return res;
 		}
 
-		static const uint32_t MAX_SEARCH_DEPTH = 128;
 		// Tested 0.4.0-037 and 0.4.0-041: 14 instead of 7: flat both times, 20000 games each
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 

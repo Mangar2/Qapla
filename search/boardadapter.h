@@ -26,21 +26,16 @@
 #define QAPLA_VERSION "dev"
 #endif
 
-#include <thread>
-#include <charconv>
+#include "whatIf.h"
 #include "../interface/isendsearchinfo.h"
 #include "../interface/ichessboard.h"
-#include "../interface/iinputoutput.h"
 #include "../interface/movescanner.h"
 #include "../basics/move.h"
 #include "../basics/movelist.h"
-#include "../movegenerator/movegenerator.h"
 #include "../search/perft.h"
-#include "../search/search.h"
 #include "../eval/eval.h"
 #include "../search/iterativedeepening.h"
 #include "movehistory.h"
-#include "../bitbase/bitbase.h"
 #include "../bitbase/bitbasegenerator.h"
 #include "../bitbase/verify.h"
 #include "../bitbase/bitbase-reader.h"
