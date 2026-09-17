@@ -267,7 +267,8 @@ namespace QaplaSearch {
 			constexpr bool OPT = SearchConfig::optimizeFutility;
 			if (tunable<OPT, "ffDepthLimit", 10, 0, 20>() <= remainingDepth) return false;
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
-			if (adjustedEval <= beta) return false;
+			if (adjustedEval < beta) return false;
+			if (adjustedEval - tunable<OPT, "ffMargin", 0, -50, 50>() < beta) return false;
 			// We do not prune in PV nodes. 
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.

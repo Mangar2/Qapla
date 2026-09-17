@@ -108,6 +108,32 @@ Bounds — keine Elo-Zahl, keine Winrate.
   wirklich aktiv; die Zusammenführung bekommt einen eigenen Eintrag und eine eigene SPRT.
   Bei H0: Commit nach `dead/forewardFutility2`, kein Merge.
 
+### 5. ffMargin (ffDepthFactor, ffBase, ffImprovingBonus) — CLOP, dann SPRT
+
+- **Was:** Die Marge in `forewardFutility()` (`search/search-node.h`):
+  `margin = ffDepthFactor * remainingDepth + ffBase - ffImprovingBonus * isImproving`,
+  Defaults 83 / 69 / 101, UCI-Grenzen 0–166 / 0–138 / 0–202, Gruppenflag
+  `SearchConfig::optimizeFutility`. Die drei Koeffizienten wurden noch nie gemeinsam getunt.
+- **Beobachtung (2026-09-17):** bei `isImproving` und kleiner Tiefe wird die Marge negativ
+  (Tiefe 0: 83·0 + 69 − 101 = −32, Tiefe 1: 51 − 101 < 0 ab isImproving). Dann würde
+  `adjustedEval - margin >= beta` schon bei `adjustedEval < beta` prunen; die Guard
+  `if (adjustedEval < beta) return false;` fängt das ab. Sie bleibt im Lauf unverändert — der
+  Lauf soll zeigen, ob die Koeffizienten so liegen sollen, dass die Marge negativ wird, oder nicht.
+- **Reihenfolge:** nach Nr. 1 und 2 (gleiche Funktion, ffDepthLimit und Divisor sind dann fest);
+  Baseline ist die Version nach deren Entscheidungen. Divisor läuft hier nicht mit.
+- **Schritt 0:** nichts umzuformen, die Parameter existieren bereits. Flag auf true (nicht
+  committen), `make Release -j`, Optionen per `uci` prüfen.
+- **Schritt 1 (CLOP):** drei Parameter, Mitten = aktuelle Defaults:
+  `--clopvalue name=ffDepthFactor min=0 max=166 --clopvalue name=ffBase min=0 max=138 --clopvalue name=ffImprovingBonus min=0 max=202`
+  ~3000 Samples, `test/clop/clop-standard.ini`. Sind die Defaults zu diesem Zeitpunkt anders
+  (durch Nr. 1–2 nicht, die ändern andere Werte — trotzdem nachsehen), Grenzen so setzen, dass
+  der Default genau in der Mitte liegt. Runden, als Defaults eintragen, Flag zurück auf false.
+- **Schritt 2 (SPRT):** committen, taggen, clean + rebuild, EPD-Lauf muss andere Nodes zeigen.
+  `test/sprt/sprt-standard.ini` mit `--each tc=20+0.1` (vor den `--engine`-Blöcken) und
+  `--sprt eloh0=-3 eloh1=2 file=test/log/sprt-ffMargin.state`.
+- **Entscheidung:** H1 → Werte bleiben. H0 → Commit nach `dead/ffMargin`, Defaults zurück auf
+  83 / 69 / 101. Eintrag in `plan/version-log.md` als eigener Commit.
+
 ## Erledigt
 
 (noch nichts)
