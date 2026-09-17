@@ -70,7 +70,7 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 		node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
 	}
 	// Must be after node.probeTT, because futility uses the information from TT
-	if (node.forewardFutility(position)) {
+	if (node.forewardFutility(position) || node.forewardFutility2(position)) {
 		node.setCutoff(Cutoff::FUTILITY);
 		return true;
 	} 
