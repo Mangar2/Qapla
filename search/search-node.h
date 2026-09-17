@@ -218,7 +218,7 @@ namespace QaplaSearch {
 			return false;
 		}
 
-		void setHashSignature(MoveGenerator& position, ply_t ply) {
+		void setHashSignature(MoveGenerator& position) {
 			positionHash = position.computeBoardHash();
 			ttPtr->prefetch(positionHash);
 		}
@@ -264,9 +264,10 @@ namespace QaplaSearch {
 		 * Examine, if we can do a futility pruning based on an evaluation score
 		 */
 		inline bool forewardFutility(MoveGenerator& position) {
-			if (SearchConfig::FOREWARD_FUTILITY_DEPTH <= remainingDepth) return false;
+			constexpr bool OPT = SearchConfig::optimizeFutility;
+			if (tunable<OPT, "ffDepthLimit", 10, 0, 20>() <= remainingDepth) return false;
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
-			if (adjustedEval < beta) return false;
+			if (adjustedEval <= beta) return false;
 			// We do not prune in PV nodes. 
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
@@ -281,16 +282,51 @@ namespace QaplaSearch {
 
 			// Each influence carries its own coefficient. The depth term and the constant part are
 			// separate, so a run can change the slope without moving the whole line.
-			constexpr bool OPT = SearchConfig::optimizeFutility;
 			const value_t margin = tunable<OPT, "ffDepthFactor", 83, 0, 166>() * remainingDepth
 				+ tunable<OPT, "ffBase", 69, 0, 138>()
 				- tunable<OPT, "ffImprovingBonus", 101, 0, 202>() * isImproving;
 			const bool doFutility = adjustedEval - margin >= beta;
 			if (doFutility) {
-				bestValue = beta + (adjustedEval - beta) / 2;
+				bestValue = beta + (adjustedEval - beta) * 10 / 
+					tunable<OPT, "ffBestValueDivisor", 20, 1, 41>();
 			}
 			return doFutility;
 		}
+
+		/**
+		 * Examine, if we can do a futility pruning based on an evaluation score
+		 */
+		inline bool forewardFutility2(MoveGenerator& position) {
+			return false;
+			constexpr bool OPT = false;
+			if (10 <= remainingDepth) return false;
+			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
+			if (adjustedEval >= alpha) return false;
+			// We do not prune in PV nodes. 
+			if (isPVNode()) return false;
+			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
+			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
+			// Tested 0.4.0-081: no futility pruning when the tt value is <= alpha: flat at
+			// 50.0 %, undecided after 20000 games
+			// if (ttValueIsLessOrEqualAlpha) return false;
+			// Avoids discarding moves solely because no special-case loss evaluation applies. 
+			if (beta < -MIN_MATE_VALUE) return false;
+			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
+			if (alpha > WINNING_BONUS) return false;
+
+			// Each influence carries its own coefficient. The depth term and the constant part are
+			// separate, so a run can change the slope without moving the whole line.
+			const value_t margin = tunable<OPT, "ffDepthFactor2", 100, 0, 200>() * remainingDepth
+				+ tunable<OPT, "ffBase2", 100, 0, 200>()
+				+ tunable<OPT, "ffImprovingBonus2", 100, 0, 200>() * isImproving;
+			const bool doFutility = adjustedEval + margin <= alpha;
+			if (doFutility) {
+				bestValue = alpha - (alpha - adjustedEval) * 10 / 
+					tunable<OPT, "ffBestValueDivisor2", 20, 1, 41>();
+			}
+			return doFutility;
+		}
+
 
 		/**
 		 * Check if a quiet move can be pruned via futility pruning (in move loop)
