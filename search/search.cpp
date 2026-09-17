@@ -361,7 +361,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	if (depth < 4) return 0;
 
 	// Limit maximal extension depth
-	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(QaplaBasics::MAX_SEARCH_DEPTH))) return 0;
+	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchConfig::MAX_SEARCH_DEPTH))) return 0;
 
 	node.setFromParentNode(position, parentNode, alpha, beta, depth, false);
 	
@@ -467,7 +467,7 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() >= 100) {
 		node.setCutoff(Cutoff::DRAW_BY_50_MOVES_RULE, 0);
 	}
-	else if (ply >= QaplaBasics::MAX_SEARCH_DEPTH) {
+	else if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, node.getTT()->getPawnTT(), ply));
 	}
 	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort()) {

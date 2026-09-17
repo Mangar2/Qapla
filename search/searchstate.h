@@ -182,7 +182,7 @@ namespace QaplaSearch {
 		bool _hasBookMove;
 		SearchFinding _state;
 		SearchFinding _rootSearchState;
-		array<value_t, QaplaBasics::MAX_SEARCH_DEPTH> _values;
+		array<value_t, SearchConfig::MAX_SEARCH_DEPTH> _values;
 		static const value_t ONE_PAWN = 100;
 		static const value_t DEATH_DROP = ONE_PAWN;
 		static const value_t CRITICAL_DROP = ONE_PAWN / 5;

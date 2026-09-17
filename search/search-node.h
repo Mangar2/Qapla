@@ -218,8 +218,9 @@ namespace QaplaSearch {
 			return false;
 		}
 
-		void setHashSignature(const MoveGenerator& position) {
+		void setHashSignature(MoveGenerator& position, ply_t ply) {
 			positionHash = position.computeBoardHash();
+			position.storeCurrentHash(ply);
 			ttPtr->prefetch(positionHash);
 		}
 

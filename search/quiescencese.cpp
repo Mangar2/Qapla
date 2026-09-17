@@ -128,7 +128,7 @@ value_t Quiescence::search(bool isPvNode,
 	value_t alpha, value_t beta, ply_t ply)
 {
 	// Unclear, we need MAX_SEARCH_DEPTH in normal depth to reduce stack size, but maybe not in quiescence search.
-	if (ply >= QaplaBasics::MAX_SEARCH_DEPTH) {
+	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
 	}
 	// Tested 0.5.0-004, removing the two checks: SPRT h0 = -2, h1 = 3, H0 accepted.

@@ -565,10 +565,6 @@ namespace QaplaBasics {
 		array<Square, 2> _queenRookStartSquare;
 		array<Square, 2> _kingRookStartSquare;
 		array<uint16_t, static_cast<uint32_t>(BOARD_SIZE)> _clearCastleFlagMask;
-
-		// Hashes of the positions at each ply
-		array<hash_t, QaplaBasics::MAX_SEARCH_DEPTH + 1> _positionHashes;
-
 	};
 }
 
