@@ -34,23 +34,14 @@ namespace QaplaSearch {
 		SearchStack(TT* tt) 
 			: ttPtr(tt) 
 		{
-			nodePtr.fill(0);
 			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
 				_stack[ply].ply = ply;
-				nodePtr[ply] = &_stack[ply];
 				_stack[ply].setTT(tt);
 			}
-			referenceCount = 1;
 		}
 
-		SearchStack(const SearchStack& searchStack)
-			: SearchStack(searchStack.getTT())
-		{
-			nodePtr.fill(0);
-		}
-
-		~SearchStack() {
-		}
+		SearchStack(const SearchStack&) = delete;
+		SearchStack& operator=(const SearchStack&) = delete;
 
 		void clear() {
 			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
@@ -58,8 +49,8 @@ namespace QaplaSearch {
 			}
 		}
 
-		inline const SearchNode& operator[](uint32_t index) const { return *nodePtr[index]; }
-		inline  SearchNode& operator[](uint32_t index) { return *nodePtr[index]; }
+		inline const SearchNode& operator[](uint32_t index) const { return _stack[index]; }
+		inline  SearchNode& operator[](uint32_t index) { return _stack[index]; }
 		TT* getTT() const { return ttPtr; }
 
 		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
@@ -85,25 +76,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Copy killer moves from one ply to another
-		 */
-		void copyKillers(SearchStack& foreignStack, ply_t fromPly) {
-			for (ply_t ply = fromPly; ply < _stack.size(); ply++) {
-				_stack[ply].moveProvider.setKillerMove(foreignStack[ply].moveProvider);
-				if (_stack[ply].getKillerMove()[0] == Move::EMPTY_MOVE) {
-					break;
-				}
-			}
-		}
-
-		void initForParallelSearch(SearchStack& foreignStack, ply_t ply) {
-			for (ply_t index = 0; index <= ply; index++) {
-				nodePtr[index] = foreignStack.nodePtr[index];
-			}
-			copyKillers(foreignStack, ply + 1);
-		}
-
-		/**
 		 * Check, if there is a two fold repetition in the search tree.
 		 */
 		bool isDrawByRepetitionInSearchTree(const Board& board, ply_t ply) {
@@ -111,7 +83,7 @@ namespace QaplaSearch {
 			ply_t minPly = ply - board.getHalfmovesWithoutPawnMoveOrCapture();
 			if (minPly < 0) { minPly = 0; }
 			for (ply_t checkPly = ply - 4; checkPly >= minPly; checkPly -= 2) {
-				if (nodePtr[checkPly]->positionHash == nodePtr[ply]->positionHash) {
+				if (_stack[checkPly].positionHash == _stack[ply].positionHash) {
 					drawByRepetition = true;
 					break;
 				}
@@ -142,9 +114,7 @@ namespace QaplaSearch {
 	private:
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 
-		array<SearchNode*, SearchConfig::MAX_SEARCH_DEPTH + 1> nodePtr;
 		array<SearchNode, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;
-		uint32_t referenceCount;
 	};
 
 }
