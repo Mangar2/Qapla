@@ -593,17 +593,30 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		childNode.doMove(position, curMove);
 
 		// Parallel search test: a PV node with enough depth left hands every second move to the
-		// worker thread and waits for its result, see negaMaxOnWorker. Only while the worker is
-		// idle - the worker passes through here for the PV nodes of its own subtree. Constant
-		// false outside PV nodes, so NEAR_LEAF and INNER carry none of it.
-		const bool onWorker = TYPE == SearchRegion::PV && _threads > 1 && !_workerBusy
-			&& depth >= 5 && node.movesTried % 2 == 0;
+		// worker thread, see handOverMove. Only while the worker is idle - the worker passes
+		// through here for the PV nodes of its own subtree. Nothing runs in parallel yet: this
+		// thread waits and collects the result at once. Compile time false outside PV nodes,
+		// NEAR_LEAF and INNER carry none of it.
+		if constexpr (TYPE == SearchRegion::PV) {
+			if (_threads > 1 && !_workerBusy && depth >= 5 && node.movesTried % 2 == 0) {
+				handOverMove(position, stack, curMove, moveDepth, lmr, ply);
+				childNode.undoMove(position);
+				_worker.wait();
+				_workerBusy = false;
+				// Test only: what the worker set in the plies below must be seen here, or the
+				// node count differs from the single threaded search
+				stack.copyMoveOrdering(*_workerStack, ply + 1);
+				collectWorkerResults(position, stack, ply);
+				if (node.isFailHigh()) break;
+				continue;
+			}
+		}
 
 		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
 			result = -searchChild<TYPE>(
-				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1, onWorker);
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
 			if (result <= node.alpha) {
 				childNode.undoMove(position);
@@ -622,7 +635,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.movesTried == 1 || depth <= 1);
 		if (!isDirectPVWindowSearch) {
 			result = -searchChild<TYPE>(
-				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1, onWorker);
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
 		}
 		// 5. Full window PV search or research the move with full window, if result is better than alpha
@@ -631,16 +644,21 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 			if (!isDirectPVWindowSearch) {
 				position.computeAttackMasksForBothColors();
 			}
-			result = onWorker ?
-				-negaMaxOnWorker<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1) :
-				-negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1);
+			result = -negaMax<SearchRegion::PV>(position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1);
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, adjustedDepth - 1, ply, result, "PV");
 		}
 
 		node.setSearchResult(result, childNode, curMove);
 
 		childNode.undoMove(position);
+		if constexpr (TYPE == SearchRegion::PV) {
+			if (_threads > 1) collectWorkerResults(position, stack, ply);
+		}
 		if (node.isFailHigh()) break;
+	}
+	// A worker still searching for this node must not deliver to the next node on this ply
+	if constexpr (TYPE == SearchRegion::PV) {
+		if (_workerBusy && _job.queue == &node.resultQueue) node.resultQueue.invalidate(_job.invalid);
 	}
 	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, TYPE == SearchRegion::PV, depth);
@@ -652,20 +670,70 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	return node.bestValue;
 }
 
-template <Search::SearchRegion CHILD>
-value_t Search::negaMaxOnWorker(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply)
-{
-	_workerStack->copyForHandover(stack, ply - 1);
+void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply) {
+	_workerStack->copyForHandover(stack, ply);
 	_workerPosition = position;
-	value_t result = -MAX_VALUE;
+	_job.invalid = false;
+	_job.queue = &stack[ply].resultQueue;
+	_job.move = move;
+	_job.moveDepth = moveDepth;
+	_job.lmr = lmr;
+	_job.ply = ply;
 	_workerBusy = true;
-	_worker.run([&] {
-		result = negaMax<CHILD>(_workerPosition, *_workerStack, alpha, beta, depth, ply);
-	});
-	_worker.wait();
-	_workerBusy = false;
-	stack.copyFromHandover(*_workerStack, ply - 1);
-	return result;
+	_worker.run([this] { searchMoveOnWorker(); });
+}
+
+void Search::searchMoveOnWorker() {
+	SearchStack& stack = *_workerStack;
+	MoveGenerator& position = _workerPosition;
+	const SearchNode& node = stack[_job.ply];
+	const ply_t ply = _job.ply;
+	// Stands in for a counter of its own: the worker reports its nodes with the result and
+	// the node's thread adds them, so they must not be counted here as well
+	const auto nodesBefore = _computingInfo._nodesSearched;
+	value_t result = -MAX_VALUE;
+	bool lmrFailed = false;
+
+	if (_job.lmr > 0) {
+		result = -searchChild<SearchRegion::PV>(
+			position, stack, -node.alpha - 1, -node.alpha, _job.moveDepth - 1 - _job.lmr, ply + 1);
+		lmrFailed = result <= node.alpha;
+		// searching modifies the attack masks. But they are required for the next move generation
+		if (!lmrFailed) position.computeAttackMasksForBothColors();
+	}
+	if (!lmrFailed) {
+		result = -searchChild<SearchRegion::PV>(
+			position, stack, -node.alpha - 1, -node.alpha, _job.moveDepth - 1, ply + 1);
+	}
+
+	const auto nodes = _computingInfo._nodesSearched - nodesBefore;
+	_computingInfo._nodesSearched = nodesBefore;
+	_job.queue->push(_job.move, result, _job.moveDepth, nodes, stack[ply + 1].pv, ply + 1, _job.invalid);
+}
+
+void Search::collectWorkerResults(MoveGenerator& position, SearchStack& stack, ply_t ply) {
+	SearchNode& node = stack[ply];
+	SearchResult entry;
+	while (node.resultQueue.pop(entry)) {
+		_computingInfo._nodesSearched += entry.nodes;
+		if (entry.value > node.alpha) {
+			// The null window search failed high, the move needs the full window - by this
+			// thread, the same way the move loop does it
+			SearchNode& childNode = stack[ply + 1];
+			childNode.doMove(position, entry.move);
+			position.computeAttackMasksForBothColors();
+			const ply_t adjustedDepth = entry.moveDepth <= 0 && entry.move == node.getTTMove()
+				&& ply < stack[0].remainingDepth * 2 ? 1 : entry.moveDepth;
+			const value_t result = -negaMax<SearchRegion::PV>(
+				position, stack, -node.beta, -node.alpha, adjustedDepth - 1, ply + 1);
+			node.setSearchResult(result, childNode, entry.move);
+			childNode.undoMove(position);
+		}
+		else {
+			node.setSearchResult(entry.value, entry.pv, entry.move);
+		}
+		if (node.isFailHigh()) break;
+	}
 }
 
 void Search::storePVToTT(MoveGenerator& position, SearchStack& stack, const RootMove& rootMove, ply_t ply) {

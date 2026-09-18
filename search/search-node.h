@@ -32,6 +32,7 @@
 #include "tt.h"
 #include "butterfly-boards.h"
 #include "search-config.h"
+#include "search-result-queue.h"
 #include "tunable.h"
 #include "extension.h"
 #include "../eval/eval.h"
@@ -435,6 +436,14 @@ namespace QaplaSearch {
 		 * applies the search result to the status
 		 */
 		void setSearchResult(value_t searchResult, const SearchNode& nextPlySearchInfo, Move currentMove) {
+			setSearchResult(searchResult, nextPlySearchInfo.pv, currentMove);
+		}
+
+		/**
+		 * applies the search result to the status
+		 * @param childLine line the child search found, starting at ply + 1
+		 */
+		void setSearchResult(value_t searchResult, const PV& childLine, Move currentMove) {
 			assert(abs(searchResult) < MIN_MATE_VALUE || abs(searchResult) > MAX_VALUE - 50);
 			currentValue = searchResult;
 			if (searchResult > bestValue) {
@@ -443,7 +452,7 @@ namespace QaplaSearch {
 					bestMove = currentMove;
 					if (isPVNode()) {
 						// PV line may be extended, thus always copy from pv
-						pv.copyFromPV(nextPlySearchInfo.pv, ply + 1);
+						pv.copyFromPV(childLine, ply + 1);
 						pv.setMove(ply, bestMove);
 					}
 					if (searchResult < beta) {
@@ -618,6 +627,8 @@ namespace QaplaSearch {
 		Move ttMove;
 
 		Cutoff cutoff;
+		// Results of moves other threads searched for this node
+		SearchResultQueue resultQueue;
 		MoveProvider moveProvider;
 		PV pv;
 		// Bitmaps to identify checking moves faster
