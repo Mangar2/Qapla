@@ -89,12 +89,15 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Takes back what a search at ply + 1 on another stack left behind: its node with pv,
-		 * best value and best move, and the killers it set in the plies below.
+		 * Takes over the move ordering memory - killers and the move of the previous iteration -
+		 * of the plies from fromPly on. A search continued on another stack must order its moves
+		 * exactly as this one would have, and what it set on its way must be seen here. Needed
+		 * only while the node count is to stay identical to a single threaded search.
 		 */
-		void copyFromHandover(const SearchStack& from, ply_t ply) {
-			copyNode(from, ply + 1);
-			copyMoveOrdering(from, ply + 2);
+		void copyMoveOrdering(const SearchStack& from, ply_t fromPly) {
+			for (ply_t index = fromPly; index < ply_t(_stack.size()); index++) {
+				_stack[index].moveProvider.copyMoveOrdering(from._stack[index].moveProvider);
+			}
 		}
 
 		/**
@@ -141,12 +144,6 @@ namespace QaplaSearch {
 		void copyNode(const SearchStack& from, ply_t ply) {
 			_stack[ply] = from._stack[ply];
 			_stack[ply].pv.copyFromPV(from._stack[ply].pv, ply);
-		}
-
-		void copyMoveOrdering(const SearchStack& from, ply_t fromPly) {
-			for (ply_t index = fromPly; index < ply_t(_stack.size()); index++) {
-				_stack[index].moveProvider.copyMoveOrdering(from._stack[index].moveProvider);
-			}
 		}
 
 		TT* ttPtr;

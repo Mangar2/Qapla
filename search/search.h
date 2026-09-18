@@ -219,15 +219,8 @@ namespace QaplaSearch {
 		 */
 		template <SearchRegion TYPE>
 		inline value_t searchChild(MoveGenerator& position, SearchStack& stack,
-			value_t alpha, value_t beta, ply_t childDepth, ply_t childPly, bool onWorker = false)
+			value_t alpha, value_t beta, ply_t childDepth, ply_t childPly)
 		{
-			// Parallel search test, PV nodes only - the other regions, NEAR_LEAF in particular,
-			// must not carry any thread logic. A near leaf child is not worth a hand-over.
-			if constexpr (TYPE == SearchRegion::PV) {
-				if (onWorker && childDepth > 1) {
-					return negaMaxOnWorker<SearchRegion::INNER>(position, stack, alpha, beta, childDepth, childPly);
-				}
-			}
 			return TYPE != SearchRegion::NEAR_LEAF && childDepth > 1 ?
 				negaMax<SearchRegion::INNER>(position, stack, alpha, beta, childDepth, childPly) :
 				negaMax<SearchRegion::NEAR_LEAF>(position, stack, alpha, beta, childDepth, childPly);
@@ -236,13 +229,27 @@ namespace QaplaSearch {
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-		 * Searches a child node on the worker thread, with the worker's own stack and position
-		 * copy; this thread waits for the result. Nothing runs in parallel yet - the test is that
-		 * a node searched on another stack yields exactly what this stack would have. Called from
-		 * PV nodes only, see negaMax.
+		 * Hands the search of a move to the worker thread. The move is applied to position and
+		 * stack[ply + 1]; the worker gets copies of both and searches the move, see
+		 * searchMoveOnWorker, and writes its result to the queue of the node at ply. This thread
+		 * takes it from there with collectWorkerResults. PV nodes only.
 		 */
-		template <SearchRegion CHILD>
-		value_t negaMaxOnWorker(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
+		void handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply);
+
+		/**
+		 * The worker's part of a move: the reduced search and, unless that one fails low, the
+		 * null window search at full depth - everything that needs no more than the window the
+		 * node had at hand-over. Whether the move gets a full window search is the node's
+		 * decision and stays with its thread.
+		 */
+		void searchMoveOnWorker();
+
+		/**
+		 * Applies the results the worker has written to the queue of the node at ply: the nodes
+		 * it searched, the value, and a full window search by this thread where the null window
+		 * search failed high. Sets the node's cutoff like the move loop does.
+		 */
+		void collectWorkerResults(MoveGenerator& position, SearchStack& stack, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves
@@ -281,6 +288,18 @@ namespace QaplaSearch {
 		SearchWorker _worker;
 		std::unique_ptr<SearchStack> _workerStack;
 		MoveGenerator _workerPosition;
+
+		// The move the worker is searching. The node that handed it over invalidates the job
+		// when it is left before the result is in - the worker then drops the result.
+		struct WorkerJob {
+			std::atomic<bool> invalid{ false };
+			SearchResultQueue* queue = nullptr;
+			Move move;
+			ply_t moveDepth = 0;
+			ply_t lmr = 0;
+			ply_t ply = 0;
+		};
+		WorkerJob _job;
 	public:
 		ButterflyBoard _butterflyBoard;
 	};
