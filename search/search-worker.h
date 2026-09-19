@@ -23,6 +23,8 @@
 #ifndef __SEARCH_WORKER_H
 #define __SEARCH_WORKER_H
 
+#include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <mutex>
@@ -56,6 +58,14 @@ namespace QaplaSearch {
 				_hasJob = true;
 			}
 			_cv.notify_all();
+		}
+
+		/**
+		 * Time spent in jobs since the last call, test output for the parallel search
+		 */
+		uint64_t takeBusyMilliseconds() {
+			const auto busy = _busyMilliseconds.exchange(0);
+			return busy;
 		}
 
 		/**
@@ -94,7 +104,10 @@ namespace QaplaSearch {
 				_cv.wait(lock, [this] { return _hasJob || _stop; });
 				if (_stop) return;
 				lock.unlock();
+				const auto start = std::chrono::steady_clock::now();
 				_job();
+				_busyMilliseconds += std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::steady_clock::now() - start).count();
 				lock.lock();
 				_hasJob = false;
 				lock.unlock();
@@ -108,6 +121,7 @@ namespace QaplaSearch {
 		std::function<void()> _job;
 		bool _hasJob = false;
 		bool _stop = false;
+		std::atomic<uint64_t> _busyMilliseconds{ 0 };
 	};
 
 }
