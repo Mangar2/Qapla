@@ -595,12 +595,13 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// Parallel search: a node with enough depth left hands a move that is to be searched
 		// to the helper thread whenever the helper is idle, and goes on with its own next move
 		// meanwhile, see handOverMove. Never the first move - its result sets the window the
-		// others are searched with - and not in cut nodes, where the next move is expected to
-		// end the node. The helper passes through here for its own subtree and finds itself
-		// busy. Near leaf nodes carry none of this.
+		// others are searched with - never the last, this thread would only wait for it, and
+		// not in cut nodes, where the next move is expected to end the node. The helper passes
+		// through here for its own subtree and finds itself busy. Near leaf nodes carry none
+		// of this.
 		if constexpr (TYPE != SearchRegion::NEAR_LEAF) {
-			if (_helper && depth >= 5 && node.movesTried > 1 && node.getNodeType() != SearchNode::NodeType::CUT
-				&& !_helper->worker.isBusy()) {
+			if (_helper && depth >= 5 && node.movesTried > 1 && !node.isLastMove()
+				&& node.getNodeType() != SearchNode::NodeType::CUT && !_helper->worker.isBusy()) {
 				handOverMove(position, stack, curMove, moveDepth, lmr, ply, TYPE == SearchRegion::PV);
 				continue;
 			}

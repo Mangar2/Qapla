@@ -522,6 +522,7 @@ namespace QaplaSearch {
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
 
 		Move getTTMove() const { return ttMove; }
+		bool isLastMove() const { return moveProvider.isLastMove(); }
 		void setTTMove(Move move) { ttMove = move; }
 
 		/** The move from the previous iteration, if this node is on the former primary variant */
