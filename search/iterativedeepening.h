@@ -25,6 +25,7 @@
 
 #include "movehistory.h"
 #include "search.h"
+#include "search-thread.h"
 #include "../interface/clocksetting.h"
 #include "computinginfo.h"
 #include "clockmanager.h"
@@ -84,7 +85,7 @@ namespace QaplaSearch {
 		}
 
 		void setThreads(int32_t threads) {
-			_search->setThreads(threads);
+			_threads = threads;
 		}
 
 		/**
@@ -128,6 +129,7 @@ namespace QaplaSearch {
 			}	
 			_search->startNewSearch(searchBoard, searchMoves,
 				moveHistory.hasRepeatedPosition(searchBoard));
+			setUpHelper();
 			_clockManager.setNewMove();
 			if (_search->getComputingInfo().getMovesAmount() == 0) {
 				return _search->getComputingInfo();
@@ -206,6 +208,24 @@ namespace QaplaSearch {
 	private:
 
 		/**
+		 * Gives the master search its helper thread, if the option asks for one. The helper is
+		 * created with the first search that needs it and kept; it takes the settings of every
+		 * new search from the master.
+		 */
+		void setUpHelper() {
+			if (_threads < 2) {
+				_search->setHelper(nullptr);
+				return;
+			}
+			if (!_helper) {
+				_helper = std::make_unique<SearchThread>(&_tt);
+				_helper->worker.start();
+			}
+			_helper->search.initAsHelper(*_search, &_clockManager, &_tt);
+			_search->setHelper(_helper.get());
+		}
+
+		/**
 		 * Computes the available time to search the next move
 		 */
 		uint64_t computeSearchTime(const ClockSetting& clockSetting) {
@@ -260,6 +280,8 @@ namespace QaplaSearch {
 		ClockManager _clockManager;
 		TT _tt;
 		std::unique_ptr<Search> _search;
+		int32_t _threads = 1;
+		std::unique_ptr<SearchThread> _helper;
 		array<AspirationWindow, MAX_PV> _window;
 	};
 

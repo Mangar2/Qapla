@@ -30,7 +30,6 @@
 #include "clockmanager.h"
 #include "tt.h"
 #include "butterfly-boards.h"
-#include "search-worker.h"
 #include "quiescence.h"
 #include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
@@ -43,6 +42,8 @@ using namespace QaplaInterface;
 
 namespace QaplaSearch {
 
+	struct SearchThread;
+
 	class Search {
 	public:
 		Search() : _clockManager(0) {}
@@ -51,11 +52,11 @@ namespace QaplaSearch {
 		 * Starts a new game or sets a new position e.g. by fen
 		 */
 		void startNewGame() {
-			_butterflyBoard.clear();
+			_butterflyBoard->clear();
 		}
 
 		void clearMemories() {
-			_butterflyBoard.clear();
+			_butterflyBoard->clear();
 		}
 
 		/**
@@ -63,8 +64,8 @@ namespace QaplaSearch {
 		 */
 		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves,
 			bool hasRepeatedPosition) {
-			_computingInfo.initNewSearch(position, searchMoves, _butterflyBoard);
-			_butterflyBoard.newSearch();
+			_computingInfo.initNewSearch(position, searchMoves, *_butterflyBoard);
+			_butterflyBoard->newSearch();
 			// The tablebase settings cannot change during a search, and reading them at
 			// every node costs more than the probes save.
 			_tbCardinality = QaplaSyzygy::Tablebase::cardinality();
@@ -118,12 +119,35 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sets the number of threads the search may use. The second thread is started with
-		 * the first search that needs it, see negaMaxRoot.
+		 * Gives the master search a helper thread to hand moves to. Null for none.
 		 */
-		void setThreads(uint32_t threads) {
-			_threads = threads;
+		void setHelper(SearchThread* helper) {
+			_helper = helper;
 		}
+
+		/**
+		 * Makes this the search of a helper thread. It takes the settings of the search from
+		 * the master and searches with the master's history - the latter only while the node
+		 * count is to stay identical to a single threaded search, it must not do so once the
+		 * threads really run apart. A helper never checks the clock and never prints; it only
+		 * follows the stop flag.
+		 */
+		void initAsHelper(Search& master, ClockManager* clockManager, TT* tt) {
+			_isMaster = false;
+			_clockManager = clockManager;
+			_quiescence.setTT(tt);
+			_tbCardinality = master._tbCardinality;
+			_tbProbeDepth = master._tbProbeDepth;
+			_tbRootWin = master._tbRootWin;
+			_tbSearchableMoves = master._tbSearchableMoves;
+			_butterflyBoard = master._butterflyBoard;
+		}
+
+		/**
+		 * The search of a helper thread: searches the move of the thread's job, see
+		 * searchMoveOnHelper.
+		 */
+		void runJob(SearchThread& self);
 
 	private:
 
@@ -229,27 +253,27 @@ namespace QaplaSearch {
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-		 * Hands the search of a move to the worker thread. The move is applied to position and
-		 * stack[ply + 1]; the worker gets copies of both and searches the move, see
-		 * searchMoveOnWorker, and writes its result to the queue of the node at ply. This thread
-		 * takes it from there with collectWorkerResults. PV nodes only.
+		 * Hands the search of a move to the helper thread. The move is applied to position and
+		 * stack[ply + 1]; the helper gets copies of both and searches the move, see
+		 * searchMoveOnHelper, and writes its result to the queue of the node at ply. This thread
+		 * takes it from there with collectHelperResults. PV nodes only.
 		 */
 		void handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply);
 
 		/**
-		 * The worker's part of a move: the reduced search and, unless that one fails low, the
+		 * The helper's part of a move: the reduced search and, unless that one fails low, the
 		 * null window search at full depth - everything that needs no more than the window the
 		 * node had at hand-over. Whether the move gets a full window search is the node's
 		 * decision and stays with its thread.
 		 */
-		void searchMoveOnWorker();
+		void searchMoveOnHelper(SearchThread& self);
 
 		/**
-		 * Applies the results the worker has written to the queue of the node at ply: the nodes
+		 * Applies the results the helper has written to the queue of the node at ply: the nodes
 		 * it searched, the value, and a full window search by this thread where the null window
 		 * search failed high. Sets the node's cutoff like the move loop does.
 		 */
-		void collectWorkerResults(MoveGenerator& position, SearchStack& stack, ply_t ply);
+		void collectHelperResults(MoveGenerator& position, SearchStack& stack, ply_t ply);
 
 		/**
 		 * Returns the information about the root moves
@@ -280,28 +304,16 @@ namespace QaplaSearch {
 		bool     _tbRootWin = false;
 		uint32_t _tbSearchableMoves = 0;
 
-		// Second search thread, see setThreads. Stack and position are its own; the search
-		// state - node count, history, hash - is shared, which is safe only because this thread
-		// waits while the worker searches.
-		uint32_t _threads = 1;
-		bool _workerBusy = false;
-		SearchWorker _worker;
-		std::unique_ptr<SearchStack> _workerStack;
-		MoveGenerator _workerPosition;
+		// Master or helper thread, see initAsHelper. Only the master checks the clock, prints
+		// and hands moves to the helper.
+		bool _isMaster = true;
+		SearchThread* _helper = nullptr;
+		bool _helperBusy = false;
 
-		// The move the worker is searching. The node that handed it over invalidates the job
-		// when it is left before the result is in - the worker then drops the result.
-		struct WorkerJob {
-			std::atomic<bool> invalid{ false };
-			SearchResultQueue* queue = nullptr;
-			Move move;
-			ply_t moveDepth = 0;
-			ply_t lmr = 0;
-			ply_t ply = 0;
-		};
-		WorkerJob _job;
+		// The history the move ordering reads. A helper points to the master's, see initAsHelper.
+		ButterflyBoard _ownButterflyBoard;
 	public:
-		ButterflyBoard _butterflyBoard;
+		ButterflyBoard* _butterflyBoard = &_ownButterflyBoard;
 	};
 }
 

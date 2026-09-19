@@ -22,6 +22,7 @@
 #ifndef _CLOCKMANAGER_H
 #define _CLOCKMANAGER_H
 
+#include <atomic>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -409,7 +410,8 @@ namespace QaplaSearch {
 		int64_t _nextInfoTime;
 		uint64_t _nodeTarget;
 
-		ClockMode _mode;
+		// Written by the input thread (stopSearch) and read by every search thread
+		std::atomic<ClockMode> _mode;
 		
 		ClockSetting _clockSetting;
 		SearchState _searchState;
