@@ -93,6 +93,14 @@ namespace QaplaSearch {
 		/**
 		 * Sets a hash entry either to the primary entry (if better) or to 
 		 * the secondary always replace entry
+		 *
+		 * Shared between the search threads without any lock and without the lockless
+		 * xor scheme, by decision: both cost speed, and a torn entry costs nothing that is
+		 * measurable. The move read from a torn entry is harmless - every tt move is looked
+		 * up in the generated move list before it is played, see
+		 * MoveProvider::selectProposedMove - so only value, bounds and depth are at risk,
+		 * and those the search already has to survive for hash collisions. _numEntries is
+		 * statistics for hashfull only.
 		 */
 		uint32_t setEntry(
 			hash_t hashKey, bool isPV, int32_t computedDepth, ply_t ply, Move move,
