@@ -76,22 +76,41 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Takes over what a thread searching a move of the node at ply reads from this stack,
-		 * and nothing more: of the node what a child reads from its parent, see
-		 * SearchNode::copyForHandover; of the plies above it the hashes the repetition check
-		 * can reach - no further back than the last pawn move or capture - the eval of ply - 1
-		 * that isImproving of the child reads, and the root depth. Nothing below: the taking
-		 * thread applies the move itself and orders moves by its own memory.
-		 * @param halfmoveClock plies since the last pawn move or capture at ply
+		 * Fetches what a thread searching a move of the node at ply reads from the node's
+		 * stack and cannot derive itself: the line of moves that leads to the node, to be
+		 * replayed with replayLine, and of the node what a child reads from its parent, see
+		 * SearchNode::copyForHandover, the eval of ply - 1 for the child's isImproving and the
+		 * root depth. No lock: the node's thread stays in the node while the helper works.
+		 * @param line receives the moves of the plies 1 to ply
 		 */
-		void copyForHandover(const SearchStack& from, ply_t ply, ply_t halfmoveClock) {
-			const ply_t firstHash = std::max(ply_t(0), ply_t(ply - halfmoveClock));
-			for (ply_t index = firstHash; index < ply; index++) {
-				_stack[index].positionHash = from._stack[index].positionHash;
+		void fetchForHandover(const SearchStack& from, ply_t ply, Move* line) {
+			for (ply_t index = 1; index <= ply; index++) {
+				line[index] = from._stack[index].previousMove;
 			}
+			_stack[ply].copyForHandover(from._stack[ply]);
 			if (ply > 0) _stack[ply - 1].adjustedEval = from._stack[ply - 1].adjustedEval;
 			_stack[0].remainingDepth = from._stack[0].remainingDepth;
-			_stack[ply].copyForHandover(from._stack[ply]);
+		}
+
+		/**
+		 * Plays the line fetched by fetchForHandover from the root, position must be at the
+		 * root. Sets the hashes on the way, the repetition check below reads them.
+		 */
+		void replayLine(MoveGenerator& position, const Move* line, ply_t ply) {
+			_stack[0].positionHash = position.computeBoardHash();
+			for (ply_t index = 1; index <= ply; index++) {
+				_stack[index].doMove(position, line[index]);
+				_stack[index].positionHash = position.computeBoardHash();
+			}
+		}
+
+		/**
+		 * Takes the line back, position is at the root afterwards
+		 */
+		void undoLine(MoveGenerator& position, ply_t ply) {
+			for (ply_t index = ply; index >= 1; index--) {
+				_stack[index].undoMove(position);
+			}
 		}
 
 		/**

@@ -669,12 +669,12 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply, bool pvNode) {
 	SearchThread& helper = *_helper;
-	helper.stack.copyForHandover(stack, ply, position.getHalfmovesWithoutPawnMoveOrCapture());
-	helper.position = position;
 	helper.job.invalid = false;
 	helper.job.queue = &stack[ply].resultQueue;
+	helper.job.stack = &stack;
 	helper.job.move = move;
 	helper.job.ply = ply;
+	helper.job.alpha = stack[ply].alpha;
 	helper.job.moveDepth = moveDepth;
 	helper.job.lmr = lmr;
 	helper.job.pvNode = pvNode;
@@ -703,11 +703,19 @@ void Search::searchMoveOnHelper(SearchThread& self) {
 	const ply_t moveDepth = job.moveDepth;
 	const ply_t lmr = job.lmr;
 	const Move curMove = job.move;
-	const SearchNode& node = stack[ply];
+	SearchNode& node = stack[ply];
 	SearchNode& childNode = stack[ply + 1];
 	const auto nodesBefore = _computingInfo._nodesSearched;
 	value_t result = -MAX_VALUE;
 	bool lmrFailed = false;
+
+	// Fetch the line and the node's constants from the node's stack, then reach the node on
+	// the own board. No lock: the node's thread stays in the node while this job runs, see
+	// WorkerJob::stack.
+	Move line[SearchConfig::MAX_SEARCH_DEPTH + 1];
+	stack.fetchForHandover(*job.stack, ply, line);
+	node.alpha = job.alpha;
+	stack.replayLine(position, line, ply);
 
 	childNode.doMove(position, curMove);
 
@@ -728,6 +736,7 @@ void Search::searchMoveOnHelper(SearchThread& self) {
 			position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
 	}
 	childNode.undoMove(position);
+	stack.undoLine(position, ply);
 
 	const auto nodes = _computingInfo._nodesSearched - nodesBefore;
 	// A stopped search has no result worth delivering
@@ -740,24 +749,20 @@ void Search::finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t 
 	// The helper's current job is this node's, or it was a descendant's that has been finished
 	// with already; a job of an ancestor cannot be running while this node handed moves over.
 	const bool helperWorksForThisNode = _helperQueue == &node.resultQueue;
-	if (!node.isFailHigh()) {
-		if (helperWorksForThisNode) {
-			const auto start = std::chrono::steady_clock::now();
-			_helper->worker.wait();
-			_masterWaitMilliseconds += std::chrono::duration_cast<std::chrono::milliseconds>(
-				std::chrono::steady_clock::now() - start).count();
-		}
-		collectHelperResults(position, stack, ply);
-	}
-	// Stops a helper still searching for this node and drops anything left in the queue:
-	// nothing of this node may reach the next node on this ply
 	if (helperWorksForThisNode) {
-		node.resultQueue.invalidate(_helper->job.invalid);
+		// A node that failed high has no use for the result: the helper stops the job at its
+		// next node. Either way the helper must be done before the node is left, it reads
+		// this stack.
+		if (node.isFailHigh()) node.resultQueue.invalidate(_helper->job.invalid);
+		const auto start = std::chrono::steady_clock::now();
+		_helper->worker.wait();
+		_masterWaitMilliseconds += std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::steady_clock::now() - start).count();
 		_helperQueue = nullptr;
 	}
-	else {
-		node.resultQueue.clear();
-	}
+	if (!node.isFailHigh()) collectHelperResults(position, stack, ply);
+	// Nothing of this node may reach the next node on this ply
+	node.resultQueue.clear();
 	node.movesOnHelper = 0;
 }
 

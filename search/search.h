@@ -287,11 +287,11 @@ namespace QaplaSearch {
 
 		/**
 		 * Hands a move to the helper thread, after the node has decided that the move is
-		 * searched at all and with which depth and reduction. The helper gets what it reads of
-		 * stack and position as they are before the move, searches the move the way the move
-		 * loop would, see searchMoveOnHelper, and writes its result to the queue of the node at
-		 * ply. This thread goes on with its next move and takes the result from the queue with
-		 * collectHelperResults. Not from near leaf nodes.
+		 * searched at all and with which depth and reduction. This thread copies nothing: the
+		 * helper fetches what it reads from the stack itself and replays the line to the node on
+		 * its own board, see searchMoveOnHelper. It writes its result to the queue of the node
+		 * at ply; this thread goes on with its next move and takes the result from the queue
+		 * with collectHelperResults. Not from near leaf nodes.
 		 */
 		void handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply, bool pvNode);
 
@@ -306,10 +306,11 @@ namespace QaplaSearch {
 		void searchMoveOnHelper(SearchThread& self);
 
 		/**
-		 * Called when the move loop of a node is done that handed moves to the helper. Waits
-		 * for the helper and applies its result, unless the node has failed high already -
-		 * then the job is invalidated, the helper stops it and drops the result. Leaves the
-		 * node's queue empty either way.
+		 * Called when the move loop of a node is done that handed moves to the helper. The
+		 * node is never left while the helper still works for it - the helper reads this
+		 * thread's stack. Waits for the helper and applies its result; if the node has failed
+		 * high already, the job is invalidated first, the helper stops it at its next node and
+		 * drops the result. Leaves the node's queue empty either way.
 		 */
 		void finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t ply);
 

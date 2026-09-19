@@ -130,7 +130,7 @@ namespace QaplaSearch {
 			}	
 			_search->startNewSearch(searchBoard, searchMoves,
 				moveHistory.hasRepeatedPosition(searchBoard));
-			setUpHelper();
+			setUpHelper(searchBoard);
 			_clockManager.setNewMove();
 			if (_search->getComputingInfo().getMovesAmount() == 0) {
 				return _search->getComputingInfo();
@@ -217,7 +217,7 @@ namespace QaplaSearch {
 		 * created with the first search that needs it and kept; it takes the settings of every
 		 * new search from the master.
 		 */
-		void setUpHelper() {
+		void setUpHelper(const MoveGenerator& root) {
 			if (_threads < 2) {
 				_search->setHelper(nullptr);
 				return;
@@ -227,6 +227,9 @@ namespace QaplaSearch {
 				_helper->worker.start();
 			}
 			_helper->search.initAsHelper(*_search, &_clockManager, &_tt);
+			// The helper's board stands at the root between jobs, it replays the line to
+			// every node it helps at from there
+			_helper->position = root;
 			_search->setHelper(_helper.get());
 		}
 
