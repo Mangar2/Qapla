@@ -39,8 +39,15 @@ namespace QaplaSearch {
 	struct WorkerJob {
 		std::atomic<bool> invalid{ false };
 		SearchResultQueue* queue = nullptr;
+		// The stack of the node's thread: the helper fetches from it what it needs, see
+		// SearchStack::fetchForHandover. Without any lock: the node's thread does not leave
+		// the node while the helper works for it, so what the helper reads stays put.
+		const SearchStack* stack = nullptr;
 		Move move;
 		ply_t ply = 0;
+		// The window the move is searched with. Alpha moves while the node searches, so it
+		// travels with the job instead of being read from the node
+		value_t alpha = 0;
 		// Depth the move is searched with and its late move reduction, decided by the node
 		ply_t moveDepth = 0;
 		ply_t lmr = 0;
