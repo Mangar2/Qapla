@@ -241,6 +241,12 @@ namespace QaplaSearch {
 		 */
 
 		uint32_t getTotalMoveAmount() const { return moveList.getTotalMoveAmount(); }
+
+		/**
+		 * @returns true, if the move selected last is the last one of the list. The list is
+		 * complete from the start and every selected move is taken out of it.
+		 */
+		bool isLastMove() const { return triedMovesAmount >= moveList.getTotalMoveAmount(); }
 		uint32_t getNonSilentMoveAmount() const { return moveList.getNonSilentMoveAmount(); }
 		uint32_t getNumberOfMoveProvidedLast() const { return curMoveNo; }
 
