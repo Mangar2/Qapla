@@ -76,16 +76,19 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Takes over everything a search starting at ply + 1 reads from a stack: the nodes up to
-		 * and including ply + 1 in full - hashes for the repetition check, evals for isImproving,
-		 * node types, the root depth and the move already applied at ply + 1 - and the move
-		 * ordering memory of the plies below.
+		 * Takes over what a thread searching a move of the node at ply reads from this stack:
+		 * the node itself in full, from the plies above it only the hashes for the repetition
+		 * check, the evals for isImproving and the root depth, and from the plies below the
+		 * move ordering memory. The move is applied by the taking thread itself.
 		 */
 		void copyForHandover(const SearchStack& from, ply_t ply) {
-			for (ply_t index = 0; index <= ply + 1; index++) {
-				copyNode(from, index);
+			for (ply_t index = 0; index < ply; index++) {
+				_stack[index].positionHash = from._stack[index].positionHash;
+				_stack[index].adjustedEval = from._stack[index].adjustedEval;
+				_stack[index].remainingDepth = from._stack[index].remainingDepth;
 			}
-			copyMoveOrdering(from, ply + 2);
+			copyNode(from, ply);
+			copyMoveOrdering(from, ply + 1);
 		}
 
 		/**
