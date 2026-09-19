@@ -76,31 +76,21 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Takes over what a thread searching a move of the node at ply reads from this stack:
-		 * the node itself in full, from the plies above it only the hashes for the repetition
-		 * check, the evals for isImproving and the root depth, and from the plies below the
-		 * move ordering memory. The move is applied by the taking thread itself.
+		 * Takes over what a thread searching a move of the node at ply reads from this stack,
+		 * and nothing more: the node itself in full; of the plies above it the hashes the
+		 * repetition check can reach - no further back than the last pawn move or capture -
+		 * the eval of ply - 1 that isImproving of the child reads, and the root depth. Nothing
+		 * below: the taking thread applies the move itself and orders moves by its own memory.
+		 * @param halfmoveClock plies since the last pawn move or capture at ply
 		 */
-		void copyForHandover(const SearchStack& from, ply_t ply) {
-			for (ply_t index = 0; index < ply; index++) {
+		void copyForHandover(const SearchStack& from, ply_t ply, ply_t halfmoveClock) {
+			const ply_t firstHash = std::max(ply_t(0), ply_t(ply - halfmoveClock));
+			for (ply_t index = firstHash; index < ply; index++) {
 				_stack[index].positionHash = from._stack[index].positionHash;
-				_stack[index].adjustedEval = from._stack[index].adjustedEval;
-				_stack[index].remainingDepth = from._stack[index].remainingDepth;
 			}
+			if (ply > 0) _stack[ply - 1].adjustedEval = from._stack[ply - 1].adjustedEval;
+			_stack[0].remainingDepth = from._stack[0].remainingDepth;
 			copyNode(from, ply);
-			copyMoveOrdering(from, ply + 1);
-		}
-
-		/**
-		 * Takes over the move ordering memory - killers and the move of the previous iteration -
-		 * of the plies from fromPly on. A search continued on another stack must order its moves
-		 * exactly as this one would have, and what it set on its way must be seen here. Needed
-		 * only while the node count is to stay identical to a single threaded search.
-		 */
-		void copyMoveOrdering(const SearchStack& from, ply_t fromPly) {
-			for (ply_t index = fromPly; index < ply_t(_stack.size()); index++) {
-				_stack[index].moveProvider.copyMoveOrdering(from._stack[index].moveProvider);
-			}
 		}
 
 		/**
