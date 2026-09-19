@@ -569,20 +569,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
-		// Parallel search: a node with enough depth left hands a move to the helper thread
-		// whenever the helper is idle, and goes on with its own next move meanwhile, see
-		// handOverMove. Never the first move - its result sets the window the others are
-		// searched with - and not in cut nodes, where the next move is expected to end the
-		// node. The helper passes through here for its own subtree and finds itself busy.
-		// Near leaf nodes carry none of this.
-		if constexpr (TYPE != SearchRegion::NEAR_LEAF) {
-			if (_helper && depth >= 5 && node.movesTried > 1 && node.getNodeType() != SearchNode::NodeType::CUT
-				&& !_helper->worker.isBusy()) {
-				handOverMove(position, stack, curMove, depth, seExtension, ply, TYPE == SearchRegion::PV);
-				continue;
-			}
-		}
-
 		// The singular extension belongs to the move se() proved to be singular, not to the node.
 		// It cannot add on top of the check extension, as se() returns 0 for a node in check.
 		const ply_t moveExtension = curMove == node.getTTMove() ? seExtension : 0;
@@ -602,6 +588,20 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 			// 2. Move count pruning
 			if (lmr > 0 && depth - lmr < 0) {
+				continue;
+			}
+		}
+
+		// Parallel search: a node with enough depth left hands a move that is to be searched
+		// to the helper thread whenever the helper is idle, and goes on with its own next move
+		// meanwhile, see handOverMove. Never the first move - its result sets the window the
+		// others are searched with - and not in cut nodes, where the next move is expected to
+		// end the node. The helper passes through here for its own subtree and finds itself
+		// busy. Near leaf nodes carry none of this.
+		if constexpr (TYPE != SearchRegion::NEAR_LEAF) {
+			if (_helper && depth >= 5 && node.movesTried > 1 && node.getNodeType() != SearchNode::NodeType::CUT
+				&& !_helper->worker.isBusy()) {
+				handOverMove(position, stack, curMove, moveDepth, lmr, ply, TYPE == SearchRegion::PV);
 				continue;
 			}
 		}
@@ -665,7 +665,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	return node.bestValue;
 }
 
-void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode) {
+void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply, bool pvNode) {
 	SearchThread& helper = *_helper;
 	helper.stack.copyForHandover(stack, ply, position.getHalfmovesWithoutPawnMoveOrCapture());
 	helper.position = position;
@@ -673,8 +673,8 @@ void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move
 	helper.job.queue = &stack[ply].resultQueue;
 	helper.job.move = move;
 	helper.job.ply = ply;
-	helper.job.depth = depth;
-	helper.job.seExtension = seExtension;
+	helper.job.moveDepth = moveDepth;
+	helper.job.lmr = lmr;
 	helper.job.pvNode = pvNode;
 	_helperQueue = helper.job.queue;
 	stack[ply].movesOnHelper++;
@@ -698,60 +698,34 @@ void Search::searchMoveOnHelper(SearchThread& self) {
 	MoveGenerator& position = self.position;
 	const WorkerJob& job = self.job;
 	const ply_t ply = job.ply;
-	const ply_t depth = job.depth;
+	const ply_t moveDepth = job.moveDepth;
+	const ply_t lmr = job.lmr;
 	const Move curMove = job.move;
-	SearchNode& node = stack[ply];
+	const SearchNode& node = stack[ply];
 	SearchNode& childNode = stack[ply + 1];
 	const auto nodesBefore = _computingInfo._nodesSearched;
-	// A pruned move contributes nothing to the node, the value below every result says so
 	value_t result = -MAX_VALUE;
-	ply_t moveDepth = depth;
+	bool lmrFailed = false;
 
-	// The singular extension belongs to the move se() proved to be singular, not to the node.
-	// It cannot add on top of the check extension, as se() returns 0 for a node in check.
-	const ply_t moveExtension = curMove == node.getTTMove() ? job.seExtension : 0;
-	moveDepth = moveExtension > 0 ?
-		std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
+	childNode.doMove(position, curMove);
 
-	bool doMovePrunings = node.movesTried > 3 && !node.isCheckMove(position, curMove);
-	// lmr is needed for move count pruning and late move reduction search
-	const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
-	bool pruned = false;
-	// Never skip moves when escaping from mate and in positions with pawns only.
-	if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
-
-		// 1. Futility pruning: skip quiet moves in late move loop when position is too bad
-		if (node.canPruneFutility(position, curMove)) {
-			pruned = true;
-		}
-		// 2. Move count pruning
-		else if (lmr > 0 && depth - lmr < 0) {
-			pruned = true;
-		}
+	// 3. Late move reduction search
+	// The move is done with, if the lmr search returns a value less than alpha
+	if (lmr > 0) {
+		result = -searchChild<TYPE>(
+			position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
+		lmrFailed = result <= node.alpha;
+		// searching modifies the attack masks. But they are required for the next move generation
+		if (!lmrFailed) position.computeAttackMasksForBothColors();
 	}
-
-	if (!pruned) {
-		childNode.doMove(position, curMove);
-		bool lmrFailed = false;
-
-		// 3. Late move reduction search
-		// The move is done with, if the lmr search returns a value less than alpha
-		if (lmr > 0) {
-			result = -searchChild<TYPE>(
-				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
-			lmrFailed = result <= node.alpha;
-			// searching modifies the attack masks. But they are required for the next move generation
-			if (!lmrFailed) position.computeAttackMasksForBothColors();
-		}
-		// 4. Null window search. Never the first move of a PV node, that one stays with the
-		// node's thread; a PV node's full window search of a move that beats alpha is its
-		// thread's decision as well, see collectHelperResults.
-		if (!lmrFailed) {
-			result = -searchChild<TYPE>(
-				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
-		}
-		childNode.undoMove(position);
+	// 4. Null window search. Never the first move of a PV node, that one stays with the
+	// node's thread; a PV node's full window search of a move that beats alpha is its
+	// thread's decision as well, see collectHelperResults.
+	if (!lmrFailed) {
+		result = -searchChild<TYPE>(
+			position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
 	}
+	childNode.undoMove(position);
 
 	const auto nodes = _computingInfo._nodesSearched - nodesBefore;
 	// A stopped search has no result worth delivering

@@ -286,19 +286,21 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Hands a move to the helper thread. The helper gets copies of stack and position as
-		 * they are before the move, searches the move the way the move loop would, see
-		 * searchMoveOnHelper, and writes its result to the queue of the node at ply. This thread
-		 * goes on with its next move and takes the result from the queue with
+		 * Hands a move to the helper thread, after the node has decided that the move is
+		 * searched at all and with which depth and reduction. The helper gets what it reads of
+		 * stack and position as they are before the move, searches the move the way the move
+		 * loop would, see searchMoveOnHelper, and writes its result to the queue of the node at
+		 * ply. This thread goes on with its next move and takes the result from the queue with
 		 * collectHelperResults. Not from near leaf nodes.
 		 */
-		void handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode);
+		void handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply, bool pvNode);
 
 		/**
-		 * The helper's search of a move: the body of the move loop in negaMax, copied on
-		 * purpose and kept apart, so the two may differ where they must. Without the full
-		 * window search of a PV node - that is the node's decision and stays with its thread -
-		 * and without applying the result, that goes to the node's queue instead.
+		 * The helper's search of a move: the searching part of the move loop in negaMax,
+		 * copied on purpose and kept apart, so the two may differ where they must. Without
+		 * the pruning, that is done before the hand-over; without the full window search of a
+		 * PV node - that is the node's decision and stays with its thread - and without
+		 * applying the result, that goes to the node's queue instead.
 		 */
 		template <SearchRegion TYPE>
 		void searchMoveOnHelper(SearchThread& self);
