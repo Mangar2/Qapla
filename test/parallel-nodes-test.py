@@ -2,7 +2,9 @@
 """
 Node throughput of the parallel search, from the repository root:
 
-    python3 test/parallel-nodes-test.py [movetime_seconds]
+    python3 test/parallel-nodes-test.py [movetime_seconds] [engine] [thread_option]
+
+Defaults: 60 seconds, build/Release/Qapla, option Threads. Spike names its option CPUs.
 
 Phase 1: two engines with Threads=1 side by side, so the machine carries the same load
 as in phase 2. Only the first one's output is shown.
@@ -17,8 +19,9 @@ import sys
 import threading
 import time
 
-ENGINE = "build/Release/Qapla"
 MOVETIME = int(sys.argv[1]) if len(sys.argv) > 1 else 60
+ENGINE = sys.argv[2] if len(sys.argv) > 2 else "build/Release/Qapla"
+THREAD_OPTION = sys.argv[3] if len(sys.argv) > 3 else "Threads"
 
 
 def run_engine(threads, show, result):
@@ -31,9 +34,16 @@ def run_engine(threads, show, result):
             line = line.rstrip()
             tokens = line.split()
             # The engine's own search info only, not its 'info string' lines
-            if tokens[:1] == ["info"] and tokens[1:2] != ["string"] and "nodes" in tokens:
-                result["nodes"] = int(tokens[tokens.index("nodes") + 1])
-                result["last"] = line
+            if tokens[:1] == ["info"] and tokens[1:2] != ["string"]:
+                if "nodes" in tokens:
+                    result["nodes"] = int(tokens[tokens.index("nodes") + 1])
+                    result["last"] = line
+                # Spike reports nps and time instead of a node count
+                elif "nps" in tokens and "time" in tokens:
+                    nps = int(tokens[tokens.index("nps") + 1])
+                    ms = int(tokens[tokens.index("time") + 1])
+                    result["nodes"] = nps * ms // 1000
+                    result["last"] = line
             if show:
                 print(line, flush=True)
 
@@ -45,7 +55,7 @@ def run_engine(threads, show, result):
         engine.stdin.flush()
 
     send("uci")
-    send(f"setoption name Threads value {threads}")
+    send(f"setoption name {THREAD_OPTION} value {threads}")
     send("isready")
     send("position startpos")
     send(f"go movetime {MOVETIME * 1000}")
