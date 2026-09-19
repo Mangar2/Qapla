@@ -22,6 +22,7 @@
 #ifndef __SEARCH_NODE_H
 #define __SEARCH_NODE_H
 
+#include <mutex>
 #include <string>
 #include "../basics/types.h"
 #include "../basics/move.h"
@@ -32,7 +33,6 @@
 #include "tt.h"
 #include "butterfly-boards.h"
 #include "search-config.h"
-#include "search-result-queue.h"
 #include "tunable.h"
 #include "extension.h"
 #include "../eval/eval.h"
@@ -107,7 +107,6 @@ namespace QaplaSearch {
 			remainingDepthAtPlyStart = depth;
 			setWindowAtPlyStart(alpha, beta);
 			movesTried = 0;
-			movesOnHelper = 0;
 			_nodeType = childNodeType(parentNode._nodeType, isPVNode);
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
@@ -115,16 +114,28 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Takes over what a thread searching one move of this node reads from it and cannot
-		 * derive itself: the eval for isImproving of the grandchild, and what a child derives
-		 * from its parent - node type and the null move flag. All three are constant while the
-		 * node searches. The window travels with the job, hash and previous move come from
-		 * replaying the line; the move list, the tt information and the results stay here.
+		 * Takes over what a thread joining this node's move loop reads from its own copy of
+		 * the node: the window, the depth, the tt move, the evals, the flags a child derives
+		 * from its parent. The move list, the best value and the results are shared at the
+		 * owner's node and never copied; hash and previous move come from replaying the line.
 		 */
 		void copyForHandover(const SearchNode& from) {
+			alpha = from.alpha;
+			beta = from.beta;
+			alphaAtPlyStart = from.alphaAtPlyStart;
+			betaAtPlyStart = from.betaAtPlyStart;
+			bestValue = from.bestValue;
+			movesTried = from.movesTried;
+			remainingDepth = from.remainingDepth;
+			remainingDepthAtPlyStart = from.remainingDepthAtPlyStart;
+			ttMove = from.ttMove;
+			eval = from.eval;
 			adjustedEval = from.adjustedEval;
+			isImproving = from.isImproving;
+			sideToMoveIsInCheck = from.sideToMoveIsInCheck;
 			_nodeType = from._nodeType;
 			isVerifyingNullmove = from.isVerifyingNullmove;
+			noNullmove = from.noNullmove;
 		}
 
 		void setToPlyStart() {
@@ -144,7 +155,6 @@ namespace QaplaSearch {
 			position.computeAttackMasksForBothColors();
 			remainingDepthAtPlyStart = remainingDepth = searchDepth;
 			movesTried = 0;
-			movesOnHelper = 0;
 			alpha = initialAlpha;
 			beta = initialBeta;
 			alphaAtPlyStart = alpha;
@@ -624,8 +634,6 @@ namespace QaplaSearch {
 		Move bestMove;
 		Move previousMove;
 		int32_t movesTried;
-		// Moves handed to the helper thread whose result has not been taken from resultQueue yet
-		int32_t movesOnHelper;
 		ply_t remainingDepth;
 		ply_t remainingDepthAtPlyStart;
 		ply_t ply;
@@ -645,8 +653,9 @@ namespace QaplaSearch {
 		Move ttMove;
 
 		Cutoff cutoff;
-		// Results of moves other threads searched for this node
-		SearchResultQueue resultQueue;
+		// Guards move list, window and best value while the node is a split point, see
+		// Search::moveLoop
+		std::mutex splitMutex;
 		MoveProvider moveProvider;
 		PV pv;
 		// Bitmaps to identify checking moves faster
