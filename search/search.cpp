@@ -18,6 +18,7 @@
  */
 
 #include "search.h"
+#include "search-thread.h"
 #include "whatIf.h"
 #include "quiescence.h"
 #include "rootmoves.h"
@@ -295,7 +296,7 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, va
 	node.setFromParentNode(position, stack[ply - 1], alpha, beta, depth, false);
 	// Must be after setFromParentNode
 	node.probeTT(false, alpha, beta, depth, ply);
-	node.computeMoves(position, _butterflyBoard);
+	node.computeMoves(position, *_butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
@@ -406,7 +407,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// basis to drop the pv move without having searched it
 	constexpr bool doMultiCut = SearchConfig::DO_MULTI_CUT && !IS_PV;
 
-	node.computeMoves(position, _butterflyBoard);
+	node.computeMoves(position, *_butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 		if (curMove == ttMove) continue;
@@ -470,10 +471,10 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
 		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, node.getTT()->getPawnTT(), ply));
 	}
-	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort()) {
+	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _isMaster && _clockManager->emergencyAbort()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
-	else if (_clockManager->stopOnNodeTarget(_computingInfo._nodesSearched)) {
+	else if (_isMaster ? _clockManager->stopOnNodeTarget(_computingInfo._nodesSearched) : _clockManager->isSearchStopped()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
 
@@ -550,7 +551,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		return node.bestValue;
 	}
 
-	node.computeMoves(position, _butterflyBoard);
+	node.computeMoves(position, *_butterflyBoard);
 
 	// 7b. Ask the tablebases. It has to be here and not earlier: the move list decides whether
 	// the stored entry is exact, the hash probe above keeps a repeated position cheap, and the
@@ -598,15 +599,15 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		// thread waits and collects the result at once. Compile time false outside PV nodes,
 		// NEAR_LEAF and INNER carry none of it.
 		if constexpr (TYPE == SearchRegion::PV) {
-			if (_threads > 1 && !_workerBusy && depth >= 5 && node.movesTried % 2 == 0) {
+			if (_helper && !_helperBusy && depth >= 5 && node.movesTried % 2 == 0) {
 				handOverMove(position, stack, curMove, moveDepth, lmr, ply);
 				childNode.undoMove(position);
-				_worker.wait();
-				_workerBusy = false;
-				// Test only: what the worker set in the plies below must be seen here, or the
+				_helper->worker.wait();
+				_helperBusy = false;
+				// Test only: what the helper set in the plies below must be seen here, or the
 				// node count differs from the single threaded search
-				stack.copyMoveOrdering(*_workerStack, ply + 1);
-				collectWorkerResults(position, stack, ply);
+				stack.copyMoveOrdering(_helper->stack, ply + 1);
+				collectHelperResults(position, stack, ply);
 				if (node.isFailHigh()) break;
 				continue;
 			}
@@ -652,18 +653,18 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 		childNode.undoMove(position);
 		if constexpr (TYPE == SearchRegion::PV) {
-			if (_threads > 1) collectWorkerResults(position, stack, ply);
+			if (_helper) collectHelperResults(position, stack, ply);
 		}
 		if (node.isFailHigh()) break;
 	}
-	// A worker still searching for this node must not deliver to the next node on this ply
+	// A helper still searching for this node must not deliver to the next node on this ply
 	if constexpr (TYPE == SearchRegion::PV) {
-		if (_workerBusy && _job.queue == &node.resultQueue) node.resultQueue.invalidate(_job.invalid);
+		if (_helperBusy && _helper->job.queue == &node.resultQueue) node.resultQueue.invalidate(_helper->job.invalid);
 	}
 	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, TYPE == SearchRegion::PV, depth);
+	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, TYPE == SearchRegion::PV, depth);
 	// Inform the user about advances in search
-	if (TYPE != SearchRegion::NEAR_LEAF) {
+	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
 		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	}
@@ -671,47 +672,50 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 }
 
 void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply) {
-	_workerStack->copyForHandover(stack, ply);
-	_workerPosition = position;
-	_job.invalid = false;
-	_job.queue = &stack[ply].resultQueue;
-	_job.move = move;
-	_job.moveDepth = moveDepth;
-	_job.lmr = lmr;
-	_job.ply = ply;
-	_workerBusy = true;
-	_worker.run([this] { searchMoveOnWorker(); });
+	SearchThread& helper = *_helper;
+	helper.stack.copyForHandover(stack, ply);
+	helper.position = position;
+	helper.job.invalid = false;
+	helper.job.queue = &stack[ply].resultQueue;
+	helper.job.move = move;
+	helper.job.moveDepth = moveDepth;
+	helper.job.lmr = lmr;
+	helper.job.ply = ply;
+	_helperBusy = true;
+	helper.worker.run([&helper] { helper.search.runJob(helper); });
 }
 
-void Search::searchMoveOnWorker() {
-	SearchStack& stack = *_workerStack;
-	MoveGenerator& position = _workerPosition;
-	const SearchNode& node = stack[_job.ply];
-	const ply_t ply = _job.ply;
-	// Stands in for a counter of its own: the worker reports its nodes with the result and
-	// the node's thread adds them, so they must not be counted here as well
+void Search::runJob(SearchThread& self) {
+	searchMoveOnHelper(self);
+}
+
+void Search::searchMoveOnHelper(SearchThread& self) {
+	SearchStack& stack = self.stack;
+	MoveGenerator& position = self.position;
+	const WorkerJob& job = self.job;
+	const SearchNode& node = stack[job.ply];
+	const ply_t ply = job.ply;
 	const auto nodesBefore = _computingInfo._nodesSearched;
 	value_t result = -MAX_VALUE;
 	bool lmrFailed = false;
 
-	if (_job.lmr > 0) {
+	if (job.lmr > 0) {
 		result = -searchChild<SearchRegion::PV>(
-			position, stack, -node.alpha - 1, -node.alpha, _job.moveDepth - 1 - _job.lmr, ply + 1);
+			position, stack, -node.alpha - 1, -node.alpha, job.moveDepth - 1 - job.lmr, ply + 1);
 		lmrFailed = result <= node.alpha;
 		// searching modifies the attack masks. But they are required for the next move generation
 		if (!lmrFailed) position.computeAttackMasksForBothColors();
 	}
 	if (!lmrFailed) {
 		result = -searchChild<SearchRegion::PV>(
-			position, stack, -node.alpha - 1, -node.alpha, _job.moveDepth - 1, ply + 1);
+			position, stack, -node.alpha - 1, -node.alpha, job.moveDepth - 1, ply + 1);
 	}
 
 	const auto nodes = _computingInfo._nodesSearched - nodesBefore;
-	_computingInfo._nodesSearched = nodesBefore;
-	_job.queue->push(_job.move, result, _job.moveDepth, nodes, stack[ply + 1].pv, ply + 1, _job.invalid);
+	job.queue->push(job.move, result, job.moveDepth, nodes, stack[ply + 1].pv, ply + 1, job.invalid);
 }
 
-void Search::collectWorkerResults(MoveGenerator& position, SearchStack& stack, ply_t ply) {
+void Search::collectHelperResults(MoveGenerator& position, SearchStack& stack, ply_t ply) {
 	SearchNode& node = stack[ply];
 	SearchResult entry;
 	while (node.resultQueue.pop(entry)) {
@@ -762,10 +766,6 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 
 	_quiescence.setTT(stack[0].getTT());
 	_clockManager = &clockManager;
-	if (_threads > 1 && !_workerStack) {
-		_workerStack = std::make_unique<SearchStack>(stack[0].getTT());
-		_worker.start();
-	}
 	position.computeAttackMasksForBothColors();
 	SearchNode& node = stack[0];
 	value_t result;
@@ -773,7 +773,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	ply_t depth = node.remainingDepth;
 
 	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
-	node.computeMoves(position, _butterflyBoard);
+	node.computeMoves(position, *_butterflyBoard);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
     //printStackInfo("stack size: ");
@@ -834,7 +834,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 
 	_computingInfo.setDebug(-1);
 
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, true, depth);
+	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
 	_computingInfo.printSearchResult();
