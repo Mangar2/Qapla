@@ -74,9 +74,6 @@ namespace QaplaSearch {
 		}
 
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
-		// Results a node can hold from moves searched by other threads, see SearchResultQueue.
-		// One is enough while a hand-over is waited for.
-		static const uint32_t RESULT_QUEUE_SIZE = 1;
 		// Tested 0.4.0-037 and 0.4.0-041: 14 instead of 7: flat both times, 20000 games each
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 

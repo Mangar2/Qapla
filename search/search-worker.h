@@ -64,8 +64,7 @@ namespace QaplaSearch {
 		 * Time spent in jobs since the last call, test output for the parallel search
 		 */
 		uint64_t takeBusyMilliseconds() {
-			const auto busy = _busyMilliseconds.exchange(0);
-			return busy;
+			return _busyMicroseconds.exchange(0) / 1000;
 		}
 
 		/**
@@ -106,7 +105,7 @@ namespace QaplaSearch {
 				lock.unlock();
 				const auto start = std::chrono::steady_clock::now();
 				_job();
-				_busyMilliseconds += std::chrono::duration_cast<std::chrono::milliseconds>(
+				_busyMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
 					std::chrono::steady_clock::now() - start).count();
 				lock.lock();
 				_hasJob = false;
@@ -121,7 +120,7 @@ namespace QaplaSearch {
 		std::function<void()> _job;
 		bool _hasJob = false;
 		bool _stop = false;
-		std::atomic<uint64_t> _busyMilliseconds{ 0 };
+		std::atomic<uint64_t> _busyMicroseconds{ 0 };
 	};
 
 }

@@ -79,9 +79,8 @@ namespace QaplaSearch {
 		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves,
 			bool hasRepeatedPosition) {
 			_computingInfo.initNewSearch(position, searchMoves, *_butterflyBoard);
-			_helperNodesCollected = 0;
 			_helperBusyMilliseconds = 0;
-			_masterWaitMilliseconds = 0;
+			_masterWaitMicroseconds = 0;
 			_butterflyBoard->newSearch();
 			// The tablebase settings cannot change during a search, and reading them at
 			// every node costs more than the probes save.
@@ -161,8 +160,8 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * The search of a helper thread: searches the move of the thread's job, see
-		 * searchMoveOnHelper.
+		 * The search of a helper thread: joins the split point of the thread's job, see
+		 * helpAtSplitPoint.
 		 */
 		void runJob(SearchThread& self);
 
@@ -278,48 +277,43 @@ namespace QaplaSearch {
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-		 * True, if the search is to stop: the clock says so, or - for a helper - the node that
-		 * handed the job over has been left and the job is invalid.
+		 * True, if the search is to stop: the clock says so, or - for a helper - the split
+		 * point it works at is being closed.
 		 */
 		bool isSearchStopped() const {
 			return _clockManager->isSearchStopped() || (_abortFlag && _abortFlag->load(std::memory_order_relaxed));
 		}
 
 		/**
-		 * Hands a move to the helper thread, after the node has decided that the move is
-		 * searched at all and with which depth and reduction. This thread copies nothing: the
-		 * helper fetches what it reads from the stack itself and replays the line to the node on
-		 * its own board, see searchMoveOnHelper. It writes its result to the queue of the node
-		 * at ply; this thread goes on with its next move and takes the result from the queue
-		 * with collectHelperResults. Not from near leaf nodes.
+		 * The move loop of negaMax. SPLIT: the node is a split point, splitNode is the node of
+		 * the thread that owns it - its move list, window and best value are shared between
+		 * the threads and touched under its lock only. Without SPLIT, splitNode is the node
+		 * itself and no lock exists. A node opens itself as split point from the move loop, the
+		 * helper joins with helpAtSplitPoint.
+		 * @param firstMove a move already taken from the list, to be searched first
 		 */
-		void handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply, bool pvNode);
+		template <SearchRegion TYPE, bool SPLIT>
+		void moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& splitNode,
+			ply_t depth, ply_t seExtension, ply_t ply, Move firstMove);
 
 		/**
-		 * The helper's search of a move: the searching part of the move loop in negaMax,
-		 * copied on purpose and kept apart, so the two may differ where they must. Without
-		 * the pruning, that is done before the hand-over; without the full window search of a
-		 * PV node - that is the node's decision and stays with its thread - and without
-		 * applying the result, that goes to the node's queue instead.
+		 * Starts the helper at the node at ply of this thread's stack. This thread copies
+		 * nothing: the helper fetches what it reads from the stack itself and replays the line
+		 * to the node on its own board.
+		 */
+		void openSplitPoint(SearchStack& stack, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode);
+
+		/**
+		 * Waits for the helper to leave the split point and takes over the nodes it searched.
+		 * A node that failed high aborts the helper's search first.
+		 */
+		void closeSplitPoint(SearchNode& node);
+
+		/**
+		 * The helper's part: reaches the split point on its own board and joins its move loop.
 		 */
 		template <SearchRegion TYPE>
-		void searchMoveOnHelper(SearchThread& self);
-
-		/**
-		 * Called when the move loop of a node is done that handed moves to the helper. The
-		 * node is never left while the helper still works for it - the helper reads this
-		 * thread's stack. Waits for the helper and applies its result; if the node has failed
-		 * high already, the job is invalidated first, the helper stops it at its next node and
-		 * drops the result. Leaves the node's queue empty either way.
-		 */
-		void finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t ply);
-
-		/**
-		 * Applies the results the helper has written to the queue of the node at ply: the nodes
-		 * it searched, the value, and a full window search by this thread where the null window
-		 * search failed high. Sets the node's cutoff like the move loop does.
-		 */
-		void collectHelperResults(MoveGenerator& position, SearchStack& stack, ply_t ply);
+		void helpAtSplitPoint(SearchThread& self);
 
 		/**
 		 * Returns the information about the root moves
@@ -355,15 +349,10 @@ namespace QaplaSearch {
 		// and hands moves to the helper.
 		bool _isMaster = true;
 		SearchThread* _helper = nullptr;
-		// The queue of the node whose move the helper is searching, null for none. This
-		// thread's view of the helper's job, so it never reads the job while the helper runs.
-		SearchResultQueue* _helperQueue = nullptr;
-		// Helper only: the invalid flag of its job, see isSearchStopped
+		// Helper only: the abort flag of its job, see isSearchStopped
 		const std::atomic<bool>* _abortFlag = nullptr;
-		// Nodes the helper searched for results this thread has applied
-		uint64_t _helperNodesCollected = 0;
 		uint64_t _helperBusyMilliseconds = 0;
-		uint64_t _masterWaitMilliseconds = 0;
+		uint64_t _masterWaitMicroseconds = 0;
 
 		// The history the move ordering reads. Shared: a helper points to the master's, see
 		// initAsHelper. Lost updates between threads are accepted, it holds ordering weights only.
