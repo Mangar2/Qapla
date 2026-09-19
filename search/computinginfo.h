@@ -85,6 +85,7 @@ namespace QaplaSearch {
 		void clear() {
 			_searchDepth = 0;
 			_nodesSearched = 0;
+			_helperNodes = 0;
 			_tbHits = 0;
 			_totalAmountOfMovesToConcider = 0;
 			_currentMoveNoSearched = 0;
@@ -100,6 +101,7 @@ namespace QaplaSearch {
 		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard) {
 			_rootMoves.setMoves(position, searchMoves, butterflyBoard);
 			_nodesSearched = 0;
+			_helperNodes = 0;
 			_tbHits = 0;
 			_timeControl.storeStartTime();
 		}
@@ -133,7 +135,7 @@ namespace QaplaSearch {
 					_searchDepth,
 					_positionValueInCentiPawn,
 					_timeControl.getTimeSpentInMilliseconds(),
-					_nodesSearched,
+					getTotalNodes(),
 					_tbHits,
 					_totalAmountOfMovesToConcider - _currentMoveNoSearched - 1,
 					_totalAmountOfMovesToConcider,
@@ -164,7 +166,7 @@ namespace QaplaSearch {
 					bestValue >= beta,
 					bestValue <= alpha,
 					_timeControl.getTimeSpentInMilliseconds(),
-					_nodesSearched,
+					getTotalNodes(),
 					_tbHits,
 					primaryVariant,
 					pvNo);
@@ -234,7 +236,7 @@ namespace QaplaSearch {
 			const auto& rootMove = _rootMoves.getMove(moveNo);
 			if (rootMove.isPVSearched() && rootMove.getValue() > _positionValueInCentiPawn) {
 				_positionValueInCentiPawn = rootMove.getValue();
-				if (_multiPV == 1 && _nodesSearched > 2000000) {
+				if (_multiPV == 1 && getTotalNodes() > 2000000) {
 					printSearchResult(moveNo);
 				}
 			}
@@ -258,7 +260,7 @@ namespace QaplaSearch {
 			exchange.currentConsideredMove = pv.getMove(0).getLAN();
 			Move ponderMove = pv.getMove(1);
 			exchange.ponderMove = ponderMove.isEmpty() ? "" : ponderMove.getLAN();
-			exchange.nodesSearched = _nodesSearched;
+			exchange.nodesSearched = getTotalNodes();
 			exchange.searchDepth = _searchDepth;
 			exchange.elapsedTimeInMilliseconds = _timeControl.getTimeSpentInMilliseconds();
 			exchange.totalAmountOfMovesToConcider = _totalAmountOfMovesToConcider;
@@ -284,11 +286,17 @@ namespace QaplaSearch {
 			return _rootMoves;
 		}
 
+		// Nodes of this thread. The helper threads count their own; the master sets their sum
+		// here before it reports, see setHelperNodes
 		uint64_t _nodesSearched;
+		uint64_t _helperNodes = 0;
 		uint64_t _tbHits;
 
+		void setHelperNodes(uint64_t nodes) { _helperNodes = nodes; }
+		uint64_t getTotalNodes() const { return _nodesSearched + _helperNodes; }
+
 		void print() {
-			cout << "Nodes searched: " << _nodesSearched << " TB hits: " << _tbHits << endl;
+			cout << "Nodes searched: " << getTotalNodes() << " TB hits: " << _tbHits << endl;
 			_rootMoves.print();
 		}
 

@@ -50,8 +50,6 @@ namespace QaplaSearch {
 		ply_t seExtension = 0;
 		// The node is a PV node, else an inner node; near leaf nodes open no split point
 		bool pvNode = false;
-		// Nodes the helper searched at this split point, taken over by the node's thread
-		uint64_t nodes = 0;
 	};
 
 	/**
