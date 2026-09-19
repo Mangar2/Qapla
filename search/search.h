@@ -30,6 +30,7 @@
 #include "clockmanager.h"
 #include "tt.h"
 #include "butterfly-boards.h"
+#include "../eval/pawntt.h"
 #include "quiescence.h"
 #include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
@@ -46,7 +47,10 @@ namespace QaplaSearch {
 
 	class Search {
 	public:
-		Search() : _clockManager(0) {}
+		Search() : _clockManager(0) {
+			_pawnTT.setSizeInKilobytes(1024);
+			_quiescence.setPawnTT(&_pawnTT);
+		}
 
 		/**
 		 * Starts a new game or sets a new position e.g. by fen
@@ -57,6 +61,15 @@ namespace QaplaSearch {
 
 		void clearMemories() {
 			_butterflyBoard->clear();
+			_pawnTT.clear();
+		}
+
+		/**
+		 * The pawn hash of this thread. Every thread has its own: pawn structures repeat within
+		 * one subtree far more than across the threads' different subtrees.
+		 */
+		ChessEval::PawnTT* getPawnTT() {
+			return &_pawnTT;
 		}
 
 		/**
@@ -289,6 +302,7 @@ namespace QaplaSearch {
 
 	private:
 		Quiescence _quiescence;
+		ChessEval::PawnTT _pawnTT;
 		ComputingInfo _computingInfo;
 		ClockManager* _clockManager;
 
