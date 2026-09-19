@@ -474,7 +474,7 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _isMaster && _clockManager->emergencyAbort()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
-	else if (_isMaster ? _clockManager->stopOnNodeTarget(_computingInfo._nodesSearched) : _clockManager->isSearchStopped()) {
+	else if (_isMaster ? _clockManager->stopOnNodeTarget(_computingInfo._nodesSearched) : isSearchStopped()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
 
@@ -593,22 +593,16 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 		childNode.doMove(position, curMove);
 
-		// Parallel search test: a PV node with enough depth left hands every second move to the
-		// worker thread, see handOverMove. Only while the worker is idle - the worker passes
-		// through here for the PV nodes of its own subtree. Nothing runs in parallel yet: this
-		// thread waits and collects the result at once. Compile time false outside PV nodes,
-		// NEAR_LEAF and INNER carry none of it.
+		// Parallel search: a PV node with enough depth left hands a move to the helper thread
+		// whenever the helper is idle, and goes on with its next move meanwhile, see
+		// handOverMove. Never the first move - its result sets the window the others are
+		// searched with. The helper passes through here for the PV nodes of its own subtree
+		// and finds itself busy. Compile time false outside PV nodes, NEAR_LEAF and INNER
+		// carry none of it.
 		if constexpr (TYPE == SearchRegion::PV) {
-			if (_helper && !_helperBusy && depth >= 5 && node.movesTried % 2 == 0) {
+			if (_helper && depth >= 5 && node.movesTried > 1 && !_helper->worker.isBusy()) {
 				handOverMove(position, stack, curMove, moveDepth, lmr, ply);
 				childNode.undoMove(position);
-				_helper->worker.wait();
-				_helperBusy = false;
-				// Test only: what the helper set in the plies below must be seen here, or the
-				// node count differs from the single threaded search
-				stack.copyMoveOrdering(_helper->stack, ply + 1);
-				collectHelperResults(position, stack, ply);
-				if (node.isFailHigh()) break;
 				continue;
 			}
 		}
@@ -653,16 +647,15 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 		childNode.undoMove(position);
 		if constexpr (TYPE == SearchRegion::PV) {
-			if (_helper) collectHelperResults(position, stack, ply);
+			if (node.movesOnHelper > 0) collectHelperResults(position, stack, ply);
 		}
 		if (node.isFailHigh()) break;
 	}
-	// A helper still searching for this node must not deliver to the next node on this ply
 	if constexpr (TYPE == SearchRegion::PV) {
-		if (_helperBusy && _helper->job.queue == &node.resultQueue) node.resultQueue.invalidate(_helper->job.invalid);
+		if (node.movesOnHelper > 0) finishHelperJob(position, stack, ply);
 	}
 	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, TYPE == SearchRegion::PV, depth);
+	if (!isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, TYPE == SearchRegion::PV, depth);
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
 		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
@@ -681,12 +674,36 @@ void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move
 	helper.job.moveDepth = moveDepth;
 	helper.job.lmr = lmr;
 	helper.job.ply = ply;
-	_helperBusy = true;
+	_helperQueue = helper.job.queue;
+	stack[ply].movesOnHelper++;
 	helper.worker.run([&helper] { helper.search.runJob(helper); });
 }
 
 void Search::runJob(SearchThread& self) {
+	_abortFlag = &self.job.invalid;
 	searchMoveOnHelper(self);
+	_abortFlag = nullptr;
+}
+
+void Search::finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t ply) {
+	SearchNode& node = stack[ply];
+	// The helper's current job is this node's, or it was a descendant's that has been finished
+	// with already; a job of an ancestor cannot be running while this node handed moves over.
+	const bool helperWorksForThisNode = _helperQueue == &node.resultQueue;
+	if (!node.isFailHigh()) {
+		if (helperWorksForThisNode) _helper->worker.wait();
+		collectHelperResults(position, stack, ply);
+	}
+	// Stops a helper still searching for this node and drops anything left in the queue:
+	// nothing of this node may reach the next node on this ply
+	if (helperWorksForThisNode) {
+		node.resultQueue.invalidate(_helper->job.invalid);
+		_helperQueue = nullptr;
+	}
+	else {
+		node.resultQueue.clear();
+	}
+	node.movesOnHelper = 0;
 }
 
 void Search::searchMoveOnHelper(SearchThread& self) {
@@ -712,6 +729,8 @@ void Search::searchMoveOnHelper(SearchThread& self) {
 	}
 
 	const auto nodes = _computingInfo._nodesSearched - nodesBefore;
+	// A stopped search has no result worth delivering
+	if (isSearchStopped()) return;
 	job.queue->push(job.move, result, job.moveDepth, nodes, stack[ply + 1].pv, ply + 1, job.invalid);
 }
 
@@ -719,7 +738,9 @@ void Search::collectHelperResults(MoveGenerator& position, SearchStack& stack, p
 	SearchNode& node = stack[ply];
 	SearchResult entry;
 	while (node.resultQueue.pop(entry)) {
+		node.movesOnHelper--;
 		_computingInfo._nodesSearched += entry.nodes;
+		_helperNodesCollected += entry.nodes;
 		if (entry.value > node.alpha) {
 			// The null window search failed high, the move needs the full window - by this
 			// thread, the same way the move loop does it
@@ -838,6 +859,13 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
 	_computingInfo.printSearchResult();
+	if (_helper) {
+		// Test output while the parallel search is being built: what the helper searched
+		// and how much of it was thrown away with the node that asked for it
+		const auto helperNodes = _helper->search.getNodesSearched();
+		std::cout << "info string helper nodes " << helperNodes
+			<< " discarded " << (helperNodes - _helperNodesCollected) << std::endl;
+	}
 }
 
 

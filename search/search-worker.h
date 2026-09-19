@@ -59,6 +59,14 @@ namespace QaplaSearch {
 		}
 
 		/**
+		 * @returns true while a job is running or waiting to be run
+		 */
+		bool isBusy() {
+			std::lock_guard<std::mutex> lock(_mutex);
+			return _hasJob;
+		}
+
+		/**
 		 * Waits until the thread has finished its job
 		 */
 		void wait() {
