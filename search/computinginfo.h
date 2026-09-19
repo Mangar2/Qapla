@@ -122,6 +122,10 @@ namespace QaplaSearch {
 		 * the print was requested or if the parameter print is true
 		 * @print true, if search info sould be printed 
 		 */
+		int64_t getTimeSpentInMilliseconds() const {
+			return _timeControl.getTimeSpentInMilliseconds();
+		}
+
 		void printSearchInfo(bool print) {
 			bool doPrint = _printRequest || print;
 			if (doPrint && _verbose && _sendSearchInfo != 0) {

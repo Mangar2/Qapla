@@ -34,6 +34,7 @@ using namespace QaplaSearch;
 #ifdef __APPLE__
 #include <pthread.h>
 #endif
+#include <chrono>
 #include <iostream>
 
 void printStackInfo(const char* msg) {
@@ -568,6 +569,20 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// Loop through all moves
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
+		// Parallel search: a node with enough depth left hands a move to the helper thread
+		// whenever the helper is idle, and goes on with its own next move meanwhile, see
+		// handOverMove. Never the first move - its result sets the window the others are
+		// searched with - and not in cut nodes, where the next move is expected to end the
+		// node. The helper passes through here for its own subtree and finds itself busy.
+		// Near leaf nodes carry none of this.
+		if constexpr (TYPE != SearchRegion::NEAR_LEAF) {
+			if (_helper && depth >= 5 && node.movesTried > 1 && node.getNodeType() != SearchNode::NodeType::CUT
+				&& !_helper->worker.isBusy()) {
+				handOverMove(position, stack, curMove, depth, seExtension, ply, TYPE == SearchRegion::PV);
+				continue;
+			}
+		}
+
 		// The singular extension belongs to the move se() proved to be singular, not to the node.
 		// It cannot add on top of the check extension, as se() returns 0 for a node in check.
 		const ply_t moveExtension = curMove == node.getTTMove() ? seExtension : 0;
@@ -592,20 +607,6 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		}
 
 		childNode.doMove(position, curMove);
-
-		// Parallel search: a PV node with enough depth left hands a move to the helper thread
-		// whenever the helper is idle, and goes on with its next move meanwhile, see
-		// handOverMove. Never the first move - its result sets the window the others are
-		// searched with. The helper passes through here for the PV nodes of its own subtree
-		// and finds itself busy. Compile time false outside PV nodes, NEAR_LEAF and INNER
-		// carry none of it.
-		if constexpr (TYPE == SearchRegion::PV) {
-			if (_helper && depth >= 5 && node.movesTried > 1 && !_helper->worker.isBusy()) {
-				handOverMove(position, stack, curMove, moveDepth, lmr, ply);
-				childNode.undoMove(position);
-				continue;
-			}
-		}
 
 		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
@@ -646,12 +647,12 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		node.setSearchResult(result, childNode, curMove);
 
 		childNode.undoMove(position);
-		if constexpr (TYPE == SearchRegion::PV) {
+		if constexpr (TYPE != SearchRegion::NEAR_LEAF) {
 			if (node.movesOnHelper > 0) collectHelperResults(position, stack, ply);
 		}
 		if (node.isFailHigh()) break;
 	}
-	if constexpr (TYPE == SearchRegion::PV) {
+	if constexpr (TYPE != SearchRegion::NEAR_LEAF) {
 		if (node.movesOnHelper > 0) finishHelperJob(position, stack, ply);
 	}
 	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
@@ -664,16 +665,17 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	return node.bestValue;
 }
 
-void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply) {
+void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode) {
 	SearchThread& helper = *_helper;
 	helper.stack.copyForHandover(stack, ply);
 	helper.position = position;
 	helper.job.invalid = false;
 	helper.job.queue = &stack[ply].resultQueue;
 	helper.job.move = move;
-	helper.job.moveDepth = moveDepth;
-	helper.job.lmr = lmr;
 	helper.job.ply = ply;
+	helper.job.depth = depth;
+	helper.job.seExtension = seExtension;
+	helper.job.pvNode = pvNode;
 	_helperQueue = helper.job.queue;
 	stack[ply].movesOnHelper++;
 	helper.worker.run([&helper] { helper.search.runJob(helper); });
@@ -681,8 +683,80 @@ void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move
 
 void Search::runJob(SearchThread& self) {
 	_abortFlag = &self.job.invalid;
-	searchMoveOnHelper(self);
+	if (self.job.pvNode) {
+		searchMoveOnHelper<SearchRegion::PV>(self);
+	}
+	else {
+		searchMoveOnHelper<SearchRegion::INNER>(self);
+	}
 	_abortFlag = nullptr;
+}
+
+template <Search::SearchRegion TYPE>
+void Search::searchMoveOnHelper(SearchThread& self) {
+	SearchStack& stack = self.stack;
+	MoveGenerator& position = self.position;
+	const WorkerJob& job = self.job;
+	const ply_t ply = job.ply;
+	const ply_t depth = job.depth;
+	const Move curMove = job.move;
+	SearchNode& node = stack[ply];
+	SearchNode& childNode = stack[ply + 1];
+	const auto nodesBefore = _computingInfo._nodesSearched;
+	// A pruned move contributes nothing to the node, the value below every result says so
+	value_t result = -MAX_VALUE;
+	ply_t moveDepth = depth;
+
+	// The singular extension belongs to the move se() proved to be singular, not to the node.
+	// It cannot add on top of the check extension, as se() returns 0 for a node in check.
+	const ply_t moveExtension = curMove == node.getTTMove() ? job.seExtension : 0;
+	moveDepth = moveExtension > 0 ?
+		std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
+
+	bool doMovePrunings = node.movesTried > 3 && !node.isCheckMove(position, curMove);
+	// lmr is needed for move count pruning and late move reduction search
+	const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
+	bool pruned = false;
+	// Never skip moves when escaping from mate and in positions with pawns only.
+	if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
+
+		// 1. Futility pruning: skip quiet moves in late move loop when position is too bad
+		if (node.canPruneFutility(position, curMove)) {
+			pruned = true;
+		}
+		// 2. Move count pruning
+		else if (lmr > 0 && depth - lmr < 0) {
+			pruned = true;
+		}
+	}
+
+	if (!pruned) {
+		childNode.doMove(position, curMove);
+		bool lmrFailed = false;
+
+		// 3. Late move reduction search
+		// The move is done with, if the lmr search returns a value less than alpha
+		if (lmr > 0) {
+			result = -searchChild<TYPE>(
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
+			lmrFailed = result <= node.alpha;
+			// searching modifies the attack masks. But they are required for the next move generation
+			if (!lmrFailed) position.computeAttackMasksForBothColors();
+		}
+		// 4. Null window search. Never the first move of a PV node, that one stays with the
+		// node's thread; a PV node's full window search of a move that beats alpha is its
+		// thread's decision as well, see collectHelperResults.
+		if (!lmrFailed) {
+			result = -searchChild<TYPE>(
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
+		}
+		childNode.undoMove(position);
+	}
+
+	const auto nodes = _computingInfo._nodesSearched - nodesBefore;
+	// A stopped search has no result worth delivering
+	if (isSearchStopped()) return;
+	job.queue->push(curMove, result, moveDepth, nodes, childNode.pv, ply + 1, job.invalid);
 }
 
 void Search::finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t ply) {
@@ -691,7 +765,12 @@ void Search::finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t 
 	// with already; a job of an ancestor cannot be running while this node handed moves over.
 	const bool helperWorksForThisNode = _helperQueue == &node.resultQueue;
 	if (!node.isFailHigh()) {
-		if (helperWorksForThisNode) _helper->worker.wait();
+		if (helperWorksForThisNode) {
+			const auto start = std::chrono::steady_clock::now();
+			_helper->worker.wait();
+			_masterWaitMilliseconds += std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::steady_clock::now() - start).count();
+		}
 		collectHelperResults(position, stack, ply);
 	}
 	// Stops a helper still searching for this node and drops anything left in the queue:
@@ -706,34 +785,6 @@ void Search::finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t 
 	node.movesOnHelper = 0;
 }
 
-void Search::searchMoveOnHelper(SearchThread& self) {
-	SearchStack& stack = self.stack;
-	MoveGenerator& position = self.position;
-	const WorkerJob& job = self.job;
-	const SearchNode& node = stack[job.ply];
-	const ply_t ply = job.ply;
-	const auto nodesBefore = _computingInfo._nodesSearched;
-	value_t result = -MAX_VALUE;
-	bool lmrFailed = false;
-
-	if (job.lmr > 0) {
-		result = -searchChild<SearchRegion::PV>(
-			position, stack, -node.alpha - 1, -node.alpha, job.moveDepth - 1 - job.lmr, ply + 1);
-		lmrFailed = result <= node.alpha;
-		// searching modifies the attack masks. But they are required for the next move generation
-		if (!lmrFailed) position.computeAttackMasksForBothColors();
-	}
-	if (!lmrFailed) {
-		result = -searchChild<SearchRegion::PV>(
-			position, stack, -node.alpha - 1, -node.alpha, job.moveDepth - 1, ply + 1);
-	}
-
-	const auto nodes = _computingInfo._nodesSearched - nodesBefore;
-	// A stopped search has no result worth delivering
-	if (isSearchStopped()) return;
-	job.queue->push(job.move, result, job.moveDepth, nodes, stack[ply + 1].pv, ply + 1, job.invalid);
-}
-
 void Search::collectHelperResults(MoveGenerator& position, SearchStack& stack, ply_t ply) {
 	SearchNode& node = stack[ply];
 	SearchResult entry;
@@ -741,9 +792,10 @@ void Search::collectHelperResults(MoveGenerator& position, SearchStack& stack, p
 		node.movesOnHelper--;
 		_computingInfo._nodesSearched += entry.nodes;
 		_helperNodesCollected += entry.nodes;
-		if (entry.value > node.alpha) {
+		if (entry.value > node.alpha && node.isPVNode()) {
 			// The null window search failed high, the move needs the full window - by this
-			// thread, the same way the move loop does it
+			// thread, the same way the move loop does it. In an inner node the value is the
+			// fail high itself.
 			SearchNode& childNode = stack[ply + 1];
 			childNode.doMove(position, entry.move);
 			position.computeAttackMasksForBothColors();
@@ -863,8 +915,12 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		// Test output while the parallel search is being built: what the helper searched
 		// and how much of it was thrown away with the node that asked for it
 		const auto helperNodes = _helper->search.getNodesSearched();
+		_helperBusyMilliseconds += _helper->worker.takeBusyMilliseconds();
+		const auto elapsed = std::max<int64_t>(1, _computingInfo.getTimeSpentInMilliseconds());
 		std::cout << "info string helper nodes " << helperNodes
-			<< " discarded " << (helperNodes - _helperNodesCollected) << std::endl;
+			<< " discarded " << (helperNodes - _helperNodesCollected)
+			<< " busy " << (_helperBusyMilliseconds * 100 / elapsed) << "%"
+			<< " master waited " << (_masterWaitMilliseconds * 100 / elapsed) << "%" << std::endl;
 	}
 }
 

@@ -40,9 +40,12 @@ namespace QaplaSearch {
 		std::atomic<bool> invalid{ false };
 		SearchResultQueue* queue = nullptr;
 		Move move;
-		ply_t moveDepth = 0;
-		ply_t lmr = 0;
 		ply_t ply = 0;
+		// Remaining depth of the node and the singular extension it computed for its tt move
+		ply_t depth = 0;
+		ply_t seExtension = 0;
+		// The node is a PV node, else an inner node; near leaf nodes hand nothing over
+		bool pvNode = false;
 	};
 
 	struct SearchThread {
