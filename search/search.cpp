@@ -667,7 +667,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 void Search::handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode) {
 	SearchThread& helper = *_helper;
-	helper.stack.copyForHandover(stack, ply);
+	helper.stack.copyForHandover(stack, ply, position.getHalfmovesWithoutPawnMoveOrCapture());
 	helper.position = position;
 	helper.job.invalid = false;
 	helper.job.queue = &stack[ply].resultQueue;

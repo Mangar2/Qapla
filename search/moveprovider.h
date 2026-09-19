@@ -91,16 +91,6 @@ namespace QaplaSearch {
 		void setKillerMove(Move move) {
 			killerMove.setKiller(move);
 		}
-
-		/**
-		 * Takes over the move ordering memory of a ply - killers and the move of the previous
-		 * iteration - from the same ply of another stack. A search continued on another stack
-		 * must order its moves exactly as this one would have.
-		 */
-		void copyMoveOrdering(const MoveProvider& other) {
-			killerMove = other.killerMove;
-			pvMove = other.pvMove;
-		}
 		/**
 		 * Gets the killermoves
 		 */
