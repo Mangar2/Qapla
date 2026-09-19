@@ -30,7 +30,6 @@
 #include <type_traits>
 #include <cassert>
 #include "ttentry.h"
-#include "../eval/pawntt.h"
 // #include "FileClass.h"
 
 using namespace std;
@@ -42,7 +41,6 @@ namespace QaplaSearch {
 
 		TT() { 
 			clear(); 
-			_pawnTT.setSizeInKilobytes(1024);
 		}
 
 		/**
@@ -55,12 +53,6 @@ namespace QaplaSearch {
 			}
 			_ageIndicator = 0;
 			_numEntries = 0;
-			_pawnTT.clear();
-			
-		}
-
-		ChessEval::PawnTT* getPawnTT() {
-			return &_pawnTT;
 		}
 
 		/**
@@ -324,7 +316,6 @@ namespace QaplaSearch {
 
 
 		// Pawn hash
-		ChessEval::PawnTT _pawnTT;
 
 	};
 

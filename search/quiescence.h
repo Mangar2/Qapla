@@ -29,6 +29,7 @@
 #include "computinginfo.h"
 #include "see.h"
 #include "../search/tt.h"
+#include "../eval/pawntt.h"
 #include "../movegenerator/movegenerator.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
@@ -69,6 +70,7 @@ namespace QaplaSearch {
 		 * Sets a pointer to the transposition table for later use
 		 */
 		void setTT(TT* tt) { _tt = tt; }
+		void setPawnTT(ChessEval::PawnTT* pawnTT) { _pawnTT = pawnTT; }
 
 		/**
 	     * Performs the quiescense search
@@ -121,6 +123,7 @@ namespace QaplaSearch {
 	public:
 
 		TT* _tt;
+		ChessEval::PawnTT* _pawnTT = nullptr;
 
 	};
 

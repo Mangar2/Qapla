@@ -53,8 +53,8 @@ namespace QaplaSearch {
 		inline  SearchNode& operator[](uint32_t index) { return _stack[index]; }
 		TT* getTT() const { return ttPtr; }
 
-		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
-			_stack[0].initSearchAtRoot(board, alpha, beta, searchDepth);
+		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth, ChessEval::PawnTT* pawnTT) {
+			_stack[0].initSearchAtRoot(board, alpha, beta, searchDepth, pawnTT);
 		}
 
 		Move getMoveFromPVMovesStore(SearchNode::pvIndex_t ply) {

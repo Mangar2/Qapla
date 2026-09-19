@@ -71,6 +71,7 @@ namespace QaplaSearch {
 		void clearMemories() {
 			_tt.clear();
 			_search->clearMemories();
+			if (_helper) _helper->search.clearMemories();
 		}
 
 		/**
@@ -254,7 +255,7 @@ namespace QaplaSearch {
 			//uint32_t iterations = 0;
 			do {
 				const auto alphaRed = std::max(0, int32_t(multiPV) - int32_t(numberOfPVSearchedMoves) - 1) * 5;
-				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
+				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth, _search->getPawnTT());
 				_clockManager.setCalculationDepth(searchDepth);
 				_search->negaMaxRoot(position, stack, multiPV - 1, _clockManager);
 				const auto& computingInfo = _search->getComputingInfo();

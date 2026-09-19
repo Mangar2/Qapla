@@ -65,7 +65,7 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 	}
 	if (node.adjustedEval == NO_VALUE) {
 		if (node.eval == NO_VALUE) {
-			node.eval = Eval::eval(position, node.getTT()->getPawnTT());
+			node.eval = Eval::eval(position, &_pawnTT);
 		}
 		node.adjustedEval = node.eval;
 		node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
@@ -469,7 +469,7 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 		node.setCutoff(Cutoff::DRAW_BY_50_MOVES_RULE, 0);
 	}
 	else if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
-		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, node.getTT()->getPawnTT(), ply));
+		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, &_pawnTT, ply));
 	}
 	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _isMaster && _clockManager->emergencyAbort()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);

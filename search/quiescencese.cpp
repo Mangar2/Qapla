@@ -129,7 +129,7 @@ value_t Quiescence::search(bool isPvNode,
 {
 	// Unclear, we need MAX_SEARCH_DEPTH in normal depth to reduce stack size, but maybe not in quiescence search.
 	if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
-		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _tt->getPawnTT(), ply);
+		return position.isInCheck() ? DRAW_VALUE : Eval::eval(position, _pawnTT, ply);
 	}
 	// Tested 0.5.0-004, removing the two checks: SPRT h0 = -2, h1 = 3, H0 accepted.
 	// Cut, if distance to mate is too high to reach the search window
@@ -198,7 +198,7 @@ value_t Quiescence::search(bool isPvNode,
 
 	// 2. Compute stand-pat value
 	value_t bestValue, standPatValue;
-	bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, _tt->getPawnTT(), ply, alpha);
+	bestValue = standPatValue = ttEval != NO_VALUE ? ttEval : Eval::eval(position, _pawnTT, ply, alpha);
 
 	// 3. Beta cut-off: If the stand-pat value is already above beta, we can return it immediately.
 	if (standPatValue >= beta) {

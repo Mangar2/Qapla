@@ -126,7 +126,7 @@ namespace QaplaSearch {
 		/**
 		 * Initializes all variables to start search
 		 */
-		void initSearchAtRoot(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, ply_t searchDepth) {
+		void initSearchAtRoot(MoveGenerator& position, value_t initialAlpha, value_t initialBeta, ply_t searchDepth, ChessEval::PawnTT* pawnTT) {
 			position.computeAttackMasksForBothColors();
 			remainingDepthAtPlyStart = remainingDepth = searchDepth;
 			movesTried = 0;
@@ -144,7 +144,7 @@ namespace QaplaSearch {
 			ttValueIsGreaterOrEqualBeta = false;
 			ttValueIsLessOrEqualAlpha = false;
 			sideToMoveIsInCheck = position.isInCheck();
-			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position, ttPtr->getPawnTT()); 
+			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position, pawnTT); 
 			isImproving = false;
 			moveProvider.init();
 		}
