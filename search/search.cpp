@@ -475,7 +475,7 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _isMaster && _clockManager->emergencyAbort()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
-	else if (_isMaster ? _clockManager->stopOnNodeTarget(_computingInfo._nodesSearched) : isSearchStopped()) {
+	else if (_isMaster ? _clockManager->stopOnNodeTarget(_computingInfo.getTotalNodes()) : isSearchStopped()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
 
@@ -570,6 +570,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
 		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
+		if (_helper) _computingInfo.setHelperNodes(_helper->search.getNodesSearched());
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	}
 	return node.bestValue;
@@ -717,7 +718,6 @@ void Search::openSplitPoint(SearchStack& stack, ply_t depth, ply_t seExtension, 
 	helper.job.depth = depth;
 	helper.job.seExtension = seExtension;
 	helper.job.pvNode = pvNode;
-	helper.job.nodes = 0;
 	helper.worker.run([&helper] { helper.search.runJob(helper); });
 }
 
@@ -730,7 +730,10 @@ void Search::closeSplitPoint(SearchNode& node) {
 	_helper->worker.wait();
 	_masterWaitMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
 		std::chrono::steady_clock::now() - start).count();
-	_computingInfo._nodesSearched += _helper->job.nodes;
+	// The helper counts its nodes itself; the sum is read when this thread reports, see
+	// printSearchInfo. Summing per split point would miss the jobs of split points opened
+	// below one still open.
+	_computingInfo.setHelperNodes(_helper->search.getNodesSearched());
 }
 
 void Search::runJob(SearchThread& self) {
@@ -752,8 +755,6 @@ void Search::helpAtSplitPoint(SearchThread& self) {
 	const ply_t ply = job.ply;
 	SearchNode& node = stack[ply];
 	SearchNode& splitNode = (*job.stack)[ply];
-	const auto nodesBefore = _computingInfo._nodesSearched;
-
 	// Fetch the line and the node's constants from the node's stack, then reach the node on
 	// the own board. No lock: the node's thread stays in the node while this job runs.
 	Move line[SearchConfig::MAX_SEARCH_DEPTH + 1];
@@ -764,7 +765,6 @@ void Search::helpAtSplitPoint(SearchThread& self) {
 	moveLoop<TYPE, true>(position, stack, splitNode, job.depth, job.seExtension, ply, Move::EMPTY_MOVE);
 
 	stack.undoLine(position, ply);
-	job.nodes = _computingInfo._nodesSearched - nodesBefore;
 }
 
 void Search::storePVToTT(MoveGenerator& position, SearchStack& stack, const RootMove& rootMove, ply_t ply) {
@@ -864,6 +864,7 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
+	if (_helper) _computingInfo.setHelperNodes(_helper->search.getNodesSearched());
 	_computingInfo.printSearchResult();
 	if (_helper) {
 		// Test output while the parallel search is being built

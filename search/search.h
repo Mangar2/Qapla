@@ -304,8 +304,8 @@ namespace QaplaSearch {
 		void openSplitPoint(SearchStack& stack, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode);
 
 		/**
-		 * Waits for the helper to leave the split point and takes over the nodes it searched.
-		 * A node that failed high aborts the helper's search first.
+		 * Waits for the helper to leave the split point. A node that failed high aborts the
+		 * helper's search first.
 		 */
 		void closeSplitPoint(SearchNode& node);
 
