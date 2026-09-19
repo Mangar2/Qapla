@@ -77,10 +77,11 @@ namespace QaplaSearch {
 
 		/**
 		 * Takes over what a thread searching a move of the node at ply reads from this stack,
-		 * and nothing more: the node itself in full; of the plies above it the hashes the
-		 * repetition check can reach - no further back than the last pawn move or capture -
-		 * the eval of ply - 1 that isImproving of the child reads, and the root depth. Nothing
-		 * below: the taking thread applies the move itself and orders moves by its own memory.
+		 * and nothing more: of the node what a child reads from its parent, see
+		 * SearchNode::copyForHandover; of the plies above it the hashes the repetition check
+		 * can reach - no further back than the last pawn move or capture - the eval of ply - 1
+		 * that isImproving of the child reads, and the root depth. Nothing below: the taking
+		 * thread applies the move itself and orders moves by its own memory.
 		 * @param halfmoveClock plies since the last pawn move or capture at ply
 		 */
 		void copyForHandover(const SearchStack& from, ply_t ply, ply_t halfmoveClock) {
@@ -90,7 +91,7 @@ namespace QaplaSearch {
 			}
 			if (ply > 0) _stack[ply - 1].adjustedEval = from._stack[ply - 1].adjustedEval;
 			_stack[0].remainingDepth = from._stack[0].remainingDepth;
-			copyNode(from, ply);
+			_stack[ply].copyForHandover(from._stack[ply]);
 		}
 
 		/**
@@ -130,15 +131,6 @@ namespace QaplaSearch {
 		}
 
 	private:
-		/**
-		 * Copies one node. The pv needs its own copy: the assignment of PV copies from index 0
-		 * up to the first empty move, but a node's line starts at its own ply.
-		 */
-		void copyNode(const SearchStack& from, ply_t ply) {
-			_stack[ply] = from._stack[ply];
-			_stack[ply].pv.copyFromPV(from._stack[ply].pv, ply);
-		}
-
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 
 		array<SearchNode, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;

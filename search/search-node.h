@@ -114,6 +114,22 @@ namespace QaplaSearch {
 			moveProvider.init();
 		}
 
+		/**
+		 * Takes over what a thread searching one move of this node reads from it, and nothing
+		 * more: the window, the hash for the repetition check, the eval for isImproving of the
+		 * grandchild, and what a child derives from its parent - node type and the null move
+		 * flags. The move list, the tt information and the results stay here.
+		 */
+		void copyForHandover(const SearchNode& from) {
+			alpha = from.alpha;
+			beta = from.beta;
+			positionHash = from.positionHash;
+			adjustedEval = from.adjustedEval;
+			_nodeType = from._nodeType;
+			isVerifyingNullmove = from.isVerifyingNullmove;
+			previousMove = from.previousMove;
+		}
+
 		void setToPlyStart() {
 			pv.setEmpty(ply);
 			pv.setEmpty(ply + 1);
