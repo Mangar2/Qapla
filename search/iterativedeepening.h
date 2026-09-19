@@ -159,6 +159,10 @@ namespace QaplaSearch {
 				}
 			}
 
+			// The helper may still be on a job the last node left behind; the next search
+			// hands it new settings, so it must be idle before this one returns
+			if (_helper) _helper->worker.wait();
+
 			// tt.writeToFile("tt.bin");
 			// Ensures that all draw positions are removed and not used after undo or new game
 			moveHistory.removeDrawPositionsFromHash(_tt);

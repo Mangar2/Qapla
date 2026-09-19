@@ -106,6 +106,15 @@ namespace QaplaSearch {
 			_count = 0;
 		}
 
+		/**
+		 * Drops the results not taken. Nothing of a node may be read by the next node on its ply.
+		 */
+		void clear() {
+			std::lock_guard<std::mutex> lock(_mutex);
+			_head = 0;
+			_count = 0;
+		}
+
 	private:
 		static constexpr uint32_t SIZE = SearchConfig::RESULT_QUEUE_SIZE;
 		std::array<SearchResult, SIZE> _entries;

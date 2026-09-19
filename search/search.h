@@ -22,6 +22,7 @@
 #ifndef __SEARCH_H
 #define __SEARCH_H
 
+#include <atomic>
 #include "../movegenerator/movegenerator.h"
 #include "computinginfo.h"
 #include "clockmanager.h"
@@ -78,6 +79,7 @@ namespace QaplaSearch {
 		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves,
 			bool hasRepeatedPosition) {
 			_computingInfo.initNewSearch(position, searchMoves, *_butterflyBoard);
+			_helperNodesCollected = 0;
 			_butterflyBoard->newSearch();
 			// The tablebase settings cannot change during a search, and reading them at
 			// every node costs more than the probes save.
@@ -147,6 +149,7 @@ namespace QaplaSearch {
 		void initAsHelper(Search& master, ClockManager* clockManager, TT* tt) {
 			_isMaster = false;
 			_clockManager = clockManager;
+			_computingInfo.clear();
 			_quiescence.setTT(tt);
 			_tbCardinality = master._tbCardinality;
 			_tbProbeDepth = master._tbProbeDepth;
@@ -160,6 +163,14 @@ namespace QaplaSearch {
 		 * searchMoveOnHelper.
 		 */
 		void runJob(SearchThread& self);
+
+		/**
+		 * Nodes the helper searched so far, own counter of its thread. Read from the master
+		 * for the info lines, so it may lag behind.
+		 */
+		uint64_t getNodesSearched() const {
+			return _computingInfo._nodesSearched;
+		}
 
 	private:
 
@@ -265,12 +276,29 @@ namespace QaplaSearch {
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
+		 * True, if the search is to stop: the clock says so, or - for a helper - the node that
+		 * handed the job over has been left and the job is invalid.
+		 */
+		bool isSearchStopped() const {
+			return _clockManager->isSearchStopped() || (_abortFlag && _abortFlag->load(std::memory_order_relaxed));
+		}
+
+		/**
 		 * Hands the search of a move to the helper thread. The move is applied to position and
 		 * stack[ply + 1]; the helper gets copies of both and searches the move, see
 		 * searchMoveOnHelper, and writes its result to the queue of the node at ply. This thread
-		 * takes it from there with collectHelperResults. PV nodes only.
+		 * goes on with its next move and takes the result from the queue with
+		 * collectHelperResults. PV nodes only.
 		 */
 		void handOverMove(MoveGenerator& position, SearchStack& stack, Move move, ply_t moveDepth, ply_t lmr, ply_t ply);
+
+		/**
+		 * Called when the move loop of a node is done that handed a move to the helper. Waits
+		 * for the helper and applies its result, unless the node has failed high already -
+		 * then the job is invalidated, the helper stops it and drops the result. Leaves the
+		 * node's queue empty either way.
+		 */
+		void finishHelperJob(MoveGenerator& position, SearchStack& stack, ply_t ply);
 
 		/**
 		 * The helper's part of a move: the reduced search and, unless that one fails low, the
@@ -321,7 +349,13 @@ namespace QaplaSearch {
 		// and hands moves to the helper.
 		bool _isMaster = true;
 		SearchThread* _helper = nullptr;
-		bool _helperBusy = false;
+		// The queue of the node whose move the helper is searching, null for none. This
+		// thread's view of the helper's job, so it never reads the job while the helper runs.
+		SearchResultQueue* _helperQueue = nullptr;
+		// Helper only: the invalid flag of its job, see isSearchStopped
+		const std::atomic<bool>* _abortFlag = nullptr;
+		// Nodes the helper searched for results this thread has applied
+		uint64_t _helperNodesCollected = 0;
 
 		// The history the move ordering reads. Shared: a helper points to the master's, see
 		// initAsHelper. Lost updates between threads are accepted, it holds ordering weights only.

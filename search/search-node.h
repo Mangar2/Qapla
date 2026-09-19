@@ -107,6 +107,7 @@ namespace QaplaSearch {
 			remainingDepthAtPlyStart = depth;
 			setWindowAtPlyStart(alpha, beta);
 			movesTried = 0;
+			movesOnHelper = 0;
 			_nodeType = childNodeType(parentNode._nodeType, isPVNode);
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
@@ -130,6 +131,7 @@ namespace QaplaSearch {
 			position.computeAttackMasksForBothColors();
 			remainingDepthAtPlyStart = remainingDepth = searchDepth;
 			movesTried = 0;
+			movesOnHelper = 0;
 			alpha = initialAlpha;
 			beta = initialBeta;
 			alphaAtPlyStart = alpha;
@@ -608,6 +610,8 @@ namespace QaplaSearch {
 		Move bestMove;
 		Move previousMove;
 		int32_t movesTried;
+		// Moves handed to the helper thread whose result has not been taken from resultQueue yet
+		int32_t movesOnHelper;
 		ply_t remainingDepth;
 		ply_t remainingDepthAtPlyStart;
 		ply_t ply;
