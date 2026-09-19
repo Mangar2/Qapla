@@ -127,10 +127,9 @@ namespace QaplaSearch {
 
 		/**
 		 * Makes this the search of a helper thread. It takes the settings of the search from
-		 * the master and searches with the master's history - the latter only while the node
-		 * count is to stay identical to a single threaded search, it must not do so once the
-		 * threads really run apart. A helper never checks the clock and never prints; it only
-		 * follows the stop flag.
+		 * the master and searches with the master's history: the history is shared between the
+		 * threads by decision, it lives on more information. A helper never checks the clock
+		 * and never prints; it only follows the stop flag.
 		 */
 		void initAsHelper(Search& master, ClockManager* clockManager, TT* tt) {
 			_isMaster = false;
@@ -310,7 +309,8 @@ namespace QaplaSearch {
 		SearchThread* _helper = nullptr;
 		bool _helperBusy = false;
 
-		// The history the move ordering reads. A helper points to the master's, see initAsHelper.
+		// The history the move ordering reads. Shared: a helper points to the master's, see
+		// initAsHelper. Lost updates between threads are accepted, it holds ordering weights only.
 		ButterflyBoard _ownButterflyBoard;
 	public:
 		ButterflyBoard* _butterflyBoard = &_ownButterflyBoard;
