@@ -26,6 +26,7 @@
 #include "movehistory.h"
 #include "search.h"
 #include "search-thread.h"
+#include "extra-search.h"
 #include "../interface/clocksetting.h"
 #include "computinginfo.h"
 #include "clockmanager.h"
@@ -92,6 +93,16 @@ namespace QaplaSearch {
 		}
 
 		/**
+		 * Sets the number of searches that run beside the master's, see ExtraSearch. Each of
+		 * them gets as many threads as the master's search.
+		 */
+		void setSearches(int32_t searches) {
+			const size_t extra = size_t(std::max(0, searches - 1));
+			while (_extraSearches.size() > extra) _extraSearches.pop_back();
+			while (_extraSearches.size() < extra) _extraSearches.push_back(std::make_unique<ExtraSearch>());
+		}
+
+		/**
 		 * true, if the search found a mate
 		 */
 		bool hasMateFound(const ComputingInfo& computingInfo) {
@@ -149,6 +160,11 @@ namespace QaplaSearch {
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, _tt);
 
+			// The extra searches start now and run until the master's search is done
+			for (auto& extra : _extraSearches) {
+				extra->start(searchBoard, searchMoves, moveHistory.hasRepeatedPosition(searchBoard), _threadCount, &_tt);
+			}
+
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
 				stack.clear();
 				searchOneIteration(searchBoard, stack, curDepth);
@@ -164,6 +180,14 @@ namespace QaplaSearch {
 			// The next search hands the helpers new settings, so they must be idle before
 			// this one returns
 			_threads.waitUntilIdle();
+			for (auto& extra : _extraSearches) {
+				extra->stop();
+			}
+			if (!_extraSearches.empty() && _verbose) {
+				uint64_t extraNodes = 0;
+				for (auto& extra : _extraSearches) extraNodes += extra->getNodesSearched();
+				std::cout << "info string extra searches " << _extraSearches.size() << " nodes " << extraNodes << std::endl;
+			}
 
 			// tt.writeToFile("tt.bin");
 			// Ensures that all draw positions are removed and not used after undo or new game
@@ -298,6 +322,8 @@ namespace QaplaSearch {
 		int32_t _threadCount = 1;
 		int32_t _multiPV = 1;
 		SearchThreads _threads;
+		// Searches beside the master's, contributing through the transposition table only
+		std::vector<std::unique_ptr<ExtraSearch>> _extraSearches;
 		ISendSearchInfo* _sendSearchInfo = nullptr;
 		bool _verbose = true;
 		array<AspirationWindow, MAX_PV> _window;
