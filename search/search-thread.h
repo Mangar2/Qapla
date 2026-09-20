@@ -42,22 +42,6 @@
 namespace QaplaSearch {
 
 	/**
-	 * A split point to join: the node, the stack it lives in and what the move loop needs
-	 * to know about it.
-	 */
-	struct SplitJob {
-		SearchNode* node = nullptr;
-		SearchStack* stack = nullptr;
-		ply_t ply = 0;
-		// Remaining depth of the node, extensions included, and the singular extension it
-		// computed for its tt move
-		ply_t depth = 0;
-		ply_t seExtension = 0;
-		// The node is a PV node, else an inner node; near leaf nodes open no split point
-		bool pvNode = false;
-	};
-
-	/**
 	 * Locks the split point's node in the split instantiation of the move loop, is nothing
 	 * in the other one.
 	 */
@@ -220,15 +204,16 @@ namespace QaplaSearch {
 		void leaveWaiting() { _waitingCount--; }
 
 		/**
-		 * Books a waiting thread for a split point
-		 * @returns the thread, or null if none can be booked
+		 * Books every waiting thread that may join for a split point
+		 * @returns the number of threads booked
 		 */
-		SearchThread* book(const SearchThread& booker, const SplitJob& job) {
+		int32_t bookAll(const SearchThread& booker, const SplitJob& job) {
+			int32_t booked = 0;
 			for (auto& thread : _threads) {
 				if (thread.get() == &booker) continue;
-				if (thread->book(booker, job)) return thread.get();
+				if (thread->book(booker, job)) booked++;
 			}
-			return nullptr;
+			return booked;
 		}
 
 		/**

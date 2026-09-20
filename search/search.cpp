@@ -722,24 +722,24 @@ bool Search::isSearchStopped() const {
 }
 
 bool Search::openSplitPoint(SearchStack& stack, SearchNode& node, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode) {
-	node.isSplitPoint = true;
 	node.owner = _self;
-	// The booked thread counts from now on, so that the node is not left before it has
-	// fetched what it reads here
-	node.helpers = 1;
-	SplitJob job;
-	job.node = &node;
-	job.stack = &stack;
-	job.ply = ply;
-	job.depth = depth;
-	job.seExtension = seExtension;
-	job.pvNode = pvNode;
-	if (_threads->book(*_self, job) == nullptr) {
-		node.helpers = 0;
+	node.split.node = &node;
+	node.split.stack = &stack;
+	node.split.ply = ply;
+	node.split.depth = depth;
+	node.split.seExtension = seExtension;
+	node.split.pvNode = pvNode;
+	node.helpers = 0;
+	node.isSplitPoint = true;
+	// Every booked thread counts from now on, so that the node is not left before it has
+	// fetched what it reads here.
+	const int32_t booked = _threads->bookAll(*_self, node.split);
+	if (booked == 0) {
 		node.isSplitPoint = false;
 		node.owner = nullptr;
 		return false;
 	}
+	node.helpers.fetch_add(booked, std::memory_order_acq_rel);
 	_self->addSplit(&node, ply);
 	return true;
 }
@@ -760,49 +760,41 @@ void Search::waitForHelpers(SearchThread& self, SearchNode& node, MoveGenerator&
 	SearchNode* const outerWaitingAt = self.waitingAt;
 	self.waitingAt = &node;
 	std::unique_lock<std::mutex> lock(self.mutex);
-	self.waiting = true;
-	_threads->enterWaiting();
 	while (node.helpers.load(std::memory_order_acquire) > 0) {
+		self.waiting = true;
+		_threads->enterWaiting();
 		const auto start = std::chrono::steady_clock::now();
 		self.cv.wait(lock, [&] { return self.hasJob || node.helpers.load(std::memory_order_acquire) == 0; });
 		_waitMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
 			std::chrono::steady_clock::now() - start).count();
+		self.waiting = false;
+		_threads->leaveWaiting();
 		if (self.hasJob) {
-			self.waiting = false;
-			_threads->leaveWaiting();
 			self.hasJob = false;
 			lock.unlock();
 			runJob(self, position, stack, ply);
 			lock.lock();
-			self.waiting = true;
-			_threads->enterWaiting();
 		}
 	}
-	self.waiting = false;
-	_threads->leaveWaiting();
 	self.waitingAt = outerWaitingAt;
 }
 
 void Search::helperLoop(SearchThread& self) {
 	std::unique_lock<std::mutex> lock(self.mutex);
-	self.waiting = true;
-	_threads->enterWaiting();
 	for (;;) {
-		self.cv.wait(lock, [&self] { return self.hasJob || self.stop; });
-		if (self.stop) break;
-		self.waiting = false;
-		_threads->leaveWaiting();
-		self.hasJob = false;
-		lock.unlock();
-		runJob(self, self.position, self.stack, 0);
-		lock.lock();
 		self.waiting = true;
 		_threads->enterWaiting();
 		// Tells waitUntilIdle
 		self.cv.notify_all();
+		self.cv.wait(lock, [&self] { return self.hasJob || self.stop; });
+		self.waiting = false;
+		_threads->leaveWaiting();
+		if (self.stop) break;
+		self.hasJob = false;
+		lock.unlock();
+		runJob(self, self.position, self.stack, 0);
+		lock.lock();
 	}
-	self.waiting = false;
-	_threads->leaveWaiting();
 }
 
 void Search::runJob(SearchThread& self, MoveGenerator& position, SearchStack& stack, ply_t fromPly) {

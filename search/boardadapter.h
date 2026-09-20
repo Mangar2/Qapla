@@ -97,7 +97,7 @@ namespace QaplaSearch {
 			return {
 				UciOption::spin("Hash", 32, 1, 32000),
 				UciOption::spin("MultiPV", 1, 1, 40),
-				UciOption::spin("Threads", 1, 1, 2)
+				UciOption::spin("Threads", 1, 1, 4)
 			};
 		}
 
@@ -114,7 +114,7 @@ namespace QaplaSearch {
 			}
 
 			if (name == "Threads") {
-				iterativeDeepening.setThreads(std::clamp(uciValueToInt(value, 1), 1, 2));
+				iterativeDeepening.setThreads(std::clamp(uciValueToInt(value, 1), 1, 4));
 				return true;
 			}
 
