@@ -55,6 +55,24 @@ enum class Cutoff {
 
 namespace QaplaSearch {
 	struct SearchThread;
+	struct SearchNode;
+	class SearchStack;
+
+	/**
+	 * A split point to join: the node, the stack it lives in and what the move loop needs
+	 * to know about it.
+	 */
+	struct SplitJob {
+		SearchNode* node = nullptr;
+		SearchStack* stack = nullptr;
+		ply_t ply = 0;
+		// Remaining depth of the node, extensions included, and the singular extension it
+		// computed for its tt move
+		ply_t depth = 0;
+		ply_t seExtension = 0;
+		// The node is a PV node, else an inner node; near leaf nodes open no split point
+		bool pvNode = false;
+	};
 
 	struct SearchNode {
 
@@ -663,6 +681,7 @@ namespace QaplaSearch {
 		std::atomic<int32_t> helpers{ 0 };
 		bool isSplitPoint = false;
 		SearchThread* owner = nullptr;
+		SplitJob split;
 		MoveProvider moveProvider;
 		PV pv;
 		// Bitmaps to identify checking moves faster
