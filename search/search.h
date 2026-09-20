@@ -162,6 +162,16 @@ namespace QaplaSearch {
 		}
 
 		/**
+		 * Makes this the master search of an extra search, see ExtraSearch: it runs on its
+		 * own clock, never prints and keeps a history of its own.
+		 */
+		void initAsExtraSearch(ClockManager* clockManager, TT* tt) {
+			_isMaster = false;
+			_clockManager = clockManager;
+			_quiescence.setTT(tt);
+		}
+
+		/**
 		 * The thread body of a helper: waits for jobs and runs them, see helpAtSplitPoint
 		 */
 		void helperLoop(SearchThread& self);
