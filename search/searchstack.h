@@ -76,39 +76,41 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Fetches what a thread searching a move of the node at ply reads from the node's
-		 * stack and cannot derive itself: the line of moves that leads to the node, to be
-		 * replayed with replayLine, and of the node what a child reads from its parent, see
-		 * SearchNode::copyForHandover, the eval of ply - 1 for the child's isImproving and the
-		 * root depth. No lock: the node's thread stays in the node while the helper works.
-		 * @param line receives the moves of the plies 1 to ply
+		 * Fetches what a thread joining the move loop of the node at ply reads from the
+		 * owner's stack and cannot derive itself: the moves from fromPly to ply that lead to
+		 * the node, to be replayed with replayLine, and of the node what a child reads from
+		 * its parent, see SearchNode::copyForHandover, the eval of ply - 1 for the child's
+		 * isImproving and the root depth. No lock: the owner stays in the node while helpers
+		 * work there.
+		 * @param fromPly ply this stack stands at, its nodes up to there are its own
+		 * @param line receives the moves of the plies fromPly + 1 to ply
 		 */
-		void fetchForHandover(const SearchStack& from, ply_t ply, Move* line) {
-			for (ply_t index = 1; index <= ply; index++) {
+		void fetchForHandover(const SearchStack& from, ply_t fromPly, ply_t ply, Move* line) {
+			for (ply_t index = fromPly + 1; index <= ply; index++) {
 				line[index] = from._stack[index].previousMove;
 			}
 			_stack[ply].copyForHandover(from._stack[ply]);
-			if (ply > 0) _stack[ply - 1].adjustedEval = from._stack[ply - 1].adjustedEval;
-			_stack[0].remainingDepth = from._stack[0].remainingDepth;
+			if (ply > fromPly + 1) _stack[ply - 1].adjustedEval = from._stack[ply - 1].adjustedEval;
+			if (fromPly == 0) _stack[0].remainingDepth = from._stack[0].remainingDepth;
 		}
 
 		/**
-		 * Plays the line fetched by fetchForHandover from the root, position must be at the
-		 * root. Sets the hashes on the way, the repetition check below reads them.
+		 * Plays the line fetched by fetchForHandover, position must stand at fromPly. Sets
+		 * the hashes on the way, the repetition check below reads them.
 		 */
-		void replayLine(MoveGenerator& position, const Move* line, ply_t ply) {
-			_stack[0].positionHash = position.computeBoardHash();
-			for (ply_t index = 1; index <= ply; index++) {
+		void replayLine(MoveGenerator& position, const Move* line, ply_t fromPly, ply_t ply) {
+			if (fromPly == 0) _stack[0].positionHash = position.computeBoardHash();
+			for (ply_t index = fromPly + 1; index <= ply; index++) {
 				_stack[index].doMove(position, line[index]);
 				_stack[index].positionHash = position.computeBoardHash();
 			}
 		}
 
 		/**
-		 * Takes the line back, position is at the root afterwards
+		 * Takes the line back, position stands at fromPly afterwards
 		 */
-		void undoLine(MoveGenerator& position, ply_t ply) {
-			for (ply_t index = ply; index >= 1; index--) {
+		void undoLine(MoveGenerator& position, ply_t fromPly, ply_t ply) {
+			for (ply_t index = ply; index > fromPly; index--) {
 				_stack[index].undoMove(position);
 			}
 		}

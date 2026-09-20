@@ -42,8 +42,8 @@ namespace QaplaSearch {
 
 	public:
 		IterativeDeepening() { 
-			_search = std::make_unique<Search>();
 			_tt.setSizeInKilobytes(32736); 
+			setUpThreads();
 			clearMemories();
 		}
 
@@ -70,8 +70,9 @@ namespace QaplaSearch {
 		 */
 		void clearMemories() {
 			_tt.clear();
-			_search->clearMemories();
-			if (_helper) _helper->search.clearMemories();
+			for (uint32_t index = 0; index < _threads.size(); index++) {
+				_threads[index].search.clearMemories();
+			}
 		}
 
 		/**
@@ -82,11 +83,12 @@ namespace QaplaSearch {
 		}
 
 		void setMultiPV(int32_t count) {
+			_multiPV = count;
 			_search->setMultiPV(count);
 		}
 
 		void setThreads(int32_t threads) {
-			_threads = threads;
+			_threadCount = threads;
 		}
 
 		/**
@@ -128,9 +130,10 @@ namespace QaplaSearch {
 			for (auto& window : _window) {
 				window.initSearch();
 			}	
+			setUpThreads();
 			_search->startNewSearch(searchBoard, searchMoves,
 				moveHistory.hasRepeatedPosition(searchBoard));
-			setUpHelper(searchBoard);
+			setUpHelpers(searchBoard);
 			_clockManager.setNewMove();
 			if (_search->getComputingInfo().getMovesAmount() == 0) {
 				return _search->getComputingInfo();
@@ -141,15 +144,14 @@ namespace QaplaSearch {
 				maxDepth = depthLimit;
 			}
 
-			auto stack = std::make_unique<SearchStack>(&_tt);
+			SearchStack& stack = _threads.master().stack;
 			
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, _tt);
 
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
-				// auto stack = std::make_unique<SearchStack>(&_tt);
-				stack->clear();
-				searchOneIteration(searchBoard, *stack, curDepth);
+				stack.clear();
+				searchOneIteration(searchBoard, stack, curDepth);
 				_clockManager.setSearchResult(curDepth, _search->getComputingInfo().getPVMoveValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth(curDepth)) {
 					break;
@@ -159,9 +161,9 @@ namespace QaplaSearch {
 				}
 			}
 
-			// The helper may still be on a job the last node left behind; the next search
-			// hands it new settings, so it must be idle before this one returns
-			if (_helper) _helper->worker.wait();
+			// The next search hands the helpers new settings, so they must be idle before
+			// this one returns
+			_threads.waitUntilIdle();
 
 			// tt.writeToFile("tt.bin");
 			// Ensures that all draw positions are removed and not used after undo or new game
@@ -197,6 +199,7 @@ namespace QaplaSearch {
 		 * Sets the interface printing search information
 		 */
 		void setSendSearchInfoInterface(ISendSearchInfo* sendSearchInfo) {
+			_sendSearchInfo = sendSearchInfo;
 			_search->setSendSearchInfoInterface(sendSearchInfo);
 		}
 
@@ -213,24 +216,27 @@ namespace QaplaSearch {
 	private:
 
 		/**
-		 * Gives the master search its helper thread, if the option asks for one. The helper is
-		 * created with the first search that needs it and kept; it takes the settings of every
-		 * new search from the master.
+		 * Creates the threads the option asks for. Helper threads are started once and kept;
+		 * the master is the first one and runs on the calling thread.
 		 */
-		void setUpHelper(const MoveGenerator& root) {
-			if (_threads < 2) {
-				_search->setHelper(nullptr);
-				return;
+		void setUpThreads() {
+			if (_threads.size() == uint32_t(_threadCount)) return;
+			_threads.resize(_threadCount, &_tt);
+			_search = &_threads.master().search;
+			_search->setSendSearchInfoInterface(_sendSearchInfo, _verbose);
+			_search->setMultiPV(_multiPV);
+		}
+
+		/**
+		 * Hands every helper the settings of the new search. A helper's board stands at the
+		 * root between jobs, it replays the line to every node it helps at from there.
+		 */
+		void setUpHelpers(const MoveGenerator& root) {
+			for (uint32_t index = 1; index < _threads.size(); index++) {
+				SearchThread& helper = _threads[index];
+				helper.search.initAsHelper(*_search, &_clockManager, &_tt);
+				helper.position = root;
 			}
-			if (!_helper) {
-				_helper = std::make_unique<SearchThread>(&_tt);
-				_helper->worker.start();
-			}
-			_helper->search.initAsHelper(*_search, &_clockManager, &_tt);
-			// The helper's board stands at the root between jobs, it replays the line to
-			// every node it helps at from there
-			_helper->position = root;
-			_search->setHelper(_helper.get());
 		}
 
 		/**
@@ -287,9 +293,13 @@ namespace QaplaSearch {
 		ClockSetting _clockSetting;
 		ClockManager _clockManager;
 		TT _tt;
-		std::unique_ptr<Search> _search;
-		int32_t _threads = 1;
-		std::unique_ptr<SearchThread> _helper;
+		// The master's search, owned by the first of the threads
+		Search* _search = nullptr;
+		int32_t _threadCount = 1;
+		int32_t _multiPV = 1;
+		SearchThreads _threads;
+		ISendSearchInfo* _sendSearchInfo = nullptr;
+		bool _verbose = true;
 		array<AspirationWindow, MAX_PV> _window;
 	};
 

@@ -22,6 +22,7 @@
 #ifndef __SEARCH_NODE_H
 #define __SEARCH_NODE_H
 
+#include <atomic>
 #include <mutex>
 #include <string>
 #include "../basics/types.h"
@@ -53,6 +54,8 @@ enum class Cutoff {
 };
 
 namespace QaplaSearch {
+	struct SearchThread;
+
 	struct SearchNode {
 
 		enum class SearchFinding {
@@ -653,9 +656,13 @@ namespace QaplaSearch {
 		Move ttMove;
 
 		Cutoff cutoff;
-		// Guards move list, window and best value while the node is a split point, see
-		// Search::moveLoop
+		// ---- Split point, see Search::moveLoop. The mutex guards move list, window and best
+		// value while other threads work here; helpers counts the threads booked for or
+		// working at the node, the owner waits until it is zero and is woken by the last one.
 		std::mutex splitMutex;
+		std::atomic<int32_t> helpers{ 0 };
+		bool isSplitPoint = false;
+		SearchThread* owner = nullptr;
 		MoveProvider moveProvider;
 		PV pv;
 		// Bitmaps to identify checking moves faster

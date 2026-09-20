@@ -45,6 +45,7 @@ using namespace QaplaInterface;
 namespace QaplaSearch {
 
 	struct SearchThread;
+	class SearchThreads;
 
 	class Search {
 	public:
@@ -79,8 +80,8 @@ namespace QaplaSearch {
 		void startNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves,
 			bool hasRepeatedPosition) {
 			_computingInfo.initNewSearch(position, searchMoves, *_butterflyBoard);
-			_helperBusyMilliseconds = 0;
-			_masterWaitMicroseconds = 0;
+			_waitMicroseconds = 0;
+			_helpMicroseconds = 0;
 			_butterflyBoard->newSearch();
 			// The tablebase settings cannot change during a search, and reading them at
 			// every node costs more than the probes save.
@@ -135,10 +136,11 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Gives the master search a helper thread to hand moves to. Null for none.
+		 * Gives the search its thread and the threads it may book helpers from
 		 */
-		void setHelper(SearchThread* helper) {
-			_helper = helper;
+		void setThreads(SearchThreads* threads, SearchThread* self) {
+			_threads = threads;
+			_self = self;
 		}
 
 		/**
@@ -160,18 +162,24 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * The search of a helper thread: joins the split point of the thread's job, see
-		 * helpAtSplitPoint.
+		 * The thread body of a helper: waits for jobs and runs them, see helpAtSplitPoint
 		 */
-		void runJob(SearchThread& self);
+		void helperLoop(SearchThread& self);
 
 		/**
-		 * Nodes the helper searched so far, own counter of its thread. Read from the master
-		 * for the info lines, so it may lag behind.
+		 * Nodes this thread searched so far. Read by the master for the info lines, so it may
+		 * lag behind.
 		 */
 		uint64_t getNodesSearched() const {
 			return _computingInfo._nodesSearched;
 		}
+		uint64_t getHelpMicroseconds() const { return _helpMicroseconds; }
+
+		/**
+		 * Nodes the helper threads searched, for the master's reports
+		 */
+		uint64_t helperNodes() const;
+		uint64_t getWaitMicroseconds() const { return _waitMicroseconds; }
 
 	private:
 
@@ -277,12 +285,10 @@ namespace QaplaSearch {
 		value_t negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply);
 
 		/**
-		 * True, if the search is to stop: the clock says so, or - for a helper - the split
-		 * point it works at is being closed.
+		 * True, if the search is to stop: the clock says so, or a split point this thread
+		 * works under has failed high - nothing below it is worth searching then.
 		 */
-		bool isSearchStopped() const {
-			return _clockManager->isSearchStopped() || (_abortFlag && _abortFlag->load(std::memory_order_relaxed));
-		}
+		bool isSearchStopped() const;
 
 		/**
 		 * The move loop of negaMax. SPLIT: the node is a split point, splitNode is the node of
@@ -297,23 +303,39 @@ namespace QaplaSearch {
 			ply_t depth, ply_t seExtension, ply_t ply, Move firstMove);
 
 		/**
-		 * Starts the helper at the node at ply of this thread's stack. This thread copies
-		 * nothing: the helper fetches what it reads from the stack itself and replays the line
-		 * to the node on its own board.
+		 * Opens the node at ply as split point and books a waiting thread for it. This thread
+		 * copies nothing: the helper fetches what it reads from the stack itself and replays
+		 * the line to the node on its own board.
+		 * @returns false, if no thread could be booked - the node stays as it is
 		 */
-		void openSplitPoint(SearchStack& stack, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode);
+		bool openSplitPoint(SearchStack& stack, SearchNode& node, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode);
 
 		/**
-		 * Waits for the helper to leave the split point. A node that failed high aborts the
-		 * helper's search first.
+		 * Closes the split point for joining and waits until the helpers have left it.
+		 * Meanwhile this thread can be booked for a split point below its own, see
+		 * waitForHelpers.
 		 */
-		void closeSplitPoint(SearchNode& node);
+		void closeSplitPoint(MoveGenerator& position, SearchStack& stack, SearchNode& node, ply_t ply);
+
+		/**
+		 * Waits until the helpers have left the split point node and helps at split points
+		 * below it meanwhile.
+		 */
+		void waitForHelpers(SearchThread& self, SearchNode& node, MoveGenerator& position, SearchStack& stack, ply_t ply);
+
+		/**
+		 * Runs the job of the thread: joins the split point, from where the thread stands
+		 * @param fromPly ply the thread stands at, 0 for a helper without a node of its own
+		 */
+		void runJob(SearchThread& self, MoveGenerator& position, SearchStack& stack, ply_t fromPly);
 
 		/**
 		 * The helper's part: reaches the split point on its own board and joins its move loop.
+		 * Leaves the split point when the list is empty or the node failed high, and wakes the
+		 * owner as the last one to leave.
 		 */
 		template <SearchRegion TYPE>
-		void helpAtSplitPoint(SearchThread& self);
+		void helpAtSplitPoint(SearchThread& self, MoveGenerator& position, SearchStack& stack, ply_t fromPly);
 
 		/**
 		 * Returns the information about the root moves
@@ -348,11 +370,11 @@ namespace QaplaSearch {
 		// Master or helper thread, see initAsHelper. Only the master checks the clock, prints
 		// and hands moves to the helper.
 		bool _isMaster = true;
-		SearchThread* _helper = nullptr;
-		// Helper only: the abort flag of its job, see isSearchStopped
-		const std::atomic<bool>* _abortFlag = nullptr;
-		uint64_t _helperBusyMilliseconds = 0;
-		uint64_t _masterWaitMicroseconds = 0;
+		SearchThreads* _threads = nullptr;
+		SearchThread* _self = nullptr;
+		// Test output while the parallel search is being built
+		uint64_t _waitMicroseconds = 0;
+		uint64_t _helpMicroseconds = 0;
 
 		// The history the move ordering reads. Shared: a helper points to the master's, see
 		// initAsHelper. Lost updates between threads are accepted, it holds ordering weights only.
