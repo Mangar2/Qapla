@@ -88,18 +88,24 @@ namespace QaplaSearch {
 			_search->setMultiPV(count);
 		}
 
+		/**
+		 * Sets the number of threads in total. They are shared out over as few searches as
+		 * the limit per search allows, see setSplitThreads.
+		 */
 		void setThreads(int32_t threads) {
 			_threadCount = threads;
+			shareOutThreads();
 		}
 
 		/**
-		 * Sets the number of searches that run beside the master's, see ExtraSearch. Each of
-		 * them gets as many threads as the master's search.
+		 * Sets the most threads one search - the master's or an extra one - may have. More
+		 * threads than that go into extra searches, see ExtraSearch: the total is split into
+		 * as few searches as possible, of sizes n and n - 1. 11 threads with a limit of 8 are
+		 * 6 + 5, 17 are 6 + 6 + 5.
 		 */
-		void setSearches(int32_t searches) {
-			const size_t extra = size_t(std::max(0, searches - 1));
-			while (_extraSearches.size() > extra) _extraSearches.pop_back();
-			while (_extraSearches.size() < extra) _extraSearches.push_back(std::make_unique<ExtraSearch>());
+		void setSplitThreads(int32_t threads) {
+			_splitThreads = threads;
+			shareOutThreads();
 		}
 
 		/**
@@ -161,8 +167,9 @@ namespace QaplaSearch {
 			moveHistory.setDrawPositionsToHash(position, _tt);
 
 			// The extra searches start now and run until the master's search is done
-			for (auto& extra : _extraSearches) {
-				extra->start(searchBoard, searchMoves, moveHistory.hasRepeatedPosition(searchBoard), _threadCount, &_tt);
+			for (size_t index = 0; index < _extraSearches.size(); index++) {
+				_extraSearches[index]->start(searchBoard, searchMoves, moveHistory.hasRepeatedPosition(searchBoard),
+					_searchThreads[index + 1], &_tt);
 			}
 
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
@@ -243,9 +250,25 @@ namespace QaplaSearch {
 		 * Creates the threads the option asks for. Helper threads are started once and kept;
 		 * the master is the first one and runs on the calling thread.
 		 */
+		/**
+		 * Shares the threads out over the searches: as few searches as the limit per search
+		 * allows, the first ones one thread larger where the division leaves a remainder.
+		 * _searchThreads[0] is the master's search.
+		 */
+		void shareOutThreads() {
+			const int32_t searches = (_threadCount + _splitThreads - 1) / _splitThreads;
+			_searchThreads.clear();
+			for (int32_t index = 0; index < searches; index++) {
+				_searchThreads.push_back(_threadCount / searches + (index < _threadCount % searches ? 1 : 0));
+			}
+			const size_t extra = size_t(searches - 1);
+			while (_extraSearches.size() > extra) _extraSearches.pop_back();
+			while (_extraSearches.size() < extra) _extraSearches.push_back(std::make_unique<ExtraSearch>());
+		}
+
 		void setUpThreads() {
-			if (_threads.size() == uint32_t(_threadCount)) return;
-			_threads.resize(_threadCount, &_tt);
+			if (_threads.size() == uint32_t(_searchThreads[0])) return;
+			_threads.resize(_searchThreads[0], &_tt);
 			_search = &_threads.master().search;
 			_search->setSendSearchInfoInterface(_sendSearchInfo, _verbose);
 			_search->setMultiPV(_multiPV);
@@ -320,6 +343,9 @@ namespace QaplaSearch {
 		// The master's search, owned by the first of the threads
 		Search* _search = nullptr;
 		int32_t _threadCount = 1;
+		int32_t _splitThreads = 8;
+		// Threads of every search, the master's first, see shareOutThreads
+		std::vector<int32_t> _searchThreads{ 1 };
 		int32_t _multiPV = 1;
 		SearchThreads _threads;
 		// Searches beside the master's, contributing through the transposition table only
