@@ -570,7 +570,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
 		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
-		if (_helper) _computingInfo.setHelperNodes(_helper->search.getNodesSearched());
+		if (_threads) _computingInfo.setHelperNodes(helperNodes());
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	}
 	return node.bestValue;
@@ -603,19 +603,18 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 			}
 		}
 
-		// A node with enough depth left opens itself as split point once the helper thread is
-		// idle: the helper joins this loop and takes moves from the same list, see
+		// A node with enough depth left opens itself as split point when a thread waits for
+		// work: the helper joins this loop and takes moves from the same list, see
 		// helpAtSplitPoint. Never on the first move - its result sets the window the others
 		// are searched with - and never on the last, this thread would only wait for it. The
-		// rest of the loop runs in the split instantiation, this one is done then. The helper
-		// passes through here for its own subtree and finds itself busy. Near leaf nodes carry
-		// none of this.
+		// rest of the loop runs in the split instantiation, this one is done then. Near leaf
+		// nodes carry none of this.
 		if constexpr (TYPE != SearchRegion::NEAR_LEAF && !SPLIT) {
-			if (_helper && depth >= 3 && node.movesTried > 1 && !node.isLastMove()
-				&& !_helper->worker.isBusy()) {
-				openSplitPoint(stack, depth, seExtension, ply, TYPE == SearchRegion::PV);
+			if (_threads && depth >= 3 && node.movesTried > 1 && !node.isLastMove()
+				&& _threads->hasWaitingThread()
+				&& openSplitPoint(stack, node, depth, seExtension, ply, TYPE == SearchRegion::PV)) {
 				moveLoop<TYPE, true>(position, stack, node, depth, seExtension, ply, curMove);
-				closeSplitPoint(node);
+				closeSplitPoint(position, stack, node, ply);
 				return;
 			}
 		}
@@ -710,61 +709,144 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 	}
 }
 
-void Search::openSplitPoint(SearchStack& stack, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode) {
-	SearchThread& helper = *_helper;
-	helper.job.abort = false;
-	helper.job.stack = &stack;
-	helper.job.ply = ply;
-	helper.job.depth = depth;
-	helper.job.seExtension = seExtension;
-	helper.job.pvNode = pvNode;
-	helper.worker.run([&helper] { helper.search.runJob(helper); });
+uint64_t Search::helperNodes() const {
+	uint64_t nodes = 0;
+	for (uint32_t index = 1; index < _threads->size(); index++) {
+		nodes += (*_threads)[index].search.getNodesSearched();
+	}
+	return nodes;
 }
 
-void Search::closeSplitPoint(SearchNode& node) {
-	// The helper reads this thread's stack and writes into this node: it must be gone before
-	// the node is left. It leaves on its own when the list is empty; when the node failed
-	// high its child search still running is worthless and the abort flag ends it.
-	if (node.isFailHigh()) _helper->job.abort = true;
+bool Search::isSearchStopped() const {
+	return _clockManager->isSearchStopped() || (_self && _self->hasFailedHighSplitPoint());
+}
+
+bool Search::openSplitPoint(SearchStack& stack, SearchNode& node, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode) {
+	node.isSplitPoint = true;
+	node.owner = _self;
+	// The booked thread counts from now on, so that the node is not left before it has
+	// fetched what it reads here
+	node.helpers = 1;
+	SplitJob job;
+	job.node = &node;
+	job.stack = &stack;
+	job.ply = ply;
+	job.depth = depth;
+	job.seExtension = seExtension;
+	job.pvNode = pvNode;
+	if (_threads->book(*_self, job) == nullptr) {
+		node.helpers = 0;
+		node.isSplitPoint = false;
+		node.owner = nullptr;
+		return false;
+	}
+	_self->addSplit(&node, ply);
+	return true;
+}
+
+void Search::closeSplitPoint(MoveGenerator& position, SearchStack& stack, SearchNode& node, ply_t ply) {
+	{
+		std::lock_guard<std::mutex> lock(node.splitMutex);
+		node.isSplitPoint = false;
+	}
+	waitForHelpers(*_self, node, position, stack, ply);
+	_self->removeSplitsAbove(ply - 1);
+	node.owner = nullptr;
+}
+
+void Search::waitForHelpers(SearchThread& self, SearchNode& node, MoveGenerator& position, SearchStack& stack, ply_t ply) {
+	// A helper that owns a split point inside its job waits here as well: it becomes
+	// bookable for the time being and is its job's again afterwards
+	SearchNode* const outerWaitingAt = self.waitingAt;
+	self.waitingAt = &node;
+	std::unique_lock<std::mutex> lock(self.mutex);
+	self.waiting = true;
+	_threads->enterWaiting();
+	while (node.helpers.load(std::memory_order_acquire) > 0) {
+		const auto start = std::chrono::steady_clock::now();
+		self.cv.wait(lock, [&] { return self.hasJob || node.helpers.load(std::memory_order_acquire) == 0; });
+		_waitMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - start).count();
+		if (self.hasJob) {
+			self.waiting = false;
+			_threads->leaveWaiting();
+			self.hasJob = false;
+			lock.unlock();
+			runJob(self, position, stack, ply);
+			lock.lock();
+			self.waiting = true;
+			_threads->enterWaiting();
+		}
+	}
+	self.waiting = false;
+	_threads->leaveWaiting();
+	self.waitingAt = outerWaitingAt;
+}
+
+void Search::helperLoop(SearchThread& self) {
+	std::unique_lock<std::mutex> lock(self.mutex);
+	self.waiting = true;
+	_threads->enterWaiting();
+	for (;;) {
+		self.cv.wait(lock, [&self] { return self.hasJob || self.stop; });
+		if (self.stop) break;
+		self.waiting = false;
+		_threads->leaveWaiting();
+		self.hasJob = false;
+		lock.unlock();
+		runJob(self, self.position, self.stack, 0);
+		lock.lock();
+		self.waiting = true;
+		_threads->enterWaiting();
+		// Tells waitUntilIdle
+		self.cv.notify_all();
+	}
+	self.waiting = false;
+	_threads->leaveWaiting();
+}
+
+void Search::runJob(SearchThread& self, MoveGenerator& position, SearchStack& stack, ply_t fromPly) {
 	const auto start = std::chrono::steady_clock::now();
-	_helper->worker.wait();
-	_masterWaitMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
-		std::chrono::steady_clock::now() - start).count();
-	// The helper counts its nodes itself; the sum is read when this thread reports, see
-	// printSearchInfo. Summing per split point would miss the jobs of split points opened
-	// below one still open.
-	_computingInfo.setHelperNodes(_helper->search.getNodesSearched());
-}
-
-void Search::runJob(SearchThread& self) {
-	_abortFlag = &self.job.abort;
 	if (self.job.pvNode) {
-		helpAtSplitPoint<SearchRegion::PV>(self);
+		helpAtSplitPoint<SearchRegion::PV>(self, position, stack, fromPly);
 	}
 	else {
-		helpAtSplitPoint<SearchRegion::INNER>(self);
+		helpAtSplitPoint<SearchRegion::INNER>(self, position, stack, fromPly);
 	}
-	_abortFlag = nullptr;
+	_helpMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
+		std::chrono::steady_clock::now() - start).count();
 }
 
 template <Search::SearchRegion TYPE>
-void Search::helpAtSplitPoint(SearchThread& self) {
-	SearchStack& stack = self.stack;
-	MoveGenerator& position = self.position;
-	WorkerJob& job = self.job;
+void Search::helpAtSplitPoint(SearchThread& self, MoveGenerator& position, SearchStack& stack, ply_t fromPly) {
+	const SplitJob job = self.job;
+	SearchNode& splitNode = *job.node;
+	SearchThread& owner = *splitNode.owner;
 	const ply_t ply = job.ply;
 	SearchNode& node = stack[ply];
-	SearchNode& splitNode = (*job.stack)[ply];
-	// Fetch the line and the node's constants from the node's stack, then reach the node on
-	// the own board. No lock: the node's thread stays in the node while this job runs.
+
+	// The split points the owner works under are this thread's now as well: a thread waiting
+	// at one of them may be booked from here, and a fail high at one of them stops this
+	// search too
+	self.takeSplitsFrom(owner, ply);
+	self.addSplit(&splitNode, ply);
+
+	// Fetch the line and the node's constants from the owner's stack, then reach the node on
+	// the own board. No lock: the owner stays in the node while helpers work there.
 	Move line[SearchConfig::MAX_SEARCH_DEPTH + 1];
-	stack.fetchForHandover(*job.stack, ply, line);
-	stack.replayLine(position, line, ply);
+	stack.fetchForHandover(*job.stack, fromPly, ply, line);
+	stack.replayLine(position, line, fromPly, ply);
 	node.computeCheckGivingSquares(position);
 
 	moveLoop<TYPE, true>(position, stack, splitNode, job.depth, job.seExtension, ply, Move::EMPTY_MOVE);
 
-	stack.undoLine(position, ply);
+	stack.undoLine(position, fromPly, ply);
+	self.removeSplitsAbove(fromPly);
+
+	// The last one to leave wakes the owner
+	if (splitNode.helpers.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+		owner.wake();
+	}
 }
 
 void Search::storePVToTT(MoveGenerator& position, SearchStack& stack, const RootMove& rootMove, ply_t ply) {
@@ -864,15 +946,19 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
-	if (_helper) _computingInfo.setHelperNodes(_helper->search.getNodesSearched());
+	if (_threads) _computingInfo.setHelperNodes(helperNodes());
 	_computingInfo.printSearchResult();
-	if (_helper) {
+	if (_threads && _threads->size() > 1) {
 		// Test output while the parallel search is being built
-		_helperBusyMilliseconds += _helper->worker.takeBusyMilliseconds();
 		const auto elapsed = std::max<int64_t>(1, _computingInfo.getTimeSpentInMilliseconds());
-		std::cout << "info string helper nodes " << _helper->search.getNodesSearched()
-			<< " busy " << (_helperBusyMilliseconds * 100 / elapsed) << "%"
-			<< " master waited " << (_masterWaitMicroseconds / 10 / elapsed) << "%" << std::endl;
+		std::cout << "info string master waited " << (_waitMicroseconds / 10 / elapsed) << "%"
+			<< " helped " << (_helpMicroseconds / 10 / elapsed) << "%";
+		for (uint32_t index = 1; index < _threads->size(); index++) {
+			const Search& helper = (*_threads)[index].search;
+			std::cout << " | helper " << index << " nodes " << helper.getNodesSearched()
+				<< " busy " << (helper.getHelpMicroseconds() / 10 / elapsed) << "%";
+		}
+		std::cout << std::endl;
 	}
 }
 
