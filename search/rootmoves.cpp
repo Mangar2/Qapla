@@ -17,6 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+#include <algorithm>
 #include <optional>
 #include <limits>
 #include "rootmoves.h"
