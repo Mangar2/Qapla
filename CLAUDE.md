@@ -12,6 +12,21 @@ Not `make BUILD_TYPE=Release -j` — the `Release` target sets `BUILD_TYPE` itse
 binary lands in `build/Release/Qapla.exe` (`build/Release/Qapla` on Linux/macOS) and that
 is the path the EPD, SPRT and CLOP runs below refer to.
 
+## The test tools and where they live
+
+Two programs drive the tests: **qet**, the qapla-engine-tester, and **qcg**, the Qapla Chess
+GUI. They always sit in the same directory, and that directory depends on the platform:
+
+| platform | qet | qcg |
+|---|---|---|
+| Windows | `c:\development\bin\qet.exe` | `c:\development\bin\qcg.exe` |
+| Linux, macOS | `~/bin/qet` | `~/bin/qcg` |
+
+The command lines further down spell the Windows paths. On Linux and macOS substitute both
+sides: the tool becomes `~/bin/qet`, and the engine `cmd=` becomes the path to
+`build/Release/Qapla` in the working copy. Everything else — the ini files, the relative paths
+inside them, the state files — is the same on all three systems.
+
 ## Everything a test produces stays inside the repository
 
 **Logs, state files, pgn files, builds, baseline binaries, scratch files — all of it lives under
