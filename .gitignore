@@ -18,6 +18,22 @@
 *.bin
 *.epd
 *.qwdl
+
+# Generated tablebase files (Syzygy, read and written by src/syzygy)
+*.rtbw
+*.rtbz
+*.rtbm
+*.atbw
+*.atbz
+
+# The generators write their tables into these directories and nothing else
+# is produced there, so the directories are ignored whole - a generated file
+# with an unexpected name cannot slip through an extension list. Documentation
+# kept in them stays versioned.
+/test/syzygy*/**
+/test/bitbase*/**
+!/test/syzygy*/**/*.md
+!/test/bitbase*/**/*.md
 .editorconfig
 /.github/
 /test/log/
