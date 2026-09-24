@@ -14,8 +14,9 @@ Check `GET http://127.0.0.1:8137/health` first; it answers `{"ok":true}` and nee
 port is configurable, 8137 is the default.
 
 If nothing answers, start the GUI with `--remote-control --remote-control-port=8137` and wait for
-health. Never start a second instance while one is running: both write the same profile and the
-last one to exit wins.
+health. The GUI is `~/bin/qcg` on Linux and macOS and `c:\development\bin\qcg.exe` on Windows,
+next to `qet` — see the tool table in `CLAUDE.md`. Never start a second instance while one is
+running: both write the same profile and the last one to exit wins.
 
 You cannot close it. `close_application` is refused over the remote control; ask the user.
 
