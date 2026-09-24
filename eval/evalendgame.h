@@ -282,7 +282,7 @@ namespace ChessEval {
 		// the wrong colour, and from four the endgame is a normal win.
 		static constexpr value_t OPPOSITE_BISHOP_SCALE_PERCENT[5] = { 45, 50, 65, 85, 100 };
 
-		static inline PieceSignatureHashedLookup<EvalEntry, 32768, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
+		static inline PieceSignatureHashedLookup<EvalEntry, 65536, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
 	};
 
 }
