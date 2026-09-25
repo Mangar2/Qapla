@@ -1723,3 +1723,45 @@ On the bounds: undecided does not mean nothing was learned. The LLR drifts in pr
 distance of the truth from the *midpoint* of the bounds, so undecided places it near that midpoint —
 here below it, the run drifted towards H0. That is what the change was expected to be: correct play
 in rare positions, not measurable strength.
+
+## 0.5.0-027 — the parallel search
+
+Kept. SPRT against `0.5.0-001` at 3+0.01, bounds −2 and +2: **H1 accepted** after 15022 games.
+EPD nodes with one thread 515722068, identical to the state before the work.
+
+The version carries the whole parallel search, built in steps that each kept the single threaded
+node count exactly: split points in the move loop, helper threads that fetch what they read from
+the owner's stack themselves, and searches that run beside the master's and share nothing but the
+transposition table.
+
+What is shared and what is not: the transposition table without lock or xor scheme (a torn entry
+costs nothing measurable, the tt move is looked up in the generated move list before it is played)
+and the history, which lives on more information. Per thread are the pawn hash, the quiescence and
+the node counter; only the master checks the clock and prints.
+
+UCI options: `Threads` (1..64) is the total, `SplitThreads` (1..64, default 8) the most one search
+may have. The total is shared out over as few searches as that allows, sizes n and n − 1 — 11
+threads with a limit of 8 are 6 + 5, 17 are 6 + 6 + 5.
+
+Measured on the Mac mini M4, wmtest depth 22, factor = N × time(N processes, 1 thread) /
+time(1 process, N threads), which takes the lower clock of N busy cores out of the figure:
+
+| threads | factor | Spike 1.4.3 at depth 16 |
+|---|---|---|
+| 2 | 1.89 | 1.60 |
+| 3 | 2.30 | 2.12 |
+| 4 | 2.71 | 2.72 |
+
+Four searches of one thread reach 1.70, two searches of two threads 2.17 — the split points are
+what carries the gain as long as one search still scales. Extra searches differing only in their
+seed are not worth much; parametrised differently, as Stockfish does it, they would have to be
+judged by playing strength, not by these factors.
+
+On the SPRT: the run weighed −2 against +2 and the data favour +2, so the parallel search is not
+the neutral rebuild it was meant to be at one thread — it is, at 3+0.01 with one thread, the
+better of the two candidates. The single thread node count is identical, so nothing in the search
+changed; what the run measures is the rest of the line between `0.5.0-001` and here.
+
+`0.5.0-001` is not tagged in this repository. It is commit `70b0565`, the commit before
+`0.5.0-002`, identified by its node count: 56158265 at depth 14, exactly what the `0.5.0-002`
+entry records for it. The binary is kept as `new-versions/Qapla-0.5.0-001`.
