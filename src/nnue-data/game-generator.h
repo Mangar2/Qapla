@@ -24,9 +24,14 @@
  * from the same position would be the same game move for move. The variety has
  * to be in the library, which is what it is built for.
  *
- * Single threaded on purpose. The searches are short, the work is one long chain
- * of them, and a run can be cut into pieces with firstLeaf and games instead -
- * which also makes it resumable and lets several runs share the machine.
+ * One thread reads the lines out of the library and hands them to a pool of
+ * workers, every worker with an engine instance of its own - a board is not
+ * shared, and neither is a hash table. The games are written as they finish, so
+ * their order in the file depends on the timing while their content does not:
+ * every game follows from its start position alone.
+ *
+ * A run can be cut into pieces with firstLeaf and games, which makes it
+ * resumable and lets several runs share a machine.
  *
  * Needs no special build: the games are played through the ordinary interface of
  * the engine, not through the search observer.
@@ -68,6 +73,12 @@ namespace QaplaNnueData {
 
 			/** Leaves to play, 0 for all of them. */
 			uint64_t games = 0;
+
+			/** Games played at the same time, 0 for one per core. */
+			uint32_t threads = 0;
+
+			/** Hash of every worker in megabytes - it is paid once per thread. */
+			uint32_t hashInMegabytes = 32;
 		};
 
 		explicit GameGenerator(QaplaInterface::IChessBoard* board) : _board(board) {}
