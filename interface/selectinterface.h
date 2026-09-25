@@ -54,7 +54,7 @@ namespace QaplaInterface {
 			board->setSendSearchInfo(&sendSearchInfo);
 			uci.run(board, ioHandler);
 		}
-		else if (startsWith(firstToken, { "stat", "epd", "playepd", "wmtest", "train", "material", "nnuebook"})) {
+		else if (startsWith(firstToken, { "stat", "epd", "playepd", "wmtest", "train", "material", "nnuebook", "nnuegames"})) {
 			Statistics statistics;
 			statistics.run(board, ioHandler);
 		} 
