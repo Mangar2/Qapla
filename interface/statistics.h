@@ -121,6 +121,12 @@ namespace QaplaInterface {
 		 * the generator says so and does nothing.
 		 */
 		void generateNnueBook();
+
+		/**
+		 * Plays the training games from the start positions of the library, see
+		 * src/nnue-data. Needs no special build.
+		 */
+		void generateNnueGames();
 		volatile Mode _mode;
 		bool _xBoardMode;
 		bool _computerIsWhite;

@@ -22,6 +22,7 @@
 #include <vector>
 #include <algorithm>
 #include "../src/nnue-data/book-generator.h"
+#include "../src/nnue-data/game-generator.h"
 
 using namespace std;
 
@@ -176,6 +177,7 @@ void Statistics::handleInput() {
 	else if (token == "memory") readMemory();
 	else if (token == "epd") loadEPD();
 	else if (token == "nnuebook") generateNnueBook();
+	else if (token == "nnuegames") generateNnueGames();
 	else if (checkClockCommands()) {}
 }
 
@@ -217,5 +219,43 @@ void Statistics::generateNnueBook() {
 		}
 	}
 	QaplaNnueData::BookGenerator generator(getBoard());
+	generator.generate(settings);
+}
+
+/**
+ * nnuegames [book <file>] [out <file>] [sd <n>] [win <n>] [maxply <n>]
+ *           [first <n>] [games <n>]
+ */
+void Statistics::generateNnueGames() {
+	QaplaNnueData::GameGenerator::Settings settings;
+	while (getNextTokenNonBlocking() != "") {
+		const string token = getCurrentToken();
+		if (token == "book") {
+			if (getNextTokenNonBlocking() != "") settings.bookFile = getCurrentToken();
+		}
+		else if (token == "out") {
+			if (getNextTokenNonBlocking() != "") settings.outputFile = getCurrentToken();
+		}
+		else if (token == "sd") {
+			if (getNextTokenNonBlocking() != "") settings.searchDepth = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "win") {
+			if (getNextTokenNonBlocking() != "") settings.winThreshold = value_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "maxply") {
+			if (getNextTokenNonBlocking() != "") settings.maxHalfMoves = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "first") {
+			if (getNextTokenNonBlocking() != "") settings.firstLeaf = getCurrentTokenAsUnsignedInt();
+		}
+		else if (token == "games") {
+			if (getNextTokenNonBlocking() != "") settings.games = getCurrentTokenAsUnsignedInt();
+		}
+		else {
+			println("Error (unknown nnuegames parameter): " + token);
+			return;
+		}
+	}
+	QaplaNnueData::GameGenerator generator(getBoard());
 	generator.generate(settings);
 }

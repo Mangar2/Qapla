@@ -26,9 +26,8 @@
 
 #include "book-generator.h"
 #include "../book/board-position.h"
-#include "../../basics/movelist.h"
+#include "position-walker.h"
 #include "../../interface/chessinterface.h"
-#include "../../movegenerator/movegenerator.h"
 #include "../../search/search.h"
 
 using namespace QaplaNnueData;
@@ -40,107 +39,6 @@ using QaplaMoveGenerator::MoveGenerator;
 using QaplaSearch::ply_t;
 
 namespace {
-
-	/**
-	 * Sets a board to the position a game starts at.
-	 */
-	void setToStartPosition(MoveGenerator& position) {
-		static constexpr std::array<Piece, 8> BACK_RANK = {
-			ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK };
-		position.clear();
-		for (uint32_t file = 0; file < 8; file++) {
-			const File currentFile = File(file);
-			position.setPiece(computeSquare(currentFile, Rank::R1), BACK_RANK[file] + WHITE);
-			position.setPiece(computeSquare(currentFile, Rank::R2), WHITE_PAWN);
-			position.setPiece(computeSquare(currentFile, Rank::R7), BLACK_PAWN);
-			position.setPiece(computeSquare(currentFile, Rank::R8), BACK_RANK[file] + BLACK);
-		}
-		position.setWhiteToMove(true);
-		for (const Piece color : { WHITE, BLACK }) {
-			position.setCastlingRight(color, true, true);
-			position.setCastlingRight(color, false, true);
-		}
-		position.computeAttackMasksForBothColors();
-	}
-
-	/**
-	 * The move of the position that plays the two squares of a book move, or an
-	 * empty move if there is none. The move list is pseudo legal, the caller
-	 * checks legality after playing it.
-	 */
-	Move findMove(MoveGenerator& position, const BookMove& bookMove) {
-		MoveList moveList;
-		position.computeAttackMasksForBothColors();
-		position.genMovesOfMovingColor(moveList);
-		for (uint32_t index = 0; index < moveList.getTotalMoveAmount(); index++) {
-			const Move move = moveList[index];
-			if (move.getDeparture() != bookMove.from) continue;
-			if (move.getDestination() != bookMove.to) continue;
-			const Piece promotion = move.isPromote() ? move.getPromotion() : NO_PIECE;
-			if (promotion != bookMove.promotion) continue;
-			return move;
-		}
-		return Move::EMPTY_MOVE;
-	}
-
-	/**
-	 * Walks a board along a line of book moves and back. It keeps the snapshots
-	 * the board needs to take a move back.
-	 */
-	class LineWalker {
-	public:
-		explicit LineWalker(MoveGenerator& position) : _position(position) {}
-
-		/**
-		 * Plays a book move. Returns false if the move is not legal in the
-		 * position, in which case nothing has been played.
-		 */
-		bool play(const BookMove& bookMove) {
-			const Move move = findMove(_position, bookMove);
-			if (move.isEmpty()) return false;
-			const PositionSnapshot snapshot = _position.getSnapshot();
-			_position.doMove(move);
-			if (!_position.isLegal()) {
-				_position.undoMove(move, snapshot);
-				_position.computeAttackMasksForBothColors();
-				return false;
-			}
-			_path.push_back(bookMove);
-			_moves.push_back(move);
-			_snapshots.push_back(snapshot);
-			return true;
-		}
-
-		/**
-		 * Takes the whole line back, the board stands at the start position
-		 * afterwards.
-		 */
-		void unplayAll() {
-			while (!_moves.empty()) {
-				_position.undoMove(_moves.back(), _snapshots.back());
-				// undoMove does not restore the attack masks and the move
-				// generation reads them.
-				_position.computeAttackMasksForBothColors();
-				_moves.pop_back();
-				_snapshots.pop_back();
-				_path.pop_back();
-			}
-		}
-
-		const std::vector<BookMove>& path() const {
-			return _path;
-		}
-
-		ply_t plies() const {
-			return ply_t(_path.size());
-		}
-
-	private:
-		MoveGenerator& _position;
-		std::vector<BookMove> _path;
-		std::vector<Move> _moves;
-		std::vector<PositionSnapshot> _snapshots;
-	};
 
 	/**
 	 * Adds every legal move of the position as a move of the book.
