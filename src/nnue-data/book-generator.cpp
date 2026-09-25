@@ -108,8 +108,11 @@ bool BookGenerator::generate(const Settings& settings) {
 	QaplaSearch::Search::setObserver(&collector);
 
 	// One observer for the whole process, so the search must not spread over
-	// threads while it is watched.
-	_board->setOption("Threads", "1");
+	// threads while it is watched. The options live in the option providers, not
+	// in setOption of the board - that one knows only the bitbase path.
+	for (auto* provider : _board->getUciOptionProviders()) {
+		if (provider->setUciOption("Threads", "1")) break;
+	}
 	ClockSetting clock;
 	clock.setSearchDepthLimit(settings.searchDepth);
 
