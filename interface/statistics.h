@@ -114,6 +114,13 @@ namespace QaplaInterface {
 		 * Handles input while in "wait for user action" mode
 		 */
 		void handleInput();
+
+		/**
+		 * Builds the library of start positions for the NNUE training data, see
+		 * src/nnue-data. Needs a build with QAPLA_GENERATE_NNUE_DATA, without it
+		 * the generator says so and does nothing.
+		 */
+		void generateNnueBook();
 		volatile Mode _mode;
 		bool _xBoardMode;
 		bool _computerIsWhite;

@@ -567,6 +567,9 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
 	if (!isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, TYPE == SearchRegion::PV, depth);
+	// The node is done, it has a best move and a value - the point an observer is
+	// interested in. Compiled away without QAPLA_GENERATE_NNUE_DATA.
+	if (!isSearchStopped()) SearchObserver::nodeFinished(stack, depth, ply);
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
 		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());

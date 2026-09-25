@@ -33,6 +33,7 @@
 #include "butterfly-boards.h"
 #include "../eval/pawntt.h"
 #include "quiescence.h"
+#include "search-observer.h"
 #include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
@@ -52,6 +53,16 @@ namespace QaplaSearch {
 		Search() : _clockManager(0) {
 			_pawnTT.setSizeInKilobytes(1024);
 			_quiescence.setPawnTT(&_pawnTT);
+		}
+
+		/**
+		 * Sets the observer the search reports its finished nodes and iterations
+		 * to, see search-observer.h. Without QAPLA_GENERATE_NNUE_DATA this does
+		 * nothing and the reports are compiled away. One observer for the whole
+		 * process, so a watched search has to run single threaded.
+		 */
+		static void setObserver(ISearchObserver* observer) {
+			SearchObserver::set(observer);
 		}
 
 		/**

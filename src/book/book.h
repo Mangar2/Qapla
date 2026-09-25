@@ -135,13 +135,7 @@ namespace QaplaBook {
 
 			const NodeIndex child = NodeIndex(_nodes.size());
 			_nodes.push_back(Entry{ ._move = move });
-			if (_nodes[parent]._firstChild == NO_NODE) {
-				_nodes[parent]._firstChild = child;
-			}
-			else {
-				_nodes[_nodes[parent]._lastChild]._nextSibling = child;
-			}
-			_nodes[parent]._lastChild = child;
+			linkChild(parent, child);
 			return child;
 		}
 
@@ -153,6 +147,7 @@ namespace QaplaBook {
 			// The root is a node like any other, it only has no move. Having it
 			// in the array keeps every walk below free of special cases.
 			_nodes.push_back(Entry{});
+			_leaves = 0;
 		}
 
 		// ---------------------- Reading -------------------------------------
@@ -254,6 +249,20 @@ namespace QaplaBook {
 		/** The number of moves in the book, the root not counted. */
 		size_t size() const {
 			return _nodes.size() - 1;
+		}
+
+		/**
+		 * The number of leaves: moves with no move below them. Kept up to date
+		 * while the book is built, so it costs nothing to ask - which matters,
+		 * because it is what a generator of start positions counts its work in.
+		 */
+		size_t leafCount() const {
+			return _leaves;
+		}
+
+		bool isLeaf(NodeIndex node) const {
+			assert(node < _nodes.size());
+			return _nodes[node]._firstChild == NO_NODE;
 		}
 
 		const BookHeader& header() const {
@@ -415,14 +424,25 @@ namespace QaplaBook {
 			const NodeIndex index = NodeIndex(_nodes.size());
 			_nodes.push_back(Entry{ ._move = node.move(), ._priority = node.priority(),
 				._payload = node._payload });
+			linkChild(parent, index);
+			return index;
+		}
+
+		/**
+		 * Appends a node to the child list of a parent and keeps the leaf count:
+		 * the new node is a leaf, and a parent that had no child until now stops
+		 * being one.
+		 */
+		void linkChild(NodeIndex parent, NodeIndex child) {
 			if (_nodes[parent]._firstChild == NO_NODE) {
-				_nodes[parent]._firstChild = index;
+				_nodes[parent]._firstChild = child;
+				if (parent != ROOT) _leaves--;
 			}
 			else {
-				_nodes[_nodes[parent]._lastChild]._nextSibling = index;
+				_nodes[_nodes[parent]._lastChild]._nextSibling = child;
 			}
-			_nodes[parent]._lastChild = index;
-			return index;
+			_nodes[parent]._lastChild = child;
+			_leaves++;
 		}
 
 		template <typename RECORD>
@@ -436,5 +456,6 @@ namespace QaplaBook {
 
 		std::vector<Entry> _nodes;
 		BookHeader _header;
+		size_t _leaves = 0;
 	};
 }

@@ -176,6 +176,8 @@ namespace QaplaSearch {
 				stack.clear();
 				searchOneIteration(searchBoard, stack, curDepth);
 				_clockManager.setSearchResult(curDepth, _search->getComputingInfo().getPVMoveValueInCentiPawn(0));
+				SearchObserver::iterationFinished(curDepth,
+					_search->getComputingInfo().getPVMoveValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth(curDepth)) {
 					break;
 				}
