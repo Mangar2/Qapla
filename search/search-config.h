@@ -27,6 +27,13 @@
 
 using namespace QaplaBasics;
 
+// Compiles the search observer in, see search-observer.h. It is the switch for
+// the NNUE training data generation: without it the "nnuebook" command of the
+// statistics interface has nothing to collect with, with it the search calls an
+// observer at every finished node. Uncomment it here or build with
+// EXTRA_DEFINES=-DQAPLA_GENERATE_NNUE_DATA.
+// #define QAPLA_GENERATE_NNUE_DATA
+
 namespace QaplaSearch {
 	class SearchConfig {
 	public:

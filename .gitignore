@@ -386,3 +386,6 @@ imgui.ini
 # Delivery/release workspace (not versioned)
 /delivery/
 .clangd
+
+# Generated position libraries and training data
+test/nnue/

@@ -21,6 +21,7 @@
 #include "statistics.h"
 #include <vector>
 #include <algorithm>
+#include "../src/nnue-data/book-generator.h"
 
 using namespace std;
 
@@ -174,5 +175,47 @@ void Statistics::handleInput() {
 	else if (token == "cores") readCores();
 	else if (token == "memory") readMemory();
 	else if (token == "epd") loadEPD();
+	else if (token == "nnuebook") generateNnueBook();
 	else if (checkClockCommands()) {}
+}
+
+/**
+ * nnuebook [out <file>] [add <file>] [leaves <n>] [sd <n>] [collect <n>]
+ *          [margin <n>] [maxply <n>] [seed <n>]
+ */
+void Statistics::generateNnueBook() {
+	QaplaNnueData::BookGenerator::Settings settings;
+	while (getNextTokenNonBlocking() != "") {
+		const string token = getCurrentToken();
+		if (token == "out") {
+			if (getNextTokenNonBlocking() != "") settings.outputFile = getCurrentToken();
+		}
+		else if (token == "add") {
+			if (getNextTokenNonBlocking() != "") settings.inputFile = getCurrentToken();
+		}
+		else if (token == "leaves") {
+			if (getNextTokenNonBlocking() != "") settings.leaves = getCurrentTokenAsUnsignedInt();
+		}
+		else if (token == "sd") {
+			if (getNextTokenNonBlocking() != "") settings.searchDepth = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "collect") {
+			if (getNextTokenNonBlocking() != "") settings.collectRemainingDepth = QaplaSearch::ply_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "margin") {
+			if (getNextTokenNonBlocking() != "") settings.margin = value_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "maxply") {
+			if (getNextTokenNonBlocking() != "") settings.maxPly = QaplaSearch::ply_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "seed") {
+			if (getNextTokenNonBlocking() != "") settings.seed = getCurrentTokenAsUnsignedInt();
+		}
+		else {
+			println("Error (unknown nnuebook parameter): " + token);
+			return;
+		}
+	}
+	QaplaNnueData::BookGenerator generator(getBoard());
+	generator.generate(settings);
 }
