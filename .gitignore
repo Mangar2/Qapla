@@ -393,3 +393,6 @@ test/nnue/
 # Python virtual environment of the trainer
 src/trainer/.venv/
 src/trainer/__pycache__/
+
+# The net the engine plays with, a build artefact
+qapla.nnue
