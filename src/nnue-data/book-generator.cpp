@@ -65,6 +65,59 @@ namespace {
 	}
 }
 
+std::optional<uint64_t> QaplaNnueData::exportOpenings(const PositionBook& book,
+	const std::string& path, uint64_t maxLines) {
+	const std::filesystem::path target(path);
+	if (target.has_parent_path() && !target.parent_path().empty()) {
+		std::filesystem::create_directories(target.parent_path());
+	}
+	std::ofstream stream(target, std::ios::trunc);
+	if (!stream) {
+		std::cout << "Error (cannot write openings): " << path << std::endl;
+		return std::nullopt;
+	}
+
+	MoveGenerator position;
+	setToStartPosition(position);
+	LineWalker walker(position);
+	uint64_t written = 0;
+
+	const auto writeLine = [&]() {
+		stream << "[Event \"Qapla position library\"]\n[Result \"*\"]\n\n";
+		uint32_t ply = 0;
+		for (const BookMove& move : walker.path()) {
+			if (ply % 2 == 0) stream << (ply / 2 + 1) << ". ";
+			stream << squareToString(move.from) << squareToString(move.to);
+			if (move.promotion != NO_PIECE) stream << pieceToPromoteChar(move.promotion);
+			stream << ' ';
+			ply++;
+		}
+		stream << "*\n\n";
+		written++;
+	};
+
+	const auto walkLeaves = [&](auto&& self, PositionBook::NodeIndex node) -> void {
+		if (maxLines != 0 && written >= maxLines) return;
+		auto child = book.firstChild(node);
+		if (child == PositionBook::NO_NODE) {
+			if (walker.plies() > 0) writeLine();
+			return;
+		}
+		for (; child != PositionBook::NO_NODE; child = book.nextSibling(child)) {
+			if (maxLines != 0 && written >= maxLines) return;
+			if (!walker.play(book.move(child, BoardPosition(position)))) continue;
+			self(self, child);
+			walker.unplayTo(walker.plies() - 1);
+		}
+	};
+	walkLeaves(walkLeaves, PositionBook::ROOT);
+	if (!stream) {
+		std::cout << "Error (writing openings failed): " << path << std::endl;
+		return std::nullopt;
+	}
+	return written;
+}
+
 bool BookGenerator::generate(const Settings& settings) {
 	if (!QaplaSearch::SearchObserver::isCompiledIn()) {
 		std::cout << "Error (not compiled in): the search observer is missing, build with "
