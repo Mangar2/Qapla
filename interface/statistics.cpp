@@ -227,7 +227,7 @@ void Statistics::generateNnueBook() {
 
 /**
  * nnuegames [book <file>] [out <file>] [sd <n>] [win <n>] [maxply <n>]
- *           [first <n>] [games <n>] [threads <n>] [hash <mb>]
+ *           [first <n>] [games <n>] [threads <n>] [hash <mb>] [clearhash]
  */
 void Statistics::generateNnueGames() {
 	QaplaNnueData::GameGenerator::Settings settings;
@@ -259,6 +259,9 @@ void Statistics::generateNnueGames() {
 		}
 		else if (token == "hash") {
 			if (getNextTokenNonBlocking() != "") settings.hashInMegabytes = uint32_t(getCurrentTokenAsUnsignedInt());
+		}
+		else if (token == "clearhash") {
+			settings.clearHashPerGame = true;
 		}
 		else {
 			println("Error (unknown nnuegames parameter): " + token);
