@@ -196,9 +196,14 @@ namespace QaplaSearch {
 			const QaplaNnue::Evaluator evaluator(*QaplaNnue::network());
 			const value_t value = evaluator.evaluate(position);
 			const value_t reference = evaluator.evaluateReference(position);
+			// The value the search really uses: the net plus the corrections of the
+			// endgame knowledge, see Eval::correctValue. In a build without the net it
+			// is the hand written evaluation and the two are not comparable.
+			const value_t used = Eval::eval(position);
 			return "nnue " + std::to_string(value) + " reference " + std::to_string(reference)
 				+ (value == reference ? " (equal)" : " (DIFFERENT)")
-				+ (QaplaNnue::Evaluator::usesVectorInstructions() ? " vector" : " scalar");
+				+ (QaplaNnue::Evaluator::usesVectorInstructions() ? " vector" : " scalar")
+				+ ", used by the search " + std::to_string(used);
 		}
 
 		/**

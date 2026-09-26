@@ -161,6 +161,14 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	}
 
 
+	return correctValue<PRINT>(position, result, ply);
+}
+
+/**
+ * Turns a piece based value into the final one, see the declaration.
+ */
+template <bool PRINT>
+value_t Eval::correctValue(MoveGenerator& position, value_t result, value_t ply, bool addTempo) {
 	value_t endgameCorrection = EvalEndgame::eval(position, result);
 	if (endgameCorrection != result) {
 		result = endgameCorrection;
@@ -187,7 +195,9 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			}
 		}
 		
-		result += position.isWhiteToMove() ? tempo : -tempo;
+		if (addTempo) {
+			result += position.isWhiteToMove() ? tempo : -tempo;
+		}
 		if constexpr (PRINT) {
 			cout << "Tempo correction:"
 				<< std::right << std::setw(19) << result << std::endl;
@@ -216,6 +226,9 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	if (result == 0) result = 1;
 	return result;
 }
+
+template value_t Eval::correctValue<true>(MoveGenerator& position, value_t result, value_t ply, bool addTempo);
+template value_t Eval::correctValue<false>(MoveGenerator& position, value_t result, value_t ply, bool addTempo);
 
 void Eval::printEvalBoard(const std::vector<PieceInfo>& details, value_t midgameInPercent) {
 	// Überschrift

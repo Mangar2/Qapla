@@ -69,7 +69,14 @@ namespace ChessEval {
 #else
 #ifdef QAPLA_USE_NNUE
 			if (QaplaNnue::network() != nullptr) {
-				return QaplaNnue::accumulators.evaluate(position);
+				// The net is a value of the pieces on the board like the one the hand
+				// written evaluation computes, and it gets the same corrections on top:
+				// without them a won endgame is worth a pawn to it and a dead drawn one
+				// is worth trading into.
+				const value_t netValue = QaplaNnue::accumulators.evaluate(position);
+				const value_t whiteValue = position.isWhiteToMove() ? netValue : -netValue;
+				const value_t corrected = correctValue<false>(position, whiteValue, ply, false);
+				return position.isWhiteToMove() ? corrected : -corrected;
 			}
 			// Built with the net and playing without one. Falling through to the hand
 			// written evaluation keeps the engine usable, and saying so keeps the
@@ -129,6 +136,24 @@ namespace ChessEval {
 		 */
 		template <bool PRINT>
 		static value_t lazyEval(MoveGenerator& position, value_t ply, PawnTT* pawnttPtr = nullptr);
+
+		/**
+		 * Turns a value of the pieces on the board into the final one. The endgame
+		 * knowledge corrects it and may replace it outright - a won endgame with the
+		 * winning bonus, a known draw with nothing - and what survives that is given
+		 * the tempo bonus, damped towards the fifty move rule and scaled for bishops
+		 * on opposite colours.
+		 *
+		 * It works on a value seen from white, as lazyEval does, and it is a
+		 * correction of a value rather than an evaluation of its own - which is what
+		 * lets the net use the same knowledge.
+		 *
+		 * @param addTempo false for the net: it is told which side is to move by the
+		 *        order of its two accumulators and has the bonus in its value already
+		 */
+		template <bool PRINT = false>
+		static value_t correctValue(MoveGenerator& position, value_t result, value_t ply,
+			bool addTempo = true);
 
 		/**
 		 * Fetches details for the evaluation
