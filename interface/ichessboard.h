@@ -131,6 +131,15 @@ namespace QaplaInterface {
         /** Immediately prints evaluation information. */
         virtual void printEvalInfo() = 0;
 
+        /**
+         * Evaluates the current position with the nnue net, loading the net from
+         * netFile first if that is not empty. Returns a line of text about it, so
+         * that the interface needs to know nothing about nets.
+         */
+        virtual std::string nnueEvalInfo([[maybe_unused]] const std::string& netFile) {
+            return "no nnue evaluation in this build";
+        }
+
         /** Evaluates the current position numerically. */
         virtual value_t eval() = 0;
 

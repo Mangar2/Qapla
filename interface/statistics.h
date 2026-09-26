@@ -127,6 +127,17 @@ namespace QaplaInterface {
 		 * src/nnue-data. Needs no special build.
 		 */
 		void generateNnueGames();
+
+		/**
+		 * Writes a net of pseudo random weights, to test the inference before a net
+		 * has been trained.
+		 */
+		void writeNnueNet();
+
+		/**
+		 * Evaluates the current position with the net.
+		 */
+		void evalNnue();
 		volatile Mode _mode;
 		bool _xBoardMode;
 		bool _computerIsWhite;

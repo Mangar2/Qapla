@@ -23,6 +23,7 @@
 #include <algorithm>
 #include "../src/nnue-data/book-generator.h"
 #include "../src/nnue-data/game-generator.h"
+#include "../src/nnue/nnue-arch.h"
 
 using namespace std;
 
@@ -178,6 +179,8 @@ void Statistics::handleInput() {
 	else if (token == "epd") loadEPD();
 	else if (token == "nnuebook") generateNnueBook();
 	else if (token == "nnuegames") generateNnueGames();
+	else if (token == "nnuenet") writeNnueNet();
+	else if (token == "nnueeval") evalNnue();
 	else if (checkClockCommands()) {}
 }
 
@@ -264,4 +267,44 @@ void Statistics::generateNnueGames() {
 	}
 	QaplaNnueData::GameGenerator generator(getBoard());
 	generator.generate(settings);
+}
+
+/**
+ * nnuenet <file> [seed <n>]
+ */
+void Statistics::writeNnueNet() {
+	std::string file = getNextTokenNonBlocking();
+	if (file.empty()) {
+		println("Error (no file): nnuenet <file> [seed <n>]");
+		return;
+	}
+	uint64_t seed = 1;
+	while (getNextTokenNonBlocking() != "") {
+		if (getCurrentToken() == "seed") {
+			if (getNextTokenNonBlocking() != "") seed = getCurrentTokenAsUnsignedInt();
+		}
+		else {
+			println("Error (unknown nnuenet parameter): " + getCurrentToken());
+			return;
+		}
+	}
+	const auto network = QaplaNnue::randomNetwork(seed);
+	if (QaplaNnue::writeNetwork(file, *network)) println("Written " + file);
+}
+
+/**
+ * nnueeval [net <file>]
+ */
+void Statistics::evalNnue() {
+	std::string netFile;
+	while (getNextTokenNonBlocking() != "") {
+		if (getCurrentToken() == "net") {
+			if (getNextTokenNonBlocking() != "") netFile = getCurrentToken();
+		}
+		else {
+			println("Error (unknown nnueeval parameter): " + getCurrentToken());
+			return;
+		}
+	}
+	println(getBoard()->nnueEvalInfo(netFile));
 }
