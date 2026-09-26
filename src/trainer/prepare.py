@@ -64,8 +64,50 @@ def write_meta(prefix, sources):
             stream.write('%d %s\n' % (count, source))
 
 
+class _Writer:
+    """Collects positions and writes them to one cache."""
+
+    def __init__(self, prefix, mode, sources):
+        self.prefix = prefix
+        self.sources = sources
+        self.features = array('H')
+        self.values = array('H')       # the code of a win probability, see format.py
+        self.results = array('B')
+        self.total = 0
+        self.files = [open(prefix + name, mode)
+                      for name in ('.features', '.values', '.results')]
+
+    def add(self, squares, kings, whiteToMove, value, result):
+        board = fmt.Board()
+        board.squares, board.kings, board.white_to_move = squares, kings, whiteToMove
+        own = fmt.WHITE if whiteToMove else fmt.BLACK
+        other = fmt.BLACK if whiteToMove else fmt.WHITE
+        for colour in (own, other):
+            active = fmt.features(board, colour)
+            # A position has at most 32 pieces and one of them is the own king, so the
+            # slots are never all needed.
+            self.features.extend(active)
+            self.features.extend([PADDING] * (SLOTS - len(active)))
+        self.values.append(value)
+        self.results.append(result)
+        self.total += 1
+
+    def flush(self):
+        self.features.tofile(self.files[0])
+        self.values.tofile(self.files[1])
+        self.results.tofile(self.files[2])
+        del self.features[:], self.values[:], self.results[:]
+
+    def close(self, counted):
+        self.flush()
+        for handle in self.files:
+            handle.close()
+        self.sources.append((counted, self.source))
+        write_meta(self.prefix, self.sources)
+
+
 def prepare(cache_prefix, game_paths, append=False, max_positions=None,
-            report_every=500000):
+            report_every=500000, validation_every=0):
     existing_format, sources = read_meta(cache_prefix)
     if append:
         if existing_format is None:
@@ -91,56 +133,65 @@ def prepare(cache_prefix, game_paths, append=False, max_positions=None,
         sources = []
 
     mode = 'ab' if append else 'wb'
-    features = array('H')
-    values = array('H')            # the code of a win probability, see format.py
-    results = array('B')
-    padding_row = [PADDING] * SLOTS
+    validation_prefix = cache_prefix + '-val'
+    _, validation_sources = read_meta(validation_prefix)
+    if not append:
+        validation_sources = []
+
+    training = _Writer(cache_prefix, mode, sources)
+    validation = _Writer(validation_prefix, mode, validation_sources) \
+        if validation_every > 0 else None
     start = time.time()
     total = 0
+    games = 0
 
-    with open(cache_prefix + '.features', mode) as feature_file, \
-            open(cache_prefix + '.values', mode) as value_file, \
-            open(cache_prefix + '.results', mode) as result_file:
-
-        def flush():
-            features.tofile(feature_file)
-            values.tofile(value_file)
-            results.tofile(result_file)
-            del features[:], values[:], results[:]
-
-        for game_path in game_paths:
-            fromThisFile = 0
-            for board, value, result in fmt.read_positions(
-                    game_path, None if max_positions is None else max_positions - total):
-                own_colour = fmt.WHITE if board.white_to_move else fmt.BLACK
-                other_colour = fmt.BLACK if board.white_to_move else fmt.WHITE
-                for colour in (own_colour, other_colour):
-                    active = fmt.features(board, colour)
-                    # A position has at most 32 pieces and one of them is the own king,
-                    # so the slots are never all needed.
-                    features.extend(active)
-                    features.extend(padding_row[len(active):])
-                values.append(value)
-                results.append(result)
-                fromThisFile += 1
+    for game_path in game_paths:
+        training.source = validation.source = game_path
+        fromThisFile = [0, 0]
+        for positions in fmt.read_positions_by_game(game_path):
+            games += 1
+            # Every n-th game, not every n-th position: the positions of one game are
+            # almost the same position, so holding single ones back holds nothing back.
+            target = validation if validation is not None and games % validation_every == 0 \
+                else training
+            for squares, kings, whiteToMove, value, result in positions:
+                target.add(squares, kings, whiteToMove, value, result)
+                fromThisFile[0 if target is training else 1] += 1
                 total += 1
                 if total % report_every == 0:
-                    flush()
+                    training.flush()
+                    if validation is not None:
+                        validation.flush()
                     print('%d positions, %.0f per second'
                           % (total, total / (time.time() - start)), flush=True)
-                if max_positions is not None and total >= max_positions:
-                    break
-            flush()
-            sources.append((fromThisFile, game_path))
-            print('%s: %d positions' % (game_path, fromThisFile), flush=True)
             if max_positions is not None and total >= max_positions:
                 break
+        print('%s: %d positions for training, %d for validation'
+              % (game_path, fromThisFile[0], fromThisFile[1]), flush=True)
+        training.sources.append((fromThisFile[0], game_path))
+        if validation is not None:
+            validation.sources.append((fromThisFile[1], game_path))
+        if max_positions is not None and total >= max_positions:
+            break
 
-    write_meta(cache_prefix, sources)
-    allPositions = sum(count for count, _ in sources)
-    print('%d positions added in %.0f s, the cache now holds %d from %d files, %.1f GB'
-          % (total, time.time() - start, allPositions, len(sources),
-             allPositions * BYTES_PER_POSITION / 1e9), flush=True)
+    training.flush()
+    write_meta(cache_prefix, training.sources)
+    for handle in training.files:
+        handle.close()
+    if validation is not None:
+        validation.flush()
+        write_meta(validation_prefix, validation.sources)
+        for handle in validation.files:
+            handle.close()
+
+    allTraining = sum(count for count, _ in training.sources)
+    print('%d positions added in %.0f s; training holds %d, %.1f GB'
+          % (total, time.time() - start, allTraining,
+             allTraining * BYTES_PER_POSITION / 1e9), flush=True)
+    if validation is not None:
+        allValidation = sum(count for count, _ in validation.sources)
+        print('validation holds %d positions in %s, every %dth game'
+              % (allValidation, validation_prefix, validation_every), flush=True)
     return total
 
 
@@ -151,5 +202,8 @@ if __name__ == '__main__':
     parser.add_argument('--append', action='store_true',
                         help='add to a cache that is already there')
     parser.add_argument('--max-positions', type=int, default=None)
+    parser.add_argument('--validation-every', type=int, default=0,
+                        help='put every n-th game into <cache>-val instead, 0 for none')
     arguments = parser.parse_args()
-    prepare(arguments.cache, arguments.games, arguments.append, arguments.max_positions)
+    prepare(arguments.cache, arguments.games, arguments.append, arguments.max_positions,
+            validation_every=arguments.validation_every)

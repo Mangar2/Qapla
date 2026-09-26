@@ -288,6 +288,25 @@ def write_games(path, games):
                 stream.write(bytes([record & 0xFF, (record >> 8) & 0xFF, (record >> 16) & 0xFF]))
 
 
+def read_positions_by_game(path):
+    """Yields one list of (board, value code, result) per game.
+
+    The games have to be kept apart for a validation set: positions of one game are almost
+    the same position, so holding back single positions would hold back nothing - their
+    neighbours would be in the training set and the number would only look good.
+    """
+    for game in read_games(path):
+        board = Board()
+        positions = []
+        for packed, value, result in game:
+            if value != NO_GAME_VALUE:
+                positions.append((board.squares[:], board.kings[:], board.white_to_move,
+                                  value, result))
+            departure, destination, promotion = unpack_move(packed, board.squares)
+            board.apply(departure, destination, promotion)
+        yield positions
+
+
 def read_positions(path, max_positions=None):
     """Yields (board, value code, result) for every position that carries a value.
 
