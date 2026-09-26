@@ -202,7 +202,7 @@ namespace QaplaSearch {
 			const value_t used = Eval::eval(position);
 			return "nnue " + std::to_string(value) + " reference " + std::to_string(reference)
 				+ (value == reference ? " (equal)" : " (DIFFERENT)")
-				+ (QaplaNnue::Evaluator::usesVectorInstructions() ? " vector" : " scalar")
+				+ " " + QaplaNnue::Evaluator::vectorPath()
 				+ ", used by the search " + std::to_string(used);
 		}
 

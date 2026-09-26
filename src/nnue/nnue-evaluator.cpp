@@ -24,13 +24,7 @@
 
 #include "nnue-evaluator.h"
 #include "nnue-features.h"
-
-#if defined(__ARM_NEON) && defined(__ARM_FEATURE_DOTPROD)
-#include <arm_neon.h>
-#define NNUE_NEON_DOTPROD 1
-#else
-#define NNUE_NEON_DOTPROD 0
-#endif
+#include "nnue-simd.h"
 
 using namespace QaplaNnue;
 using QaplaBasics::Board;
@@ -39,16 +33,29 @@ using QaplaBasics::value_t;
 
 namespace {
 
-	/** The clipped relu: the activation of every layer. */
+	/** The clipped relu of the reference path. */
 	constexpr int8_t clippedRelu(int32_t value) {
 		return int8_t(value < 0 ? 0 : (value > QA ? QA : value));
 	}
 
 	/**
-	 * An affine layer plus its activation, plainly.
+	 * An affine layer plus its activation. The dot product is the one operation of the
+	 * processor, everything around it is plain.
 	 */
 	template <uint32_t INPUT_SIZE, uint32_t OUTPUT_SIZE>
 	void affineRelu(const int8_t* input, const int8_t* weight, const int32_t* bias,
+		int8_t* output) {
+		static_assert(INPUT_SIZE % 16 == 0, "the dot product takes a multiple of sixteen");
+		for (uint32_t out = 0; out < OUTPUT_SIZE; out++) {
+			const int32_t sum = bias[out]
+				+ dotProduct(weight + size_t(out) * INPUT_SIZE, input, INPUT_SIZE);
+			output[out] = clippedRelu(sum >> QB_SHIFT);
+		}
+	}
+
+	/** The same layer without any instruction of the processor, for the test of the one above. */
+	template <uint32_t INPUT_SIZE, uint32_t OUTPUT_SIZE>
+	void affineReluPlain(const int8_t* input, const int8_t* weight, const int32_t* bias,
 		int8_t* output) {
 		for (uint32_t out = 0; out < OUTPUT_SIZE; out++) {
 			int32_t sum = bias[out];
@@ -57,40 +64,6 @@ namespace {
 			output[out] = clippedRelu(sum >> QB_SHIFT);
 		}
 	}
-
-#if NNUE_NEON_DOTPROD
-	/**
-	 * The same layer with the dot product instruction, which multiplies and adds
-	 * sixteen bytes at a time. INPUT_SIZE is a multiple of sixteen for both layers
-	 * of this net.
-	 */
-	template <uint32_t INPUT_SIZE, uint32_t OUTPUT_SIZE>
-	void affineReluNeon(const int8_t* input, const int8_t* weight, const int32_t* bias,
-		int8_t* output) {
-		static_assert(INPUT_SIZE % 16 == 0);
-		for (uint32_t out = 0; out < OUTPUT_SIZE; out++) {
-			const int8_t* row = weight + size_t(out) * INPUT_SIZE;
-			int32x4_t sum = vdupq_n_s32(0);
-			for (uint32_t in = 0; in < INPUT_SIZE; in += 16) {
-				sum = vdotq_s32(sum, vld1q_s8(row + in), vld1q_s8(input + in));
-			}
-			output[out] = clippedRelu((bias[out] + vaddvq_s32(sum)) >> QB_SHIFT);
-		}
-	}
-
-	/**
-	 * Turns an accumulator into the bytes the first dense layer reads.
-	 */
-	void clippedReluNeon(const int16_t* accumulator, int8_t* output) {
-		const int16x8_t zero = vdupq_n_s16(0);
-		const int16x8_t limit = vdupq_n_s16(QA);
-		for (uint32_t index = 0; index < ACCUMULATOR_SIZE; index += 16) {
-			const int16x8_t low = vminq_s16(vmaxq_s16(vld1q_s16(accumulator + index), zero), limit);
-			const int16x8_t high = vminq_s16(vmaxq_s16(vld1q_s16(accumulator + index + 8), zero), limit);
-			vst1q_s8(output + index, vcombine_s8(vmovn_s16(low), vmovn_s16(high)));
-		}
-	}
-#endif
 
 	/**
 	 * The value the net produces, brought into the value unit of the engine.
@@ -101,35 +74,21 @@ namespace {
 }
 
 bool Evaluator::usesVectorInstructions() {
-	return NNUE_NEON_DOTPROD != 0;
+	return hasVectorPath();
+}
+
+const char* Evaluator::vectorPath() {
+	return vectorPathName();
 }
 
 void QaplaNnue::addFeature(const Network& network, int16_t* accumulator, uint32_t feature) {
-	const int16_t* column = network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE;
-#if NNUE_NEON_DOTPROD
-	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element += 8) {
-		vst1q_s16(accumulator + element,
-			vaddq_s16(vld1q_s16(accumulator + element), vld1q_s16(column + element)));
-	}
-#else
-	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element++) {
-		accumulator[element] = int16_t(accumulator[element] + column[element]);
-	}
-#endif
+	accumulatorAdd(accumulator,
+		network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE);
 }
 
 void QaplaNnue::removeFeature(const Network& network, int16_t* accumulator, uint32_t feature) {
-	const int16_t* column = network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE;
-#if NNUE_NEON_DOTPROD
-	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element += 8) {
-		vst1q_s16(accumulator + element,
-			vsubq_s16(vld1q_s16(accumulator + element), vld1q_s16(column + element)));
-	}
-#else
-	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element++) {
-		accumulator[element] = int16_t(accumulator[element] - column[element]);
-	}
-#endif
+	accumulatorSubtract(accumulator,
+		network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE);
 }
 
 template <Piece PERSPECTIVE>
@@ -147,26 +106,19 @@ template void QaplaNnue::refreshAccumulator<QaplaBasics::WHITE>(const Network&, 
 template void QaplaNnue::refreshAccumulator<QaplaBasics::BLACK>(const Network&, const Board&, int16_t*);
 
 value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int16_t* opponent) {
-#if NNUE_NEON_DOTPROD
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
-	clippedReluNeon(own, input);
-	clippedReluNeon(opponent, input + ACCUMULATOR_SIZE);
+	clippedReluBlock(own, input, ACCUMULATOR_SIZE);
+	clippedReluBlock(opponent, input + ACCUMULATOR_SIZE, ACCUMULATOR_SIZE);
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineReluNeon<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
+	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
 		network.l1Bias.data(), hidden1);
-	affineReluNeon<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
+	affineRelu<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
 		network.l2Bias.data(), hidden2);
 
-	int32_t output = network.outputBias;
-	for (uint32_t index = 0; index < L2_SIZE; index++) {
-		output += int32_t(network.outputWeight[index]) * int32_t(hidden2[index]);
-	}
-	return toEngineValue(output);
-#else
-	return forwardReference(network, own, opponent);
-#endif
+	return toEngineValue(network.outputBias
+		+ dotProduct(network.outputWeight.data(), hidden2, L2_SIZE));
 }
 
 value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
@@ -179,9 +131,9 @@ value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
+	affineReluPlain<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
 		network.l1Bias.data(), hidden1);
-	affineRelu<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
+	affineReluPlain<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
 		network.l2Bias.data(), hidden2);
 
 	int32_t output = network.outputBias;
