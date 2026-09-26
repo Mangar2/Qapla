@@ -41,6 +41,7 @@
 #include "../bitbase/bitbase-reader.h"
 #include "../bitbase/bitbase-options.h"
 #include "../src/syzygy/tablebase.h"
+#include "../src/nnue/nnue-evaluator.h"
 
 using namespace QaplaMoveGenerator;
 using namespace QaplaInterface;
@@ -171,6 +172,24 @@ namespace QaplaSearch {
 	     * Returns the current position in FEN format
 		 */
 		virtual std::string getFen() { return position.getFen(moveHistory.getHalfMoveCount() / 2); }
+
+		/**
+		 * Evaluates the current position with the nnue net. The net is kept, so a
+		 * second call needs no path.
+		 */
+		virtual std::string nnueEvalInfo(const std::string& netFile) {
+			if (!netFile.empty()) {
+				_nnueNetwork = QaplaNnue::readNetwork(netFile);
+				if (_nnueNetwork == nullptr) return "no net loaded";
+			}
+			if (_nnueNetwork == nullptr) return "no net loaded, give one with 'net <file>'";
+			const QaplaNnue::Evaluator evaluator(*_nnueNetwork);
+			const value_t value = evaluator.evaluate(position);
+			const value_t reference = evaluator.evaluateReference(position);
+			return "nnue " + std::to_string(value) + " reference " + std::to_string(reference)
+				+ (value == reference ? " (equal)" : " (DIFFERENT)")
+				+ (QaplaNnue::Evaluator::usesVectorInstructions() ? " vector" : " scalar");
+		}
 
 		/**
 		 * Retrieves the what if object
@@ -560,6 +579,7 @@ namespace QaplaSearch {
 		IterativeDeepening iterativeDeepening;
 		// WhatIf whatIf;
 		uint32_t _workerCount;
+		std::unique_ptr<QaplaNnue::Network> _nnueNetwork;
 
 	};
 }
