@@ -26,11 +26,11 @@
  * all.
  *
  * A king move is the exception: the king square is the first part of every feature
- * index of its own perspective, so all of them change at once and that perspective
- * is computed from nothing. Castling is treated the same way, the rook moving
- * along with the king. Both perspectives are refreshed there, which is more than
- * necessary - the opponent's side only loses and gains the king feature - and is
- * left that way until the cheap cases are measured.
+ * index of its own perspective, so all of them change at once. That is what the cache
+ * below is for. Castling is treated the same way, the rook moving along with the king.
+ * Both perspectives are refreshed there, which is more than necessary - the opponent's
+ * side only loses and gains the king feature - and is left that way until the cheap
+ * cases are measured.
  *
  * The stack is one per thread, and the search must push and pop it in step with
  * the board. Where that is not guaranteed - an evaluation asked for outside a
@@ -43,6 +43,7 @@
 
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -71,6 +72,42 @@ namespace QaplaNnue {
 	 * for a result of the net.
 	 */
 	void reportMissingNetwork();
+
+	/**
+	 * One accumulator per king square and perspective, with the piece placement it
+	 * belongs to.
+	 *
+	 * A king move has to build its perspective's accumulator anew, and doing that from
+	 * the bias costs all 31 weight columns. But the last time the king stood on that
+	 * square, most of the other pieces stood where they stand now: what changed is a
+	 * few of them. So the cache keeps, per king square, the accumulator and the
+	 * bitboards it was computed from, and a refresh applies the difference between
+	 * those bitboards and the current ones - a handful of columns instead of 31, and
+	 * fewer the more often the king returns.
+	 *
+	 * An entry starts as an empty board, so its first use adds every piece and costs
+	 * what the computation from nothing costs. Nothing is ever wrong in it: the
+	 * bitboards say exactly which pieces the accumulator holds.
+	 */
+	class KingSquareCache {
+	public:
+		/** Writes the accumulator of a perspective and keeps the entry up to date. */
+		template <QaplaBasics::Piece PERSPECTIVE>
+		void refresh(const Network& network, const QaplaBasics::Board& board,
+			int16_t* accumulator);
+
+		/** Throws everything away, for a new net or a new game. */
+		void clear(const Network& network);
+
+	private:
+		struct Entry {
+			alignas(NNUE_ALIGNMENT) int16_t accumulator[ACCUMULATOR_SIZE];
+			/** The pieces the accumulator above holds, by piece. */
+			std::array<QaplaBasics::bitBoard_t, QaplaBasics::PIECE_AMOUNT> pieces;
+		};
+
+		std::vector<Entry> _entries;
+	};
 
 	class AccumulatorStack {
 	public:
@@ -113,6 +150,9 @@ namespace QaplaNnue {
 		void computeBoth(const QaplaBasics::Board& board, Entry& entry);
 
 		std::vector<Entry> _entries;
+		KingSquareCache _cache;
+		/** The net the cache was filled for; another one makes it worthless. */
+		const Network* _cachedNetwork = nullptr;
 		uint32_t _top = 0;
 		bool _valid = false;
 	};
