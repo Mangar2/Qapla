@@ -12,11 +12,16 @@ reading memory.
 
     python3 prepare.py ../../test/nnue/games-100k.gam ../../test/nnue/cache
 
-writes cache.features (uint16), cache.values (int16) and cache.results (uint8).
+writes cache.features (uint16), cache.values (uint16), cache.results (uint8) and a
+cache.meta naming the format.
 
-The cache belongs to the feature set it was written with. Change the features and
-it has to be written again - there is no version in it, because the only honest
-answer to a stale cache is to rebuild it.
+The value of a position is the code of a win probability, as the game file holds it, and
+the result is one of four - win, draw, loss, or none for a game whose result says nothing
+about its positions.
+
+The cache belongs to the feature set and the format it was written with. A cache of
+another one is refused rather than read as something else, and writing it again is a
+minute.
 """
 
 import sys
@@ -29,14 +34,20 @@ import netfile
 PADDING = netfile.FEATURE_COUNT
 SLOTS = fmt.MAX_ACTIVE_FEATURES
 
+# What the files hold. A cache written by another version is refused, see dataset.py.
+CACHE_FORMAT = 'halfka-probability-v2'
+
 
 def prepare(game_path, cache_prefix, max_positions=None, report_every=500000):
     features = array('H')
-    values = array('h')
+    values = array('H')            # the code of a win probability, see format.py
     results = array('B')
     padding_row = [PADDING] * SLOTS
     start = time.time()
     count = 0
+
+    with open(cache_prefix + '.meta', 'w') as meta_file:
+        meta_file.write('%s %d\n' % (CACHE_FORMAT, SLOTS))
 
     with open(cache_prefix + '.features', 'wb') as feature_file, \
             open(cache_prefix + '.values', 'wb') as value_file, \

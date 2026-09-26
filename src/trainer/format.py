@@ -72,6 +72,53 @@ def unpack_move(packed, squares):
     return square, to, promotion
 
 
+def pack_move(departure, destination, promotion=NO_PIECE):
+    """The eleven bit code of a move, or None if the format cannot express it.
+
+    The counterpart of unpack_move and of packMove in src/book/packed-move.h. Needed by
+    the converter that turns a pgn into a game file; the round trip against unpack_move
+    is what keeps the two in step.
+    """
+    file_delta = (destination & 7) - (departure & 7)
+    rank_delta = (destination >> 3) - (departure >> 3)
+    if file_delta == 0 and rank_delta == 0:
+        return None
+
+    packed = None
+    if abs(file_delta) * abs(rank_delta) == 2:
+        # A knight, whose direction points back at the departure square.
+        backwards = departure - destination
+        for index in range(KNIGHT_DIRECTIONS):
+            if DIRECTIONS[index] == backwards:
+                packed = destination | (index << DIRECTION_SHIFT)
+                break
+    elif file_delta == 0 or rank_delta == 0 or abs(file_delta) == abs(rank_delta):
+        def sign(value):
+            return (value > 0) - (value < 0)
+        step = sign(rank_delta) * 8 + sign(file_delta)
+        for index in range(KNIGHT_DIRECTIONS, len(DIRECTIONS)):
+            if DIRECTIONS[index] == step:
+                packed = destination | (index << DIRECTION_SHIFT)
+                break
+    if packed is None:
+        return None
+    if promotion == NO_PIECE:
+        return packed
+
+    # The rank bits of the destination are redundant for a promotion and carry the
+    # piece instead; a queen leaves them as they are.
+    rank_bits = packed & TO_RANK_MASK
+    last_rank = rank_bits == TO_RANK_MASK
+    if not last_rank and rank_bits != 0:
+        return None
+    kind = promotion & ~1
+    codes = {QUEEN: 7 if last_rank else 0, ROOK: 6 if last_rank else 1,
+             BISHOP: 5 if last_rank else 2, KNIGHT: 4 if last_rank else 3}
+    if kind not in codes:
+        return None
+    return (packed & ~TO_RANK_MASK) | (codes[kind] << 3) | PROMOTION_FLAG
+
+
 # --- a board that only replays -----------------------------------------------
 
 START_PLACEMENT = None
@@ -158,27 +205,66 @@ def features(board, perspective):
 
 # --- the game file, see src/nnue-data/game-file.h -----------------------------
 
-NO_GAME_VALUE = -1024
-RESULT_LOSS, RESULT_DRAW, RESULT_WIN = 0, 1, 2
+GAME_FILE_MAGIC = b'QAPLAGM2'
+GAME_FILE_VERSION = 2
+
+# The value of a record is a win probability, stored as a code. Zero means the move
+# has none, which happens for the moves of an opening line that were never searched.
+NO_GAME_VALUE = 0
+MIN_VALUE_CODE = 1
+MAX_VALUE_CODE = (1 << 11) - 1
+
+RESULT_LOSS, RESULT_DRAW, RESULT_WIN, RESULT_NONE = 0, 1, 2, 3
+
+# The scale the engine's value is turned into a probability with, NET_VALUE_SCALE of
+# src/nnue/nnue-arch.h. Only the converter needs it; a file already holds probabilities.
+VALUE_SCALE = 400
+
+
+def probability_of_code(code):
+    """The probability of a code, or None for a move without a value."""
+    if code == NO_GAME_VALUE:
+        return None
+    return (code - MIN_VALUE_CODE) / (MAX_VALUE_CODE - MIN_VALUE_CODE)
+
+
+def code_of_probability(probability):
+    span = MAX_VALUE_CODE - MIN_VALUE_CODE
+    clamped = 0.0 if probability < 0.0 else (1.0 if probability > 1.0 else probability)
+    # floor(x + 0.5) and not round(), which rounds halves to even in Python and would
+    # differ from lround() in the engine by one code.
+    return MIN_VALUE_CODE + int(clamped * span + 0.5)
+
+
+def code_of_value(value):
+    """The code of a value in the unit of the engine, where a pawn is 80 to 95."""
+    import math
+    return code_of_probability(1.0 / (1.0 + math.exp(-value / VALUE_SCALE)))
 
 
 def _unpack_record(record):
-    move = record & 0x7FF
-    result = (record >> 11) & 0x3
-    value = record >> 13
-    if value >= 1 << 10:                         # eleven bits, two's complement
-        value -= 1 << 11
-    return move, value, result
+    return record & 0x7FF, (record >> 13) & MAX_VALUE_CODE, (record >> 11) & 0x3
+
+
+def pack_record(move, value, result):
+    return (move & 0x7FF) | ((result & 0x3) << 11) | ((value & MAX_VALUE_CODE) << 13)
 
 
 def read_games(path):
-    """Yields one list of (packed move, value, result) per game."""
+    """Yields one list of (packed move, value code, result) per game."""
     with open(path, 'rb') as stream:
+        header = stream.read(len(GAME_FILE_MAGIC) + 4)
+        if len(header) != len(GAME_FILE_MAGIC) + 4 \
+                or header[:len(GAME_FILE_MAGIC)] != GAME_FILE_MAGIC \
+                or int.from_bytes(header[len(GAME_FILE_MAGIC):], 'little') != GAME_FILE_VERSION:
+            raise ValueError('%s is not a game file of version %d - a file of the older '
+                             'format holds pawns where this expects probabilities'
+                             % (path, GAME_FILE_VERSION))
         while True:
-            header = stream.read(1)
-            if not header:
+            count_byte = stream.read(1)
+            if not count_byte:
                 return
-            count = header[0]
+            count = count_byte[0]
             if count == 0:
                 return
             data = stream.read(3 * count)
@@ -188,8 +274,22 @@ def read_games(path):
                    for i in range(0, len(data), 3)]
 
 
+def write_games(path, games):
+    """Writes games, each a list of (packed move, value code, result)."""
+    with open(path, 'wb') as stream:
+        stream.write(GAME_FILE_MAGIC)
+        stream.write(GAME_FILE_VERSION.to_bytes(4, 'little'))
+        for moves in games:
+            if not moves or len(moves) > 255:
+                continue
+            stream.write(bytes([len(moves)]))
+            for move, value, result in moves:
+                record = pack_record(move, value, result)
+                stream.write(bytes([record & 0xFF, (record >> 8) & 0xFF, (record >> 16) & 0xFF]))
+
+
 def read_positions(path, max_positions=None):
-    """Yields (board, value, result) for every position that carries a value.
+    """Yields (board, value code, result) for every position that carries a value.
 
     The board is replayed from the initial position, which is why the moves of the
     book line are in the file at all - they have no value and are only walked
