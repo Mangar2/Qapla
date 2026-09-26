@@ -389,3 +389,7 @@ imgui.ini
 
 # Generated position libraries and training data
 test/nnue/
+
+# Python virtual environment of the trainer
+src/trainer/.venv/
+src/trainer/__pycache__/
