@@ -57,7 +57,7 @@ def train(arguments):
             loss.backward()
             optimizer.step()
             model.clamp_weights()
-            total += float(loss)
+            total += loss.detach().item()
             seen += 1
             if seen % arguments.report_every == 0:
                 print('  epoch %d, batch %d/%d, loss %.6f, %.0f positions per second'
