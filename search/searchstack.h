@@ -99,6 +99,11 @@ namespace QaplaSearch {
 		 * the hashes on the way, the repetition check below reads them.
 		 */
 		void replayLine(MoveGenerator& position, const Move* line, ply_t fromPly, ply_t ply) {
+#ifdef QAPLA_USE_NNUE
+			// This thread has no accumulator for the position it joins at, so the
+			// bottom of its stack is computed from nothing before the line is played.
+			QaplaNnue::accumulators.reset(position);
+#endif
 			if (fromPly == 0) _stack[0].positionHash = position.computeBoardHash();
 			for (ply_t index = fromPly + 1; index <= ply; index++) {
 				_stack[index].doMove(position, line[index]);

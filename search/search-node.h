@@ -40,6 +40,9 @@
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif
+#ifdef QAPLA_USE_NNUE
+#include "../src/nnue/nnue-accumulator.h"
+#endif
 
 #include <iomanip>
 
@@ -206,6 +209,9 @@ namespace QaplaSearch {
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::doMove(previousMove, si);
 #endif
+#ifdef QAPLA_USE_NNUE
+			QaplaNnue::accumulators.push(position, previousMove);
+#endif
 		}
 
 		/**
@@ -218,6 +224,9 @@ namespace QaplaSearch {
 			position.undoMove(previousMove, snapshotBeforeMove);
 #ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(previousMove);
+#endif
+#ifdef QAPLA_USE_NNUE
+			QaplaNnue::accumulators.pop();
 #endif
 		}
 

@@ -27,6 +27,9 @@
 #ifdef USE_STOCKFISH_EVAL
 #include "nnue/engine.h"
 #endif
+#ifdef QAPLA_USE_NNUE
+#include "src/nnue/nnue-accumulator.h"
+#endif
 
 #ifndef QAPLA_VERSION
 #define QAPLA_VERSION "dev"
@@ -107,6 +110,20 @@ int main()
 	//Stockfish::Engine::load_network("./nnue/nn-1111cefa1111.nnue", "./nnue/nn-37f18f62d772.nnue");
 	Stockfish::Engine::initialize();
 	Stockfish::Engine::load_network("NNUE1", "NNUE2");
+#endif
+
+#ifdef QAPLA_USE_NNUE
+	/*
+	 * Built to play with a net of its own. The file is looked for next to the
+	 * engine's working directory; the uci option NnueFile names another one.
+	 */
+	{
+		const std::string defaultNet = "qapla.nnue";
+		std::cout << (QaplaNnue::loadNetwork(defaultNet)
+			? "info string net " + defaultNet + " loaded"
+			: "info string no net at " + defaultNet + ", set the option NnueFile")
+			<< std::endl;
+	}
 #endif
 
 	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;

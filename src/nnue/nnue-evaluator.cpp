@@ -104,65 +104,73 @@ bool Evaluator::usesVectorInstructions() {
 	return NNUE_NEON_DOTPROD != 0;
 }
 
+void QaplaNnue::addFeature(const Network& network, int16_t* accumulator, uint32_t feature) {
+	const int16_t* column = network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE;
+#if NNUE_NEON_DOTPROD
+	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element += 8) {
+		vst1q_s16(accumulator + element,
+			vaddq_s16(vld1q_s16(accumulator + element), vld1q_s16(column + element)));
+	}
+#else
+	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element++) {
+		accumulator[element] = int16_t(accumulator[element] + column[element]);
+	}
+#endif
+}
+
+void QaplaNnue::removeFeature(const Network& network, int16_t* accumulator, uint32_t feature) {
+	const int16_t* column = network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE;
+#if NNUE_NEON_DOTPROD
+	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element += 8) {
+		vst1q_s16(accumulator + element,
+			vsubq_s16(vld1q_s16(accumulator + element), vld1q_s16(column + element)));
+	}
+#else
+	for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element++) {
+		accumulator[element] = int16_t(accumulator[element] - column[element]);
+	}
+#endif
+}
+
 template <Piece PERSPECTIVE>
-void Evaluator::refresh(const Board& board, int16_t* accumulator) const {
+void QaplaNnue::refreshAccumulator(const Network& network, const Board& board,
+	int16_t* accumulator) {
 	uint32_t features[MAX_ACTIVE_FEATURES];
 	const uint32_t count = computeActiveFeatures<PERSPECTIVE>(board, features);
-	std::memcpy(accumulator, _network.featureBias.data(), ACCUMULATOR_SIZE * sizeof(int16_t));
+	std::memcpy(accumulator, network.featureBias.data(), ACCUMULATOR_SIZE * sizeof(int16_t));
 	for (uint32_t index = 0; index < count; index++) {
-		const int16_t* column = _network.featureWeight.data()
-			+ size_t(features[index]) * ACCUMULATOR_SIZE;
-#if NNUE_NEON_DOTPROD
-		for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element += 8) {
-			vst1q_s16(accumulator + element,
-				vaddq_s16(vld1q_s16(accumulator + element), vld1q_s16(column + element)));
-		}
-#else
-		for (uint32_t element = 0; element < ACCUMULATOR_SIZE; element++) {
-			accumulator[element] = int16_t(accumulator[element] + column[element]);
-		}
-#endif
+		addFeature(network, accumulator, features[index]);
 	}
 }
 
-value_t Evaluator::evaluate(const Board& board) const {
-#if NNUE_NEON_DOTPROD
-	alignas(NNUE_ALIGNMENT) int16_t white[ACCUMULATOR_SIZE];
-	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
-	refresh<QaplaBasics::WHITE>(board, white);
-	refresh<QaplaBasics::BLACK>(board, black);
-	const int16_t* own = board.isWhiteToMove() ? white : black;
-	const int16_t* opponent = board.isWhiteToMove() ? black : white;
+template void QaplaNnue::refreshAccumulator<QaplaBasics::WHITE>(const Network&, const Board&, int16_t*);
+template void QaplaNnue::refreshAccumulator<QaplaBasics::BLACK>(const Network&, const Board&, int16_t*);
 
+value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int16_t* opponent) {
+#if NNUE_NEON_DOTPROD
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
 	clippedReluNeon(own, input);
 	clippedReluNeon(opponent, input + ACCUMULATOR_SIZE);
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineReluNeon<L1_INPUT_SIZE, L1_SIZE>(input, _network.l1Weight.data(),
-		_network.l1Bias.data(), hidden1);
-	affineReluNeon<L1_SIZE, L2_SIZE>(hidden1, _network.l2Weight.data(),
-		_network.l2Bias.data(), hidden2);
+	affineReluNeon<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
+		network.l1Bias.data(), hidden1);
+	affineReluNeon<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
+		network.l2Bias.data(), hidden2);
 
-	int32_t output = _network.outputBias;
+	int32_t output = network.outputBias;
 	for (uint32_t index = 0; index < L2_SIZE; index++) {
-		output += int32_t(_network.outputWeight[index]) * int32_t(hidden2[index]);
+		output += int32_t(network.outputWeight[index]) * int32_t(hidden2[index]);
 	}
 	return toEngineValue(output);
 #else
-	return evaluateReference(board);
+	return forwardReference(network, own, opponent);
 #endif
 }
 
-value_t Evaluator::evaluateReference(const Board& board) const {
-	alignas(NNUE_ALIGNMENT) int16_t white[ACCUMULATOR_SIZE];
-	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
-	refresh<QaplaBasics::WHITE>(board, white);
-	refresh<QaplaBasics::BLACK>(board, black);
-	const int16_t* own = board.isWhiteToMove() ? white : black;
-	const int16_t* opponent = board.isWhiteToMove() ? black : white;
-
+value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
+	const int16_t* opponent) {
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
 	for (uint32_t index = 0; index < ACCUMULATOR_SIZE; index++) {
 		input[index] = clippedRelu(own[index]);
@@ -171,14 +179,32 @@ value_t Evaluator::evaluateReference(const Board& board) const {
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, _network.l1Weight.data(),
-		_network.l1Bias.data(), hidden1);
-	affineRelu<L1_SIZE, L2_SIZE>(hidden1, _network.l2Weight.data(),
-		_network.l2Bias.data(), hidden2);
+	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
+		network.l1Bias.data(), hidden1);
+	affineRelu<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
+		network.l2Bias.data(), hidden2);
 
-	int32_t output = _network.outputBias;
+	int32_t output = network.outputBias;
 	for (uint32_t index = 0; index < L2_SIZE; index++) {
-		output += int32_t(_network.outputWeight[index]) * int32_t(hidden2[index]);
+		output += int32_t(network.outputWeight[index]) * int32_t(hidden2[index]);
 	}
 	return toEngineValue(output);
+}
+
+value_t Evaluator::evaluate(const Board& board) const {
+	alignas(NNUE_ALIGNMENT) int16_t white[ACCUMULATOR_SIZE];
+	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
+	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white);
+	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black);
+	return board.isWhiteToMove() ? forward(_network, white, black)
+		: forward(_network, black, white);
+}
+
+value_t Evaluator::evaluateReference(const Board& board) const {
+	alignas(NNUE_ALIGNMENT) int16_t white[ACCUMULATOR_SIZE];
+	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
+	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white);
+	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black);
+	return board.isWhiteToMove() ? forwardReference(_network, white, black)
+		: forwardReference(_network, black, white);
 }

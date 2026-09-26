@@ -31,6 +31,9 @@
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "pawntt.h"
+#ifdef QAPLA_USE_NNUE
+#include "../src/nnue/nnue-accumulator.h"
+#endif
 
 using namespace QaplaMoveGenerator;
 
@@ -64,6 +67,15 @@ namespace ChessEval {
 #ifdef USE_STOCKFISH_EVAL
 			return Stockfish::Engine::evaluate();
 #else
+#ifdef QAPLA_USE_NNUE
+			if (QaplaNnue::network() != nullptr) {
+				return QaplaNnue::accumulators.evaluate(position);
+			}
+			// Built with the net and playing without one. Falling through to the hand
+			// written evaluation keeps the engine usable, and saying so keeps the
+			// difference from being mistaken for a result.
+			QaplaNnue::reportMissingNetwork();
+#endif
 			value_t positionValue = lazyEval<false>(position, ply, pawnttPtr);
 			return position.isWhiteToMove() ? positionValue : -positionValue;
 #endif
