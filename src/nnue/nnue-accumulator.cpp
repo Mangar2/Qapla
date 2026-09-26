@@ -26,6 +26,7 @@
 #include "nnue-accumulator.h"
 #include "nnue-evaluator.h"
 #include "nnue-features.h"
+#include "../../basics/bits.h"
 
 using namespace QaplaNnue;
 using QaplaBasics::Board;
@@ -61,15 +62,58 @@ void QaplaNnue::reportMissingNetwork() {
 		<< std::endl;
 }
 
+void KingSquareCache::clear(const Network& network) {
+	_entries.resize(2 * SQUARE_COUNT);
+	for (Entry& entry : _entries) {
+		std::memcpy(entry.accumulator, network.featureBias.data(),
+			ACCUMULATOR_SIZE * sizeof(int16_t));
+		// An empty board: the accumulator is the bias and holds no piece at all.
+		entry.pieces.fill(0);
+	}
+}
+
+template <Piece PERSPECTIVE>
+void KingSquareCache::refresh(const Network& network, const Board& board, int16_t* accumulator) {
+	const Square kingSquare = squareOf<PERSPECTIVE>(PERSPECTIVE == QaplaBasics::WHITE
+		? board.getKingSquare<QaplaBasics::WHITE>() : board.getKingSquare<QaplaBasics::BLACK>());
+	Entry& entry = _entries[size_t(PERSPECTIVE) * SQUARE_COUNT + size_t(kingSquare)];
+
+	for (Piece piece = QaplaBasics::MIN_PIECE; piece < QaplaBasics::PIECE_AMOUNT; ++piece) {
+		const uint32_t plane = pieceePlaneOf<PERSPECTIVE>(piece);
+		// The own king has no plane of its own - its square is the first part of every
+		// index here - so it is not in the accumulator and not in the difference.
+		if (plane == NO_PIECE_PLANE) continue;
+		const QaplaBasics::bitBoard_t current = board.getPieceBB(piece);
+		QaplaBasics::bitBoard_t added = current & ~entry.pieces[piece];
+		QaplaBasics::bitBoard_t removed = entry.pieces[piece] & ~current;
+		while (added != 0) {
+			const Square square = QaplaBasics::popLSB(added);
+			addFeature(network, entry.accumulator,
+				featureIndex(kingSquare, plane, squareOf<PERSPECTIVE>(square)));
+		}
+		while (removed != 0) {
+			const Square square = QaplaBasics::popLSB(removed);
+			removeFeature(network, entry.accumulator,
+				featureIndex(kingSquare, plane, squareOf<PERSPECTIVE>(square)));
+		}
+		entry.pieces[piece] = current;
+	}
+	std::memcpy(accumulator, entry.accumulator, ACCUMULATOR_SIZE * sizeof(int16_t));
+}
+
 void AccumulatorStack::computeBoth(const Board& board, Entry& entry) {
-	refreshAccumulator<QaplaBasics::WHITE>(*theNetwork, board, entry.accumulator[QaplaBasics::WHITE]);
-	refreshAccumulator<QaplaBasics::BLACK>(*theNetwork, board, entry.accumulator[QaplaBasics::BLACK]);
+	_cache.refresh<QaplaBasics::WHITE>(*theNetwork, board, entry.accumulator[QaplaBasics::WHITE]);
+	_cache.refresh<QaplaBasics::BLACK>(*theNetwork, board, entry.accumulator[QaplaBasics::BLACK]);
 }
 
 void AccumulatorStack::reset(const Board& board) {
 	_valid = false;
 	if (theNetwork == nullptr) return;
 	if (_entries.empty()) _entries.resize(MAX_PLIES);
+	if (_cachedNetwork != theNetwork.get()) {
+		_cache.clear(*theNetwork);
+		_cachedNetwork = theNetwork.get();
+	}
 	_top = 0;
 	computeBoth(board, _entries[0]);
 	_valid = true;
@@ -155,7 +199,8 @@ value_t AccumulatorStack::evaluate(const Board& board) {
 
 #ifdef QAPLA_VERIFY_NNUE_INCREMENTAL
 	Entry fresh;
-	computeBoth(board, fresh);
+	refreshAccumulator<QaplaBasics::WHITE>(*theNetwork, board, fresh.accumulator[QaplaBasics::WHITE]);
+	refreshAccumulator<QaplaBasics::BLACK>(*theNetwork, board, fresh.accumulator[QaplaBasics::BLACK]);
 	for (const Piece perspective : { QaplaBasics::WHITE, QaplaBasics::BLACK }) {
 		for (uint32_t index = 0; index < ACCUMULATOR_SIZE; index++) {
 			if (entry.accumulator[perspective][index] == fresh.accumulator[perspective][index]) {
