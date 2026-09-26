@@ -51,7 +51,7 @@ namespace {
 	enum class Outcome { WHITE_WINS, DRAW, BLACK_WINS };
 
 	/** What ended the game, which decides how its result is read. */
-	enum class Ending { MATE, DRAW_RULE, VALUE, LENGTH, FAILED };
+	enum class Ending { MATE, DRAW_RULE, LENGTH, FAILED };
 
 	/** Counts a few numbers about a run, for the report at the end. */
 	struct Statistics {
@@ -63,7 +63,6 @@ namespace {
 		uint64_t blackWins = 0;
 		uint64_t endedByMate = 0;
 		uint64_t endedByDrawRule = 0;
-		uint64_t endedByValue = 0;
 		uint64_t endedByLength = 0;
 		uint64_t skipped = 0;
 	};
@@ -189,13 +188,6 @@ namespace {
 				}
 				finalValue = info.valueInCentiPawn;
 				finalSideIsWhite = _position.isWhiteToMove();
-				if (!fitsInRecord(finalValue)) {
-					// Decided, and a value that could not be stored anyway. A mate
-					// value ends the game here too, it is far outside the range.
-					ending = Ending::VALUE;
-					break;
-				}
-
 				const Move move = findMoveByNotation(_position, info.currentConsideredMove);
 				const BookMove bookMove{ .from = move.getDeparture(), .to = move.getDestination(),
 					.promotion = move.isPromote() ? move.getPromotion() : NO_PIECE };
@@ -205,14 +197,15 @@ namespace {
 						<< " in " << _position.getFen(1) << std::endl;
 					return;
 				}
-				game.moves.push_back(GameMove{ .move = *packed, .value = finalValue });
+				// A probability, so a mate value needs no special case: it lands at one.
+				game.moves.push_back(GameMove{ .move = *packed,
+					.value = codeOfValue(finalValue) });
 				ChessInterface::setMove(info.currentConsideredMove, _board.get());
 			}
 
-			// Mate and the draw rules are the result of the game. Everything else -
-			// the value leaving the range, or the game being broken off at its
-			// length - is decided by the value of the last position.
-			if (ending == Ending::VALUE || ending == Ending::LENGTH) {
+			// Mate and the draw rules are the result of the game. One broken off at its
+			// length is decided by the value of the last position.
+			if (ending == Ending::LENGTH) {
 				if (finalValue >= _settings.winThreshold) {
 					outcome = finalSideIsWhite ? Outcome::WHITE_WINS : Outcome::BLACK_WINS;
 				}
@@ -299,6 +292,7 @@ bool GameGenerator::generate(const Settings& settings) {
 		std::cout << "Error (cannot write games): " << settings.outputFile << std::endl;
 		return false;
 	}
+	writeGameFileHeader(output);
 
 	const uint32_t hardwareThreads = std::max(1u, std::thread::hardware_concurrency());
 	const uint32_t workerCount = settings.threads != 0 ? settings.threads : hardwareThreads;
@@ -321,7 +315,6 @@ bool GameGenerator::generate(const Settings& settings) {
 		switch (game.ending) {
 		case Ending::MATE: statistics.endedByMate++; break;
 		case Ending::DRAW_RULE: statistics.endedByDrawRule++; break;
-		case Ending::VALUE: statistics.endedByValue++; break;
 		default: statistics.endedByLength++; break;
 		}
 		std::vector<GameMove> moves = game.moves;
@@ -395,7 +388,7 @@ bool GameGenerator::generate(const Settings& settings) {
 	std::cout << "Result: " << statistics.whiteWins << " white, " << statistics.draws
 		<< " draw, " << statistics.blackWins << " black" << std::endl;
 	std::cout << "Ended by: mate " << statistics.endedByMate << ", draw rule "
-		<< statistics.endedByDrawRule << ", value out of range " << statistics.endedByValue
+		<< statistics.endedByDrawRule
 		<< ", length " << statistics.endedByLength << std::endl;
 	std::cout << "Written " << settings.outputFile << " in " << (elapsed / 1000) << " s"
 		<< std::endl;

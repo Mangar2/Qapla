@@ -61,19 +61,27 @@ class HalfKaNet(nn.Module):
         self.feature_transformer.weight[netfile.FEATURE_COUNT].zero_()
 
 
-def loss_of(prediction, value, result, blend):
+def loss_of(prediction, value, result, counts, blend):
     """The loss of a batch.
 
-    The target is a win probability, and the two labels of a position are brought
-    into it: the value of the search through the sigmoid, and the result of the
-    game as it stands. blend is the lambda of the usual formulation - one takes the
-    search alone, which is what a first net trained on the games of a hand written
-    evaluation wants, because the results of those games are too noisy to learn
-    from. Later generations move it down towards 0.7.
+    The target is a win probability, and the two labels of a position are brought into
+    it: the value of the search, which the file already holds as a probability, and the
+    result of the game as it stands.
+
+    blend is the lambda of the usual formulation. It is never one: the result is the only
+    label that can carry what the evaluation the games were played with does not know,
+    and its noise is not a reason against it - the net learns feature patterns, not
+    positions, so a pattern that is in truth 600 to 400 is labelled 600 times one way and
+    400 times the other across the data and comes out at 0.6. Whether 0.7 or 0.9 is
+    better is a question for a run, not for an argument.
+
+    counts is zero where the result says nothing about the position - a game between
+    players of different strength, where it says something about the players instead -
+    and there the value of the search is the whole target, whatever blend says.
     """
     predicted = torch.sigmoid(prediction)
-    from_search = torch.sigmoid(value / netfile.NET_VALUE_SCALE)
-    target = blend * from_search + (1.0 - blend) * result
+    weight = blend + (1.0 - blend) * (1.0 - counts)
+    target = weight * value + (1.0 - weight) * result
     # An exponent above two weighs the positions the net is most wrong about more
     # heavily than a mean square error would.
     return ((predicted - target).abs() ** 2.5).mean()

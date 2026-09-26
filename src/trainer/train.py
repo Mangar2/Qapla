@@ -50,9 +50,9 @@ def train(arguments):
         model.train()
         total, seen = 0.0, 0
         start = time.time()
-        for own, opponent, value, result in cache.batches(arguments.batch_size, device):
+        for own, opponent, value, result, counts in cache.batches(arguments.batch_size, device):
             prediction = model(own, opponent)
-            loss = loss_of(prediction, value, result, blend)
+            loss = loss_of(prediction, value, result, counts, blend)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
