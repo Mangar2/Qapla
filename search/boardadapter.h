@@ -41,6 +41,7 @@
 #include "../bitbase/bitbase-reader.h"
 #include "../bitbase/bitbase-options.h"
 #include "../src/syzygy/tablebase.h"
+#include "../src/nnue/nnue-accumulator.h"
 #include "../src/nnue/nnue-evaluator.h"
 
 using namespace QaplaMoveGenerator;
@@ -97,6 +98,7 @@ namespace QaplaSearch {
 		virtual std::vector<UciOption> getUciOptions() const {
 			return {
 				UciOption::spin("Hash", 32, 1, 32000),
+				UciOption::string("NnueFile", ""),
 				UciOption::spin("MultiPV", 1, 1, 40),
 				UciOption::spin("Threads", 1, 1, 64),
 				UciOption::spin("SplitThreads", 8, 1, 64)
@@ -104,6 +106,13 @@ namespace QaplaSearch {
 		}
 
 		virtual bool setUciOption(const std::string& name, const std::string& value) {
+
+			if (name == "NnueFile") {
+				// Loading a net is allowed in every build; only a build with
+				// QAPLA_USE_NNUE plays with it, see Eval::eval.
+				if (!value.empty()) QaplaNnue::loadNetwork(value);
+				return true;
+			}
 
 			if (name == "Hash") {
 				iterativeDeepening.setTTSizeInKilobytes(uciValueToInt(value, 32) * 1024);
@@ -178,12 +187,13 @@ namespace QaplaSearch {
 		 * second call needs no path.
 		 */
 		virtual std::string nnueEvalInfo(const std::string& netFile) {
-			if (!netFile.empty()) {
-				_nnueNetwork = QaplaNnue::readNetwork(netFile);
-				if (_nnueNetwork == nullptr) return "no net loaded";
+			if (!netFile.empty() && !QaplaNnue::loadNetwork(netFile)) return "no net loaded";
+			if (QaplaNnue::network() == nullptr) {
+				return "no net loaded, give one with 'net <file>' or the option NnueFile";
 			}
-			if (_nnueNetwork == nullptr) return "no net loaded, give one with 'net <file>'";
-			const QaplaNnue::Evaluator evaluator(*_nnueNetwork);
+			// Always the full computation here: the accumulators of a search are not
+			// kept up to date outside one.
+			const QaplaNnue::Evaluator evaluator(*QaplaNnue::network());
 			const value_t value = evaluator.evaluate(position);
 			const value_t reference = evaluator.evaluateReference(position);
 			return "nnue " + std::to_string(value) + " reference " + std::to_string(reference)
@@ -579,7 +589,6 @@ namespace QaplaSearch {
 		IterativeDeepening iterativeDeepening;
 		// WhatIf whatIf;
 		uint32_t _workerCount;
-		std::unique_ptr<QaplaNnue::Network> _nnueNetwork;
 
 	};
 }

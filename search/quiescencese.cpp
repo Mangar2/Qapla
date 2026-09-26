@@ -177,10 +177,16 @@ value_t Quiescence::search(bool isPvNode,
 		#ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::doMove(move, si);
 		#endif
+		#ifdef QAPLA_USE_NNUE
+			QaplaNnue::accumulators.push(position, move);
+		#endif
 			auto valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
 			position.undoMove(move, snapshot);
 		#ifdef USE_STOCKFISH_EVAL
 			Stockfish::Engine::undoMove(move);
+		#endif
+		#ifdef QAPLA_USE_NNUE
+			QaplaNnue::accumulators.pop();
 		#endif
 
 			if (valueOfNextPlySearch > bestValue) {
@@ -265,10 +271,16 @@ value_t Quiescence::search(bool isPvNode,
 #ifdef USE_STOCKFISH_EVAL
 		Stockfish::Engine::doMove(move, si);
 #endif
+#ifdef QAPLA_USE_NNUE
+		QaplaNnue::accumulators.push(position, move);
+#endif
 		auto valueOfNextPlySearch = -search(isPvNode, position, computingInfo, move, -beta, -alpha, ply + 1);
 		position.undoMove(move, snapshot);
 #ifdef USE_STOCKFISH_EVAL
 		Stockfish::Engine::undoMove(move);
+#endif
+#ifdef QAPLA_USE_NNUE
+		QaplaNnue::accumulators.pop();
 #endif
 
 		// 10. Use the search - value to update the search window, including beta-cutoff.

@@ -7,6 +7,10 @@ BUILD_BASE   := build
 BUILD_DIR    := $(BUILD_BASE)/$(BUILD_TYPE)
 EXTRA_DEFINES ?=
 
+# The training lives in the repository and is Python; its virtual environment
+# carries C and C++ sources of its own, which are none of the engine's business.
+NON_ENGINE   := ./src/trainer/*
+
 # Version: development builds carry the git description, the shipped build
 # (ReleasePGO) carries the plain release number. Bump QAPLA_RELEASE by hand
 # at a release. Overridable: make QAPLA_VERSION=0.4.0 Release
@@ -39,8 +43,8 @@ PGO_PROFDIR := $(shell cygpath -m '$(abspath $(BUILD_BASE)/pgo)')
 PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
-SRC_CPP := $(shell C:/msys64/usr/bin/find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" | C:/msys64/usr/bin/sed 's|^\./||')
-SRC_C   := $(shell C:/msys64/usr/bin/find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" | C:/msys64/usr/bin/sed 's|^\./||')
+SRC_CPP := $(shell C:/msys64/usr/bin/find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
+SRC_C   := $(shell C:/msys64/usr/bin/find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
 SRC     := $(SRC_CPP) $(SRC_C)
 
 OBJ_CPP := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_CPP))
@@ -138,8 +142,8 @@ PGO_PROFDIR := $(abspath $(BUILD_BASE)/pgo)
 PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
-SRC_CPP := $(shell find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" | sed 's|^\./||')
-SRC_C   := $(shell find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" | sed 's|^\./||')
+SRC_CPP := $(shell find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
+SRC_C   := $(shell find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
 SRC     := $(SRC_CPP) $(SRC_C)
 
 OBJ_CPP := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_CPP))
