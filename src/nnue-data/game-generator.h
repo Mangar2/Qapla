@@ -79,6 +79,14 @@ namespace QaplaNnueData {
 
 			/** Hash of every worker in megabytes - it is paid once per thread. */
 			uint32_t hashInMegabytes = 32;
+
+			/**
+			 * Empties the hash before every game. Off for generating data, where a
+			 * hash still holding the previous game only makes the next one faster and
+			 * changes nothing about it. On to compare against a tester that starts
+			 * every game with ucinewgame, which is otherwise not the same work.
+			 */
+			bool clearHashPerGame = false;
 		};
 
 		explicit GameGenerator(QaplaInterface::IChessBoard* board) : _board(board) {}

@@ -159,6 +159,7 @@ namespace {
 				game.moves.push_back(GameMove{ .move = *packed, .value = NO_GAME_VALUE });
 			}
 
+			if (_settings.clearHashPerGame) _board->newGame();
 			ChessInterface::setPositionByFen(_position.getFen(int(line.size()) / 2 + 1), _board.get());
 			Ending ending = Ending::LENGTH;
 			Outcome outcome = Outcome::DRAW;
