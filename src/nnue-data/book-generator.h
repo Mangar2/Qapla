@@ -41,6 +41,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "../../interface/ichessboard.h"
@@ -48,6 +49,22 @@
 #include "nnue-book.h"
 
 namespace QaplaNnueData {
+
+	/**
+	 * Writes every line of a position library as one game of a pgn file, the moves in
+	 * long algebraic notation from the initial position.
+	 *
+	 * That is the shape an engine tester takes as an opening library, and the moves
+	 * rather than the position of a leaf on purpose: a tester that plays the opening out
+	 * writes the whole game into its own pgn, from the first move, and a pass that
+	 * evaluates that pgn afterwards then labels the opening positions as well. A library
+	 * of plain positions loses them - and the plies before the leaf are the ones the
+	 * training data has none of, every game starting at one.
+	 *
+	 * Returns the number of lines written, or nothing if the file cannot be written.
+	 */
+	std::optional<uint64_t> exportOpenings(const PositionBook& book,
+		const std::string& path, uint64_t maxLines = 0);
 
 	class BookGenerator {
 	public:

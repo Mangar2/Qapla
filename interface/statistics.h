@@ -129,6 +129,12 @@ namespace QaplaInterface {
 		void generateNnueGames();
 
 		/**
+		 * Writes the lines of a position library as a pgn, which is what an engine
+		 * tester takes as an opening library.
+		 */
+		void exportNnueOpenings();
+
+		/**
 		 * Writes a net of pseudo random weights, to test the inference before a net
 		 * has been trained.
 		 */

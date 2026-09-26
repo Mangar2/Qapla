@@ -179,6 +179,7 @@ void Statistics::handleInput() {
 	else if (token == "epd") loadEPD();
 	else if (token == "nnuebook") generateNnueBook();
 	else if (token == "nnuegames") generateNnueGames();
+	else if (token == "nnueopenings") exportNnueOpenings();
 	else if (token == "nnuenet") writeNnueNet();
 	else if (token == "nnueeval") evalNnue();
 	else if (checkClockCommands()) {}
@@ -310,4 +311,35 @@ void Statistics::evalNnue() {
 		}
 	}
 	println(getBoard()->nnueEvalInfo(netFile));
+}
+
+/**
+ * nnueopenings <book file> <pgn file> [max <n>]
+ */
+void Statistics::exportNnueOpenings() {
+	const std::string bookFile = getNextTokenNonBlocking();
+	const std::string pgnFile = getNextTokenNonBlocking();
+	if (bookFile.empty() || pgnFile.empty()) {
+		println("Error (missing file): nnueopenings <book file> <pgn file> [max <n>]");
+		return;
+	}
+	uint64_t maxLines = 0;
+	while (getNextTokenNonBlocking() != "") {
+		if (getCurrentToken() == "max") {
+			if (getNextTokenNonBlocking() != "") maxLines = getCurrentTokenAsUnsignedInt();
+		}
+		else {
+			println("Error (unknown nnueopenings parameter): " + getCurrentToken());
+			return;
+		}
+	}
+	QaplaNnueData::PositionBook book;
+	if (!book.readFromFile(bookFile)) {
+		println("Error (cannot read book): " + bookFile);
+		return;
+	}
+	println("Read " + std::to_string(book.size()) + " moves, "
+		+ std::to_string(book.leafCount()) + " leaves from " + bookFile);
+	const auto written = QaplaNnueData::exportOpenings(book, pgnFile, maxLines);
+	if (written) println("Written " + std::to_string(*written) + " lines to " + pgnFile);
 }
