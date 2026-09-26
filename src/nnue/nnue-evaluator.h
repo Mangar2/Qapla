@@ -79,6 +79,9 @@ namespace QaplaNnue {
 		/** True if evaluate uses vector instructions in this build. */
 		static bool usesVectorInstructions();
 
+		/** Which set of them, for the report of a test: avx2, ssse3, neon or plain. */
+		static const char* vectorPath();
+
 	private:
 		const Network& _network;
 	};
