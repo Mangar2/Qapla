@@ -76,10 +76,10 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=16384)
     parser.add_argument('--learning-rate', type=float, default=1e-3)
-    parser.add_argument('--blend-start', type=float, default=1.0,
+    parser.add_argument('--blend-start', type=float, default=0.8,
                         help='weight of the search value at the first epoch')
-    parser.add_argument('--blend-end', type=float, default=1.0,
-                        help='and at the last one; below one lets the game results in')
+    parser.add_argument('--blend-end', type=float, default=0.7,
+                        help='and at the last one; what is left is the game result')
     parser.add_argument('--device', default='auto')
     parser.add_argument('--report-every', type=int, default=50)
     train(parser.parse_args())
