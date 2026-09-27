@@ -143,7 +143,9 @@ void Statistics::runLoop() {
 	_mode = Mode::WAIT;
 	string token = "";
 	getBoard()->initialize();
-	while (token != "quit" && _mode != Mode::QUIT) {
+	// isFatalError covers the end of the input: without it the loop turns without end at
+	// full cpu once stdin is closed, as the uci and winboard loops already guard against.
+	while (token != "quit" && _mode != Mode::QUIT && !isFatalError()) {
 		switch (_mode) {
 		case Mode::COMPUTE: handleInputWhileComputingMove(); break;
 		default: 
