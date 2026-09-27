@@ -7,6 +7,10 @@ BUILD_BASE   := build
 BUILD_DIR    := $(BUILD_BASE)/$(BUILD_TYPE)
 EXTRA_DEFINES ?=
 
+# The training lives in the repository and is Python; its virtual environment
+# carries C and C++ sources of its own, which are none of the engine's business.
+NON_ENGINE   := ./src/trainer/*
+
 # Version: development builds carry the git description, the shipped build
 # (ReleasePGO) carries the plain release number. Bump QAPLA_RELEASE by hand
 # at a release. Overridable: make QAPLA_VERSION=0.4.0 Release
@@ -39,8 +43,8 @@ PGO_PROFDIR := $(shell cygpath -m '$(abspath $(BUILD_BASE)/pgo)')
 PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
-SRC_CPP := $(shell C:/msys64/usr/bin/find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" | C:/msys64/usr/bin/sed 's|^\./||')
-SRC_C   := $(shell C:/msys64/usr/bin/find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" | C:/msys64/usr/bin/sed 's|^\./||')
+SRC_CPP := $(shell C:/msys64/usr/bin/find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
+SRC_C   := $(shell C:/msys64/usr/bin/find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
 SRC     := $(SRC_CPP) $(SRC_C)
 
 OBJ_CPP := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_CPP))
@@ -138,8 +142,8 @@ PGO_PROFDIR := $(abspath $(BUILD_BASE)/pgo)
 PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
-SRC_CPP := $(shell find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" | sed 's|^\./||')
-SRC_C   := $(shell find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" | sed 's|^\./||')
+SRC_CPP := $(shell find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
+SRC_C   := $(shell find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
 SRC     := $(SRC_CPP) $(SRC_C)
 
 OBJ_CPP := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_CPP))
@@ -147,18 +151,31 @@ OBJ_C   := $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRC_C))
 OBJ     := $(OBJ_CPP) $(OBJ_C)
 
 # Architecture-specific optimization flags
+#
+# SIMD_BASE and SIMD_OPT tell the nnue package which vector instructions it may use. Every
+# vector path in it is behind one of these defines, and without them it silently compiles to
+# its scalar fallback - which costs a factor of three and a half here. They have to match the
+# instructions the ARCH flag beside them actually allows.
 ifneq ($(filter x86_64 amd64,$(UNAME_M)),)
   # x86_64: baseline (SSE2 only) and optimized (SSE4.2, POPCNT, etc.)
   ARCH_BASE := -march=x86-64
   ARCH_OPT  := -march=x86-64-v2
+  SIMD_BASE := -DUSE_SSE2
+  SIMD_OPT  := -DUSE_SSE2 -DUSE_SSSE3 -DUSE_SSE41 -DUSE_POPCNT
 else ifneq ($(filter aarch64 arm64,$(UNAME_M)),)
   # ARM64 (Apple Silicon, AWS Graviton, Ampere, etc.)
   ARCH_BASE := -mcpu=native
   ARCH_OPT  := -mcpu=native
+  # armv8.0 has no dot product instruction, so ask the compiler instead of assuming.
+  HAS_DOTPROD := $(shell printf '#include <arm_neon.h>\nint main(){int32x4_t a=vdupq_n_s32(0);int8x16_t b=vdupq_n_s8(0);return vgetq_lane_s32(vdotq_s32(a,b,b),0);}\n' | $(CXX) -mcpu=native -x c++ - -o /dev/null >/dev/null 2>&1 && echo yes)
+  SIMD_BASE := -DUSE_NEON=8 $(if $(HAS_DOTPROD),-DUSE_NEON_DOTPROD,)
+  SIMD_OPT  := $(SIMD_BASE)
 else
   # Unknown architecture: no specific tuning
   ARCH_BASE :=
   ARCH_OPT  :=
+  SIMD_BASE :=
+  SIMD_OPT  :=
 endif
 
 # Base flags
@@ -179,23 +196,23 @@ ifeq ($(BUILD_TYPE),Debug)
   CFLAGS_BT   := -D_DEBUG -g -O0 -fno-omit-frame-pointer \
                  -fdebug-compilation-dir=$(PROJECT_ROOT)
 else ifeq ($(BUILD_TYPE),WhatifRelease)
-  CXXFLAGS_BT := -DNDEBUG -DWHATIF_RELEASE -O3 $(ARCH_BASE) -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -DWHATIF_RELEASE -O3 $(ARCH_BASE) -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -DWHATIF_RELEASE -O3 $(ARCH_BASE) $(SIMD_BASE) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -DWHATIF_RELEASE -O3 $(ARCH_BASE) $(SIMD_BASE) -funroll-loops
 else ifeq ($(BUILD_TYPE),Release_NO_POPCOUNT)
-  CXXFLAGS_BT := -DNDEBUG -D__OLD_HW__ -O3 $(ARCH_BASE) -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O3 $(ARCH_BASE) -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -D__OLD_HW__ -O3 $(ARCH_BASE) $(SIMD_BASE) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -D__OLD_HW__ -O3 $(ARCH_BASE) $(SIMD_BASE) -funroll-loops
 else ifeq ($(BUILD_TYPE),ReleaseOpt)
-  CXXFLAGS_BT := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto $(ARCH_OPT) -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto $(ARCH_OPT) -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops
 else ifeq ($(BUILD_TYPE),ReleasePGOGen)
-  CXXFLAGS_BT := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops -fno-rtti -fprofile-generate=$(PGO_PROFDIR)
-  CFLAGS_BT   := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops -fprofile-generate=$(PGO_PROFDIR)
+  CXXFLAGS_BT := -DNDEBUG -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops -fno-rtti -fprofile-generate=$(PGO_PROFDIR)
+  CFLAGS_BT   := -DNDEBUG -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops -fprofile-generate=$(PGO_PROFDIR)
 else ifeq ($(BUILD_TYPE),ReleasePGO)
-  CXXFLAGS_BT := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops -fno-rtti -fprofile-use=$(PGO_DATA)
-  CFLAGS_BT   := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops -fprofile-use=$(PGO_DATA)
+  CXXFLAGS_BT := -DNDEBUG -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops -fno-rtti -fprofile-use=$(PGO_DATA)
+  CFLAGS_BT   := -DNDEBUG -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops -fprofile-use=$(PGO_DATA)
 else # Release
-  CXXFLAGS_BT := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops -fno-rtti
-  CFLAGS_BT   := -DNDEBUG -O3 -flto $(ARCH_OPT) -funroll-loops
+  CXXFLAGS_BT := -DNDEBUG -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops -fno-rtti
+  CFLAGS_BT   := -DNDEBUG -O3 -flto $(ARCH_OPT) $(SIMD_OPT) -funroll-loops
 endif
 
 # Platform-specific link flags

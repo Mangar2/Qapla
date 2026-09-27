@@ -312,6 +312,11 @@ namespace QaplaSearch {
 				_window[i].newDepth(searchDepth);
 			}
 			uint32_t numberOfPVSearchedMoves = 0;
+#ifdef USE_STOCKFISH_EVAL
+			// Before initSearchAtRoot, which evaluates the root: that evaluation reads the
+			// position of the package, and an unset one has no kings on it.
+			Stockfish::Engine::set_position(position.getFen(1));
+#endif
 			//uint32_t iterations = 0;
 			do {
 				const auto alphaRed = std::max(0, int32_t(multiPV) - int32_t(numberOfPVSearchedMoves) - 1) * 5;

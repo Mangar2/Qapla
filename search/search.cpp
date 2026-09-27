@@ -878,9 +878,6 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
     //printStackInfo("stack size: ");
-#ifdef USE_STOCKFISH_EVAL
-	Stockfish::Engine::set_position(position.getFen());
-#endif
 	// Every move in the tablebase win bucket gets searched, plus - only if MultiPV asks for more
 	// lines than the win bucket has moves - as many more (next-best bucket first, per the sort
 	// order) as needed to reach it. Without a root win this is every legal move, as before.

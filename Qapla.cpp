@@ -104,9 +104,14 @@ int main()
 	 * the main branch and requires to define USE_STOCKFISH_EVAL to use it.
 	 */
 #ifdef USE_STOCKFISH_EVAL
-	//Stockfish::Engine::load_network("./nnue/nn-1111cefa1111.nnue", "./nnue/nn-37f18f62d772.nnue");
 	Stockfish::Engine::initialize();
+#ifdef _WIN32
+	// The nets are linked into the program as resources there.
 	Stockfish::Engine::load_network("NNUE1", "NNUE2");
+#else
+	// Everywhere else they are files, looked for next to the working directory.
+	Stockfish::Engine::load_network("nnue/nn-1111cefa1111.nnue", "nnue/nn-37f18f62d772.nnue");
+#endif
 #endif
 
 	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;

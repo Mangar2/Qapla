@@ -10,6 +10,10 @@ namespace Stockfish {
     Eval::NNUE::AccumulatorCaches* Engine::caches = nullptr;
 
     void Engine::initialize() {
+        // The tables of the package have to be built before any position is set. Nothing
+        // else calls this, and without it the first position set crashes.
+        Bitboards::init();
+
         // Netzwerke erstellen
         networks = new Eval::NNUE::Networks(
             Eval::NNUE::NetworkBig({ EvalFileDefaultNameBig, "None", "" }, Eval::NNUE::EmbeddedNNUEType::BIG),
@@ -27,6 +31,11 @@ namespace Stockfish {
         if (caches)
             delete caches;
         caches = new Eval::NNUE::AccumulatorCaches(*networks);
+
+        // A load that does not find its file is otherwise silent, and the first evaluation
+        // then reads a net that is not there.
+        std::cout << "info string stockfish nets from \"" << evalFilePathBig
+            << "\" and \"" << evalFilePathSmall << "\"" << std::endl;
     }
 
 

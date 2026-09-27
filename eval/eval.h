@@ -31,6 +31,9 @@
 #include "../movegenerator/movegenerator.h"
 #include "evalresults.h"
 #include "pawntt.h"
+#ifdef USE_STOCKFISH_EVAL
+#include "../nnue/engine.h"
+#endif
 
 using namespace QaplaMoveGenerator;
 
