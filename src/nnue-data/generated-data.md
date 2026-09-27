@@ -158,3 +158,54 @@ Not one game decided by adjudication, which is what the missing `[resign]` block
 draw adjudication caught 16,720 endless ones, which is what the `[draw]` block is for. White won
 392,361 and black 376,601 - the openings are the whole first move list of white, so a leaning
 towards white is not expected here and there is none worth speaking of.
+
+## 4. The labelling pass: every position searched to depth 8
+
+**File:** `test/nnue/games-hce-depth6-labelled.pgn`, projected 2.3 GB (2,346 bytes per game)
+**Started on:** 28.09.2026, Mac mini M4
+**Engine:** `new-versions/Qapla-0.5.0-027-20-hce` at `tc=depth:8`
+**Settings:** `test/tournament/label-hce-depth8.ini`, driver `test/tournament/label-chunks.sh`
+
+    sh test/tournament/label-chunks.sh
+
+The pass recomputes every position of every game of the template with the hand crafted eval at
+depth 8 and writes the values into a new pgn. That pgn is what `src/trainer/convert.py` reads,
+which fixes two of its settings: long notation, because the converter decodes those moves without
+a move generator, and `min=false`, because it takes the game result from the `Result` tag.
+
+Worth recording: the analysis reconstructs the result even from a template that carries no
+`Result` tag, only the `0-1` at the end of the movetext. The minimal template loses nothing.
+
+### It has to run in chunks
+
+**A million games in one piece is killed.** qet holds a whole analysis in memory: 565 MB for
+5,000 games, measured, and still climbing at that point - about a factor of 100 over the size of
+the input pgn. Handed the full 1.04 GB template it died with SIGKILL.
+
+So the template is split into 101 chunks of 10,000 games in `test/nnue/chunks/`, and the driver
+runs them one after another into one output file. Memory stays around 4 GB per chunk and is given
+back between them, because every chunk is its own process.
+
+**That also makes the pass resumable**, which a single analysis is not: a finished chunk gets a
+`.done` file beside it and is skipped when the driver is called again. Stop it whenever, call it
+again with no arguments.
+
+The chunks are uniform in length - 84.8 to 87.0 plies per game across the file - so the rate does
+not drift as the run goes on.
+
+### Rate, and how not to measure it
+
+**10.7 games per second, 917 positions per second, at concurrency 9. The 1,000,020 games take
+about 26 hours.** Labelling costs roughly three times as much per position as playing did, because
+each position is searched on its own instead of profiting from the hash and history its
+predecessor in a game left behind.
+
+Two earlier figures for the same thing were both wrong, in opposite directions, and both came from
+samples that were too small:
+
+- 20 games at concurrency 2 gave 66 hours. Process starts dominate a sample that short.
+- a 2 minute window on the running pass gave 13 hours. It caught a burst of games that were
+  already in flight when the window opened.
+
+The 4 minute window over 2,568 games is the one to trust. When a run is going to last a day, the
+measurement of its rate deserves minutes, not seconds.
