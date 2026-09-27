@@ -80,3 +80,55 @@ pgn labels the opening moves as well. A library of plain fens would lose them - 
 the plies the training data otherwise has none of, because every game starts at a leaf. Long
 algebraic notation and not short, because the converter that reads the labelled pgn back has no
 move generator, see `src/trainer/convert.py`.
+
+## 3. The playing template: Qapla against itself at depth 6
+
+**File:** `test/nnue/games-hce-depth6.pgn` (grows while the run goes)
+**Started on:** 27.09.2026, Mac mini M4
+**Engine:** `new-versions/Qapla-0.5.0-027-20-hce`, the hand crafted eval, built without
+`QAPLA_GENERATE_NNUE_DATA` so the observer calls are not in it
+**Settings:** `test/tournament/gen-hce-depth6.ini`
+
+    ~/bin/qet --settingsfile=test/tournament/gen-hce-depth6.ini \
+      --engine name=HCE-A cmd=<repo>/new-versions/Qapla-0.5.0-027-20-hce \
+      --engine name=HCE-B cmd=<repo>/new-versions/Qapla-0.5.0-027-20-hce
+
+One game per book leaf, 1,000,020 of them, openings read in order from the library of section 2.
+`repeat=1` and `noswap=true`, because the search is deterministic at a fixed depth: a leaf and a
+colour decide the game completely, and a colour swap would hand back the same game a second time.
+
+The pgn holds the moves and nothing else - no evaluation, no clock, long algebraic notation. It
+is the template a later pass analyses; the values come from that pass, not from the engine that
+played.
+
+**The run may be stopped and continued** with the identical call. `[tournament] file=` holds the
+state and is written every 10 s, and the pgn is appended to rather than overwritten.
+
+### Things worth knowing before starting one of these
+
+**Leave a core free.** The run uses concurrency 9 on a machine with 10 cores. qet is written
+tightly, but at depth 6 a game is over in a moment and the turnover between engine processes is
+so frequent that qet needs a core of its own to keep up: it drives every process, writes the pgn
+and keeps the state file. Claiming every core starves the driver.
+
+**Next time start it with `rapid=true`.** The `info` lines of the engine are not needed here -
+nothing reads a node count or a depth out of this run, and the template carries no evaluation.
+Switching them off saves the traffic and the parsing. One thing to check when doing it: the draw
+adjudication decides on a score, and where it takes that score from with the info lines gone is
+not something this run establishes - it ran with `rapid` off.
+
+**qet ignores `active=false` in the `[resign]` block.** The block has to be *absent*, not
+disabled. Measured with 30 games each: without the block 27 mates and 3 repetitions, with
+`active=false` 26 games cut short by adjudication. The parser also demands `movecount` inside a
+block it is being asked to switch off. So won games are played to their end only when no
+`[resign]` block exists at all - and those late positions are the ones a net has the least of.
+A first run of 7145 games was thrown away over this, see
+`test/nnue/games-hce-depth6.discarded-resign-adjudication.pgn`.
+
+**Cost of playing games out:** 43 games/s with win adjudication, 31 games/s without it, at
+concurrency 9. The second figure is the one that counts, and it puts the 1,000,020 games at
+about 9 hours.
+
+**How the games end** (first 2043 of the run): 1517 by mate (74 %), 425 by threefold repetition,
+37 by insufficient material, 34 by draw adjudication, 29 by the 50 move rule, 1 by stalemate. No
+game decided by adjudication, which is what the missing `[resign]` block is for.
