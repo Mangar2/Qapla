@@ -167,7 +167,7 @@ else ifneq ($(filter aarch64 arm64,$(UNAME_M)),)
   ARCH_BASE := -mcpu=native
   ARCH_OPT  := -mcpu=native
   # armv8.0 has no dot product instruction, so ask the compiler instead of assuming.
-  HAS_DOTPROD := $(shell printf '#include <arm_neon.h>\nint main(){int32x4_t a=vdupq_n_s32(0);int8x16_t b=vdupq_n_s8(0);return vgetq_lane_s32(vdotq_s32(a,b,b),0);}\n' | $(CXX) -mcpu=native -x c++ - -o /dev/null >/dev/null 2>&1 && echo yes)
+  HAS_DOTPROD := $(shell printf '\#include <arm_neon.h>\nint main(){int32x4_t a=vdupq_n_s32(0);int8x16_t b=vdupq_n_s8(0);return vgetq_lane_s32(vdotq_s32(a,b,b),0);}\n' | $(CXX) -mcpu=native -x c++ - -o /dev/null >/dev/null 2>&1 && echo yes)
   SIMD_BASE := -DUSE_NEON=8 $(if $(HAS_DOTPROD),-DUSE_NEON_DOTPROD,)
   SIMD_OPT  := $(SIMD_BASE)
 else
@@ -178,9 +178,13 @@ else
   SIMD_OPT  :=
 endif
 
+# The nnue package embeds its nets with incbin, which needs the MSVC resource layout and does
+# not find the files here. On unix the nets are loaded from disk instead.
+CXXFLAGS_BASE_EXTRA := -DNNUE_EMBEDDING_OFF
+
 # Base flags
 CXXFLAGS_BASE := -std=c++20 -Wno-unused-parameter -Wno-unused-variable \
-                 -ffunction-sections -fdata-sections -MMD -MP
+                 -ffunction-sections -fdata-sections -MMD -MP $(CXXFLAGS_BASE_EXTRA)
 CFLAGS_BASE   := -std=c99 -Wno-unused-parameter -Wno-unused-variable \
                  -ffunction-sections -fdata-sections -MMD -MP
 
