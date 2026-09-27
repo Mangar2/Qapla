@@ -53,3 +53,30 @@ cheap; nothing here needs to be planned around its runtime.
 **On saturation:** the generator stops early when 100 searches in a row add nothing, and says so.
 It did not say so, so the tree is not exhausted at these settings and a larger book is a matter
 of asking for more leaves.
+
+## 2. The book as an opening library
+
+**File:** `test/nnue/start-positions-1m.pgn`, 148,456,406 bytes
+**Made on:** 27.09.2026, from the book of section 1
+
+    printf 'nnueopenings test/nnue/start-positions-1m.bok test/nnue/start-positions-1m.pgn\nquit\n' \
+        | ./build/Release/Qapla
+
+**Result:** 1,000,020 lines, one per leaf of the book, in 0.9 s.
+
+Every line is one pgn game from the initial position with the moves in long algebraic notation
+and `[Result "*"]`:
+
+    [Event "Qapla position library"]
+    [Result "*"]
+
+    1. a2a3 g8f6 2. b1c3 d7d5 3. e2e3 d5d4 4. e3d4 c7c6 *
+
+Line lengths: 14,990,554 plies over the 1,000,020 lines, 15.0 on average, shortest 4, longest 35.
+
+**Lines and not positions on purpose.** An engine tester takes this as its opening library and
+plays the line out, so the game it writes starts at move 1 and a later pass that evaluates that
+pgn labels the opening moves as well. A library of plain fens would lose them - and those are
+the plies the training data otherwise has none of, because every game starts at a leaf. Long
+algebraic notation and not short, because the converter that reads the labelled pgn back has no
+move generator, see `src/trainer/convert.py`.
