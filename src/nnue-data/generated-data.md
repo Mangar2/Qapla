@@ -98,9 +98,12 @@ colour decide the game completely, and a colour swap would hand back the same ga
 
 The pgn holds the moves and nothing else - no evaluation, no clock, short notation. It is the
 template a later pass analyses; the values come from that pass, not from the engine that played.
-Short notation is right here because this file is only ever read by the tester, which has a move
-generator. Long notation matters one step further on, for the pgn the analysis *writes*: that one
-is read by `src/trainer/convert.py`, which has none.
+Short notation because it is shorter, and nothing here pays for it. The notation makes no
+difference to the tester: it does not trust its input and runs every move through its move
+generator either way, setting each piece of information and then asking whether exactly one
+generated move matches. Notation matters one step further on, for the pgn the analysis *writes* -
+`src/trainer/convert.py` reads that one and decodes long notation without a generator at all,
+which is the one place where the choice buys something.
 
 The run of 27.09.2026 was started with `notation=lan` before this was corrected, so its file
 holds long notation. If that run is continued, it has to be continued with
