@@ -77,9 +77,8 @@ Line lengths: 14,990,554 plies over the 1,000,020 lines, 15.0 on average, shorte
 **Lines and not positions on purpose.** An engine tester takes this as its opening library and
 plays the line out, so the game it writes starts at move 1 and a later pass that evaluates that
 pgn labels the opening moves as well. A library of plain fens would lose them - and those are
-the plies the training data otherwise has none of, because every game starts at a leaf. Long
-algebraic notation and not short, because the converter that reads the labelled pgn back has no
-move generator, see `src/trainer/convert.py`.
+the plies the training data otherwise has none of, because every game starts at a leaf. The
+notation is the one the exporter writes; the tester reads either.
 
 ## 3. The playing template: Qapla against itself at depth 6
 
@@ -97,9 +96,15 @@ One game per book leaf, 1,000,020 of them, openings read in order from the libra
 `repeat=1` and `noswap=true`, because the search is deterministic at a fixed depth: a leaf and a
 colour decide the game completely, and a colour swap would hand back the same game a second time.
 
-The pgn holds the moves and nothing else - no evaluation, no clock, long algebraic notation. It
-is the template a later pass analyses; the values come from that pass, not from the engine that
-played.
+The pgn holds the moves and nothing else - no evaluation, no clock, short notation. It is the
+template a later pass analyses; the values come from that pass, not from the engine that played.
+Short notation is right here because this file is only ever read by the tester, which has a move
+generator. Long notation matters one step further on, for the pgn the analysis *writes*: that one
+is read by `src/trainer/convert.py`, which has none.
+
+The run of 27.09.2026 was started with `notation=lan` before this was corrected, so its file
+holds long notation. If that run is continued, it has to be continued with
+`--pgnoutput notation=lan` on the command line, otherwise the two notations end up in one file.
 
 **The run may be stopped and continued** with the identical call. `[tournament] file=` holds the
 state and is written every 10 s, and the pgn is appended to rather than overwritten.
