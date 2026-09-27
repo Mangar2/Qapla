@@ -46,10 +46,13 @@ namespace {
 	void affineRelu(const int8_t* input, const int8_t* weight, const int32_t* bias,
 		int8_t* output) {
 		static_assert(INPUT_SIZE % 16 == 0, "the dot product takes a multiple of sixteen");
-		for (uint32_t out = 0; out < OUTPUT_SIZE; out++) {
-			const int32_t sum = bias[out]
-				+ dotProduct(weight + size_t(out) * INPUT_SIZE, input, INPUT_SIZE);
-			output[out] = clippedRelu(sum >> QB_SHIFT);
+		static_assert(OUTPUT_SIZE % 4 == 0, "four output rows are computed at a time");
+		for (uint32_t out = 0; out < OUTPUT_SIZE; out += 4) {
+			int32_t sums[4];
+			dotProduct4(weight + size_t(out) * INPUT_SIZE, INPUT_SIZE, input, INPUT_SIZE, sums);
+			for (uint32_t row = 0; row < 4; row++) {
+				output[out + row] = clippedRelu((bias[out + row] + sums[row]) >> QB_SHIFT);
+			}
 		}
 	}
 
@@ -67,9 +70,16 @@ namespace {
 
 	/**
 	 * The value the net produces, brought into the value unit of the engine.
+	 *
+	 * In 32 bits and not in 64: the output of the last layer is at most its bias plus
+	 * L2_SIZE products of two bytes, so under 600000, and times NET_VALUE_SCALE that is
+	 * under 240 million - a quarter of what an int32 holds. The result is the same number
+	 * as before, the division is simply the cheaper one.
 	 */
 	constexpr value_t toEngineValue(int32_t netOutput) {
-		return value_t(int64_t(netOutput) * NET_VALUE_SCALE / (int64_t(QA) * int64_t(QB)));
+		static_assert(int64_t(L2_SIZE) * QA * 127 * NET_VALUE_SCALE < (int64_t(1) << 31),
+			"the product has to stay inside an int32");
+		return value_t(netOutput * int32_t(NET_VALUE_SCALE) / (int32_t(QA) * int32_t(QB)));
 	}
 }
 

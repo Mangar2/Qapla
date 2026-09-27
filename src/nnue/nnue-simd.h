@@ -186,6 +186,80 @@ namespace QaplaNnue {
 	}
 
 	/**
+	 * Four dot products at once, the four weight rows stride apart.
+	 *
+	 * The point is the reduction at the end. A single dot product has to fold its vector
+	 * of partial sums into one number, which costs a few shuffles, and a layer of 32
+	 * outputs paid that 32 times. Four rows share one fold, so three quarters of it are
+	 * gone. The multiplying itself is unchanged.
+	 *
+	 * Measured against nothing yet - but the forward pass is where the time of an
+	 * evaluation sits, about two and a half times the accumulator update, so this is the
+	 * part worth touching.
+	 */
+	inline void dotProduct4(const int8_t* weights, uint32_t stride, const int8_t* input,
+		uint32_t count, int32_t result[4]) {
+#if defined(QAPLA_NNUE_SIMD_AVX2)
+		__m256i sum[4] = { _mm256_setzero_si256(), _mm256_setzero_si256(),
+			_mm256_setzero_si256(), _mm256_setzero_si256() };
+		const __m256i ones = _mm256_set1_epi16(1);
+		for (uint32_t index = 0; index < count; index += 32) {
+			const __m256i activations =
+				_mm256_loadu_si256(reinterpret_cast<const __m256i*>(input + index));
+			for (uint32_t row = 0; row < 4; row++) {
+				const __m256i products = _mm256_maddubs_epi16(activations,
+					_mm256_loadu_si256(reinterpret_cast<const __m256i*>(
+						weights + size_t(row) * stride + index)));
+				sum[row] = _mm256_add_epi32(sum[row], _mm256_madd_epi16(products, ones));
+			}
+		}
+		__m128i folded[4];
+		for (uint32_t row = 0; row < 4; row++) {
+			folded[row] = _mm_add_epi32(_mm256_castsi256_si128(sum[row]),
+				_mm256_extracti128_si256(sum[row], 1));
+		}
+		const __m128i rows = _mm_hadd_epi32(_mm_hadd_epi32(folded[0], folded[1]),
+			_mm_hadd_epi32(folded[2], folded[3]));
+		_mm_storeu_si128(reinterpret_cast<__m128i*>(result), rows);
+#elif defined(QAPLA_NNUE_SIMD_SSSE3)
+		__m128i sum[4] = { _mm_setzero_si128(), _mm_setzero_si128(),
+			_mm_setzero_si128(), _mm_setzero_si128() };
+		const __m128i ones = _mm_set1_epi16(1);
+		for (uint32_t index = 0; index < count; index += 16) {
+			const __m128i activations =
+				_mm_loadu_si128(reinterpret_cast<const __m128i*>(input + index));
+			for (uint32_t row = 0; row < 4; row++) {
+				const __m128i products = _mm_maddubs_epi16(activations,
+					_mm_loadu_si128(reinterpret_cast<const __m128i*>(
+						weights + size_t(row) * stride + index)));
+				sum[row] = _mm_add_epi32(sum[row], _mm_madd_epi16(products, ones));
+			}
+		}
+		const __m128i rows = _mm_hadd_epi32(_mm_hadd_epi32(sum[0], sum[1]),
+			_mm_hadd_epi32(sum[2], sum[3]));
+		_mm_storeu_si128(reinterpret_cast<__m128i*>(result), rows);
+#elif defined(QAPLA_NNUE_SIMD_NEON)
+		int32x4_t sum[4] = { vdupq_n_s32(0), vdupq_n_s32(0), vdupq_n_s32(0), vdupq_n_s32(0) };
+		for (uint32_t index = 0; index < count; index += 16) {
+			const int8x16_t activations = vld1q_s8(input + index);
+			for (uint32_t row = 0; row < 4; row++) {
+				sum[row] = vdotq_s32(sum[row],
+					vld1q_s8(weights + size_t(row) * stride + index), activations);
+			}
+		}
+		vst1q_s32(result, vpaddq_s32(vpaddq_s32(sum[0], sum[1]), vpaddq_s32(sum[2], sum[3])));
+#else
+		for (uint32_t row = 0; row < 4; row++) {
+			result[row] = 0;
+			const int8_t* weightRow = weights + size_t(row) * stride;
+			for (uint32_t index = 0; index < count; index++) {
+				result[row] += int32_t(weightRow[index]) * int32_t(input[index]);
+			}
+		}
+#endif
+	}
+
+	/**
 	 * The dot product of count weights and count activations, count a multiple of 16.
 	 */
 	inline int32_t dotProduct(const int8_t* weights, const int8_t* input, uint32_t count) {
