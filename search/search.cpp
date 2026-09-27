@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,48 +14,144 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 #include "search.h"
+#include "search-thread.h"
 #include "whatIf.h"
 #include "quiescence.h"
-#include "../bitbase/bitbasereader.h"
+#include "rootmoves.h"
+#include "tunable.h"
+#include "passedpawn.h"
+#include "../basics/materialbalance.h"
+#include "../movegenerator/movegenerator.h"
+#include "../eval/tablebase-value.h"
+#include "../src/syzygy/tbposition-builder.h"
 
 using namespace QaplaSearch;
 
-bool Search::hasBitbaseCutoff(const MoveGenerator& position, SearchVariables& node) {
-	return false;
-	// We only look into the bitbases, if we had a capture or a promote. This avoids "non-searching" on
-	// positions of bitbases.
-	// if (position.getPiecesSignature() == _rootSignature) return false;
-	// if (curPly.alpha >= -MIN_MATE_VALUE && curPly.beta <= MIN_MATE_VALUE) return false;
-	const QaplaBitbase::Result bitbaseValue = QaplaBitbase::BitbaseReader::getValueFromBitbase(position);
-	if (bitbaseValue == QaplaBitbase::Result::Unknown) {
+#ifdef __APPLE__
+#include <pthread.h>
+#endif
+#include <chrono>
+#include <iostream>
+
+void printStackInfo(const char* msg) {
+#ifdef __APPLE__
+    pthread_t self = pthread_self();
+
+    void* base   = pthread_get_stackaddr_np(self);   // oberes Ende des Stacks
+    size_t size  = pthread_get_stacksize_np(self);   // maximale Größe
+
+    void* sp     = __builtin_frame_address(0);       // aktueller Stackpointer
+    std::ptrdiff_t used = (char*)base - (char*)sp;   // Stack wächst abwärts
+
+    std::cout << msg
+              << " stack base=" << base
+              << " size=" << size/1024 << " KB"
+              << " used≈" << used/1024 << " KB\n";
+#else
+    // Stack info not implemented on this platform
+    (void)msg;
+#endif
+}
+
+template <Search::SearchRegion TYPE>
+bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchStack& stack, SearchNode& node, ply_t depth, ply_t ply) {
+	const auto evalBefore = ply > 1 ? stack[ply - 2].adjustedEval : NO_VALUE;
+	if (position.isInCheck()) {
+		node.adjustedEval = evalBefore;
 		return false;
 	}
-	_computingInfo._tbHits++;
-	if (bitbaseValue == QaplaBitbase::Result::Win) { // && curPly.beta <= MIN_MATE_VALUE) {
-		node.setCutoff(Cutoff::BITBASE, MIN_MATE_VALUE);
+	if (node.adjustedEval == NO_VALUE) {
+		if (node.eval == NO_VALUE) {
+			node.eval = Eval::eval(position, &_pawnTT);
+		}
+		node.adjustedEval = node.eval;
+		node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
+	}
+	// Must be after node.probeTT, because futility uses the information from TT
+	if (node.forewardFutility(position) || node.forewardFutility2(position)) {
+		node.setCutoff(Cutoff::FUTILITY);
 		return true;
 	} 
-	if (bitbaseValue == QaplaBitbase::Result::Loss) { // && curPly.alpha >= -MIN_MATE_VALUE) {
-		node.setCutoff(Cutoff::BITBASE, -MIN_MATE_VALUE);
-		return true;
-	}
-	if (bitbaseValue == QaplaBitbase::Result::Draw) {
-		node.setCutoff(Cutoff::BITBASE, 1);
+	if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, depth, ply)) {
+		node.setCutoff(Cutoff::NULL_MOVE);
 		return true;
 	}
 	return false;
 }
 
 /**
+ * Asks the tablebases and cuts the node if the answer is usable.
+ *
+ * The stored entry is only the true value of the position when nothing zeroing is
+ * available - where a capture, an en passant capture or a promotion exists, the
+ * generator was free to store whatever compresses best. That is what the non silent
+ * move count decides, so this can only run after the moves have been generated.
+ *
+ * The value is a bound, not a score: the tables say "won", not "mate in seven". A win
+ * may therefore only cut when it reaches beta and a loss only when it falls to alpha,
+ * which matters all the more because a cursed win is worth barely a pawn here. A draw
+ * is different: it is the exact value of the position, so it cuts in any window.
+ */
+bool Search::hasTablebaseCutoff(MoveGenerator& position, SearchNode& node, ply_t depth) {
+
+	// A root win found by the DTZ classification answers the fifty-move question differently
+	// from this cutoff - running both would let a flat tablebase-win bound drown the actual
+	// distance-to-mate signal the filtered root search is looking for (see rootmoves.h).
+	if (_tbRootWin) return false;
+
+	// Cheapest test first: it is the one that rejects nearly every node of a real game,
+	// and with no tables loaded the cardinality is zero and nothing else is ever touched.
+	const uint32_t pieceCount = uint32_t(popCount(position.getAllPiecesBB()));
+	if (pieceCount > _tbCardinality) return false;
+
+	// The depth limit only bites on the most expensive level; below it the tables are
+	// small enough to be worth asking at any depth.
+	if (pieceCount == _tbCardinality && depth < _tbProbeDepth) return false;
+
+	if (node.getNonSilentMoveAmount() != 0) return false;
+	if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() != 0) return false;
+	if (position.getBoardState().getCastlingRightsMask() != 0) return false;
+
+	QaplaSyzygy::TbPosition tbPosition{};
+	if (!QaplaSyzygy::buildTbPosition(position, tbPosition)) return false;
+
+	const QaplaSyzygy::WdlEntry entry = QaplaSyzygy::probeWdlEntry(tbPosition);
+	if (entry.status != QaplaSyzygy::Status::Ok) return false;
+
+	_computingInfo._tbHits++;
+
+	const value_t value = ChessEval::tablebaseWdlToValue(entry.value);
+
+	// tb always returns a concrete value, there is no "unknown value" here.
+	if (value > DRAW_VALUE && value < node.beta) {
+		return false;
+	}
+	if (value < DRAW_VALUE && value > node.alpha) {
+		return false;
+	}
+
+	// A draw is exact, not a bound: with best play there is nothing left to find here,
+	// no win and no loss, so it cuts inside the window as well.
+	node.setCutoff(Cutoff::TABLEBASE, value);
+
+	// The answer does not depend on how deep the search is, so the entry gets a draft
+	// well above the current one and survives long enough to spare the next probe.
+	node.setTTEntry(node.positionHash, false, depth + SearchConfig::TABLEBASE_TT_DEPTH_BONUS,
+		Move::EMPTY_MOVE, node.eval, value, node.alpha, node.beta);
+
+	return true;
+}
+
+/**
  * Check, if it is reasonable to do a nullmove search
  */
-bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node, ply_t depth, ply_t ply) {
+bool Search::isNullmoveReasonable(MoveGenerator& position, SearchNode& node, ply_t depth, ply_t ply) {
 	bool result = true;
-	if (!SearchParameter::DO_NULLMOVE) {
+	if (!SearchConfig::DO_NULLMOVE) {
 		result = false;
 	}
 	/*
@@ -69,7 +165,7 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
 	else if (position.getMaterialValue(position.isWhiteToMove()).midgame() + MaterialBalance::PAWN_VALUE_MG < node.beta) {
 		result = false;
 	}
-	else if (node.remainingDepth <= SearchParameter::NULLMOVE_REMAINING_DEPTH) {
+	else if (node.remainingDepth <= SearchConfig::NULLMOVE_REMAINING_DEPTH) {
 		result = false;
 	}
 	else if (node.noNullmove) {
@@ -106,19 +202,19 @@ bool Search::isNullmoveReasonable(MoveGenerator& position, SearchVariables& node
  */
 bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t depth, ply_t ply)
 {
-	SearchVariables& node = stack[ply];
+	SearchNode& node = stack[ply];
 	if (!isNullmoveReasonable(position, node, depth, ply)) {
 		return false;
 	}
 	assert(!position.isInCheck());
-	SearchVariables& childNode = stack[ply + 1];
+	SearchNode& childNode = stack[ply + 1];
 
-	ply_t R = SearchParameter::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.adjustedEval);
+	ply_t R = SearchConfig::getNullmoveReduction(ply, depth, node.betaAtPlyStart, node.adjustedEval, node.isImproving);
 
 	childNode.doMove(position, Move::NULL_MOVE);
-	node.bestValue = depth - R > 2 ?
-		-negaMax<SearchRegion::INNER>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1) :
-		-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1);
+	// isNullmoveCutoff is only reached from an INNER node, see checkEvalReleatedCutoffsAndSetEval
+	node.bestValue = -searchChild<SearchRegion::INNER>(
+		position, stack, -node.beta, -node.beta + 1, depth - R - 1, ply + 1);
 
 	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, Move::NULL_MOVE, depth - R - 1, ply, node.bestValue, "null");
 	childNode.undoMove(position);
@@ -136,35 +232,72 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 		position.computeAttackMasksForBothColors();
 		node.setToPlyStart();
 	}
-	// searchInfo.remainingDepth -= SearchParameter::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
+	// searchInfo.remainingDepth -= SearchConfig::getNullmoveVerificationDepthReduction(ply, searchInfo.remainingDepth);
 	return isCutoff;
 }
 
-ply_t Search::computeLMR(SearchVariables& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move)
+ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move)
 {
 
 	// Ability to disable history for a ply
 	// if (node->mDisableHist) return 0;
-	const auto moveNo = node.moveNumber;
+	constexpr bool OPT = SearchConfig::optimizeLMR;
 
-	if (ply <= 1) return 0;
+	// Values that can only take a handful of integers. A tuning run gets no signal out of such a
+	// range, so they are compile time constants and not UCI parameters.
+	constexpr ply_t MIN_PLY = 1;
+	constexpr int32_t MOVE_OFFSET = 3;
+	constexpr int32_t MOVE_SLOPE = 4;
+	constexpr int32_t MOVE_HIGH_DIV = 2;
+	constexpr int32_t DEPTH_OFFSET = 3;
+	constexpr int32_t DEPTH_SLOPE = 2;
+
+	const int32_t moveNo = static_cast<int32_t>(node.movesTried);
+
+	if (ply <= MIN_PLY) return 0;
+
+	// Captures are never reduced. Reducing the loosing ones by a tuned amount was tried in
+	// 0.4.0-049 and did not pay.
 	if (move.isCapture()) return 0;
-	if (moveNo <= 3) return 0;
-	if (node.isCheckMove(position, move)) return 0;
-	ply_t moveCountLmr = std::clamp(moveNo <= 7 ? 16 + (moveNo - 3) * 16 / 4 : 32 + (moveNo - 7) / 2, 16, 3 * 16);
-	ply_t moveCountDepth = std::clamp(16 + (depth - 3) * 2, 16, 3 * 16);
-	ply_t lmr = moveCountLmr * moveCountDepth / 256;
-	if (node.isPVNode()) lmr /= 2;
-	return lmr;
+
+	// The reduction is the product of two ramps, one over the move number and one over the
+	// remaining depth. The move number ramp is steep up to a break point and flat after it.
+	// Both ramps are shared by all node types; only the divisor tells PV nodes apart.
+	const int32_t moveBreak = tunable<OPT, "lmrMoveBreak", 6, 2, 10>();
+	const int32_t moveRamp = moveNo <= moveBreak
+		? tunable<OPT, "lmrMoveBase", 11, 0, 22>() + (moveNo - MOVE_OFFSET) * MOVE_SLOPE
+		: tunable<OPT, "lmrMoveHighBase", 51, 0, 102>() + (moveNo - moveBreak) / MOVE_HIGH_DIV;
+	const int32_t depthRamp = tunable<OPT, "lmrDepthBase", 11, 0, 22>() + (depth - DEPTH_OFFSET) * DEPTH_SLOPE;
+
+	const int32_t rampMin = tunable<OPT, "lmrRampMin", 15, 0, 30>();
+	const int32_t rampMax = tunable<OPT, "lmrRampMax", 55, 30, 80>();
+	int32_t numerator = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax);
+
+	int32_t divisor = node.isPVNode()
+		? tunable<OPT, "lmrPvDivisor", 512, 256, 768>()
+		: tunable<OPT, "lmrDivisor", 261, 133, 389>();
+	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
+	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
+	// counts as such a push.
+	// Tested 0.4.0-051: +6.0 Elo, 8883 games
+	if (PassedPawn::isPassedPawnPush(position, move)) {
+		divisor += tunable<OPT, "lmrPassedPawnDivisorAdd", 112, 0, 224>();
+	}
+	// Extra reduction where a reduction already happens and the position is not improving.
+	if (!node.isImproving && numerator >= divisor) {
+		numerator += tunable<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
+	}
+
+	return static_cast<ply_t>(numerator / divisor);
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
-	SearchVariables& node = stack[ply];
-	SearchVariables& childNode = stack[ply + 1];
+	SearchNode& node = stack[ply];
+	SearchNode& childNode = stack[ply + 1];
 	node.setFromParentNode(position, stack[ply - 1], alpha, beta, depth, false);
 	// Must be after setFromParentNode
 	node.probeTT(false, alpha, beta, depth, ply);
-	node.computeMoves(position, _butterflyBoard);
+	node.computeMoves(position, *_butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
@@ -186,65 +319,96 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, va
  * IID modifies variables from stack[ply] (like move counter, search depth, ...)
  * Thus it must be called before setting the stack in negamax (setFromPreviousPly).
  */
-void Search::iid(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
-	SearchVariables& node = stack[ply];
+template <Search::SearchRegion TYPE>
+ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
+	// A near leaf node never reaches the minimal depth below
+	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return 0;
+	else {
+		const SearchNode& node = stack[ply];
 
-	if (!SearchParameter::DO_IID) return;
-	if (depth <= SearchParameter::getIIDMinDepth()) return;
-	if (!node.getTTMove().isEmpty()) return;
+		if (!SearchConfig::DO_IIR) return 0;
+		if (depth <= SearchConfig::IIR_MIN_DEPTH) return 0;
+		// Any move worth trying first is enough, from the hash or from the previous iteration.
+		if (!node.getTTMove().isEmpty()) return 0;
+		if (node.hasPVMove()) return 0;
+		// Cut nodes are reduced as well, all nodes are not. An all node without a tt move is the
+		// normal case, there is nothing unusual about it.
+		// Tested 0.4.0-060: PV nodes only, cut nodes left out: -8.4 Elo, 5597 games
+		// Tested 0.4.0-053: the same idea as a pre search (IID) in cut nodes: -7.0 Elo, 7049 games
+		if constexpr (TYPE != SearchRegion::PV) {
+			if (SearchNode::childNodeType(stack[ply - 1].getNodeType(), false)
+				!= SearchNode::NodeType::CUT) return 0;
+		}
 
-	ply_t iidR = SearchParameter::getIIDReduction(depth);
-	const value_t curValue = negaMax<SearchRegion::PV>(position, stack, alpha, beta, depth - iidR, ply);
-	WhatIf::whatIf.moveSearched(position, _computingInfo, stack, stack[ply].previousMove, depth - iidR, ply - 1, curValue, "IID");
-	position.computeAttackMasksForBothColors();
-	if (!node.bestMove.isEmpty()) {
-		node.setTTMove(node.bestMove);
+		return SearchConfig::IIR_REDUCTION;
 	}
-
 }
 
+template <Search::SearchRegion TYPE>
 ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
-	if (!SearchParameter::DO_SE_EXTENSION) return 0;
-	SearchVariables& node = stack[ply];
-	SearchVariables& childNode = stack[ply + 1];
-	SearchVariables& parentNode = stack[ply - 1];
+	// Near leaf nodes are searched with a depth below the minimal depth required below
+	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return 0;
+	constexpr bool IS_PV = TYPE == SearchRegion::PV;
+	// The extension in non pv nodes is switchable as a whole, see search-config.h
+	if constexpr (!IS_PV && !SearchConfig::DO_SE_IN_NON_PV) return 0;
+	if (!SearchConfig::DO_SE_EXTENSION) return 0;
+	SearchNode& node = stack[ply];
+	SearchNode& childNode = stack[ply + 1];
+	SearchNode& parentNode = stack[ply - 1];
 
 	// Do not double extend check moves
-	if (SearchParameter::DO_CHECK_EXTENSIONS && node.sideToMoveIsInCheck) return 0;
+	if (SearchConfig::DO_CHECK_EXTENSIONS && node.sideToMoveIsInCheck) return 0;
 
 	// We need a certain search depth left to efficiently calculate a singular extension
 	if (depth < 4) return 0;
 
 	// Limit maximal extension depth
-	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchParameter::MAX_SEARCH_DEPTH))) return 0;
+	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchConfig::MAX_SEARCH_DEPTH))) return 0;
 
 	node.setFromParentNode(position, parentNode, alpha, beta, depth, false);
 	
 	// Must be after setFromParentNode
 	node.probeTT(false, alpha, beta, depth, ply);
 
-	// No se, if tt does not have a good move value (> alpha)
-	if (node.ttValueIsUpperBound) return 0;
+	// No se, if tt does not have a good move value (> alpha). With a tt value <= alpha the
+	// value is an upper bound only, thus other moves failing below it prove nothing.
+	if (node.ttValueIsLessOrEqualAlpha) return 0;
 	// We need a ttValue to have something to search for
 	if (node.ttValue == NO_VALUE) return 0;
 
 	// Singular extension based on tt move. Only, if the search found a value > alpha it found a "best move" in the position and is able to store it to
 	// the transposition table
 	auto ttMove = node.getTTMove();
-	const auto seDepth = depth / 2;
+	// Minimal depth the tt move must have been searched with to be tested at all,
+	// a constant distance to the current depth instead of a share of it
+	const ply_t ttMinDepth =
+		depth - tunable<SearchConfig::optimizeSE, "seTTMinDepthReduction", 6, 0, 12>();
+	// Depth used to search the remaining moves against the singular margin
+	const ply_t seDepth =
+		depth * 100 / tunable<SearchConfig::optimizeSE, "seDepthDivisor", 200, 100, 300>();
 	if (ttMove.isEmpty()) return 0;
 	// We require a certain search depth for the tt move to be considered for a singular extension
-	if (node.ttDepth < seDepth) return 0;
+	if (node.ttDepth < ttMinDepth) return 0;
 	// No se, if the tt already shows a mate or equivalent value
 	if (node.ttValue != NO_VALUE && (node.ttValue < -MIN_MATE_VALUE || node.ttValue > MIN_MATE_VALUE)) return 0;
 
-	node.setSE(SearchParameter::singularExtensionMargin(depth));
+	// The margin the remaining moves must fail below to make the tt move singular. PV and non
+	// PV nodes get their own values, the tt value is a much weaker information in a non PV node
+	node.setSE(IS_PV
+		? tunable<SearchConfig::optimizeSE, "sePvMarginConst", 1, -100, 300>()
+			+ tunable<SearchConfig::optimizeSE, "sePvMarginFactor", 4, 0, 100>() * depth
+		: tunable<SearchConfig::optimizeSE, "seNonPvMarginConst", 0, -100, 300>()
+			+ tunable<SearchConfig::optimizeSE, "seNonPvMarginFactor", 4, 0, 100>() * depth);
 	_computingInfo._nodesSearched++;
 
 	// Cutoffs checks all kind of cutoffs including futility, nullmove, bitbase and others 
-	if (checkCutoffAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, seDepth, ply)) return 0;
+	if (checkEvalReleatedCutoffsAndSetEval<SearchRegion::NEAR_LEAF>(position, stack, node, seDepth, ply)) return 0;
 
-	node.computeMoves(position, _butterflyBoard);
+	// A pv node is never cut. Its value is needed exactly, and the reduced se search is no
+	// basis to drop the pv move without having searched it
+	constexpr bool doMultiCut = SearchConfig::DO_MULTI_CUT && !IS_PV;
+
+	node.computeMoves(position, *_butterflyBoard);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 		if (curMove == ttMove) continue;
@@ -255,12 +419,25 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 		WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, seDepth - 1, ply, result, "SE");
 		childNode.undoMove(position);
 
+		// A move reaching beta ends the search, the tt move is not singular either way
+		if (doMultiCut && result >= beta) break;
+
 		if (node.isFailHigh()) break;
 	}
 
 	// Attack masks are lazily computed. We need to make sure to recompute them, if we like to search twice in the same position
 	position.computeAttackMasksForBothColors();
-	
+
+	// Multi cut: the tt move is expected to fail high and one more move reached beta as well.
+	// Two moves above beta, thus the node is not singular but expected to fail high itself and
+	// the whole subtree is cut. The search is already done, this costs nothing extra. Mate
+	// values are left out, the reduced search is far too shallow to claim a mate.
+	// The caller returns this value instead of searching the node, see negaMax step 5
+	if (doMultiCut && node.bestValue >= beta && node.bestValue < MIN_MATE_VALUE) {
+		node.setCutoff(Cutoff::MULTI_CUT, node.bestValue);
+		return 0;
+	}
+
 	return node.isFailHigh() ? 0: 1;
 }
 
@@ -268,16 +445,19 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
  * Checks for a cutoff not requiering search or eval
  */
 template <Search::SearchRegion TYPE>
-bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchVariables& node, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
+bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, SearchNode& node, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 	assert(ply >= 1);
 
 	node.cutoff = Cutoff::NONE;
 	node.setHashSignature(position);
 
-	if (alpha > MAX_VALUE - value_t(ply)) {
+	// The bound itself is unreachable as well - the best value reachable at ply q is
+	// MAX_VALUE - q - 1 - so it belongs inside the test, as in Quiescence::search.
+	// Tested 0.5.0-018, SPRT h0 = -10, h1 = 0: H0 accepted once, H1 accepted in both repeats.
+	if (TYPE != SearchRegion::PV && alpha >= MAX_VALUE - value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, MAX_VALUE - value_t(ply));
 	}
-	else if (beta < -MAX_VALUE + value_t(ply)) {
+	else if (TYPE != SearchRegion::PV && beta <= -MAX_VALUE + value_t(ply)) {
 		node.setCutoff(Cutoff::FASTER_MATE_FOUND, -MAX_VALUE + value_t(ply));
 	}
 	else if (position.drawDueToMissingMaterial()) {
@@ -286,13 +466,16 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 	else if (stack.isDrawByRepetitionInSearchTree(position, ply)) {
 		node.setCutoff(Cutoff::DRAW_BY_REPETITION, 0);
 	}
-	else if (ply >= SearchParameter::MAX_SEARCH_DEPTH) {
-		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, ply));
+	else if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() >= 100) {
+		node.setCutoff(Cutoff::DRAW_BY_50_MOVES_RULE, 0);
 	}
-	else if (TYPE != SearchRegion::NEAR_LEAF && hasBitbaseCutoff(position, node)) {
-		node.setCutoff(Cutoff::BITBASE);
+	else if (ply >= SearchConfig::MAX_SEARCH_DEPTH) {
+		node.setCutoff(Cutoff::MAX_SEARCH_DEPTH, Eval::eval(position, &_pawnTT, ply));
 	}
-	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _clockManager->emergencyAbort()) {
+	else if (TYPE != SearchRegion::NEAR_LEAF && stack[0].remainingDepth > 1 && _isMaster && _clockManager->emergencyAbort()) {
+		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
+	}
+	else if (_isMaster ? _clockManager->stopOnNodeTarget(_computingInfo.getTotalNodes()) : isSearchStopped()) {
 		node.setCutoff(Cutoff::ABORT, -MAX_VALUE);
 	}
 
@@ -306,23 +489,23 @@ bool Search::nonSearchingCutoff(MoveGenerator& position, SearchStack& stack, Sea
 template <Search::SearchRegion TYPE>
 value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
 
-	SearchVariables& node = stack[ply];
-	node.pvMovesStore[ply] = Move::EMPTY_MOVE;
+	SearchNode& node = stack[ply];
+	node.pv.setEmpty(ply);
 
 	// 1. Detect direct cutoffs without requiring search or eval
 	// This includes checking the hash and setting the hash information like ttMove
 	if (nonSearchingCutoff<TYPE>(position, stack, node, alpha, beta, depth, ply)) return node.bestValue;
-	SearchVariables& childNode = stack[ply + 1];
-	SearchVariables& parentNode = stack[ply - 1];
+	SearchNode& childNode = stack[ply + 1];
+	SearchNode& parentNode = stack[ply - 1];
 
 	// 2. Quiescense search
 	if (depth < 0) {
-		return Quiescence::search(TYPE == SearchRegion::PV, position, _computingInfo, node.previousMove, alpha, beta, ply);
+		return _quiescence.search(TYPE == SearchRegion::PV, position, _computingInfo, node.previousMove, alpha, beta, ply);
 	}
 
-	const auto nodesSearched = _computingInfo._nodesSearched;
+	[[maybe_unused]] const auto nodesSearched = _computingInfo._nodesSearched;
 	/*
-	if (nodesSearched == 5647) {
+	if (nodesSearched == 161) {
 		position.print();
 		for (int i = 0; i < ply; i++) {
 			stack[i].printTTEntry();
@@ -331,80 +514,177 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	*/
 	_computingInfo._nodesSearched++;
 
-
 	// 3. Probe the hash table. This will set the hash information to the node.
 	// The required hash signature is set in nonSearchingCutoff
 	if (node.probeTT(TYPE == SearchRegion::PV, alpha, beta, depth, ply)) {
 		node.setCutoff(Cutoff::HASH);
 		return node.bestValue;
 	}
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, depth, ply);
 
-	// 4. IID recursive for pv move. Must be before node.setFromParentNode, as it modifies node values
-	if (TYPE == SearchRegion::PV) iid(position, stack, alpha, beta, depth, ply);
+	// 4. Internal iterative reduction. A node with no move to try first is expensive and its
+	// result unreliable, so it is searched shallower. Must be before node.setFromParentNode,
+	// which hands the depth on to the node.
+	depth -= iir<TYPE>(stack, depth, ply);
 
-	// 5. Singular extension
-	const auto seExtension = se(position, stack, alpha, beta, depth, ply);
+	// 5. Singular extension for the tt move, computed for PV and non PV nodes, see se()
+	const auto seExtension = se<TYPE>(position, stack, alpha, beta, depth, ply);
 
-	value_t result;
-	Move curMove;
+	// se() cuts the node, if it finds a second move above beta, see multi cut in se().
+	// Must be before setFromParentNode, as that resets the cutoff
+	if (node.cutoff == Cutoff::MULTI_CUT) {
+		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
+		return node.bestValue;
+	}
 
 	// 6. Setting node values from parent node, must be after seExtensions
 	// We need only stable information from parent node; the node type and the previous move.
 	node.setFromParentNode(position, parentNode, alpha, beta, depth, TYPE == SearchRegion::PV);
 	
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, node.previousMove, ply);
 
-	// Check all kind of early cutoffs including futility, nullmove, bitbase and others 
+	// 7. Check all kind of early cutoffs including futility, nullmove and others
 	// Additionally set eval. This is done as late as possible, as it is very time consuming. Some cutoff checks needs eval.
-	if (checkCutoffAndSetEval<TYPE>(position, stack, node, depth, ply)) {
+	if (checkEvalReleatedCutoffsAndSetEval<TYPE>(position, stack, node, depth, ply)) {
 		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
 		return node.bestValue;
 	}
 
-	node.computeMoves(position, _butterflyBoard);
-	depth = node.extendSearch(position, stack[0].remainingDepth, seExtension);
-	bool isNullWindow = false;
+	node.computeMoves(position, *_butterflyBoard);
+
+	// 7b. Ask the tablebases. It has to be here and not earlier: the move list decides whether
+	// the stored entry is exact, the hash probe above keeps a repeated position cheap, and the
+	// eval the value builds on has just been set.
+	if (hasTablebaseCutoff(position, node, depth)) {
+		WhatIf::whatIf.cutoff(position, _computingInfo, stack, ply, node.cutoff);
+		return node.bestValue;
+	}
+
+	node.computeCheckGivingSquares(position);
+	// 8. Calculate additional node wide search extensions
+	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth);
+
+	moveLoop<TYPE, false>(position, stack, node, depth, seExtension, ply, Move::EMPTY_MOVE);
+
+	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
+	if (!isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, TYPE == SearchRegion::PV, depth);
+	// Inform the user about advances in search
+	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
+		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
+		if (_threads) _computingInfo.setHelperNodes(helperNodes());
+		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
+	}
+	return node.bestValue;
+}
+
+template <Search::SearchRegion TYPE, bool SPLIT>
+void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& splitNode,
+	ply_t depth, ply_t seExtension, ply_t ply, Move firstMove)
+{
+	SearchNode& node = stack[ply];
+	SearchNode& childNode = stack[ply + 1];
+	value_t result;
+	Move curMove = firstMove;
+
 	// Loop through all moves
-	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
+	while (true) {
+		// Take the next move from the node that owns the list. At a split point the list, the
+		// window and the best value are shared, so they are read under the lock together.
+		if (curMove.isEmpty()) {
+			SplitLock<SPLIT> lock(splitNode.splitMutex);
+			if constexpr (SPLIT) {
+				if (splitNode.isFailHigh()) break;
+			}
+			curMove = splitNode.selectNextMove(position);
+			if (curMove.isEmpty()) break;
+			if constexpr (SPLIT) {
+				node.alpha = splitNode.alpha;
+				node.bestValue = splitNode.bestValue;
+				node.movesTried = splitNode.movesTried;
+			}
+		}
 
-		const auto lmr = computeLMR(node, position, depth, ply, curMove);
+		// A node with enough depth left opens itself as split point when a thread waits for
+		// work: the helper joins this loop and takes moves from the same list, see
+		// helpAtSplitPoint. Never on the first move - its result sets the window the others
+		// are searched with - and never on the last, this thread would only wait for it. The
+		// rest of the loop runs in the split instantiation, this one is done then. Near leaf
+		// nodes carry none of this.
+		if constexpr (TYPE != SearchRegion::NEAR_LEAF && !SPLIT) {
+			if (_threads && depth >= 3 && node.movesTried > 1 && !node.isLastMove()
+				&& _threads->hasWaitingThread()
+				&& openSplitPoint(stack, node, depth, seExtension, ply, TYPE == SearchRegion::PV)) {
+				moveLoop<TYPE, true>(position, stack, node, depth, seExtension, ply, curMove);
+				closeSplitPoint(position, stack, node, ply);
+				return;
+			}
+		}
 
-		// 1. Move count pruning
-		if (lmr > 0 && depth - lmr < 0 && node.bestValue > -MIN_MATE_VALUE) continue;
+		// The singular extension belongs to the move se() proved to be singular, not to the node.
+		// It cannot add on top of the check extension, as se() returns 0 for a node in check.
+		const ply_t moveExtension = curMove == node.getTTMove() ? seExtension : 0;
+		const ply_t moveDepth = moveExtension > 0 ?
+			std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
+
+		bool doMovePrunings = node.movesTried > 3 && !node.isCheckMove(position, curMove);
+		// lmr is needed for move count pruning and late move reduction search
+		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
+		// Never skip moves when escaping from mate and in positions with pawns only.
+		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
+			
+			// 1. Futility pruning: skip quiet moves in late move loop when position is too bad
+			if (node.canPruneFutility(position, curMove)) {
+				curMove.setEmpty();
+				continue;
+			}
+
+			// 2. Move count pruning
+			if (lmr > 0 && depth - lmr < 0) {
+				curMove.setEmpty();
+				continue;
+			}
+		}
 
 		childNode.doMove(position, curMove);
 
-		// 2. Late move reduction search
+		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
-			result = TYPE != SearchRegion::NEAR_LEAF && depth - lmr > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1 - lmr, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1 - lmr, ply, result, "LMR");
+			result = -searchChild<TYPE>(
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
 			if (result <= node.alpha) {
 				childNode.undoMove(position);
-				// We improve value on lmr result. Especially important to not get false mate values due to skipped escape moves
-				if (result > node.bestValue) {
-					node.bestValue = result;
+				// A stopped search returns no value worth keeping, at a split point it must not
+				// reach the owner's node
+				if constexpr (SPLIT) {
+					if (isSearchStopped()) break;
 				}
+				// We improve value on lmr result. Especially important to not get false mate values due to skipped escape moves
+				SplitLock<SPLIT> lock(splitNode.splitMutex);
+				if (result > splitNode.bestValue) {
+					splitNode.bestValue = result;
+				}
+				curMove.setEmpty();
 				continue;
 			}
 			// searching modifies the attack masks. But they are required for the next move generation
 			position.computeAttackMasksForBothColors();
+			// Another thread may have raised the window meanwhile
+			if constexpr (SPLIT) node.alpha = splitNode.alpha;
 		}
-		// 3. Searching with null window either because of non pv search or because it is not the first move in pv.
+		// 4. Searching with null window either because of non pv search or because it is not the first move in pv.
 		// Additionally we do not go to null window search on PV, if depth is 1 or 0
 		// We do not return fail high from a null window search in PV node
-		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.moveNumber == 1 || depth <= 1);
+		bool isDirectPVWindowSearch = TYPE == SearchRegion::PV && (node.movesTried == 1 || depth <= 1);
 		if (!isDirectPVWindowSearch) {
-			result = TYPE != SearchRegion::NEAR_LEAF && depth > 2 ?
-				-negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1) :
-				-negaMax<SearchRegion::NEAR_LEAF>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, depth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
+			result = -searchChild<TYPE>(
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1, ply + 1);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1, ply, result, TYPE == SearchRegion::PV ? "ZeroW" : "Std.");
+			if constexpr (SPLIT) node.alpha = splitNode.alpha;
 		}
-		// 4. Full window PV search or research the move with full window, if result is better than alpha
+		// 5. Full window PV search or research the move with full window, if result is better than alpha
 		if (TYPE == SearchRegion::PV && (isDirectPVWindowSearch || result > node.alpha)) {
-			const ply_t adjustedDepth = depth <= 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : depth;
+			const ply_t adjustedDepth = moveDepth <= 0 && curMove == node.getTTMove() && ply < stack[0].remainingDepth * 2 ? 1 : moveDepth;
 			if (!isDirectPVWindowSearch) {
 				position.computeAttackMasksForBothColors();
 			}
@@ -412,19 +692,171 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, adjustedDepth - 1, ply, result, "PV");
 		}
 
-		node.setSearchResult(result, childNode, curMove);
+		if constexpr (SPLIT) {
+			if (isSearchStopped()) {
+				childNode.undoMove(position);
+				break;
+			}
+		}
+		{
+			SplitLock<SPLIT> lock(splitNode.splitMutex);
+			splitNode.setSearchResult(result, childNode, curMove);
+		}
 
 		childNode.undoMove(position);
-		if (node.isFailHigh()) break;
+		if (splitNode.isFailHigh()) break;
+		curMove.setEmpty();
 	}
-	// 5. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, TYPE == SearchRegion::PV, depth);
-	// Inform the user about advances in search
-	if (TYPE != SearchRegion::NEAR_LEAF) {
-		_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
-		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
+}
+
+uint64_t Search::helperNodes() const {
+	uint64_t nodes = 0;
+	for (uint32_t index = 1; index < _threads->size(); index++) {
+		nodes += (*_threads)[index].search.getNodesSearched();
 	}
-	return node.bestValue;
+	return nodes;
+}
+
+bool Search::isSearchStopped() const {
+	return _clockManager->isSearchStopped() || (_self && _self->hasFailedHighSplitPoint());
+}
+
+bool Search::openSplitPoint(SearchStack& stack, SearchNode& node, ply_t depth, ply_t seExtension, ply_t ply, bool pvNode) {
+	node.owner = _self;
+	node.split.node = &node;
+	node.split.stack = &stack;
+	node.split.ply = ply;
+	node.split.depth = depth;
+	node.split.seExtension = seExtension;
+	node.split.pvNode = pvNode;
+	node.helpers = 0;
+	node.isSplitPoint = true;
+	// Every booked thread counts from now on, so that the node is not left before it has
+	// fetched what it reads here.
+	const int32_t booked = _threads->bookAll(*_self, node.split);
+	if (booked == 0) {
+		node.isSplitPoint = false;
+		node.owner = nullptr;
+		return false;
+	}
+	node.helpers.fetch_add(booked, std::memory_order_acq_rel);
+	_self->addSplit(&node, ply);
+	return true;
+}
+
+void Search::closeSplitPoint(MoveGenerator& position, SearchStack& stack, SearchNode& node, ply_t ply) {
+	{
+		std::lock_guard<std::mutex> lock(node.splitMutex);
+		node.isSplitPoint = false;
+	}
+	waitForHelpers(*_self, node, position, stack, ply);
+	_self->removeSplitsAbove(ply - 1);
+	node.owner = nullptr;
+}
+
+void Search::waitForHelpers(SearchThread& self, SearchNode& node, MoveGenerator& position, SearchStack& stack, ply_t ply) {
+	// A helper that owns a split point inside its job waits here as well: it becomes
+	// bookable for the time being and is its job's again afterwards
+	SearchNode* const outerWaitingAt = self.waitingAt;
+	self.waitingAt = &node;
+	std::unique_lock<std::mutex> lock(self.mutex);
+	while (node.helpers.load(std::memory_order_acquire) > 0) {
+		self.waiting = true;
+		_threads->enterWaiting();
+		const auto start = std::chrono::steady_clock::now();
+		self.cv.wait(lock, [&] { return self.hasJob || node.helpers.load(std::memory_order_acquire) == 0; });
+		_waitMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - start).count();
+		self.waiting = false;
+		_threads->leaveWaiting();
+		if (self.hasJob) {
+			self.hasJob = false;
+			lock.unlock();
+			runJob(self, position, stack, ply);
+			lock.lock();
+		}
+	}
+	self.waitingAt = outerWaitingAt;
+}
+
+void Search::helperLoop(SearchThread& self) {
+	std::unique_lock<std::mutex> lock(self.mutex);
+	for (;;) {
+		self.waiting = true;
+		_threads->enterWaiting();
+		// Tells waitUntilIdle
+		self.cv.notify_all();
+		self.cv.wait(lock, [&self] { return self.hasJob || self.stop; });
+		self.waiting = false;
+		_threads->leaveWaiting();
+		if (self.stop) break;
+		self.hasJob = false;
+		lock.unlock();
+		runJob(self, self.position, self.stack, 0);
+		lock.lock();
+	}
+}
+
+void Search::runJob(SearchThread& self, MoveGenerator& position, SearchStack& stack, ply_t fromPly) {
+	const auto start = std::chrono::steady_clock::now();
+	if (self.job.pvNode) {
+		helpAtSplitPoint<SearchRegion::PV>(self, position, stack, fromPly);
+	}
+	else {
+		helpAtSplitPoint<SearchRegion::INNER>(self, position, stack, fromPly);
+	}
+	_helpMicroseconds += std::chrono::duration_cast<std::chrono::microseconds>(
+		std::chrono::steady_clock::now() - start).count();
+}
+
+template <Search::SearchRegion TYPE>
+void Search::helpAtSplitPoint(SearchThread& self, MoveGenerator& position, SearchStack& stack, ply_t fromPly) {
+	const SplitJob job = self.job;
+	SearchNode& splitNode = *job.node;
+	SearchThread& owner = *splitNode.owner;
+	const ply_t ply = job.ply;
+	SearchNode& node = stack[ply];
+
+	// The split points the owner works under are this thread's now as well: a thread waiting
+	// at one of them may be booked from here, and a fail high at one of them stops this
+	// search too
+	self.takeSplitsFrom(owner, ply);
+	self.addSplit(&splitNode, ply);
+
+	// Fetch the line and the node's constants from the owner's stack, then reach the node on
+	// the own board. No lock: the owner stays in the node while helpers work there.
+	Move line[SearchConfig::MAX_SEARCH_DEPTH + 1];
+	stack.fetchForHandover(*job.stack, fromPly, ply, line);
+	stack.replayLine(position, line, fromPly, ply);
+	node.computeCheckGivingSquares(position);
+
+	moveLoop<TYPE, true>(position, stack, splitNode, job.depth, job.seExtension, ply, Move::EMPTY_MOVE);
+
+	stack.undoLine(position, fromPly, ply);
+	self.removeSplitsAbove(fromPly);
+
+	// The last one to leave wakes the owner
+	if (splitNode.helpers.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+		owner.wake();
+	}
+}
+
+void Search::storePVToTT(MoveGenerator& position, SearchStack& stack, const RootMove& rootMove, ply_t ply) {
+	if (ply >= stack.size()) {
+		return; // No stack for this ply
+	}
+	SearchNode& node = stack[ply];
+	auto move = rootMove.getPV()[ply];
+	if (move.isEmpty()) return;
+	auto alpha = ply % 2 == 0 ? rootMove.getAlpha() : -rootMove.getBeta();
+	auto beta = ply % 2 == 0 ? rootMove.getBeta() : -rootMove.getAlpha();
+	auto value = ply % 2 == 0 ? rootMove.getValue() : -rootMove.getValue();
+	auto depth = rootMove.getDepth() - ply;
+	auto hashKey = position.computeBoardHash();
+	node.setTTEntry(hashKey, true, depth, move, NO_VALUE, value, alpha, beta);
+	stack[ply + 1].doMove(position, move);
+	storePVToTT(position, stack, rootMove, ply + 1);
+	stack[ply + 1].undoMove(position);
 }
 
 /**
@@ -433,19 +865,26 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t skipMoves, ClockManager& clockManager) {
 	if (skipMoves >= _computingInfo.getMovesAmount()) return;
 
+	_quiescence.setTT(stack[0].getTT());
 	_clockManager = &clockManager;
 	position.computeAttackMasksForBothColors();
-	SearchVariables& node = stack[0];
+	SearchNode& node = stack[0];
 	value_t result;
 
 	ply_t depth = node.remainingDepth;
 
 	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
-	node.computeMoves(position, _butterflyBoard);
+	node.computeMoves(position, *_butterflyBoard);
 	_computingInfo.nextIteration(node);
-	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, 0);
-
-	for (uint32_t triedMoves = 0; triedMoves < _computingInfo.getMovesAmount(); ++triedMoves) {
+	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
+    //printStackInfo("stack size: ");
+#ifdef USE_STOCKFISH_EVAL
+	Stockfish::Engine::set_position(position.getFen());
+#endif
+	// Every move in the tablebase win bucket gets searched, plus - only if MultiPV asks for more
+	// lines than the win bucket has moves - as many more (next-best bucket first, per the sort
+	// order) as needed to reach it. Without a root win this is every legal move, as before.
+	for (uint32_t triedMoves = 0; triedMoves < _tbSearchableMoves; ++triedMoves) {
 
 		RootMove& rootMove = _computingInfo.getRootMoves().getMove(triedMoves);
 		if (rootMove.isPVSearchedInWindow(depth) && triedMoves < skipMoves) {
@@ -494,10 +933,25 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 		if (node.isFailHigh()) break;
 	}
 
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, _butterflyBoard, true, depth);
+	_computingInfo.setDebug(-1);
+
+	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
-	_computingInfo.setHashFullInPermill(node.getHashFullInPermill());
+	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
+	if (_threads) _computingInfo.setHelperNodes(helperNodes());
 	_computingInfo.printSearchResult();
+	if (_threads && _threads->size() > 1) {
+		// Test output while the parallel search is being built
+		const auto elapsed = std::max<int64_t>(1, _computingInfo.getTimeSpentInMilliseconds());
+		std::cout << "info string master waited " << (_waitMicroseconds / 10 / elapsed) << "%"
+			<< " helped " << (_helpMicroseconds / 10 / elapsed) << "%";
+		for (uint32_t index = 1; index < _threads->size(); index++) {
+			const Search& helper = (*_threads)[index].search;
+			std::cout << " | helper " << index << " nodes " << helper.getNodesSearched()
+				<< " busy " << (helper.getHelpMicroseconds() / 10 / elapsed) << "%";
+		}
+		std::cout << std::endl;
+	}
 }
 
 

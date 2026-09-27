@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a stack for chess search
  */
@@ -22,7 +22,7 @@
 #ifndef __SEARCHSTACK_H
 #define __SEARCHSTACK_H
 
-#include "searchvariables.h"
+#include "search-node.h"
 #include "tt.h"
 // #include "HistoryTable.h"
 
@@ -34,37 +34,34 @@ namespace QaplaSearch {
 		SearchStack(TT* tt) 
 			: ttPtr(tt) 
 		{
-			searchVariablePtr.fill(0);
 			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
 				_stack[ply].ply = ply;
-				searchVariablePtr[ply] = &_stack[ply];
 				_stack[ply].setTT(tt);
 			}
-			referenceCount = 1;
 		}
 
-		SearchStack(const SearchStack& searchStack)
-			: SearchStack(searchStack.getTT())
-		{
-			searchVariablePtr.fill(0);
+		SearchStack(const SearchStack&) = delete;
+		SearchStack& operator=(const SearchStack&) = delete;
+
+		void clear() {
+			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
+				_stack[ply].clearMoveProvider();
+			}
 		}
 
-		~SearchStack() {
-		}
-
-		inline const SearchVariables& operator[](uint32_t index) const { return *searchVariablePtr[index]; }
-		inline  SearchVariables& operator[](uint32_t index) { return *searchVariablePtr[index]; }
+		inline const SearchNode& operator[](uint32_t index) const { return _stack[index]; }
+		inline  SearchNode& operator[](uint32_t index) { return _stack[index]; }
 		TT* getTT() const { return ttPtr; }
 
-		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth) {
-			_stack[0].initSearchAtRoot(board, alpha, beta, searchDepth);
+		void initSearchAtRoot(MoveGenerator& board, value_t alpha, value_t beta, int32_t searchDepth, ChessEval::PawnTT* pawnTT) {
+			_stack[0].initSearchAtRoot(board, alpha, beta, searchDepth, pawnTT);
 		}
 
-		Move getMoveFromPVMovesStore(SearchVariables::pvIndex_t ply) {
+		Move getMoveFromPVMovesStore(SearchNode::pvIndex_t ply) {
 			return _stack[0].getMoveFromPVMovesStore(ply);
 		}
 
-		const PV& getPV() const { return _stack[0].pvMovesStore; }
+		const PV& getPV() const { return _stack[0].pv; }
 
 		/**
 		 * Sets the PV moves store
@@ -79,22 +76,43 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Copy killer moves from one ply to another
+		 * Fetches what a thread joining the move loop of the node at ply reads from the
+		 * owner's stack and cannot derive itself: the moves from fromPly to ply that lead to
+		 * the node, to be replayed with replayLine, and of the node what a child reads from
+		 * its parent, see SearchNode::copyForHandover, the eval of ply - 1 for the child's
+		 * isImproving and the root depth. No lock: the owner stays in the node while helpers
+		 * work there.
+		 * @param fromPly ply this stack stands at, its nodes up to there are its own
+		 * @param line receives the moves of the plies fromPly + 1 to ply
 		 */
-		void copyKillers(SearchStack& foreignStack, ply_t fromPly) {
-			for (ply_t ply = fromPly; ply < _stack.size(); ply++) {
-				_stack[ply].moveProvider.setKillerMove(foreignStack[ply].moveProvider);
-				if (_stack[ply].getKillerMove()[0] == Move::EMPTY_MOVE) {
-					break;
-				}
+		void fetchForHandover(const SearchStack& from, ply_t fromPly, ply_t ply, Move* line) {
+			for (ply_t index = fromPly + 1; index <= ply; index++) {
+				line[index] = from._stack[index].previousMove;
+			}
+			_stack[ply].copyForHandover(from._stack[ply]);
+			if (ply > fromPly + 1) _stack[ply - 1].adjustedEval = from._stack[ply - 1].adjustedEval;
+			if (fromPly == 0) _stack[0].remainingDepth = from._stack[0].remainingDepth;
+		}
+
+		/**
+		 * Plays the line fetched by fetchForHandover, position must stand at fromPly. Sets
+		 * the hashes on the way, the repetition check below reads them.
+		 */
+		void replayLine(MoveGenerator& position, const Move* line, ply_t fromPly, ply_t ply) {
+			if (fromPly == 0) _stack[0].positionHash = position.computeBoardHash();
+			for (ply_t index = fromPly + 1; index <= ply; index++) {
+				_stack[index].doMove(position, line[index]);
+				_stack[index].positionHash = position.computeBoardHash();
 			}
 		}
 
-		void initForParallelSearch(SearchStack& foreignStack, ply_t ply) {
-			for (ply_t index = 0; index <= ply; index++) {
-				searchVariablePtr[index] = foreignStack.searchVariablePtr[index];
+		/**
+		 * Takes the line back, position stands at fromPly afterwards
+		 */
+		void undoLine(MoveGenerator& position, ply_t fromPly, ply_t ply) {
+			for (ply_t index = ply; index > fromPly; index--) {
+				_stack[index].undoMove(position);
 			}
-			copyKillers(foreignStack, ply + 1);
 		}
 
 		/**
@@ -102,11 +120,10 @@ namespace QaplaSearch {
 		 */
 		bool isDrawByRepetitionInSearchTree(const Board& board, ply_t ply) {
 			bool drawByRepetition = false;
-			ply_t checkPly = ply - 4;
 			ply_t minPly = ply - board.getHalfmovesWithoutPawnMoveOrCapture();
 			if (minPly < 0) { minPly = 0; }
 			for (ply_t checkPly = ply - 4; checkPly >= minPly; checkPly -= 2) {
-				if (searchVariablePtr[checkPly]->positionHashSignature == searchVariablePtr[ply]->positionHashSignature) {
+				if (_stack[checkPly].positionHash == _stack[ply].positionHash) {
 					drawByRepetition = true;
 					break;
 				}
@@ -130,12 +147,14 @@ namespace QaplaSearch {
 			}
 		}
 
+		int32_t size() const {
+			return static_cast<int32_t>(_stack.size());
+		}
+
 	private:
 		TT* ttPtr;
 		// We sometimes access the next ply thus we need to have one spare to write data in 
-		array<SearchVariables*, SearchParameter::MAX_SEARCH_DEPTH + 1> searchVariablePtr;
-		array<SearchVariables, SearchParameter::MAX_SEARCH_DEPTH + 1> _stack;
-		uint32_t referenceCount;
+		array<SearchNode, SearchConfig::MAX_SEARCH_DEPTH + 1> _stack;
 	};
 
 }

@@ -1,5 +1,132 @@
 # Qapla Test Versions
 
+## 0.4.018 2026-01-08
+
+- Enhanced array-generator.h with scale and add parameters
+- Added kAttackScale UCI parameter for king attack tuning
+- Improved dampening calculation in generateArrayPolynomialDampened
+- Updated default kAttackActivation from 360 to 250
+
+## 0.4.017 2025-12-29
+
+- Added stack->clear() in iterative deepening loop for consistent state
+- Made futility margins tunable via command line parameters (ffut, fut)
+- Set standard futility factors to 75cp per depth for ffut and fut
+- Added isImproving parameter to futility margin calculations
+
+## 0.4.016 2025-12-27
+
+- Fixed bug in futility pruning: now correctly uses absolute piece values for black pieces
+- Added promotion value consideration in futility pruning gain calculation
+- Enhanced copilot-instructions.md with Response Discipline guidelines
+
+## 0.4.015 2025-12-27
+
+- Added futility pruning in main search loop
+- Optimized common calculations (isCheckingMove, LMR) to avoid redundant computation
+- Added automated testing workflow with compare-wmtest.ps1 script
+- Versions 0.4.006 to 0.4.014: Code cleanup and refactoring (not documented individually)
+
+## 0.4 005 2025-05-19
+
+- Replacement strategy refactored
+
+## 0.4 004 2025-05-19
+
+- Uses 150% time as long as available
+
+## 0.4 003 2025-05-18
+
+- Uses twice as much time as long as time is available, reduced when time pressure
+
+## 0.4 002 2025-05-18
+
+- Really always replace the always replace entry.
+
+## 0.4 001 2025-05-18
+
+- Replaces all hash results with same key and move or same or lager searchdepth now
+
+## 0.3.015 2025-04-15
+
+- Raiting: 54,4%
+- Few fixes on endgame evaluations
+- Now using 50% of margin above beta on forewared futility pruning return value (instead of 10%)
+- Check extensions only on PV moves
+
+## 0.3.014 2025-04-13
+
+- Reduced ignore count for 50 move rule draw-scoring from 10 to 20
+- Reduced king attack values
+
+## 0.3.013 2025-04-13
+
+- Raiting: 50,9%
+- 50 moves rule detection included + reducing eval on more than 10 halfmoves without pawn move or capture
+
+## 0.3.011 2025-04-10
+
+- Raiting: 49.6%, 
+- Corrected the usage of end game evaluation by adding a boolean flag if there is an endgame function
+- Using new pawn evaluation values in computePawnValueNoPieceButPawn function 
+- Corrected king distance to 0, 1, 2, ... (was 0, 1, 3, ...) - better correction (b)
+- Use king distance now in pawn only endgames too
+- Use race algorithm for KPsKPs also for KPs (removed on version b)
+- Use current value in endgame evaluation (based on material, pst, pawn) instead of calculating it allone
+
+## 0.3.010 2025-04-10
+
+- Raiting: 51.9% 
+- King to pawn distance
+- Pawn evaluation with differences between midgame and endgame
+- Improved pawn evaluation values
+- Pawn hash moved to tt
+- Improvements in internal statistic functionaliy
+
+## 0.3.009 2025-04-07
+
+- Removed King Attack as it produced a bad raiting
+- Tests for King to pawn distance in endgame evaluation
+	- 50.46% on -5 per distance
+
+## 0.3.008 2025-04-07
+
+- Raiting: 47,8
+- Updated King Attack, worked well in game against itself
+- Fixed bug in clearing memories, tt and history after a move in uci
+- Fixed bug with illeagal move in pv due to not resetting pv entry in search nodes
+
+## 0.3.005 2025-03-26
+
+- Raiting: 49.3%; Old Raiting: 65.79
+- Knight property values changed to: { {  0,   0}, { 20, 0}, { -43,  0}, {-23,  0} }
+- Bishop property values changed to: { {  0,   0}, { 26,  14}, {-10,   0}, { 15,  14} }
+- Rook property values changed to:
+	- Trapped: -50, -16
+	- OpenFile: 18, 6
+	- HalfOpenFile: 10, 0
+	- ProtectsPP: 25, 0
+	- Pinned : -23, 0
+	- Row7: { 0,0 }, { 17, 17 }, { 10, 0 }, { 0, 0 }
+
+ ## 0.3.004 2025-03-22
+
+- Optimized eval threat weights, ca. +2.5% against itself (ply 8 search)
+- Raiting: 63.18
+
+## 0.3.003 2025-03-21
+
+- More minor bugfixes - all not relevant for playing strength
+- Enables the tt to shrink physical memory usage
+- Added a debug flag to exclude other threads from whatif
+- Implemented multi-threading statistic features to optimize eval weights
+
+## 0.3.002 2025-03-17
+
+- Stabilization bugfixes
+- Evaluation refactoring to focus on table lookup
+- New version of "eval" command printing a board with pieces and their values
+
 ## 0.3.001 2025-03-12
 
 - Stores and retrieves eval from tt.
@@ -190,7 +317,7 @@
 
 ## 0.2.028 2025-02-08
 
-- Raiting (new): 48.5
+- Raiting (new): 48.5 (based on a new tournament setup with stronger opponents)
 - Raiting (old): 68.7
 - Butterfly board fix, moves behind best moves are no longer decreased in pv nodes
 
@@ -260,7 +387,7 @@
 ## 0.2.017 2025-01-18
 
 - raiting 52
-- IID, seems to be not working for Quabla
+- IID, seems to be not working for Qapla
 
 ## 0.2.016 2025-01-18
 

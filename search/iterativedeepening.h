@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Iteratively deepens the search ply by ply
  */
@@ -22,18 +22,20 @@
 #ifndef __ITERATIVEDEEPENING_H
 #define __ITERATIVEDEEPENING_H
 
-#include <algorithm>
-#include "../movegenerator/movegenerator.h"
+
 #include "movehistory.h"
-#include "quiescence.h"
 #include "search.h"
+#include "search-thread.h"
+#include "extra-search.h"
 #include "../interface/clocksetting.h"
 #include "computinginfo.h"
 #include "clockmanager.h"
 #include "../interface/isendsearchinfo.h"
 #include "tt.h"
 #include "aspirationwindow.h"
-#include "searchstate.h"
+
+#include <algorithm>
+#include <memory>
 
 namespace QaplaSearch {
 
@@ -42,7 +44,8 @@ namespace QaplaSearch {
 	public:
 		IterativeDeepening() { 
 			_tt.setSizeInKilobytes(32736); 
-			Quiescence::setTT(&_tt);
+			setUpThreads();
+			clearMemories();
 		}
 
 		static const uint64_t ESTIMATED_TIME_FACTOR_FOR_NEXT_DEPTH = 4;
@@ -53,8 +56,7 @@ namespace QaplaSearch {
 		 * Starts a new game or sets a new position e.g. by fen
 		 */
 		void startNewGame() {
-			_tt.clear();
-			_search.startNewGame();
+			clearMemories();
 		}
 
 		/**
@@ -69,7 +71,9 @@ namespace QaplaSearch {
 		 */
 		void clearMemories() {
 			_tt.clear();
-			_search.clearMemories();
+			for (uint32_t index = 0; index < _threads.size(); index++) {
+				_threads[index].search.clearMemories();
+			}
 		}
 
 		/**
@@ -80,7 +84,28 @@ namespace QaplaSearch {
 		}
 
 		void setMultiPV(int32_t count) {
-			_search.setMultiPV(count);
+			_multiPV = count;
+			_search->setMultiPV(count);
+		}
+
+		/**
+		 * Sets the number of threads in total. They are shared out over as few searches as
+		 * the limit per search allows, see setSplitThreads.
+		 */
+		void setThreads(int32_t threads) {
+			_threadCount = threads;
+			shareOutThreads();
+		}
+
+		/**
+		 * Sets the most threads one search - the master's or an extra one - may have. More
+		 * threads than that go into extra searches, see ExtraSearch: the total is split into
+		 * as few searches as possible, of sizes n and n - 1. 11 threads with a limit of 8 are
+		 * 6 + 5, 17 are 6 + 6 + 5.
+		 */
+		void setSplitThreads(int32_t threads) {
+			_splitThreads = threads;
+			shareOutThreads();
 		}
 
 		/**
@@ -98,43 +123,77 @@ namespace QaplaSearch {
 		/**
 		 * Searches the best move by iteratively deepening the search depth
 		 */
-		ComputingInfo searchByIterativeDeepening(const MoveGenerator& position, MoveHistory& moveHistory)
+		ComputingInfo searchByIterativeDeepening(
+			const MoveGenerator& position, const std::vector<Move>& searchMoves, MoveHistory& moveHistory)
 		{
 
 			MoveGenerator searchBoard = position;
 			if (_clockManager.isAnalyzeMode()) {
 				clearMemories();
+				/*
+				auto fen = position.getFen();
+				std::replace(fen.begin(), fen.end(), '/', '_');
+				_tt.read("tt_in_" + fen + ".bin");
+				*/
 			}
 			else {
-				_tt.setNextSearch();
+				_tt.newSearch();
+				/*
+				auto fen = position.getFen();
+				std::replace(fen.begin(), fen.end(), '/', '_');
+				_tt.write("tt_out_" + fen + ".bin");
+				*/
 			}
 			for (auto& window : _window) {
 				window.initSearch();
 			}	
-			_search.startNewSearch(searchBoard);
+			setUpThreads();
+			_search->startNewSearch(searchBoard, searchMoves,
+				moveHistory.hasRepeatedPosition(searchBoard));
+			setUpHelpers(searchBoard);
 			_clockManager.setNewMove();
-
-			ply_t maxDepth = SearchParameter::MAX_SEARCH_DEPTH - 28;
+			if (_search->getComputingInfo().getMovesAmount() == 0) {
+				return _search->getComputingInfo();
+			}
+			ply_t maxDepth = SearchConfig::MAX_SEARCH_DEPTH - 28;
 			const ply_t depthLimit = _clockSetting.getSearchDepthLimit();
 			if (depthLimit > 0 && depthLimit < maxDepth) {
 				maxDepth = depthLimit;
 			}
 
-			Move result;
-
+			SearchStack& stack = _threads.master().stack;
+			
 			// tt.readFromFile("C:\\Programming\\chess\\Qapla\\Qapla\\tt.bin");
 			moveHistory.setDrawPositionsToHash(position, _tt);
 
-			static const uint8_t DEPTH_BUFFER = 0;
+			// The extra searches start now and run until the master's search is done
+			for (size_t index = 0; index < _extraSearches.size(); index++) {
+				_extraSearches[index]->start(searchBoard, searchMoves, moveHistory.hasRepeatedPosition(searchBoard),
+					_searchThreads[index + 1], &_tt);
+			}
+
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
-				searchOneIteration(searchBoard, curDepth);
-				_clockManager.setSearchResult(curDepth, _search.getComputingInfo().getPVMoveValueInCentiPawn(0));
+				stack.clear();
+				searchOneIteration(searchBoard, stack, curDepth);
+				_clockManager.setSearchResult(curDepth, _search->getComputingInfo().getPVMoveValueInCentiPawn(0));
 				if (!_clockManager.mayComputeNextDepth(curDepth)) {
 					break;
 				}
-				if (hasMateFound(_search.getComputingInfo()) && _clockManager.stopSearchOnMateFound()) {
+				if (hasMateFound(_search->getComputingInfo()) && _clockManager.stopSearchOnMateFound()) {
 					break;
 				}
+			}
+
+			// The next search hands the helpers new settings, so they must be idle before
+			// this one returns
+			_threads.waitUntilIdle();
+			for (auto& extra : _extraSearches) {
+				extra->stop();
+			}
+			if (!_extraSearches.empty() && _verbose) {
+				uint64_t extraNodes = 0;
+				for (auto& extra : _extraSearches) extraNodes += extra->getNodesSearched();
+				std::cout << "info string extra searches " << _extraSearches.size() << " nodes " << extraNodes << std::endl;
 			}
 
 			// tt.writeToFile("tt.bin");
@@ -142,7 +201,7 @@ namespace QaplaSearch {
 			moveHistory.removeDrawPositionsFromHash(_tt);
 			//static int i = 0;
 			// tt.writeToFile("tt" + to_string(i) + ".bin"); i++;
-			return _search.getComputingInfo();
+			return _search->getComputingInfo();
 		}
 
 		/**
@@ -171,7 +230,8 @@ namespace QaplaSearch {
 		 * Sets the interface printing search information
 		 */
 		void setSendSearchInfoInterface(ISendSearchInfo* sendSearchInfo) {
-			_search.setSendSearchInfoInterface(sendSearchInfo);
+			_sendSearchInfo = sendSearchInfo;
+			_search->setSendSearchInfoInterface(sendSearchInfo);
 		}
 
 		/**
@@ -180,11 +240,51 @@ namespace QaplaSearch {
 		 * request flag will be set to false again
 		 */
 		void requestPrintSearchInfo() {
-			_search.requestPrintSearchInfo();
+			_search->requestPrintSearchInfo();
 		}
 
 
 	private:
+
+		/**
+		 * Creates the threads the option asks for. Helper threads are started once and kept;
+		 * the master is the first one and runs on the calling thread.
+		 */
+		/**
+		 * Shares the threads out over the searches: as few searches as the limit per search
+		 * allows, the first ones one thread larger where the division leaves a remainder.
+		 * _searchThreads[0] is the master's search.
+		 */
+		void shareOutThreads() {
+			const int32_t searches = (_threadCount + _splitThreads - 1) / _splitThreads;
+			_searchThreads.clear();
+			for (int32_t index = 0; index < searches; index++) {
+				_searchThreads.push_back(_threadCount / searches + (index < _threadCount % searches ? 1 : 0));
+			}
+			const size_t extra = size_t(searches - 1);
+			while (_extraSearches.size() > extra) _extraSearches.pop_back();
+			while (_extraSearches.size() < extra) _extraSearches.push_back(std::make_unique<ExtraSearch>());
+		}
+
+		void setUpThreads() {
+			if (_threads.size() == uint32_t(_searchThreads[0])) return;
+			_threads.resize(_searchThreads[0], &_tt);
+			_search = &_threads.master().search;
+			_search->setSendSearchInfoInterface(_sendSearchInfo, _verbose);
+			_search->setMultiPV(_multiPV);
+		}
+
+		/**
+		 * Hands every helper the settings of the new search. A helper's board stands at the
+		 * root between jobs, it replays the line to every node it helps at from there.
+		 */
+		void setUpHelpers(const MoveGenerator& root) {
+			for (uint32_t index = 1; index < _threads.size(); index++) {
+				SearchThread& helper = _threads[index];
+				helper.search.initAsHelper(*_search, &_clockManager, &_tt);
+				helper.position = root;
+			}
+		}
 
 		/**
 		 * Computes the available time to search the next move
@@ -205,31 +305,33 @@ namespace QaplaSearch {
 		/**
 		 * Searches one iteration - at constant search depth using an aspiration window
 		 */
-		void searchOneIteration(MoveGenerator& position, uint32_t searchDepth)
+		void searchOneIteration(MoveGenerator& position, SearchStack& stack, uint32_t searchDepth)
 		{
-			SearchStack stack(&_tt);
-			bool isInWindow = false;
-			const auto multiPV = _search.getMultiPV();
+			const auto multiPV = _search->getMultiPV();
 			for (uint32_t i = 0; i < multiPV; ++i) {
 				_window[i].newDepth(searchDepth);
 			}
 			uint32_t numberOfPVSearchedMoves = 0;
-#ifdef USE_STOCKFISH_EVAL
-			Stockfish::Engine::set_position(position.getFen());
-#endif
+			//uint32_t iterations = 0;
 			do {
 				const auto alphaRed = std::max(0, int32_t(multiPV) - int32_t(numberOfPVSearchedMoves) - 1) * 5;
-				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth);
+				stack.initSearchAtRoot(position, _window[numberOfPVSearchedMoves].getAlpha() - alphaRed, _window[numberOfPVSearchedMoves].getBeta(), searchDepth, _search->getPawnTT());
 				_clockManager.setCalculationDepth(searchDepth);
-				_search.negaMaxRoot(position, stack, multiPV - 1, _clockManager);
-				const auto& computingInfo = _search.getComputingInfo();
+				_search->negaMaxRoot(position, stack, multiPV - 1, _clockManager);
+				const auto& computingInfo = _search->getComputingInfo();
 				numberOfPVSearchedMoves = computingInfo.countPVSearchedMovesInWindow(searchDepth);
 				const auto multiPVPos = std::min(numberOfPVSearchedMoves, multiPV - 1);
 				const value_t positionValue = computingInfo.getPVMoveValueInCentiPawn(multiPVPos);
 				_clockManager.setIterationResult(_window[multiPVPos].getAlpha(), _window[multiPVPos].getBeta(), positionValue);
-				isInWindow = _window[multiPVPos].isInside(positionValue);
 				_window[multiPVPos].setSearchResult(positionValue);
-
+				/*
+				iterations++;
+				if (iterations > 10) {
+					cout << numberOfPVSearchedMoves << " " << multiPVPos << " " << positionValue << endl;
+					_window[multiPVPos].print();
+					position.print();
+				}
+				*/
 			} while (!_clockManager.shouldAbort() && numberOfPVSearchedMoves < multiPV);
 
 		}
@@ -238,7 +340,18 @@ namespace QaplaSearch {
 		ClockSetting _clockSetting;
 		ClockManager _clockManager;
 		TT _tt;
-		Search _search;
+		// The master's search, owned by the first of the threads
+		Search* _search = nullptr;
+		int32_t _threadCount = 1;
+		int32_t _splitThreads = 8;
+		// Threads of every search, the master's first, see shareOutThreads
+		std::vector<int32_t> _searchThreads{ 1 };
+		int32_t _multiPV = 1;
+		SearchThreads _threads;
+		// Searches beside the master's, contributing through the transposition table only
+		std::vector<std::unique_ptr<ExtraSearch>> _extraSearches;
+		ISendSearchInfo* _sendSearchInfo = nullptr;
+		bool _verbose = true;
 		array<AspirationWindow, MAX_PV> _window;
 	};
 

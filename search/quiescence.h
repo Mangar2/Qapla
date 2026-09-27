@@ -13,21 +13,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements the quiescense search algorithm for the chess engine
  * Quiescense search searches captures and some checking moves until 
  * a quiet position is reached.
  */
 
-#ifndef __QUIESCENCESEARCH_H
-#define __QUIESCENCESEARCH_H
+#pragma once
 
 #include <tuple>
 #include "../basics/evalvalue.h"
+#include "../basics/movelist.h"
 #include "computinginfo.h"
+#include "see.h"
 #include "../search/tt.h"
+#include "../eval/pawntt.h"
 #include "../movegenerator/movegenerator.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
@@ -37,7 +39,7 @@ using namespace QaplaMoveGenerator;
 
 struct Signatures {
 	Signatures(Signatures* lastSignature, Board& position) 
-		: lastPly(lastSignature), hashSignature(position.computeBoardHash()) {}
+		: hashSignature(position.computeBoardHash()), lastPly(lastSignature) {}
 	QaplaBasics::hash_t hashSignature;
 	Signatures* lastPly;
 
@@ -60,21 +62,20 @@ struct Signatures {
 namespace QaplaSearch {
 
 	class Quiescence {
-
-	private:
-		Quiescence() {}
-
 	public:
+
+		Quiescence() {}
 
 		/**
 		 * Sets a pointer to the transposition table for later use
 		 */
-		static void setTT(TT* tt) { _tt = tt; }
+		void setTT(TT* tt) { _tt = tt; }
+		void setPawnTT(ChessEval::PawnTT* pawnTT) { _pawnTT = pawnTT; }
 
 		/**
 	     * Performs the quiescense search
 	     */
-		static value_t search(
+		value_t search(
 			bool isPvNode,
 			MoveGenerator& board, ComputingInfo& computingInfo, Move lastMove,
 			value_t alpha, value_t beta, ply_t ply);
@@ -83,23 +84,48 @@ namespace QaplaSearch {
 	private:
 
 		/**
-		 * Computes the maximal value a capture move can gain + safety margin
-		 * If this value is not enough to make it a valuable move, the move is skipped
-		 */
-		static value_t computePruneForewardValue(MoveGenerator& board, value_t standPatValue, Move move);
-
-		/**
 		 * Gets an entry from the transposition table
 		 * @returns eval, hash value, precision, move
 		 */
-		static std::tuple<value_t, value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
-				
+		std::tuple<value_t, value_t, uint32_t, Move> probeTT(MoveGenerator& board, value_t alpha, value_t beta, ply_t ply);
+
+		/**
+		 * Generates the non silent moves of the position and weights them for the ordering.
+		 * The move providing side of the quiescence lives here and not in MoveProvider, so the
+		 * ordering can be changed without touching the main search.
+		 */
+		static void computeCaptures(MoveGenerator& board, QaplaBasics::MoveList& moveList, Move previousMove);
+
+		/**
+		 * Provides the next capture, highest weight first, and an empty move once the list is used
+		 * up. curMoveNo is the amount of moves already provided and is advanced by one per call.
+		 */
+		static Move selectNextCapture(QaplaBasics::MoveList& moveList, uint32_t& curMoveNo);
+
+		/**
+		 * Calculate the weight (winning material in centi-pawn) of a capture move for more ordering
+		 */
+		static value_t computeCaptureWeight(const MoveGenerator& board, Move move, Move previousMove);
+
+		/**
+		 * Computes the weight of all captures
+		 */
+		static void computeAllCaptureWeight(const MoveGenerator& board, QaplaBasics::MoveList& moveList,
+			Move previousMove);
+
+		/**
+		 * Gets the index of the highest weighted capture from curMoveNo on, -1 if none is left
+		 */
+		static int32_t findNextBestCaptureMove(QaplaBasics::MoveList& moveList, uint32_t curMoveNo);
+
+		SEE _see;
+
 	public:
 
-		static TT* _tt;
+		TT* _tt;
+		ChessEval::PawnTT* _pawnTT = nullptr;
 
 	};
 
 }
 
-#endif // __QUIESCENCESEARCH_H

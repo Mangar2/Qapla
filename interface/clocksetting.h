@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements settings for a chess board clock control
  */
@@ -45,7 +45,7 @@ namespace QaplaInterface {
 		 */
 		void reset() {
 			_searchDepth = 0;
-			_nodeCount = 0;
+			_nodeTarget = 0;
 			_userClock = 0;
 			_mate = 0;
 			_mode = ClockMode::search;
@@ -82,8 +82,8 @@ namespace QaplaInterface {
 		/**
 		 * Gets the amount of nodes to be calculated
 		 */
-		uint64_t getNodeCount() const {
-			return _nodeCount;
+		uint64_t getNodeTarget() const {
+			return _nodeTarget;
 		}
 
 		/**
@@ -137,7 +137,7 @@ namespace QaplaInterface {
 		 * Sets the amount of nodes to search (0 -> not relevant)
 		 */
 		void setNodeCount(uint64_t nodeCount) {
-			_nodeCount = nodeCount;
+			_nodeTarget = nodeCount;
 		}
 
 		/**
@@ -251,7 +251,7 @@ namespace QaplaInterface {
 
 
 		uint32_t _searchDepth;
-		uint64_t _nodeCount;
+		uint64_t _nodeTarget;
 		uint32_t _mate;
 		uint64_t _userClock;
 		uint32_t _moveAmountForClock;

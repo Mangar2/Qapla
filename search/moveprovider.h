@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a move provider for search providing moves in the right order
  */
@@ -25,23 +25,39 @@
 #include "../basics/move.h"
 #include "../basics/movelist.h"
 #include "searchdef.h"
-#include "../eval/eval.h"
-//#include "EvalBoard.h"
 #include "killermove.h"
 #include "see.h"
-#include "searchparameter.h"
+#include "search-config.h"
 #include "butterfly-boards.h"
 #include "../movegenerator/movegenerator.h"
+
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 namespace QaplaSearch {
 
+	/**
+	 * The order of move selection is defined by the MoveType enum, the stages are run
+	 * through in enum order.
+	 *
+	 * Two kinds of stages exist. A selecting stage returns one move per call and stays
+	 * active until it runs out of moves. A preparing stage returns no move at all, it
+	 * only sets weights and immediately falls through to the next stage.
+	 */
 	enum class MoveType {
-		CAPTURE_KILLER, 
-		PV, WEIGHT_CAPTURES, GOOD_CAPTURES, KILLER1, KILLER2, SORT_MOVES, ALL,
-		CAPTURES_ONLY,
+		PV, 							// Selects the PV move, else the tt move
+		WEIGHT_CAPTURES, 				// Prepares: weights every capture. Nothing is sorted, the order
+										// emerges from searching the maximum on every single selection
+		GOOD_CAPTURES, 					// Selects the captures that SEE does not rate as loosing, highest
+										// weight first. Weight is the value of the captured piece plus the
+										// recapture bonus, the capturing piece does not take part.
+										// Loosing captures are dropped here and reappear in REMAINING_MOVES
+		KILLER1, KILLER2, 				// Selects the killers, thus only after the good captures are used up
+		SORT_MOVES, 					// Prepares: weights the silent moves by butterfly value and sorts
+										// the first few of them
+		REMAINING_MOVES,				// Selects everything still left in list order: first the loosing
+										// captures dropped by GOOD_CAPTURES, unsorted, then the silent moves
 	};
 
 	constexpr MoveType operator+(MoveType a, int b) { return MoveType(int(a) + b); }
@@ -53,18 +69,10 @@ namespace QaplaSearch {
 
 		MoveProvider() : curMoveNo(0), _butterflyBoard(0) {
 			selectStage = MoveType::PV + 1;
-			currentStage = selectStage;
 			pvMove = Move::EMPTY_MOVE;
 			_ttMove = Move::EMPTY_MOVE;
 			previousMove = Move::EMPTY_MOVE;
 		};
-
-		/**
-		 * Returns true, if we are in an all search stage
-		 */
-		bool isAllSearch() {
-			return selectStage == MoveType::ALL;
-		}
 
 		/**
 		 * Initializes the move provider
@@ -91,10 +99,25 @@ namespace QaplaSearch {
 		}
 
 		/**
+	 	 * Clears the killer moves
+	  	 */
+		void clear() {
+			killerMove.clear();
+			pvMove.setEmpty();
+		}
+
+		/**
 		 * Sets the PV move
 		 */
 		void setPVMove(Move move) {
 			pvMove = move;
+		}
+
+		/**
+		 * Checks whether the node has a move from the previous iteration to try first
+		 */
+		bool hasPVMove() const {
+			return !pvMove.isEmpty();
 		}
 
 		/**
@@ -125,17 +148,6 @@ namespace QaplaSearch {
 				++selectStage;
 			}
 			_ttMove = ttMove;
-		}
-
-		/**
-		 * Initializes the move provider to provide captures
-		 */
-		inline void computeCaptures(MoveGenerator& board, Move previousPlyMove) {
-			previousMove = previousPlyMove;
-			board.genNonSilentMovesOfMovingColor(moveList);
-			computeAllCaptureWeight(board, false);
-			curMoveNo = 0;
-			triedMovesAmount = 0;
 		}
 
 		/**
@@ -170,37 +182,33 @@ namespace QaplaSearch {
 			Move move;
 
 			while (selectedMoveNo == -1 && move.isEmpty()) {
-				currentStage = selectStage;
 				switch (selectStage) {
 				case MoveType::PV:
-					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove, moveList);
+					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove);
 					pvMove.setEmpty();
 					++selectStage;
 					break;
 				case MoveType::KILLER1:
-					selectedMoveNo = selectProposedMove(killerMove[0], moveList);
+					selectedMoveNo = selectProposedMove(killerMove[0]);
 					++selectStage;
 					break;
 				case MoveType::KILLER2:
-					selectedMoveNo = selectProposedMove(killerMove[1], moveList);
+					selectedMoveNo = selectProposedMove(killerMove[1]);
 					++selectStage;
 					break;
 				case MoveType::WEIGHT_CAPTURES:
-					computeAllCaptureWeight(board, false);
+					computeAllCaptureWeight(board);
 					++selectStage;
 					break;
 				case MoveType::GOOD_CAPTURES:
 					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures(board);
 					break;
-				case MoveType::CAPTURES_ONLY:
-					selectedMoveNo = selectNextCaptureMove(board);
-					break;
 				case MoveType::SORT_MOVES:
 					sortNonCaptures();
 					++selectStage;
 					break;
-				case  MoveType::ALL:
-					selectedMoveNo = selectNextSilentMove(moveList);
+				case  MoveType::REMAINING_MOVES:
+					selectedMoveNo = selectNextSilentMove();
 					break;
 				default: break;
 				}
@@ -231,32 +239,16 @@ namespace QaplaSearch {
 		/**
 		 * Select the next capture move
 		 */
-		Move selectNextCapture(const MoveGenerator& board) {
-			int16_t selectedMoveNo = -1;
-			Move move;
-			selectedMoveNo = selectNextCaptureMove(board);
-
-			if (selectedMoveNo != -1) {
-				move = moveList[selectedMoveNo];
-				moveList[selectedMoveNo].setEmpty();
-			}
-
-			return move;
-		}
-
-		Move selectNextCaptureOrEvade(const MoveGenerator& board, bool isCheck) {
-			if (isCheck) {
-				return selectNextMove(board);
-			}
-			else {
-				return selectNextCapture(board);
-			}
-		}
 
 		uint32_t getTotalMoveAmount() const { return moveList.getTotalMoveAmount(); }
+
+		/**
+		 * @returns true, if the move selected last is the last one of the list. The list is
+		 * complete from the start and every selected move is taken out of it.
+		 */
+		bool isLastMove() const { return triedMovesAmount >= moveList.getTotalMoveAmount(); }
 		uint32_t getNonSilentMoveAmount() const { return moveList.getNonSilentMoveAmount(); }
 		uint32_t getNumberOfMoveProvidedLast() const { return curMoveNo; }
-		MoveType getSelectTypeOfLastProvidedMove() const { return currentStage; }
 
 		uint32_t getTriedMovesAmount() const {
 			return triedMovesAmount;
@@ -274,10 +266,12 @@ namespace QaplaSearch {
 		/**
 		 * Calculate the weight (winning material in centi-pawn) of a capture move for more ordering
 		 */
-		value_t computeCaptureWeight(const MoveGenerator& board, Move move, bool underWeightLoosingCaptures) {
+		value_t computeCaptureWeight(const MoveGenerator& board, Move move) {
 			value_t weight = board.getAbsolutePieceValue(move.getCapture());
 			if (previousMove.isCapture() && (previousMove.getDestination() == move.getDestination())) {
 				// order recaptures to the front
+				// Tested 0.4.0-039: real piece values, every recapture ahead of every other
+				// capture: -4.5 Elo, 10018 games
 				weight += 10;
 			}
 			return weight;
@@ -286,11 +280,11 @@ namespace QaplaSearch {
 		/**
 		 * Computes the weight of all captures
 		 */
-		void computeAllCaptureWeight(const MoveGenerator& board, bool underWeightLoosingCaptures) {
+		void computeAllCaptureWeight(const MoveGenerator& board) {
 			for (uint32_t moveNo = 0; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
 				Move move = moveList[moveNo];
 				if (move != Move::EMPTY_MOVE) {
-					moveList.setWeight(moveNo, computeCaptureWeight(board, move, underWeightLoosingCaptures));
+					moveList.setWeight(moveNo, computeCaptureWeight(board, move));
 				}
 			}
 		}
@@ -298,18 +292,18 @@ namespace QaplaSearch {
 		/**
 		 * searches the next best capture move according his weight
 		 */
-		int16_t findNextBestCaptureMove(const MoveGenerator& board) {
-			int16_t bestMoveNo = -1;
+		int32_t findNextBestCaptureMove() {
+			int32_t bestMoveNo = -1;
 			value_t maxWeight = -MAX_VALUE;
 			value_t curWeight;
 			Move move;
-			for (uint8_t moveNo = curMoveNo; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
+			for (uint32_t moveNo = curMoveNo; moveNo < moveList.getNonSilentMoveAmount(); moveNo++) {
 				move = moveList[moveNo];
 				if (move != Move::EMPTY_MOVE) {
 					curWeight = moveList.getWeight(moveNo);
 					if (curWeight > maxWeight) {
 						maxWeight = curWeight;
-						bestMoveNo = moveNo;
+						bestMoveNo = static_cast<int32_t>(moveNo);
 					}
 				}
 			}
@@ -317,14 +311,19 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Select the next capture move scipping loosing captures according SEE
+		 * Selects the next capture move, deferring the loosing captures according to SEE.
+		 * A deferred capture is invisible to findNextBestCaptureMove from here on, so every
+		 * move arriving in the loop still carries its original, non negative weight and no
+		 * move is ever tested by SEE twice.
 		 */
-		int16_t selectNextCaptureMoveHandlingLoosingCaptures(const MoveGenerator& board) {
-			int16_t moveNo;
-			moveNo = findNextBestCaptureMove(board);
-			while (moveNo != -1 && moveList.getWeight(moveNo) >= 0 && sEE.isLoosingCapture(board, moveList[moveNo])) {
-				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - LOOSING_CAPTURE_MALUS);
-				moveNo = findNextBestCaptureMove(board);
+		int32_t selectNextCaptureMoveHandlingLoosingCaptures(const MoveGenerator& board) {
+			int32_t moveNo;
+			moveNo = findNextBestCaptureMove();
+			while (moveNo != -1 && sEE.isLoosingCapture(board, moveList[moveNo])) {
+				// Tested 0.4.0-082: the deferred captures ordered by their exact exchange value
+				// instead of the order the move generator produced: about -4 Elo, 12721 games
+				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - CAPTURE_DEFERRAL_MALUS);
+				moveNo = findNextBestCaptureMove();
 			}
 			if (moveNo == -1) {
 				++selectStage;
@@ -338,32 +337,21 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Gets the index of the next capture move
-		 */
-		int16_t selectNextCaptureMove(const MoveGenerator& board) {
-			int16_t bestMoveNo = findNextBestCaptureMove(board);
-			if (bestMoveNo == -1) {
-				++selectStage;
-			}
-			else {
-				moveList.dragMoveToTheBack(curMoveNo, bestMoveNo);
-				bestMoveNo = curMoveNo;
-				curMoveNo++;
-			}
-			return bestMoveNo;
-		}
-
-		/**
 		 * searches for a proposed move and if available - selet it
 		 */
-		int16_t selectProposedMove(Move move, MoveList& moveList) {
+		int16_t selectProposedMove(Move move) {
 			int16_t foundMoveNo = -1;
 			if (!move.isEmpty()) {
-				for (uint8_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
+				// uint32_t, not uint8_t: the generator produces up to MAX_MOVE_AMOUNT moves and
+				// an index that wraps at 255 never reaches the end of the list.
+				// No break on a hit: every move is generated once, so the first hit is the only
+				// one and stopping there is free work saved - but it measured 0.5 % slower in
+				// five interleaved pairs, consistently. The loop without an early exit is the
+				// one the compiler can lay out well, so the scan runs to the end on purpose.
+				for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 					if (moveList[moveNo] == move) {
-						foundMoveNo = moveNo;
+						foundMoveNo = int16_t(moveNo);
 					}
-
 				}
 			}
 			return foundMoveNo;
@@ -372,30 +360,42 @@ namespace QaplaSearch {
 		/**
 		 * Select the next non-capture move
 		 */
-		int16_t selectNextSilentMove(MoveList& moveList) {
+		int32_t selectNextSilentMove() {
 			while (curMoveNo < moveList.getTotalMoveAmount() && moveList[curMoveNo].isEmpty())
 			{
 				curMoveNo++;
 			}
 			curMoveNo++;
-			return curMoveNo - 1;
+			return static_cast<int32_t>(curMoveNo - 1);
 		}
 
 		void sortNonCaptures() {
 			if (_butterflyBoard == 0) {
 				return;
 			}
-			for (uint8_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
+			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				moveList.setWeight(moveNo, _butterflyBoard->getValue(moveList.getMove(moveNo)));
 			}
-			moveList.sortFirstSilentMoves(SearchParameter::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
+			moveList.sortFirstSilentMoves(SearchConfig::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
 		}
 
 		static const uint32_t TRIED_MOVES_STORE_SIZE = 200;
-		static const value_t LOOSING_CAPTURE_MALUS = 50000;
+
+		// Subtracted from the weight of a loosing capture. findNextBestCaptureMove starts its
+		// maximum search at -MAX_VALUE, so the capture ends up below that floor and drops out
+		// of the GOOD_CAPTURES stage altogether. selectNextSilentMove picks it up again later,
+		// as it walks the list linearly and does not look at weights. This is a deferral to a
+		// later stage, not a re-ordering inside the capture stage.
+		static const value_t CAPTURE_DEFERRAL_MALUS = 50000;
+
+		// Largest weight computeCaptureWeight can produce: value of a queen plus the recapture
+		// bonus, with room to spare. Lowering the malus below this sum would silently bring the
+		// loosing captures back into the capture stage, ahead of the killer moves.
+		static const value_t MAX_CAPTURE_WEIGHT = 2000;
+		static_assert(CAPTURE_DEFERRAL_MALUS > MAX_VALUE + MAX_CAPTURE_WEIGHT,
+			"a deferred capture must fall below the -MAX_VALUE floor of findNextBestCaptureMove");
 
 		MoveType selectStage;
-		MoveType currentStage;
 		uint32_t curMoveNo;
 		Move pvMove;
 		Move _ttMove;

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  */
 
@@ -24,6 +24,10 @@
 #include <array>
 #include "searchdef.h"
 #include "../basics/move.h"
+
+#include <iomanip>
+
+using namespace QaplaBasics;
 
 namespace QaplaSearch {
 
@@ -67,7 +71,6 @@ namespace QaplaSearch {
 		}
 
 		void print() {
-			constexpr int cellWidth = 10; // Breite der einzelnen Felder
 			constexpr int valueWidth = 5; // Breite f�r die rechtsb�ndige Werteanzeige
 
 			std::cout << "       A         B         C         D         E         F         G         H\n";

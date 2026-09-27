@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Stores a move history for the current game
  */
@@ -23,6 +23,7 @@
 #define __MOVEHISTORY_H
 
 #include <vector>
+#include <algorithm>
 #include "../basics/move.h"
 #include "../movegenerator/movegenerator.h"
 #include "tt.h"
@@ -31,6 +32,8 @@ using namespace std;
 using namespace QaplaBasics;
 
 namespace QaplaSearch {
+
+	using QaplaMoveGenerator::MoveGenerator;
 
 	class MoveHistory {
 	public:
@@ -42,7 +45,7 @@ namespace QaplaSearch {
 		 */
 		void setStartPosition(const MoveGenerator& aBoard) {
 			startPosition = aBoard;
-			_history.resize(0);
+			clearMoves();
 		}
 
 		/**
@@ -50,6 +53,7 @@ namespace QaplaSearch {
 		 */
 		void clearMoves() {
 			_history.resize(0);
+			_drawHashes.resize(0);
 		}
 
 		/**
@@ -95,6 +99,29 @@ namespace QaplaSearch {
 		}
 
 		/**
+		 * Checks whether any position occurred twice since the last move that reset the halfmove
+		 * counter - not necessarily the current one. This is the weaker question isDrawByRepetition
+		 * does not answer: the game is not drawn yet, but it has stopped making progress, and the
+		 * root tablebase ranking has to switch to strictly decreasing distances to get out of it.
+		 */
+		bool hasRepeatedPosition(const MoveGenerator& board) const {
+			std::vector<hash_t> hashes;
+			Board checkBoard = startPosition;
+			uint16_t moveNo = 0;
+			while (moveNo + board.getHalfmovesWithoutPawnMoveOrCapture() < _history.size()) {
+				checkBoard.doMove(_history[moveNo]);
+				moveNo++;
+			}
+			for (; ; moveNo++) {
+				const hash_t hash = checkBoard.computeBoardHash();
+				if (std::find(hashes.begin(), hashes.end(), hash) != hashes.end()) return true;
+				hashes.push_back(hash);
+				if (moveNo == _history.size()) return false;
+				checkBoard.doMove(_history[moveNo]);
+			}
+		}
+
+		/**
 		 * Sets all positions already played to hash to identify draw in the search
 		 */
 		void setDrawPositionsToHash(const MoveGenerator& board, TT& tt) {
@@ -113,13 +140,28 @@ namespace QaplaSearch {
 		 */
 		void removeDrawPositionsFromHash(TT& tt) {
 			for (auto drawHash : _drawHashes) {
-				uint32_t entryIndex = tt.getTTEntryIndex(drawHash);
+				uint32_t entryIndex = tt.getEntryIndex(drawHash);
 				if (entryIndex != TT::INVALID_INDEX) {
 					tt.getEntry(entryIndex).clear();
 				}
 			}
 		}
 
+		void print() {
+			std::cout << "Move history, history size " << _history.size() << " draw hashes size " << _drawHashes.size() << std::endl;
+			for (auto move : _history) {
+				cout << move.getLAN() << " ";
+			}
+			for (auto drawHash : _drawHashes) {
+				cout << drawHash << " ";
+			}
+			cout << startPosition.getFen(_history.size() / 2) << endl;
+			cout << endl;
+		}
+
+		int getHalfMoveCount() const {
+			return _history.size();
+		}
 
 	private:
 

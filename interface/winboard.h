@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a Winboard - Interface
  */
@@ -47,8 +47,24 @@ namespace QaplaInterface {
 		 */
 		void readMemory() {
 			getNextTokenBlocking();
-			_maxMemory = uint32_t(getCurrentTokenAsUnsignedInt());
+			getBoard()->setOption("Hash", getCurrentToken());
 		}
+
+		/**
+		 * @brief Loads the EGTB or bitbases
+		 */
+		void loadEgtb();
+
+		/** True if some provider offers an option of that name. */
+		bool hasOption(const std::string& name);
+
+		/** Hands an option to the provider that owns it, falling back to the board. */
+		void setOptionByProvider(const std::string& name, const std::string& value);
+
+		/**
+		 * Sets a winboard option
+		 */
+		void setOption();
 
 		/**
 		 * Manages a move
@@ -69,16 +85,6 @@ namespace QaplaInterface {
 		 * Processes any input coming from the console
 		 */
 		virtual void runLoop();
-
-		/**
-		 * handles a generate EGTB command
-		 */
-		void generateEGTB();
-
-		/**
-		 * handles a verify EGTB command
-		 */
-		void verifyEGTB();
 
 		/**
 		 * Sets xBoard mode 
@@ -123,13 +129,18 @@ namespace QaplaInterface {
 		void handlePing();
 
 		/**
+		 * Handles a new game command
+		 */
+		void newGame();
+
+		/**
 		 * Sets the board from fen
 		 */
 		void setBoard();
 
 		/**
 		 * Handles a whatif command.
-		 * WhatIf is a special function of Quabla to debug the search tree
+		 * WhatIf is a special function of Qapla to debug the search tree
 		 * The function will print the main variant for a list of moves 
 		 * "whatif e4 e5" (what did you calculate as main variant after moves e4, e5)
 		 */
@@ -188,7 +199,6 @@ namespace QaplaInterface {
 		bool _forceMode;
 		bool _easy;
 		string ponderMove;
-		ISendSearchInfo* _sendSearchInfo;
 	};
 
 }

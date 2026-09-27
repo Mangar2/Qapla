@@ -13,13 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 
 #include "winboard.h"
 #include "winboardprintsearchinfo.h"
+#include "computinginfoexchange.h"
 #include <thread>
 
 using namespace std;
@@ -33,7 +34,7 @@ bool Winboard::handleMove(string move) {
 		println("Illegal move: " + move);
 	}
 	else {
-		printGameResult(_board->getGameResult());
+		printGameResult(getBoard()->getGameResult());
 		legalMove = true;
 	}
 	return legalMove;
@@ -47,11 +48,12 @@ void Winboard::printGameResult(GameResult result) {
 	case GameResult::DRAW_BY_NOT_ENOUGHT_MATERIAL: println("1/2-1/2 {Not enough material to win}"); break;
 	case GameResult::BLACK_WINS_BY_MATE: println("0-1 {Black mates}"); break;
 	case GameResult::WHITE_WINS_BY_MATE: println("1-0 {White mates}"); break;
+	case GameResult::ILLEGAL_MOVE: /* nothing to print on winboard*/ break;
 	case GameResult::NOT_ENDED: break; // do nothing
 	}
 }
 
-Winboard::Winboard() : _sendSearchInfo(0) {
+Winboard::Winboard() {
 	_mode = Mode::WAIT;
 	_forceMode = false;
 	_computerIsWhite = false;
@@ -61,95 +63,32 @@ Winboard::Winboard() : _sendSearchInfo(0) {
 	_easy = true;
 };
 
-void Winboard::generateEGTB() {
-	string piecesString = getNextTokenBlocking(true);
-	if (piecesString == "\r" || piecesString == "\n") {
-		println("usage generate pieces [cores n] [uncompressed] [trace n] [debug n] [index n]");
-		return;
-	}
-	string token = getNextTokenBlocking(true);
-	uint32_t cores = 16;
-	uint32_t traceLevel = 1;
-	uint32_t debugLevel = 0;
-	uint64_t debugIndex = -1;
-	bool uncompressed = false;
-	while (token != "\n" && token != "\r") {
-		if (token == "cores") {
-			getNextTokenBlocking(true);
-			cores = uint32_t(getCurrentTokenAsUnsignedInt());
-		}
-		else if (token == "uncompressed" || token == "uc") {
-			uncompressed = true;
-		}
-		else if (token == "trace") {
-			getNextTokenBlocking(true);
-			traceLevel = uint32_t(getCurrentTokenAsUnsignedInt());
-		}
-		else if (token == "debug") {
-			getNextTokenBlocking(true);
-			debugLevel = uint32_t(getCurrentTokenAsUnsignedInt());
-		}
-		else if (token == "index") {
-			getNextTokenBlocking(true);
-			debugIndex = getCurrentTokenAsUnsignedInt();
-		}
-		else {
-			break;
-		}
-		token = getNextTokenBlocking(true);
-	}
-	_board->generateBitbases(piecesString, cores, uncompressed, traceLevel, debugLevel, debugIndex);
-}
-
-void Winboard::verifyEGTB() {
-	string piecesString = getNextTokenBlocking(true);
-	if (piecesString == "\r" || piecesString == "\n") {
-		println("usage verify pieces [cores n] [trace n] [debug n]");
-		return;
-	}
-	string token = getNextTokenBlocking(true);
-	uint32_t cores = 16;
-	uint32_t traceLevel = 1;
-	uint32_t debugLevel = 0;
-	while (token != "\n" && token != "\r") {
-		if (token == "cores") {
-			getNextTokenBlocking(true);
-			cores = uint32_t(getCurrentTokenAsUnsignedInt());
-		}
-		else if (token == "trace") {
-			getNextTokenBlocking(true);
-			traceLevel = uint32_t(getCurrentTokenAsUnsignedInt());
-		}
-		else if (token == "debug") {
-			getNextTokenBlocking(true);
-			debugLevel = uint32_t(getCurrentTokenAsUnsignedInt());
-		}
-		else {
-			break;
-		}
-		token = getNextTokenBlocking(true);
-	}
-	_board->verifyBitbases(piecesString, cores, traceLevel, debugLevel);
-}
-
-
 void Winboard::handleProtover() {
 	if (getNextTokenNonBlocking() != "") {
 		_protoVer = uint8_t(getCurrentTokenAsUnsignedInt());
 		
 		if (_protoVer > 1) {
 			println("feature done=0");
-			println("feature colors=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1");
-			println("feature myname=\"" + _board->getEngineInfo()["name"] + " by " + _board->getEngineInfo()["author"] + "\"");
+			println("feature colors=0 pause=0 ping=1 setboard=1 time=1 reuse=1 analyze=1 usermove=1 ");
+			// The bitbase entries only appear while the engine still reads bitbase files,
+			// which the provider answers by offering the option or not.
+			std::string egt = "syzygy";
+			std::string options = "";
+			if (hasOption("qaplaBitbasePath")) {
+				egt += ",qaplaBitbases";
+				options = " option=qaplaBitbaseCache -spin 1 1600";
+			}
+			println("feature egt=\"" + egt + "\"" + options + " ");
+			println("feature myname=\"" + getBoard()->getEngineInfo()["name"] + " by " + getBoard()->getEngineInfo()["author"] + "\"");
 			println("feature done=1");
 		}
 	}
 }
 
 void Winboard::handleRemove() {
-	if (_computerIsWhite != _board->isWhiteToMove()) {
-		_board->undoMove();
-		_board->undoMove();
+	if (_computerIsWhite != getBoard()->isWhiteToMove()) {
+		getBoard()->undoMove();
+		getBoard()->undoMove();
 	}
 }
 
@@ -157,7 +96,7 @@ void Winboard::runPerft(bool showMoves) {
 	StdTimeControl timeControl;
 	if (getNextTokenNonBlocking() != "") {
 		timeControl.storeStartTime();
-		uint64_t res = _board->perft((uint16_t)getCurrentTokenAsUnsignedInt(), showMoves, _maxTheadCount);
+		uint64_t res = getBoard()->perft((uint16_t)getCurrentTokenAsUnsignedInt(), showMoves, _maxTheadCount);
 		float durationInMs = (float)timeControl.getTimeSpentInMilliseconds();
 		std::cout << "nodes: " << res
           << ", time: " << std::fixed << std::setprecision(4) << (durationInMs / 1000.0)
@@ -168,16 +107,16 @@ void Winboard::runPerft(bool showMoves) {
 
 void Winboard::analyzeMove() {
 	_mode = Mode::ANALYZE;
-	GameResult result = _board->getGameResult();
+	GameResult result = getBoard()->getGameResult();
 	if (result != GameResult::NOT_ENDED) {
 		printGameResult(result);
 	}
 	else {
 		_clock.setAnalyseMode();
 		setInfiniteSearch(true);
-		_board->setClock(_clock);
-		_computeThread.startTask([this]() {
-			_board->computeMove();
+		getBoard()->setClock(_clock);
+		getWorkerThread().startTask([this]() {
+			getBoard()->computeMove();
 			waitIfInfiniteSearchFinishedEarly();
 		});
 	}
@@ -190,8 +129,8 @@ void Winboard::ponder(string move) {
 	_clock.storeCalculationStartTime();
 	_clock.setPonderMode();
 	setInfiniteSearch(true);
-	_board->setClock(_clock);
-	_board->computeMove();
+	getBoard()->setClock(_clock);
+	getBoard()->computeMove();
 	waitIfInfiniteSearchFinishedEarly();
 }
 
@@ -200,22 +139,24 @@ void Winboard::ponder(string move) {
  */
 void Winboard::computeMove() {
 	_forceMode = false;
-	_computerIsWhite = _board->isWhiteToMove();
+	_computerIsWhite = getBoard()->isWhiteToMove();
 
-	GameResult result = _board->getGameResult();
+	GameResult result = getBoard()->getGameResult();
 	if (result != GameResult::NOT_ENDED) {
-		printGameResult(result);
+		// we may not send the game result as it will be again!
+		return;
 	}
 	else {
 		_mode = Mode::COMPUTE;
 		_clock.storeCalculationStartTime();
 		_clock.setSearchMode();
 		setInfiniteSearch(false);
-		_board->setClock(_clock);
-		_computeThread.startTask([this]() {
-			_board->computeMove();
+		getBoard()->setClock(_clock);
+		startCompute();
+		getWorkerThread().startTask([this]() {
+			getBoard()->computeMove();
 			_mode = Mode::WAIT;
-			ComputingInfoExchange computingInfo = _board->getComputingInfo();
+			ComputingInfoExchange computingInfo = getBoard()->getComputingInfo();
 			println("move " + computingInfo.currentConsideredMove);
 			ponderMove = computingInfo.ponderMove;
 			handleMove(computingInfo.currentConsideredMove);
@@ -235,12 +176,12 @@ void Winboard::WMTest() {
 	if (getNextTokenNonBlocking()) {
 		uint32_t depth = (uint32_t)getCurrentTokenAsUnsignedInt();
 		for (uint32_t index = 0; index < 100; index++) {
-			scanner.setBoard(test.Game1[index], _board);
+			scanner.setBoard(test.Game1[index], getBoard());
 			_clock.setAnalyseMode(true);
 			_clock.limitSearchDepth(depth);
-			_board->computeMove(_clock, false);
-			totalNodesSearched += _board->getComputingInfo().nodesSearched;
-			totalTimeUsedInMilliseconds += _board->getComputingInfo().elapsedTimeInMilliseconds;
+			getBoard()->computeMove(_clock, false);
+			totalNodesSearched += getBoard()->getComputingInfo().nodesSearched;
+			totalTimeUsedInMilliseconds += getBoard()->getComputingInfo().elapsedTimeInMilliseconds;
 			test.printResult(index, totalTimeUsedInMilliseconds, totalNodesSearched);
 		}
 	}
@@ -258,6 +199,11 @@ void Winboard::handlePing() {
 	}
 }
 
+void Winboard::newGame() {
+	getBoard()->newGame();
+	setPositionByFen();
+}
+
 void Winboard::setBoard() {
 	string fen = getToEOLBlocking();
 	bool success = setPositionByFen(fen);
@@ -268,7 +214,7 @@ void Winboard::setBoard() {
 }
 
 void Winboard::handleWhatIf() {
-	IWhatIf* whatIf = _board->getWhatIf();
+	IWhatIf* whatIf = getBoard()->getWhatIf();
 	whatIf->clear();
 	getNextTokenNonBlocking();
 	int32_t searchDepth = (int32_t)getCurrentTokenAsUnsignedInt();
@@ -290,8 +236,8 @@ void Winboard::handleWhatIf() {
 	ClockSetting whatIfClock;
 	whatIfClock.setAnalyseMode();
 	whatIfClock.setSearchDepthLimit(searchDepth);
-	_board->setClock(whatIfClock);
-	_board->computeMove();
+	getBoard()->setClock(whatIfClock);
+	getBoard()->computeMove();
 	whatIf->clear();
 }
 
@@ -385,14 +331,60 @@ void Winboard::undoMove() {
 	else if (_mode == Mode::COMPUTE) {
 		stopCompute();
 		// undoes the move that is automatically set due to stopCompute resulting in a move
-		_board->undoMove();
+		getBoard()->undoMove();
 		// undoes the move before -> this is the move the user asked us to undo
-		_board->undoMove();
+		getBoard()->undoMove();
 	}
 	else {
 		waitForComputingThreadToEnd();
-		_board->undoMove();
+		getBoard()->undoMove();
 	}
+}
+
+void Winboard::loadEgtb() {
+	std::string tk = getNextTokenNonBlocking();
+	std::string path = getNextTokenNonBlocking();
+
+	if (tk == "qaplaBitbases") {
+		setOptionByProvider("qaplaBitbasePath", path);
+	}
+	else if (tk == "syzygy") {
+		setOptionByProvider("SyzygyPath", path);
+	}
+}
+
+/** True if some provider offers an option of that name. */
+bool Winboard::hasOption(const std::string& name) {
+	for (auto* provider : getBoard()->getUciOptionProviders()) {
+		for (const auto& option : provider->getUciOptions()) {
+			if (option.name == name) return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Hands an option to the provider that owns it, falling back to the board.
+ * Winboard names an option the same way UCI does, so the same providers apply.
+ */
+void Winboard::setOptionByProvider(const std::string& name, const std::string& value) {
+	for (auto* provider : getBoard()->getUciOptionProviders()) {
+		for (const auto& option : provider->getUciOptions()) {
+			if (option.name == name) {
+				provider->setUciOption(option.name, value);
+				return;
+			}
+		}
+	}
+	getBoard()->setOption(name, value);
+}
+
+void Winboard::setOption() {
+	std::string option = getNextTokenBlocking(true);
+	// split the option string into name and value. It is separated by "="
+	std::string name = option.substr(0, option.find("="));
+	std::string value = option.substr(option.find("=") + 1);
+	getBoard()->setOption(name, value);
 }
 
 /**
@@ -400,9 +392,10 @@ void Winboard::undoMove() {
  */
 void Winboard::runLoop() {
 	_mode = Mode::WAIT;
-	string token = "";
-	_board->initialize();
-	while (token != "quit") {
+	string token = getCurrentToken();
+	getBoard()->initialize();
+	setPositionByFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	while (token != "quit" && !isFatalError()) {
 		switch (_mode) {
 		case Mode::ANALYZE: handleInputWhileInAnalyzeMode(); break;
 		case Mode::COMPUTE: handleInputWhileComputingMove(); break;
@@ -416,6 +409,7 @@ void Winboard::runLoop() {
 		}
 		token = getNextTokenBlocking();
 	}
+	stopCompute();
 	waitForComputingThreadToEnd();
 }
 
@@ -425,7 +419,7 @@ void Winboard::runLoop() {
 void Winboard::handleInputWhileComputingMove() {
 	const string token = getCurrentToken();
 	if (token == "?") stopCompute();
-	else if (token == ".") _board->requestPrintSearchInfo();
+	else if (token == ".") getBoard()->requestPrintSearchInfo();
 	else println("Error (command not supported in computing mode): " + token);
 }
 
@@ -435,13 +429,14 @@ void Winboard::handleInputWhileInAnalyzeMode() {
 	if (token == "new" || token == "setboard" || token == "usermove" || token == "undo" || token == "exit") {
 		stopCompute();
 	}
-	if (token == ".") _board->requestPrintSearchInfo();
+	if (token == ".") getBoard()->requestPrintSearchInfo();
 	else if (token == "ping") handlePing();
 	else if (token == "usermove") checkMoveCommand();
-	else if (token == "undo") _board->undoMove();
+	else if (token == "undo") getBoard()->undoMove();
 	else if (token == "new") setPositionByFen();
 	else if (token == "setboard") setBoard();
-	else if (token == "exit" || token == "force") { _mode = Mode::WAIT; _forceMode = true; }
+	else if (token == "force") { _mode = Mode::WAIT; _forceMode = true; }
+	else if (token == "exit") { _mode = Mode::WAIT; }
 	else {
 		println("Error (command not supported in analyze mode): " + token);
 	}
@@ -449,7 +444,7 @@ void Winboard::handleInputWhileInAnalyzeMode() {
 
 void Winboard::handleInputWhiteInEditMode() {
 	const string token = getCurrentToken();
-	if (token == "#") _board->clearBoard();
+	if (token == "#") getBoard()->clearBoard();
 	else if (token == "c") _editModeIsWhiteColor = !_editModeIsWhiteColor;
 	else if (token == ".") _mode = Mode::WAIT;
 	else {
@@ -459,13 +454,13 @@ void Winboard::handleInputWhiteInEditMode() {
 		if (!_editModeIsWhiteColor) {
 			piece += 'a' - 'A';
 		}
-		_board->setPiece(col, row, piece);
+		getBoard()->setPiece(col, row, piece);
 	}
 }
 
 void Winboard::handleInputWhileInPonderMode() {
 	const string token = getCurrentToken();
-	if (token == ".") _board->requestPrintSearchInfo();
+	if (token == ".") getBoard()->requestPrintSearchInfo();
 	if (checkMoveCommand()) {}
 	else {
 		// We stop pondering for any command but a "." or a move command
@@ -475,21 +470,22 @@ void Winboard::handleInputWhileInPonderMode() {
 		// Here we would need to implement "real" pondering. 
 		// Current challenge -> we need to implement a method to check, if the move of the user is the move we pondered for.
 		// As we only deal with strings here and we cannot simply compare move-strings, this is not as simple. 
-		_board->undoMove();
+		getBoard()->undoMove();
 		handleInput();
 	}
 }
 
 void Winboard::handleInput() {
 	const string token = getCurrentToken();
+	if (token == "quit") return;
 	if (token == "analyze") analyzeMove();
 	else if (token == "force") _forceMode = true;
 	else if (token == "go") computeMove();
-	else if (token == "new") setPositionByFen();
+	else if (token == "new") newGame();
 	else if (token == "setboard") setBoard();
 	else if (token == "whatif") handleWhatIf();
 	else if (token == "easy") _easy = true;
-	else if (token == "eval") _board->printEvalInfo();
+	else if (token == "eval") getBoard()->printEvalInfo();
 	else if (token == "hard") _easy = false;
 	else if (token == "post") {}
 	else if (token == "random") {}
@@ -498,8 +494,8 @@ void Winboard::handleInput() {
 	else if (token == "divide") runPerft(true);
 	else if (token == "xboard") handleXBoard();
 	else if (token == "protover") handleProtover();
-	else if (token == "white") _board->setWhiteToMove(true);
-	else if (token == "black") _board->setWhiteToMove(false);
+	else if (token == "white") getBoard()->setWhiteToMove(true);
+	else if (token == "black") getBoard()->setWhiteToMove(false);
 	else if (token == "ping") handlePing();
 	else if (token == "edit") { _mode = Mode::EDIT; _editModeIsWhiteColor = true; }
 	else if (token == "undo") undoMove();
@@ -508,8 +504,8 @@ void Winboard::handleInput() {
 	else if (token == "result") getToEOLBlocking();
 	else if (token == "cores") readCores();
 	else if (token == "memory") readMemory();
-	else if (token == "generate") generateEGTB();
-	else if (token == "verify") verifyEGTB();
+	else if (token == "egtpath") loadEgtb();
+	else if (token == "option") setOption();
 	else if (checkClockCommands()) {}
 	else if (checkMoveCommand()) {}
 }

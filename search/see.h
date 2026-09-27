@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a move provider for search providing moves in the right order
  * Computes a "perfect SEE Value" for one position.
@@ -45,9 +45,9 @@
 #ifndef __SEE_H
 #define __SEE_H
 
-#include "searchdef.h"
 #include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "../movegenerator/magics.h"
 
 using namespace QaplaMoveGenerator;
 
@@ -70,8 +70,6 @@ namespace QaplaSearch {
 			pieceToTryBitBoard[BLACK] = 0;
 			pieceToTryBitBoard[WHITE] = 0;
 
-			alpha = -MAX_VALUE;
-			beta = MAX_VALUE;
 		}
 
 			
@@ -113,15 +111,14 @@ namespace QaplaSearch {
 				allPiecesLeft &= ~(1ULL << move.getDeparture());
 				whiteToMove = !position.isWhiteToMove();
 				clear();
-				alpha = -1;
-				beta = 1;
 				if (position.isWhiteToMove()) {
 					if (isDefendedByPawn<BLACK>(position, move.getDestination())) {
 						result = true;
 					}
 					else {
 						nextPiece[BLACK] = BLACK_KNIGHT;
-						resultValue = computeSEEValue(position, square, position.getPieceValueForMoveSorting(movingPiece));
+						resultValue = computeSEETreshold(position, square,
+							 position.getPieceValueForMoveSorting(movingPiece), 0);
 						result = resultValue < 0;
 					}
 				}
@@ -131,12 +128,53 @@ namespace QaplaSearch {
 					}
 					else {
 						nextPiece[WHITE] = WHITE_KNIGHT;
-						resultValue = computeSEEValue(position, square, position.getPieceValueForMoveSorting(movingPiece));
+						resultValue = computeSEETreshold(position, square, 
+							position.getPieceValueForMoveSorting(movingPiece), 0);
 						result = resultValue > 0;
 					}
 				}
 			}
 			return result;
+		}
+
+		/**
+		 * Returns the exchange value of a capture, seen from the side to move. The exchange
+		 * runs with a window around the threshold and stops as soon as the result is safely on
+		 * one side of it, so the value is exact near the threshold and a bound further away.
+		 */
+		value_t computeExchangeValue(const MoveGenerator& position, Move move, value_t threshold) {
+			const bool wtm = position.isWhiteToMove();
+			// gain and the exchange value are computed from the view of white
+			const value_t whiteThreshold = wtm ? threshold : -threshold;
+			// Gain is the current value of the position gain, changing with each capture
+			gain = -position.getPieceValueForMoveSorting(move.getCapture());
+			// 1. Pre-check max. possible gain is the piece captured
+			// If gain does not reach the threshold, we can return immediately
+			if (wtm ? gain < whiteThreshold : gain > whiteThreshold) {
+				return wtm ? gain : -gain;
+			}
+			// 2. Pre-check does the opponent has any piece taking back the captured piece
+			// We ignore the possible covered attack freed by the capture because it is rare and
+			// it will only return more gain and thus lead to less cuts in quiescence search,
+			// my might search more but we will not miss a move.
+			// H0 after 9000 games [-3, 2]
+			const auto opponent = wtm ? BLACK : WHITE;
+			auto opponentAttackMask = position.attackMask[opponent];
+			auto exchangePositionMask = 1ULL << move.getDestination();
+			if ((opponentAttackMask & exchangePositionMask) == 0) {
+				return wtm ? gain : -gain;
+			}
+
+
+			allPiecesLeft = position.getAllPiecesBB();
+			allPiecesLeft &= ~(1ULL << move.getDeparture());
+			whiteToMove = !wtm;
+			clear();
+			// Must be after clear, it resets the window
+			const value_t exchangeValue = computeSEETreshold(position, move.getDestination(),
+				position.getPieceValueForMoveSorting(move.getMovingPiece()),
+				whiteThreshold);
+			return wtm ? exchangeValue : -exchangeValue;
 		}
 
 		/**
@@ -184,40 +222,103 @@ namespace QaplaSearch {
 
 		/**
 		 * Computes an static exchange value for a piece of the position
+		 * @param position the position to compute the exchange value for
+		 * @param square the square of the piece to compute the exchange value for
+		 * @param valueOfCurrentPieceOnSquare the value of the piece on the square
+		 * @returns the static exchange value of the piece on the square
+		 * gain is the see result so far from white view
+		 * allPiecesLeft is a bitboard with all remaining pieces on the position.
+		 * whiteToMove is true, if white is at move, false otherwise
+		 * nextPiece is the next piece to try for each color
+		 * currentValue is the value of the next piece to try for each color
+		 * valueOfNextPieceOnTargetField is the value of the next piece to try for the other color
+		 * nodeCountStatistic is a statistic of the number of nodes computed
 		 */
 		value_t computeSEEValue(const MoveGenerator& position, Square square, value_t valueOfCurrentPieceOnSquare) {
-
+			value_t alpha = -MAX_VALUE;
+			value_t beta = MAX_VALUE;
 			while (valueOfCurrentPieceOnSquare != 0) {
 				if (whiteToMove) {
-					if (gain > alpha) {
-						alpha = gain;
-					}
-					if (gain - valueOfCurrentPieceOnSquare <= alpha) {
+					// Compute stand pat value and store it to alpha
+					alpha = std::max(alpha, gain);
+					// We add the (negative) value of the black piece to whiteÂ´s gain.
+					gain -= valueOfCurrentPieceOnSquare;
+					// Break, if gain cannot surpass alpha anymore.
+					if (gain <= alpha) {
 						gain = alpha;
 						break;
 					}
-					valueOfNextPieceOnTargetField = tryPiece<WHITE>(position, square);
-					if (valueOfNextPieceOnTargetField != 0) {
-						gain -= valueOfCurrentPieceOnSquare;
-					}
-					else {
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<WHITE>(position, square);
+					// Break, if no more opponent attackers are left.
+					if (valueOfNextPieceOnTargetField == 0) {
 						gain = alpha;
+						break;
 					}
 				}
 				else {
-					if (gain < beta) {
-						beta = gain;
-					}
-					if (gain - valueOfCurrentPieceOnSquare >= beta) {
+					beta = std::min(beta, gain);
+					gain -= valueOfCurrentPieceOnSquare;
+					if (gain >= beta) {
 						gain = beta;
 						break;
 					}
-					valueOfNextPieceOnTargetField = tryPiece<BLACK>(position, square);
-					if (valueOfNextPieceOnTargetField != 0) {
-						gain -= valueOfCurrentPieceOnSquare;
-					}
-					else {
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<BLACK>(position, square);
+					if (valueOfNextPieceOnTargetField == 0) {
 						gain = beta;
+						break;
+					}
+				}
+				whiteToMove = !whiteToMove;
+				valueOfCurrentPieceOnSquare = valueOfNextPieceOnTargetField;
+			}
+			return gain;
+		}
+
+		/**
+		 * Computes an static exchange value for a piece of the position
+		 * @param position the position to compute the exchange value for
+		 * @param square the square of the piece to compute the exchange value for
+		 * @param valueOfCurrentPieceOnSquare the value of the piece on the square
+		 * @param treshold the threshold to stop the exchange early, if the result is already above or below it
+		 * @returns the static exchange value of the piece on the square
+		 * gain is the see result so far from white view
+		 * allPiecesLeft is a bitboard with all remaining pieces on the position.
+		 * whiteToMove is true, if white is at move, false otherwise
+		 * nextPiece is the next piece to try for each color
+		 * currentValue is the value of the next piece to try for each color
+		 * valueOfNextPieceOnTargetField is the value of the next piece to try for the other color
+		 * nodeCountStatistic is a statistic of the number of nodes computed
+		 */
+		value_t computeSEETreshold(const MoveGenerator& position, Square square, value_t valueOfCurrentPieceOnSquare, 
+			value_t treshold) {
+
+			value_t alpha = treshold - 1;
+			value_t beta = treshold + 1;
+
+			while (valueOfCurrentPieceOnSquare != 0) {
+				if (whiteToMove) {
+					// Compute stand pat value and store it to alpha
+					alpha = std::max(alpha, gain);
+					gain -= valueOfCurrentPieceOnSquare;
+					// Return, if gain cannot surpass alpha anymore.
+					if (gain <= alpha) {
+						return alpha; 
+					}
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<WHITE>(position, square);
+					// Break, if no more opponent attackers are left.
+					if (valueOfNextPieceOnTargetField == 0) {
+						return alpha; 
+					}
+				}
+				else {
+					beta = std::min(beta, gain);
+					gain -= valueOfCurrentPieceOnSquare;
+					if (gain >= beta) {
+						return beta; 
+					}
+					valueOfNextPieceOnTargetField = getValueOfNextAttackerAndRemoveIt<BLACK>(position, square);
+					if (valueOfNextPieceOnTargetField == 0) {
+						return beta; 
 					}
 				}
 				whiteToMove = !whiteToMove;
@@ -272,6 +373,14 @@ namespace QaplaSearch {
 			return pieces & allPiecesLeft;
 		}
 
+		/**
+		 * @brief Gets a bitboard of all pieces of one type and color attacking a square
+		 * 
+		 * @tparam COLOR 
+		 * @param position board position and move generator to compute the attacking pieces
+		 * @param square the square to check for attacking pieces
+		 * @return a bitboard of all pieces of one type and color attacking a square
+		 */
 		template <Piece COLOR>
 		bitBoard_t getAttackingPieces(const MoveGenerator& position, Square square) {
 			bitBoard_t result;
@@ -300,6 +409,7 @@ namespace QaplaSearch {
 			case ROOK + COLOR:
 				result = computeRookAttacking(square, position.getPieceBB(ROOK + COLOR));
 				if (result != 0) {
+					// A rook never hides a bishop, so we can safely set queen as next peice to try.
 					nextPiece[COLOR] = QUEEN + COLOR;
 					currentValue[COLOR] = position.getPieceValueForMoveSorting(ROOK + COLOR);
 					break;
@@ -307,6 +417,8 @@ namespace QaplaSearch {
 			case QUEEN + COLOR:
 				result = computeQueenAttacking(square, position.getPieceBB(QUEEN + COLOR));
 				if (result != 0) {
+					// The queen may hide bishops and rooks but never pawn and knights so the next piece to try after a 
+					// queen move is a bishop.
 					nextPiece[COLOR] = BISHOP + COLOR;
 					currentValue[COLOR] = position.getPieceValueForMoveSorting(QUEEN + COLOR);
 					break;
@@ -321,8 +433,12 @@ namespace QaplaSearch {
 			return result;
 		}
 
+		/**
+		 * Returns the value of the next attacker and removes it from the allPiecesLeft mask.
+		 * It uses the current state to determine the next piece type to try.
+		 */
 		template <Piece COLOR>
-		value_t tryPiece(const MoveGenerator& position, Square square) {
+		value_t getValueOfNextAttackerAndRemoveIt(const MoveGenerator& position, Square square) {
 			value_t result = 0;
 			nodeCountStatistic++;
 			if (pieceToTryBitBoard[COLOR] == 0) {
@@ -330,8 +446,10 @@ namespace QaplaSearch {
 			}
 			if (pieceToTryBitBoard[COLOR] != 0) {
 				result = currentValue[COLOR];
-				allPiecesLeft &= ~pieceToTryBitBoard[COLOR];
-				pieceToTryBitBoard[COLOR] &= pieceToTryBitBoard[COLOR] - 1;
+				auto capturingPiece = pieceToTryBitBoard[COLOR] & (0LL - pieceToTryBitBoard[COLOR]);
+				// Remove the attacking piece from the allPiecesLeft bitboard.
+				allPiecesLeft &= ~capturingPiece;
+				pieceToTryBitBoard[COLOR] &= ~capturingPiece;
 			}
 			return result;
 		}
@@ -343,8 +461,6 @@ namespace QaplaSearch {
 		bitBoard_t allPiecesLeft;
 		value_t valueOfNextPieceOnTargetField;
 		bool whiteToMove;
-		value_t alpha;
-		value_t beta;
 		value_t gain;
 
 		uint64_t nodeCountStatistic;

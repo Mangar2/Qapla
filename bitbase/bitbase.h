@@ -13,257 +13,331 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Provides an array of bits in a
  */
 
-
-#ifndef __BITBASE_H
-#define __BITBASE_H
+#pragma once
 
 #include <vector>
-#include <fstream>
-#include <cerrno>
-
-#include "../basics/move.h"
-#include "../movegenerator/bitboardmasks.h"
-#include "../movegenerator/movegenerator.h"
-#include "bitbaseindex.h"
+#include <string>
+#include <cstdint>
+#include <ostream>
+#include <filesystem>
+#include <algorithm>
+#include <atomic>
+#include "bitbase-file.h"
 #include "compress.h"
+#include "cluster-cache.h"
 
 namespace QaplaBitbase {
 
-	/**
-	 * Basic type storing bits.
-	 */
-	typedef uint8_t bbt_t;
+    /**
+     * @class Bitbase
+     * @brief Stores and manages bit-level data for chess endgame databases.
+     *
+     * 2-bit entry encoding (bitsPerEntry == 2):
+     */
+    enum class BitbaseResult : int {
+        Draw = 0,
+        DrawOrLoss = 0,  ///< Used for legacy 1-bit bitbases where draw and loss are not distinguished
+        Win = 1,
+        Loss = 2,
+        Unknown = 3
+    };
 
-	class Bitbase {
-	public:
-		Bitbase(bool loaded = false) : _sizeInBit(0), _loaded(loaded) {}
+    std::string to_string(BitbaseResult result);
+
+    class Bitbase {
+    public:
+        /**
+         * @brief Constructs an empty Bitbase.
+         */
+        explicit Bitbase();
+
+        /**
+         * @brief Constructs a Bitbase with a given entry count and bits per entry.
+         * @param entryCount Number of entries the bitbase should hold.
+         * @param bitsPerEntry Number of bits per entry (1 or 2).
+		 * @param sig Signature of the bitbase.
+         */
+        explicit Bitbase(uint64_t entryCount, uint32_t bitsPerEntry, uint32_t sig);
+
+        /**
+         * @brief Constructs a Bitbase from a BitbaseIndex.
+         * @param index Index providing the entry count.
+         * @param bitsPerEntry Number of bits per entry (1 or 2).
+		 * @param sig Signature of the bitbase.
+         */
+        Bitbase(const class BitbaseIndex& index, uint32_t bitsPerEntry, uint32_t sig);
+
+        /**
+         * @brief Sets the filename.
+         *
+         * @param pieceString Identifier string for the bitbase (e.g. "KPK").
+         * @param extension File extension (default: ".bb").
+         * @param path Directory path to the bitbase file (default: current directory).
+         */
+        void setFilename(std::string pieceString,
+            std::string extension = ".bb",
+            std::filesystem::path path = "./") {
+            _filePath = path / (pieceString + extension);
+        }
+
+        /**
+         * @brief Attaches the Bitbase to a file and loads its header metadata.
+         *
+         * @param pieceString Identifier string for the bitbase (e.g. "KPK").
+         * @param extension File extension (default: ".bb").
+         * @param path Directory path to the bitbase file (default: current directory).
+         */
+        bool attachFromFile(std::string pieceString,
+            std::string extension = ".bb",
+            std::filesystem::path path = "./");
+
+        /**
+         * @brief Sets the number of entries in the bitbase.
+         * @param entryCount New entry count.
+         */
+        void setSize(uint64_t entryCount) {
+            _entryCount = entryCount;
+        }
+
+        void resize(uint64_t entryCount) {
+            setSize(entryCount);
+			_bitbase.resize(getSize());
+        }
+
+        uint32_t getBitsPerEntry() const { return _bitsPerEntry; }
+
+        /**
+         * @brief Clears all bits in the bitbase (sets to 0).
+         */
+        void clear();
+
+        /**
+         * @brief Sets all bits in the bitbase to 1.
+         */
+        void fillAll();
+
+        /**
+         * @brief Sets a specific bit to 1.
+         * @param index Bit index to set.
+         */
+        void setBit(uint64_t index);
+
+        /**
+         * @brief Sets a specific bit to 1 atomically (thread-safe, no mutex required).
+         * Uses fetch_or so multiple threads can write concurrently.
+         * @param index Bit index to set.
+         */
+        void setBitAtomic(uint64_t index) {
+            const uint64_t elem = index / BITS_IN_ELEMENT;
+            const bbt_t    mask = bbt_t(1) << (index % BITS_IN_ELEMENT);
+            std::atomic_ref<bbt_t>(_bitbase[elem]).fetch_or(mask, std::memory_order_relaxed);
+        }
+
+        /**
+         * @brief Reads one bit atomically (thread-safe, no mutex required).
+         * Uses a relaxed load â€” prevents compiler from caching the value in a register.
+         * @param index Bit index to read.
+         * @returns true if the bit is set.
+         */
+        bool getBitAtomic(uint64_t index) const {
+            const uint64_t elem = index / BITS_IN_ELEMENT;
+            const bbt_t    mask = bbt_t(1) << (index % BITS_IN_ELEMENT);
+            // atomic_ref<const T> is C++26; the storage itself is non-const, so cast is safe.
+            return (std::atomic_ref<bbt_t>(const_cast<bbt_t&>(_bitbase[elem])).load(std::memory_order_relaxed) & mask) != 0;
+        }
+
+        /**
+         * @brief Sets two bits as a combined integer value (for example, for win/draw/loss encoding). 
+         * Requires that the content of the two bits is currently 0 (initial or cleared state).
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
+         * @param value BitbaseResult value to set.
+         */
+        void set2Bit(uint64_t index2, BitbaseResult value);
+
+        /**
+         * @brief Clears a specific bit (sets to 0).
+         * @param index Bit index to clear.
+         */
+        void clearBit(uint64_t index);
+
+        /**
+         * @brief Clears two bits (sets to 0).
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
+         */
+        void clear2Bits(uint64_t index2);
+
+        /**
+         * @brief Gets the value of a specific bit.
+         * @param index Bit index to retrieve.
+         * @return 1 if bit is set, 0, if not and -1 on error.
+         */
+        int getBit(uint64_t index);
+
+        /**
+         * @brief Gets the value of two bits as a combined integer (for example, for win/draw/loss encoding).
+         * 
+         * @param index2 Index into the two-bit array (will be converted to bit position by multiplying by 2).
+         * @return BitbaseResult value.
+         */
+        BitbaseResult get2Bits(uint64_t index2);
+
+        /**
+         * @brief Gets the total number of bits in the bitbase.
+         * @return Bit count (entryCount * bitsPerEntry).
+         */
+        uint64_t sizeInBits() const { return _entryCount * _bitsPerEntry; }
+
+        /**
+         * @brief Gets the number of entries in the bitbase.
+         * @return Entry count.
+         */
+        uint64_t getEntryCount() const { return _entryCount; }
 
 		/**
-		 * @param sizeInBit number of positions stored in the bitbase
+		 * @brief Gets the size of the bitbase (internal vector structure) in Elements.
+		 * @return Size in Elements.
 		 */
-		Bitbase(uint64_t sizeInBit) : _loaded(true) {
-			setSize(sizeInBit);
-		};
+        uint64_t getSize() const {
+            return (sizeInBits() + BITS_IN_ELEMENT - 1) / BITS_IN_ELEMENT;
+        }
 
-		Bitbase(const BitbaseIndex& index) : Bitbase(index.getSizeInBit()) {};
+        /**
+         * @brief Saves the bitbase uncompressed to file.
+         * @param fileName Output file path.
+		 * @param compression Compression type.
+         */
+        void storeToFile(const std::string& fileName, QaplaCompress::CompressionType compression);
 
-		/**
-		 * Sets the size of the bitbase
-		 */
-		void setSize(uint64_t sizeInBit) {
-			_sizeInBit = sizeInBit;
-			_bitbase.resize(_sizeInBit / BITS_IN_ELEMENT + 1);
-			clear();
+        /**
+         * @brief Loads a bitbase from disk
+         * @return True on success.
+         */
+        std::tuple<bool, std::string> readAll();
+
+        /**
+         * @brief Checks if bitbase data has been successfully loaded.
+         * @return True if loaded.
+         */
+        bool isLoaded() const {
+            return _loaded;
+        }
+
+        /**
+		 * @brief Checks if the header information has been loaded.
+		 * @return True if header is loaded.
+         */
+		bool isHeaderLoaded() const {
+			return _headerLoaded;
 		}
 
 		/**
-		 * Gets the amount of stored positions
+		 * @brief Sets the loaded state of the bitbase.
 		 */
-		uint64_t getSizeInBit() { return _sizeInBit; }
-
-		/**
-		 * Sets all elements in the _bitbase to zero
-		 */
-		void clear() {
-			for (auto& element : _bitbase) { element = 0;  }
-		}
-
-		/**
-		 * Sets a single bit in the _bitbase
-		 */
-		void setBit(uint64_t index) {
-			if (index < _sizeInBit) {
-				_bitbase[index / BITS_IN_ELEMENT] |= bbt_t(1) << (index % BITS_IN_ELEMENT);
-			}
-		}
-
-		/**
-		 * Clears a single bit in the _bitbase
-		 */
-		void clearBit(uint64_t index) {
-			if (index < _sizeInBit) {
-				_bitbase[index / BITS_IN_ELEMENT] &= ~(bbt_t(1) << (index % BITS_IN_ELEMENT));
-			}
-		}
-
-		/**
-		 * Gets a single bit from the _bitbase
-		 */
-		bool getBit(uint64_t index) const {
-			bool result = false;
-			if (_loaded && index < _sizeInBit) {
-				result = (_bitbase[index / BITS_IN_ELEMENT] & (bbt_t(1) << (index % BITS_IN_ELEMENT))) != 0;
-			}
-			return result;
-		}
-
-		/**
-		 * Gets a statistic of a _bitbase
-		 */
-		string getStatistic() const {
-			uint64_t win = 0;
-			uint64_t draw = 0;
-
-			for (uint64_t index = 0; index < _sizeInBit; index++) {
-				if (getBit(index)) {
-					win++;
-				}
-				else {
-					draw++;
-				}
-			}
-			return " win: " + to_string(win) + " draw, loss or error: " + to_string(draw);
-		}
-
-		/**
-		 * Stores a bitbase uncompressed to a file
-		 */
-		void storeUncompressed(string fileName) {
-			ofstream fout(fileName, ios::out | ios::binary);
-			uint64_t size = _bitbase.size();
-			uint8_t compression = 0;
-			fout.write((char*)&size, sizeof(size));
-			fout.write((char*)&compression, sizeof(compression));
-			fout.write((char*)&_bitbase[0], size * sizeof(bbt_t));
-			fout.close();
-		}
-
-		/**
-		 * Stores a _bitbase to a file
-		 */
-		void storeToFile(string fileName, bool test = false, bool verbose = false) {
-			vector<bbt_t> compressed;
-			vector<bbt_t> uncompressed;
-			if (verbose) cout << "compressing " << endl;
-			QaplaCompress::compress(_bitbase, compressed);
-			if (test) {
-				cout << "testing compression ... " << endl;
-				QaplaCompress::uncompress(compressed, uncompressed, _bitbase.size());
-				if (_bitbase != uncompressed) {
-					cout << " compression error " << fileName << endl;
-					for (uint64_t index = 0; index < _bitbase.size(); index++) {
-						if (_bitbase[index] != uncompressed[index]) {
-							cout << " First error at index: " << index
-								<< " required: " << int(_bitbase[index])
-								<< " found: " << int(uncompressed[index])
-								<< endl;
-						}
-					}
-				}
-				else {
-					cout << "OK! Original file and uncompressed file are identical" << endl;
-				}
-			}
-			ofstream fout(fileName, ios::out | ios::binary);
-			uint64_t size = compressed.size();
-			fout.write((char*)&size, sizeof(size));
-			fout.write((char*)&compressed[0], size * sizeof(bbt_t));
-			fout.close();
-		}
-
-
-		/**
-		 * Reads a _bitbase from the file having a piece string
-		 */
-		bool readFromFile(string pieceString, string extension = ".btb", string path = "./",
-			bool verbose = true) 
-		{
-			PieceList list(pieceString);
-			BitbaseIndex index(list);
-			size_t size = index.getSizeInBit();
-			bool success = readFromFile(path + pieceString + extension, size, verbose);
-			return success;
-		}
-
-		/**
-		 * Retrieves all indexes from the bitbase as vector
-		 */
-		void getAllIndexes(const Bitbase& andNot, vector<uint64_t>& indexes) const {
-			for (uint64_t index = 0; index < _sizeInBit; index += 8) {
-				uint64_t bbIndex = index / BITS_IN_ELEMENT;
-				bbt_t value = _bitbase[bbIndex] & ~andNot._bitbase[bbIndex] ;
-				for (uint64_t sub = 0; value; sub++, value /= 2) {
-					if (value & 1) {
-						indexes.push_back(index + sub);
-					}
-				}
-			}
-		}
-
-		/**
-		 * Retrieves the amount of won positions in the bitbase
-		 */
-		uint64_t computeWonPositions(uint64_t begin = 0, uint64_t end = -1) const {
-			uint64_t result = 0;
-			for (uint64_t index = begin; index < _bitbase.size(); index ++) {
-				for (uint8_t content = _bitbase[index]; content != 0; content &= content - 1) {
-					result++;
-				}
-			}
-			return result;
-		}
-
-		/**
-		 * Returns true, if the _bitbase is _loaded
-		 */
-		bool isLoaded() { return _loaded; }
-
-	private:
-		typedef uint8_t bbt_t;
-
-
-		/**
-		 * Reads a _bitbase from the file
-		 */
-		bool readFromFile(string fileName, size_t sizeInBit, bool verbose) {
-			_sizeInBit = sizeInBit;
-			ifstream fin(fileName, ios::in | ios::binary);
-			if (!fin.is_open()) {
-				/*
-				string message = "Error reading bitbase file ";
-				perror((message + fileName + ": ").c_str());
-				*/
-				return false;
-			}
-			uint64_t size;
-			fin.read((char*)&size, sizeof(size));
-			vector<bbt_t> compressed;
-			_bitbase.clear();
-			compressed.resize(size);
-			fin.read((char*)&compressed[0], size * sizeof(bbt_t));
-			QaplaCompress::uncompress(compressed, _bitbase, sizeInBit);
-			fin.close();
-			if (verbose) {
-				cout << "Read: " << fileName << endl;
-			}
+		void setLoaded() {
 			_loaded = true;
-			return true;
+            _headerLoaded = true;
 		}
 
-		uint32_t computeVectorSize() {
-			return (uint32_t)(_sizeInBit / BITS_IN_ELEMENT) + 1;
+        /**
+         * @brief Returns all indexes where current bitbase is 1 and the given is 0.
+         * @param andNot Bitbase to exclude.
+         * @param indexes Output vector of indices.
+         */
+        void getAllIndexes(const Bitbase& andNot, std::vector<uint64_t>& indexes) const;
+
+        /**
+         * @brief Returns all indexes where the bit is set to 1.
+         * @param indexes Output vector of indices.
+         */
+        void getAllSetIndexes(std::vector<uint64_t>& indexes) const;
+
+        /**
+         * @brief Counts the number of entries matching the given result.
+         * @param result BitbaseResult to match.
+         * @return Count of matching entries.
+         */
+        uint64_t computeResults(BitbaseResult result) const;
+
+        /**
+         * @brief Writes the compressed bitbase as a C++ header file with a uint32_t array.
+         * @param data Compressed data.
+         * @param varName Name of the array.
+         * @param filename Output header file path.
+         */
+        void writeAsCppFile(const std::string& varName, const std::string& filename);
+
+        /**
+         * @brief Loads a compressed bitbase from a compiled-in uint32_t array.
+         * @param data32 Input data.
+         * @param verbose Enable output.
+         */
+        void loadFromEmbeddedData(const uint32_t* data32, bool verbose = false);
+
+        /**
+         * @brief Prints debug information about the current bitbase.
+         */
+        void print() const;
+
+		static void setCacheSize(uint32_t sizeInMB) {
+			uint64_t numCluster = static_cast<uint64_t>(sizeInMB) * 1024 * 1024 / DEFAULT_CLUSTER_SIZE_IN_BYTES;
+			numCluster = std::clamp(numCluster, static_cast<uint64_t>(2), static_cast<uint64_t>(UINT32_MAX));
+			cache.resize(numCluster);
 		}
 
-		bool _loaded;
-		static const uint64_t BITS_IN_ELEMENT = sizeof(bbt_t) * 8;
-		vector<bbt_t> _bitbase;
-		uint64_t _sizeInBit;
-	};
+        /**
+         * @brief Get the Bitbase Data object   
+         * 
+         * @return const std::vector<bbt_t>& 
+         */
+        const std::vector<bbt_t>& getBitbaseData() const {
+            return _bitbase;
+        }
 
-	/**
-	 * Pints a bitbase statistic
-	 */
-	static ostream& operator<<(ostream& stream, const Bitbase& bitBase) {
-		stream << bitBase.getStatistic();
-		return stream;
-	}
+        /**
+         * @brief Get the number of bits in one data element (bbt_t).
+         * @return Number of bits in a data element.
+         */
+        const uint32_t getBitsInDataElement() const {
+            return BITS_IN_ELEMENT;
+        }
 
-}
 
-#endif // BITBASE_H
+    private:
+
+        bool loadHeader(const std::filesystem::path& path);
+        void verifyWrittenFile();
+        void compactTo1BitIfPossible();
+        int getBitsFromLoadedData(uint64_t bitIndex, bbt_t mask) const;
+        int getBitsFromClusterData(uint64_t bitIndex, bbt_t mask);
+
+        // Caching
+        uint32_t _signature;
+        static inline ClusterCache cache{ 511 };
+
+        static constexpr uint32_t DEFAULT_CLUSTER_SIZE_IN_BYTES = 16 * 1024; 
+
+        static const uint64_t BITS_IN_ELEMENT = sizeof(bbt_t) * 8;
+        uint64_t _entryCount;
+
+        uint32_t _bitsPerEntry = 1;
+        
+        // Fully loaded bitbase data
+        bool _loaded;
+        std::vector<bbt_t> _bitbase;
+
+        // Information to load further clusters from file
+        bool _headerLoaded;
+        std::filesystem::path _filePath;
+        std::vector<uint64_t> _offsets;
+        uint32_t _clusterSizeBytes = DEFAULT_CLUSTER_SIZE_IN_BYTES;
+        QaplaCompress::CompressionType _compression;
+    };
+
+} // namespace QaplaBitbase
+

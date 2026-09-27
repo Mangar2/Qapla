@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a killer move - storing moves working well in similar positions
  * Stores two killers, tests with one or three showed that two killers are best
@@ -34,12 +34,6 @@ namespace QaplaSearch {
 	class KillerMove {
 	public:
 		KillerMove() { }
-		KillerMove(const KillerMove& killerMove) { operator=(killerMove); }
-		KillerMove& operator=(const KillerMove& killerMove) {
-			_killer = killerMove._killer;
-			captureKiller = killerMove.captureKiller;
-			return *this;
-		}
 		/**
 		 * Gets a killer move
 		 */
@@ -68,6 +62,16 @@ namespace QaplaSearch {
 		 */
 		Move getCaptureKiller() {
 			return captureKiller;
+		}
+
+		/**
+		 * Clears all killer moves
+		 */
+		void clear() {
+			for (auto& killer : _killer) {
+				killer.setEmpty();
+			}
+			captureKiller.setEmpty();
 		}
 
 	private:

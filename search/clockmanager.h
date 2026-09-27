@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a manager for computing time of a chess search
  */
@@ -22,13 +22,15 @@
 #ifndef _CLOCKMANAGER_H
 #define _CLOCKMANAGER_H
 
-#include <time.h>
+#include <atomic>
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <sys/timeb.h>
-#include "../basics/types.h"
 #include "../interface/clocksetting.h"
 #include "searchstate.h"
+#include "search-config.h"
+#include "tunable.h"
 
 using namespace std;
 using namespace QaplaInterface;
@@ -62,12 +64,13 @@ namespace QaplaSearch {
 		 * @param movesToGo amount of moves to play in the time provided by clockSetting
 		 * @param clockSetting the time available to play the chess game
 		 */
-		void startCalculatingMove(int32_t movesToGo, const ClockSetting& clockSetting)
+		void startCalculatingMove([[maybe_unused]]int32_t movesToGo, const ClockSetting& clockSetting)
 		{
 			setStartTime();
 			_clockSetting = clockSetting;
 			_nextInfoTime = getSystemTimeInMilliseconds() + clockSetting.getTimeBetweenInfoInMilliseconds();
 			_maxTimePerMove = computeMaxTime();
+			_nodeTarget = clockSetting.getNodeTarget();
 			_mode = clockSetting.getMode();
 			// must be last!
 			setNewMove();
@@ -77,12 +80,38 @@ namespace QaplaSearch {
 			_depth = depth;
 		}
 
+				/**
+		 * Call to stop the search immediately
+		 */
+		void stopSearch() { 
+			_mode = ClockMode::stopped; 
+		}
+
+		/**
+		 * Checks, if search has been stopped
+		 */
+		bool isSearchStopped() const {
+			if (_depth <= MIN_DEPTH_EXTERNAL_STOP) {
+				return false;
+			}
+			return _mode == ClockMode::stopped;
+		}
+
+		bool stopOnNodeTarget(uint64_t nodeCount) {
+			if (isSearchStopped()) return true;
+			if (_nodeTarget == 0) return false;
+			if (nodeCount > _nodeTarget) {
+				stopSearch();
+				return true;
+			}
+			return false;
+		}
+
 		/**
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
 		bool emergencyAbort() {
-			int64_t timeSpent = computeTimeSpentInMilliseconds();
-			if (_mode == ClockMode::stopped && _depth >= 1) {
+			if (isSearchStopped()) {
 				return true;
 			}
 			if (_depth <= MIN_DEPTH) {
@@ -91,7 +120,7 @@ namespace QaplaSearch {
 			if (_mode != ClockMode::search) {
 				return false;
 			}
-			if (timeSpent > _maxTimePerMove) {
+			if (computeTimeSpentInMilliseconds() > _maxTimePerMove) {
 				stopSearch();
 				return true;
 			}
@@ -102,8 +131,7 @@ namespace QaplaSearch {
 		 * Checks, if calculation must be aborded due to time constrains
 		 */
 		bool shouldAbort() {
-			int64_t timeSpent = computeTimeSpentInMilliseconds();
-			if (_mode == ClockMode::stopped && _depth >= 1) {
+			if (isSearchStopped()) {
 				return true;
 			}
 			if (_depth <= MIN_DEPTH) {
@@ -112,7 +140,7 @@ namespace QaplaSearch {
 			if (_mode != ClockMode::search) {
 				return false;
 			}
-			if (timeSpent > (_averageTimePerMove / 10) * 8) {
+			if (computeTimeSpentInMilliseconds() > (_averageTimePerMove / 10) * 8) {
 				stopSearch();
 				return true;
 			}
@@ -125,7 +153,7 @@ namespace QaplaSearch {
 		 * @returns true, if calculation of next depth is ok
 		 */
 		bool mayComputeNextDepth(ply_t depth) const {
-			if (_mode == ClockMode::stopped && depth >= 1) {
+			if (isSearchStopped()) {
 				return false;
 			}
 			if (depth <= MIN_DEPTH) {
@@ -153,20 +181,6 @@ namespace QaplaSearch {
 				_nextInfoTime = getSystemTimeInMilliseconds() + timeBetweenInfoInMilliseconds;
 			}
 			return sendInfo;
-		}
-
-		/**
-		 * Call to stop the search immediately
-		 */
-		void stopSearch() { 
-			_mode = ClockMode::stopped; 
-		}
-
-		/**
-		 * Checks, if search has been stopped
-		 */
-		bool isSearchStopped() const {
-			return _mode == ClockMode::stopped;
 		}
 
 		/**
@@ -249,12 +263,25 @@ namespace QaplaSearch {
 		int32_t computeMovesToGo()
 		{
 			int32_t movesToGo = _clockSetting.getMoveAmountForClock();
-			const int32_t movesPlayed = _clockSetting.getPlayedMovesInGame();
 			if (movesToGo == 0) {
-				movesToGo = std::max(AVERAGE_MOVE_COUNT_PER_GAME - (movesPlayed / 2), KEEP_TIME_FOR_MOVES);
+				constexpr bool OPT = SearchConfig::optimizeTime;
+				// The forecast falls from movesToGoStart at the first move towards movesToGoKeep,
+				// the amount of moves the engine always keeps time for. The old form was
+				// max(start - played, keep), which has a kink where the two meet - the slope
+				// jumps from -1 to 0. A soft maximum is identical away from that corner and
+				// continuous in every derivative at it.
+				//
+				// movesToGoSmoothing is in tenths of a move. At 5 the corner is as sharp as the
+				// old maximum, which is where this reformulation starts.
+				const double start = tunable<OPT, "movesToGoStart", 60, 20, 100>();
+				const double keep = tunable<OPT, "movesToGoKeep", 35, 0, 70>();
+				const double smoothing = tunable<OPT, "movesToGoSmoothing", 5, 1, 100>() / 10.0;
+				const double played = _clockSetting.getPlayedMovesInGame() / 2;
+				const double above = (start - keep - played) / smoothing;
+				const double soft = above > 30.0 ? above : std::log1p(std::exp(above));
+				movesToGo = static_cast<int32_t>(keep + smoothing * soft + 0.5);
 			}
-			movesToGo = std::max(1, movesToGo);
-			return movesToGo;
+			return std::max(1, movesToGo);
 		}
 
 		/**
@@ -264,7 +291,7 @@ namespace QaplaSearch {
 		bool isInfiniteSearch() {
 			return _clockSetting.isAnalyseMode() || 
 				_clockSetting.getSearchDepthLimit() > 0 || 
-				_clockSetting.getNodeCount() > 0;
+				_clockSetting.getNodeTarget() > 0;
 		}
 
 		/**
@@ -286,15 +313,23 @@ namespace QaplaSearch {
 				// use movesToGo + 2 to not loose on time
 				averageTime = timeLeft / (movesToGo + 2);
 
-				// Infinite amount of moves:
+				// Infinite amount of moves: the share of the fair time slice this move may take
+				// grows with the time still on the clock, so a short game is played relatively
+				// faster than a long one. The share saturates towards timeShareMax and is
+				// continuous in every derivative — no clamp, no step.
+				//
+				// timeShareMin governs the short time controls, timeShareMax the long ones and
+				// timeShareHalfTime says where the transition sits: at timeLeft == halfTime the
+				// share is exactly halfway between the two. That separation is what lets three
+				// tuning runs at three time controls be combined.
 				if (_clockSetting.getMoveAmountForClock() == 0)
 				{
-					if ((timeLeft < 10000) && (_clockSetting.getTimeIncrementPerMoveInMilliseconds() <= 1))
-						averageTime /= 2;
-					averageTime *= min(
-						static_cast<int64_t>(2000LL), 
-						max(static_cast<int64_t>(1000LL), int64_t((6810000 + timeLeft) / (6810 + 300))));
-					averageTime /= 1000;
+					constexpr bool OPT = SearchConfig::optimizeTime;
+					const int64_t shareMin = tunable<OPT, "timeShareMin", 155, 50, 260>();
+					const int64_t shareMax = tunable<OPT, "timeShareMax", 168, 96, 240>();
+					const int64_t halfTime = tunable<OPT, "timeShareHalfTime", 20000, 0, 40000>();
+					const int64_t share = shareMin + (shareMax - shareMin) * timeLeft / (timeLeft + halfTime);
+					averageTime = averageTime * share / 100;
 				}
 				averageTime = _searchState.modifyTimeBySearchFinding(averageTime);
 				averageTime += _clockSetting.getTimeIncrementPerMoveInMilliseconds();
@@ -317,19 +352,42 @@ namespace QaplaSearch {
 				maxTime = _clockSetting.getExactTimePerMoveInMilliseconds();
 			}
 			else {
+				// The share of the remaining time this move may spend runs on a ramp. While the
+				// clock is low the move gets a fifth, once there is room it gets a third, and in
+				// between the share grows steadily with no step anywhere. The ramp is expressed
+				// through the divisor of the share, kept in milliseconds so that the clamp is
+				// plain integer arithmetic; SHARE_DIVISOR_SCALE turns it into the real divisor.
+				//
+				// Until 0.4.0-042 this was max((timeLeft - 2000) / 3, timeLeft / 5) instead,
+				// which held the share at a flat fifth all the way up to 10 seconds left.
+				const int64_t SHARE_DIVISOR_SCALE = 1000;
+				const int64_t RAMP_BEGIN_TIME = 2000;			// below this the share stays at a fifth
+				const int64_t LOW_TIME_SHARE_DIVISOR = 5000;	// 5.0, a fifth, while the clock is low
+				const int64_t FULL_SHARE_DIVISOR = 3000;		// 3.0, a third, once the clock allows it
+				// Arena tends to loose more than 20 ms handling a move, do not spend that part
+				const int64_t MOVE_HANDLING_MARGIN = 20;
+				// Never hand out the last of the clock
+				const int64_t CLOCK_SAFETY_MARGIN = 10;
+
 				const int64_t timeLeft = _clockSetting.getTimeToThinkForAllMovesInMilliseconds();
 				const int64_t timeIncrement = _clockSetting.getTimeIncrementPerMoveInMilliseconds();
 				const int32_t movesToGo = computeMovesToGo();
-				maxTime = timeLeft / 3;
 
-				// Not less than the fair share
-				maxTime = std::max(maxTime, timeLeft / (movesToGo + 1));
-				// Keep at least two seconds
-				maxTime = std::min(maxTime, timeLeft - 2000);
-				// Safety, not less than 1 milliseconds. Note: we have a min-depth check
+				const int64_t scaledDivisor = std::clamp(
+					LOW_TIME_SHARE_DIVISOR - (timeLeft - RAMP_BEGIN_TIME),
+					FULL_SHARE_DIVISOR, LOW_TIME_SHARE_DIVISOR);
+				const double shareDivisor =
+					static_cast<double>(scaledDivisor) / static_cast<double>(SHARE_DIVISOR_SCALE);
+				maxTime = static_cast<int64_t>(static_cast<double>(timeLeft) / shareDivisor);
+				// Not less than the fair share of the moves still to play
+				maxTime = max(maxTime, timeLeft / (movesToGo + 1));
+				// Even near zero you may use the time increment.
+				maxTime = std::max(maxTime, timeIncrement - MOVE_HANDLING_MARGIN);
+				// Hard cut.
+				// Note: maxtime is including time increment, because it is added after moving.
+				maxTime = std::min(maxTime, timeLeft - CLOCK_SAFETY_MARGIN);
+				// But never zero, never negative.
 				maxTime = std::max(maxTime, static_cast<int64_t>(1));
-				// Not less than the time increment - 10 ms
-				maxTime = std::max(maxTime, timeIncrement - 10);
 			}
 
 			return maxTime;
@@ -350,8 +408,10 @@ namespace QaplaSearch {
 		int64_t _averageTimePerMove;
 		int64_t _maxTimePerMove;
 		int64_t _nextInfoTime;
+		uint64_t _nodeTarget;
 
-		ClockMode _mode;
+		// Written by the input thread (stopSearch) and read by every search thread
+		std::atomic<ClockMode> _mode;
 		
 		ClockSetting _clockSetting;
 		SearchState _searchState;
@@ -360,6 +420,7 @@ namespace QaplaSearch {
 		static constexpr int32_t KEEP_TIME_FOR_MOVES = 35;
 		static const int32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
 		static const ply_t MIN_DEPTH = 5;
+		static const ply_t MIN_DEPTH_EXTERNAL_STOP = 2;
 	};
 }
 

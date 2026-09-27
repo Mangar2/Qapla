@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Class containing a set of information taken from the Chess-Search algorithm
  * - The elapsed time in milliseconds for the current search
@@ -44,6 +44,8 @@ namespace QaplaInterface {
 			totalAmountOfMovesToConcider = 0;
 			currentConsideredMove = "";
 			ponderMove = "";
+			valueInCentiPawn = 0;
+			error = "";
 		};
 
 		uint64_t elapsedTimeInMilliseconds;
@@ -51,8 +53,10 @@ namespace QaplaInterface {
 		uint32_t searchDepth;
 		uint32_t movesLeftToConcider;
 		uint32_t totalAmountOfMovesToConcider;
+		int32_t valueInCentiPawn;
 		string currentConsideredMove;
 		string ponderMove;
+		string error;
 	};
 }
 

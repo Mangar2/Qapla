@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2024 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2024 Volker BÃ¶hm
  * @Overview
  * Implements helper functions for eval
  */
@@ -30,25 +30,39 @@ using namespace QaplaBasics;
 class EvalHelper {
 public:
 	/**
-	 * Distance of two squares is the maximum of rank and file distance
-	 * We use a 15x15 lookup table to get the distance without jumps
+	 * This utility computes the Chebyshev distance (max of file and rank distance) 
+	 * between two chessboard squares in constant time using a precomputed lookup table.
 	 */
-	static inline value_t computeDistance(Square a, Square b) {
+	static constexpr value_t computeDistance(Square a, Square b) {
 		int32_t dx = (a & 7) - (b & 7);
 		int32_t dy = (a >> 3) - (b >> 3);
 		return _distTable[(dx + 7) + 15 * (dy + 7)];
 	}
 
-private: 
-	static const value_t DISTANCES_SIZE = 15 * 15;
-	static value_t _distTable[DISTANCES_SIZE];
-
 	/**
-	 * Initializes static tables for the move generator
+	 * True if the piece on the square is pinned against the king of its own colour.
+	 * The caller passes the pinned mask of the colour the piece belongs to.
 	 */
-	static struct InitStatics {
-		InitStatics();
-	} _staticConstructor;
+	static constexpr bool isPinned(bitBoard_t pinnedBB, Square square) {
+		return (pinnedBB & squareToBB(square)) != 0;
+	}
+
+private:
+	static constexpr value_t DISTANCE_SIZE = 15 * 15;
+
+	static constexpr std::array<value_t, DISTANCE_SIZE> _distTable = [] {
+		std::array<value_t, DISTANCE_SIZE> table{};
+		for (int dx = -7; dx <= 7; ++dx)
+		{
+			for (int dy = -7; dy <= 7; ++dy)
+			{
+				int dist = std::max(dx < 0? -dx : dx, dy < 0 ? -dy : dy);
+				table[(dx + 7) + 15 * (dy + 7)] = dist;
+			}
+		}
+		return table;
+	}();
+
 };
 
 #endif

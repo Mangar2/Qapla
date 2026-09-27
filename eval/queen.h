@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements evaluation for queens
  */
@@ -22,9 +22,24 @@
 #ifndef __QUEEN_H
 #define __QUEEN_H
 
-#include <map>
-#include "../movegenerator/movegenerator.h"
+#include <cstdint>
+#include <vector>
 #include "evalresults.h"
+#include "eval-helper.h"
+
+#include "../movegenerator/movegenerator.h"
+#include "../basics/types.h"
+#include "../basics/pst.h"
+#include "../movegenerator/magics.h"
+#include "../basics/evalvalue.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
+
+#include <map>
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_QUEEN
+#endif
 
 using namespace QaplaMoveGenerator;
 
@@ -32,13 +47,31 @@ namespace ChessEval {
 
 	class Queen {
 	public:
+		friend class QueenUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		/**
 		 * Evaluates the evaluation value for queens
 		 */
-		template <bool PRINT>
-		static EvalValue eval(MoveGenerator& position, EvalResults& results) {
-			EvalValue evalResult = eval<WHITE, PRINT>(position, results) - eval<BLACK, PRINT>(position, results);
-			return evalResult;
+		static EvalValue eval(const MoveGenerator& position, EvalResults& results) {
+			return evalColor<WHITE, false>(position, results, nullptr) - evalColor<BLACK, false>(position, results, nullptr);
+		}
+
+		static EvalValue evalWithDetails(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>& details) {
+			return evalColor<WHITE, true>(position, results, &details) - evalColor<BLACK, true>(position, results, &details);
+		}
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["qMobility"] = std::vector<EvalValue>{ QUEEN_MOBILITY_MAP.begin(), QUEEN_MOBILITY_MAP.end()};
+			indexLookup["qProperty"] = std::vector<EvalValue>{ QUEEN_PROPERTY_MAP.begin(), QUEEN_PROPERTY_MAP.end()};
+			indexLookup["qPST"] = PST::getPSTLookup(QUEEN);
+			return indexLookup;
 		}
 
 	private:
@@ -46,10 +79,8 @@ namespace ChessEval {
 		/**
 		 * Calculates the evaluation value for Queens
 		 */
-		template <Piece COLOR, bool PRINT>
-		static EvalValue eval(MoveGenerator& position, EvalResults& results)
-		{
-			constexpr Piece OPPONENT = COLOR == WHITE ? BLACK : WHITE;
+		template<Piece COLOR, bool STORE_DETAILS>
+		static EvalValue evalColor(const MoveGenerator& position, EvalResults& results, std::vector<PieceInfo>* details) {
 			bitBoard_t queens = position.getPieceBB(QUEEN + COLOR);
 			results.queenAttack[COLOR] = 0;
 			if (queens == 0) {
@@ -57,63 +88,74 @@ namespace ChessEval {
 			}
 
 			bitBoard_t occupied = position.getAllPiecesBB();
-			bitBoard_t removeMask = ~position.pawnAttack[OPPONENT] & ~position.getPiecesOfOneColorBB<COLOR>();
+			bitBoard_t removeMask = ~position.pawnAttack[opponentColor<COLOR>()] & ~position.getPiecesOfOneColorBB<COLOR>();
 
 			EvalValue value = 0;
 			while (queens)
 			{
-				const Square square = lsb(queens);
-				queens &= queens - 1;
-				value += calcMobility<COLOR, PRINT>(position, results, square, occupied, removeMask);
-				if (isPinned<PRINT>(position.pinnedMask[COLOR], square)) {
-					value += _pinned;
+				const Square square = popLSB(queens);
+				const auto mobilityIndex = calcMobilityIndex<COLOR>(position, results, square, occupied, removeMask);
+				const auto mobilityValue = EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]);
+				//const auto mobilityValue = position.getEvalVersion() == 0 ? EvalValue(QUEEN_MOBILITY_MAP[mobilityIndex]) : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[mobilityIndex];
+
+				const auto propertyIndex = EvalHelper::isPinned(position.pinnedMask[COLOR], square);
+				const auto propertyValue = QUEEN_PROPERTY_MAP[propertyIndex];
+				// const auto propertyValue = position.getEvalVersion() == 0 ? QUEEN_PROPERTY_MAP[propertyIndex] : CandidateTrainer::getCurrentCandidate().getWeightVector(0)[propertyIndex];
+
+				value += mobilityValue + propertyValue;
+
+				if constexpr (STORE_DETAILS) {
+					const auto materialValue = position.getPieceValue(QUEEN + COLOR);
+					const auto pstValue = PST::getValue(square, QUEEN + COLOR);
+					const auto mobility = COLOR == WHITE ? mobilityValue : -mobilityValue;
+					const auto property = COLOR == WHITE ? propertyValue : -propertyValue;
+					IndexVector indexVector{ 
+						  { "qMobility", mobilityIndex, COLOR },
+						  { "qPST", uint32_t(switchSideToWhite<COLOR>(square)), COLOR },
+						  { "material", QUEEN, COLOR } };
+					if (propertyIndex) {
+						indexVector.push_back({ "qProperty", propertyIndex, COLOR });
+					}
+
+					const auto value = materialValue + pstValue + mobility + property;
+					details->push_back({ QUEEN + COLOR, square, indexVector, QUEEN_PROPERTY_INFO[propertyIndex], value });
 				}
-				if (PRINT) cout << endl;
 			}
-			if (PRINT) cout 
-				<< colorToString(COLOR) << " queens: "
-				<< std::right << std::setw(19) << value << endl;
 			return value;
 		}
 
 		/**
 		 * Calculates the mobility of a queen
 		 */
-		template<Piece COLOR, bool PRINT>
-		static value_t calcMobility(MoveGenerator& position,
+		template<Piece COLOR>
+		static inline uint32_t calcMobilityIndex(const MoveGenerator& position,
 			EvalResults& results, Square square, bitBoard_t occupiedBB, bitBoard_t removeBB)
 		{
 			bitBoard_t attackBB = Magics::genRookAttackMask(square, occupiedBB & ~position.getPieceBB(ROOK + COLOR));
 			attackBB |= Magics::genBishopAttackMask(square, occupiedBB & ~position.getPieceBB(BISHOP + COLOR));
-			results.piecesDoubleAttack[COLOR] |= results.piecesAttack[COLOR] & attackBB;
-			results.piecesAttack[COLOR] |= attackBB;
-
-			results.queenAttack[COLOR] |= attackBB;
-			attackBB &= removeBB;
-			const value_t value = QUEEN_MOBILITY_MAP[popCount(attackBB)];
-
-			if (PRINT) cout << colorToString(COLOR)
-				<< " queen (" << squareToString(square) << ") mobility: "
-				<< std::right << std::setw(9) << value;
-			return value;
-		}
-
-		/**
-		 * Returns true, if the queen is pinned
-		 */
-		template<bool PRINT>
-		static inline bool isPinned(bitBoard_t pinnedBB, Square square) {
-			bool result = (pinnedBB & (1ULL << square)) != 0;
-			if (PRINT && result) cout << " <pin>";
-			return result;
+			return results.addPieceAttack<COLOR>(results.queenAttack, attackBB, removeBB);
 		}
 
 		static constexpr value_t _pinned[2] = { 0, 0 };
 
-		static constexpr value_t QUEEN_MOBILITY_MAP[30] = { 
-			-10, -10, -10, -5, 0, 2, 4, 5, 6, 10, 10, 10, 10, 10, 10, 
-			10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 
+		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP_DEFAULT = { { { 0, 0 }, { 0, 0 } } };
+		static inline std::string QUEEN_PROPERTY_INFO[2] = {
+			"", "<pin>"
 		};
+
+		static constexpr std::array<EvalValue, 30> QUEEN_MOBILITY_MAP_DEFAULT = { {
+			{ -10, -10 }, { -10, -10 }, { -10, -10 }, { -5, -5 }, { 0, 0 }, { 2, 2 }, { 4, 4 }, { 5, 5 }, { 6, 6 }, { 10, 10 },
+			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 },
+			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }
+		} };
+
+#ifndef PARAM_OPTIMIZE_QUEEN
+		static constexpr std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = QUEEN_PROPERTY_MAP_DEFAULT;
+		static constexpr std::array<EvalValue, 30> QUEEN_MOBILITY_MAP = QUEEN_MOBILITY_MAP_DEFAULT;
+#else
+		inline static std::array<EvalValue, 2> QUEEN_PROPERTY_MAP = QUEEN_PROPERTY_MAP_DEFAULT;
+		inline static std::array<EvalValue, 30> QUEEN_MOBILITY_MAP = QUEEN_MOBILITY_MAP_DEFAULT;
+#endif
 
 	};
 }

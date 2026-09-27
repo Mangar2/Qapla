@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements a console io for chess
  */
@@ -35,6 +35,10 @@ namespace QaplaInterface {
 
 	public:
 		ConsoleIO() : fatalReadError(false) { token[0] = 0; buffer[0] = 0; }
+
+		virtual bool isFatalReadError() {
+			return fatalReadError;
+		}
 
 		/**
 		 * Waits until a token is avaiable and returns it
@@ -60,10 +64,15 @@ namespace QaplaInterface {
 		/**
 		 * Waits until a full line is available and returns it
 		 */
-		virtual string getToEOLBlocking()
+		virtual std::string getToEOLBlocking()
 		{
 			bufferSize_t tokenSize = 0;
-			string EOLString = "\n\r";
+			std::string EOLString = "\n\r";
+
+			if (buffer[0] == '\n') {
+				removeTokenFromBuffer(0, EOLString);
+				return "";
+			}
 
 			while (tokenSize == 0 && !fatalReadError) {
 
@@ -190,21 +199,27 @@ namespace QaplaInterface {
 		 * Gets a token from buffer
 		 */
 		bufferSize_t readTokenFromBuffer(const string spaceString, const string separationString) {
-			bufferSize_t aIndex;
+			bufferSize_t index;
 			token = "";
 			if (isCharInString(buffer[0], separationString)) {
 				token += buffer[0];
 				return 1;
 			}
-			for (aIndex = 0; aIndex < BUFFER_SIZE && buffer[aIndex] != 0; aIndex++) {
-				if (isCharInString(buffer[aIndex], spaceString + separationString)) {
+			for (index = 0; index < BUFFER_SIZE && buffer[index] != 0; index++) {
+				if (isCharInString(buffer[index], spaceString + separationString)) {
 					break;
 				}
-				token += buffer[aIndex];
+				token += buffer[index];
+			}
+			if (index >= BUFFER_SIZE - 1) {
+				// The buffer is full, but no token has been found. This should not happen. If it happens it must be an
+				// irregular usage of the engine to make it crash or to test it. So we discard this incomplete token.
+				buffer[0] = 0;
+				return 0;
 			}
 			// If the token does not end with a space, it could be incompletely _loaded -> return 0 to indicate
 			// that no token has been found.
-			return buffer[aIndex] == 0 ? 0 : aIndex;
+			return buffer[index] == 0 ? 0 : index;
 		}
 
 		/**
@@ -226,7 +241,7 @@ namespace QaplaInterface {
 		}
 
 		bool fatalReadError;
-		static const bufferSize_t BUFFER_SIZE = 512;
+		static const bufferSize_t BUFFER_SIZE = 2024;
 		string token;
 		char buffer[BUFFER_SIZE + 1];
 

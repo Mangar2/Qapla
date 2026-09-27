@@ -13,11 +13,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Interface to a "what if" debugging interface for chess engines
- * This is a special Quabla feature not typically implemented in chess engines.
+ * This is a special Qapla feature not typically implemented in chess engines.
  * It is used to ask the engine questions on the search tree like
  * what I play "e4 d6" ?
  */

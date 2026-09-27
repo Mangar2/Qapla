@@ -13,63 +13,89 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements chess board evaluation for end games. 
  * Returns +100, if white is one pawn up
  */
 
-#ifndef __EVALENDGAME_H
-#define __EVALENDGAME_H
+#pragma once
 
 #include <string>
-#include <vector>
-#include "../basics/move.h"
+#include "../basics/hashed-lookup.h"
 #include "../movegenerator/movegenerator.h"
+#include "piece-signature-lookup.h"
 
 using namespace std;
 using namespace QaplaMoveGenerator;
 
 namespace ChessEval {
 
+	
+
 	class EvalEndgame {
 
 	public:
 
+		typedef value_t evalFunction_t(MoveGenerator& board, value_t currentValue);
+
+		struct EvalEntry {
+			bool isFunction;
+			union {
+				evalFunction_t* fn;
+				int32_t value;
+			};
+			EvalEntry() : isFunction(false), value(0) {}
+			EvalEntry(evalFunction_t* f) : isFunction(true), fn(f) {}
+			EvalEntry(int32_t v) : isFunction(false), value(v) {}
+		};
+
 		/**
-		 * Provides end game evaluation
+		 * Attempts to evaluate the current position using specialized endgame evaluation functions.
+		 *
+		 * If no such function is registered for the current piece signature, or if the function
+		 * determines that the position is not a recognizable endgame pattern, the function returns
+		 * `currentValue`. This signals the caller to proceed with the standard evaluation logic.
+		 *
+		 * @param board         The current board state.
+		 * @param currentValue  The evaluation value from earlier stages.
+		 * @return              The evaluated score, either from endgame logic or the unchanged currentValue.
 		 */
 		static value_t eval(MoveGenerator& board, value_t currentValue) {
+			auto result = pieceSignatureHash.lookup(board.getPiecesSignature());
+			if (!result.has_value()) return currentValue;
 
-			uint8_t functionNo = mapPieceSignatureToFunctionNo[board.getPiecesSignature()];
-			if (functionNo < functionMap.size()) {
-				currentValue = functionMap[functionNo](board, currentValue);
-			}
-
-			return currentValue;
-		}
-
-		/**
-		 * Prints end game evaluation terms to stdout
-		 */
-		static value_t print(MoveGenerator& board, value_t currentValue) {
-			value_t newValue = eval(board, currentValue);
-			if (currentValue != newValue) {
-				std::cout << "Eval endgame mod    : " << currentValue << " => " << newValue << std::endl;
-			}
-			return newValue;
+			const auto& entry = result.value();
+			return entry.isFunction
+				? entry.fn(board, currentValue)
+				: currentValue + entry.value;
 		}
 
 		/**
 		 * Registers the use of a bitbase
 		 */
 		static void registerBitbase(string pieces) {
-			registerFunction(pieces, getFromBitbase, false);
-			registerFunction(pieces, getFromBitbase, true);
+			registerEntry(pieces, EvalEntry(getFromBitbase), false);
+			registerEntry(pieces, EvalEntry(getFromBitbase), true);
 		}
 
+		/**
+		 * Bishops on opposite colours with nothing on the board but pawns: the defending bishop
+		 * covers a colour the attacking one can never reach, so a material surplus often cannot
+		 * be converted and the value is pulled towards the draw.
+		 *
+		 * This is a scaling of the finished evaluation, not an endgame pattern of its own, and
+		 * that is why it does not go through the piece signature hash. An entry there replaces
+		 * the value, which makes lazyEval skip the tempo bonus and the fifty move damping that
+		 * follow - and the damping pulls towards the draw as well. Switching it off in exactly
+		 * the positions that are to be pulled towards the draw would work against the scaling.
+		 */
+		static value_t scaleOppositeColouredBishops(const MoveGenerator& position, value_t value);
+
 	private:
+
+
 		/**
 		 * Checks, if a square is set in a bitmask handling color symmetry
 		 * @returns true, if the square is set in the bitmask
@@ -83,12 +109,20 @@ namespace ChessEval {
 			return (mask & (1ULL << square)) != 0;
 		}
 
-		typedef value_t evalFunction_t(MoveGenerator& board, value_t currentValue);
 
 		/**
 		 * Register an endgame evaluation funciton for a dedicated piece selection
 		 */
-		static void registerFunction(string pieces, evalFunction_t function, bool changeSide = false);
+		//static void registerFunction(string pieces, evalFunction_t function, bool changeSide = false);
+		static void registerEntry(string pieces, EvalEntry entry, bool changeSide = false);
+		static void regFun(string pieces, evalFunction_t function) {
+			registerEntry(pieces, EvalEntry(function), false);
+			registerEntry(pieces, EvalEntry(function), true);
+		}
+		static void regVal(string pieces, value_t evalCorrection) {
+			registerEntry(pieces, EvalEntry(evalCorrection), false);
+			registerEntry(pieces, EvalEntry(-evalCorrection), true);
+		}
 
 		/**
 		 * Forces a draw value
@@ -109,9 +143,10 @@ namespace ChessEval {
 		static value_t winningValue(MoveGenerator& board, value_t currentValue);
 
 		/**
-		 * Evaluate material balance and pawn structure
+		 * Forces a value not better than a draw
 		 */
-		static value_t materialAndPawnStructure(MoveGenerator& board);
+		template <Piece COLOR>
+		static value_t notBetterThanDraw(MoveGenerator& board, value_t currentValue);
 
 		/**
 		 * Gets a value from a bitbase
@@ -130,10 +165,18 @@ namespace ChessEval {
 		static value_t KPsKPs(MoveGenerator& board, value_t currentValue);
 
 		template <Piece COLOR>
+		static value_t KPsKR(MoveGenerator& position, value_t value);
+
+		template <Piece COLOR>
 		static value_t KBNK(MoveGenerator& board, value_t currentValue);
 
 		template <Piece COLOR>
 		static value_t KBBK(MoveGenerator& board, value_t currentValue);
+
+		template <const PieceSignatureLookup& Table>
+		static value_t evalByLookup(MoveGenerator& board, value_t currentValue) {
+			return Table.lookup(board);
+		}
 
 		template <Piece COLOR>
 		static value_t KBsPsK(MoveGenerator& board, value_t currentValue);
@@ -160,16 +203,6 @@ namespace ChessEval {
 		static value_t forceToAnyCornerButDraw(MoveGenerator& board, value_t currentValue);
 
 		/**
-		 * Reduces the value
-		 */
-		template <Piece COLOR> 
-		static value_t minusKnightPlusPawn(MoveGenerator& board, value_t currentValue) {
-			constexpr value_t reduce = MaterialBalance::KNIGHT_VALUE_EG - MaterialBalance::PAWN_VALUE_EG;
-			return currentValue - 
-				(COLOR == WHITE ? reduce : -reduce);
-		}
-
-		/**
 		 * Tries to trap the opponent king in a white or black corner
 		 */
 		template <Piece COLOR>
@@ -177,7 +210,7 @@ namespace ChessEval {
 
 
 		template <Piece COLOR>
-		static value_t ForceToCornerWithBonus(MoveGenerator& board, value_t currentValue);
+		static value_t forceToCornerWithBonus(MoveGenerator& board, value_t currentValue);
 
 		/**
 		 * Check, if a bishop is able to attack the promotion field of a pawn
@@ -201,43 +234,56 @@ namespace ChessEval {
 		/**
 		 * Computes the distance between two squares
 		 */
-		static value_t computeDistance(Square pos1, Square pos2);
+		static value_t manhattenDistance(Square square1, Square square2) {
+			value_t fileDistance = abs(value_t(getFile(square1)) - value_t(getFile(square2)));
+			value_t rankDistance = abs(value_t(getRank(square1)) - value_t(getRank(square2)));
+			return fileDistance + rankDistance;
+		}
+
+		/**
+		 * Checks, if king cannot prevent pawn from promoting
+		 */
+		template <Piece COLOR>
+		static bool isRunner(MoveGenerator& board, Square pawnSquare);
 
 		/**
 		 * Computes the distance between two kings
 		 */
-		static value_t computeKingDistance(MoveGenerator& board);
+		static value_t manhattenKingDistance(MoveGenerator& board);
 
 		/**
 		 * Computes the distance to any border
 		 */
-		static value_t computeDistanceToBorder(Square kingPos);
+		static value_t distanceToBorder(Square kingPos);
 
 		/**
 		 * Computes the distance to any corner
 		 */
-		static value_t computeDistanceToAnyCorner(Square kingPos);
+		static value_t distanceToAnyCorner(Square kingPos);
 
 		/**
 		 * Computes the distance to a white or black corner
 		 */
-		static value_t computeDistanceToCorrectCorner(Square kingPos, bool whiteCorner);
+		static value_t distanceToCorrectColorCorner(Square kingPos, bool whiteCorner);
 
 		static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AAULL;
 		static const bitBoard_t BLACK_FIELDS = 0xAA55AA55AA55AA55ULL;
 
-		static constexpr value_t BONUS[COLOR_COUNT] = { WINNING_BONUS, -WINNING_BONUS };
 		static constexpr value_t NEAR_DRAW[COLOR_COUNT] = { 20, -20 };
 		static constexpr Square UP[COLOR_COUNT] = { NORTH, SOUTH };
-		static constexpr value_t COLOR_VALUE[COLOR_COUNT] = { 1, -1 };
 		static constexpr value_t RUNNER_VALUE[NORTH] = { 0, 0, 100,  150, 200, 300, 500, 0 };
 		static const value_t KING_RACED_PAWN_BONUS = 150;
 
-		static vector<evalFunction_t*> functionMap;
-		static array<uint8_t, PieceSignature::PIECE_SIGNATURE_SIZE> mapPieceSignatureToFunctionNo;
+		// Percentage the value keeps in an opposite coloured bishop endgame, by the number of
+		// pawns the stronger side is ahead. Hand written, not tuned: the position type is far too
+		// rare in a normal game for a run to produce a signal on it.
+		// Index 0, equal material, is the most drawish case of all - neither side has anything to
+		// convert. From three pawns up the extra material starts to tell even against a bishop of
+		// the wrong colour, and from four the endgame is a normal win.
+		static constexpr value_t OPPOSITE_BISHOP_SCALE_PERCENT[5] = { 45, 50, 65, 85, 100 };
 
+		static inline PieceSignatureHashedLookup<EvalEntry, 65536, PieceSignature::SIG_SHIFT_BLACK>  pieceSignatureHash;
 	};
 
 }
 
-#endif

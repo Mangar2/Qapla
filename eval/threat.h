@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Implements threat detection for evaluation
  */
@@ -24,10 +24,15 @@
 
 #include "../basics/types.h"
 #include "../basics/evalvalue.h"
-#include "../movegenerator/bitboardmasks.h"
 #include "../movegenerator/movegenerator.h"
+#include "array-generator.h"
+#include "../interface/uci-parameter-provider.h"
 
 #include "evalresults.h"
+
+#ifdef PARAM_OPTIMIZE
+#define PARAM_OPTIMIZE_THREAT
+#endif
 
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
@@ -37,44 +42,77 @@ namespace ChessEval {
 	class Threat
 	{
 	public:
-		template<bool PRINT>
+		friend class ThreatUciAccess;
+
+		/**
+		 * Get UCI parameter access interface
+		 * @return Reference to UCI parameter provider
+		 */
+		static UciParameterProvider& getUciAccess();
+
 		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
-			return eval<WHITE, PRINT>(position, result) -
-				eval<BLACK, PRINT>(position, result);
+			return eval<WHITE>(position, result) - eval<BLACK>(position, result);
 		}
-	private:
-		template<Piece COLOR, bool PRINT>
-		static EvalValue eval(MoveGenerator& position, EvalResults& result) {
+
+		static IndexLookupMap getIndexLookup() {
+			IndexLookupMap indexLookup;
+			indexLookup["threat"] = std::vector<EvalValue>{ THREAT_LOOKUP.begin(), THREAT_LOOKUP.end() };
+			return indexLookup;
+		}
+
+		static void addToIndexVector(MoveGenerator& position, const EvalResults& result, IndexVector& indexVector) {
+			uint32_t wIndex = computeThreatIndex<WHITE>(position, result);
+			uint32_t bIndex = computeThreatIndex<BLACK>(position, result);
+			if (wIndex) {
+				indexVector.push_back(IndexInfo{ "threat", wIndex, WHITE });
+			}
+			if (bIndex) {
+				indexVector.push_back(IndexInfo{ "threat", bIndex, BLACK });
+			}
+		}
+
+		template<Piece COLOR>
+		static uint32_t computeThreatIndex(MoveGenerator& position, const EvalResults& result) {
 			constexpr Piece OPPONENT = switchColor(COLOR);
 			const bitBoard_t opponentPieces = position.getPiecesOfOneColorBB<OPPONENT>() &
 				~position.getPieceBB(OPPONENT + PAWN);
 			const bitBoard_t nonProtectedPieces = opponentPieces & ~position.attackMask[OPPONENT];
 			const bitBoard_t minorAttack = result.bishopAttack[COLOR] | result.knightAttack[COLOR];
 			const bitBoard_t minorOrRookAttack = minorAttack | result.rookAttack[COLOR];
-			
+
 			const bitBoard_t threats =
-				position.pawnAttack[COLOR] & opponentPieces
-				| nonProtectedPieces & position.attackMask[COLOR]
-				| position.getPieceBB(OPPONENT + ROOK) & minorAttack
-				| position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack
-				| position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR];
+				(position.pawnAttack[COLOR] & opponentPieces)
+				| (nonProtectedPieces & position.attackMask[COLOR])
+				| (position.getPieceBB(OPPONENT + ROOK) & minorAttack)
+				| (position.getPieceBB(OPPONENT + QUEEN) & minorOrRookAttack)
+				| (position.getPieceBB(OPPONENT + KING) & position.attackMask[COLOR]);
 
 			value_t threatAmout = popCountForSparcelyPopulatedBitBoards(threats);
 			if (threatAmout > 10) {
 				threatAmout = 10;
 			}
-			const EvalValue evThreats = THREAT_LOOKUP[threatAmout];
-			if (PRINT) cout
-				<< colorToString(COLOR) << " threats (" << threatAmout << "): " << std::right << std::setw(14) << evThreats << endl;
+			return threatAmout;
+		}
+
+
+	private:
+		template<Piece COLOR>
+		static EvalValue eval(MoveGenerator& position, const EvalResults& result) {
+			const auto threatAmount = computeThreatIndex<COLOR>(position, result);
+			const EvalValue evThreats = THREAT_LOOKUP[threatAmount];
 			return evThreats;
 		}
 
-		static constexpr value_t THREAT_LOOKUP[11][2] =
-		{
-			{ 0, 0 }, { 25, 20 }, { 70, 60 }, { 120, 100 }, { 200, 180 }, { 300, 300 },
-			{ 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }, { 400, 400 }
-		};
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP_DEFAULT = { {
+			{  0,   0}, { 60,  60}, { 120,  120 }, { 150, 150 }, { 150, 150 }, { 150, 150 },
+			{ 150, 150}, {150, 150}, {150, 150}, {150, 150}, {150, 150}
+		} };
 
+#ifndef PARAM_OPTIMIZE_THREAT
+		static constexpr array<EvalValue, 11> THREAT_LOOKUP = THREAT_LOOKUP_DEFAULT;
+#else
+		inline static array<EvalValue, 11> THREAT_LOOKUP = THREAT_LOOKUP_DEFAULT;
+#endif
 	};
 }
 

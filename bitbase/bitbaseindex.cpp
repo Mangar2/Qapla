@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include "bitbaseindex.h"
@@ -104,7 +104,7 @@ BitbaseIndex::InitStatic::InitStatic() {
 void BitbaseIndex::initialize(const PieceList& pieceList, bool wtm) {
 	_wtm = wtm;
 	_index = wtm ? 0 : 1;
-	_sizeInBit = COLOR_COUNT;
+	_entryCount = COLOR_COUNT;
 	_mapType = computeSquareMapType(pieceList);
 
 	Square whiteKingSquare = mapSquare(pieceList.getSquare(0), _mapType);
@@ -164,7 +164,7 @@ uint32_t BitbaseIndex::computeSquareMapType(const PieceList& pieceList) {
 		// 2. Ignore pieces of the same type that are arranged in mirror symmetry according the A1:H8 diagonal
 		// 3. The smalles piece of the first type decides the mapping, if not ignored
 
-		array<Square, 10> squares;
+		array<Square, 10> squares{};
 		for (uint32_t index = 2; index < pieceList.getNumberOfPieces();) {
 			uint32_t count = pieceList.getNumberOfSamePieces(index);
 			for (uint32_t sqIndex = 0; sqIndex < count; sqIndex++) {
@@ -212,8 +212,8 @@ void BitbaseIndex::addPawnToIndex(Square mappedSquare) {
 	const bitBoard_t belowBB = ((1ULL << mappedSquare) - 1) & _piecesBB & 0x00FFFFFFFFFFFF00;
 	uint64_t indexValueBasedOnPawnSquare = uint64_t(mappedSquare - A2) - popCount(belowBB);
 
-	_index += (int64_t)indexValueBasedOnPawnSquare * _sizeInBit;
-	_sizeInBit *= (NUMBER_OF_PAWN_POSITIONS - _pawnCount);
+	_index += (int64_t)indexValueBasedOnPawnSquare * _entryCount;
+	_entryCount *= (NUMBER_OF_PAWN_POSITIONS - _pawnCount);
 
 	addPawnSquare(mappedSquare);
 }
@@ -221,12 +221,12 @@ void BitbaseIndex::addPawnToIndex(Square mappedSquare) {
 void BitbaseIndex::addNonPawnPieceToIndex(Square mappedSquare) {
 	uint64_t indexValueBasedOnPieceSquare = computeSquareIndex(mappedSquare);
 
-	_index += (int64_t)indexValueBasedOnPieceSquare * _sizeInBit;
-	_sizeInBit *= (int64_t)BOARD_SIZE - getNumberOfPieces();
+	_index += (int64_t)indexValueBasedOnPieceSquare * _entryCount;
+	_entryCount *= (int64_t)BOARD_SIZE - getNumberOfPieces();
 	addPieceSquare(mappedSquare);
 }
 
-void bubbleSort(array<Square, 10>& squares, uint32_t count) {
+static void bubbleSort(array<Square, 10>& squares, uint32_t count) {
 	for (int32_t outerLoop = count - 1; outerLoop > 0; outerLoop--) {
 		for (int32_t innerLoop = 1; innerLoop <= outerLoop; innerLoop++) {
 			if (squares[innerLoop - 1] > squares[innerLoop]) {
@@ -251,7 +251,7 @@ void  BitbaseIndex::bubbleSortMultiplePiece(array<Square, 10>& squares, uint32_t
  */
 void BitbaseIndex::addPiecesToIndex(const PieceList& pieceList, uint32_t begin, uint32_t count)
 {
-	array<Square, 10> squares;
+	array<Square, 10> squares{};
 	Piece piece = pieceList.getPiece(begin);
 	for (uint32_t index = 0; index < count; index++) {
 		squares[index] = mapSquare(pieceList.getSquare(index + begin), _mapType);
@@ -271,7 +271,6 @@ void BitbaseIndex::addPiecesToIndex(const PieceList& pieceList, uint32_t begin, 
 }
 
 void BitbaseIndex::addSinglePieceToIndex(const PieceList& pieceList, uint32_t index) {
-	Piece piece = pieceList.getPiece(index);
 	Square square = mapSquare(pieceList.getSquare(index), _mapType);
 	if (isPawn(pieceList.getPiece(index))) {
 		addPawnToIndex(square);
@@ -287,8 +286,8 @@ void BitbaseIndex::addTwoPiecesToIndex(const PieceList& pieceList, uint32_t inde
 	Square square2 = mapSquare(pieceList.getSquare(index + 1), _mapType);
 	if (isPawn(piece)) {
 		uint64_t indexValue = mapTwoPawnsToIndex[int(square1 - A2) * NUMBER_OF_PAWN_POSITIONS + square2 - A2];
-		_index += indexValue * _sizeInBit;
-		_sizeInBit *= NUMBER_OF_DOUBLE_PAWN_POSITIONS;
+		_index += indexValue * _entryCount;
+		_entryCount *= NUMBER_OF_DOUBLE_PAWN_POSITIONS;
 		addPawnSquare(square1);
 		addPawnSquare(square2);
 	}
@@ -297,8 +296,8 @@ void BitbaseIndex::addTwoPiecesToIndex(const PieceList& pieceList, uint32_t inde
 		uint32_t squareIndex1 = computeSquareIndex(square1);
 		uint32_t squareIndex2 = computeSquareIndex(square2);
 		uint64_t indexValue = mapTwoPiecesToIndex[squareIndex1 * REMAINING_PIECE_POSITIONS + squareIndex2];
-		_index += indexValue * _sizeInBit;
-		_sizeInBit *= NUMBER_OF_DOUBLE_PIECE_POSITIONS;
+		_index += indexValue * _entryCount;
+		_entryCount *= NUMBER_OF_DOUBLE_PIECE_POSITIONS;
 		addPieceSquare(square1);
 		addPieceSquare(square2);
 	}
@@ -345,5 +344,5 @@ void BitbaseIndex::computeKingIndex(bool wtm, Square whiteKingSquare, Square bla
 	else {
 		_index += uint64_t(mapTwoKingsToIndexWithoutPawn[kingIndexNotShrinkedBySymetries]) * COLOR_COUNT;
 	}
-	_sizeInBit *= hasPawn ? NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN : NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
+	_entryCount *= hasPawn ? NUMBER_OF_TWO_KING_POSITIONS_WITH_PAWN : NUMBER_OF_TWO_KING_POSITIONS_WITHOUT_PAWN;
 }

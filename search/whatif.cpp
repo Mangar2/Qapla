@@ -1,3 +1,24 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ * @Overview
+ * Implements a thread pool to support multi-threading in chess
+ */
+
 #include "computinginfo.h"
 #include "../eval/eval.h"
 #include "searchstack.h"
@@ -11,13 +32,14 @@ WhatIf WhatIf::whatIf;
 
 #if (DOWHATIF == true)
 
-WhatIf::WhatIf() : maxPly(0), searchDepth(0), count(0)
+WhatIf::WhatIf() : searchDepth(0), count(0)
 {
 	clear();
 }
 
 void WhatIf::init(const Board &board, const ComputingInfo &computingInfo, value_t alpha, value_t beta)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	if (computingInfo.getSearchDepht() == searchDepth)
 	{
 		std::cout << "New search [w:" << std::setw(6) << beta << "," << std::setw(6) << alpha << "]" << std::endl;
@@ -28,6 +50,7 @@ void WhatIf::init(const Board &board, const ComputingInfo &computingInfo, value_
 void WhatIf::printInfo(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack,
 					   Move currentMove, ply_t depth, ply_t ply, value_t result)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	printMoves(stack, currentMove, ply);
 	WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, result, "");
 	variables.printAll();
@@ -41,10 +64,9 @@ void WhatIf::printInfo(const WhatIfVariables &wiVariables)
 
 void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo, Move currentMove, ply_t ply, bool inQsearch)
 {
-	if (ply <= hashFoundPly)
-	{
-		hashFoundPly = -1;
-	}
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (ply <= hashFoundPly) return;
+
 	if (computingInfo.getSearchDepht() == searchDepth && board.computeBoardHash() == hash && ply <= amountOfMovesToSearch + 1)
 	{
 		hashFoundPly = ply;
@@ -52,36 +74,34 @@ void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo
 	}
 }
 
-void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, Move currentMove, ply_t ply)
+void WhatIf::moveSelected(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, Move currentMove, ply_t depth, ply_t ply)
 {
-	if (searchDepth == -1)
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (ply <= hashFoundPly)
 	{
-		return;
+		hashFoundPly = -1;
 	}
+
 	moveSelected(board, computingInfo, currentMove, ply, false);
 	if ((ply - 1) == hashFoundPly && -1 != hashFoundPly)
 	{
-		WhatIfVariables variables(computingInfo, stack, currentMove, stack[ply].getRemainingDepth(), ply - 1, NO_VALUE, "");
+		WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply - 1, NO_VALUE, "");
 		variables.printSelected();
 	}
 }
 
 void WhatIf::startSearch(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, ply_t ply)
 {
-	if (searchDepth == -1)
-	{
-		return;
-	}
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (searchDepth == -1) return;
 	moveSelected(board, computingInfo, Move::EMPTY_MOVE, ply, false);
 }
 
 void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack,
 						  Move currentMove, ply_t depth, ply_t ply, value_t curValue, const string searchType)
 {
-	if (searchDepth == -1 || ply < 0)
-	{
-		return;
-	}
+	if (computingInfo.isExcludedFromWhatIf()) return;
+	if (searchDepth == -1) return;
 	if (ply == hashFoundPly)
 	{
 		WhatIfVariables variables(computingInfo, stack, currentMove, depth, ply, curValue, searchType);
@@ -92,6 +112,7 @@ void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo
 
 void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo, Move currentMove, value_t alpha, value_t beta, value_t bestValue, value_t standPatValue, ply_t ply)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	if (hashFoundPly != -1 && qsearch)
 	{
 		for (ply_t i = 0; i <= ply; i++)
@@ -112,16 +133,18 @@ void WhatIf::moveSearched(const Board &board, const ComputingInfo &computingInfo
  */
 string getCutoffString(Cutoff cutoff)
 {
-	return array<string, int(Cutoff::COUNT)>{"NONE", "REPT", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTILITY"}[int(cutoff)];
+	return array<string, int(Cutoff::COUNT)>{"NONE", "REPT", "50MO", "HASH", "MATE", "RAZO", "NEM", "NULL", "FUTL",
+		"BITB", "LOST", "MAXD", "ABOR", "MCUT"}[int(cutoff)];
 }
 
 void WhatIf::cutoff(const Board &board, const ComputingInfo &computingInfo, const SearchStack &stack, ply_t ply, Cutoff cutoff)
 {
+	if (computingInfo.isExcludedFromWhatIf()) return;
 	if (cutoff == Cutoff::NONE)
 	{
 		return;
 	}
-	if (searchDepth == -1 || ply < 0)
+	if ((searchDepth == -1 && (computingInfo.getDebug() == -1)) || ply < 0)
 	{
 		return;
 	}
@@ -145,17 +168,14 @@ void WhatIf::setTT(TT *ttPtr, uint64_t hashKey, ply_t depth, ply_t ply, Move mov
 {
 	if (hashKey == hash)
 	{
-		auto ttIndex = ttPtr->getTTEntryIndex(hashKey);
-		if (ttPtr->isNewEntryMoreValuable(ttIndex, depth, move, true))
-		{
-			std::cout << "set hash [w" << std::setw(6) << alpha << " "
-					  << std::setw(6) << beta << "][d:" << std::setw(2) << depth << "]"
-					  << "[v:" << std::setw(6) << bestValue << "]"
-					  << "[m:" << std::setw(5) << move.getLAN() << "]"
-					  << std::endl;
+		[[maybe_unused]] auto ttIndex = ttPtr->getEntryIndex(hashKey);
+		std::cout << "set hash [w" << std::setw(6) << alpha << " "
+					<< std::setw(6) << beta << "][d:" << std::setw(2) << depth << "]"
+					<< "[v:" << std::setw(6) << bestValue << "]"
+					<< "[m:" << std::setw(5) << move.getLAN() << "]"
+					<< std::endl;
 
-			ttPtr->printHash(hashKey);
-		}
+		ttPtr->printHash(hashKey);
 	}
 }
 

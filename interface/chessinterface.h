@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements a UCI - Interface
  */
@@ -23,17 +23,21 @@
 #define __CHESSINTERFACE_H
 
 #include <string>
+#include <cstdint>  // Added for uint64_t definition
 #include "ichessboard.h"
 #include "iinputoutput.h"
 #include "clocksetting.h"
 #include "stdtimecontrol.h"
 #include "movescanner.h"
 #include "fenscanner.h"
+#include "computinginfoexchange.h"
 #include <functional>
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
+
+#include "../bitbase/bitbase-reader.h"
 
 using namespace std;
 
@@ -46,6 +50,27 @@ namespace QaplaInterface {
 			worker = std::thread(&WorkerThread::run, this);
 		}
 
+		// Move-Konstruktor
+		WorkerThread(WorkerThread&& other) noexcept
+			: stop_thread(other.stop_thread.load()), task_running(other.task_running.load()) {
+			if (other.worker.joinable()) {
+				worker = std::move(other.worker);
+			}
+		}
+
+		// Move-Zuweisungsoperator
+		WorkerThread& operator=(WorkerThread&& other) noexcept {
+			if (this != &other) {
+				shutdown();
+				stop_thread = other.stop_thread.load();
+				task_running = other.task_running.load();
+				if (other.worker.joinable()) {
+					worker = std::move(other.worker);
+				}
+			}
+			return *this;
+		}
+
 		~WorkerThread() {
 			shutdown();
 		}
@@ -54,7 +79,10 @@ namespace QaplaInterface {
 		void startTask(std::function<void()> task) {
 			{
 				std::unique_lock<std::mutex> lock(mutex);
-				this->task = task;
+				if (task_running) {
+					return;
+				}
+				this->task = std::move(task);
 				task_running = true;
 			}
 			cv.notify_one();
@@ -73,6 +101,7 @@ namespace QaplaInterface {
 				stop_thread = true;
 			}
 			cv.notify_one();
+			waitForTaskCompletion();
 			if (worker.joinable()) {
 				worker.join();
 			}
@@ -127,7 +156,45 @@ namespace QaplaInterface {
 		void run(IChessBoard* chessBoard, IInputOutput* ioHandler) {
 			_ioHandler = ioHandler;
 			_board = chessBoard;
+			QaplaBitbase::BitbaseReader::registerBitbaseFromHeader();
 			runLoop();
+		}
+
+		static bool setPositionByFen(std::string position, IChessBoard* board) {
+			FenScanner scanner;
+			bool success = scanner.setBoard(position, board);
+			return success;
+		}
+
+		/**
+		 * Gets a move to the board
+		 */
+		static bool setMove(string move, IChessBoard* board) {
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			bool res = false;
+			if (scanner.isLegal()) {
+				res = board->doMove(
+					scanner.piece,
+					scanner.departureFile, scanner.departureRank,
+					scanner.destinationFile, scanner.destinationRank,
+					scanner.promote);
+			}
+			return res;
+		}
+
+		static bool isCapture(string move, IChessBoard* board) {
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			bool res = false;
+			if (scanner.isLegal()) {
+				res = board->isCapture(
+					scanner.piece,
+					scanner.departureFile, scanner.departureRank,
+					scanner.destinationFile, scanner.destinationRank,
+					scanner.promote);
+			}
+			return res;
 		}
 
 
@@ -145,28 +212,24 @@ namespace QaplaInterface {
 			if (position == "") {
 				position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 			}
-			FenScanner scanner;
-			bool success = scanner.setBoard(position, _board);
-			return success;
+			return setPositionByFen(position, _board);
 		}
 
-		bool isLegalMove(string move) {}
+		bool isValidMoveString(string move) { 
+			if (move == "") return false;
+			MoveScanner scanner(move);
+			return scanner.isLegal();
+		}
 
 		/**
 		 * Gets a move to the board
 		 */
 		bool setMove(string move) {
-			if (move == "") return false;
-			MoveScanner scanner(move);
-			bool res = false;
-			if (scanner.isLegal()) {
-				res = _board->doMove(
-					scanner.piece,
-					scanner.departureFile, scanner.departureRank,
-					scanner.destinationFile, scanner.destinationRank,
-					scanner.promote);
-			}
-			return res;
+			return setMove(move, _board);
+		}
+
+		bool isCapture(string move) {
+			return isCapture(move, _board);
 		}
 
 		/**
@@ -200,11 +263,35 @@ namespace QaplaInterface {
 			});
 		}
 
+		void waitUntilExactMoveTimeElapsed(const ComputingInfoExchange& info) {
+			if (_clock.getExactTimePerMoveInMilliseconds() == 0) {
+				return;
+			}
+			//if (_clock.)
+			constexpr uint64_t EXPECTED_DELAY = 2;
+			const uint64_t elapsed = info.elapsedTimeInMilliseconds;
+			const uint64_t target = _clock.getExactTimePerMoveInMilliseconds() - EXPECTED_DELAY;
+			if (elapsed >= target) {
+				return;
+			}
+			std::unique_lock<std::mutex> lock(_protectWorkerAccess);
+			_protectSearchTermination.wait_for(
+				lock,
+				std::chrono::milliseconds(target - elapsed),
+				[this] { return _isStopped; }
+			);
+		}
+
 		/**
 		 * Wait for the computing thread to end and joins the thread.
 		 */
 		void waitForComputingThreadToEnd() {
 			_computeThread.waitForTaskCompletion();
+		}
+
+		void startCompute() {
+			const lock_guard<mutex> lock(_protectWorkerAccess);
+			_isStopped = false;
 		}
 
 		/**
@@ -214,6 +301,7 @@ namespace QaplaInterface {
 			{
 				const lock_guard<mutex> lock(_protectWorkerAccess);
 				_isInfiniteSearch = false;
+				_isStopped = true;
 				_board->moveNow();
 				_protectSearchTermination.notify_one();
 			}
@@ -239,8 +327,72 @@ namespace QaplaInterface {
 			_protectSearchTermination.notify_one();
 		}
 
-	protected:
-		enum class Mode { WAIT, COMPUTE, ANALYZE, EDIT, PONDER };
+protected:
+
+		void loadEPD() {
+			std::string fileName = getNextTokenNonBlocking();
+			if (fileName == "") {
+				std::cerr << "Error: No EPD file specified." << std::endl;
+				return;
+			}
+			loadEPD(fileName);
+		}
+		void loadEPD(const std::string & filename) {
+			std::ifstream file(filename);
+
+			if (!file) {
+				std::cerr << "Error: Could not open file " << filename << std::endl;
+				return;
+			}
+
+			_startPositions.clear();
+			std::string line;
+			while (std::getline(file, line)) {
+				if (!line.empty()) {
+					_startPositions.push_back(line);
+				}
+			}
+
+			file.close();
+			std::cout << "Loaded " << _startPositions.size() << " positions from EPD file." << std::endl;
+		}
+
+		void WMTest() {
+			[[maybe_unused]] uint32_t numThreads{};
+			uint32_t depthLimit = 10;
+			uint64_t totalNodesSearched = 0;
+			while (getNextTokenNonBlocking() != "") {
+				if (getCurrentToken() == "threads") {
+					if (getNextTokenNonBlocking() != "") {
+						numThreads = (uint32_t)getCurrentTokenAsUnsignedInt();
+					}
+				}
+				else if (getCurrentToken() == "sd") {
+					if (getNextTokenNonBlocking() != "") {
+						depthLimit = (uint32_t)getCurrentTokenAsUnsignedInt();
+					}
+				}
+
+			}
+			loadEPD("wmtest.epd");
+			_clock.setSearchDepthLimit(depthLimit);
+			getBoard()->setClock(_clock);
+			StdTimeControl timeControl;
+			timeControl.storeStartTime();
+			for (auto& epd : _startPositions) {
+				getBoard()->newGame();
+				ChessInterface::setPositionByFen(epd, getBoard());
+				getBoard()->computeMove();
+				auto info = getBoard()->getComputingInfo();
+				totalNodesSearched += info.nodesSearched;
+				std::cout << epd << " nodes: " << info.nodesSearched << " total: " << totalNodesSearched << std::endl;
+			}
+			std::cout << "Positions searched: " << _startPositions.size() 
+				<< " Total nodes searched: " << totalNodesSearched 
+				<< " Time used (s): " << (timeControl.getTimeSpentInMilliseconds() * 1.0 / 1000.0) << std::endl;
+		}
+
+		enum class Mode { WAIT, COMPUTE, ANALYZE, EDIT, PONDER, QUIT };
 		void println(const string& output) { _ioHandler->println(output); }
 		void print(const string& output) { _ioHandler->print(output); }
 		string getCurrentToken() { return _ioHandler->getCurrentToken(); }
@@ -248,16 +400,25 @@ namespace QaplaInterface {
 		string getNextTokenNonBlocking(string separators = "") { return _ioHandler->getNextTokenNonBlocking(separators); }
 		string getToEOLBlocking() { return _ioHandler->getToEOLBlocking(); }
 		uint64_t getCurrentTokenAsUnsignedInt() { return _ioHandler->getCurrentTokenAsUnsignedInt(); }
+		bool isFatalError() { return _ioHandler->isFatalReadError(); }
+		IChessBoard* getBoard() { return _board; }
+		WorkerThread& getWorkerThread() { return _computeThread; }
+
+		std::vector<std::string> _startPositions;
+
+
+	private:
 		IChessBoard* _board;
 		IInputOutput* _ioHandler;
-		ClockSetting _clock;
 		condition_variable _protectSearchTermination;
 		mutex _protectWorkerAccess;
-		bool _isInfiniteSearch;
-		bool _stopRequested;
+		bool _isInfiniteSearch = false;
+		bool _isStopped = false;
 		WorkerThread _computeThread;
-		uint32_t _maxTheadCount; 
-		uint32_t _maxMemory;
+	
+	protected:
+		ClockSetting _clock;
+		uint32_t _maxTheadCount;
 		string _egtPath;
 		string _bitbasePath;
 	};

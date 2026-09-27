@@ -13,16 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements bit handling routines
  */
 
-#ifndef __BITS_H
-#define __BITS_H
+#pragma once
 
-// #include <bit>
 #include <assert.h>
 #include "types.h"
 
@@ -35,12 +33,11 @@
 #if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
 #include <__msvc_bit_utils.hpp>
 #include <intrin.h> // Microsoft header for _BitScanForward64()
-#define IS_64BIT
 #endif
 
 namespace QaplaBasics {
 
-	const int32_t index64[64] = {
+	constexpr int32_t index64[64] = {
 		0, 47,  1, 56, 48, 27,  2, 60,
 	   57, 49, 41, 37, 28, 16,  3, 61,
 	   54, 58, 35, 52, 50, 42, 21, 44,
@@ -66,22 +63,23 @@ namespace QaplaBasics {
 
 #if defined(__GNUC__) && !defined(__OLD_HW__)
 
-	inline static Square lsb(bitBoard_t bitBoard) {
+	constexpr Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
-		return Square(__builtin_ctzll(bitBoard));
+		return static_cast<Square>(__builtin_ctzll(bitBoard));
 	}
 
 #elif defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)
 	
-	inline static Square lsb(bitBoard_t bitBoard) {
+	static inline Square lsb(bitBoard_t bitBoard) {
 		assert(bitBoard);
 		unsigned long pos;
 		_BitScanForward64(&pos, bitBoard);
-		return (Square)pos;
+		return static_cast<Square>(pos);
 	}
 
 #else 
 	inline static Square lsb(bitBoard_t bitBoard) {
+		assert(bitBoard);
 		return (Square)bitScanForward(bitBoard);
 	}
 #endif
@@ -90,9 +88,9 @@ namespace QaplaBasics {
 	/**
 	 * Removes the least significant bit
 	 */
-	inline static uint32_t popLSB(bitBoard_t& bitBoard)
+	inline static Square popLSB(bitBoard_t& bitBoard)
 	{
-		uint32_t res = lsb(bitBoard);
+		const Square res = lsb(bitBoard);
 		bitBoard &= bitBoard - 1;
 		return res;
 	}
@@ -104,11 +102,11 @@ namespace QaplaBasics {
 	 */
 
 	 /**
-	  * Counts the amout of set bits in a 64 bit variables - only performant for
+	  * Counts the amount of set bits in a 64 bit variables - only performant for
 	  * sparcely populated bitboards. (1-3 bits set).
 	  */
-	static int32_t popCountBrianKernighan(bitBoard_t bitBoard) {
-		int32_t popCount = 0;
+	constexpr uint32_t popCountBrianKernighan(bitBoard_t bitBoard) {
+		uint32_t popCount = 0;
 		for (; bitBoard != 0; bitBoard &= bitBoard - 1) {
 			popCount++;
 		}
@@ -134,36 +132,34 @@ namespace QaplaBasics {
 
 #if (defined(_WIN64) && defined(_MSC_VER) && !defined(__OLD_HW__)) || defined(__INTEL_COMPILER)
 
-	inline static int32_t popCount(bitBoard_t bitBoard) {
+	inline uint32_t popCount(bitBoard_t bitBoard) {
 		//const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
-		return (int)_mm_popcnt_u64(bitBoard);
+		return static_cast<uint32_t>(_mm_popcnt_u64(bitBoard));
 	}
 
-	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+	inline uint32_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
 		//const bool _Definitely_have_popcnt = __isa_available >= __ISA_AVAILABLE_SSE42;
 		return popCount(bitBoard);
 	}
 
 #elif defined(__GNUC__) && !defined(__OLD_HW__)
-	inline static int32_t popCount(bitBoard_t bitBoard) {
+	constexpr int32_t popCount(bitBoard_t bitBoard) {
 		return __builtin_popcountll(bitBoard);
 	}
 
-	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+	constexpr uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
 		return popCount(bitBoard);
 	}
 
 #else
-	inline static int32_t popCount(bitBoard_t bitBoard) {
+	constexpr uint32_t popCount(bitBoard_t bitBoard) {
 		return SWARPopcount(bitBoard);
 	}
 	
-	inline static uint8_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
+	constexpr uint32_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {
 		return popCountBrianKernighan(bitBoard);
 	}
 #endif
 
 
 }
-
-#endif  // __BITS_H

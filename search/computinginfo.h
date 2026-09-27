@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  * @Overview
  * Class containing a set of information taken from the Chess-Search algorithm
  * - The elapsed time in milliseconds for the current search
@@ -28,22 +28,23 @@
 #ifndef __COMPUTINGINFO_H
 #define __COMPUTINGINFO_H
 
-#include <array>
+
+#include "pv.h"
+#include "rootmoves.h"
+
 #include "../basics/move.h"
 #include "../interface/stdtimecontrol.h"
-#include "pv.h"
 #include "../interface/isendsearchinfo.h"
 #include "../interface/computinginfoexchange.h"
-#include "rootmoves.h"
-#include "searchparameter.h"
-#include "searchstack.h"
+
+
 
 using namespace QaplaInterface;
 
 namespace QaplaSearch {
 	class ComputingInfo {
 	public:
-		ComputingInfo() : _sendSearchInfo(0), _multiPV(1) {
+		ComputingInfo() : _sendSearchInfo(0), _multiPV(1), _debug(-1), _excludeFromWhatIf(false) {
 			clear();
 		}
 
@@ -84,8 +85,8 @@ namespace QaplaSearch {
 		void clear() {
 			_searchDepth = 0;
 			_nodesSearched = 0;
+			_helperNodes = 0;
 			_tbHits = 0;
-			_debug = false;
 			_totalAmountOfMovesToConcider = 0;
 			_currentMoveNoSearched = 0;
 			_positionValueInCentiPawn = 0;
@@ -97,9 +98,10 @@ namespace QaplaSearch {
 		/**
 		 * initializes data before starting to search
 		 */
-		void initNewSearch(MoveGenerator& position, ButterflyBoard butterflyBoard) {
-			_rootMoves.setMoves(position, butterflyBoard);
+		void initNewSearch(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard) {
+			_rootMoves.setMoves(position, searchMoves, butterflyBoard);
 			_nodesSearched = 0;
+			_helperNodes = 0;
 			_tbHits = 0;
 			_timeControl.storeStartTime();
 		}
@@ -107,7 +109,7 @@ namespace QaplaSearch {
 		/**
 		 * Starts searching the next iteration
 		 */
-		void nextIteration(const SearchVariables& searchInfo) {
+		void nextIteration(const SearchNode& searchInfo) {
 			_totalAmountOfMovesToConcider = searchInfo.moveProvider.getTotalMoveAmount();
 			_currentConcideredMove.setEmpty();
 			_currentMoveNoSearched = 0;
@@ -122,6 +124,10 @@ namespace QaplaSearch {
 		 * the print was requested or if the parameter print is true
 		 * @print true, if search info sould be printed 
 		 */
+		int64_t getTimeSpentInMilliseconds() const {
+			return _timeControl.getTimeSpentInMilliseconds();
+		}
+
 		void printSearchInfo(bool print) {
 			bool doPrint = _printRequest || print;
 			if (doPrint && _verbose && _sendSearchInfo != 0) {
@@ -129,7 +135,7 @@ namespace QaplaSearch {
 					_searchDepth,
 					_positionValueInCentiPawn,
 					_timeControl.getTimeSpentInMilliseconds(),
-					_nodesSearched,
+					getTotalNodes(),
 					_tbHits,
 					_totalAmountOfMovesToConcider - _currentMoveNoSearched - 1,
 					_totalAmountOfMovesToConcider,
@@ -160,7 +166,7 @@ namespace QaplaSearch {
 					bestValue >= beta,
 					bestValue <= alpha,
 					_timeControl.getTimeSpentInMilliseconds(),
-					_nodesSearched,
+					getTotalNodes(),
 					_tbHits,
 					primaryVariant,
 					pvNo);
@@ -168,6 +174,14 @@ namespace QaplaSearch {
 		}
 		void printSearchResult(uint32_t moveNo, uint32_t multiPVNo = 1) const {
 			const auto& rootMove = _rootMoves.getMove(moveNo);
+			const value_t reported = rootMove.getReportedValue();
+			if (reported != rootMove.getValue()) {
+				// A tablebase answer is knowledge, not a search result - it has no window it
+				// could be a bound of, so it is reported exact.
+				printSearchResult(rootMove.getPV(), reported, -MAX_VALUE, MAX_VALUE,
+					rootMove.getDepth(), multiPVNo);
+				return;
+			}
 			printSearchResult(rootMove.getPV(), rootMove.getValue(), rootMove.getAlpha(), rootMove.getBeta(), rootMove.getDepth(), multiPVNo);
 		}
 
@@ -178,7 +192,6 @@ namespace QaplaSearch {
 			if (_multiPV == 1) {
 				printSearchResult(0);
 			} else {
-				const auto& timeSinceLastInfo = _timeControl.getTimeSpentInMilliseconds() - _lastMultiPVInfo;
 				const auto& pvCount = _rootMoves.countPVSearchedMovesInWindow(_searchDepth);
 				if (pvCount >= _multiPV) {
 					_lastMultiPVInfo = _timeControl.getTimeSpentInMilliseconds();
@@ -207,6 +220,7 @@ namespace QaplaSearch {
 			return _searchDepth;
 		}
 
+
 		/**
 		 * Sets the current concidered move
 		 */
@@ -219,10 +233,10 @@ namespace QaplaSearch {
 		 * Update status information on ply 0
 		 */
 		void printNewPV(uint32_t moveNo) {
-			const auto rootMove = _rootMoves.getMove(moveNo);
+			const auto& rootMove = _rootMoves.getMove(moveNo);
 			if (rootMove.isPVSearched() && rootMove.getValue() > _positionValueInCentiPawn) {
 				_positionValueInCentiPawn = rootMove.getValue();
-				if (_multiPV == 1 && _nodesSearched > 2000000) {
+				if (_multiPV == 1 && getTotalNodes() > 2000000) {
 					printSearchResult(moveNo);
 				}
 			}
@@ -238,15 +252,20 @@ namespace QaplaSearch {
 	     */
 		ComputingInfoExchange getExchangeStructure() const {
 			ComputingInfoExchange exchange;
+			if (getMovesAmount() == 0) {
+				exchange.error = "stalemate or mate";
+				return exchange;
+			}
 			const PV& pv = getPV();
 			exchange.currentConsideredMove = pv.getMove(0).getLAN();
 			Move ponderMove = pv.getMove(1);
 			exchange.ponderMove = ponderMove.isEmpty() ? "" : ponderMove.getLAN();
-			exchange.nodesSearched = _nodesSearched;
+			exchange.nodesSearched = getTotalNodes();
 			exchange.searchDepth = _searchDepth;
 			exchange.elapsedTimeInMilliseconds = _timeControl.getTimeSpentInMilliseconds();
 			exchange.totalAmountOfMovesToConcider = _totalAmountOfMovesToConcider;
 			exchange.movesLeftToConcider = _totalAmountOfMovesToConcider - _currentMoveNoSearched - 1;
+			exchange.valueInCentiPawn = _positionValueInCentiPawn;
 			return exchange;
 		}
 
@@ -267,8 +286,34 @@ namespace QaplaSearch {
 			return _rootMoves;
 		}
 
+		// Nodes of this thread. The helper threads count their own; the master sets their sum
+		// here before it reports, see setHelperNodes
 		uint64_t _nodesSearched;
+		uint64_t _helperNodes = 0;
 		uint64_t _tbHits;
+
+		void setHelperNodes(uint64_t nodes) { _helperNodes = nodes; }
+		uint64_t getTotalNodes() const { return _nodesSearched + _helperNodes; }
+
+		void print() {
+			cout << "Nodes searched: " << getTotalNodes() << " TB hits: " << _tbHits << endl;
+			_rootMoves.print();
+		}
+
+		void setDebug(int32_t debug) {
+			_debug = debug;
+		}
+
+		int32_t getDebug() const {
+			return _debug;
+		}
+
+		void setExcludeFromWhatIf(bool exclude) {
+			_excludeFromWhatIf = exclude;
+		}
+		bool isExcludedFromWhatIf() const {
+			return _excludeFromWhatIf;
+		}
 
 	private:
 		RootMoves _rootMoves;
@@ -284,7 +329,8 @@ namespace QaplaSearch {
 		uint32_t _searchDepth;
 		volatile bool _printRequest;
 		uint32_t _multiPV;
-		bool _debug;
+		int32_t _debug;
+		bool _excludeFromWhatIf;
 		bool _verbose;
 	};
 

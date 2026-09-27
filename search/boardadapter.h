@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2021 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  * @Overview
  * Implements the IChessBoard interface to connect a frontend with the chess engine
  */
@@ -22,22 +22,25 @@
 #ifndef __BOARDADAPTER_H
 #define __BOARDADAPTER_H
 
-#include <thread>
-#include <charconv>
+#ifndef QAPLA_VERSION
+#define QAPLA_VERSION "dev"
+#endif
+
+#include "whatIf.h"
 #include "../interface/isendsearchinfo.h"
 #include "../interface/ichessboard.h"
-#include "../interface/iinputoutput.h"
+#include "../interface/movescanner.h"
 #include "../basics/move.h"
 #include "../basics/movelist.h"
-#include "../movegenerator/movegenerator.h"
 #include "../search/perft.h"
-#include "../search/search.h"
 #include "../eval/eval.h"
 #include "../search/iterativedeepening.h"
 #include "movehistory.h"
 #include "../bitbase/bitbasegenerator.h"
 #include "../bitbase/verify.h"
-#include "../bitbase/bitbasereader.h"
+#include "../bitbase/bitbase-reader.h"
+#include "../bitbase/bitbase-options.h"
+#include "../src/syzygy/tablebase.h"
 
 using namespace QaplaMoveGenerator;
 using namespace QaplaInterface;
@@ -45,14 +48,18 @@ using namespace ChessEval;
 
 namespace QaplaSearch {
 
-	class BoardAdapter : public IChessBoard {
+	class BoardAdapter : public IChessBoard, public UciOptionProvider {
 	public:
-		BoardAdapter() : positionModified(true), _workerCount(0) {}
+		BoardAdapter() : _workerCount(0) {}
+
+		virtual IChessBoard* createNew() const {
+			return new BoardAdapter();
+		}
 
 		/**
 		 * Sets the class printing search information in the right format
 		 */
-		virtual void setSendSerchInfo(ISendSearchInfo* sendSearchInfo) {
+		virtual void setSendSearchInfo(ISendSearchInfo* sendSearchInfo) {
 			iterativeDeepening.setSendSearchInfoInterface(sendSearchInfo);
 		};
 
@@ -61,30 +68,74 @@ namespace QaplaSearch {
 		 */
 		virtual map<string, string> getEngineInfo() { 
 			return map<string, string>{
-				{ "name", "Qapla 0.2.057" },
-				{ "author", "Volker B<F6>hm"},
-				{ "engine-about", "Qapla by Volker B<F6>hm, see github.com/Mangar2/Quabla"}
+				{ "name", "Qapla " QAPLA_VERSION },
+				{ "author", "Volker Boehm"},
+				{ "engine-about", "Qapla by Volker Boehm, see github.com/Mangar2/Qapla"}
 			};
 		}
 
+		std::string to_lowercase(const std::string& input) {
+			std::string result = input;
+			std::transform(result.begin(), result.end(), result.begin(),
+				[](unsigned char c) { return std::tolower(c); });
+			return result;
+		}
+
 		/**
-		 * Sets an option of the engine
+		 * The components behind this board that own options. Every one of them
+		 * declares its own, so neither this class nor the protocol interfaces have
+		 * to know what they are.
+		 */
+		virtual std::vector<UciOptionProvider*> getUciOptionProviders() {
+			return { this,
+				&QaplaBitbase::BitbaseOptions::getUciAccess(),
+				&QaplaSyzygy::Tablebase::getUciAccess() };
+		}
+
+		/** The options of the search itself. */
+		virtual std::vector<UciOption> getUciOptions() const {
+			return {
+				UciOption::spin("Hash", 32, 1, 32000),
+				UciOption::spin("MultiPV", 1, 1, 40),
+				UciOption::spin("Threads", 1, 1, 64),
+				UciOption::spin("SplitThreads", 8, 1, 64)
+			};
+		}
+
+		virtual bool setUciOption(const std::string& name, const std::string& value) {
+
+			if (name == "Hash") {
+				iterativeDeepening.setTTSizeInKilobytes(uciValueToInt(value, 32) * 1024);
+				return true;
+			}
+
+			if (name == "MultiPV") {
+				iterativeDeepening.setMultiPV(std::clamp(uciValueToInt(value, 1), 1, 40));
+				return true;
+			}
+
+			if (name == "Threads") {
+				iterativeDeepening.setThreads(std::clamp(uciValueToInt(value, 1), 1, 64));
+				return true;
+			}
+
+			if (name == "SplitThreads") {
+				iterativeDeepening.setSplitThreads(std::clamp(uciValueToInt(value, 8), 1, 64));
+				return true;
+			}
+
+			return false;
+		}
+
+		/**
+		 * Sets an option the option providers do not own. Only the undocumented
+		 * qaplaBitbasePathNL is left here - it sets the path without loading and
+		 * exists for the offline tooling, not for a GUI.
 		 */
 		virtual void setOption(string name, string value) {
-			int32_t intValue = 0;
-			if (value == "false") {
-				intValue = 0;
-			}
-			else if (value == "true") {
-				intValue = 1;
-			}
-			else {
-				auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
-				if (ec != std::errc()) {
-					return;
-				}
-				if (name == "Hash") iterativeDeepening.setTTSizeInKilobytes(intValue * 1024);
-				if (name == "MultiPV") iterativeDeepening.setMultiPV(std::clamp(intValue, 1, 40));
+			name = to_lowercase(name);
+			if (name == "qaplabitbasepathnl") {
+				QaplaBitbase::BitbaseReader::setBitbasePath(value);
 			}
 		}
 
@@ -93,11 +144,18 @@ namespace QaplaSearch {
 		 * to compute this bitabase (if they cannot be loaded)
 		 */
 		
-		virtual void generateBitbases(string signature, uint32_t cores = 1, bool uncompressed = false,
-				uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64)
+		virtual void generateBitbases(string signature, uint32_t cores, std::string compression, bool generateCpp = false,
+			uint32_t traceLevel = 0, uint32_t debugLevel = 0, uint64_t debugIndex = 64)
 		{
 			QaplaBitbase::BitbaseGenerator generator;
-			generator.computeBitbaseRec(signature, cores, uncompressed, traceLevel, debugLevel, debugIndex);
+			QaplaCompress::CompressionType compressionType = QaplaCompress::CompressionType::Miniz;
+			if (compression == "lz4") {
+				compressionType = QaplaCompress::CompressionType::LZ4;
+			}
+			else if (compression == "none") {
+				compressionType = QaplaCompress::CompressionType::None;
+			}
+			generator.computeBitbaseRec(signature, cores, compressionType, generateCpp, traceLevel, debugLevel, debugIndex);
 		}
 
 		virtual void verifyBitbases(string signature, uint32_t cores = 1, uint32_t traceLevel = 0, uint32_t debugLevel = 0)
@@ -106,12 +164,13 @@ namespace QaplaSearch {
 			verify.verifyBitbaseRec(signature, cores, traceLevel, debugLevel);
 		}
 
-		/**
-		 * Load databases like tablebases or bitbases
-		 */
 		virtual void initialize() {
-			QaplaBitbase::BitbaseReader::loadBitbase();
 		}
+
+		/**
+	     * Returns the current position in FEN format
+		 */
+		virtual std::string getFen() { return position.getFen(moveHistory.getHalfMoveCount() / 2); }
 
 		/**
 		 * Retrieves the what if object
@@ -126,6 +185,7 @@ namespace QaplaSearch {
 		 */
 		virtual void newGame() {
 			iterativeDeepening.startNewGame();
+			QaplaSyzygy::Tablebase::newGame();
 		}
 
 		/**
@@ -147,10 +207,6 @@ namespace QaplaSearch {
 				destinationFile, destinationRank, promotePiece);
 
 			if (!move.isEmpty()) {
-				if (positionModified) {
-					moveHistory.setStartPosition(position);
-					positionModified = false;
-				}
 				position.doMove(move);
 				moveHistory.addMove(move);
 				playedMovesInGame++;
@@ -158,6 +214,16 @@ namespace QaplaSearch {
 
 			return !move.isEmpty();
 		};
+
+		virtual bool isCapture(char movingPiece,
+			uint32_t departureFile, uint32_t departureRank,
+			uint32_t destinationFile, uint32_t destinationRank,
+			char promotePiece)
+		{
+			Move move = findMove(position, movingPiece, departureFile, departureRank,
+				destinationFile, destinationRank, promotePiece);
+			return move.isCapture();
+		}
 
 		/**
 		 * Undoes the last move
@@ -167,7 +233,6 @@ namespace QaplaSearch {
 			if (playedMovesInGame > 0) {
 				playedMovesInGame--;
 			}
-			iterativeDeepening.startNewGame();
 		}
 
 		/**
@@ -175,7 +240,6 @@ namespace QaplaSearch {
 		 */
 		virtual void clearBoard() {
 			position.clear();
-			positionModified = true;
 			playedMovesInGame = 0;
 			moveHistory.clearMoves();
 		}
@@ -192,6 +256,13 @@ namespace QaplaSearch {
 		 */
 		virtual bool isWhiteToMove() {
 			return position.isWhiteToMove();
+		}
+
+		/**
+		 * Returns true, if the side to move is in check
+		 */
+		virtual bool isInCheck() {
+			return position.isInCheck();
 		}
 
 		/**
@@ -239,15 +310,17 @@ namespace QaplaSearch {
 		 */
 		virtual void setEPSquare(uint32_t epFile, uint32_t epRank) {
 			// Adjust ep, beause it is stored as postion of the pawn to capture
-			epRank = epRank == 3 ? 4 : 5;
+			epRank = epRank == static_cast<uint32_t>(QaplaBasics::Rank::R3) ? 
+				static_cast<uint32_t>(QaplaBasics::Rank::R4) : 
+				static_cast<uint32_t>(QaplaBasics::Rank::R5);
 			position.setEP(computeSquare(File(epFile), Rank(epRank)));
 		}
 
 		/**
 		 * Sets the number of half moves without pawn move or capture
 		 */
-		virtual void setHalfmovesWithouthPawnMoveOrCapture(uint16_t number) {
-			position.setHalfmovesWithoutPawnMoveOrCapture(number);
+		virtual void setHalfmovesWithoutPawnMoveOrCapture(uint16_t number) {
+			position.setFenHalfmovesWihtoutPawnMoveOrCapture(number);
 		}
 
 		/**
@@ -255,6 +328,10 @@ namespace QaplaSearch {
 		 */
 		virtual void setPlayedMovesInGame(uint16_t moves) {
 			playedMovesInGame = moves;
+		}
+
+		virtual void finishBoardSetup() {
+			moveHistory.setStartPosition(position);
 		}
 
 		/**
@@ -270,12 +347,12 @@ namespace QaplaSearch {
 		 * Provides the result of the game
 		 */
 		virtual GameResult getGameResult() {
-			GameResult result = isMate(position);
+			GameResult result = isMateOrStalemate(position);
 			if (result == GameResult::NOT_ENDED) {
 				if (moveHistory.isDrawByRepetition(position)) {
 					result = GameResult::DRAW_BY_REPETITION;
 				}
-				else if (position.getHalfmovesWithoutPawnMoveOrCapture() > 100) {
+				else if (position.getTotalHalfmovesWithoutPawnMoveOrCapture() > 100) {
 					result = GameResult::DRAW_BY_50_MOVES_RULE;
 				}
 			}
@@ -303,8 +380,32 @@ namespace QaplaSearch {
 		/**
 		 * Compute a move
 		 */
-		virtual void computeMove(bool verbose = true) {
-			_computingInfo = iterativeDeepening.searchByIterativeDeepening(position, moveHistory);
+		virtual void computeMove(std::string searchMoves = "", bool verbose = true) {
+			std::vector<Move> searchMovesVector;
+			std::string currentMove;
+
+			for (size_t i = 0; i <= searchMoves.length(); ++i) {
+				if (i == searchMoves.length() || searchMoves[i] == ' ') {
+					if (!currentMove.empty()) {
+						MoveScanner scanner(currentMove);
+						if (scanner.isLegal()) {
+							Move move = findMove(position,
+								scanner.piece,
+								scanner.departureFile, scanner.departureRank,
+								scanner.destinationFile, scanner.destinationRank,
+								scanner.promote);
+							if (!move.isEmpty()) {
+								searchMovesVector.push_back(move);
+							}
+						}
+						currentMove.clear();
+					}
+				}
+				else {
+					currentMove += searchMoves[i];
+				}
+			}
+			_computingInfo = iterativeDeepening.searchByIterativeDeepening(position, searchMovesVector, moveHistory);
 		}
 
 		/**
@@ -337,13 +438,31 @@ namespace QaplaSearch {
 			eval.printEval(position);
 		}
 
-		/**
-		 * Gets internal information from eval
-		 */
-		template <Piece COLOR>
-		auto getEvalFactors() {
+		virtual value_t eval() {
 			Eval eval;
-			return eval.getEvalFactors<COLOR>(position);
+			return position.isWhiteToMove() ? eval.eval(position) : -eval.eval(position);
+		}
+
+		virtual void setEvalVersion(uint32_t version) {
+			position.setEvalVersion(version);
+			iterativeDeepening.clearMemories();
+		};
+
+		virtual void setEvalFeature(std::string feature, value_t value) {
+			if (feature == "random") {
+				position.setRandomBonus(value);
+			}
+			iterativeDeepening.clearMemories();
+		};
+
+		virtual IndexVector computeEvalIndexVector() {
+			Eval eval;
+			return eval.computeIndexVector(position);
+		}
+
+		virtual IndexLookupMap computeEvalIndexLookupMap() {
+			Eval eval;
+			return eval.computeIndexLookupMap(position);
 		}
 
 		/**
@@ -370,7 +489,6 @@ namespace QaplaSearch {
 			MoveList moveList;
 			Move foundMove;
 
-			uint16_t moveNoFound = 0;
 			position.genMovesOfMovingColor(moveList);
 			const bool whiteToMove = position.isWhiteToMove();
 			Piece promotePiece = charToPiece(whiteToMove ? toupper(promotePieceChar) : tolower(promotePieceChar));
@@ -397,13 +515,17 @@ namespace QaplaSearch {
 			return foundMove;
 		}
 
+		void print() {
+			moveHistory.print();
+		}
+
 	private:
 
 
 		/**
 		 * Checks, if we have a mate situation
 		 */
-		GameResult isMate(MoveGenerator& position) {
+		GameResult isMateOrStalemate(MoveGenerator& position) {
 			GameResult result = GameResult::NOT_ENDED;
 			MoveList moveList;
 			position.genMovesOfMovingColor(moveList);
@@ -430,7 +552,6 @@ namespace QaplaSearch {
 			return result;
 		}
 
-		bool positionModified;
 		MoveGenerator position;
 		MoveHistory moveHistory;
 		uint32_t playedMovesInGame;
