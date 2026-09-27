@@ -111,11 +111,10 @@ tightly, but at depth 6 a game is over in a moment and the turnover between engi
 so frequent that qet needs a core of its own to keep up: it drives every process, writes the pgn
 and keeps the state file. Claiming every core starves the driver.
 
-**Next time start it with `rapid=true`.** The `info` lines of the engine are not needed here -
-nothing reads a node count or a depth out of this run, and the template carries no evaluation.
-Switching them off saves the traffic and the parsing. One thing to check when doing it: the draw
-adjudication decides on a score, and where it takes that score from with the info lines gone is
-not something this run establishes - it ran with `rapid` off.
+**`rapid` has to stay off.** It would suppress the engine's `info` lines, and nothing in this
+run reads a node count or a depth, so it looks like free speed. It is not: the draw adjudication
+decides on a score, and the score comes from exactly those lines. With `rapid=true` the endless
+games are no longer cut off.
 
 **qet ignores `active=false` in the `[resign]` block.** The block has to be *absent*, not
 disabled. Measured with 30 games each: without the block 27 mates and 3 repetitions, with
