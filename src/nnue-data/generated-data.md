@@ -136,6 +136,25 @@ A first run of 7145 games was thrown away over this, see
 concurrency 9. The second figure is the one that counts, and it puts the 1,000,020 games at
 about 9 hours.
 
-**How the games end** (first 2043 of the run): 1517 by mate (74 %), 425 by threefold repetition,
-37 by insufficient material, 34 by draw adjudication, 29 by the 50 move rule, 1 by stalemate. No
-game decided by adjudication, which is what the missing `[resign]` block is for.
+### What the finished run produced
+
+**1,000,020 games in 9 h 59 min**, 1,042,477,487 bytes, 86,098,983 plies - 86.1 per game, and
+that is the number of positions the labelling pass has to search. The average over the whole run
+was 27.8 games per second; a 65 second sample at the start said 31, so a short sample reads about
+12 % high here.
+
+How the games end:
+
+| cause | games | share |
+|---|---|---|
+| mate | 768,962 | 76.9 % |
+| threefold repetition | 185,558 | 18.6 % |
+| insufficient material | 15,369 | 1.5 % |
+| draw adjudication | 16,720 | 1.7 % |
+| 50 move rule | 11,438 | 1.1 % |
+| stalemate | 1,973 | 0.2 % |
+
+Not one game decided by adjudication, which is what the missing `[resign]` block is for, and the
+draw adjudication caught 16,720 endless ones, which is what the `[draw]` block is for. White won
+392,361 and black 376,601 - the openings are the whole first move list of white, so a leaning
+towards white is not expected here and there is none worth speaking of.
