@@ -918,6 +918,17 @@ def write_manifest(cfg, host_key, dataset, state):
             lines.append('')
             lines.append('Result of every position: ' +
                          ', '.join(f'{k} {v:,}' for k, v in facts['wdl'].items()) + '.')
+            lines.append('')
+            lines.append('The template pgn of these games is not kept, because it is derivable '
+                         'from this file:')
+            lines.append('')
+            lines.append(f'    python3 src/trainer/export-pgn.py <this file> <a pgn>')
+            lines.append('')
+            lines.append('Every ply is in here, including the moves of the book line, and the '
+                         'result of the game is in every record - so a pass that labels the games '
+                         'again with a better evaluator has everything it needs. What the game '
+                         'file does not hold is the notation, and that is all the exporter '
+                         'rebuilds.')
             if 'none' in facts['wdl'] and len(facts['wdl']) == 1:
                 lines.append('')
                 lines.append('Every position carries "none", so this file trains on the values '
