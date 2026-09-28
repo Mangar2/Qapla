@@ -433,3 +433,34 @@ a value before and none after.
 of that cpu, so about 27 minutes for a million games next to other load and 12 on an idle machine.
 Two variants of the same games cost twice that, which is still nothing against the 26 hours of
 labelling.
+
+## How many cores are worth buying: measured on 96
+
+A c8g.24xlarge with 96 graviton4 cores played chunks of 20,000 games of set 4 - nnue-1 against the
+hand crafted eval at depth 6, both colours per opening - one chunk per setup, so the time per chunk
+is the answer.
+
+| setup | games | time | games/s | of linear |
+|---|---|---|---|---|
+| 1 qet, concurrency 30 | 20,000 | 197 s | 101.5 | reference |
+| 1 qet, concurrency 60 | 20,000 | 123 s | 162.6 | 80 % |
+| 1 qet, concurrency 90 | 20,000 | 114 s | 175.4 | 58 % |
+| 3 qet, concurrency 30 each | 20,000 | 99 s | 202.0 | 66 % |
+
+**Three drivers beat one by 15 %, and that is the smaller half of the story.** One qet driving 90
+games is a bottleneck, so splitting it up helps - but three of them still reach only two thirds of
+what three times the cores should give. The machine itself does not scale here: at depth 6 an
+engine answers in well under a millisecond and every answer is a context switch plus a round trip
+over stdin and stdout, so with 90 engines the scheduling and the pipe traffic become the limit, not
+the cores. More drivers do not change that, they only stop one of them being the narrowest point.
+
+**So the conclusion is to stay with 32 core machines**, several of them rather than one large one.
+The price says the same, though less reliably: the cheap quotes are in the availability zones that
+have no capacity. c8g.24xlarge was quoted at 0.8641 $/h in us-east-1c and 0.9794 in us-east-1f,
+and neither had any; it was delivered in us-east-1b at 1.3815 $/h, which is 14.39 $ per 1000
+vCPU-hours against 12.78 for the c7g.8xlarge we were already running. The spread between the zones
+was a factor of 2.8, and the default subnet lands in an expensive one - an availability zone has to
+be chosen, not left to chance, and then checked for capacity.
+
+At 30 cores the machine did 101.5 games/s. Whether a 32 core c7g reaches the same per core is not
+measured, only assumed; what is measured is that going wider on one machine does not pay.
