@@ -146,8 +146,13 @@ about 9 hours.
 
 ### What the finished run produced
 
-**1,000,020 games in 9 h 59 min**, 1,042,477,487 bytes, 86,098,983 plies - 86.1 per game, and
-that is the number of positions the labelling pass has to search. The average over the whole run
+**1,000,020 games in 9 h 59 min**, 1,042,477,487 bytes, about 140.0 plies per game, so roughly
+140 million positions - and that is the number the labelling pass has to search.
+
+(An earlier version of this file said 86.1 plies per game. That was a broken measurement: the awk
+that counted them only looked at lines beginning with a move number, and a pgn wraps its movetext
+over several lines. Counted over every movetext line, one chunk of 10,000 games holds 1,400,375
+plies. Every figure in positions per second below was corrected by the same factor of 1.63.) The average over the whole run
 was 27.8 games per second; a 65 second sample at the start said 31, so a short sample reads about
 12 % high here.
 
@@ -198,13 +203,13 @@ back between them, because every chunk is its own process.
 `.done` file beside it and is skipped when the driver is called again. Stop it whenever, call it
 again with no arguments.
 
-The chunks are uniform in length - 84.8 to 87.0 plies per game across the file - so the rate does
-not drift as the run goes on.
+The chunks are uniform in length - within 3 % of each other across the file - so the rate does not
+drift as the run goes on.
 
 ### Rate, and how not to measure it
 
-**10.7 games per second, 917 positions per second, at concurrency 9. The 1,000,020 games take
-about 26 hours.** Labelling costs roughly three times as much per position as playing did, because
+**10.7 games per second, about 1,500 positions per second, at concurrency 9. The 1,000,020 games
+take about 26 hours.** Labelling costs roughly three times as much per position as playing did, because
 each position is searched on its own instead of profiting from the hash and history its
 predecessor in a game left behind.
 
@@ -325,9 +330,9 @@ third time today a short sample was wrong by a factor, in both directions. A rat
 believing after minutes of a real run, not after a smoke test - the smoke test is there to prove
 the settings, not the speed.
 
-nnue-1 plays much longer games than the hand crafted eval: 129.8 plies against 86.1. The weak net
-converts less, so set 2 holds about 130M positions where set 1 holds 86M, and its labelling pass
-is correspondingly longer.
+nnue-1 plays games of 129.8 plies, the hand crafted eval 140.0 - so set 2 holds about 130M
+positions against set 1's 140M, slightly fewer rather than more. An earlier version of this file
+had it the other way round, from the broken ply count described above.
 
 ## A spot instance as a third helper
 
@@ -338,7 +343,7 @@ Measured on 28.09.2026 with a c7g.8xlarge in us-east-1, labelling chunks 50 to 1
 | instance | c7g.8xlarge, 32 graviton3 cores, 61 GB, arm64 |
 | spot price | 0.411 $/h, bid capped at 0.60 |
 | image | `<IMAGE>`, Ubuntu 24.04 arm64 with clang 18 |
-| rate | 2,385 positions/s at concurrency 31 - 361 s for a chunk of 10,000 games |
+| rate | about 3,880 positions/s at concurrency 31 - 361 s for a chunk of 10,000 games |
 | memory | 1.1 GB peak for a chunk, so the chunk size is not what limits this host |
 | cost | 52 chunks in 5.2 h, about 2.14 $, and it takes 13.5 h off the mac |
 
@@ -354,8 +359,8 @@ quota. An increase to 128 vCPU was requested on 28.09.2026
 (`f47792eb61d249ddb069c1ff33a9d614PhpB30a4`), which is what would matter for the remaining sets:
 labelling all nine of them is about 25 days on one 32 core instance.
 
-**A graviton3 core does about three quarters of an apple core here**: 77 positions per second
-against 102, both averaged over the cores of the machine. The wmtest at concurrency 4 took 31.9 s
+**A graviton3 core does about three quarters of an apple core here**: 125 positions per second
+against 166, both averaged over the cores of the machine. The wmtest at concurrency 4 took 31.9 s
 against 14.9 on the mac and 28.1 on the linux box.
 
 **The node count is what proves the engine is the same one: 248,740,566 on all three hosts.** The
