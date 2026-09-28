@@ -1,0 +1,119 @@
+# The steps that turn book leaves into trained nets, in the order they run.
+#
+# Read by src/pipeline/pipeline.py. Every value is here; the logic of the five step kinds is in the
+# script, because chunking, resuming and the shape of a qet settings file are logic and not
+# settings. What changes between runs - which engines, which nets, which depth, which host, which
+# files - is here.
+#
+# The whole flow per data set:
+#
+#   1 play     engine against engine from the book, a template pgn without evaluations
+#   2 label    every position of it searched to depth 8, a pgn with the values
+#   3 convert  that pgn into the packed .gam of the set, which is kept on its own
+#   4 append   the new .gam onto the cumulated file, index rebuilt over one file
+#   5 train    from nothing, validation held back by whole games, then test against a reference
+#
+# Kinds 1 and 2 are implemented. A step of a kind that is not implemented stops the run with a
+# note rather than being skipped silently.
+#
+# Nine games come from every book leaf: three engines against themselves, one game each because
+# the search is deterministic at a fixed depth, and three pairings of two different engines, two
+# games each through the colour swap.
+
+[meta]
+book = "the 1,000,020 leaves of test/nnue/start-positions-1m.pgn, see src/nnue-data/generated-data.md"
+
+# --------------------------------------------------------------------------- hosts
+# concurrency is physical cores minus one: qet drives every engine process, writes the pgn and
+# keeps the state file, and at depth 6 the turnover is frequent enough that it needs a core.
+# A host has to meet the list under "What a machine needs before it can help" in
+# src/nnue-data/generated-data.md before a step is given to it.
+
+[hosts.mac]
+hostname = "<HOSTNAME>"
+repo = "<REPO>"
+qet = "~/bin/qet"
+concurrency = 9          # 10 cores
+
+[hosts.mac.engines.hce]
+binary = "new-versions/Qapla-0.5.0-027-20-hce"
+
+[hosts.qapla]
+hostname = "qapla"
+ssh = "<SSH-TARGET>"
+repo = "/home/mangar/dev/qapla"
+qet = "~/bin/qet"
+concurrency = 15         # 16 physical cores behind 32 threads
+
+[hosts.qapla.engines.hce]
+binary = "new-versions/Qapla-hce-linux"
+
+# Generation 1, the weak net. avx2 because this binary never leaves this machine; it is 22 %
+# faster than the x86-64-v2 build and identical to the node.
+[hosts.qapla.engines.nnue1]
+binary = "new-versions/Qapla-nnue-linux-avx2"
+options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
+
+# Generation 2, the better net, for the sets that come later.
+[hosts.qapla.engines.nnue2]
+binary = "new-versions/Qapla-nnue-linux-avx2"
+options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
+
+# --------------------------------------------------------------------------- set 1: hce vs hce
+# Played and labelled by hand on the mac before this script existed, so both steps are marked
+# "external" in the mac's state file: the pipeline must not start them a second time, they write
+# into the same files.
+
+[[steps]]
+id = "set1-hce-play"
+kind = "play"
+host = "mac"
+doc = "Qapla with the hand crafted eval against itself, depth 6, one game per leaf."
+white = "hce"
+black = "hce"
+depth = 6
+games = 1000020
+book = "test/nnue/start-positions-1m.pgn"
+output = "test/nnue/games-hce-depth6.pgn"
+notation = "lan"         # started before the notation was settled; san from set 2 on
+
+[[steps]]
+id = "set1-hce-label"
+kind = "label"
+host = "mac"
+doc = "Every position of set 1 searched to depth 8 by the hand crafted eval."
+input = "test/nnue/games-hce-depth6.pgn"
+engine = "hce"
+depth = 8
+output = "test/nnue/games-hce-depth6-labelled.pgn"
+chunk_games = 10000
+chunk_dir = "test/nnue/chunks"
+
+# --------------------------------------------------------------------------- set 2: nnue1 vs nnue1
+# The next thing to run. Generation 1 is the weak net, and that is the point: its mistakes take
+# the games into positions a strong engine never visits, and the labels come from the hand crafted
+# eval afterwards, so a weak player does not mean weak values.
+
+[[steps]]
+id = "set2-nnue1-play"
+kind = "play"
+host = "qapla"
+doc = "Generation 1 against itself, depth 6, one game per leaf, on the linux machine."
+white = "nnue1"
+black = "nnue1"
+depth = 6
+games = 1000020
+book = "test/nnue/start-positions-1m.pgn"
+output = "test/nnue/games-nnue1-self-depth6.pgn"
+notation = "san"
+
+[[steps]]
+id = "set2-nnue1-label"
+kind = "label"
+host = "qapla"
+doc = "Every position of set 2 searched to depth 8 by the hand crafted eval, not by the net."
+input = "test/nnue/games-nnue1-self-depth6.pgn"
+engine = "hce"
+depth = 8
+output = "test/nnue/games-nnue1-self-labelled.pgn"
+chunk_games = 10000
