@@ -468,3 +468,26 @@ be chosen, not left to chance, and then checked for capacity.
 
 At 30 cores the machine did 101.5 games/s. Whether a 32 core c7g reaches the same per core is not
 measured, only assumed; what is measured is that going wider on one machine does not pay.
+
+## For the next set: two things in the tester that change the shape of this
+
+Both were reported out of this work and are on the tester's `0.7.0` branch. The runs of 28.09.2026
+were started before them and were deliberately left alone; from the next set on they are the way to
+do it.
+
+**`--pgnoutput perround=true` writes one file per round** (`06cf4d3`): `file=games.pgn` becomes
+`games-round-001.pgn`, `games-round-002.pgn` and so on, and a game lands in its round's file as
+soon as it is finished. Since the opening index runs on across round boundaries - checked: round 1
+takes openings 0 and 1, round 2 takes 2 and 3 - a *single* qet call can walk the whole library and
+leave finished files behind it as it goes.
+
+That replaces the chunked playing entirely. Instead of 101 calls with `start=` and `games=`, one
+call with `games=200 rounds=10000` produces 10,000 files of 200 games, an uploader outside picks up
+whatever appears, and the granularity at risk on a spot reclaim falls from six minutes to seconds.
+The 101 process starts we pay today disappear with it.
+
+**`--analysis` reads its pgn one game at a time** (`b226240`) instead of holding all of it. That was
+the defect that killed the labelling of a 1.04 GB template with SIGKILL and forced the chunks in the
+first place. So the reason for chunking the labelling is now only the spot instance: a chunk is a
+unit that finishes and can be handed over. On a machine that cannot be taken away, a labelling pass
+may be given the whole set in one go again.
