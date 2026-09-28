@@ -117,3 +117,37 @@ engine = "hce"
 depth = 8
 output = "test/nnue/games-nnue1-self-labelled.pgn"
 chunk_games = 10000
+
+# --------------------------------------------------------------------------- aws spot host
+# A machine that may be taken away with two minutes' notice, so it works chunk by chunk and hands
+# every finished chunk to s3 at once. Its hostname changes with every launch, so it is named on
+# the command line: pipeline.py run --host aws.
+#
+# 32 vCPU is the spot quota in us-east-1 for this account, so c7g.8xlarge is the largest that can
+# be had without asking for an increase. A graviton3 core does about three quarters of what an
+# apple core does here: 2,385 positions per second at concurrency 31, against 917 at 9 on the mac.
+
+[hosts.aws]
+repo = "<INSTANCE-REPO>"
+qet = "~/bin/qet"
+concurrency = 31          # 32 cores, one for the tester
+
+[hosts.aws.engines.hce]
+binary = "new-versions/Qapla-hce-aws"
+
+# The far end of set 1, while the mac works from 39 upward. The chunks 50..101 carry a .done marker
+# on the mac so its own run skips them, and the two halves are concatenated afterwards.
+[[steps]]
+id = "set1-hce-label-aws"
+kind = "label"
+host = "aws"
+doc = "Chunks 50 to 101 of set 1, labelled on a spot instance, each result handed to s3."
+input = "test/nnue/games-hce-depth6.pgn"
+engine = "hce"
+depth = 8
+chunk_range = [50, 101]
+chunk_dir = "test/nnue/chunks"
+output_dir = "test/nnue/labelled"
+output_per_chunk = true
+s3_chunks = "s3://<BUCKET>/set1/chunks"
+s3_results = "s3://<BUCKET>/set1/labelled"

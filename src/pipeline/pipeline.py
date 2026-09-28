@@ -45,8 +45,16 @@ def load_config(path=CONFIG):
         return tomllib.load(f)
 
 
-def this_host(cfg):
-    """The key of the host entry whose hostname matches this machine."""
+def this_host(cfg, override=None):
+    """The key of the host entry for this machine.
+
+    Matched on the hostname, unless the caller says which host this is - an ec2 instance gets a
+    fresh hostname on every launch, so a spot host is named on the command line.
+    """
+    if override:
+        if override not in cfg['hosts']:
+            raise SystemExit(f'no hosts entry named {override}')
+        return override
     me = socket.gethostname()
     for key, host in cfg['hosts'].items():
         if host['hostname'] == me or me.startswith(host['hostname']):
@@ -238,6 +246,37 @@ def step_play(cfg, host_key, step, state):
     return True
 
 
+
+def s3_sync_down(prefix, name, target, state, step_id):
+    """Fetches one object, if it is not already here. Returns False if it is not there either."""
+    if os.path.exists(target):
+        return True
+    code = subprocess.call(['aws', 's3', 'cp', prefix.rstrip('/') + '/' + name, target,
+                            '--only-show-errors'])
+    if code != 0:
+        state.note(f'{step_id} could not fetch {name} from {prefix}')
+        return False
+    return True
+
+
+def s3_put(path, prefix, state, step_id):
+    """Hands a finished file over. On a spot instance this is what makes the work survive."""
+    code = subprocess.call(['aws', 's3', 'cp', path, prefix.rstrip('/') + '/' + os.path.basename(path),
+                            '--only-show-errors'])
+    if code != 0:
+        state.note(f'{step_id} could not hand over {os.path.basename(path)} to {prefix}')
+        return False
+    return True
+
+
+def s3_names(prefix):
+    """The object names under a prefix, or an empty list if it cannot be listed."""
+    done = subprocess.run(['aws', 's3', 'ls', prefix.rstrip('/') + '/'], capture_output=True, text=True)
+    if done.returncode != 0:
+        return []
+    return [line.split()[-1] for line in done.stdout.splitlines() if line.strip()]
+
+
 # --------------------------------------------------------------------------- step: label
 
 LABEL_INI = """\
@@ -262,7 +301,7 @@ direction=reverse
 
 [pgnoutput]
 file={output}
-append=true
+append={append}
 min=false
 clock=false
 eval=true
@@ -297,19 +336,52 @@ def split_into_chunks(source, directory, per_chunk):
     return chunks
 
 
+def chunk_number(name):
+    """The number in chunk-0042.pgn, or None."""
+    match = re.search(r'chunk-(\d+)\.pgn$', name)
+    return int(match.group(1)) if match else None
+
+
 def step_label(cfg, host_key, step, state):
+    """Searches every position of a template to a fixed depth and writes the values into a pgn.
+
+    The work is done chunk by chunk for two reasons. qet holds a whole analysis in memory - about
+    a hundred times the size of its input - so a template of a million games is killed outright.
+    And a chunk is a unit that finishes: a host that is taken away mid-run loses the chunk it was
+    working on and nothing else.
+
+    A host may be given a range of chunks with chunk_range, so several machines share one set
+    without touching each other's work. With s3_chunks and s3_results the chunks are fetched and
+    the results handed over as each one finishes, which is what makes a spot instance usable: the
+    existence of the result object is the marker that says a chunk is done, so a replacement
+    instance picks up where the lost one stopped.
+    """
     repo = repo_of(cfg, host_key)
     concurrency = step.get('concurrency', cfg['hosts'][host_key]['concurrency'])
-    source = absolute(repo, step['input'])
-    if not os.path.exists(source):
-        state.note(f"{step['id']} cannot start: {step['input']} is not there")
-        return False
-
-    # qet holds a whole analysis in memory - about 100 times the size of its input pgn - so a
-    # template of a million games is killed. The chunks bound the memory and make the pass
-    # resumable: a finished chunk keeps a .done marker and is skipped.
     directory = absolute(repo, step.get('chunk_dir', f"test/nnue/chunks-{step['id']}"))
-    chunks = split_into_chunks(source, directory, step.get('chunk_games', 10000))
+    per_chunk = bool(step.get('output_per_chunk') or step.get('s3_results'))
+    first, last = step.get('chunk_range', [0, 10 ** 9])
+
+    if step.get('s3_chunks'):
+        os.makedirs(directory, exist_ok=True)
+        names = sorted(n for n in s3_names(step['s3_chunks']) if chunk_number(n) is not None)
+        if not names:
+            state.note(f"{step['id']} cannot start: nothing under {step['s3_chunks']}")
+            return False
+        chunks = [os.path.join(directory, n) for n in names]
+    else:
+        source = absolute(repo, step['input'])
+        if not os.path.exists(source):
+            state.note(f"{step['id']} cannot start: {step['input']} is not there")
+            return False
+        chunks = split_into_chunks(source, directory, step.get('chunk_games', 10000))
+
+    mine = [c for c in chunks if first <= (chunk_number(c) or 0) <= last]
+    output_dir = absolute(repo, step.get('output_dir', 'test/nnue/labelled'))
+    if per_chunk:
+        os.makedirs(output_dir, exist_ok=True)
+    handed_over = set(s3_names(step['s3_results'])) if step.get('s3_results') else set()
+
     log_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.log")
     ini_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.ini")
 
@@ -317,32 +389,60 @@ def step_label(cfg, host_key, step, state):
     if not preflight(cfg, host_key, [step['engine']], state, step['id']):
         state.fail(step, t0, 'preflight failed - nothing was labelled')
         return False
-    state.note(f"{step['id']} {len(chunks)} chunks, {sum(1 for c in chunks if os.path.exists(c + '.done'))} already done")
-    for chunk in chunks:
+
+    def is_done(chunk):
         if os.path.exists(chunk + '.done'):
+            return True
+        return per_chunk and os.path.basename(chunk) in handed_over
+
+    state.note(f"{step['id']} chunks {first}..{last}: {len(mine)} of them, "
+               f"{sum(1 for c in mine if is_done(c))} already done")
+    for chunk in mine:
+        if is_done(chunk):
             continue
+        if step.get('s3_chunks') and not s3_sync_down(step['s3_chunks'], os.path.basename(chunk),
+                                                      chunk, state, step['id']):
+            state.fail(step, t0, f'chunk {os.path.basename(chunk)} could not be fetched')
+            return False
+        output = (os.path.join(output_dir, os.path.basename(chunk)) if per_chunk
+                  else absolute(repo, step['output']))
         with open(ini_path, 'w') as f:
             f.write(LABEL_INI.format(id=step['id'], concurrency=concurrency, depth=step['depth'],
-                                     chunk=chunk, output=step['output']))
-        command = [os.path.expanduser(cfg['hosts'][host_key]['qet']),
-                   f'--settingsfile={ini_path}']
+                                     chunk=chunk, output=output,
+                                     append='false' if per_chunk else 'true'))
+        command = [os.path.expanduser(cfg['hosts'][host_key]['qet']), f'--settingsfile={ini_path}']
         command += engine_arguments(cfg, host_key, step['engine'], repo)
         code = run_tool(command, repo, log_path)
         if code != 0:
             state.fail(step, t0, f'qet exit {code} on {os.path.basename(chunk)} - run again to continue')
             return False
+        # Verified per chunk, not at the end: a wrong setting has to show on the first one.
+        expect = read_pgn(chunk)['games']
+        if per_chunk and not verify_label(output, step, state, expect):
+            state.fail(step, t0, f'{os.path.basename(output)} did not verify')
+            return False
+        if step.get('s3_results') and not s3_put(output, step['s3_results'], state, step['id']):
+            state.fail(step, t0, 'a finished chunk could not be handed over - stopping rather than '
+                                 'working on with results that only exist here')
+            return False
         open(chunk + '.done', 'w').close()
-        done = sum(1 for c in chunks if os.path.exists(c + '.done'))
-        state.note(f"{step['id']} {done}/{len(chunks)} chunks")
+        done = sum(1 for c in mine if is_done(c))
+        spent = time.time() - t0
+        left = (len(mine) - done) * spent / max(done, 1)
+        state.note(f"{step['id']} {done}/{len(mine)} chunks, {spent / 3600:.1f}h gone, "
+                   f"{left / 3600:.1f}h left")
 
-    output = absolute(repo, step['output'])
-    expect = read_pgn(source)['games']
-    if not verify_label(output, step, state, expect):
-        state.fail(step, t0, 'the labelled pgn did not verify')
-        return False
-    facts = read_pgn(output)
-    state.finish(step, t0, {'games': facts['games'], 'plies': facts['plies'],
-                            'values': facts['comments'], 'bytes': os.path.getsize(output)})
+    if per_chunk:
+        state.finish(step, t0, {'chunks': len(mine), 'where': step.get('s3_results') or output_dir})
+    else:
+        output = absolute(repo, step['output'])
+        expect = read_pgn(absolute(repo, step['input']))['games']
+        if not verify_label(output, step, state, expect):
+            state.fail(step, t0, 'the labelled pgn did not verify')
+            return False
+        facts = read_pgn(output)
+        state.finish(step, t0, {'games': facts['games'], 'plies': facts['plies'],
+                                'values': facts['comments'], 'bytes': os.path.getsize(output)})
     return True
 
 
@@ -582,7 +682,7 @@ def small(step, games):
 
 def command_smoke(cfg, args):
     """Runs this host's steps at a small size and verifies them. Minutes, not hours."""
-    host_key = this_host(cfg)
+    host_key = this_host(cfg, args.host)
     repo = repo_of(cfg, host_key)
     state = State(repo)
     games = args.games
@@ -618,7 +718,7 @@ KINDS = {'play': step_play, 'label': step_label}
 # --------------------------------------------------------------------------- commands
 
 def command_status(cfg, args):
-    host_key = this_host(cfg)
+    host_key = this_host(cfg, args.host)
     state = State(repo_of(cfg, host_key))
     print(f'this host: {host_key}\n')
     print(f'{"step":28} {"kind":6} {"host":6} {"status":8} {"time":>9}  result')
@@ -632,7 +732,7 @@ def command_status(cfg, args):
 
 
 def command_run(cfg, args):
-    host_key = this_host(cfg)
+    host_key = this_host(cfg, args.host)
     state = State(repo_of(cfg, host_key))
     for step in cfg['steps']:
         if args.only and step['id'] != args.only:
@@ -652,7 +752,7 @@ def command_run(cfg, args):
 
 def command_launch(cfg, args):
     """Starts the pending steps of the other hosts, detached, and returns at once."""
-    host_key = this_host(cfg)
+    host_key = this_host(cfg, args.host)
     for step in cfg['steps']:
         if args.only and step['id'] != args.only:
             continue
@@ -660,6 +760,7 @@ def command_launch(cfg, args):
             continue
         host = cfg['hosts'][step['host']]
         only = f" --only {step['id']}" if args.only else ''
+        only += f" --host {step['host']}" if 'hostname' not in host else ''
         # The subshell around the background job is what lets ssh close: started inside "( ... & )"
         # the process is disowned at once, and setsid puts it in a session of its own, so it
         # survives the connection, the terminal and this machine going to sleep.
@@ -680,6 +781,7 @@ def main():
     parser.add_argument('command', choices=['status', 'run', 'launch', 'smoke'])
     parser.add_argument('--only', help='one step id')
     parser.add_argument('--games', type=int, default=200, help='games per playing step in a smoke test')
+    parser.add_argument('--host', help='which hosts entry this machine is, when the hostname does not say')
     parser.add_argument('--config', default=CONFIG)
     args = parser.parse_args()
     cfg = load_config(args.config)
