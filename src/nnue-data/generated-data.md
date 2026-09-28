@@ -114,10 +114,18 @@ state and is written every 10 s, and the pgn is appended to rather than overwrit
 
 ### Things worth knowing before starting one of these
 
-**Leave a core free.** The run uses concurrency 9 on a machine with 10 cores. qet is written
-tightly, but at depth 6 a game is over in a moment and the turnover between engine processes is
-so frequent that qet needs a core of its own to keep up: it drives every process, writes the pgn
-and keeps the state file. Claiming every core starves the driver.
+**Stay a little under the core count: about 30 games on 32 cores, 90 on 96** - Volker's own
+measurement, from before this work. The reason is not that the driver is short of a core. qet
+parallelises cleanly, with three threads of its own per attached engine, and at depth 8 an engine
+answers in well under a millisecond, hands back and waits. What costs the difference is the
+context switching itself: thousands of switches a second, and the operating system needs time for
+them that no process shows as its own.
+
+So the number is not derived from anything, it is measured, and it does not follow the load
+average. On the 32 core instance the load stood at 43.7 with `procs_blocked 0` and `iowait 0%`,
+which looks like eleven processes waiting for a core - while 6 % of the cpu time was idle at the
+same moment. Both together say only that the work arrives in bursts. Measure the throughput, do
+not read the load.
 
 **`rapid` has to stay off.** It would suppress the engine's `info` lines, and nothing in this
 run reads a node count or a depth, so it looks like free speed. It is not: the draw adjudication
