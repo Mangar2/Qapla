@@ -313,6 +313,259 @@ def step_play(cfg, host_key, step, state):
     return True
 
 
+def s3_sync_down(prefix, name, target, state, step_id):
+    """Fetches one object, if it is not already here. Returns False if it is not there either."""
+    if os.path.exists(target):
+        return True
+    code = subprocess.call(['aws', 's3', 'cp', prefix.rstrip('/') + '/' + name, target,
+                            '--only-show-errors'])
+    if code != 0:
+        state.note(f'{step_id} could not fetch {name} from {prefix}')
+        return False
+    return True
+
+
+def s3_put(path, prefix, state, step_id):
+    """Hands a finished file over. On a spot instance this is what makes the work survive."""
+    code = subprocess.call(['aws', 's3', 'cp', path, prefix.rstrip('/') + '/' + os.path.basename(path),
+                            '--only-show-errors'])
+    if code != 0:
+        state.note(f'{step_id} could not hand over {os.path.basename(path)} to {prefix}')
+        return False
+    return True
+
+
+def s3_names(prefix):
+    """The object names under a prefix, or an empty list if it cannot be listed."""
+    done = subprocess.run(['aws', 's3', 'ls', prefix.rstrip('/') + '/'], capture_output=True, text=True)
+    if done.returncode != 0:
+        return []
+    return [line.split()[-1] for line in done.stdout.splitlines() if line.strip()]
+
+
+# --------------------------------------------------------------------------- step: label
+
+LABEL_INI = """\
+# Written by src/pipeline/pipeline.py for step {id}. Do not edit - edit pipeline.toml.
+#
+# Long notation and min=false are not free choices: src/trainer/convert.py reads this pgn, decodes
+# long notation without a move generator, and takes the game result from the Result tag, which a
+# minimal pgn does not write.
+concurrency={concurrency}
+
+[each]
+tc=depth:{depth}
+proto=uci
+
+[logging]
+path=test/log
+engine=false
+
+[analysis]
+pgn={chunk}
+direction=reverse
+
+[pgnoutput]
+file={output}
+append={append}
+min=false
+clock=false
+eval=true
+depth=false
+pv=false
+notation=lan
+"""
+
+
+def split_into_chunks(source, directory, per_chunk):
+    """Splits a pgn into chunks of whole games. Does nothing if the chunks are already there."""
+    os.makedirs(directory, exist_ok=True)
+    existing = sorted(f for f in os.listdir(directory) if f.startswith('chunk-') and f.endswith('.pgn'))
+    if existing:
+        return [os.path.join(directory, f) for f in existing]
+    chunks, handle, games, number = [], None, 0, 0
+    with open(source) as inp:
+        for line in inp:
+            if line.startswith('[White '):
+                if games % per_chunk == 0:
+                    if handle:
+                        handle.close()
+                    number += 1
+                    path = os.path.join(directory, f'chunk-{number:04d}.pgn')
+                    chunks.append(path)
+                    handle = open(path, 'w')
+                games += 1
+            if handle:
+                handle.write(line)
+    if handle:
+        handle.close()
+    return chunks
+
+
+def chunk_number(name):
+    """The number in chunk-0042.pgn, or None."""
+    match = re.search(r'chunk-(\d+)\.pgn$', name)
+    return int(match.group(1)) if match else None
+
+
+def step_label(cfg, host_key, step, state):
+    """Searches every position of a template to a fixed depth and writes the values into a pgn.
+
+    The work is done chunk by chunk for two reasons. qet holds a whole analysis in memory - about
+    a hundred times the size of its input - so a template of a million games is killed outright.
+    And a chunk is a unit that finishes: a host that is taken away mid-run loses the chunk it was
+    working on and nothing else.
+
+    A host may be given a range of chunks with chunk_range, so several machines share one set
+    without touching each other's work. With s3_chunks and s3_results the chunks are fetched and
+    the results handed over as each one finishes, which is what makes a spot instance usable: the
+    existence of the result object is the marker that says a chunk is done, so a replacement
+    instance picks up where the lost one stopped.
+    """
+    repo = repo_of(cfg, host_key)
+    concurrency = step.get('concurrency', cfg['hosts'][host_key]['concurrency'])
+    directory = absolute(repo, step.get('chunk_dir', f"test/nnue/chunks-{step['id']}"))
+    per_chunk = bool(step.get('output_per_chunk') or step.get('s3_results'))
+    first, last = step.get('chunk_range', [0, 10 ** 9])
+
+    if step.get('s3_chunks'):
+        os.makedirs(directory, exist_ok=True)
+        names = sorted(n for n in s3_names(step['s3_chunks']) if chunk_number(n) is not None)
+        if not names:
+            state.note(f"{step['id']} cannot start: nothing under {step['s3_chunks']}")
+            return False
+        chunks = [os.path.join(directory, n) for n in names]
+    else:
+        source = absolute(repo, step['input'])
+        if not os.path.exists(source):
+            state.note(f"{step['id']} cannot start: {step['input']} is not there")
+            return False
+        chunks = split_into_chunks(source, directory, step.get('chunk_games', 10000))
+
+    mine = [c for c in chunks if first <= (chunk_number(c) or 0) <= last]
+    output_dir = absolute(repo, step.get('output_dir', 'test/nnue/labelled'))
+    if per_chunk:
+        os.makedirs(output_dir, exist_ok=True)
+    handed_over = set(s3_names(step['s3_results'])) if step.get('s3_results') else set()
+
+    log_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.log")
+    ini_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.ini")
+
+    t0 = state.begin(step)
+    if not preflight(cfg, host_key, [step['engine']], state, step['id']):
+        state.fail(step, t0, 'preflight failed - nothing was labelled')
+        return False
+
+    def is_done(chunk):
+        if os.path.exists(chunk + '.done'):
+            return True
+        return per_chunk and os.path.basename(chunk) in handed_over
+
+    worked = 0
+    state.note(f"{step['id']} chunks {first}..{last}: {len(mine)} of them, "
+               f"{sum(1 for c in mine if is_done(c))} already done")
+    for chunk in mine:
+        if is_done(chunk):
+            continue
+        if step.get('s3_chunks') and not s3_sync_down(step['s3_chunks'], os.path.basename(chunk),
+                                                      chunk, state, step['id']):
+            state.fail(step, t0, f'chunk {os.path.basename(chunk)} could not be fetched')
+            return False
+        output = (os.path.join(output_dir, os.path.basename(chunk)) if per_chunk
+                  else absolute(repo, step['output']))
+        with open(ini_path, 'w') as f:
+            f.write(LABEL_INI.format(id=step['id'], concurrency=concurrency, depth=step['depth'],
+                                     chunk=chunk, output=output,
+                                     append='false' if per_chunk else 'true'))
+        command = [os.path.expanduser(cfg['hosts'][host_key]['qet']), f'--settingsfile={ini_path}']
+        command += engine_arguments(cfg, host_key, step['engine'], repo)
+        code = run_tool(command, repo, log_path)
+        if code != 0:
+            state.fail(step, t0, f'qet exit {code} on {os.path.basename(chunk)} - run again to continue')
+            return False
+        # Verified per chunk, not at the end: a wrong setting has to show on the first one.
+        expect = read_pgn(chunk)['games']
+        if per_chunk and not verify_label(output, step, state, expect):
+            state.fail(step, t0, f'{os.path.basename(output)} did not verify')
+            return False
+        if step.get('s3_results') and not s3_put(output, step['s3_results'], state, step['id']):
+            state.fail(step, t0, 'a finished chunk could not be handed over - stopping rather than '
+                                 'working on with results that only exist here')
+            return False
+        open(chunk + '.done', 'w').close()
+        worked += 1
+        done = sum(1 for c in mine if is_done(c))
+        spent = time.time() - t0
+        # The rate counts only the chunks this run did. Chunks that were already done when it
+        # started took no time here, and counting them makes the estimate too cheerful.
+        left = (len(mine) - done) * spent / worked
+        state.note(f"{step['id']} {done}/{len(mine)} chunks, {spent / 3600:.1f}h gone, "
+                   f"{left / 3600:.1f}h left")
+
+    if per_chunk:
+        state.finish(step, t0, {'chunks': len(mine), 'where': step.get('s3_results') or output_dir})
+    else:
+        output = absolute(repo, step['output'])
+        expect = read_pgn(absolute(repo, step['input']))['games']
+        if not verify_label(output, step, state, expect):
+            state.fail(step, t0, 'the labelled pgn did not verify')
+            return False
+        facts = read_pgn(output)
+        state.finish(step, t0, {'games': facts['games'], 'plies': facts['plies'],
+                                'values': facts['comments'], 'bytes': os.path.getsize(output)})
+    return True
+
+
+def count_lines(path, prefix):
+    if not os.path.exists(path):
+        return 0
+    count = 0
+    with open(path, errors='replace') as f:
+        for line in f:
+            if line.startswith(prefix):
+                count += 1
+    return count
+
+
+
+class Progress:
+    """Writes a line every so often while a long step runs.
+
+    A playing step is silent for ten hours otherwise, and a run nobody can see the pace of is a
+    run nobody can plan around. The count comes from the tester's own log, so this costs nothing
+    and needs no cooperation from the tester.
+    """
+
+    def __init__(self, state, step_id, log_path, marker, total, every=600):
+        self.state, self.step_id, self.log_path = state, step_id, log_path
+        self.marker, self.total, self.every = marker, total, every
+        self.stop = threading.Event()
+        self.thread = threading.Thread(target=self._loop, daemon=True)
+        self.started = time.time()
+
+    def _count(self):
+        return count_lines(self.log_path, self.marker)
+
+    def _loop(self):
+        first = self._count()
+        while not self.stop.wait(self.every):
+            done = self._count() - first
+            spent = time.time() - self.started
+            if done <= 0:
+                self.state.note(f'{self.step_id} {round(spent)}s gone, nothing finished yet')
+                continue
+            rate = done / spent
+            left = max(self.total - done, 0) / rate
+            self.state.note(f'{self.step_id} {done}/{self.total} at {rate:.1f}/s, '
+                            f'{spent / 3600:.1f}h gone, {left / 3600:.1f}h left')
+
+    def __enter__(self):
+        self.thread.start()
+        return self
+
+    def __exit__(self, *_):
+        self.stop.set()
+
 
 # --------------------------------------------------------------------------- preflight
 
