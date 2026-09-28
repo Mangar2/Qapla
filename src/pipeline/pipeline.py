@@ -395,6 +395,7 @@ def step_label(cfg, host_key, step, state):
             return True
         return per_chunk and os.path.basename(chunk) in handed_over
 
+    worked = 0
     state.note(f"{step['id']} chunks {first}..{last}: {len(mine)} of them, "
                f"{sum(1 for c in mine if is_done(c))} already done")
     for chunk in mine:
@@ -426,9 +427,12 @@ def step_label(cfg, host_key, step, state):
                                  'working on with results that only exist here')
             return False
         open(chunk + '.done', 'w').close()
+        worked += 1
         done = sum(1 for c in mine if is_done(c))
         spent = time.time() - t0
-        left = (len(mine) - done) * spent / max(done, 1)
+        # The rate counts only the chunks this run did. Chunks that were already done when it
+        # started took no time here, and counting them makes the estimate too cheerful.
+        left = (len(mine) - done) * spent / worked
         state.note(f"{step['id']} {done}/{len(mine)} chunks, {spent / 3600:.1f}h gone, "
                    f"{left / 3600:.1f}h left")
 
