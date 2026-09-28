@@ -955,11 +955,15 @@ def step_mirror(cfg, host_key, step, state):
     remote = f"{target['ssh']}:{target['repo'].rstrip('/')}/" \
              f"{step.get('dataset_dir', 'test/nnue/dataset').rstrip('/')}/"
     t0 = state.begin(step)
-    code = subprocess.call(['rsync', '-a', '--delete', '--info=stats1', source, remote])
+    files = [f for f in sorted(os.listdir(source)) if os.path.isfile(os.path.join(source, f))]
+    total = sum(os.path.getsize(os.path.join(source, f)) for f in files)
+    state.note(f"{step['id']} {len(files)} files, {total / 1e9:.2f} GB to {remote}")
+    # Only options that the rsync of macOS 2.6.9 knows as well - --info=stats1 is not one of them.
+    code = subprocess.call(['rsync', '-a', '--delete', source, remote])
     if code != 0:
         state.fail(step, t0, f'rsync exit {code}')
         return False
-    state.finish(step, t0, {'to': step['to'], 'where': remote})
+    state.finish(step, t0, {'to': step['to'], 'files': len(files), 'bytes': total})
     return True
 
 
