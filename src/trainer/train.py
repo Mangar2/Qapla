@@ -29,6 +29,7 @@ import torch
 import export
 import netfile
 from dataset import PositionCache
+from gamedata import GameFile
 from model import HalfKaNet, loss_of
 
 
@@ -59,8 +60,18 @@ def measure(model, cache, batch_size, device, blend, max_batches=None):
 
 def train(arguments):
     device = pick_device(arguments.device)
-    cache = PositionCache(arguments.cache)
-    validation = PositionCache(arguments.validation) if arguments.validation else None
+    if arguments.cache.endswith('.gam'):
+        # Straight out of the packed game file: no prepared cache, the split over whole games and
+        # over a seeded permutation, so two files of the same games get the same one.
+        cache = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
+                         validation_every=arguments.validation_every, part='training',
+                         workers=arguments.workers)
+        validation = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
+                              validation_every=arguments.validation_every, part='validation',
+                              workers=arguments.workers)
+    else:
+        cache = PositionCache(arguments.cache)
+        validation = PositionCache(arguments.validation) if arguments.validation else None
     model = HalfKaNet().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
@@ -122,7 +133,13 @@ def train(arguments):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('cache', help='prefix of the files prepare.py wrote')
+    parser.add_argument('cache', help='a .gam game file, or the prefix of a prepared cache')
+    parser.add_argument('--seed', type=int, default=1,
+                        help='decides the split and the order; the same seed gives the same split')
+    parser.add_argument('--validation-every', type=int, default=100,
+                        help='every nth game, over the permutation, is held back')
+    parser.add_argument('--workers', type=int, default=2,
+                        help='processes that read and build features, 0 for none')
     parser.add_argument('--out', default='.', help='where the checkpoints and nets go')
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--batch-size', type=int, default=16384)
