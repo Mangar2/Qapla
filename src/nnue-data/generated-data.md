@@ -209,3 +209,69 @@ samples that were too small:
 
 The 4 minute window over 2,568 games is the one to trust. When a run is going to last a day, the
 measurement of its rate deserves minutes, not seconds.
+
+## What a machine needs before it can help
+
+Any host may run a playing or a labelling step, and the steps are long, so a host that is almost
+ready wastes a day before it says so. This is the list, and every item has a check that fails
+loudly rather than a step that runs slowly.
+
+**The repository, pulled.** Code reaches a host only through GitHub, never by copying - see
+`delivery/deployment.md`. So: `git pull`, then `git log -1` and compare the hash with the one the
+run is supposed to use. A stale checkout produces a stale binary and says nothing.
+
+**The two engines, built there.** They differ by one define and are built one after the other,
+each after a clean, because the define is not a make dependency:
+
+    make BUILD_TYPE=Release clean && make Release -j                              # hce
+    make BUILD_TYPE=Release clean && make Release -j EXTRA_DEFINES="-DQAPLA_USE_NNUE"
+
+Keep them under `new-versions/` with names that say which is which, and check each one's version
+string before using it: `printf 'uci\nquit\n' | <binary> | grep "^id name"`.
+
+**`~/bin/qet`**, the engine tester, in that place on every host.
+
+**The nets.** A net is data, not source, so it does not come through GitHub. The engine takes one
+through the uci option `NnueFile` with an absolute path, which is how one binary plays with
+several nets; `qapla.nnue` in the working directory is only the fallback. Both nets we have -
+generation 1 (`test/nnue/nets/net-epoch20.nnue`) and generation 2
+(`test/nnue/nets2/net-epoch05.nnue`) - have to be present before a set that uses them starts.
+
+**The opening library** the set is played from, also data: `test/nnue/start-positions-1m.pgn`.
+Every set has to be played from the *same* leaves, or the sets cannot be compared, so this file is
+copied rather than regenerated - a regenerated book is a different book.
+
+**Enough memory.** The labelling pass needs about 4 GB per chunk of 10,000 games. 31 GB is
+comfortable; the chunk size is what to lower on a smaller machine.
+
+**Physical cores, with one left free**, see the note above. `nproc` counts threads, not cores.
+
+### The speed check, and why it is not optional
+
+A vector path that is not compiled in costs a factor and is invisible otherwise - it happened here
+twice. `nnueeval` names the path the search actually uses:
+
+    printf 'nnueeval net <a net>\nquit\n' | <the nnue binary>
+    ... nnue -10 reference -10 (equal) avx2, used by the search
+
+It also compares the incremental accumulator against a full refresh, which is the `(equal)`.
+
+Then the wmtest at depth 18, concurrency 4, for both binaries. Two things have to come out of it:
+
+| host | path | hce | nnue | nnue costs |
+|---|---|---|---|---|
+| Mac mini M4 | neon | 17.4 M nps | 9.6 M nps | 1.81 x |
+| Linux x86_64 | ssse3 | 8.85 M nps | 4.77 M nps | 1.86 x |
+| Linux x86_64 | avx2 | 8.85 M nps | 5.82 M nps | 1.52 x |
+
+**The node count is the cross-host check.** HCE gives exactly 248,740,566 nodes on both hosts, and
+the two vector paths of the nnue build gave exactly 461,405,288 - the paths are bit-exact against
+each other. A different number on a new host means a different build, not a faster machine.
+
+**The ratio is the speed check.** The nnue may cost around 1.5 to 1.9 times the hce per node. Far
+above that, its vector path is not active - ask `nnueeval` before blaming the machine.
+
+`-march=x86-64-v2` is what the Makefile builds for on x86, and that excludes avx2. The release has
+to run on old hardware, so this is right for the release; a helper binary that only ever runs on
+one known machine may be built with `EXTRA_DEFINES="-DQAPLA_USE_NNUE -mavx2"` and is 22 % faster,
+identical to the node.
