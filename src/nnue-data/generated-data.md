@@ -275,3 +275,48 @@ above that, its vector path is not active - ask `nnueeval` before blaming the ma
 to run on old hardware, so this is right for the release; a helper binary that only ever runs on
 one known machine may be built with `EXTRA_DEFINES="-DQAPLA_USE_NNUE -mavx2"` and is 22 % faster,
 identical to the node.
+
+## The pipeline that runs these steps
+
+`src/pipeline/pipeline.py` with `src/pipeline/pipeline.toml`. Every value is in the toml - hosts,
+engines, nets, depths, files, which step runs where - and the logic of the step kinds is in the
+script, because chunking, resuming and the shape of a settings file are logic and not settings.
+
+    python3 src/pipeline/pipeline.py status              what is done, what is next
+    python3 src/pipeline/pipeline.py smoke --games 200   the same steps, small, checked
+    python3 src/pipeline/pipeline.py run                 this host's pending steps
+    python3 src/pipeline/pipeline.py launch              start another host's steps over ssh
+
+Implemented kinds: `play` and `label`. A step of a kind that is not implemented stops the run with
+a note instead of being skipped.
+
+**Every step checks itself, twice.** Before it starts, each engine it needs has to answer `uci`
+with a version, and an engine that carries a net has to load it - `nnueeval` reports the net, the
+agreement between the incremental accumulator and a full refresh, and the vector path in use. A
+step that runs for hours must not be the thing that discovers a missing net. Afterwards the pgn is
+read back: games, plies, notation, a result per game, a value per ply for a labelled one, and the
+spread of outcomes. A template whose games all end the same way fails the check.
+
+**It reports while it runs.** A playing step writes a line every ten minutes with the games done,
+the rate and the time left, counted from the tester's own log. Everything goes to
+`test/log/pipeline.log` and the state to `test/log/pipeline-state.json`, both on the host that does
+the work.
+
+**Remote steps are autonomous.** `launch` starts the step over ssh inside `( setsid nohup ... & )`
+and returns. The process lands in a session of its own and is reparented to init when the
+connection closes, so the machine that started it may sleep or be switched off. Verified by
+dropping the ssh session and watching the run continue.
+
+**Work done before the pipeline existed is marked `external`** in the state file and never started
+again - set 1 was played and labelled by hand, and a second start would write into the same files.
+
+### Measured while starting set 2
+
+The smoke test at 200 games said 5.3 games/s; the real run at ten minutes says 23.6. That is the
+third time today a short sample was wrong by a factor, in both directions. A rate is worth
+believing after minutes of a real run, not after a smoke test - the smoke test is there to prove
+the settings, not the speed.
+
+nnue-1 plays much longer games than the hand crafted eval: 129.8 plies against 86.1. The weak net
+converts less, so set 2 holds about 130M positions where set 1 holds 86M, and its labelling pass
+is correspondingly longer.
