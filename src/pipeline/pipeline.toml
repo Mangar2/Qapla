@@ -36,7 +36,12 @@ qet = "~/bin/qet"
 concurrency = 9          # 10 cores
 
 [hosts.mac.engines.hce]
-binary = "new-versions/Qapla-0.5.0-027-20-hce"
+binary = "new-versions/Qapla-set1-hce"
+
+# Generation 2, the better of the two nets we had before this work.
+[hosts.mac.engines.nnue2]
+binary = "new-versions/Qapla-set1-nnue"
+options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
 
 [hosts.qapla]
 hostname = "qapla"
@@ -235,3 +240,56 @@ output = "set4-nnue1-hce-depth6"
 wdl = ["result", "none"]
 expect_games = 2000040
 s3_results = "s3://<BUCKET>/set4/dataset"
+
+# --------------------------------------------------------------------------- set 3: nnue2 vs itself
+# The third self play set, and the first that uses the tester's newer features: one call for the
+# whole book with a pgn per round, and a labelling pass that takes the whole set at once because the
+# analysis no longer holds its input in memory. So the mac works the same way the other hosts do,
+# with the pieces coming from rounds rather than from a chunking of our own.
+
+[[steps]]
+id = "set3-play"
+kind = "play"
+host = "mac"
+doc = "Generation 2 against itself, depth 6, one game per leaf."
+white = "nnue2"
+black = "nnue2"
+depth = 6
+openings = 1000020
+games = 1000000
+per_round = true
+round_openings = 100        # one game per opening in self play, so 100 games a round
+book = "test/nnue/start-positions-1m.pgn"
+output_dir = "test/nnue/set3-played"
+notation = "san"
+
+[[steps]]
+id = "set3-label"
+kind = "label"
+host = "mac"
+doc = "Every position of set 3 searched to depth 8 by the hand crafted eval."
+engine = "hce"
+depth = 8
+input_glob = "test/nnue/set3-played/set3-play*.pgn"
+chunk_games = 0             # one call: the analysis reads its pgn one game at a time now
+chunk_dir = "test/nnue/set3-labelled"
+output = "test/nnue/set3-labelled/set3-labelled.pgn"
+
+[[steps]]
+id = "set3-convert"
+kind = "convert"
+host = "mac"
+doc = "Generation 2 against itself at depth 6, labelled at depth 8."
+inputs = ["test/nnue/set3-labelled/set3-labelled.pgn"]
+dataset_dir = "test/nnue/dataset"
+output = "set3-nnue2-self-depth6"
+wdl = ["result", "none"]
+expect_games = 1000000
+
+[[steps]]
+id = "set3-mirror"
+kind = "mirror"
+host = "mac"
+to = "qapla"
+doc = "The dataset directory to the linux machine again, now with set 3 in it."
+dataset_dir = "test/nnue/dataset"

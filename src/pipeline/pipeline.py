@@ -186,6 +186,7 @@ test=false
 [pgnoutput]
 file={output}
 append=true
+perround={perround}
 min=true
 clock=false
 eval=false
@@ -196,7 +197,7 @@ notation={notation}
 [tournament]
 type=round-robin
 games={games}
-rounds=1
+rounds={rounds}
 repeat={repeat}
 noswap={noswap}
 ratinginterval=0
@@ -231,16 +232,53 @@ def step_play(cfg, host_key, step, state):
             command += second
         return command
 
-    def write_ini(ini_path, first_opening, games, output, state_file):
+    def write_ini(ini_path, first_opening, games, output, state_file, rounds=1):
         with open(ini_path, 'w') as f:
             f.write(PLAY_INI.format(
                 id=step['id'], concurrency=concurrency, depth=step['depth'], book=step['book'],
                 output=output, notation=step.get('notation', 'san'), games=games,
                 repeat=per_opening, noswap='true' if selfplay else 'false',
-                first_opening=first_opening, state_file=state_file))
+                first_opening=first_opening, state_file=state_file, rounds=rounds,
+                perround='true' if step.get('per_round') else 'false'))
 
     openings_total = step.get('openings', step['games'] // per_opening)
     slice_size = step.get('chunk_openings')
+
+    if step.get('per_round'):
+        # One call for the whole book, and the tester closes a file at every round boundary. The
+        # opening index runs on across rounds - checked: round 1 takes openings 0 and 1, round 2
+        # takes 2 and 3 - so rounds are a way of cutting the output, not of cutting the work. That
+        # replaces the chunking: no process start per piece, and a finished file appears every
+        # hundred games instead of every twenty thousand.
+        rounds_wanted = openings_total // step['round_openings']
+        directory = absolute(repo, step['output_dir'])
+        os.makedirs(directory, exist_ok=True)
+        ini_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.ini")
+        write_ini(ini_path, 1, step['round_openings'] * per_opening,
+                  os.path.join(directory, step['id'] + '.pgn'),
+                  f"test/log/pipeline-{step['id']}.state", rounds=rounds_wanted)
+        expect = rounds_wanted * step['round_openings'] * per_opening
+        t0 = state.begin(step)
+        if not preflight(cfg, host_key, [step['white'], step['black']], state, step['id']):
+            state.fail(step, t0, 'preflight failed - nothing was played')
+            return False
+        state.note(f"{step['id']} one call, {rounds_wanted} rounds of "
+                   f"{step['round_openings'] * per_opening} games, {expect} games in all")
+        with Progress(state, step['id'], log_path, 'finished ', expect):
+            code = run_tool(qet_command(ini_path), repo, log_path)
+        if code != 0:
+            state.fail(step, t0, f'qet exit {code} - run again, the tournament file holds the state')
+            return False
+        import glob
+        parts = sorted(glob.glob(os.path.join(directory, step['id'] + '*.pgn')))
+        played = sum(count_lines(part, '[White ') for part in parts)
+        state.note(f"{step['id']} {len(parts)} files, {played} games")
+        if played < expect:
+            state.fail(step, t0, f'{played} of {expect} games - run again to continue')
+            return False
+        state.finish(step, t0, {'files': len(parts), 'games': played,
+                                'bytes': sum(os.path.getsize(part) for part in parts)})
+        return True
 
     if not slice_size:
         ini_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.ini")
@@ -435,12 +473,40 @@ def step_label(cfg, host_key, step, state):
             state.note(f"{step['id']} cannot start: nothing under {step['s3_chunks']}")
             return False
         chunks = [os.path.join(directory, n) for n in names]
+    elif step.get('input_glob'):
+        # The playing step left one file per round. They are joined into one pgn rather than
+        # analysed one by one: a call costs the start of every engine process, and ten thousand
+        # calls would spend hours on nothing but starting up.
+        import glob
+        parts = sorted(glob.glob(absolute(repo, step['input_glob'])))
+        if not parts:
+            state.note(f"{step['id']} cannot start: nothing matches {step['input_glob']}")
+            return False
+        os.makedirs(directory, exist_ok=True)
+        source = os.path.join(directory, step['id'] + '-joined.pgn')
+        if not os.path.exists(source):
+            state.note(f"{step['id']} joining {len(parts)} round files")
+            with open(source, 'wb') as out:
+                for part in parts:
+                    with open(part, 'rb') as inp:
+                        while True:
+                            block = inp.read(1 << 22)
+                            if not block:
+                                break
+                            out.write(block)
+        chunks = [source]
     else:
         source = absolute(repo, step['input'])
         if not os.path.exists(source):
             state.note(f"{step['id']} cannot start: {step['input']} is not there")
             return False
-        chunks = split_into_chunks(source, directory, step.get('chunk_games', 10000))
+        if step.get('chunk_games') == 0:
+            # The analysis reads its pgn one game at a time since the tester's b226240, so a whole
+            # set fits in one call. Chunks are only needed where a host may be taken away.
+            os.makedirs(directory, exist_ok=True)
+            chunks = [source]
+        else:
+            chunks = split_into_chunks(source, directory, step.get('chunk_games', 10000))
 
     mine = [c for c in chunks if first <= (chunk_number(c) or 0) <= last]
     output_dir = absolute(repo, step.get('output_dir', 'test/nnue/labelled'))
@@ -506,7 +572,7 @@ def step_label(cfg, host_key, step, state):
         state.finish(step, t0, {'chunks': len(mine), 'where': step.get('s3_results') or output_dir})
     else:
         output = absolute(repo, step['output'])
-        expect = read_pgn(absolute(repo, step['input']))['games']
+        expect = read_pgn(source)['games']
         if not verify_label(output, step, state, expect):
             state.fail(step, t0, 'the labelled pgn did not verify')
             return False
@@ -742,11 +808,24 @@ def small(step, games):
     copy = dict(step)
     copy['id'] = 'smoke-' + step['id']
     copy['games'] = games
-    copy['chunk_games'] = max(10, games // 2)
+    if step.get('per_round'):
+        # Two rounds are enough to see that a file per round appears and that the opening index
+        # carries on from one to the next.
+        copy['round_openings'] = max(4, games // 4)
+        copy['openings'] = copy['round_openings'] * 2
+        copy['games'] = copy['openings']
+    if step.get('chunk_games') != 0:
+        copy['chunk_games'] = max(10, games // 2)
     copy['chunk_dir'] = f"test/log/smoke-chunks-{step['id']}"
     for key in ('output', 'input'):
         if key in copy:
             copy[key] = 'test/log/smoke-' + os.path.basename(copy[key])
+    if 'output_dir' in copy:
+        copy['output_dir'] = 'test/log/smoke-' + os.path.basename(copy['output_dir'].rstrip('/'))
+    if 'input_glob' in copy:
+        # The playing step wrote its files under the smoke id, so the pattern carries the prefix too.
+        copy['input_glob'] = ('test/log/smoke-' + os.path.basename(os.path.dirname(copy['input_glob']))
+                              + '/smoke-' + os.path.basename(copy['input_glob']))
     return copy
 
 
@@ -767,14 +846,17 @@ def command_smoke(cfg, args):
             return
         tiny = small(step, games)
         # A shrunk step is started from scratch every time, so old output must go.
-        for key in ('output',):
-            path = absolute(repo, tiny[key])
+        if 'output' in tiny:
+            path = absolute(repo, tiny['output'])
             if os.path.exists(path):
                 os.remove(path)
-        chunks = absolute(repo, tiny['chunk_dir'])
-        if os.path.isdir(chunks):
-            for name in os.listdir(chunks):
-                os.remove(os.path.join(chunks, name))
+        for key in ('output_dir', 'chunk_dir'):
+            if key not in tiny:
+                continue
+            directory = absolute(repo, tiny[key])
+            if os.path.isdir(directory):
+                for name in os.listdir(directory):
+                    os.remove(os.path.join(directory, name))
         state.data['steps'].pop(tiny['id'], None)
         if not KINDS[step['kind']](cfg, host_key, tiny, state):
             state.note('smoke test FAILED - the real run is not started')
