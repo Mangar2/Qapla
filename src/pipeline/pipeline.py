@@ -25,6 +25,7 @@ import re
 import socket
 import subprocess
 import sys
+import threading
 import time
 import tomllib
 from datetime import datetime, timezone
@@ -222,7 +223,8 @@ def step_play(cfg, host_key, step, state):
     if not preflight(cfg, host_key, [step['white'], step['black']], state, step['id']):
         state.fail(step, t0, 'preflight failed - nothing was played')
         return False
-    code = run_tool(command, repo, log_path)
+    with Progress(state, step['id'], log_path, 'finished ', step['games']):
+        code = run_tool(command, repo, log_path)
     output = absolute(repo, step['output'])
     if code != 0:
         state.fail(step, t0, f'qet exit {code} - run again to continue, the tournament file holds the state')
@@ -353,6 +355,46 @@ def count_lines(path, prefix):
             if line.startswith(prefix):
                 count += 1
     return count
+
+
+
+class Progress:
+    """Writes a line every so often while a long step runs.
+
+    A playing step is silent for ten hours otherwise, and a run nobody can see the pace of is a
+    run nobody can plan around. The count comes from the tester's own log, so this costs nothing
+    and needs no cooperation from the tester.
+    """
+
+    def __init__(self, state, step_id, log_path, marker, total, every=600):
+        self.state, self.step_id, self.log_path = state, step_id, log_path
+        self.marker, self.total, self.every = marker, total, every
+        self.stop = threading.Event()
+        self.thread = threading.Thread(target=self._loop, daemon=True)
+        self.started = time.time()
+
+    def _count(self):
+        return count_lines(self.log_path, self.marker)
+
+    def _loop(self):
+        first = self._count()
+        while not self.stop.wait(self.every):
+            done = self._count() - first
+            spent = time.time() - self.started
+            if done <= 0:
+                self.state.note(f'{self.step_id} {round(spent)}s gone, nothing finished yet')
+                continue
+            rate = done / spent
+            left = max(self.total - done, 0) / rate
+            self.state.note(f'{self.step_id} {done}/{self.total} at {rate:.1f}/s, '
+                            f'{spent / 3600:.1f}h gone, {left / 3600:.1f}h left')
+
+    def __enter__(self):
+        self.thread.start()
+        return self
+
+    def __exit__(self, *_):
+        self.stop.set()
 
 
 # --------------------------------------------------------------------------- preflight
