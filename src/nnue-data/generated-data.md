@@ -335,7 +335,16 @@ Measured on 28.09.2026 with a c7g.8xlarge in us-east-1, labelling chunks 50 to 1
 | cost | 52 chunks in 5.2 h, about 2.14 $, and it takes 13.5 h off the mac |
 
 **The spot vCPU quota of this account in us-east-1 is 32**, so c7g.8xlarge is the largest that can
-be had; it is adjustable by request. That quota, not the price, is what decides the instance.
+be had. That quota, not the price, is what decides the instance.
+
+It counts the vCPUs of *all* running spot instances of the standard families in the region
+together, not the size of one. Proven rather than assumed: while the 32 core instance was running,
+a request for a single c7g.medium - one vCPU - was refused with `MaxSpotInstanceCountExceeded`.
+Nothing is created by a refused request, so the check costs nothing. Two smaller instances are
+therefore not a way around it; another region is, because quotas are regional, and so is a raised
+quota. An increase to 128 vCPU was requested on 28.09.2026
+(`f47792eb61d249ddb069c1ff33a9d614PhpB30a4`), which is what would matter for the remaining sets:
+labelling all nine of them is about 25 days on one 32 core instance.
 
 **A graviton3 core does about three quarters of an apple core here**: 77 positions per second
 against 102, both averaged over the cores of the machine. The wmtest at concurrency 4 took 31.9 s
