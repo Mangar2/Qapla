@@ -151,3 +151,31 @@ output_dir = "test/nnue/labelled"
 output_per_chunk = true
 s3_chunks = "s3://<BUCKET>/set1/chunks"
 s3_results = "s3://<BUCKET>/set1/labelled"
+
+# --------------------------------------------------------------------------- set 1: to one file
+# The two halves of set 1 - the mac's chunks 1 to 49 as one appended pgn, the instance's 50 to 101
+# as a file per chunk - become one packed game file. Twice: once with the result of every game and
+# once without it, from the identical pgn, so the two nets trained from them differ in nothing but
+# that. Whether the result helps or misleads is not something we know, so we measure it.
+
+[[steps]]
+id = "set1-convert"
+kind = "convert"
+host = "mac"
+doc = "Qapla with the hand crafted eval against itself at depth 6, labelled at depth 8."
+inputs = [
+  "test/nnue/games-hce-depth6-labelled.pgn",   # chunks 1..49, appended by the mac
+  "test/nnue/labelled/chunk-*.pgn",            # chunks 50..101, one file each, from the instance
+]
+dataset_dir = "test/nnue/dataset"
+output = "set1-hce-depth6"
+wdl = ["result", "none"]
+expect_games = 1000020
+
+[[steps]]
+id = "set1-mirror"
+kind = "mirror"
+host = "mac"
+to = "qapla"
+doc = "The dataset directory to the linux machine, so no file exists in one place only."
+dataset_dir = "test/nnue/dataset"

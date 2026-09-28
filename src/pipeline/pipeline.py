@@ -716,7 +716,183 @@ def command_smoke(cfg, args):
     state.note('smoke test passed')
 
 
-KINDS = {'play': step_play, 'label': step_label}
+# --------------------------------------------------------------------------- step: convert
+
+def step_convert(cfg, host_key, step, state):
+    """Turns the labelled pgn of a set into the packed game file the training reads.
+
+    The parts of a set are joined here: a set labelled by two machines arrives as one appended pgn
+    from the one and a file per chunk from the other, and what the training wants is one file. The
+    pgn parts are concatenated - a pgn is a sequence of games, so joining them is joining bytes -
+    and the converter runs over the result once per wdl variant.
+
+    Two variants on purpose. Whether the result of a game helps a net or misleads it is not
+    something we know, so the same games are written once with the result and once without, and the
+    two nets trained from them are compared. Both come from the identical pgn, so nothing but the
+    wdl field differs.
+    """
+    import glob
+    repo = repo_of(cfg, host_key)
+    dataset = absolute(repo, step.get('dataset_dir', 'test/nnue/dataset'))
+    os.makedirs(dataset, exist_ok=True)
+
+    parts = []
+    for pattern in step['inputs']:
+        found = sorted(glob.glob(absolute(repo, pattern)))
+        if not found:
+            state.note(f"{step['id']} cannot start: nothing matches {pattern}")
+            return False
+        parts += found
+    state.note(f"{step['id']} {len(parts)} pgn parts, "
+               f"{sum(os.path.getsize(p) for p in parts) / 1e9:.2f} GB")
+
+    t0 = state.begin(step)
+    joined = os.path.join(dataset, step['output'] + '-joined.pgn')
+    with open(joined, 'wb') as out:
+        for part in parts:
+            with open(part, 'rb') as inp:
+                while True:
+                    block = inp.read(1 << 22)
+                    if not block:
+                        break
+                    out.write(block)
+    games = count_lines(joined, '[White ')
+    state.note(f"{step['id']} joined into one pgn: {games} games, "
+               f"{os.path.getsize(joined) / 1e9:.2f} GB")
+    if step.get('expect_games') and games != step['expect_games']:
+        state.fail(step, t0, f"{games} games, {step['expect_games']} expected - a part is missing")
+        os.remove(joined)
+        return False
+
+    results = {}
+    for variant in step.get('wdl', ['result', 'none']):
+        name = step['output'] + ('' if variant == 'result' else '-nowdl') + '.gam'
+        target = os.path.join(dataset, name)
+        command = ['python3', 'convert.py', joined, target, '--wdl', variant]
+        code = run_tool(command, os.path.join(repo, 'src/trainer'),
+                        os.path.join(repo, 'test/log', f"pipeline-{step['id']}.log"))
+        if code != 0 or not os.path.exists(target):
+            state.fail(step, t0, f'convert.py exit {code} for wdl={variant}')
+            return False
+        facts = gam_facts(target)
+        results[name] = facts
+        state.note(f"{step['id']} {name}: {facts['games']} games, {facts['positions']} positions, "
+                   f"{facts['bytes'] / 1e6:.0f} MB, wdl {facts['wdl']}")
+
+    # The variants must be the same games. Anything else means the converter is not deterministic
+    # and the comparison of the two nets would not be a comparison of the wdl.
+    counts = {(f['games'], f['positions']) for f in results.values()}
+    if len(counts) > 1:
+        state.fail(step, t0, f'the variants differ in their games or positions: {counts}')
+        return False
+
+    os.remove(joined)
+    state.note(f"{step['id']} the joined pgn is removed again, the game files hold everything")
+    write_manifest(cfg, host_key, dataset, state)
+    state.finish(step, t0, {name: {'games': f['games'], 'positions': f['positions']}
+                            for name, f in results.items()})
+    return True
+
+
+def gam_facts(path):
+    """Games, positions and the spread of the four wdl states in a packed game file."""
+    games = positions = 0
+    wdl = {0: 0, 1: 0, 2: 0, 3: 0}
+    with open(path, 'rb') as f:
+        f.read(12)
+        while True:
+            head = f.read(1)
+            if not head:
+                break
+            length = head[0]
+            data = f.read(3 * length)
+            games += 1
+            positions += length
+            for i in range(0, 3 * length, 3):
+                record = data[i] | (data[i + 1] << 8) | (data[i + 2] << 16)
+                wdl[(record >> 11) & 3] += 1
+    names = {0: 'loss', 1: 'draw', 2: 'win', 3: 'none'}
+    return {'games': games, 'positions': positions, 'bytes': os.path.getsize(path),
+            'wdl': {names[k]: v for k, v in wdl.items() if v}}
+
+
+# --------------------------------------------------------------------------- the manifest
+
+def write_manifest(cfg, host_key, dataset, state):
+    """Writes DATASET.md beside the files: what each one is and how it came about.
+
+    Generated rather than written by hand, from the state file and the files themselves, so it
+    cannot drift away from what is actually in the directory.
+    """
+    repo = repo_of(cfg, host_key)
+    lines = ['# The training data in this directory', '',
+             'Generated by `src/pipeline/pipeline.py`; do not edit by hand, it is rewritten.',
+             f'Written on {now()} on host `{host_key}`.', '',
+             'This directory holds only files that are still used. Everything about how they came',
+             'to be is in `src/nnue-data/generated-data.md`; this is the index.', '']
+    for name in sorted(os.listdir(dataset)):
+        path = os.path.join(dataset, name)
+        if name == 'DATASET.md' or not os.path.isfile(path):
+            continue
+        size = os.path.getsize(path)
+        lines.append(f'## {name}')
+        lines.append('')
+        lines.append(f'{size:,} bytes')
+        lines.append('')
+        if name.endswith('.gam'):
+            facts = gam_facts(path)
+            lines.append(f"{facts['games']:,} games, {facts['positions']:,} positions, "
+                         f"{size / max(facts['positions'], 1):.1f} bytes per position.")
+            lines.append('')
+            lines.append('Result of every position: ' +
+                         ', '.join(f'{k} {v:,}' for k, v in facts['wdl'].items()) + '.')
+            if 'none' in facts['wdl'] and len(facts['wdl']) == 1:
+                lines.append('')
+                lines.append('Every position carries "none", so this file trains on the values '
+                             'alone - the variant that ignores the result of the game.')
+            lines.append('')
+        for step in cfg['steps']:
+            if step.get('output') and name.startswith(step['output']):
+                lines.append(f"Made by step `{step['id']}` ({step['kind']}) on `{step['host']}`: "
+                             f"{step.get('doc', '')}")
+                entry = state.data['steps'].get(step['id'], {})
+                if entry.get('seconds'):
+                    lines.append('')
+                    lines.append(f"That step took {entry['seconds'] // 3600}h "
+                                 f"{entry['seconds'] % 3600 // 60}m.")
+                lines.append('')
+                break
+    path = os.path.join(dataset, 'DATASET.md')
+    with open(path, 'w') as f:
+        f.write('\n'.join(lines) + '\n')
+    state.note(f'manifest written: {path}')
+
+
+# --------------------------------------------------------------------------- step: mirror
+
+def step_mirror(cfg, host_key, step, state):
+    """Copies the dataset directory to another host, so no file exists in one place only.
+
+    Data, not code: source and binaries reach a host through github, see delivery/deployment.md,
+    but a game file is neither and cannot get there that way. rsync deletes on the far side, so
+    the two directories really are the same and no old file survives there unnoticed.
+    """
+    repo = repo_of(cfg, host_key)
+    target = cfg['hosts'][step['to']]
+    source = absolute(repo, step.get('dataset_dir', 'test/nnue/dataset')).rstrip('/') + '/'
+    remote = f"{target['ssh']}:{target['repo'].rstrip('/')}/" \
+             f"{step.get('dataset_dir', 'test/nnue/dataset').rstrip('/')}/"
+    t0 = state.begin(step)
+    code = subprocess.call(['rsync', '-a', '--delete', '--info=stats1', source, remote])
+    if code != 0:
+        state.fail(step, t0, f'rsync exit {code}')
+        return False
+    state.finish(step, t0, {'to': step['to'], 'where': remote})
+    return True
+
+
+KINDS = {'play': step_play, 'label': step_label,
+         'convert': step_convert, 'mirror': step_mirror}
 
 
 # --------------------------------------------------------------------------- commands
