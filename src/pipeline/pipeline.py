@@ -21,6 +21,7 @@ log on its own host. The machine that launched it may sleep or be switched off.
 import argparse
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -218,12 +219,20 @@ def step_play(cfg, host_key, step, state):
         command += second
 
     t0 = state.begin(step)
-    code = run_tool(command, repo, log_path)
-    games = count_lines(os.path.join(repo, step['output']), '[White ')
-    if code != 0 or games < step['games']:
-        state.fail(step, t0, f'qet exit {code}, {games} of {step["games"]} games - run again to continue')
+    if not preflight(cfg, host_key, [step['white'], step['black']], state, step['id']):
+        state.fail(step, t0, 'preflight failed - nothing was played')
         return False
-    state.finish(step, t0, {'games': games, 'bytes': os.path.getsize(os.path.join(repo, step['output']))})
+    code = run_tool(command, repo, log_path)
+    output = absolute(repo, step['output'])
+    if code != 0:
+        state.fail(step, t0, f'qet exit {code} - run again to continue, the tournament file holds the state')
+        return False
+    if not verify_play(output, step, state, step['games']):
+        state.fail(step, t0, 'the template did not verify')
+        return False
+    facts = read_pgn(output)
+    state.finish(step, t0, {'games': facts['games'], 'plies': facts['plies'],
+                            'bytes': os.path.getsize(output), 'outcomes': facts['outcomes']})
     return True
 
 
@@ -303,6 +312,9 @@ def step_label(cfg, host_key, step, state):
     ini_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.ini")
 
     t0 = state.begin(step)
+    if not preflight(cfg, host_key, [step['engine']], state, step['id']):
+        state.fail(step, t0, 'preflight failed - nothing was labelled')
+        return False
     state.note(f"{step['id']} {len(chunks)} chunks, {sum(1 for c in chunks if os.path.exists(c + '.done'))} already done")
     for chunk in chunks:
         if os.path.exists(chunk + '.done'):
@@ -321,9 +333,14 @@ def step_label(cfg, host_key, step, state):
         done = sum(1 for c in chunks if os.path.exists(c + '.done'))
         state.note(f"{step['id']} {done}/{len(chunks)} chunks")
 
-    games = count_lines(os.path.join(repo, step['output']), '[White ')
-    state.finish(step, t0, {'games': games,
-                            'bytes': os.path.getsize(os.path.join(repo, step['output']))})
+    output = absolute(repo, step['output'])
+    expect = read_pgn(source)['games']
+    if not verify_label(output, step, state, expect):
+        state.fail(step, t0, 'the labelled pgn did not verify')
+        return False
+    facts = read_pgn(output)
+    state.finish(step, t0, {'games': facts['games'], 'plies': facts['plies'],
+                            'values': facts['comments'], 'bytes': os.path.getsize(output)})
     return True
 
 
@@ -336,6 +353,221 @@ def count_lines(path, prefix):
             if line.startswith(prefix):
                 count += 1
     return count
+
+
+# --------------------------------------------------------------------------- preflight
+
+LAN_MOVE = re.compile(r'^[a-h][1-8][a-h][1-8][qrbn]?$')
+SAN_MOVE = re.compile(r'^(?:[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|O-O(?:-O)?)[+#]?$')
+
+
+def ask_engine(binary, lines, seconds=120):
+    """Sends lines to an engine and returns what it said. Always ends the input."""
+    try:
+        done = subprocess.run([binary], input=''.join(l + '\n' for l in lines) + 'quit\n',
+                              capture_output=True, text=True, timeout=seconds)
+        return done.stdout
+    except (subprocess.TimeoutExpired, OSError) as error:
+        return f'<<{error}>>'
+
+
+def preflight(cfg, host_key, names, state, step_id):
+    """Checks every engine a step needs before the step starts.
+
+    A step runs for hours; an engine that is not what it should be has to say so in the first
+    seconds. Checked: the binary answers uci and names a version, and an engine that carries a
+    net loads it, agrees with a full refresh and uses a vector path. A net that is not found
+    leaves the engine playing something that is not the engine we meant.
+    """
+    repo = repo_of(cfg, host_key)
+    ok = True
+    for name in dict.fromkeys(names):
+        engine = cfg['hosts'][host_key]['engines'][name]
+        binary = absolute(repo, engine['binary'])
+        if not os.path.exists(binary):
+            state.note(f'{step_id} preflight {name}: no binary at {binary}')
+            ok = False
+            continue
+        version = ''
+        for line in ask_engine(binary, ['uci']).splitlines():
+            if line.startswith('id name'):
+                version = line[len('id name'):].strip()
+        if not version:
+            state.note(f'{step_id} preflight {name}: answers no "id name" - not a uci engine?')
+            ok = False
+            continue
+        net = engine.get('options', {}).get('NnueFile')
+        if net is None:
+            state.note(f'{step_id} preflight {name}: {version}')
+            continue
+        net_path = absolute(repo, str(net))
+        if not os.path.exists(net_path):
+            state.note(f'{step_id} preflight {name}: no net at {net_path}')
+            ok = False
+            continue
+        # nnueeval loads the net, compares the incremental accumulator against a full refresh
+        # and names the vector path the search uses.
+        report = ''
+        for line in ask_engine(binary, [f'nnueeval net {net_path}']).splitlines():
+            if 'used by the search' in line:
+                report = line.strip()
+        if not report:
+            state.note(f'{step_id} preflight {name}: nnueeval said nothing about the net')
+            ok = False
+            continue
+        path_name = report.split(',')[0].split()[-1]
+        if '(equal)' not in report:
+            state.note(f'{step_id} preflight {name}: incremental and refresh disagree - {report}')
+            ok = False
+        elif path_name == 'plain':
+            state.note(f'{step_id} preflight {name}: no vector path, this costs a factor - {report}')
+            ok = False
+        else:
+            state.note(f'{step_id} preflight {name}: {version}, net {os.path.basename(net_path)}, {path_name}')
+    return ok
+
+
+# --------------------------------------------------------------------------- verification
+
+def read_pgn(path):
+    """Counts what a pgn holds, without a move generator and without loading it whole."""
+    games = plies = lan = san = comments = results = terminators = 0
+    lengths = []
+    causes = {}
+    current = 0
+    with open(path, errors='replace') as f:
+        for line in f:
+            if line.startswith('[White '):
+                if games:
+                    lengths.append(current)
+                games += 1
+                current = 0
+                continue
+            if line.startswith('[Result '):
+                results += 1
+                continue
+            if line.startswith('['):
+                continue
+            comments += line.count('{')
+            for token in line.split():
+                if token in ('1-0', '0-1', '1/2-1/2', '*'):
+                    terminators += 1
+                    causes[token] = causes.get(token, 0) + 1
+                elif LAN_MOVE.match(token):
+                    lan += 1
+                    plies += 1
+                    current += 1
+                elif SAN_MOVE.match(token):
+                    san += 1
+                    plies += 1
+                    current += 1
+    if games:
+        lengths.append(current)
+    return {'games': games, 'plies': plies, 'lan': lan, 'san': san, 'comments': comments,
+            'results': results, 'terminators': terminators,
+            'plies_per_game': round(plies / games, 1) if games else 0,
+            'shortest': min(lengths) if lengths else 0, 'longest': max(lengths) if lengths else 0,
+            'outcomes': causes}
+
+
+def verify_play(path, step, state, expect_games):
+    """The template has to hold the games, in the notation asked for, each with a result."""
+    if not os.path.exists(path):
+        state.note(f"{step['id']} verify: {path} is not there")
+        return False
+    facts = read_pgn(path)
+    wanted = step.get('notation', 'san')
+    state.note(f"{step['id']} verify: {facts['games']} games, {facts['plies_per_game']} plies each "
+               f"(shortest {facts['shortest']}, longest {facts['longest']}), "
+               f"lan {facts['lan']} san {facts['san']}, outcomes {facts['outcomes']}")
+    problems = []
+    if facts['games'] < expect_games:
+        problems.append(f"{facts['games']} of {expect_games} games")
+    if facts['terminators'] < facts['games']:
+        problems.append(f"{facts['games'] - facts['terminators']} games without a result")
+    if wanted == 'lan' and facts['san'] > facts['lan']:
+        problems.append('asked for long notation, got short')
+    if wanted == 'san' and facts['lan'] > facts['san']:
+        problems.append('asked for short notation, got long')
+    if facts['shortest'] == 0:
+        problems.append('a game without a single move')
+    # A template whose games all end the same way means the engine is not playing chess.
+    if facts['games'] > 50 and len(facts['outcomes']) < 2:
+        problems.append(f"every game ended {list(facts['outcomes'])} - is the engine sane?")
+    for problem in problems:
+        state.note(f"{step['id']} verify FAILED: {problem}")
+    return not problems
+
+
+def verify_label(path, step, state, expect_games):
+    """The labelled pgn is what the converter reads: long notation, a Result tag, a value per ply."""
+    if not os.path.exists(path):
+        state.note(f"{step['id']} verify: {path} is not there")
+        return False
+    facts = read_pgn(path)
+    state.note(f"{step['id']} verify: {facts['games']} games, {facts['plies']} plies, "
+               f"{facts['comments']} values, {facts['results']} Result tags, "
+               f"lan {facts['lan']} san {facts['san']}, outcomes {facts['outcomes']}")
+    problems = []
+    if facts['games'] < expect_games:
+        problems.append(f"{facts['games']} of {expect_games} games")
+    if facts['results'] < facts['games']:
+        problems.append(f"{facts['games'] - facts['results']} games without a Result tag - "
+                        'convert.py reads the tag, not the terminator')
+    if facts['san'] > facts['lan']:
+        problems.append('short notation - convert.py has no move generator and needs long')
+    if facts['comments'] < 0.95 * facts['plies']:
+        problems.append(f"only {facts['comments']} values for {facts['plies']} plies")
+    for problem in problems:
+        state.note(f"{step['id']} verify FAILED: {problem}")
+    return not problems
+
+
+# --------------------------------------------------------------------------- smoke test
+
+def small(step, games):
+    """The same step, shrunk, under its own id and its own files - a smoke test of the real thing."""
+    copy = dict(step)
+    copy['id'] = 'smoke-' + step['id']
+    copy['games'] = games
+    copy['chunk_games'] = max(10, games // 2)
+    copy['chunk_dir'] = f"test/log/smoke-chunks-{step['id']}"
+    for key in ('output', 'input'):
+        if key in copy:
+            copy[key] = 'test/log/smoke-' + os.path.basename(copy[key])
+    return copy
+
+
+def command_smoke(cfg, args):
+    """Runs this host's steps at a small size and verifies them. Minutes, not hours."""
+    host_key = this_host(cfg)
+    repo = repo_of(cfg, host_key)
+    state = State(repo)
+    games = args.games
+    state.note(f'smoke test on {host_key}, {games} games per playing step')
+    for step in cfg['steps']:
+        if step['host'] != host_key:
+            continue
+        if args.only and step['id'] != args.only:
+            continue
+        if step['kind'] not in KINDS:
+            state.note(f"smoke: kind {step['kind']} is not implemented yet - stopping here")
+            return
+        tiny = small(step, games)
+        # A shrunk step is started from scratch every time, so old output must go.
+        for key in ('output',):
+            path = absolute(repo, tiny[key])
+            if os.path.exists(path):
+                os.remove(path)
+        chunks = absolute(repo, tiny['chunk_dir'])
+        if os.path.isdir(chunks):
+            for name in os.listdir(chunks):
+                os.remove(os.path.join(chunks, name))
+        state.data['steps'].pop(tiny['id'], None)
+        if not KINDS[step['kind']](cfg, host_key, tiny, state):
+            state.note('smoke test FAILED - the real run is not started')
+            raise SystemExit(1)
+    state.note('smoke test passed')
 
 
 KINDS = {'play': step_play, 'label': step_label}
@@ -396,12 +628,14 @@ def command_launch(cfg, args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('command', choices=['status', 'run', 'launch'])
+    parser.add_argument('command', choices=['status', 'run', 'launch', 'smoke'])
     parser.add_argument('--only', help='one step id')
+    parser.add_argument('--games', type=int, default=200, help='games per playing step in a smoke test')
     parser.add_argument('--config', default=CONFIG)
     args = parser.parse_args()
     cfg = load_config(args.config)
-    {'status': command_status, 'run': command_run, 'launch': command_launch}[args.command](cfg, args)
+    {'status': command_status, 'run': command_run, 'launch': command_launch,
+     'smoke': command_smoke}[args.command](cfg, args)
 
 
 if __name__ == '__main__':
