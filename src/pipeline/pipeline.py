@@ -158,9 +158,10 @@ PLAY_INI = """\
 # One game per book leaf when selfplay is set: the search is deterministic at a fixed depth, so a
 # leaf and a colour decide the game completely and a colour swap would return the same game twice.
 #
-# No [resign] block on purpose - qet ignores active=false, the block's presence switches the
-# adjudication on, and a won game has to be played to its end. [draw] stays, an endless shuffle
-# teaches a net nothing. rapid stays off: the draw adjudication reads the engine's info lines.
+# No [resign] block on purpose: in the tester a block that is there is in force and a block that
+# is not there is off, so a won game is played to its end by leaving it out. [draw] is there, an
+# endless shuffle teaches a net nothing. rapid stays off: the draw adjudication reads the engine's
+# info lines and would have nothing to decide on without them.
 concurrency={concurrency}
 
 [each]
@@ -177,7 +178,6 @@ order=sequential
 start={first_opening}
 
 [draw]
-active=true
 movenumber=60
 movecount=20
 score=20

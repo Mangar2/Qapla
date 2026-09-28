@@ -132,13 +132,17 @@ run reads a node count or a depth, so it looks like free speed. It is not: the d
 decides on a score, and the score comes from exactly those lines. With `rapid=true` the endless
 games are no longer cut off.
 
-**qet ignores `active=false` in the `[resign]` block.** The block has to be *absent*, not
-disabled. Measured with 30 games each: without the block 27 mates and 3 repetitions, with
-`active=false` 26 games cut short by adjudication. The parser also demands `movecount` inside a
-block it is being asked to switch off. So won games are played to their end only when no
-`[resign]` block exists at all - and those late positions are the ones a net has the least of.
-A first run of 7145 games was thrown away over this, see
-`test/nnue/games-hce-depth6.discarded-resign-adjudication.pgn`.
+**A block that is there is in force, a block that is not there is off.** That is how the tester
+reads its settings, so a won game is played to its end by leaving the `[resign]` block out - not by
+disabling it. There is an `active` flag, but it exists only so that a file written by the gui can be
+read, where settings are stored and switched on and off; it is deliberately not in the parameter
+documentation, and passing a setting that is then not in force makes no sense in a settings file
+one writes oneself.
+
+A first run of 7145 games was thrown away over this: the block was there with `active=false`,
+which at the time was ignored, and 26 of 30 games in a check afterwards were cut short by
+adjudication where without the block 27 of 30 ended in mate. The flag is honoured now, but the
+rule above is the one to write settings by.
 
 **Cost of playing games out:** 43 games/s with win adjudication, 31 games/s without it, at
 concurrency 9. The second figure is the one that counts, and it puts the 1,000,020 games at
