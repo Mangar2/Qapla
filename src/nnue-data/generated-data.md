@@ -320,3 +320,69 @@ the settings, not the speed.
 nnue-1 plays much longer games than the hand crafted eval: 129.8 plies against 86.1. The weak net
 converts less, so set 2 holds about 130M positions where set 1 holds 86M, and its labelling pass
 is correspondingly longer.
+
+## A spot instance as a third helper
+
+Measured on 28.09.2026 with a c7g.8xlarge in us-east-1, labelling chunks 50 to 101 of set 1.
+
+| | |
+|---|---|
+| instance | c7g.8xlarge, 32 graviton3 cores, 61 GB, arm64 |
+| spot price | 0.411 $/h, bid capped at 0.60 |
+| image | `<IMAGE>`, Ubuntu 24.04 arm64 with clang 18 |
+| rate | 2,385 positions/s at concurrency 31 - 361 s for a chunk of 10,000 games |
+| memory | 1.1 GB peak for a chunk, so the chunk size is not what limits this host |
+| cost | 52 chunks in 5.2 h, about 2.14 $, and it takes 13.5 h off the mac |
+
+**The spot vCPU quota of this account in us-east-1 is 32**, so c7g.8xlarge is the largest that can
+be had; it is adjustable by request. That quota, not the price, is what decides the instance.
+
+**A graviton3 core does about three quarters of an apple core here**: 77 positions per second
+against 102, both averaged over the cores of the machine. The wmtest at concurrency 4 took 31.9 s
+against 14.9 on the mac and 28.1 on the linux box.
+
+**The node count is what proves the engine is the same one: 248,740,566 on all three hosts.** The
+version string did *not* match - the fresh clone lacks the 0.5.0 tags, so `git describe` produced
+`0.4.0-141-g5a744dd`. A version string is evidence about a build, the node count is evidence about
+an engine, and here only the second one was available.
+
+### What an instance needs that a long-lived host already has
+
+Every one of these cost a failed attempt, and every one is silent until it bites:
+
+**The gitignored directories.** A fresh clone has no `test/log`, `test/epd/log`, `test/nnue`. The
+newer tester validates that a log path exists and refuses to start - which is the friendly version;
+an older one would have written nowhere.
+
+**The gitignored data.** `test/epd/wmtest.epd` is data (`*.epd` is ignored), so it does not come
+with the clone. It goes through s3 like the nets and the book.
+
+**The tester built from the branch that has the feature.** The image carried a checkout of the
+tester's `0.5.0`, which builds fine and then says `"analysis" is not a valid parameter group`. The
+reverse analysis lives on `0.7.0`. A tool that builds is not a tool that can do the job.
+
+**The tester needs clang**, not gcc: its cmake passes `-stdlib=libc++`, and `c++` rejects it.
+
+**A checkout that refuses to switch branches.** The image had a local change to the `Makefile`, so
+`git checkout nnue` aborted - and the build that followed produced `Qapla 0.4.0` from the old
+branch without a word. `git checkout -- . && git clean -fd`, then check the built binary's version
+against the commit before using it. `delivery/deployment.md` says exactly this, and it was still
+worth learning again.
+
+### Handing work over as it finishes
+
+A spot instance can be taken away with two minutes' notice, so the labelling step works chunk by
+chunk and puts every finished chunk into s3 at once. **The existence of the result object is the
+marker that a chunk is done**, so an instance that replaces a lost one skips what is already there
+and loses only the chunk that was in flight. A handover that fails stops the run rather than
+piling up results that exist in one place only.
+
+Access is an IAM role on the instance, scoped to the one bucket, so nothing carries a key.
+
+**A watchdog terminates the instance when the run is through**, but only if all 52 results really
+are in s3; a failed run leaves the machine up to be looked at. For a one-time spot request the
+shutdown behaviour is already `terminate` and cannot be set to anything else.
+
+Chunks 50 to 101 carry a `.done` marker on the mac as well, so the two machines do not do the same
+work twice. The two halves are concatenated afterwards - the mac holds 1 to 49 in one appended pgn,
+the instance writes one file per chunk.
