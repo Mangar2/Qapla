@@ -147,6 +147,8 @@ options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
 id = "set1-hce-label-aws"
 kind = "label"
 host = "aws"
+# Finished on 28.09.2026; its chunks and results have been removed from s3 again.
+done = true
 doc = "Chunks 50 to 101 of set 1, labelled on a spot instance, each result handed to s3."
 input = "test/nnue/games-hce-depth6.pgn"
 engine = "hce"

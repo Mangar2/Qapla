@@ -1010,6 +1010,11 @@ def command_run(cfg, args):
         # done by hand right now. Never start it again - it would write into the same files.
         if state.of(step['id']) in ('done', 'external'):
             continue
+        # done = true in the configuration says a step is finished for good. The state file lives
+        # on the host that works, and a spot instance that replaces a reclaimed one starts with an
+        # empty one - so what is finished has to be recorded where every host reads it.
+        if step.get('done'):
+            continue
         if step['kind'] not in KINDS:
             state.note(f"{step['id']} kind {step['kind']} is not implemented yet - stopping here")
             return
