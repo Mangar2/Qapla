@@ -395,3 +395,28 @@ shutdown behaviour is already `terminate` and cannot be set to anything else.
 Chunks 50 to 101 carry a `.done` marker on the mac as well, so the two machines do not do the same
 work twice. The two halves are concatenated afterwards - the mac holds 1 to 49 in one appended pgn,
 the instance writes one file per chunk.
+
+## Decisions about the packed game file
+
+**Games longer than 255 plies stay cut off at 255.** The format has one length byte per game, and
+about 2.4 % of the games of set 1 are longer than that, so they lose their tail from move 128 on.
+That is deliberate and not a defect to be fixed: a long game holds many positions that barely
+differ from one another, so it already contributes far more volume per unit of complexity than a
+middlegame does. If anything, cutting *more* is the experiment worth running, not cutting less.
+This would only change with layer stacks that have endgame buckets of their own, where those
+positions would train their own parameters.
+
+**Mate scores are kept, as a win probability.** `{M4}` and `{-M3}` become ±30000 in the engine's
+unit and go through the sigmoid like any other value, so the sharpest positions in the file carry
+a probability close to 1 or 0 rather than no value at all.
+
+**The value of the last move of a drawn game is kept.** The tester writes the reason a game ended
+behind the value - `{+0.01, Draw by threefold repetition}` - and the trailing comma used to make
+the converter drop the value, which hit 23.5 % of the games of set 1 and exactly the positions
+that show what a draw looks like. Fixed on 28.09.2026; on 20,000 games it was 4,445 moves without
+a value before and none after.
+
+**Conversion costs nothing worth planning around:** 20,000 games in 32 s on a busy machine, 13.8 s
+of that cpu, so about 27 minutes for a million games next to other load and 12 on an idle machine.
+Two variants of the same games cost twice that, which is still nothing against the 26 hours of
+labelling.
