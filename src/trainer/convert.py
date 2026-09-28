@@ -54,6 +54,11 @@ def _parse_value(comment, counters):
     """The value in the unit of the engine out of a pgn comment, or None."""
     token = comment.split()[0] if comment.split() else ''
     token = token.split('/')[0]                    # an optional /depth
+    # The tester puts the reason a game ended behind the value of the last move:
+    # "{+0.01, Draw by threefold repetition}". Without stripping that comma the value of the
+    # final position of every drawn game is lost - and those are the positions that say what a
+    # draw looks like.
+    token = token.rstrip(',')
     try:
         return int(round(float(token) * 100.0))
     except ValueError:
