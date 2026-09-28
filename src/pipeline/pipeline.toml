@@ -130,10 +130,16 @@ chunk_games = 10000
 [hosts.aws]
 repo = "<INSTANCE-REPO>"
 qet = "~/bin/qet"
-concurrency = 31          # 32 cores, one for the tester
+# 30 games on 32 cores: Volker's measurement. Above that the context switching of the engine
+# processes costs more than the cores add, see the scaling section of generated-data.md.
+concurrency = 30
 
 [hosts.aws.engines.hce]
-binary = "new-versions/Qapla-hce-aws"
+binary = "new-versions/Qapla-hce"
+
+[hosts.aws.engines.nnue1]
+binary = "new-versions/Qapla-nnue"
+options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
 
 # The far end of set 1, while the mac works from 39 upward. The chunks 50..101 carry a .done marker
 # on the mac so its own run skips them, and the two halves are concatenated afterwards.
@@ -179,3 +185,51 @@ host = "mac"
 to = "qapla"
 doc = "The dataset directory to the linux machine, so no file exists in one place only."
 dataset_dir = "test/nnue/dataset"
+
+# --------------------------------------------------------------------------- set 4: nnue1 vs hce
+# The first pairing of two different engines, so every opening is played twice with the colours
+# swapped: 2,000,040 games from 1,000,020 leaves. The whole set runs on one spot instance, chunk by
+# chunk, and every finished chunk goes to s3 at once - a run of this length will not survive on a
+# machine that can be reclaimed unless nothing of value stays only there.
+
+[[steps]]
+id = "set4-play"
+kind = "play"
+host = "aws"
+doc = "Generation 1 against the hand crafted eval, depth 6, both colours per opening."
+white = "nnue1"
+black = "hce"
+depth = 6
+openings = 1000020
+games = 2000040
+chunk_openings = 10000
+book = "test/nnue/start-positions-1m.pgn"
+output_dir = "test/nnue/set4-played"
+s3_results = "s3://<BUCKET>/set4/played"
+notation = "san"
+
+[[steps]]
+id = "set4-label"
+kind = "label"
+host = "aws"
+doc = "Every position of set 4 searched to depth 8 by the hand crafted eval, not by the net."
+engine = "hce"
+depth = 8
+input = "unused - the chunks come from s3"
+chunk_dir = "test/nnue/set4-played"
+output_dir = "test/nnue/set4-labelled"
+output_per_chunk = true
+s3_chunks = "s3://<BUCKET>/set4/played"
+s3_results = "s3://<BUCKET>/set4/labelled"
+
+[[steps]]
+id = "set4-convert"
+kind = "convert"
+host = "aws"
+doc = "Generation 1 against the hand crafted eval at depth 6, labelled at depth 8."
+inputs = ["test/nnue/set4-labelled/chunk-*.pgn"]
+dataset_dir = "test/nnue/dataset"
+output = "set4-nnue1-hce-depth6"
+wdl = ["result", "none"]
+expect_games = 2000040
+s3_results = "s3://<BUCKET>/set4/dataset"
