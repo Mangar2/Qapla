@@ -491,3 +491,34 @@ the defect that killed the labelling of a 1.04 GB template with SIGKILL and forc
 first place. So the reason for chunking the labelling is now only the spot instance: a chunk is a
 unit that finishes and can be handed over. On a machine that cannot be taken away, a labelling pass
 may be given the whole set in one go again.
+
+## What set 1 answered: the result of the game hurts here
+
+Two nets from the identical games, one trained with the result of every game and one without it,
+both stopped by their own held-back loss at epoch 8, then a round robin of 1000 games per pairing at
+10+0.05 on 29.09.2026:
+
+| | Elo | +/- | score | draws |
+|---|---|---|---|---|
+| Qapla-HCE | 2714.2 | 15 | 72.60 % | 21.4 % |
+| nnue, trained without the result | 2582.6 | 13 | 46.58 % | 27.2 % |
+| nnue, trained with the result | 2503.2 | 14 | 30.83 % | 24.6 % |
+
+**Without the result is 79 Elo better**, and head to head over 1000 games it is 463 wins to 232 with
+305 draws, 61.6 %. The error bars are 13 and 14, so this is not a fluctuation.
+
+Set 1 is the hand crafted eval playing itself at depth 6, and the result of such a game says little
+about any single position in it: the label of a position is a depth 8 search, which is a statement
+about that position, while the result is a statement about the whole game and mostly about which
+side happened to blunder later. Blending the two pulls the net away from the label it can actually
+learn.
+
+The held-back losses said nothing about this: 0.005824 with the result and 0.001903 without. They are
+not comparable, because one of them contains the result term and the other does not - a smaller
+number there is not a better net. The tournament is what decided, which is the rule this project
+runs on.
+
+It is also a correction of something I argued for earlier in the work: that the result of the game
+should always go into the training, because variance heals with data while bias does not. For this
+data set that is wrong, and the reason it is wrong is not variance but what the result is a statement
+about.
