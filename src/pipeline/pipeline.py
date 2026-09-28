@@ -660,10 +660,17 @@ def command_launch(cfg, args):
             continue
         host = cfg['hosts'][step['host']]
         only = f" --only {step['id']}" if args.only else ''
-        remote = (f"cd {host['repo']} && setsid nohup python3 src/pipeline/pipeline.py run{only} "
-                  f">> test/log/pipeline-nohup.log 2>&1 < /dev/null & echo started $!")
+        # The subshell around the background job is what lets ssh close: started inside "( ... & )"
+        # the process is disowned at once, and setsid puts it in a session of its own, so it
+        # survives the connection, the terminal and this machine going to sleep.
+        remote = (f"cd {host['repo']} && "
+                  f"( setsid nohup python3 src/pipeline/pipeline.py run{only} "
+                  f">> test/log/pipeline-nohup.log 2>&1 < /dev/null & ) ; "
+                  f"sleep 2 ; pgrep -f 'pipeline.py run' | head -1")
         print(f"launching on {step['host']}: {step['id'] if args.only else 'all its pending steps'}")
-        subprocess.check_call(['ssh', host['ssh'], remote])
+        pid = subprocess.run(['ssh', '-n', host['ssh'], remote], capture_output=True, text=True,
+                             timeout=60).stdout.strip()
+        print(f"  running there as pid {pid or '(not found - look at test/log/pipeline-nohup.log)'}")
         return  # one launch per host is enough: the remote walks its own steps
 
 
