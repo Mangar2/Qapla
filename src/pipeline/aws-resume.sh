@@ -1,0 +1,106 @@
+#!/bin/bash
+# Brings up a spot instance and lets it carry on where the last one stopped. Nothing here is done
+# by hand, because everything here went wrong by hand at least once on 28.09.2026.
+#
+#   sh src/pipeline/aws-resume.sh <instance type> [<s3 prefix to finish> <object count>]
+#
+# Choosing the instance type is the one decision left outside - it depends on what the work is and
+# on what the spot quota allows. Everything else follows from it:
+#
+#   * the availability zones are tried cheapest first, because the spread between them reached a
+#     factor of 2.8 in one measurement - and the cheapest quotes are regularly the ones with no
+#     capacity, so a refusal moves on to the next zone instead of ending the run
+#   * the bid is set above the zone's own price, since a request below the zone's floor is refused
+#     outright with SpotMaxPriceTooLow
+#   * the instance is brought to the state a helper needs by bootstrap-instance.sh, which refuses to
+#     finish rather than leave a machine that only looks ready
+#   * the pipeline is started detached, so the machine that launched it may sleep or be switched off
+#   * a watchdog ends the instance when its work has arrived in s3, and only then
+#
+# The pipeline picks up by itself: a chunk whose result is already in s3 is skipped, so a replacement
+# loses at most the chunk the reclaimed instance had in flight.
+set -e
+TYPE=${1:?usage: aws-resume.sh <instance type> [<s3 prefix> <object count>]}
+WATCH_PREFIX=${2:-}
+WATCH_COUNT=${3:-}
+
+REGION=us-east-1
+IMAGE=<IMAGE>          # Ubuntu 24.04 arm64 with clang 18, cmake, ninja
+KEY=<KEY-PAIR>
+GROUP=<SECURITY-GROUP>           # ssh from the control mac only
+PROFILE=<IAM-PROFILE>               # may read and write the one bucket, nothing else
+VOLUME=100
+PEM=~/.ssh/<KEY-PAIR>.pem
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+USERDATA=$(mktemp /tmp/qapla-userdata.XXXXXX)
+cat > "$USERDATA" <<'UD'
+#!/bin/bash
+exec > /var/log/qapla-bootstrap.log 2>&1
+set -x
+apt-get update -y
+apt-get install -y build-essential git make unzip cmake clang
+if ! command -v aws >/dev/null; then
+  curl -s "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o /tmp/awscli.zip
+  unzip -q /tmp/awscli.zip -d /tmp && /tmp/aws/install
+fi
+touch /home/ubuntu/BOOTSTRAP-DONE && chown ubuntu:ubuntu /home/ubuntu/BOOTSTRAP-DONE
+UD
+
+echo "== zones by price for $TYPE =="
+ZONES=$(aws ec2 describe-spot-price-history --region $REGION --instance-types "$TYPE" \
+        --product-descriptions "Linux/UNIX" --start-time "$(date -u -v-20M +%Y-%m-%dT%H:%M:%S 2>/dev/null || date -u -d '20 minutes ago' +%Y-%m-%dT%H:%M:%S)" \
+        --query 'SpotPriceHistory[*].[AvailabilityZone,SpotPrice]' --output text \
+        | sort -u -k1,1 | sort -k2 -n)
+echo "$ZONES" | sed 's/^/   /'
+
+ID=""
+while read -r ZONE PRICE; do
+    [ -z "$ZONE" ] && continue
+    SUBNET=$(aws ec2 describe-subnets --region $REGION \
+             --filters Name=availability-zone,Values="$ZONE" Name=default-for-az,Values=true \
+             --query 'Subnets[0].SubnetId' --output text)
+    [ "$SUBNET" = "None" ] && continue
+    BID=$(python3 -c "print(f'{$PRICE * 1.3:.4f}')")
+    echo "== trying $ZONE at $PRICE, bidding $BID =="
+    ID=$(aws ec2 run-instances --region $REGION --image-id $IMAGE --instance-type "$TYPE" \
+         --key-name $KEY --subnet-id "$SUBNET" --security-group-ids $GROUP \
+         --associate-public-ip-address --iam-instance-profile Name=$PROFILE \
+         --block-device-mappings "[{\"DeviceName\":\"/dev/sda1\",\"Ebs\":{\"VolumeSize\":$VOLUME,\"VolumeType\":\"gp3\",\"DeleteOnTermination\":true}}]" \
+         --instance-market-options "{\"MarketType\":\"spot\",\"SpotOptions\":{\"MaxPrice\":\"$BID\",\"SpotInstanceType\":\"one-time\"}}" \
+         --user-data "file://$USERDATA" \
+         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=qapla-resume}]" \
+         --query 'Instances[0].InstanceId' --output text 2>&1 | tail -1)
+    case "$ID" in
+        i-*) echo "   started $ID in $ZONE at about $PRICE per hour"; break ;;
+        *)   echo "   refused: $(echo "$ID" | cut -c1-120)"; ID="" ;;
+    esac
+done <<< "$ZONES"
+rm -f "$USERDATA"
+[ -n "$ID" ] || { echo "no zone had capacity for $TYPE"; exit 1; }
+
+aws ec2 wait instance-running --region $REGION --instance-ids "$ID"
+IP=$(aws ec2 describe-instances --region $REGION --instance-ids "$ID" \
+     --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo "== $ID is up at $IP, waiting for its first boot =="
+until ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "$PEM" ubuntu@"$IP" \
+      'test -f BOOTSTRAP-DONE' 2>/dev/null; do sleep 10; done
+
+echo "== bringing it to the state a helper needs =="
+ssh -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" 'bash -s' < "$HERE/bootstrap-instance.sh"
+
+echo "== starting the pipeline, detached =="
+ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
+    "cd ~/Qapla && ( setsid nohup python3 src/pipeline/pipeline.py run --host aws \
+     >> test/log/pipeline-nohup.log 2>&1 < /dev/null & ) ; sleep 8; tail -3 test/log/pipeline.log"
+
+if [ -n "$WATCH_PREFIX" ] && [ -n "$WATCH_COUNT" ]; then
+    echo "== arming the watchdog: $WATCH_COUNT objects under $WATCH_PREFIX =="
+    ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
+        "cd ~/Qapla && ( setsid nohup sh src/pipeline/aws-watchdog.sh '$WATCH_PREFIX' '$WATCH_COUNT' \
+         >/dev/null 2>&1 & ) ; sleep 2; echo armed"
+fi
+
+echo
+echo "instance $ID at $IP"
+echo "   progress: ssh -i $PEM ubuntu@$IP 'tail -3 ~/Qapla/test/log/pipeline.log'"
