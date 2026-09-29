@@ -540,3 +540,33 @@ pay less for it.
 That is a measurement, not yet an explanation. What would separate a question of dosage from one of
 capacity is a run at `blend 0.95`, five percent result instead of twenty to thirty: if the damage
 scales with the weight it is dosage, and if it stays it is capacity.
+
+
+## Where training is limited, and what machine it wants
+
+Measured on 29.09.2026, on the same net and the same data:
+
+| | positions/s |
+|---|---|
+| training on the mac, over its gpu | 220,000 |
+| the gpu alone, fed a fixed batch with no data cost | 206,000 |
+| the gpu alone at a batch of 65,536 | 235,000 |
+| the data loader alone, six worker processes | 428,000 |
+| training on a 32 core graviton3 instance, cpu only | 106,000 |
+
+**The training is limited by the gpu, not by the data path.** The loader has almost twice the
+headroom it needs, and feeding the gpu a fixed batch with no reading and no feature building at all
+changes nothing. Raising the batch from 16,384 to 65,536 reaches the ceiling of 235,000 and gains
+13 % - but a four times larger batch is a different optimisation, not free speed: it needs the
+learning rate adjusted, and it makes a run incomparable with one trained at the old size.
+
+It is not the per step overhead either: from a batch of 4,096 to 16,384 the rate rises by half, and
+from 65,536 upwards it does not rise at all. So a gpu with more memory bandwidth would help roughly
+in proportion, and what it would help with is most likely the backward pass of the feature
+transformer, which scatters gradients into a table of 11.5 million parameters.
+
+**The cpu instance wants nine cores, not thirty-two.** Six loader processes and one that computes:
+load 9 of 32, and three quarters of the machine idle. c7g.4xlarge at 0.21 $/h is the size for it
+against 0.41 for the 32 core one - the first run of it was started on 32 by carrying the type over
+from the playing hosts, where 30 concurrent games really do need them. A playing or labelling host
+wants the cores; a training host does not.
