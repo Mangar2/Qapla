@@ -26,8 +26,8 @@
  * Four implementations, picked by what the compiler says the target has:
  *
  *   AVX2      256 bit, 32 bytes at a time. Windows builds with -arch:AVX2.
- *   SSSE3     128 bit. What -march=x86-64-v2 gives, which is what the Linux and macOS
- *             release uses on an Intel machine, so this is the path that runs there.
+ *   SSSE3     128 bit. What -march=x86-64-v2 gives, which is what the portable release
+ *             targets on an Intel machine. A build made there with NATIVE=1 takes avx2.
  *   NEON      with the dot product instruction, Apple Silicon and ARMv8.4 upwards.
  *   plain     correct everywhere, slow, and the reference the others are tested against.
  *

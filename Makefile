@@ -155,6 +155,21 @@ ifneq ($(filter x86_64 amd64,$(UNAME_M)),)
   # x86_64: baseline (SSE2 only) and optimized (SSE4.2, POPCNT, etc.)
   ARCH_BASE := -march=x86-64
   ARCH_OPT  := -march=x86-64-v2
+  # NATIVE=1 builds for the machine that compiles instead, which is what the ARM branch below does
+  # unconditionally. It is not the default because the release has to start on old hardware and
+  # x86-64-v2 is where that line was drawn. It matters for the nnue: v2 is 128 bit wide, so the
+  # evaluation takes its ssse3 path on a machine that has avx2 and gives away 22 % of its speed -
+  # the same nodes, only slower. Every binary that never leaves the machine it was built on - test,
+  # tournament, data generation - is built with NATIVE=1, and forgetting it cost exactly that 22 %
+  # in an nnue tournament on 29.09.2026 before anyone looked at the vector path.
+  ifdef NATIVE
+    ARCH_NATIVE_OK := $(shell echo 'int main(){return 0;}' | $(CXX) -march=native -x c++ - -o /dev/null 2>/dev/null && echo yes)
+    ifeq ($(ARCH_NATIVE_OK),yes)
+      ARCH_OPT := -march=native
+    else
+      $(warning NATIVE=1 asked for, but this compiler will not take -march=native - staying with $(ARCH_OPT))
+    endif
+  endif
 else ifneq ($(filter aarch64 arm64,$(UNAME_M)),)
   # ARM64 (Apple Silicon, AWS Graviton, Ampere, etc.)
   ARCH_BASE := -mcpu=native

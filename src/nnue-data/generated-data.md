@@ -288,10 +288,15 @@ each other. A different number on a new host means a different build, not a fast
 **The ratio is the speed check.** The nnue may cost around 1.5 to 1.9 times the hce per node. Far
 above that, its vector path is not active - ask `nnueeval` before blaming the machine.
 
-`-march=x86-64-v2` is what the Makefile builds for on x86, and that excludes avx2. The release has
-to run on old hardware, so this is right for the release; a helper binary that only ever runs on
-one known machine may be built with `EXTRA_DEFINES="-DQAPLA_USE_NNUE -mavx2"` and is 22 % faster,
-identical to the node.
+**On x86 every binary of ours is built with `NATIVE=1`.** The Makefile default is
+`-march=x86-64-v2` so that the release starts on old hardware, and that excludes avx2 - the nnue
+then runs its ssse3 path and is 22 % slower, node for node the same. `NATIVE=1` switches the
+optimized builds to `-march=native`, which is what the ARM branch of the Makefile has always done;
+that is why the Mac was never affected and why this was easy to overlook on Linux for a while.
+
+    make Release -j NATIVE=1 EXTRA_DEFINES="-DQAPLA_USE_NNUE"
+
+Ask `nnueeval` which path a binary took before trusting a measurement or a tournament made with it.
 
 ## The pipeline that runs these steps
 

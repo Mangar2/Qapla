@@ -31,7 +31,10 @@ echo "qapla at $(git log -1 --oneline)"
 for variant in hce nnue; do
     [ $variant = nnue ] && DEFINES="-DQAPLA_USE_NNUE" || DEFINES=""
     make BUILD_TYPE=Release clean >/dev/null 2>&1
-    make Release -j ${DEFINES:+EXTRA_DEFINES="$DEFINES"} >/dev/null 2>/tmp/build-$variant.err \
+    # NATIVE=1: these binaries never leave this instance, so they are built for its own
+    # instruction set. On ARM that is the Makefile default anyway, on x86 it decides whether
+    # the nnue evaluation gets avx2 or crawls along its ssse3 path.
+    make Release -j NATIVE=1 ${DEFINES:+EXTRA_DEFINES="$DEFINES"} >/dev/null 2>/tmp/build-$variant.err \
         || { echo "FAILED to build $variant"; tail -5 /tmp/build-$variant.err; exit 1; }
     mkdir -p new-versions && cp build/Release/Qapla new-versions/Qapla-$variant
     GOT=$(printf 'uci\nquit\n' | ./new-versions/Qapla-$variant | grep '^id name')
