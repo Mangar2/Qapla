@@ -330,3 +330,28 @@ output = "set6-nnue1-nnue2-depth6"
 wdl = ["result", "none"]
 expect_games = 2000040
 s3_results = "set6/dataset"
+# --------------------------------------------------------------------------- the blend experiment
+# Set 1 measured 79 Elo between a net trained with the result of every game and one trained without
+# it, at a blend that gives the result 20 to 30 percent of the target. An audit found no error in
+# that path, so the open question is whether the damage scales with that weight - a matter of dosage -
+# or whether the result competes for the capacity of a small net whatever its weight.
+#
+# Five percent instead of twenty to thirty answers it. The net goes into the same tournament as a
+# fourth engine and catches up the rounds it is missing.
+
+[[steps]]
+id = "set1-blend95-train"
+kind = "train"
+host = "aws7"
+doc = "Set 1 with the result of the game at five percent of the target instead of twenty to thirty."
+games = "test/nnue/dataset/set1-hce-depth6.gam"
+s3_input = "data/set1-hce-depth6.gam"
+out_dir = "test/nnue/nets-set1-blend95"
+blend_start = 0.95
+blend_end = 0.95
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
+s3_results = "blend95/nets"

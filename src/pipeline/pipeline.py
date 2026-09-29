@@ -990,6 +990,77 @@ def gam_facts(path):
             'wdl': {names[k]: v for k, v in wdl.items() if v}}
 
 
+
+# --------------------------------------------------------------------------- step: train
+
+def step_train(cfg, host_key, step, state):
+    """Trains a net from a packed game file and hands the result over.
+
+    The trainer needs torch, which no other step does, so it is installed here rather than in the
+    bootstrap every machine runs. On a machine without a gpu this is cpu work: the rate is measured
+    in the log of the run itself, and it decides whether a machine of this kind is worth using for
+    training at all.
+    """
+    repo = repo_of(cfg, host_key)
+    trainer = os.path.join(repo, 'src/trainer')
+    log_path = os.path.join(repo, 'test/log', f"pipeline-{step['id']}.log")
+    out_dir = absolute(repo, step['out_dir'])
+    os.makedirs(out_dir, exist_ok=True)
+
+    games = absolute(repo, step['games'])
+    t0 = state.begin(step)
+    if not os.path.exists(games):
+        if not step.get('s3_input'):
+            state.fail(step, t0, f'{step["games"]} is not there and no s3_input says where to get it')
+            return False
+        os.makedirs(os.path.dirname(games), exist_ok=True)
+        state.note(f"{step['id']} fetching the game file")
+        if subprocess.call(['aws', 's3', 'cp', step['s3_input'], games, '--only-show-errors']) != 0:
+            state.fail(step, t0, f'could not fetch {step["s3_input"]}')
+            return False
+
+    # torch is a dependency of this step alone. A venv keeps it out of the system python.
+    venv = os.path.join(trainer, '.venv')
+    python = os.path.join(venv, 'bin', 'python')
+    if not os.path.exists(python):
+        state.note(f"{step['id']} making a venv and installing torch - this takes a few minutes")
+        if subprocess.call([sys.executable, '-m', 'venv', venv]) != 0:
+            state.fail(step, t0, 'could not make the venv')
+            return False
+        if subprocess.call([python, '-m', 'pip', '-q', 'install', 'torch', 'numpy']) != 0:
+            state.fail(step, t0, 'could not install torch')
+            return False
+    version = subprocess.run([python, '-c', 'import torch;print(torch.__version__)'],
+                             capture_output=True, text=True)
+    state.note(f"{step['id']} torch {version.stdout.strip() or 'missing'}")
+
+    command = [python, 'train.py', os.path.relpath(games, trainer),
+               '--out', os.path.relpath(out_dir, trainer),
+               '--blend-start', str(step['blend_start']), '--blend-end', str(step['blend_end']),
+               '--epochs', str(step.get('epochs', 20)), '--patience', str(step.get('patience', 3)),
+               '--workers', str(step.get('workers', 6)), '--seed', str(step.get('seed', 1)),
+               '--validation-every', str(step.get('validation_every', 100))]
+    with Progress(state, step['id'], log_path, 'epoch', step.get('epochs', 20), every=900):
+        code = run_tool(command, trainer, log_path)
+    if code != 0:
+        state.fail(step, t0, f'train.py exit {code} - see the log')
+        return False
+
+    best = ''
+    for line in open(log_path, errors='replace'):
+        if line.startswith('best epoch'):
+            best = line.strip()
+    nets = sorted(f for f in os.listdir(out_dir) if f.endswith('.nnue'))
+    if step.get('s3_results'):
+        for name in nets:
+            if not s3_put(os.path.join(out_dir, name), step['s3_results'], state, step['id']):
+                state.fail(step, t0, f'{name} could not be handed over')
+                return False
+        s3_put(log_path, step['s3_results'], state, step['id'])
+    state.finish(step, t0, {'nets': len(nets), 'best': best})
+    return True
+
+
 # --------------------------------------------------------------------------- the manifest
 
 def write_manifest(cfg, host_key, dataset, state):
@@ -1080,8 +1151,8 @@ def step_mirror(cfg, host_key, step, state):
     return True
 
 
-KINDS = {'play': step_play, 'label': step_label,
-         'convert': step_convert, 'mirror': step_mirror}
+KINDS = {'play': step_play, 'label': step_label, 'convert': step_convert,
+         'mirror': step_mirror, 'train': step_train}
 
 
 # --------------------------------------------------------------------------- commands

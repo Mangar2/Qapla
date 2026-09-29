@@ -89,3 +89,9 @@ options = { NnueFile = "<fill in>" }
 [hosts.aws6.engines.nnue2]
 binary = "<fill in>"
 options = { NnueFile = "<fill in>" }
+# A host that only trains needs no engines of its own, but it does need an instance type.
+[hosts.aws7]
+instance_type = "<fill in>"
+repo = "<fill in>"
+qet = "<fill in>"
+concurrency = 30
