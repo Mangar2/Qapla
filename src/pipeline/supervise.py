@@ -49,7 +49,18 @@ def objects(prefix):
 # ------------------------------------------------------------------------- giving work back
 
 def give_back_lost(cfg, table, alive):
-    """Every claim whose machine is gone becomes an open job again."""
+    """Every claim whose machine is gone becomes an open job again.
+
+    An empty set of living machines is refused. It means the question could not be answered - an aws
+    call that failed, an expired session, a mistake in the code above - and answering it with "then
+    nobody is running" takes every piece away from every worker at once. That happened: the set was
+    built from a mapping whose values are lists, so it stayed empty, and each pass handed the work of
+    the running workers to somebody else. A worker then cannot clear its claim when it is done and
+    stops, which is why there were never three of them for long.
+    """
+    if not alive:
+        note('not giving anything back: no running machine could be determined')
+        return
     for claim in table.claims():
         if claim.get('owner') in alive:
             continue
@@ -173,7 +184,9 @@ def keep_workers(cfg, table, log_path):
 def look(cfg, log_path):
     table = tk.Tasks(cfg)
     running = st.instances(cfg)
-    alive = {entry['Id'] for entry in running.values()}
+    # instances() groups by tag name and the workers all carry the same one, so every value is a
+    # list of machines, not a machine.
+    alive = {entry['Id'] for group in running.values() for entry in group}
     give_back_lost(cfg, table, alive)
     adopt_orphans(cfg, table, running)
     keep_workers(cfg, table, log_path)
