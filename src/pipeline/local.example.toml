@@ -105,7 +105,7 @@ repo = "<fill in>"
 qet = "<fill in>"
 concurrency = 30           # games at once; 30 on 32 cores, measured
 instance_type = "<fill in>"
-wanted = 1                 # how many workers the supervisor keeps alive while tasks are open
+wanted = 3                 # how many workers the supervisor keeps alive while tasks are open
 
 [worker.engines.hce]
 binary = "<fill in>"

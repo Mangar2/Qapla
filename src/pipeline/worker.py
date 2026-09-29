@@ -340,7 +340,10 @@ class Worker:
             note('gave the piece back for another machine to try')
             return False
         claim_id = f'claim#{self.owner}#{work["set"]}#{work["kind"]}#{work["chunk"]:04d}'
-        self.table.release_claim(self.owner, work)
+        if not self.table.release_claim(self.owner, work):
+            note('the claim could not be cleared - stopping, because a table that keeps stale '
+                 'claims never lets a set reach its conversion')
+            return False
         if work['kind'] == 'label' and not self.remaining_for(work['set'], claim_id):
             d = self.definition(work['set'])
             self.table.add_job(work['set'], 'convert', 0, d['base'] + CONVERT_WEIGHT)

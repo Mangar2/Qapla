@@ -144,9 +144,14 @@ class Tasks:
         self._run('put-item', '--item', json.dumps(item))
 
     def release_claim(self, owner, work):
-        """The work is done: the claim goes, and nothing takes its place."""
-        self._run('delete-item', '--key', json.dumps(
-            {'id': {'S': f'claim#{owner}#{work["set"]}#{work["kind"]}#{work["chunk"]:04d}'}}))
+        """The work is done: the claim goes, and nothing takes its place.
+
+        The caller has to look at the answer. When the role was missing the right to delete, this
+        failed quietly for five pieces in a row - the work was fine and in the store, but the claims
+        stayed, and a set whose claims never clear never reaches its conversion.
+        """
+        return self._run('delete-item', '--key', json.dumps(
+            {'id': {'S': f'claim#{owner}#{work["set"]}#{work["kind"]}#{work["chunk"]:04d}'}})) is not None
 
     def give_back(self, claim):
         """A claim of a machine that is gone becomes an open job again."""
