@@ -339,13 +339,17 @@ s3_results = "set6/dataset"
 # Five percent instead of twenty to thirty answers it. The net goes into the same tournament as a
 # fourth engine and catches up the rounds it is missing.
 
+# On the mac, not on a spot instance. Training is the one step here that cannot be split into
+# pieces, so a machine that is taken away costs the whole run - and it was: seven reclaims in three
+# and a half hours, every restart beginning at epoch one again, and the saved nets of different
+# attempts overwriting each other into a series that did not belong together. What can be split
+# belongs on the spot market, what cannot does not.
 [[steps]]
 id = "set1-blend95-train"
 kind = "train"
-host = "aws7"
+host = "mac"
 doc = "Set 1 with the result of the game at five percent of the target instead of twenty to thirty."
 games = "test/nnue/dataset/set1-hce-depth6.gam"
-s3_input = "data/set1-hce-depth6.gam"
 out_dir = "test/nnue/nets-set1-blend95"
 blend_start = 0.95
 blend_end = 0.95
@@ -354,4 +358,3 @@ patience = 3
 workers = 6
 seed = 1
 validation_every = 100
-s3_results = "blend95/nets"
