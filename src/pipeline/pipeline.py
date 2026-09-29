@@ -991,6 +991,46 @@ def gam_facts(path):
 
 
 
+
+class HandOver:
+    """Hands over what a long step produces while it is still producing it.
+
+    A training run of four hours that uploads at the end is a run that a reclaimed instance costs
+    entirely. Every epoch writes a net, so every epoch is a piece worth keeping - and the cost of
+    keeping it is one upload of a few megabytes.
+    """
+
+    def __init__(self, state, step_id, directory, prefix, every=120):
+        self.state, self.step_id = state, step_id
+        self.directory, self.prefix, self.every = directory, prefix, every
+        self.stop = threading.Event()
+        self.thread = threading.Thread(target=self._loop, daemon=True)
+        self.sent = set()
+
+    def _send(self):
+        if not self.prefix or not os.path.isdir(self.directory):
+            return
+        for name in sorted(os.listdir(self.directory)):
+            path = os.path.join(self.directory, name)
+            if name in self.sent or not os.path.isfile(path):
+                continue
+            if s3_put(path, self.prefix, self.state, self.step_id):
+                self.sent.add(name)
+                self.state.note(f'{self.step_id} handed over {name}')
+
+    def _loop(self):
+        while not self.stop.wait(self.every):
+            self._send()
+
+    def __enter__(self):
+        self.thread.start()
+        return self
+
+    def __exit__(self, *_):
+        self.stop.set()
+        self._send()          # whatever the last interval did not catch
+
+
 # --------------------------------------------------------------------------- step: train
 
 def step_train(cfg, host_key, step, state):
@@ -1040,7 +1080,10 @@ def step_train(cfg, host_key, step, state):
                '--epochs', str(step.get('epochs', 20)), '--patience', str(step.get('patience', 3)),
                '--workers', str(step.get('workers', 6)), '--seed', str(step.get('seed', 1)),
                '--validation-every', str(step.get('validation_every', 100))]
-    with Progress(state, step['id'], log_path, 'epoch', step.get('epochs', 20), every=900):
+    # Every epoch's net goes over as it is written, not at the end: this runs for hours on a
+    # machine that may be taken away, and a net per epoch is a piece worth keeping on its own.
+    with Progress(state, step['id'], log_path, 'epoch', step.get('epochs', 20), every=900), \
+         HandOver(state, step['id'], out_dir, step.get('s3_results')):
         code = run_tool(command, trainer, log_path)
     if code != 0:
         state.fail(step, t0, f'train.py exit {code} - see the log')
@@ -1052,10 +1095,7 @@ def step_train(cfg, host_key, step, state):
             best = line.strip()
     nets = sorted(f for f in os.listdir(out_dir) if f.endswith('.nnue'))
     if step.get('s3_results'):
-        for name in nets:
-            if not s3_put(os.path.join(out_dir, name), step['s3_results'], state, step['id']):
-                state.fail(step, t0, f'{name} could not be handed over')
-                return False
+        # The nets went over as they were written; the log is the one thing that only ends here.
         s3_put(log_path, step['s3_results'], state, step['id'])
     state.finish(step, t0, {'nets': len(nets), 'best': best})
     return True
