@@ -50,7 +50,7 @@ cat > "$USERDATA" <<'UD'
 exec > /var/log/qapla-bootstrap.log 2>&1
 set -x
 apt-get update -y
-apt-get install -y build-essential git make unzip cmake clang
+apt-get install -y build-essential git make unzip cmake clang python3-venv python3-pip
 if ! command -v aws >/dev/null; then
   curl -s "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o /tmp/awscli.zip
   unzip -q /tmp/awscli.zip -d /tmp && /tmp/aws/install
