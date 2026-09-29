@@ -204,6 +204,9 @@ s3_results = "set4/dataset"
 
 [[steps]]
 id = "set3-play"
+# The queue owns set 3 since its chunks were handed over: this step must never
+# resume. It did, for two minutes, and picked up at round 5423 on the mac.
+done = true
 kind = "play"
 host = "mac"
 doc = "Generation 2 against itself, depth 6, one game per leaf."
@@ -220,6 +223,9 @@ notation = "san"
 
 [[steps]]
 id = "set3-label"
+# The queue owns set 3 since its chunks were handed over: this step must never
+# resume. It did, for two minutes, and picked up at round 5423 on the mac.
+done = true
 kind = "label"
 host = "mac"
 doc = "Every position of set 3 searched to depth 8 by the hand crafted eval."
@@ -232,6 +238,9 @@ output = "test/nnue/set3-labelled/set3-labelled.pgn"
 
 [[steps]]
 id = "set3-convert"
+# The queue owns set 3 since its chunks were handed over: this step must never
+# resume. It did, for two minutes, and picked up at round 5423 on the mac.
+done = true
 kind = "convert"
 host = "mac"
 doc = "Generation 2 against itself at depth 6, labelled at depth 8."
