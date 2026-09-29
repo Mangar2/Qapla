@@ -110,10 +110,21 @@ ssh -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" 'bash -s' -- "$BUCKET" < 
 # local.toml is not in the repository, so it cannot arrive by git pull - it is handed over here.
 scp -q -o StrictHostKeyChecking=no -i "$PEM" "$LOCAL" ubuntu@"$IP":Qapla/src/pipeline/local.toml
 
-echo "== starting the pipeline, detached =="
-ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
-    "cd ~/Qapla && ( setsid nohup python3 src/pipeline/pipeline.py run --host $HOST \
-     >> test/log/pipeline-nohup.log 2>&1 < /dev/null & ) ; sleep 8; tail -3 test/log/pipeline.log"
+# "worker" means the machine takes its work out of the table and is bound to nothing; anything else
+# is a host key of the older, machine-bound arrangement. A worker also switches the machine off when
+# the table is empty, which is the cost control: no work, no machine.
+if [ "$HOST" = worker ]; then
+    echo "== starting the worker, detached =="
+    ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
+        "cd ~/Qapla && ( setsid nohup sh -c 'python3 src/pipeline/worker.py \
+         >> test/log/worker-run.log 2>&1; sudo shutdown -h now' < /dev/null & ) ; \
+         sleep 8; tail -3 test/log/worker-run.log"
+else
+    echo "== starting the pipeline, detached =="
+    ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
+        "cd ~/Qapla && ( setsid nohup python3 src/pipeline/pipeline.py run --host $HOST \
+         >> test/log/pipeline-nohup.log 2>&1 < /dev/null & ) ; sleep 8; tail -3 test/log/pipeline.log"
+fi
 
 if [ -n "$WATCH_PREFIX" ] && [ -n "$WATCH_COUNT" ]; then
     echo "== arming the watchdog: $WATCH_COUNT objects under $WATCH_PREFIX =="
