@@ -1,14 +1,17 @@
 #!/bin/bash
 # Brings a fresh machine to the state a helper needs, and refuses to finish if anything is off.
 #
-#   ssh <host> 'bash -s' < src/pipeline/bootstrap-instance.sh
+#   ssh <host> 'bash -s' -- <bucket> < src/pipeline/bootstrap-instance.sh
+#
+# The bucket is a parameter because it belongs to one installation and this file is in the
+# repository. Everything else here is the same on any machine.
 #
 # Everything here was a failed attempt first, on 28.09.2026, on an image that already carried both
 # repositories: the checkout would not switch branches over a local change, the build then produced
 # the old branch's version without a word, the tester built fine and lacked the feature, its cmake
 # needs clang, and the gitignored directories and data files are simply not there after a clone.
 set -e
-BUCKET=s3://<BUCKET>
+BUCKET=s3://${1:?the bucket to fetch the data from}
 QAPLA=~/Qapla
 TESTER=~/qapla-engine-tester
 

@@ -396,3 +396,6 @@ src/trainer/__pycache__/
 
 # The net the engine plays with, a build artefact
 qapla.nnue
+
+# the machines and the account this installation uses, never in the repository
+src/pipeline/local.toml

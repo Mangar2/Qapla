@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(HERE, 'pipeline.toml')
+LOCAL = os.path.join(HERE, 'local.toml')
 
 
 # --------------------------------------------------------------------------- basics
@@ -40,9 +41,28 @@ def now():
     return datetime.now(timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M:%S')
 
 
-def load_config(path=CONFIG):
+def load_config(path=CONFIG, local=LOCAL):
+    """The steps out of the repository, the machines out of a file that is not in it.
+
+    pipeline.toml names no host, no path, no bucket and no account - only what is to be done, with
+    engines named the way local.toml defines them. That is what lets the steps be public while the
+    installation stays private, and it is why an s3 prefix in a step is relative: the bucket comes
+    from local.toml and is put in front of it here.
+    """
     with open(path, 'rb') as f:
-        return tomllib.load(f)
+        cfg = tomllib.load(f)
+    if not os.path.exists(local):
+        raise SystemExit(f'{local} is missing - copy local.example.toml and fill it in')
+    with open(local, 'rb') as f:
+        cfg.update(tomllib.load(f))
+    bucket = cfg.get('aws', {}).get('bucket')
+    for step in cfg['steps']:
+        for key, value in list(step.items()):
+            if key.startswith('s3_') and isinstance(value, str) and not value.startswith('s3://'):
+                if not bucket:
+                    raise SystemExit(f'step {step["id"]} names {key}, but local.toml has no bucket')
+                step[key] = f's3://{bucket}/{value.lstrip("/")}'
+    return cfg
 
 
 def this_host(cfg, override=None):

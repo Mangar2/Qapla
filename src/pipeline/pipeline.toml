@@ -29,46 +29,6 @@ book = "the 1,000,020 leaves of test/nnue/start-positions-1m.pgn, see src/nnue-d
 # A host has to meet the list under "What a machine needs before it can help" in
 # src/nnue-data/generated-data.md before a step is given to it.
 
-[hosts.mac]
-hostname = "<HOSTNAME>"
-repo = "<REPO>"
-qet = "~/bin/qet"
-concurrency = 9          # 10 cores
-
-[hosts.mac.engines.hce]
-binary = "new-versions/Qapla-set1-hce"
-
-# Generation 2, the better of the two nets we had before this work.
-[hosts.mac.engines.nnue2]
-binary = "new-versions/Qapla-set1-nnue"
-options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
-
-[hosts.qapla]
-hostname = "qapla"
-ssh = "<SSH-TARGET>"
-repo = "/home/mangar/dev/qapla"
-qet = "~/bin/qet"
-concurrency = 15         # 16 physical cores behind 32 threads
-
-[hosts.qapla.engines.hce]
-binary = "new-versions/Qapla-hce-linux"
-
-# Generation 1, the weak net. avx2 because this binary never leaves this machine; it is 22 %
-# faster than the x86-64-v2 build and identical to the node.
-[hosts.qapla.engines.nnue1]
-binary = "new-versions/Qapla-nnue-linux-avx2"
-options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
-
-# Generation 2, the better net, for the sets that come later.
-[hosts.qapla.engines.nnue2]
-binary = "new-versions/Qapla-nnue-linux-avx2"
-options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
-
-# --------------------------------------------------------------------------- set 1: hce vs hce
-# Played and labelled by hand on the mac before this script existed, so both steps are marked
-# "external" in the mac's state file: the pipeline must not start them a second time, they write
-# into the same files.
-
 [[steps]]
 id = "set1-hce-play"
 kind = "play"
@@ -132,22 +92,6 @@ chunk_games = 10000
 # be had without asking for an increase. A graviton3 core does about three quarters of what an
 # apple core does here: 2,385 positions per second at concurrency 31, against 917 at 9 on the mac.
 
-[hosts.aws]
-repo = "<INSTANCE-REPO>"
-qet = "~/bin/qet"
-# 30 games on 32 cores: Volker's measurement. Above that the context switching of the engine
-# processes costs more than the cores add, see the scaling section of generated-data.md.
-concurrency = 30
-
-[hosts.aws.engines.hce]
-binary = "new-versions/Qapla-hce"
-
-[hosts.aws.engines.nnue1]
-binary = "new-versions/Qapla-nnue"
-options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
-
-# The far end of set 1, while the mac works from 39 upward. The chunks 50..101 carry a .done marker
-# on the mac so its own run skips them, and the two halves are concatenated afterwards.
 [[steps]]
 id = "set1-hce-label-aws"
 kind = "label"
@@ -162,8 +106,8 @@ chunk_range = [50, 101]
 chunk_dir = "test/nnue/chunks"
 output_dir = "test/nnue/labelled"
 output_per_chunk = true
-s3_chunks = "s3://<BUCKET>/set1/chunks"
-s3_results = "s3://<BUCKET>/set1/labelled"
+s3_chunks = "set1/chunks"
+s3_results = "set1/labelled"
 
 # --------------------------------------------------------------------------- set 1: to one file
 # The two halves of set 1 - the mac's chunks 1 to 49 as one appended pgn, the instance's 50 to 101
@@ -212,7 +156,7 @@ games = 2000040
 chunk_openings = 10000
 book = "test/nnue/start-positions-1m.pgn"
 output_dir = "test/nnue/set4-played"
-s3_results = "s3://<BUCKET>/set4/played"
+s3_results = "set4/played"
 notation = "san"
 
 [[steps]]
@@ -226,8 +170,8 @@ input = "unused - the chunks come from s3"
 chunk_dir = "test/nnue/set4-played"
 output_dir = "test/nnue/set4-labelled"
 output_per_chunk = true
-s3_chunks = "s3://<BUCKET>/set4/played"
-s3_results = "s3://<BUCKET>/set4/labelled"
+s3_chunks = "set4/played"
+s3_results = "set4/labelled"
 
 [[steps]]
 id = "set4-convert"
@@ -239,7 +183,7 @@ dataset_dir = "test/nnue/dataset"
 output = "set4-nnue1-hce-depth6"
 wdl = ["result", "none"]
 expect_games = 2000040
-s3_results = "s3://<BUCKET>/set4/dataset"
+s3_results = "set4/dataset"
 
 # --------------------------------------------------------------------------- set 3: nnue2 vs itself
 # The third self play set, and the first that uses the tester's newer features: one call for the
@@ -296,46 +240,6 @@ dataset_dir = "test/nnue/dataset"
 
 # The instance that plays and labels set 5. Its own host key, so the three aws
 # instances never reach for the same step.
-[hosts.aws5]
-repo = "<INSTANCE-REPO>"
-qet = "~/bin/qet"
-concurrency = 30
-
-[hosts.aws5.engines.hce]
-binary = "new-versions/Qapla-hce"
-
-[hosts.aws5.engines.nnue1]
-binary = "new-versions/Qapla-nnue"
-options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
-
-[hosts.aws5.engines.nnue2]
-binary = "new-versions/Qapla-nnue"
-options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
-
-# The instance that plays and labels set 6.
-[hosts.aws6]
-repo = "<INSTANCE-REPO>"
-qet = "~/bin/qet"
-concurrency = 30
-
-[hosts.aws6.engines.hce]
-binary = "new-versions/Qapla-hce"
-
-[hosts.aws6.engines.nnue1]
-binary = "new-versions/Qapla-nnue"
-options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
-
-[hosts.aws6.engines.nnue2]
-binary = "new-versions/Qapla-nnue"
-options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
-
-# --------------------------------------------------------------------------- set 5: nnue2 vs hce
-# A pairing of two different engines, so every opening is played twice with the colours swapped:
-# 2,000,040 games from 1,000,020 leaves. The result of a game between engines of different strength
-# says something about the players and not about the positions, so the packed file is written with
-# the result and without it, and the training uses the variant without - set 1 measured 79 Elo
-# between the two, see generated-data.md.
-
 [[steps]]
 id = "set5-play"
 kind = "play"
@@ -349,7 +253,7 @@ games = 2000040
 chunk_openings = 10000
 book = "test/nnue/start-positions-1m.pgn"
 output_dir = "test/nnue/set5-played"
-s3_results = "s3://<BUCKET>/set5/played"
+s3_results = "set5/played"
 notation = "san"
 
 [[steps]]
@@ -363,8 +267,8 @@ input = "unused - the chunks come from s3"
 chunk_dir = "test/nnue/set5-played"
 output_dir = "test/nnue/set5-labelled"
 output_per_chunk = true
-s3_chunks = "s3://<BUCKET>/set5/played"
-s3_results = "s3://<BUCKET>/set5/labelled"
+s3_chunks = "set5/played"
+s3_results = "set5/labelled"
 
 [[steps]]
 id = "set5-convert"
@@ -376,7 +280,7 @@ dataset_dir = "test/nnue/dataset"
 output = "set5-nnue2-hce-depth6"
 wdl = ["result", "none"]
 expect_games = 2000040
-s3_results = "s3://<BUCKET>/set5/dataset"
+s3_results = "set5/dataset"
 
 # --------------------------------------------------------------------------- set 6: nnue1 vs nnue2
 # A pairing of two different engines, so every opening is played twice with the colours swapped:
@@ -398,7 +302,7 @@ games = 2000040
 chunk_openings = 10000
 book = "test/nnue/start-positions-1m.pgn"
 output_dir = "test/nnue/set6-played"
-s3_results = "s3://<BUCKET>/set6/played"
+s3_results = "set6/played"
 notation = "san"
 
 [[steps]]
@@ -412,8 +316,8 @@ input = "unused - the chunks come from s3"
 chunk_dir = "test/nnue/set6-played"
 output_dir = "test/nnue/set6-labelled"
 output_per_chunk = true
-s3_chunks = "s3://<BUCKET>/set6/played"
-s3_results = "s3://<BUCKET>/set6/labelled"
+s3_chunks = "set6/played"
+s3_results = "set6/labelled"
 
 [[steps]]
 id = "set6-convert"
@@ -425,4 +329,4 @@ dataset_dir = "test/nnue/dataset"
 output = "set6-nnue1-nnue2-depth6"
 wdl = ["result", "none"]
 expect_games = 2000040
-s3_results = "s3://<BUCKET>/set6/dataset"
+s3_results = "set6/dataset"

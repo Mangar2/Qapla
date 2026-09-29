@@ -28,14 +28,21 @@ HOST=${2:?which hosts entry of pipeline.toml this instance serves}
 WATCH_PREFIX=${3:-}
 WATCH_COUNT=${4:-}
 
-REGION=us-east-1
-IMAGE=<IMAGE>          # Ubuntu 24.04 arm64 with clang 18, cmake, ninja
-KEY=<KEY-PAIR>
-GROUP=<SECURITY-GROUP>           # ssh from the control mac only
-PROFILE=<IAM-PROFILE>               # may read and write the one bucket, nothing else
-VOLUME=100
-PEM=~/.ssh/<KEY-PAIR>.pem
 HERE=$(cd "$(dirname "$0")" && pwd)
+LOCAL="$HERE/local.toml"
+[ -f "$LOCAL" ] || { echo "$LOCAL is missing - copy local.example.toml and fill it in"; exit 1; }
+
+# The image, the key, the group, the role, the bucket: all of them belong to one installation, so
+# they live in local.toml, which is not in the repository. This file names none of them.
+value() { python3 -c "import tomllib,sys;print(tomllib.load(open('$LOCAL','rb'))['aws']['$1'])"; }
+REGION=$(value region)
+IMAGE=$(value image)
+KEY=$(value key)
+GROUP=$(value group)
+PROFILE=$(value profile)
+BUCKET=$(value bucket)
+VOLUME=$(value volume)
+PEM=$(eval echo "$(value pem)")
 
 USERDATA=$(mktemp /tmp/qapla-userdata.XXXXXX)
 cat > "$USERDATA" <<'UD'
@@ -91,7 +98,10 @@ until ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "$PEM" ubuntu@"$IP"
       'test -f BOOTSTRAP-DONE' 2>/dev/null; do sleep 10; done
 
 echo "== bringing it to the state a helper needs =="
-ssh -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" 'bash -s' < "$HERE/bootstrap-instance.sh"
+ssh -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" 'bash -s' -- "$BUCKET" < "$HERE/bootstrap-instance.sh"
+
+# local.toml is not in the repository, so it cannot arrive by git pull - it is handed over here.
+scp -q -o StrictHostKeyChecking=no -i "$PEM" "$LOCAL" ubuntu@"$IP":Qapla/src/pipeline/local.toml
 
 echo "== starting the pipeline, detached =="
 ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \

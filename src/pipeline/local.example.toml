@@ -1,0 +1,90 @@
+# The shape of local.toml, without the values. Copy this to local.toml beside it and fill it in;
+# local.toml is in .gitignore and never reaches the repository.
+#
+# Everything here is specific to one installation - host names, ssh targets, absolute
+# paths, the bucket, the image, the key pair. The steps in pipeline.toml name none of it.
+
+[aws]
+region = "<fill in>"
+image = "<fill in>"      # ubuntu 24.04 arm64 with clang, cmake, ninja
+key = "<fill in>"
+group = "<fill in>"       # ssh from the control machine only
+profile = "<fill in>"           # may read and write the one bucket, nothing else
+bucket = "<fill in>"
+volume = 100
+pem = "<fill in>"
+
+[hosts.mac]
+hostname = "<fill in>"
+repo = "<fill in>"
+qet = "<fill in>"
+concurrency = 9
+
+[hosts.mac.engines.hce]
+binary = "<fill in>"
+
+[hosts.mac.engines.nnue2]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[hosts.qapla]
+hostname = "<fill in>"
+ssh = "<fill in>"
+repo = "<fill in>"
+qet = "<fill in>"
+concurrency = 15
+
+[hosts.qapla.engines.hce]
+binary = "<fill in>"
+
+[hosts.qapla.engines.nnue1]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[hosts.qapla.engines.nnue2]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[hosts.aws]
+repo = "<fill in>"
+qet = "<fill in>"
+concurrency = 30
+
+[hosts.aws.engines.hce]
+binary = "<fill in>"
+
+[hosts.aws.engines.nnue1]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[hosts.aws5]
+repo = "<fill in>"
+qet = "<fill in>"
+concurrency = 30
+
+[hosts.aws5.engines.hce]
+binary = "<fill in>"
+
+[hosts.aws5.engines.nnue1]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[hosts.aws5.engines.nnue2]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[hosts.aws6]
+repo = "<fill in>"
+qet = "<fill in>"
+concurrency = 30
+
+[hosts.aws6.engines.hce]
+binary = "<fill in>"
+
+[hosts.aws6.engines.nnue1]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[hosts.aws6.engines.nnue2]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
