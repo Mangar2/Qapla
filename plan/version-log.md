@@ -1723,3 +1723,45 @@ On the bounds: undecided does not mean nothing was learned. The LLR drifts in pr
 distance of the truth from the *midpoint* of the bounds, so undecided places it near that midpoint —
 here below it, the run drifted towards H0. That is what the change was expected to be: correct play
 in rare positions, not measurable strength.
+
+## 0.5.0-028 — the master reports the nodes and tbhits of every thread
+
+Kept, a bug fix, not decided by an SPRT: at one thread the engine reports node for node and tbhit
+for tbhit what it reported before. EPD nodes 248740566 → 248740566, identical.
+
+Three reported figures left threads out, all three because the master reported only what it could
+reach from its own pool.
+
+The extra searches were missing from `nodes` and `nps` entirely. They own a `SearchThreads` pool and
+a `ComputingInfo` of their own, and `helperNodes()` walks the master's pool — so nothing connected
+the two, and their work showed up once at the end as an `info string`. Measured at
+`Threads=2 SplitThreads=1`, `go depth 14`: reported 515590 nodes where 1047107 had been searched.
+With three searches it would have been a third.
+
+The same sum is what the node limit is measured against, so this was not only the display:
+`go nodes 1000000` at that setting searched 2028753 nodes. That one is the reason the fix is worth
+more than a tidier info line — every node limited run gave the engine the n-fold budget.
+
+`tbhits` were never summed over any thread, the helper threads included, so the integrated
+multi-threading was wrong here too: each `Search` counts into its own `ComputingInfo` and the master
+handed its own field to the report. A tablebase endgame at `Threads=2 SplitThreads=8` reported 5461
+where the same position at one thread reports 11468.
+
+On the shape: `Search` cannot see `extra-search.h` — that header reaches `search.h` through
+`search-thread.h`. So the extra searches answer through `ISearchTotals`, implemented by
+`IterativeDeepening`, which is what owns them. The master takes every foreign figure over in
+`collectThreadTotals()`, at the two points where it already took over the helper nodes, which keeps
+this out of the hot path: `getTotalNodes()` still only adds up members, and that is what the node
+check at every node reads. The pointer stays null while there are no extra searches, so the single
+search case does not even test for them differently than before.
+
+Two smaller ones found beside it. The `info string master waited` debug line hung on the thread
+count alone and not on `_isMaster`, so an extra search with helpers of its own wrote it to
+`std::cout` from its own thread, beside the master's info lines — interleaved output. And
+`ComputingInfo::_verbose` had no initialiser while neither `initAsHelper` nor `initAsExtraSearch`
+sets it; harmless only because `_sendSearchInfo` is null on those, which is what actually kept them
+quiet.
+
+The parallel node counts cannot be compared run to run — a parallel search is not reproducible. What
+the fix is checked against is the single threaded run, which must not move at all, and the order of
+magnitude of the multi-threaded figures, which now matches it.
