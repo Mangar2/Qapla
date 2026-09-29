@@ -46,6 +46,7 @@ binary = "<fill in>"
 options = { NnueFile = "<fill in>" }
 
 [hosts.aws]
+instance_type = "<fill in>"   # what to bring up for this host
 repo = "<fill in>"
 qet = "<fill in>"
 concurrency = 30
