@@ -27,11 +27,17 @@ def unfinished(cfg, host_key):
     return [s for s in cfg['steps'] if s['host'] == host_key and not s.get('done')]
 
 
+# What counts as delivered, per kind of last step: a conversion owes two game files, a training at
+# least one net. A step that hands over many pieces has no fixed number and gets no watchdog - it is
+# not finished when a piece arrives.
+DELIVERS = {'convert': 2, 'train': 1}
+
+
 def watch_target(cfg, host_key):
     """What the instance has to deliver before it may switch itself off: the last step's objects."""
     for step in reversed(unfinished(cfg, host_key)):
-        if 's3_results' in step:
-            return step['s3_results'], 2 if step['kind'] == 'convert' else 0
+        if 's3_results' in step and step['kind'] in DELIVERS:
+            return step['s3_results'], DELIVERS[step['kind']]
     return None, 0
 
 
