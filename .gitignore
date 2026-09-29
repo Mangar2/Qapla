@@ -386,3 +386,16 @@ imgui.ini
 # Delivery/release workspace (not versioned)
 /delivery/
 .clangd
+
+# Generated position libraries and training data
+test/nnue/
+
+# Python virtual environment of the trainer
+src/trainer/.venv/
+src/trainer/__pycache__/
+
+# The net the engine plays with, a build artefact
+qapla.nnue
+
+# the machines and the account this installation uses, never in the repository
+src/pipeline/local.toml
