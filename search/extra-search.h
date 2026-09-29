@@ -68,12 +68,26 @@ namespace QaplaSearch {
 			_thread.join();
 		}
 
-		uint64_t getNodesSearched() {
+		/**
+		 * Nodes of every thread of this search, its own master included
+		 */
+		uint64_t getNodesSearched() const {
 			uint64_t nodes = 0;
 			for (uint32_t index = 0; index < _threads.size(); index++) {
 				nodes += _threads[index].search.getNodesSearched();
 			}
 			return nodes;
+		}
+
+		/**
+		 * Positions every thread of this search answered from the tablebases
+		 */
+		uint64_t getTbHits() const {
+			uint64_t tbHits = 0;
+			for (uint32_t index = 0; index < _threads.size(); index++) {
+				tbHits += _threads[index].search.getTbHits();
+			}
+			return tbHits;
 		}
 
 	private:

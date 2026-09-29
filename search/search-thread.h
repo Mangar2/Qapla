@@ -192,6 +192,7 @@ namespace QaplaSearch {
 		SearchThread& master() { return *_threads[0]; }
 		uint32_t size() const { return uint32_t(_threads.size()); }
 		SearchThread& operator[](uint32_t index) { return *_threads[index]; }
+		const SearchThread& operator[](uint32_t index) const { return *_threads[index]; }
 
 		/**
 		 * Cheap test whether a booking may succeed at all

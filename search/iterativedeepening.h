@@ -33,13 +33,19 @@
 #include "../interface/isendsearchinfo.h"
 #include "tt.h"
 #include "aspirationwindow.h"
+#include "isearch-totals.h"
 
 #include <algorithm>
 #include <memory>
 
 namespace QaplaSearch {
 
-	class IterativeDeepening {
+	/**
+	 * Deepens the search ply by ply. It also answers for the extra searches it owns, see
+	 * ISearchTotals: they count on their own threads and the master reports for the whole
+	 * engine.
+	 */
+	class IterativeDeepening : public ISearchTotals {
 
 	public:
 		IterativeDeepening() { 
@@ -191,9 +197,8 @@ namespace QaplaSearch {
 				extra->stop();
 			}
 			if (!_extraSearches.empty() && _verbose) {
-				uint64_t extraNodes = 0;
-				for (auto& extra : _extraSearches) extraNodes += extra->getNodesSearched();
-				std::cout << "info string extra searches " << _extraSearches.size() << " nodes " << extraNodes << std::endl;
+				std::cout << "info string extra searches " << _extraSearches.size()
+					<< " nodes " << getTotalNodes() << std::endl;
 			}
 
 			// tt.writeToFile("tt.bin");
@@ -243,6 +248,25 @@ namespace QaplaSearch {
 			_search->requestPrintSearchInfo();
 		}
 
+		/**
+		 * Nodes of the extra searches, see ExtraSearch. The master's own threads are not in
+		 * here - it counts them itself.
+		 */
+		uint64_t getTotalNodes() const override {
+			uint64_t nodes = 0;
+			for (const auto& extra : _extraSearches) nodes += extra->getNodesSearched();
+			return nodes;
+		}
+
+		/**
+		 * Positions the extra searches answered from the tablebases
+		 */
+		uint64_t getTotalTbHits() const override {
+			uint64_t tbHits = 0;
+			for (const auto& extra : _extraSearches) tbHits += extra->getTbHits();
+			return tbHits;
+		}
+
 
 	private:
 
@@ -264,6 +288,7 @@ namespace QaplaSearch {
 			const size_t extra = size_t(searches - 1);
 			while (_extraSearches.size() > extra) _extraSearches.pop_back();
 			while (_extraSearches.size() < extra) _extraSearches.push_back(std::make_unique<ExtraSearch>());
+			if (_search) _search->setExtraSearchTotals(_extraSearches.empty() ? nullptr : this);
 		}
 
 		void setUpThreads() {
@@ -272,6 +297,7 @@ namespace QaplaSearch {
 			_search = &_threads.master().search;
 			_search->setSendSearchInfoInterface(_sendSearchInfo, _verbose);
 			_search->setMultiPV(_multiPV);
+			_search->setExtraSearchTotals(_extraSearches.empty() ? nullptr : this);
 		}
 
 		/**

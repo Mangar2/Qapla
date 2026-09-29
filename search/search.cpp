@@ -570,7 +570,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
 		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
-		if (_threads) _computingInfo.setHelperNodes(helperNodes());
+		collectThreadTotals();
 		_computingInfo.printSearchInfo(_clockManager->isTimeToSendNextInfo());
 	}
 	return node.bestValue;
@@ -715,6 +715,25 @@ uint64_t Search::helperNodes() const {
 		nodes += (*_threads)[index].search.getNodesSearched();
 	}
 	return nodes;
+}
+
+uint64_t Search::helperTbHits() const {
+	uint64_t tbHits = 0;
+	for (uint32_t index = 1; index < _threads->size(); index++) {
+		tbHits += (*_threads)[index].search.getTbHits();
+	}
+	return tbHits;
+}
+
+void Search::collectThreadTotals() {
+	if (_threads) {
+		_computingInfo.setHelperNodes(helperNodes());
+		_computingInfo.setHelperTbHits(helperTbHits());
+	}
+	if (_extraSearchTotals) {
+		_computingInfo.setExtraTotals(_extraSearchTotals->getTotalNodes(),
+			_extraSearchTotals->getTotalTbHits());
+	}
 }
 
 bool Search::isSearchStopped() const {
@@ -938,9 +957,10 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, true, depth);
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
-	if (_threads) _computingInfo.setHelperNodes(helperNodes());
+	collectThreadTotals();
 	_computingInfo.printSearchResult();
-	if (_threads && _threads->size() > 1) {
+	// Only the master reports: an extra search writes to the same stream from its own thread
+	if (_isMaster && _threads && _threads->size() > 1) {
 		// Test output while the parallel search is being built
 		const auto elapsed = std::max<int64_t>(1, _computingInfo.getTimeSpentInMilliseconds());
 		std::cout << "info string master waited " << (_waitMicroseconds / 10 / elapsed) << "%"

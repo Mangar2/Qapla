@@ -86,7 +86,10 @@ namespace QaplaSearch {
 			_searchDepth = 0;
 			_nodesSearched = 0;
 			_helperNodes = 0;
+			_extraNodes = 0;
 			_tbHits = 0;
+			_helperTbHits = 0;
+			_extraTbHits = 0;
 			_totalAmountOfMovesToConcider = 0;
 			_currentMoveNoSearched = 0;
 			_positionValueInCentiPawn = 0;
@@ -102,7 +105,10 @@ namespace QaplaSearch {
 			_rootMoves.setMoves(position, searchMoves, butterflyBoard);
 			_nodesSearched = 0;
 			_helperNodes = 0;
+			_extraNodes = 0;
 			_tbHits = 0;
+			_helperTbHits = 0;
+			_extraTbHits = 0;
 			_timeControl.storeStartTime();
 		}
 
@@ -136,7 +142,7 @@ namespace QaplaSearch {
 					_positionValueInCentiPawn,
 					_timeControl.getTimeSpentInMilliseconds(),
 					getTotalNodes(),
-					_tbHits,
+					getTotalTbHits(),
 					_totalAmountOfMovesToConcider - _currentMoveNoSearched - 1,
 					_totalAmountOfMovesToConcider,
 					_currentConcideredMove.getLAN(),
@@ -167,7 +173,7 @@ namespace QaplaSearch {
 					bestValue <= alpha,
 					_timeControl.getTimeSpentInMilliseconds(),
 					getTotalNodes(),
-					_tbHits,
+					getTotalTbHits(),
 					primaryVariant,
 					pvNo);
 			}
@@ -286,17 +292,28 @@ namespace QaplaSearch {
 			return _rootMoves;
 		}
 
-		// Nodes of this thread. The helper threads count their own; the master sets their sum
-		// here before it reports, see setHelperNodes
+		// Nodes and tablebase hits of this thread. Every other thread counts its own; the
+		// master sets their sums here before it reports - the helpers' by setHelperNodes and
+		// setHelperTbHits, the extra searches' by setExtraTotals. Only the sums are reported,
+		// and only they are the figure the node limit is measured against.
 		uint64_t _nodesSearched;
 		uint64_t _helperNodes = 0;
+		uint64_t _extraNodes = 0;
 		uint64_t _tbHits;
+		uint64_t _helperTbHits = 0;
+		uint64_t _extraTbHits = 0;
 
 		void setHelperNodes(uint64_t nodes) { _helperNodes = nodes; }
-		uint64_t getTotalNodes() const { return _nodesSearched + _helperNodes; }
+		void setHelperTbHits(uint64_t tbHits) { _helperTbHits = tbHits; }
+		void setExtraTotals(uint64_t nodes, uint64_t tbHits) {
+			_extraNodes = nodes;
+			_extraTbHits = tbHits;
+		}
+		uint64_t getTotalNodes() const { return _nodesSearched + _helperNodes + _extraNodes; }
+		uint64_t getTotalTbHits() const { return _tbHits + _helperTbHits + _extraTbHits; }
 
 		void print() {
-			cout << "Nodes searched: " << getTotalNodes() << " TB hits: " << _tbHits << endl;
+			cout << "Nodes searched: " << getTotalNodes() << " TB hits: " << getTotalTbHits() << endl;
 			_rootMoves.print();
 		}
 
@@ -331,7 +348,7 @@ namespace QaplaSearch {
 		uint32_t _multiPV;
 		int32_t _debug;
 		bool _excludeFromWhatIf;
-		bool _verbose;
+		bool _verbose = true;
 	};
 
 }

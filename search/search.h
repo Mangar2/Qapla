@@ -33,6 +33,7 @@
 #include "butterfly-boards.h"
 #include "../eval/pawntt.h"
 #include "quiescence.h"
+#include "isearch-totals.h"
 #include "../src/syzygy/tablebase.h"
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
@@ -183,12 +184,40 @@ namespace QaplaSearch {
 		uint64_t getNodesSearched() const {
 			return _computingInfo._nodesSearched;
 		}
+
+		/**
+		 * Positions this thread answered from the tablebases. Read by the master for the info
+		 * lines, so it may lag behind.
+		 */
+		uint64_t getTbHits() const {
+			return _computingInfo._tbHits;
+		}
+
+		/**
+		 * Registers the searches that run beside this one and report through this search, see
+		 * extra-search.h. Set on the master only, null if there are none.
+		 */
+		void setExtraSearchTotals(const ISearchTotals* totals) {
+			_extraSearchTotals = totals;
+		}
 		uint64_t getHelpMicroseconds() const { return _helpMicroseconds; }
 
 		/**
 		 * Nodes the helper threads searched, for the master's reports
 		 */
 		uint64_t helperNodes() const;
+
+		/**
+		 * Tablebase hits of the helper threads, for the master's reports
+		 */
+		uint64_t helperTbHits() const;
+
+		/**
+		 * Takes over what every other thread has counted so far - the helpers' figures and
+		 * those of the extra searches - so that the master reports the whole engine and the
+		 * node limit is measured against it.
+		 */
+		void collectThreadTotals();
 		uint64_t getWaitMicroseconds() const { return _waitMicroseconds; }
 
 	private:
@@ -380,6 +409,8 @@ namespace QaplaSearch {
 		// Master or helper thread, see initAsHelper. Only the master checks the clock, prints
 		// and hands moves to the helper.
 		bool _isMaster = true;
+		// The searches beside this one, see extra-search.h. Only the master has them.
+		const ISearchTotals* _extraSearchTotals = nullptr;
 		SearchThreads* _threads = nullptr;
 		SearchThread* _self = nullptr;
 		// Test output while the parallel search is being built
