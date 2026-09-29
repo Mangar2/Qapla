@@ -1047,16 +1047,27 @@ def step_train(cfg, host_key, step, state):
     out_dir = absolute(repo, step['out_dir'])
     os.makedirs(out_dir, exist_ok=True)
 
-    games = absolute(repo, step['games'])
+    # games may name several files. They are then one corpus, read in the order given, and that order
+    # is part of the experiment: the split into training and validation runs over all of them.
+    wanted = step['games']
+    wanted = [wanted] if isinstance(wanted, str) else list(wanted)
+    sources = step.get('s3_input')
+    sources = [sources] if isinstance(sources, str) else list(sources or [])
+    if sources and len(sources) != len(wanted):
+        raise ValueError(f"{step['id']}: {len(wanted)} game files but {len(sources)} s3_input")
+    games = [absolute(repo, name) for name in wanted]
     t0 = state.begin(step)
-    if not os.path.exists(games):
-        if not step.get('s3_input'):
-            state.fail(step, t0, f'{step["games"]} is not there and no s3_input says where to get it')
+    for number, path in enumerate(games):
+        if os.path.exists(path):
+            continue
+        if not sources:
+            state.fail(step, t0, f'{wanted[number]} is not there and no s3_input says where to get it')
             return False
-        os.makedirs(os.path.dirname(games), exist_ok=True)
-        state.note(f"{step['id']} fetching the game file")
-        if subprocess.call(['aws', 's3', 'cp', step['s3_input'], games, '--only-show-errors']) != 0:
-            state.fail(step, t0, f'could not fetch {step["s3_input"]}')
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        state.note(f"{step['id']} fetching {os.path.basename(path)}")
+        if subprocess.call(['aws', 's3', 'cp', sources[number], path,
+                            '--only-show-errors']) != 0:
+            state.fail(step, t0, f'could not fetch {sources[number]}')
             return False
 
     # torch is a dependency of this step alone. A venv keeps it out of the system python.
@@ -1074,7 +1085,7 @@ def step_train(cfg, host_key, step, state):
                              capture_output=True, text=True)
     state.note(f"{step['id']} torch {version.stdout.strip() or 'missing'}")
 
-    command = [python, 'train.py', os.path.relpath(games, trainer),
+    command = [python, 'train.py'] + [os.path.relpath(path, trainer) for path in games] + [
                '--out', os.path.relpath(out_dir, trainer),
                '--blend-start', str(step['blend_start']), '--blend-end', str(step['blend_end']),
                '--epochs', str(step.get('epochs', 20)), '--patience', str(step.get('patience', 3)),

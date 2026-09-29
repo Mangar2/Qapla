@@ -15,6 +15,12 @@ inside a game, which would otherwise arrive as a hundred nearly identical rows i
 The split into training and validation is over whole games and over a seeded permutation, so two
 game files with the same number of games get the identical split - which is what lets two nets
 trained from the same games with and without the result of the game be compared.
+
+Several files are read as one corpus. Each keeps its own index, and the game ids run through them in
+the order they were named, so the permutation reaches across all of them and a batch holds games from
+every file. That is why the order of the files is part of the experiment: naming them the other way
+round holds different games back. Reading them in place rather than concatenating them keeps each set
+a file of its own, which is what a set trained on alone needs.
 """
 
 import os
@@ -75,6 +81,19 @@ def build_index(path, quiet=False):
     return offsets, lengths, usable
 
 
+def load_indexes(paths):
+    """The indexes of several files as one, plus which file each game came from."""
+    offsets, lengths, usable, source = [], [], [], []
+    for number, path in enumerate(paths):
+        one, two, three = build_index(path)
+        offsets.append(one)
+        lengths.append(two)
+        usable.append(three)
+        source.append(np.full(len(one), number, dtype=np.uint8))
+    return (np.concatenate(offsets), np.concatenate(lengths),
+            np.concatenate(usable), np.concatenate(source))
+
+
 def split_games(count, seed, every):
     """Validation games and training games, over a seeded permutation of whole games.
 
@@ -91,16 +110,17 @@ def split_games(count, seed, every):
 class _Games(torch.utils.data.IterableDataset):
     """Walks its games in a random order and yields whole batches of positions."""
 
-    def __init__(self, path, game_ids, batch_size, seed, buffer=BUFFER_POSITIONS):
-        self.path, self.batch_size, self.seed, self.buffer = path, batch_size, seed, buffer
+    def __init__(self, paths, game_ids, batch_size, seed, buffer=BUFFER_POSITIONS):
+        self.paths, self.batch_size, self.seed, self.buffer = paths, batch_size, seed, buffer
         self.game_ids = np.asarray(game_ids)
-        self.offsets, self.lengths, _ = build_index(path, quiet=True)
+        self.offsets, self.lengths, _, self.source = load_indexes(paths)
         self.epoch = 0
 
-    def _positions_of(self, handle, game_id):
+    def _positions_of(self, handles, game_id):
         """The positions of one game as (own features, opponent features, value code, result)."""
         offset = int(self.offsets[game_id])
         plies = int(self.lengths[game_id])
+        handle = handles[int(self.source[game_id])]
         handle.seek(offset + 1)
         data = handle.read(3 * plies)
         board = fmt.Board()
@@ -129,9 +149,12 @@ class _Games(torch.utils.data.IterableDataset):
         ids = rng.permutation(ids)
         span = float(fmt.MAX_VALUE_CODE - fmt.MIN_VALUE_CODE)
         pool = []
-        with open(self.path, 'rb') as handle:
+        # Every file stays open for the whole epoch: the games arrive in a random order and would
+        # otherwise be reopening a file at every second game.
+        handles = [open(path, 'rb') for path in self.paths]
+        try:
             for game_id in ids:
-                pool += self._positions_of(handle, int(game_id))
+                pool += self._positions_of(handles, int(game_id))
                 if len(pool) < self.buffer:
                     continue
                 rng.shuffle(pool)
@@ -139,6 +162,9 @@ class _Games(torch.utils.data.IterableDataset):
                 for start in range(0, len(pool) - keep, self.batch_size):
                     yield _as_arrays(pool[start:start + self.batch_size], span)
                 pool = pool[len(pool) - keep:] if keep else []
+        finally:
+            for handle in handles:
+                handle.close()
         rng.shuffle(pool)
         for start in range(0, len(pool) - self.batch_size + 1, self.batch_size):
             yield _as_arrays(pool[start:start + self.batch_size], span)
@@ -164,16 +190,18 @@ def _as_arrays(rows, span):
 class GameFile:
     """A game file as a source of batches, with the same shape PositionCache had."""
 
-    def __init__(self, path, batch_size, seed=1, validation_every=100, part='training',
+    def __init__(self, paths, batch_size, seed=1, validation_every=100, part='training',
                  workers=2, buffer=BUFFER_POSITIONS):
-        offsets, lengths, usable = build_index(path)
+        paths = [paths] if isinstance(paths, str) else list(paths)
+        offsets, lengths, usable, _ = load_indexes(paths)
         training, validation = split_games(len(offsets), seed, validation_every)
         ids = training if part == 'training' else validation
-        self.path, self.batch_size, self.workers = path, batch_size, workers
+        self.paths, self.batch_size, self.workers = paths, batch_size, workers
         self.game_count = len(ids)
         self.position_count = int(usable[ids].sum())
-        self.dataset = _Games(path, ids, batch_size, seed, buffer)
-        print(f'{part}: {self.game_count:,} games, {self.position_count:,} positions')
+        self.dataset = _Games(paths, ids, batch_size, seed, buffer)
+        print(f'{part}: {self.game_count:,} games, {self.position_count:,} positions'
+              f'{" over " + str(len(paths)) + " files" if len(paths) > 1 else ""}')
 
     def __len__(self):
         return self.position_count

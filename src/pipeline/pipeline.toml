@@ -381,6 +381,54 @@ patience = 3
 workers = 6
 seed = 1
 validation_every = 100
+done = true
+
+# --------------------------------------------------------------------------- what more games give
+# Set 1 is a million games of hce against itself, set 2 a million of nnue-1 against itself. Two runs
+# answer two different questions, and only together: set 2 alone says what games from a net rather
+# than from the hand written evaluation are worth, and set 1 with set 2 says what twice the games are
+# worth. One without the other cannot tell the two apart.
+#
+# Both without the result of the game, the same recipe set1-nowdl was trained with - that is the best
+# known setting until the tournament of the five percent blend says otherwise, and a second variable
+# would make the comparison useless.
+#
+# On the mac, and one after the other: they share one gpu, and two runs on it would only make both
+# slower and their timings incomparable.
+[[steps]]
+id = "set2-train"
+kind = "train"
+host = "mac"
+doc = "A net from set 2 alone - a million games of nnue-1 against itself."
+games = "test/nnue/dataset/set2-nnue1-self-depth6-nowdl.gam"
+out_dir = "test/nnue/nets-set2"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
+
+# Two files, read as one corpus. The order they are named in is part of the run: the permutation
+# that splits training from validation runs across both of them, so naming them the other way round
+# holds different games back. They are read where they lie rather than copied into one file - set 2
+# is trained on alone as well, and a third copy of the same games would only have to be kept in step.
+[[steps]]
+id = "set12-train"
+kind = "train"
+host = "mac"
+doc = "A net from set 1 and set 2 together, two million games and a random order across both."
+games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set2-nnue1-self-depth6-nowdl.gam"]
+out_dir = "test/nnue/nets-set1-set2"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
 
 # ===========================================================================================
 # The sets as work for the task queue, rather than as steps bound to a machine.

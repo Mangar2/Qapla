@@ -60,7 +60,7 @@ def measure(model, cache, batch_size, device, blend, max_batches=None):
 
 def train(arguments):
     device = pick_device(arguments.device)
-    if arguments.cache.endswith('.gam'):
+    if all(name.endswith('.gam') for name in arguments.cache):
         # Straight out of the packed game file: no prepared cache, the split over whole games and
         # over a seeded permutation, so two files of the same games get the same one.
         cache = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
@@ -70,7 +70,9 @@ def train(arguments):
                               validation_every=arguments.validation_every, part='validation',
                               workers=arguments.workers)
     else:
-        cache = PositionCache(arguments.cache)
+        if len(arguments.cache) != 1:
+            raise SystemExit('several sources are only read as .gam game files')
+        cache = PositionCache(arguments.cache[0])
         validation = PositionCache(arguments.validation) if arguments.validation else None
     model = HalfKaNet().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
@@ -133,7 +135,9 @@ def train(arguments):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('cache', help='a .gam game file, or the prefix of a prepared cache')
+    parser.add_argument('cache', nargs='+',
+                        help='one or more .gam game files, read as one corpus in the order given, '
+                             'or the prefix of a prepared cache')
     parser.add_argument('--seed', type=int, default=1,
                         help='decides the split and the order; the same seed gives the same split')
     parser.add_argument('--validation-every', type=int, default=100,
