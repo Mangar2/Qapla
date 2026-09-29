@@ -11,6 +11,7 @@ key = "<fill in>"
 group = "<fill in>"       # ssh from the control machine only
 profile = "<fill in>"           # may read and write the one bucket, nothing else
 bucket = "<fill in>"
+table = "<fill in>"      # the task table, see src/pipeline/tasks.py
 volume = 100
 pem = "<fill in>"
 
@@ -95,3 +96,24 @@ instance_type = "<fill in>"
 repo = "<fill in>"
 qet = "<fill in>"
 concurrency = 30
+
+# ---------------------------------------------------------------------------- the worker profile
+# One profile for every machine that takes tasks out of the table. They are all the same, which is
+# the point of the queue: no machine is bound to a set or a step any more.
+[worker]
+repo = "<fill in>"
+qet = "<fill in>"
+concurrency = 30           # games at once; 30 on 32 cores, measured
+instance_type = "<fill in>"
+wanted = 1                 # how many workers the supervisor keeps alive while tasks are open
+
+[worker.engines.hce]
+binary = "<fill in>"
+
+[worker.engines.nnue1]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }
+
+[worker.engines.nnue2]
+binary = "<fill in>"
+options = { NnueFile = "<fill in>" }

@@ -358,3 +358,97 @@ patience = 3
 workers = 6
 seed = 1
 validation_every = 100
+
+# ===========================================================================================
+# The sets as work for the task queue, rather than as steps bound to a machine.
+#
+# A worker takes the most urgent open task, does it, hands the result over and takes the next. The
+# rank decides what is most urgent: within a set, labelling before playing, because a set is only
+# useful once it is labelled and the labelling is the long pole. A set with a lower base is worked
+# before the next one, so machines finish one set instead of starting six.
+#
+# The chunk count follows from openings and chunk_openings; the games of a chunk from whether the
+# two engines are the same, since a self play chunk is one game per opening and a pairing of two
+# engines is two.
+
+[[sets]]
+name = "set3"
+doc = "Generation 2 against itself, depth 6, one game per leaf."
+white = "nnue2"
+black = "nnue2"
+play_depth = 6
+label_engine = "hce"
+label_depth = 8
+openings = 1000020
+chunk_openings = 10000
+book = "test/nnue/start-positions-1m.pgn"
+notation = "san"
+wdl = ["result", "none"]
+output = "set3-nnue2-self-depth6"
+base = 0
+
+[[sets]]
+name = "set4"
+doc = "Generation 1 against the hand crafted eval, depth 6, both colours per opening."
+white = "nnue1"
+black = "hce"
+play_depth = 6
+label_engine = "hce"
+label_depth = 8
+openings = 1000020
+chunk_openings = 10000
+book = "test/nnue/start-positions-1m.pgn"
+notation = "san"
+wdl = ["result", "none"]
+output = "set4-nnue1-hce-depth6"
+base = 1000000
+
+[[sets]]
+name = "set5"
+doc = "Generation 2 against the hand crafted eval, depth 6, both colours per opening."
+white = "nnue2"
+black = "hce"
+play_depth = 6
+label_engine = "hce"
+label_depth = 8
+openings = 1000020
+chunk_openings = 10000
+book = "test/nnue/start-positions-1m.pgn"
+notation = "san"
+wdl = ["result", "none"]
+output = "set5-nnue2-hce-depth6"
+base = 2000000
+
+[[sets]]
+name = "set6"
+doc = "The two generations against each other, depth 6, both colours per opening."
+white = "nnue1"
+black = "nnue2"
+play_depth = 6
+label_engine = "hce"
+label_depth = 8
+openings = 1000020
+chunk_openings = 10000
+book = "test/nnue/start-positions-1m.pgn"
+notation = "san"
+wdl = ["result", "none"]
+output = "set6-nnue1-nnue2-depth6"
+base = 3000000
+
+# A set that exists only to try the worker out: three chunks of twenty games, so the whole chain
+# from playing through labelling to converting runs in a couple of minutes.
+[[sets]]
+name = "smoke"
+doc = "Small enough to watch the whole chain once."
+white = "hce"
+black = "hce"
+play_depth = 4
+label_engine = "hce"
+label_depth = 4
+openings = 60
+chunk_openings = 20
+book = "test/nnue/start-positions-1m.pgn"
+notation = "san"
+wdl = ["result", "none"]
+output = "smoke-hce"
+base = 9000000
