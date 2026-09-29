@@ -1158,17 +1158,29 @@ def write_manifest(cfg, host_key, dataset, state):
                 lines.append('Every position carries "none", so this file trains on the values '
                              'alone - the variant that ignores the result of the game.')
             lines.append('')
-        for step in cfg['steps']:
-            if step.get('output') and name.startswith(step['output']):
-                lines.append(f"Made by step `{step['id']}` ({step['kind']}) on `{step['host']}`: "
-                             f"{step.get('doc', '')}")
-                entry = state.data['steps'].get(step['id'], {})
-                if entry.get('seconds'):
-                    lines.append('')
-                    lines.append(f"That step took {entry['seconds'] // 3600}h "
-                                 f"{entry['seconds'] % 3600 // 60}m.")
+        for one in cfg.get('sets', []):
+            if one.get('output') and name.startswith(one['output']):
+                lines.append(f"Made by set `{one['name']}` out of the task queue: "
+                             f"{one.get('doc', '')} {one['white']} against {one['black']} at depth "
+                             f"{one['play_depth']}, labelled by {one['label_engine']} at depth "
+                             f"{one['label_depth']}, {one['openings']:,} openings in chunks of "
+                             f"{one['chunk_openings']:,}. Which machines did the work is in the "
+                             f"table, not here.")
                 lines.append('')
                 break
+        else:
+            # No set describes it, so it comes from the older arrangement of steps bound to machines.
+            for step in cfg['steps']:
+                if step.get('output') and name.startswith(step['output']):
+                    lines.append(f"Made by step `{step['id']}` ({step['kind']}) on "
+                                 f"`{step['host']}`: {step.get('doc', '')}")
+                    entry = state.data['steps'].get(step['id'], {})
+                    if entry.get('seconds'):
+                        lines.append('')
+                        lines.append(f"That step took {entry['seconds'] // 3600}h "
+                                     f"{entry['seconds'] % 3600 // 60}m.")
+                    lines.append('')
+                    break
     path = os.path.join(dataset, 'DATASET.md')
     with open(path, 'w') as f:
         f.write('\n'.join(lines) + '\n')
@@ -1271,10 +1283,21 @@ def command_launch(cfg, args):
         return  # one launch per host is enough: the remote walks its own steps
 
 
+def command_manifest(cfg, args):
+    """Writes DATASET.md for the files that are on this machine now.
+
+    The convert step writes it where it converts. A machine that only received the files - and every
+    machine is supposed to hold them - has no such step to run, so it writes the manifest on its own.
+    """
+    host_key = this_host(cfg, args.host)
+    repo = repo_of(cfg, host_key)
+    write_manifest(cfg, host_key, absolute(repo, 'test/nnue/dataset'), State(repo))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('command', choices=['status', 'run', 'launch', 'smoke'])
+    parser.add_argument('command', choices=['status', 'run', 'launch', 'smoke', 'manifest'])
     parser.add_argument('--only', help='one step id')
     parser.add_argument('--games', type=int, default=200, help='games per playing step in a smoke test')
     parser.add_argument('--host', help='which hosts entry this machine is, when the hostname does not say')
@@ -1282,7 +1305,7 @@ def main():
     args = parser.parse_args()
     cfg = load_config(args.config)
     {'status': command_status, 'run': command_run, 'launch': command_launch,
-     'smoke': command_smoke}[args.command](cfg, args)
+     'smoke': command_smoke, 'manifest': command_manifest}[args.command](cfg, args)
 
 
 if __name__ == '__main__':
