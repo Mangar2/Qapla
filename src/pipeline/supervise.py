@@ -117,7 +117,9 @@ def start_worker(cfg):
     command = ['sh', pl.os.path.join(pl.HERE, 'aws-resume.sh'),
                profile['instance_type'], 'worker']
     note(f'starting a worker ({profile["instance_type"]})')
-    done = subprocess.run(command, capture_output=True, text=True, timeout=2400)
+    # Fifteen minutes is generous for a launch: a minute to the instance, a minute of
+    # bootstrap. Longer than that means it is hanging, not working.
+    done = subprocess.run(command, capture_output=True, text=True, timeout=900)
     for line in (done.stdout or '').splitlines()[-4:]:
         note(f'  {line}')
     if done.returncode != 0:

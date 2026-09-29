@@ -30,6 +30,10 @@ WATCH_COUNT=${4:-}
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 LOCAL="$HERE/local.toml"
+# A spot instance can be taken away in the middle of being set up. Without deadlines an ssh to a
+# machine that is already gone waits for as long as the kernel keeps the socket, and the whole
+# launch hangs - it did, for twenty minutes, while two thirds of the quota stood idle.
+SSH="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4"
 [ -f "$LOCAL" ] || { echo "$LOCAL is missing - copy local.example.toml and fill it in"; exit 1; }
 
 # The image, the key, the group, the role, the bucket: all of them belong to one installation, so
@@ -101,27 +105,38 @@ aws ec2 wait instance-running --region $REGION --instance-ids "$ID"
 IP=$(aws ec2 describe-instances --region $REGION --instance-ids "$ID" \
      --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
 echo "== $ID is up at $IP, waiting for its first boot =="
-until ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i "$PEM" ubuntu@"$IP" \
-      'test -f BOOTSTRAP-DONE' 2>/dev/null; do sleep 10; done
+WAITED=0
+until $SSH -i "$PEM" ubuntu@"$IP" 'test -f BOOTSTRAP-DONE' 2>/dev/null; do
+    sleep 10
+    WAITED=$((WAITED + 10))
+    if [ $WAITED -ge 300 ]; then
+        echo "   it did not come up within five minutes - checking whether it is still there"
+        STATE=$(aws ec2 describe-instances --region $REGION --instance-ids "$ID" \
+                --query 'Reservations[0].Instances[0].State.Name' --output text 2>/dev/null)
+        echo "   $ID is $STATE"
+        exit 3
+    fi
+done
 
 echo "== bringing it to the state a helper needs =="
-ssh -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" 'bash -s' -- "$BUCKET" < "$HERE/bootstrap-instance.sh"
+$SSH -i "$PEM" ubuntu@"$IP" 'bash -s' -- "$BUCKET" < "$HERE/bootstrap-instance.sh"
 
 # local.toml is not in the repository, so it cannot arrive by git pull - it is handed over here.
-scp -q -o StrictHostKeyChecking=no -i "$PEM" "$LOCAL" ubuntu@"$IP":Qapla/src/pipeline/local.toml
+scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i "$PEM" "$LOCAL" \
+    ubuntu@"$IP":Qapla/src/pipeline/local.toml
 
 # "worker" means the machine takes its work out of the table and is bound to nothing; anything else
 # is a host key of the older, machine-bound arrangement. A worker also switches the machine off when
 # the table is empty, which is the cost control: no work, no machine.
 if [ "$HOST" = worker ]; then
     echo "== starting the worker, detached =="
-    ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
+    $SSH -n -i "$PEM" ubuntu@"$IP" \
         "cd ~/Qapla && ( setsid nohup sh -c 'python3 src/pipeline/worker.py \
          >> test/log/worker-run.log 2>&1; sudo shutdown -h now' < /dev/null & ) ; \
          sleep 8; tail -3 test/log/worker-run.log"
 else
     echo "== starting the pipeline, detached =="
-    ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
+    $SSH -n -i "$PEM" ubuntu@"$IP" \
         "cd ~/Qapla && ( setsid nohup python3 src/pipeline/pipeline.py run --host $HOST \
          >> test/log/pipeline-nohup.log 2>&1 < /dev/null & ) ; sleep 8; tail -3 test/log/pipeline.log"
 fi
