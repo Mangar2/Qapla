@@ -93,6 +93,17 @@ chunk_games = 10000
 # apple core does here: 2,385 positions per second at concurrency 31, against 917 at 9 on the mac.
 
 [[steps]]
+id = "set2-nnue1-convert"
+kind = "convert"
+host = "qapla"
+doc = "Generation 1 against itself at depth 6, labelled at depth 8."
+inputs = ["test/nnue/games-nnue1-self-labelled.pgn"]
+dataset_dir = "test/nnue/dataset"
+output = "set2-nnue1-self-depth6"
+wdl = ["result", "none"]
+expect_games = 1000020
+
+[[steps]]
 id = "set1-hce-label-aws"
 kind = "label"
 host = "aws"
