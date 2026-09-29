@@ -84,6 +84,13 @@ while read -r ZONE PRICE; do
          --query 'Instances[0].InstanceId' --output text 2>&1 | tail -1)
     case "$ID" in
         i-*) echo "   started $ID in $ZONE at about $PRICE per hour"; break ;;
+        *MaxSpotInstanceCountExceeded*)
+            # The quota counts the vcpus of every running spot instance in the region together, so
+            # no other zone will help - and a terminating instance still holds its share for a
+            # while. Say so instead of walking through every zone for the same refusal.
+            echo "   the spot vcpu quota of this region is full - another zone will not help."
+            echo "   wait for an instance to release its vcpus, or ask for a higher quota."
+            rm -f "$USERDATA"; exit 2 ;;
         *)   echo "   refused: $(echo "$ID" | cut -c1-120)"; ID="" ;;
     esac
 done <<< "$ZONES"
