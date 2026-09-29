@@ -439,6 +439,104 @@ workers = 6
 seed = 1
 validation_every = 100
 
+# --------------------------------------------------------------------------- the sets, one by one
+# Every net joins the gauntlet on the linux machine when its training ends, against the same hce and
+# beside the ones already there - see src/pipeline/join-gauntlet.py. That is what makes the series
+# readable: one figure per set, all against the same opponent in one table.
+#
+# The pairs of runs are the point. A set alone says what its games are worth, the same set together
+# with set 1 says what they add to what was already there, and only the two together separate the
+# worth of the games from the worth of their number.
+#
+# All of them without the result of the game, the recipe of set1-nowdl, so the games are the only
+# thing that differs between them.
+
+[[steps]]
+id = "set3-train"
+kind = "train"
+host = "mac"
+doc = "A net from set 3 alone - generation 2 against itself."
+games = "test/nnue/dataset/set3-nnue2-self-depth6-nowdl.gam"
+out_dir = "test/nnue/nets-set3"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
+
+[[steps]]
+id = "set123-train"
+kind = "train"
+host = "mac"
+doc = "Set 1, 2 and 3 as one corpus - hce self play and two generations of net self play."
+games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set2-nnue1-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set3-nnue2-self-depth6-nowdl.gam"]
+out_dir = "test/nnue/nets-set1-set2-set3"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
+
+# Set 4 is the first mixed set: a net against the hand written evaluation rather than against
+# itself. The expectation to be tested is that such games are worth more per position, because each
+# side drives the other into positions it does not know - two engines that share an evaluation avoid
+# the same things and never reach them. Set 2 against set 4 isolates that: same size, same labelling,
+# same net on one side, only the pairing differs.
+[[steps]]
+id = "set4-train"
+kind = "train"
+host = "mac"
+doc = "A net from set 4 alone - generation 1 against the hand written evaluation, both colours per opening."
+games = "test/nnue/dataset/set4-nnue1-hce-depth6-nowdl.gam"
+out_dir = "test/nnue/nets-set4"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
+
+[[steps]]
+id = "set14-train"
+kind = "train"
+host = "mac"
+doc = "Set 1 and set 4 - the mixed games on top of hce self play."
+games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set4-nnue1-hce-depth6-nowdl.gam"]
+out_dir = "test/nnue/nets-set1-set4"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
+
+[[steps]]
+id = "set1234-train"
+kind = "train"
+host = "mac"
+doc = "All four sets as one corpus."
+games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set2-nnue1-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set3-nnue2-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set4-nnue1-hce-depth6-nowdl.gam"]
+out_dir = "test/nnue/nets-set1-set2-set3-set4"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 3
+workers = 6
+seed = 1
+validation_every = 100
+
 # ===========================================================================================
 # The sets as work for the task queue, rather than as steps bound to a machine.
 #
