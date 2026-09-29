@@ -507,18 +507,36 @@ both stopped by their own held-back loss at epoch 8, then a round robin of 1000 
 **Without the result is 79 Elo better**, and head to head over 1000 games it is 463 wins to 232 with
 305 draws, 61.6 %. The error bars are 13 and 14, so this is not a fluctuation.
 
-Set 1 is the hand crafted eval playing itself at depth 6, and the result of such a game says little
-about any single position in it: the label of a position is a depth 8 search, which is a statement
-about that position, while the result is a statement about the whole game and mostly about which
-side happened to blunder later. Blending the two pulls the net away from the label it can actually
-learn.
+### Where it does not come from
 
-The held-back losses said nothing about this: 0.005824 with the result and 0.001903 without. They are
-not comparable, because one of them contains the result term and the other does not - a smaller
-number there is not a better net. The tournament is what decided, which is the rule this project
-runs on.
+Volker found 79 Elo too large to be a property of the data and asked for the whole path to be
+audited. It was, and nothing in it is wrong:
 
-It is also a correction of something I argued for earlier in the work: that the result of the game
-should always go into the training, because variance heals with data while bias does not. For this
-data set that is wrong, and the reason it is wrong is not variance but what the result is a statement
-about.
+- **The result is on the right perspective.** Over 2.8 million positions the mean value is 0.5058
+  and the mean result 0.5014, their correlation is 0.7386, and the result rises monotonically with
+  the value: 0.004 where the search says 0.00-0.10, 0.492 at 0.45-0.55, 0.996 at 0.90-1.00. Split by
+  ply the result is 0.500 everywhere. A turned sign would be plain in any of those numbers.
+- **The loss masks correctly.** `weight = blend + (1-blend)*(1-counts)`, so at counts = 0 the weight
+  is one and the result falls out entirely - the variant without it trains on the value alone.
+- **Nothing is clipped by the quantization**, in either net, and no weight sits at the clamp that
+  keeps them inside a signed byte: 2 of 16,384 above 90 % of it in one net, none in the other.
+
+And one explanation that looked good and is wrong. I argued the noise of the result cannot average
+out because 87.7 % of positions occur only once. Volker pointed out that the averaging unit is not
+the position but the weight - a feature is piece by square by own king square, and every position
+holding that feature acts on its weights. Measured over the set: the median used feature is touched
+by 7,425 positions, the tenth percentile by 555, and features with fewer than a hundred hits carry
+under one percent of all activations. A deviation of 0.1 over 7,425 samples is 0.0012. The noise
+does average out, and it cannot account for 79 Elo.
+
+### What it does come from, as far as it is measured
+
+The nets predict the search value differently well. Mean square error against the value, on the same
+held-back games and the same metric for both: **0.005802 with the result, 0.004463 without** - 30 %
+worse. So the result term is not merely noisy, it is a different target, and in a net this small -
+256 accumulator, 32 hidden - it competes for capacity with the one that matters. A larger net would
+pay less for it.
+
+That is a measurement, not yet an explanation. What would separate a question of dosage from one of
+capacity is a run at `blend 0.95`, five percent result instead of twenty to thirty: if the damage
+scales with the weight it is dosage, and if it stays it is capacity.
