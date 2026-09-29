@@ -255,6 +255,8 @@ dataset_dir = "test/nnue/dataset"
 id = "set5-play"
 kind = "play"
 host = "aws5"
+# Taken over by the queue on 29.09.2026 after the machine was reclaimed.
+done = true
 doc = "nnue2 against hce, depth 6, both colours per opening."
 white = "nnue2"
 black = "hce"
@@ -271,6 +273,8 @@ notation = "san"
 id = "set5-label"
 kind = "label"
 host = "aws5"
+# Taken over by the queue on 29.09.2026 after the machine was reclaimed.
+done = true
 doc = "Every position of set 5 searched to depth 8 by the hand crafted eval, not by a net."
 engine = "hce"
 depth = 8
@@ -285,6 +289,8 @@ s3_results = "set5/labelled"
 id = "set5-convert"
 kind = "convert"
 host = "aws5"
+# Taken over by the queue on 29.09.2026 after the machine was reclaimed.
+done = true
 doc = "nnue2 against hce at depth 6, labelled at depth 8."
 inputs = ["test/nnue/set5-labelled/chunk-*.pgn"]
 dataset_dir = "test/nnue/dataset"
@@ -304,6 +310,8 @@ s3_results = "set5/dataset"
 id = "set6-play"
 kind = "play"
 host = "aws6"
+# Taken over by the queue on 29.09.2026 after the machine was reclaimed.
+done = true
 doc = "nnue1 against nnue2, depth 6, both colours per opening."
 white = "nnue1"
 black = "nnue2"
@@ -320,6 +328,8 @@ notation = "san"
 id = "set6-label"
 kind = "label"
 host = "aws6"
+# Taken over by the queue on 29.09.2026 after the machine was reclaimed.
+done = true
 doc = "Every position of set 6 searched to depth 8 by the hand crafted eval, not by a net."
 engine = "hce"
 depth = 8
@@ -334,6 +344,8 @@ s3_results = "set6/labelled"
 id = "set6-convert"
 kind = "convert"
 host = "aws6"
+# Taken over by the queue on 29.09.2026 after the machine was reclaimed.
+done = true
 doc = "nnue1 against nnue2 at depth 6, labelled at depth 8."
 inputs = ["test/nnue/set6-labelled/chunk-*.pgn"]
 dataset_dir = "test/nnue/dataset"
