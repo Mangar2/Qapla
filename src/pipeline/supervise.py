@@ -112,21 +112,27 @@ def adopt_orphans(cfg, table, running):
 
 # ------------------------------------------------------------------------- keeping workers
 
-def start_worker(cfg):
+def start_worker(cfg, log_path):
+    """Brings up one worker, and says what happened while it happens.
+
+    Written straight into the log rather than captured: a launch takes about three minutes, and
+    capturing its output meant the log said nothing from the line that announced it until it was
+    over - which looked exactly like a supervisor that had died. Bounded at eight minutes, because a
+    launch that takes longer is hanging and must not hold up the rest of the pass.
+    """
     profile = cfg['worker']
     command = ['sh', pl.os.path.join(pl.HERE, 'aws-resume.sh'),
                profile['instance_type'], 'worker']
-    note(f'starting a worker ({profile["instance_type"]})')
-    # Fifteen minutes is generous for a launch: a minute to the instance, a minute of
-    # bootstrap. Longer than that means it is hanging, not working.
-    done = subprocess.run(command, capture_output=True, text=True, timeout=900)
-    for line in (done.stdout or '').splitlines()[-4:]:
-        note(f'  {line}')
-    if done.returncode != 0:
-        for line in (done.stderr or '').splitlines()[-3:]:
-            note(f'  {line}')
-        note(f'the resume script failed, exit {done.returncode}')
-    return done.returncode == 0
+    note(f'starting a worker ({profile["instance_type"]}) - output follows')
+    try:
+        with open(log_path, 'a') as log:
+            code = subprocess.call(command, stdout=log, stderr=subprocess.STDOUT,
+                                   stdin=subprocess.DEVNULL, timeout=480)
+    except subprocess.TimeoutExpired:
+        note('the launch did not finish within eight minutes - giving up on it for this pass')
+        return False
+    note(f'the launch ended with {code}')
+    return code == 0
 
 
 def count_workers(cfg):
@@ -144,7 +150,7 @@ def count_workers(cfg):
         return 0
 
 
-def keep_workers(cfg, table):
+def keep_workers(cfg, table, log_path):
     """As many workers as the profile asks for, while there is open work."""
     left = table.summary()['pieces left']
     have = count_workers(cfg)
@@ -157,17 +163,20 @@ def keep_workers(cfg, table):
         return
     note(f'{left} pieces left, {have} of {wanted} workers running')
     for _ in range(wanted - have):
-        if not start_worker(cfg):
-            return          # the quota is full or no zone has capacity - try again next time
+        if not start_worker(cfg, log_path):
+            break           # the quota is full or no zone has capacity - try again next pass
+    # Counted again, not assumed: the whole point of this function is how many are actually there,
+    # and every time I have taken that on trust today it was wrong.
+    note(f'after this pass: {count_workers(cfg)} of {wanted} workers running')
 
 
-def look(cfg):
+def look(cfg, log_path):
     table = tk.Tasks(cfg)
     running = st.instances(cfg)
     alive = {entry['Id'] for entry in running.values()}
     give_back_lost(cfg, table, alive)
     adopt_orphans(cfg, table, running)
-    keep_workers(cfg, table)
+    keep_workers(cfg, table, log_path)
     note(f'table: {table.summary()}')
 
 
@@ -175,13 +184,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--every', type=int, default=0)
+    parser.add_argument('--log', default='test/log/supervise.log',
+                        help='where a launch writes its own output, so a pass is never silent')
     parser.add_argument('--config', default=pl.CONFIG)
     parser.add_argument('--local', default=pl.LOCAL)
     arguments = parser.parse_args()
     cfg = pl.load_config(arguments.config, arguments.local)
     while True:
         try:
-            look(cfg)
+            look(cfg, arguments.log)
         except Exception as error:
             note(f'look failed: {error}')
         if not arguments.every:
