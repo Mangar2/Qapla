@@ -52,12 +52,13 @@ mkdir -p ~/bin && ln -sf "$TESTER/build-rel/qapla-engine-tester" ~/bin/qet
 
 # Gitignored, so absent after a clone - and the tester refuses to start without its log path.
 cd "$QAPLA"
-mkdir -p test/log test/epd/log test/clop/log test/nnue/nets
+mkdir -p test/log test/epd/log test/clop/log test/nnue/nets test/nnue/nets2
 
 # Data is not source and does not come through github.
 aws s3 cp $BUCKET/data/wmtest.epd test/epd/wmtest.epd --only-show-errors
 aws s3 cp $BUCKET/data/start-positions-1m.pgn test/nnue/start-positions-1m.pgn --only-show-errors
 aws s3 cp $BUCKET/data/net-epoch20.nnue test/nnue/nets/net-epoch20.nnue --only-show-errors
+aws s3 cp $BUCKET/data/net-epoch05.nnue test/nnue/nets2/net-epoch05.nnue --only-show-errors
 
 # The net has to load, the incremental accumulator has to agree with a full refresh, and there has
 # to be a vector path. Anything else costs a factor and is invisible later.

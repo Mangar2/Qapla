@@ -2,7 +2,10 @@
 # Brings up a spot instance and lets it carry on where the last one stopped. Nothing here is done
 # by hand, because everything here went wrong by hand at least once on 28.09.2026.
 #
-#   sh src/pipeline/aws-resume.sh <instance type> [<s3 prefix to finish> <object count>]
+#   sh src/pipeline/aws-resume.sh <instance type> <host key> [<s3 prefix to finish> <object count>]
+#
+# The host key is the hosts entry in pipeline.toml whose steps this instance is to run. Every
+# instance gets its own - aws, aws5, aws6 - so two of them never reach for the same step.
 #
 # Choosing the instance type is the one decision left outside - it depends on what the work is and
 # on what the spot quota allows. Everything else follows from it:
@@ -20,9 +23,10 @@
 # The pipeline picks up by itself: a chunk whose result is already in s3 is skipped, so a replacement
 # loses at most the chunk the reclaimed instance had in flight.
 set -e
-TYPE=${1:?usage: aws-resume.sh <instance type> [<s3 prefix> <object count>]}
-WATCH_PREFIX=${2:-}
-WATCH_COUNT=${3:-}
+TYPE=${1:?usage: aws-resume.sh <instance type> <host key> [<s3 prefix> <object count>]}
+HOST=${2:?which hosts entry of pipeline.toml this instance serves}
+WATCH_PREFIX=${3:-}
+WATCH_COUNT=${4:-}
 
 REGION=us-east-1
 IMAGE=<IMAGE>          # Ubuntu 24.04 arm64 with clang 18, cmake, ninja
@@ -69,7 +73,7 @@ while read -r ZONE PRICE; do
          --block-device-mappings "[{\"DeviceName\":\"/dev/sda1\",\"Ebs\":{\"VolumeSize\":$VOLUME,\"VolumeType\":\"gp3\",\"DeleteOnTermination\":true}}]" \
          --instance-market-options "{\"MarketType\":\"spot\",\"SpotOptions\":{\"MaxPrice\":\"$BID\",\"SpotInstanceType\":\"one-time\"}}" \
          --user-data "file://$USERDATA" \
-         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=qapla-resume}]" \
+         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=qapla-$HOST}]" \
          --query 'Instances[0].InstanceId' --output text 2>&1 | tail -1)
     case "$ID" in
         i-*) echo "   started $ID in $ZONE at about $PRICE per hour"; break ;;
@@ -91,7 +95,7 @@ ssh -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" 'bash -s' < "$HERE/bootst
 
 echo "== starting the pipeline, detached =="
 ssh -n -o StrictHostKeyChecking=no -i "$PEM" ubuntu@"$IP" \
-    "cd ~/Qapla && ( setsid nohup python3 src/pipeline/pipeline.py run --host aws \
+    "cd ~/Qapla && ( setsid nohup python3 src/pipeline/pipeline.py run --host $HOST \
      >> test/log/pipeline-nohup.log 2>&1 < /dev/null & ) ; sleep 8; tail -3 test/log/pipeline.log"
 
 if [ -n "$WATCH_PREFIX" ] && [ -n "$WATCH_COUNT" ]; then

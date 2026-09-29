@@ -293,3 +293,136 @@ host = "mac"
 to = "qapla"
 doc = "The dataset directory to the linux machine again, now with set 3 in it."
 dataset_dir = "test/nnue/dataset"
+
+# The instance that plays and labels set 5. Its own host key, so the three aws
+# instances never reach for the same step.
+[hosts.aws5]
+repo = "<INSTANCE-REPO>"
+qet = "~/bin/qet"
+concurrency = 30
+
+[hosts.aws5.engines.hce]
+binary = "new-versions/Qapla-hce"
+
+[hosts.aws5.engines.nnue1]
+binary = "new-versions/Qapla-nnue"
+options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
+
+[hosts.aws5.engines.nnue2]
+binary = "new-versions/Qapla-nnue"
+options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
+
+# The instance that plays and labels set 6.
+[hosts.aws6]
+repo = "<INSTANCE-REPO>"
+qet = "~/bin/qet"
+concurrency = 30
+
+[hosts.aws6.engines.hce]
+binary = "new-versions/Qapla-hce"
+
+[hosts.aws6.engines.nnue1]
+binary = "new-versions/Qapla-nnue"
+options = { NnueFile = "test/nnue/nets/net-epoch20.nnue" }
+
+[hosts.aws6.engines.nnue2]
+binary = "new-versions/Qapla-nnue"
+options = { NnueFile = "test/nnue/nets2/net-epoch05.nnue" }
+
+# --------------------------------------------------------------------------- set 5: nnue2 vs hce
+# A pairing of two different engines, so every opening is played twice with the colours swapped:
+# 2,000,040 games from 1,000,020 leaves. The result of a game between engines of different strength
+# says something about the players and not about the positions, so the packed file is written with
+# the result and without it, and the training uses the variant without - set 1 measured 79 Elo
+# between the two, see generated-data.md.
+
+[[steps]]
+id = "set5-play"
+kind = "play"
+host = "aws5"
+doc = "nnue2 against hce, depth 6, both colours per opening."
+white = "nnue2"
+black = "hce"
+depth = 6
+openings = 1000020
+games = 2000040
+chunk_openings = 10000
+book = "test/nnue/start-positions-1m.pgn"
+output_dir = "test/nnue/set5-played"
+s3_results = "s3://<BUCKET>/set5/played"
+notation = "san"
+
+[[steps]]
+id = "set5-label"
+kind = "label"
+host = "aws5"
+doc = "Every position of set 5 searched to depth 8 by the hand crafted eval, not by a net."
+engine = "hce"
+depth = 8
+input = "unused - the chunks come from s3"
+chunk_dir = "test/nnue/set5-played"
+output_dir = "test/nnue/set5-labelled"
+output_per_chunk = true
+s3_chunks = "s3://<BUCKET>/set5/played"
+s3_results = "s3://<BUCKET>/set5/labelled"
+
+[[steps]]
+id = "set5-convert"
+kind = "convert"
+host = "aws5"
+doc = "nnue2 against hce at depth 6, labelled at depth 8."
+inputs = ["test/nnue/set5-labelled/chunk-*.pgn"]
+dataset_dir = "test/nnue/dataset"
+output = "set5-nnue2-hce-depth6"
+wdl = ["result", "none"]
+expect_games = 2000040
+s3_results = "s3://<BUCKET>/set5/dataset"
+
+# --------------------------------------------------------------------------- set 6: nnue1 vs nnue2
+# A pairing of two different engines, so every opening is played twice with the colours swapped:
+# 2,000,040 games from 1,000,020 leaves. The result of a game between engines of different strength
+# says something about the players and not about the positions, so the packed file is written with
+# the result and without it, and the training uses the variant without - set 1 measured 79 Elo
+# between the two, see generated-data.md.
+
+[[steps]]
+id = "set6-play"
+kind = "play"
+host = "aws6"
+doc = "nnue1 against nnue2, depth 6, both colours per opening."
+white = "nnue1"
+black = "nnue2"
+depth = 6
+openings = 1000020
+games = 2000040
+chunk_openings = 10000
+book = "test/nnue/start-positions-1m.pgn"
+output_dir = "test/nnue/set6-played"
+s3_results = "s3://<BUCKET>/set6/played"
+notation = "san"
+
+[[steps]]
+id = "set6-label"
+kind = "label"
+host = "aws6"
+doc = "Every position of set 6 searched to depth 8 by the hand crafted eval, not by a net."
+engine = "hce"
+depth = 8
+input = "unused - the chunks come from s3"
+chunk_dir = "test/nnue/set6-played"
+output_dir = "test/nnue/set6-labelled"
+output_per_chunk = true
+s3_chunks = "s3://<BUCKET>/set6/played"
+s3_results = "s3://<BUCKET>/set6/labelled"
+
+[[steps]]
+id = "set6-convert"
+kind = "convert"
+host = "aws6"
+doc = "nnue1 against nnue2 at depth 6, labelled at depth 8."
+inputs = ["test/nnue/set6-labelled/chunk-*.pgn"]
+dataset_dir = "test/nnue/dataset"
+output = "set6-nnue1-nnue2-depth6"
+wdl = ["result", "none"]
+expect_games = 2000040
+s3_results = "s3://<BUCKET>/set6/dataset"
