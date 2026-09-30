@@ -22,6 +22,7 @@ enough.
 """
 
 import argparse
+import os
 import time
 
 import torch
@@ -58,6 +59,37 @@ def measure(model, cache, batch_size, device, blend, max_batches=None):
     return total / max(1, batches)
 
 
+def take_up(model, optimizer, out, device):
+    """Continues from the newest checkpoint in out: which epoch comes next and where the rule stood.
+
+    A training cannot be split into pieces, so on a machine that may be taken away it has to be able
+    to carry on. Without this a reclaimed spot instance started again at epoch one - seven times in
+    three and a half hours once, each attempt overwriting the nets of the one before.
+
+    An old checkpoint holds the weights alone. It is accepted, and the run goes on from the epoch its
+    name gives, but Adam starts with empty moments and the stopping rule starts over: what it does not
+    know it cannot restore, and saying so is better than pretending otherwise.
+    """
+    kept = sorted(f for f in os.listdir(out) if f.startswith('net-epoch') and f.endswith('.pt'))
+    if not kept:
+        print('--resume: nothing to take up in %s, starting at epoch 1' % out, flush=True)
+        return 1, float('inf'), 0, 0
+    path = os.path.join(out, kept[-1])
+    held = torch.load(path, map_location=device, weights_only=False)
+    if not isinstance(held, dict) or 'model' not in held:
+        epoch = int(kept[-1][len('net-epoch'):-len('.pt')])
+        model.load_state_dict(held)
+        print('--resume: %s holds the weights only - going on at epoch %d, with the optimizer and '
+              'the stopping rule starting over' % (kept[-1], epoch + 1), flush=True)
+        return epoch + 1, float('inf'), 0, 0
+    model.load_state_dict(held['model'])
+    optimizer.load_state_dict(held['optimizer'])
+    print('--resume: %s, going on at epoch %d, best so far epoch %d at %.6f, %d epochs without an '
+          'improvement' % (kept[-1], held['epoch'] + 1, held['bestEpoch'], held['bestLoss'],
+                           held['since']), flush=True)
+    return held['epoch'] + 1, held['bestLoss'], held['bestEpoch'], held['since']
+
+
 def train(arguments):
     device = pick_device(arguments.device)
     if all(name.endswith('.gam') for name in arguments.cache):
@@ -83,8 +115,11 @@ def train(arguments):
         print('%d positions held back for validation, measured at blend %.2f'
               % (len(validation), arguments.blend_end))
     bestLoss, bestEpoch, since = float('inf'), 0, 0
+    first = 1
+    if arguments.resume:
+        first, bestLoss, bestEpoch, since = take_up(model, optimizer, arguments.out, device)
 
-    for epoch in range(1, arguments.epochs + 1):
+    for epoch in range(first, arguments.epochs + 1):
         # The blend walks from the first value to the second over the run: follow
         # the search first, then let the results of the games correct it.
         blend = arguments.blend_start + (arguments.blend_end - arguments.blend_start) \
@@ -106,7 +141,14 @@ def train(arguments):
                       % (epoch, seen, batches, total / seen,
                          seen * arguments.batch_size / (time.time() - start)), flush=True)
         trained = total / max(1, seen)
-        torch.save(model.state_dict(), '%s/net-epoch%02d.pt' % (arguments.out, epoch))
+        # The checkpoint carries the optimizer and the stopping rule as well as the weights, so that
+        # --resume continues the run rather than starting a similar one. Adam's moments are part of
+        # the state: without them the first epoch after a resume takes a different step than it would
+        # have, and the run is no longer the run it claims to continue.
+        torch.save({'epoch': epoch, 'model': model.state_dict(),
+                    'optimizer': optimizer.state_dict(), 'bestLoss': bestLoss,
+                    'bestEpoch': bestEpoch, 'since': since},
+                   '%s/net-epoch%02d.pt' % (arguments.out, epoch))
         export.export(model, '%s/net-epoch%02d.nnue' % (arguments.out, epoch))
         if validation is None:
             print('epoch %d done, blend %.2f, loss %.6f, %.0f s'
@@ -123,6 +165,10 @@ def train(arguments):
               % (epoch, blend, trained, held, ' (best)' if improved else
                  ' (%d epochs without an improvement)' % since, time.time() - start),
               flush=True)
+        torch.save({'epoch': epoch, 'model': model.state_dict(),
+                    'optimizer': optimizer.state_dict(), 'bestLoss': bestLoss,
+                    'bestEpoch': bestEpoch, 'since': since},
+                   '%s/net-epoch%02d.pt' % (arguments.out, epoch))
         if since >= arguments.patience:
             print('stopping: the loss on the games it does not train on has not improved '
                   'for %d epochs. Epoch %d was the best of them at %.6f.'
@@ -157,6 +203,8 @@ if __name__ == '__main__':
                              '--validation-every writes it')
     parser.add_argument('--patience', type=int, default=3,
                         help='epochs without an improvement on it before stopping')
+    parser.add_argument('--resume', action='store_true',
+                        help='carry on from the newest checkpoint in --out instead of starting over')
     parser.add_argument('--device', default='auto')
     parser.add_argument('--report-every', type=int, default=50)
     train(parser.parse_args())
