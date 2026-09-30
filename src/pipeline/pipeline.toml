@@ -513,6 +513,11 @@ validation_every = 100
 
 [[steps]]
 id = "set14-train"
+# Left out by decision on 30.09.2026, never run: the four set corpus comes straight
+# after set 4 alone. Set 1 with set 4 would have said what the mixed games add to hce
+# self play, but the three source runs already say that much, and a training costs
+# hours that the larger corpus is worth more.
+done = true
 kind = "train"
 host = "mac"
 doc = "Set 1 and set 4 - the mixed games on top of hce self play."
