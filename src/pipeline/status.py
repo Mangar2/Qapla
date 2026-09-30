@@ -157,6 +157,16 @@ def report(cfg):
     print(flush=True)
 
 
+def tournament_line(cfg, host, ip):
+    """What a machine that plays a tournament rather than a pipeline step is doing."""
+    answer = ask(cfg, host, ip, 'pgrep -x qet >/dev/null && ls -t test/log/*-run.log 2>/dev/null '
+                                '| head -1 | xargs -r tail -1 || echo "no qet running"')
+    if not answer:
+        return None
+    line = answer.strip().splitlines()[-1]
+    return f'tournament: {line[:150]}'
+
+
 def own_work(cfg, running, known=True):
     """The machines that carry a job of their own rather than take one out of the queue.
 
@@ -178,9 +188,13 @@ def own_work(cfg, running, known=True):
         ip = entries[0].get('Ip') if entries else None
         where = f'{entries[0]["Id"]} {entries[0]["Type"]}' if entries else host.get('ssh', 'local')
         line, age = last_line(cfg, host, ip, 'test/log/pipeline.log')
+        if not line:
+            # No pipeline log. The machine may still be busy with something else - the tournament
+            # machine is, and had nothing to say here for a whole morning because of it.
+            line, age = tournament_line(cfg, host, ip), None
         stale = '   <-- QUIET' if age is not None and age > 3600 else ''
         print(f'  {key:6} {where}')
-        print(f'    {line or "no pipeline log there - it may be carrying work of another kind"}')
+        print(f'    {line or "nothing to report"}')
         if line:
             print(f'    written {since(age)}{stale}')
 
