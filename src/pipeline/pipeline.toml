@@ -498,6 +498,12 @@ validation_every = 100
 # same net on one side, only the pairing differs.
 [[steps]]
 id = "set4-train"
+# Stopped by hand on 30.09.2026 after epoch 12, and not measured further. Its epoch 8
+# scored 35.85 % against hce over a thousand games - the level of set1-nowdl, the
+# weakest group, while set 1 to 3 together score 62.23 %. Set 4 alone was never going
+# to reach that, and the hours are worth more spent on the four set corpus. What the
+# mixed games are worth is a question for set1234-train, not for this run.
+done = true
 kind = "train"
 host = "mac"
 doc = "A net from set 4 alone - generation 1 against the hand written evaluation, both colours per opening."
