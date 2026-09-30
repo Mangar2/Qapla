@@ -96,6 +96,9 @@ def main():
     parser.add_argument('--nets', required=True, help='the directory the training wrote its nets to')
     parser.add_argument('--name', required=True, help='the name this engine plays under')
     parser.add_argument('--log', default='', help='the training log, for the best epoch')
+    parser.add_argument('--net', default='', help='a net file to take instead of the best epoch - for '
+                                                 'putting an early epoch into the tournament while '
+                                                 'the training is still running')
     parser.add_argument('--host', default='qapla', help='which hosts entry runs the tournament')
     parser.add_argument('--state', default='test/log/strength-gauntlet.state')
     parser.add_argument('--concurrency', type=int, default=14)
@@ -109,7 +112,10 @@ def main():
     nnue = f'{repo}/new-versions/Qapla-blendtest-nnue'
     net_there = f'{repo}/test/nnue/{args.name}-best.nnue'
 
-    net, why = best_net(args.nets, args.log)
+    if args.net:
+        net, why = args.net, f'named on the call: {args.net}'
+    else:
+        net, why = best_net(args.nets, args.log)
     print(f'== {why}')
     print(f'== {net}, {os.path.getsize(net):,} bytes -> {there}:{net_there}')
     run(['scp', '-q', net, f'{there}:{net_there}'], 'the copy')
