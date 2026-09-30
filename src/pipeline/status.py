@@ -157,6 +157,55 @@ def report(cfg):
     print(flush=True)
 
 
+GATE = 200
+GATE_GAMES = 800
+
+
+def standings(cfg, host, ip):
+    """The table of the tournament that machine is playing, and the verdict on every early epoch.
+
+    An engine whose name ends in -e2 is the second epoch of a training that is still running, put into
+    the tournament to decide early whether the run is worth finishing. More than GATE Elo behind the
+    leader and it is not: the second epoch of the best run so far was 65 behind, the second epoch of
+    the weakest was 224, and that weakest run went on to produce the weakest net in the field. The
+    held back loss cannot do this job - those two runs had the identical loss after two epochs.
+
+    Below GATE_GAMES games the figure is too soft to act on; qet reports about +/- 20 at a thousand.
+    """
+    newest = ask(cfg, host, ip, 'ls -t test/log/tournament-report-*.log 2>/dev/null | head -1')
+    if not newest:
+        return
+    table = ask(cfg, host, ip, f'grep -n "Rank | Name" {newest.strip()} | tail -1 | cut -d: -f1 '
+                               f'| xargs -I@ sed -n "@,+14p" {newest.strip()}')
+    if not table:
+        return
+    rows = []
+    for line in table.splitlines():
+        parts = [piece.strip() for piece in line.split('|')]
+        if len(parts) >= 6 and parts[0].isdigit():
+            try:
+                rows.append((parts[1], float(parts[2]), int(parts[4])))
+            except ValueError:
+                continue
+    if not rows:
+        return
+    print('    the tournament there:')
+    for name, elo, games in rows:
+        print(f'      {name:24} {elo:8.1f} {games:7} games')
+    best = max(elo for _, elo, _ in rows)
+    for name, elo, games in rows:
+        if not name.endswith('-e2'):
+            continue
+        gap = best - elo
+        if games < GATE_GAMES:
+            verdict = f'{games} games, too few to judge - {GATE_GAMES} needed'
+        elif gap > GATE:
+            verdict = f'ABORT its training: {gap:.0f} Elo behind the leader, more than {GATE}'
+        else:
+            verdict = f'let it run: {gap:.0f} Elo behind the leader'
+        print(f'      -> {name}: {verdict}')
+
+
 def tournament_line(cfg, host, ip):
     """What a machine that plays a tournament rather than a pipeline step is doing."""
     answer = ask(cfg, host, ip, 'pgrep -x qet >/dev/null && ls -t test/log/*-run.log 2>/dev/null '
@@ -188,15 +237,18 @@ def own_work(cfg, running, known=True):
         ip = entries[0].get('Ip') if entries else None
         where = f'{entries[0]["Id"]} {entries[0]["Type"]}' if entries else host.get('ssh', 'local')
         line, age = last_line(cfg, host, ip, 'test/log/pipeline.log')
-        if not line:
+        playing = not line
+        if playing:
             # No pipeline log. The machine may still be busy with something else - the tournament
             # machine is, and had nothing to say here for a whole morning because of it.
             line, age = tournament_line(cfg, host, ip), None
         stale = '   <-- QUIET' if age is not None and age > 3600 else ''
         print(f'  {key:6} {where}')
         print(f'    {line or "nothing to report"}')
-        if line:
+        if line and age is not None:
             print(f'    written {since(age)}{stale}')
+        if playing:
+            standings(cfg, host, ip)
 
 
 def main():
