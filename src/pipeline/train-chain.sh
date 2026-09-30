@@ -22,6 +22,16 @@ say() { echo "=== $(date '+%Y-%m-%d %H:%M:%S') $*"; }
 # id, nets directory, the name it plays under
 train_and_join() {
     ID=$1; NETS=$2; NAME=$3
+    # A step marked done in the configuration is not run - and then its net must not be put into the
+    # tournament either. It was: set 4 was stopped by hand and marked done, the chain skipped the
+    # training and handed its net to the gauntlet anyway, which is 5000 games of exactly the test
+    # that had just been called off.
+    if python3 -c "import tomllib,sys
+steps = tomllib.load(open('src/pipeline/pipeline.toml','rb'))['steps']
+sys.exit(0 if any(s['id'] == '$ID' and s.get('done') for s in steps) else 1)"; then
+        say "$ID is marked done - neither trained nor put into the tournament"
+        return 0
+    fi
     say "$ID"
     python3 -u src/pipeline/pipeline.py run --only "$ID" || { say "$ID failed - the chain stops"; exit 1; }
     say "$ID trained, putting $NAME into the gauntlet"

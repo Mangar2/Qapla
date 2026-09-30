@@ -48,6 +48,14 @@ while [ "$N" -le "$LAST" ]; do
     say "epoch $NN is written, handing it over"
     scp -q "$NET" "$THERE:$REPO/test/nnue/epoch-$RUN-e$NN.nnue"
 
+    # Another tournament on that machine would share the fourteen pairs with this one, and a start
+    # that fails leaves the watcher believing it succeeded - it did, because it asked whether any qet
+    # was running and the big gauntlet was.
+    RUNNING=$($SSH "$THERE" "pgrep -x qet >/dev/null && echo yes || echo no")
+    if [ "$RUNNING" = yes ] && ! $SSH "$THERE" "pgrep -xa qet | grep -q epochs-$RUN"; then
+        say "another tournament is running on $THERE - waiting for it to end"
+        while $SSH "$THERE" "pgrep -xa qet | grep -vq epochs-$RUN" &&               $SSH "$THERE" "pgrep -x qet >/dev/null"; do sleep 120; done
+    fi
     if $SSH "$THERE" "test -f $REPO/$STATE"; then
         python3 src/pipeline/join-gauntlet.py --state "$STATE" --nets "$NETS" --net "$NET" \
             --name "$RUN-e$NN" || say "epoch $NN did not get in - carrying on with the next"
@@ -60,7 +68,15 @@ while [ "$N" -le "$LAST" ]; do
             --engine name=$RUN-e$NN cmd=$REPO/new-versions/Qapla-blendtest-nnue \
               option.NnueFile=$REPO/test/nnue/epoch-$RUN-e$NN.nnue \
             >> test/log/epochs-$RUN-run.log 2>&1 < /dev/null & ) ; sleep 60; \
-            echo \"  qet \$(pgrep -x qet || echo NONE)\"; tail -1 test/log/epochs-$RUN-run.log"
+            echo \"  qet \$(pgrep -xa qet || echo NONE)\"; tail -2 test/log/epochs-$RUN-run.log"
+        # The tournament file is the proof: qet writes it within seconds of starting, and a qet that
+        # refused its parameters writes nothing at all.
+        if ! $SSH "$THERE" "test -f $REPO/$STATE"; then
+            say "the tournament did not start - $STATE was never written, see epochs-$RUN-run.log"
+            $SSH "$THERE" "tail -3 $REPO/test/log/epochs-$RUN-run.log"
+            exit 1
+        fi
+        say "tournament started, $STATE is there"
     fi
     N=$((N + 1))
 done
