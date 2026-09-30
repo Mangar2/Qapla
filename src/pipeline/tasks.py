@@ -36,6 +36,20 @@ def now():
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
+class NotReachable(Exception):
+    """The table could not be asked. That is not the same as an empty table.
+
+    It was, for one morning: the aws session expired, every call failed, and the failure was written
+    to the screen and then answered with "nothing there". The status said "0 pieces left, no workers",
+    which is exactly what a finished queue looks like, so nothing was reported and nobody looked - two
+    sets had been ready for hours. A worker reads the same answer and shuts its machine down, because
+    an empty table is its signal to stop.
+
+    Every unexpected failure now raises this. A conditional write that loses a race does not: that is
+    the ordinary way two machines find out who got the piece.
+    """
+
+
 class Tasks:
 
     def __init__(self, cfg):
@@ -45,11 +59,18 @@ class Tasks:
     def _run(self, *arguments, quiet=False):
         command = ['aws', 'dynamodb', *arguments, '--region', self.region,
                    '--table-name', self.table, '--output', 'json']
-        done = subprocess.run(command, capture_output=True, text=True, timeout=120)
+        try:
+            done = subprocess.run(command, capture_output=True, text=True, timeout=120)
+        except (subprocess.TimeoutExpired, OSError) as error:
+            raise NotReachable(f'{arguments[0]}: {error}') from error
         if done.returncode != 0:
-            if not quiet:
-                print(f'dynamodb: {done.stderr.strip()[:200]}', flush=True)
-            return None
+            trouble = done.stderr.strip()
+            if 'ConditionalCheckFailed' in trouble:
+                # Somebody else was first. The caller reads None as exactly that.
+                if not quiet:
+                    print(f'dynamodb: {trouble[:200]}', flush=True)
+                return None
+            raise NotReachable(f'{arguments[0]}: {trouble[:300]}')
         return json.loads(done.stdout) if done.stdout.strip() else {}
 
     # ------------------------------------------------------------------ putting work in

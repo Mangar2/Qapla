@@ -26,11 +26,18 @@ import tasks as tk
 
 
 def run(command, seconds=60):
+    """The output, '' when there was none, and None when the command failed."""
     try:
         done = subprocess.run(command, capture_output=True, text=True, timeout=seconds)
-        return done.stdout.strip() if done.returncode == 0 else ''
-    except (subprocess.TimeoutExpired, OSError):
-        return ''
+        if done.returncode != 0:
+            trouble = done.stderr.strip().splitlines()
+            if trouble:
+                print(f'  {trouble[-1][:160]}', flush=True)
+            return None
+        return done.stdout.strip()
+    except (subprocess.TimeoutExpired, OSError) as error:
+        print(f'  {command[0]} did not answer: {error}', flush=True)
+        return None
 
 
 def is_ephemeral(host):
@@ -38,7 +45,11 @@ def is_ephemeral(host):
 
 
 def instances(cfg):
-    """Every running instance, grouped by the name its tag carries. Workers share one name."""
+    """Every running instance, grouped by the name its tag carries. Workers share one name.
+
+    Raises NotReachable when aws cannot be asked. "No instance" and "I could not look" are different
+    answers, and reading the second as the first is what made a morning look quiet.
+    """
     aws = cfg.get('aws', {})
     if not aws:
         return {}
@@ -47,6 +58,8 @@ def instances(cfg):
                 '--query', 'Reservations[].Instances[].{Id:InstanceId,Type:InstanceType,'
                            'Ip:PublicIpAddress,Up:LaunchTime,Cores:CpuOptions.CoreCount,'
                            'Name:Tags[?Key==`Name`]|[0].Value}', '--output', 'json'])
+    if text is None:
+        raise tk.NotReachable('ec2 describe-instances could not be asked')
     found = {}
     for entry in json.loads(text) if text else []:
         name = (entry.get('Name') or '')
@@ -96,10 +109,17 @@ def last_line(cfg, host, ip, log):
 def report(cfg):
     stamp = datetime.now(timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M:%S')
     print(f'===== {stamp} =====')
-    running = instances(cfg)
-    table = tk.Tasks(cfg)
-    left = table.summary()
-
+    try:
+        running = instances(cfg)
+        table = tk.Tasks(cfg)
+        left = table.summary()
+    except tk.NotReachable as trouble:
+        print('\nAWS CANNOT BE ASKED - run `aws login`')
+        print(f'  {trouble}')
+        print('  The queue and the instances are unknown. This is not an empty queue: work may be')
+        print('  finished and waiting, or a machine may be idling and costing money.')
+        own_work(cfg, {}, known=False)
+        return
     print('\nthe queue')
     print(f'  {left["pieces left"]} pieces left, {left["in progress"]} in progress, '
           f'{left["ranges"]} ranges and {left["single jobs"]} single jobs')
@@ -130,6 +150,19 @@ def report(cfg):
     if workers and len(workers) < wanted:
         print(f'  {len(workers)} of {wanted} - the supervisor should be bringing up more')
 
+    own_work(cfg, running)
+
+    cores = sum(e.get('Cores', 0) for group in running.values() for e in group)
+    print(f'\ncores in use: {cores}')
+    print(flush=True)
+
+
+def own_work(cfg, running, known=True):
+    """The machines that carry a job of their own rather than take one out of the queue.
+
+    Shown even when aws cannot be asked: the mac and the tournament machine do not depend on it, and
+    a report that says nothing at all about them because a token expired is worse than no report.
+    """
     print('\nmachines with work of their own')
     for key, host in cfg['hosts'].items():
         steps = [s for s in cfg['steps'] if s['host'] == key and not s.get('done')]
@@ -137,20 +170,19 @@ def report(cfg):
             continue
         entries = running.get(key, [])
         if is_ephemeral(host) and not entries:
-            print(f'  {key:6} NO INSTANCE - {len(steps)} steps assigned to it')
+            if not known:
+                print(f'  {key:6} UNKNOWN - aws could not be asked, {len(steps)} steps assigned')
+            else:
+                print(f'  {key:6} NO INSTANCE - {len(steps)} steps assigned to it')
             continue
         ip = entries[0].get('Ip') if entries else None
         where = f'{entries[0]["Id"]} {entries[0]["Type"]}' if entries else host.get('ssh', 'local')
         line, age = last_line(cfg, host, ip, 'test/log/pipeline.log')
         stale = '   <-- QUIET' if age is not None and age > 3600 else ''
         print(f'  {key:6} {where}')
-        print(f'    {line or "(no answer)"}')
+        print(f'    {line or "no pipeline log there - it may be carrying work of another kind"}')
         if line:
             print(f'    written {since(age)}{stale}')
-
-    cores = sum(e.get('Cores', 0) for group in running.values() for e in group)
-    print(f'\ncores in use: {cores}')
-    print(flush=True)
 
 
 def main():
