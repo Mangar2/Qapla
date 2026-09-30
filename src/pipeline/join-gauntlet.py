@@ -34,8 +34,8 @@ import pipeline as pl
 SSH = ['ssh', '-n', '-o', 'ConnectTimeout=20']
 
 
-def run(command, what, quiet=False):
-    done = subprocess.run(command, capture_output=True, text=True, timeout=600)
+def run(command, what, quiet=False, feed=None):
+    done = subprocess.run(command, capture_output=True, text=True, timeout=600, input=feed)
     if done.returncode != 0:
         print(f'{what} failed: {(done.stderr or done.stdout).strip()[:400]}')
         sys.exit(1)
@@ -58,6 +58,36 @@ def best_net(nets_dir, log_path):
         print(f'no net in {nets_dir}')
         sys.exit(1)
     return os.path.join(nets_dir, nets[-1]), f'no best epoch in the log, taking {nets[-1]}'
+
+
+def editor_script(state, name, nnue, net_there):
+    """The script that adds the engine, sent over stdin rather than as an argument.
+
+    Passing it as an argument meant the block arrived as one line with the backslash-n
+    visible in it, twice, and qet refused to start on a file it could not parse - the
+    tournament stood still for two hours. It also checks the file after the edit and says
+    what it counted, so a malformed file is found here and not by qet.
+    """
+    block = (f'[engine]\nid=tournament\nname={name}\ncmd={nnue}\ntrace=none\n'
+             f'option.nnuefile={net_there}\n\n')
+    editor = ('import sys\n'
+              f'p = {state!r}\n'
+              f'block = {block!r}\n'
+              f'name = {name!r}\n'
+              's = open(p).read()\n'
+              "if f'name={name}\\n' in s:\n"
+              "    print('the field already holds ' + name); sys.exit(2)\n"
+              "was = s.count('[engine]\\n')\n"
+              "i = s.index('[tournament]')\n"
+              "s = s[:i] + block + s[i:]\n"
+              "open(p, 'w').write(s)\n"
+              "lines = s.splitlines()\n"
+              "print('engine sections', lines.count('[engine]'), 'was', was)\n"
+              "print('tournament sections', lines.count('[tournament]'))\n"
+              "print('rounds', lines.count('[round]'))\n"
+              "if lines.count('[engine]') != was + 1 or lines.count('[tournament]') != 1:\n"
+              "    print('the file does not look right after the edit'); sys.exit(3)\n")
+    return editor
 
 
 def main():
@@ -103,14 +133,12 @@ def main():
     # names the tournament file - and killing that kills the session doing the work.
     run(SSH + [there, 'pgrep -x qet | xargs -r kill; sleep 8; true'], 'stopping')
 
-    block = (f'[engine]\nid=tournament\nname={args.name}\ncmd={nnue}\ntrace=none\n'
-             f'option.nnuefile={net_there}\n\n')
-    adding = (f'cd {repo} && python3 -c "'
-              f"import sys; p = sys.argv[1]; s = open(p).read(); "
-              f"sys.exit('the field already holds {args.name}') if 'name={args.name}\\n' in s else None; "
-              f"i = s.index('[tournament]'); open(p, 'w').write(s[:i] + sys.argv[2] + s[i:])"
-              f'" {args.state} {block!r}')
-    run(SSH + [there, adding], 'adding the engine')
+    editor = editor_script(args.state, args.name, nnue, net_there)
+    added = subprocess.run(['ssh', '-o', 'ConnectTimeout=20', there, f'cd {repo} && python3 -'],
+                           input=editor, capture_output=True, text=True, timeout=600)
+    print('\n'.join('  ' + line for line in (added.stdout + added.stderr).strip().splitlines()))
+    if added.returncode != 0:
+        print('  the engine was not added - starting the tournament again with the field it had')
 
     start = (f'cd {repo} && ( setsid nohup {host["qet"]} --concurrency={args.concurrency} '
              f'--logging path=test/log engine=false --tournament file={args.state} '
@@ -121,17 +149,21 @@ def main():
              f'tail -120 test/log/gauntlet-run.log | grep "^started" | sed "s/.*engines //" '
              f'| sort -u')
     out = run(SSH + [there, start], 'starting')
+    expected = engines + (1 if added.returncode == 0 else 0)
     ok = [l.strip() for l in out.splitlines()]
     running = any(l.startswith('qet ') and l.split()[1:] for l in ok)
     now_rounds = next((int(l.split()[1]) for l in ok if l.startswith('rounds')), -1)
     now_engines = next((int(l.split()[1]) for l in ok if l.startswith('engines')), -1)
     plays = any(args.name in l for l in ok if ' vs ' in l)
-    for what, good in (('qet runs', running), (f'engines {engines} -> {now_engines}',
-                                               now_engines == engines + 1),
+    for what, good in (('qet runs', running),
+                       (f'engines {engines} -> {now_engines}', now_engines == expected),
                        (f'rounds {rounds} -> {now_rounds}', now_rounds >= rounds),
-                       (f'{args.name} is playing', plays)):
+                       (f'{args.name} is playing', plays or added.returncode != 0)):
         print(f'  {"ok  " if good else "FAIL"} {what}')
-    if not (running and now_engines == engines + 1 and now_rounds >= rounds):
+    if not (running and now_rounds >= rounds):
+        print('  the tournament is not running - it needs a hand')
+        sys.exit(1)
+    if added.returncode != 0:
         sys.exit(1)
     if not plays:
         print('  it is in the field but has not been seen in a pairing yet - it may be waiting for '
