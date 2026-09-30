@@ -164,11 +164,15 @@ GATE_GAMES = 800
 def standings(cfg, host, ip):
     """The table of the tournament that machine is playing, and the verdict on every early epoch.
 
-    An engine whose name ends in -e2 is the second epoch of a training that is still running, put into
-    the tournament to decide early whether the run is worth finishing. More than GATE Elo behind the
-    leader and it is not: the second epoch of the best run so far was 65 behind, the second epoch of
-    the weakest was 224, and that weakest run went on to produce the weakest net in the field. The
-    held back loss cannot do this job - those two runs had the identical loss after two epochs.
+    An engine whose name carries -e<number> is an epoch of a training that is still running, measured
+    to decide early whether the run is worth finishing: the best epoch it has reached so far, never
+    before epoch 2. More than GATE Elo behind the leader and the run is not worth finishing - the
+    second epoch of the best run so far was 65 behind, the second epoch of the weakest was 224, and
+    that weakest run went on to produce the weakest net in the field. The held back loss cannot do this
+    job: those two runs had the identical loss after two epochs and their final nets are 186 apart.
+
+    The best epoch so far, rather than a fixed one, because it is a lower bound on what the run will
+    deliver. A probe that already fails has failed for the whole run.
 
     Below GATE_GAMES games the figure is too soft to act on; qet reports about +/- 20 at a thousand.
     """
@@ -194,7 +198,7 @@ def standings(cfg, host, ip):
         print(f'      {name:24} {elo:8.1f} {games:7} games')
     best = max(elo for _, elo, _ in rows)
     for name, elo, games in rows:
-        if not name.endswith('-e2'):
+        if '-e' not in name or not name.rsplit('-e', 1)[1].isdigit():
             continue
         gap = best - elo
         if games < GATE_GAMES:
