@@ -101,12 +101,15 @@ def main():
                                                  'the training is still running')
     parser.add_argument('--host', default='qapla', help='which hosts entry runs the tournament')
     parser.add_argument('--state', default='test/log/strength-gauntlet.state')
+    parser.add_argument('--runlog', default='', help='where the run writes its chatter; derived from '
+                                                    'the state file when not given')
     parser.add_argument('--concurrency', type=int, default=14)
     parser.add_argument('--config', default=pl.CONFIG)
     parser.add_argument('--local', default=pl.LOCAL)
     args = parser.parse_args()
 
     cfg = pl.load_config(args.config, args.local)
+    runlog = args.runlog or args.state.replace('.state', '-run.log')
     host = cfg['hosts'][args.host]
     there, repo = host['ssh'], host['repo'].rstrip('/')
     nnue = f'{repo}/new-versions/Qapla-blendtest-nnue'
@@ -148,11 +151,11 @@ def main():
 
     start = (f'cd {repo} && ( setsid nohup {host["qet"]} --concurrency={args.concurrency} '
              f'--logging path=test/log engine=false --tournament file={args.state} '
-             f'>> test/log/gauntlet-run.log 2>&1 < /dev/null & ) ; sleep 75; '
+             f'>> {runlog} 2>&1 < /dev/null & ) ; sleep 75; '
              f'echo "qet $(pgrep -x qet)"; '
              f'echo "rounds $(grep -c \'^.round.$\' {args.state})"; '
              f'echo "engines $(grep -c \'^.engine.$\' {args.state})"; '
-             f'tail -120 test/log/gauntlet-run.log | grep "^started" | sed "s/.*engines //" '
+             f'tail -120 {runlog} | grep "^started" | sed "s/.*engines //" '
              f'| sort -u')
     out = run(SSH + [there, start], 'starting')
     expected = engines + (1 if added.returncode == 0 else 0)
