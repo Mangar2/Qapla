@@ -59,3 +59,11 @@ train_and_join set4-train    test/nnue/nets-set4                    nnue-set4
 train_and_join set14-train   test/nnue/nets-set1-set4               nnue-set14
 train_and_join set1234-train test/nnue/nets-set1-set2-set3-set4     nnue-set1234
 say "the chain is through"
+
+# Set 5 arrived while the chain was running - the second mixed set, and the largest. Appended at the
+# end rather than spliced in: the shell reads this file as it goes, so adding to the end is the one
+# edit that cannot confuse a running chain.
+train_and_join set5-train     test/nnue/nets-set5      nnue-set5
+train_and_join set15-train    test/nnue/nets-set1-set5 nnue-set15
+train_and_join set12345-train test/nnue/nets-all       nnue-all
+say "the chain is through, all five sets"
