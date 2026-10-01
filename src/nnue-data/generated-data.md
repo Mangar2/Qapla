@@ -559,6 +559,12 @@ Measured on 29.09.2026, on the same net and the same data:
 | the data loader alone, six worker processes | 428,000 |
 | training on a 32 core graviton3 instance, cpu only | 106,000 |
 
+**Corrected on 01.10.2026: this conclusion was wrong.** The compiled loader (below) took the same
+training on the same mac from 189,000 to 326,000 positions a second. What limited it was the way the
+python loader handed its batches over: six worker processes pickling arrays into the main process,
+whose time the training loop needed. The loader alone measured 428,000 because nobody was training
+at the same moment. The paragraph that follows is kept as it was written.
+
 **The training is limited by the gpu, not by the data path.** The loader has almost twice the
 headroom it needs, and feeding the gpu a fixed batch with no reading and no feature building at all
 changes nothing. Raising the batch from 16,384 to 65,536 reaches the ceiling of 235,000 and gains
@@ -610,3 +616,28 @@ The training stays on the mac. Two things are in place should that change: `trai
 continues from the newest checkpoint with the optimizer and the stopping rule restored, so a reclaim
 costs one epoch instead of the run, and `aws-resume.sh` brings up a gpu machine with the host key
 `train`, the image in `QAPLA_IMAGE`, and the sets named in `QAPLA_FILES`.
+
+## The compiled loader, 01.10.2026
+
+`src/trainer/native/batcher.cpp`, built on first use into `build/trainer/batcher` by `gamedata.py`.
+It reads the game files through `mmap`, so every stream of a training shares one copy in the page
+cache, replays the games, builds the HalfKA features and writes whole batches to a pipe. `train.py
+--loader native` is the default; `--loader python` keeps the old one for comparisons.
+
+What stays in python is everything that makes two runs comparable: the index, the split into training
+and validation, and the order of the games, drawn with numpy from the same seed as before. Only the
+shuffle inside the buffer is the loader's own. Verified:
+
+| check | result |
+|---|---|
+| features, position by position, against `_positions_of` - 3,612 games of all six sets including the first and the last of each file | 433,030 positions, 0 differences |
+| the same after the change to `mmap`, sets 1, 5 and 6 | 146,584 positions, 0 differences |
+| the index against the stored python index, sets 1 to 4 | identical, 0.3 s per file instead of about 25 minutes |
+| the first buffer of a stream, same seed, against the python loader | 131,069 of 131,072 positions identical; the other three are the remainder each side keeps |
+| loss after 2,000 batches, same seed, same number of streams | 0.004485 against 0.004531 |
+| one stream alone, set 5 | 3.9 million positions a second on one core |
+| a training on the mac, five sets | 326,600 positions a second against 189,500, at a quarter of one core |
+
+`train.py` seeds torch with `--seed` now as well. Before, the initial weights were not seeded, and two
+runs on the same data could not be compared step by step: the first comparison of the two loaders
+showed an 18 % higher loss for the new one that turned out to be the other starting net.

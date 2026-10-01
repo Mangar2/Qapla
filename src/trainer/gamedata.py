@@ -24,6 +24,9 @@ a file of its own, which is what a set trained on alone needs.
 """
 
 import os
+import queue
+import subprocess
+import threading
 import numpy as np
 import torch
 
@@ -34,6 +37,25 @@ PADDING = netfile.FEATURE_COUNT
 SLOTS = fmt.MAX_ACTIVE_FEATURES
 INDEX_VERSION = 1
 BUFFER_POSITIONS = 1 << 17          # the shuffle buffer of one worker
+
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+NATIVE_SOURCE = os.path.join(HERE, 'native', 'batcher.cpp')
+NATIVE_BINARY = os.path.join(HERE, '..', '..', 'build', 'trainer', 'batcher')
+RECORD = 2 * SLOTS * 2 + 2 + 1          # the bytes of one position in a native batch
+
+
+def native_binary():
+    """The compiled loader, built on first use and again whenever its source is newer.
+
+    Built here rather than by the Makefile: it belongs to the trainer, not to the engine, and a
+    training machine that has only python and a compiler has to be able to make it.
+    """
+    binary = os.path.normpath(NATIVE_BINARY)
+    if not os.path.exists(binary) or os.path.getmtime(binary) < os.path.getmtime(NATIVE_SOURCE):
+        os.makedirs(os.path.dirname(binary), exist_ok=True)
+        subprocess.run(['c++', '-O3', '-std=c++17', '-o', binary, NATIVE_SOURCE], check=True)
+    return binary
 
 
 def build_index(path, quiet=False):
@@ -47,6 +69,23 @@ def build_index(path, quiet=False):
         held = np.load(cache)
         if int(held['version'][0]) == INDEX_VERSION:
             return held['offsets'], held['lengths'], held['usable']
+    try:
+        raw = subprocess.run([native_binary(), '--index', path], capture_output=True,
+                             check=True).stdout
+        count = int(np.frombuffer(raw[:8], dtype=np.uint64)[0])
+        offsets = np.frombuffer(raw[8:8 + 8 * count], dtype=np.uint64).copy()
+        lengths = np.frombuffer(raw[8 + 8 * count:8 + 9 * count], dtype=np.uint8).copy()
+        usable = np.frombuffer(raw[8 + 9 * count:8 + 11 * count], dtype=np.uint16).copy()
+        np.savez(cache, offsets=offsets, lengths=lengths, usable=usable,
+                 version=np.array([INDEX_VERSION]))
+        if not quiet:
+            print(f'{path}: {len(offsets):,} games, {int(lengths.sum()):,} positions, '
+                  f'{int(usable.sum()):,} of them with a value')
+        return offsets, lengths, usable
+    except (OSError, subprocess.CalledProcessError) as error:
+        # Verified identical to the loop below on four sets; the loop stays for a machine that
+        # cannot compile, at twenty-five minutes for one of the larger files.
+        print(f'the native index is not available ({error}), building it in python', flush=True)
     offsets, lengths, usable = [], [], []
     with open(path, 'rb') as f:
         header = f.read(12)
@@ -170,6 +209,87 @@ class _Games(torch.utils.data.IterableDataset):
             yield _as_arrays(pool[start:start + self.batch_size], span)
 
 
+class _NativeGames:
+    """The same stream as _Games, produced by the compiled loader.
+
+    Everything that makes a run comparable is decided here, in python, exactly as before: which
+    games a stream gets (every n-th of the shuffled list), the seed of each stream and epoch, and the
+    order of the games, drawn with numpy from that seed. The compiled loader replays the games in that
+    order, builds the features - verified bit for bit against _positions_of - and shuffles inside its
+    buffer with a generator of its own. So a buffer holds the same positions as before, only in a
+    different order.
+
+    Several streams are read in turn, as the DataLoader read its workers in turn, and a stream that
+    has ended drops out of the rotation. Each runs in its own process and is read by a thread of its
+    own, so a slow one never holds up the others' pipes. One stream delivers about four million
+    positions a second, twenty times what the gpu of the mac consumes - more than one is only
+    worth having on a machine with a much faster gpu.
+    """
+
+    def __init__(self, paths, game_ids, batch_size, seed, buffer=BUFFER_POSITIONS, streams=1):
+        self.paths, self.batch_size, self.seed, self.buffer = paths, batch_size, seed, buffer
+        self.game_ids = np.asarray(game_ids)
+        self.streams = max(1, streams)
+        self.epoch = 0
+        self.binary = native_binary()
+
+    def _start(self, stream):
+        ids = self.game_ids[stream::self.streams]
+        seed = self.seed + self.epoch * 1000003 + stream
+        order = np.random.default_rng(seed).permutation(ids).astype(np.uint32)
+        process = subprocess.Popen([self.binary, '--batch', str(self.batch_size), '--buffer',
+                                    str(self.buffer), '--seed', str(seed)] + list(self.paths),
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        # The loader reads every id before it writes a byte, so writing them all at once cannot
+        # block against a full output pipe.
+        process.stdin.write(order.tobytes())
+        process.stdin.close()
+        waiting = queue.Queue(maxsize=4)
+
+        def read():
+            size = self.batch_size * RECORD
+            while True:
+                chunk = process.stdout.read(size)
+                if len(chunk) < size:
+                    waiting.put(None)
+                    return
+                waiting.put(chunk)
+
+        threading.Thread(target=read, daemon=True).start()
+        return process, waiting
+
+    def __iter__(self):
+        streams = [self._start(stream) for stream in range(self.streams)]
+        span = float(fmt.MAX_VALUE_CODE - fmt.MIN_VALUE_CODE)
+        size = self.batch_size
+        try:
+            active = list(range(len(streams)))
+            while active:
+                for stream in list(active):
+                    chunk = streams[stream][1].get()
+                    if chunk is None:
+                        active.remove(stream)
+                        continue
+                    features = size * SLOTS * 2
+                    own = np.frombuffer(chunk, dtype=np.uint16, count=size * SLOTS).reshape(size, SLOTS)
+                    other = np.frombuffer(chunk, dtype=np.uint16, count=size * SLOTS,
+                                          offset=features).reshape(size, SLOTS)
+                    codes = np.frombuffer(chunk, dtype=np.uint16, count=size,
+                                          offset=2 * features).astype(np.float32)
+                    stored = np.frombuffer(chunk, dtype=np.uint8, count=size,
+                                           offset=2 * features + 2 * size)
+                    # The same three columns _as_arrays makes.
+                    values = (codes - fmt.MIN_VALUE_CODE) / span
+                    counts = (stored != fmt.RESULT_NONE).astype(np.float32)
+                    results = np.minimum(stored, 2).astype(np.float32) / 2.0
+                    yield own, other, values, results, counts
+        finally:
+            for process, _ in streams:
+                if process.poll() is None:
+                    process.kill()
+                process.wait()
+
+
 def _as_arrays(rows, span):
     """One batch as the five arrays the model wants.
 
@@ -191,7 +311,7 @@ class GameFile:
     """A game file as a source of batches, with the same shape PositionCache had."""
 
     def __init__(self, paths, batch_size, seed=1, validation_every=100, part='training',
-                 workers=2, buffer=BUFFER_POSITIONS):
+                 workers=2, buffer=BUFFER_POSITIONS, loader='native'):
         paths = [paths] if isinstance(paths, str) else list(paths)
         offsets, lengths, usable, _ = load_indexes(paths)
         training, validation = split_games(len(offsets), seed, validation_every)
@@ -199,7 +319,12 @@ class GameFile:
         self.paths, self.batch_size, self.workers = paths, batch_size, workers
         self.game_count = len(ids)
         self.position_count = int(usable[ids].sum())
-        self.dataset = _Games(paths, ids, batch_size, seed, buffer)
+        self.loader = loader
+        if loader == 'native':
+            self.dataset = _NativeGames(paths, ids, batch_size, seed, buffer,
+                                        streams=min(workers, 2) if workers else 1)
+        else:
+            self.dataset = _Games(paths, ids, batch_size, seed, buffer)
         print(f'{part}: {self.game_count:,} games, {self.position_count:,} positions'
               f'{" over " + str(len(paths)) + " files" if len(paths) > 1 else ""}')
 
@@ -210,6 +335,13 @@ class GameFile:
         # batch_size and shuffle are fixed when the file is opened; the arguments stay for the
         # sake of the interface PositionCache defined.
         self.dataset.epoch += 1
+        if self.loader == 'native':
+            for own, other, values, results, counts in self.dataset:
+                yield (torch.from_numpy(own).to(device).long(),
+                       torch.from_numpy(other).to(device).long(),
+                       torch.from_numpy(values).to(device), torch.from_numpy(results).to(device),
+                       torch.from_numpy(counts).to(device))
+            return
         loader = torch.utils.data.DataLoader(self.dataset, batch_size=None,
                                              num_workers=self.workers,
                                              persistent_workers=False)

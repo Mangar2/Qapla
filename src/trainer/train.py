@@ -97,15 +97,19 @@ def train(arguments):
         # over a seeded permutation, so two files of the same games get the same one.
         cache = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                          validation_every=arguments.validation_every, part='training',
-                         workers=arguments.workers)
+                         workers=arguments.workers, loader=arguments.loader)
         validation = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                               validation_every=arguments.validation_every, part='validation',
-                              workers=arguments.workers)
+                              workers=arguments.workers, loader=arguments.loader)
     else:
         if len(arguments.cache) != 1:
             raise SystemExit('several sources are only read as .gam game files')
         cache = PositionCache(arguments.cache[0])
         validation = PositionCache(arguments.validation) if arguments.validation else None
+    # The initial weights come from the seed too. Without it two runs on the same data started from
+    # different nets, and their losses could not be compared step by step - which is how the
+    # compiled loader was checked against the python one.
+    torch.manual_seed(arguments.seed)
     model = HalfKaNet().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
@@ -203,6 +207,9 @@ if __name__ == '__main__':
                              '--validation-every writes it')
     parser.add_argument('--patience', type=int, default=3,
                         help='epochs without an improvement on it before stopping')
+    parser.add_argument('--loader', choices=['native', 'python'], default='native',
+                        help='native: the compiled loader, verified bit for bit against the python '
+                             'one and about twenty times faster per core; python: the old one')
     parser.add_argument('--resume', action='store_true',
                         help='carry on from the newest checkpoint in --out instead of starting over')
     parser.add_argument('--device', default='auto')
