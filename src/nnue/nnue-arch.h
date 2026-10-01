@@ -43,6 +43,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -63,8 +65,24 @@ namespace QaplaNnue {
 		/** The first dense layer sees both perspectives. */
 		L1_INPUT_SIZE = 2 * ACCUMULATOR_SIZE,
 		L1_SIZE = 32,
-		L2_SIZE = 32
+		L2_SIZE = 32,
+		/**
+		 * The dense layers exist once per phase of the game, chosen by the number of pieces on
+		 * the board - Stockfish's layer stacks. The accumulator is shared: what is on the board is
+		 * learned once, how to judge it is learned per phase. Only the chosen stack is computed, so
+		 * eight cost memory for eight small heads and no time at all.
+		 */
+		LAYER_STACKS = 8
 	};
+
+	/**
+	 * The stack a position is judged by: 32 pieces give the last, the two kings alone the first.
+	 * An empty board - which nnueeval is asked about before a position is set - gets the first as
+	 * well: (0 - 1) / 4 in unsigned arithmetic is an index a billion entries past the end.
+	 */
+	constexpr uint32_t layerStackOf(uint32_t pieceCount) {
+		return pieceCount == 0 ? 0 : std::min<uint32_t>((pieceCount - 1) / 4, LAYER_STACKS - 1);
+	}
 
 	enum quantization : int32_t {
 		/** Scale of an activation, and with it its largest value. */
@@ -90,10 +108,8 @@ namespace QaplaNnue {
 	 * feature next to each other: a refresh adds whole columns, and that is the
 	 * order in which it wants to read them.
 	 */
-	struct alignas(NNUE_ALIGNMENT) Network {
-		std::array<int16_t, ACCUMULATOR_SIZE> featureBias{};
-		std::array<int16_t, size_t(FEATURE_COUNT)* size_t(ACCUMULATOR_SIZE)> featureWeight{};
-
+	/** The dense layers after the accumulator: one of these per layer stack. */
+	struct alignas(NNUE_ALIGNMENT) Head {
 		std::array<int32_t, L1_SIZE> l1Bias{};
 		std::array<int8_t, size_t(L1_SIZE)* size_t(L1_INPUT_SIZE)> l1Weight{};
 
@@ -104,6 +120,13 @@ namespace QaplaNnue {
 		std::array<int8_t, L2_SIZE> outputWeight{};
 	};
 
+	struct alignas(NNUE_ALIGNMENT) Network {
+		std::array<int16_t, ACCUMULATOR_SIZE> featureBias{};
+		std::array<int16_t, size_t(FEATURE_COUNT)* size_t(ACCUMULATOR_SIZE)> featureWeight{};
+
+		std::array<Head, LAYER_STACKS> heads{};
+	};
+
 	/**
 	 * The file a net is stored in: a magic, a number that describes the shape, and
 	 * the arrays above in their order, little endian.
@@ -111,12 +134,23 @@ namespace QaplaNnue {
 	 * The shape number is checked on loading. A net of a different shape is
 	 * refused instead of read as noise, which is the one mistake that costs days.
 	 */
-	inline constexpr char NNUE_MAGIC[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '1' };
+	inline constexpr char NNUE_MAGIC[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '2' };
 
-	constexpr uint32_t architectureId() {
+	/**
+	 * The format before layer stacks: the same arrays with a single head. It is still read, and its
+	 * one head is copied into every stack - a net of that kind then evaluates exactly as it did,
+	 * which is what proves the stacks did not change the engine.
+	 */
+	inline constexpr char NNUE_MAGIC_SINGLE_HEAD[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '1' };
+
+	constexpr uint32_t singleHeadArchitectureId() {
 		return uint32_t(FEATURE_COUNT) * 31u + uint32_t(ACCUMULATOR_SIZE) * 7u
 			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u
 			+ uint32_t(QB) * 17u;
+	}
+
+	constexpr uint32_t architectureId() {
+		return singleHeadArchitectureId() + uint32_t(LAYER_STACKS) * 1009u;
 	}
 
 	/**

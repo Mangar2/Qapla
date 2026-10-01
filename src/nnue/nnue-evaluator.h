@@ -55,11 +55,13 @@ namespace QaplaNnue {
 	 * Returns the value in the unit of the engine.
 	 */
 	QaplaBasics::value_t forward(const Network& network, const int16_t* own,
-		const int16_t* opponent);
+		const int16_t* opponent,
+		uint32_t stack);
 
 	/** The same without vector instructions, for the test of the one above. */
 	QaplaBasics::value_t forwardReference(const Network& network, const int16_t* own,
-		const int16_t* opponent);
+		const int16_t* opponent,
+		uint32_t stack);
 
 	class Evaluator {
 	public:

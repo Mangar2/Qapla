@@ -23,6 +23,7 @@
 #include <cstring>
 
 #include "nnue-evaluator.h"
+#include "../../basics/bits.h"
 #include "nnue-features.h"
 #include "nnue-simd.h"
 
@@ -115,24 +116,24 @@ void QaplaNnue::refreshAccumulator(const Network& network, const Board& board,
 template void QaplaNnue::refreshAccumulator<QaplaBasics::WHITE>(const Network&, const Board&, int16_t*);
 template void QaplaNnue::refreshAccumulator<QaplaBasics::BLACK>(const Network&, const Board&, int16_t*);
 
-value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int16_t* opponent) {
+value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int16_t* opponent,
+	uint32_t stack) {
+	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
 	clippedReluBlock(own, input, ACCUMULATOR_SIZE);
 	clippedReluBlock(opponent, input + ACCUMULATOR_SIZE, ACCUMULATOR_SIZE);
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
-		network.l1Bias.data(), hidden1);
-	affineRelu<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
-		network.l2Bias.data(), hidden2);
+	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
+	affineRelu<L1_SIZE, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
 
-	return toEngineValue(network.outputBias
-		+ dotProduct(network.outputWeight.data(), hidden2, L2_SIZE));
+	return toEngineValue(head.outputBias + dotProduct(head.outputWeight.data(), hidden2, L2_SIZE));
 }
 
 value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
-	const int16_t* opponent) {
+	const int16_t* opponent, uint32_t stack) {
+	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
 	for (uint32_t index = 0; index < ACCUMULATOR_SIZE; index++) {
 		input[index] = clippedRelu(own[index]);
@@ -141,14 +142,12 @@ value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineReluPlain<L1_INPUT_SIZE, L1_SIZE>(input, network.l1Weight.data(),
-		network.l1Bias.data(), hidden1);
-	affineReluPlain<L1_SIZE, L2_SIZE>(hidden1, network.l2Weight.data(),
-		network.l2Bias.data(), hidden2);
+	affineReluPlain<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
+	affineReluPlain<L1_SIZE, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
 
-	int32_t output = network.outputBias;
+	int32_t output = head.outputBias;
 	for (uint32_t index = 0; index < L2_SIZE; index++) {
-		output += int32_t(network.outputWeight[index]) * int32_t(hidden2[index]);
+		output += int32_t(head.outputWeight[index]) * int32_t(hidden2[index]);
 	}
 	return toEngineValue(output);
 }
@@ -158,8 +157,9 @@ value_t Evaluator::evaluate(const Board& board) const {
 	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
 	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white);
 	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black);
-	return board.isWhiteToMove() ? forward(_network, white, black)
-		: forward(_network, black, white);
+	const uint32_t stack = layerStackOf(QaplaBasics::popCount(board.getAllPiecesBB()));
+	return board.isWhiteToMove() ? forward(_network, white, black, stack)
+		: forward(_network, black, white, stack);
 }
 
 value_t Evaluator::evaluateReference(const Board& board) const {
@@ -167,6 +167,7 @@ value_t Evaluator::evaluateReference(const Board& board) const {
 	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
 	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white);
 	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black);
-	return board.isWhiteToMove() ? forwardReference(_network, white, black)
-		: forwardReference(_network, black, white);
+	const uint32_t stack = layerStackOf(QaplaBasics::popCount(board.getAllPiecesBB()));
+	return board.isWhiteToMove() ? forwardReference(_network, white, black, stack)
+		: forwardReference(_network, black, white, stack);
 }

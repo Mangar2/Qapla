@@ -215,5 +215,6 @@ value_t AccumulatorStack::evaluate(const Board& board) {
 	}
 #endif
 
-	return forward(*theNetwork, own, opponent);
+	return forward(*theNetwork, own, opponent,
+		layerStackOf(QaplaBasics::popCount(board.getAllPiecesBB())));
 }

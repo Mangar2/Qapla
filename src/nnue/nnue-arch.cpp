@@ -58,6 +58,26 @@ namespace {
 	};
 }
 
+namespace {
+	bool readHead(std::istream& stream, QaplaNnue::Head& head) {
+		return readArray(stream, head.l1Bias)
+			&& readArray(stream, head.l1Weight)
+			&& readArray(stream, head.l2Bias)
+			&& readArray(stream, head.l2Weight)
+			&& bool(stream.read(reinterpret_cast<char*>(&head.outputBias), sizeof(int32_t)))
+			&& readArray(stream, head.outputWeight);
+	}
+
+	void writeHead(std::ostream& stream, const QaplaNnue::Head& head) {
+		writeArray(stream, head.l1Bias);
+		writeArray(stream, head.l1Weight);
+		writeArray(stream, head.l2Bias);
+		writeArray(stream, head.l2Weight);
+		stream.write(reinterpret_cast<const char*>(&head.outputBias), sizeof(int32_t));
+		writeArray(stream, head.outputWeight);
+	}
+}
+
 std::unique_ptr<Network> QaplaNnue::readNetwork(const std::string& path) {
 	std::ifstream stream(path, std::ios::binary);
 	if (!stream) {
@@ -68,25 +88,35 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(const std::string& path) {
 	uint32_t identifier = 0;
 	stream.read(magic, sizeof(magic));
 	stream.read(reinterpret_cast<char*>(&identifier), sizeof(identifier));
-	if (!stream || std::string(magic, sizeof(magic)) != std::string(NNUE_MAGIC, sizeof(NNUE_MAGIC))) {
+	const std::string found(magic, sizeof(magic));
+	const bool stacked = found == std::string(NNUE_MAGIC, sizeof(NNUE_MAGIC));
+	const bool single = found == std::string(NNUE_MAGIC_SINGLE_HEAD, sizeof(NNUE_MAGIC_SINGLE_HEAD));
+	if (!stream || (!stacked && !single)) {
 		std::cout << "Error (not a net file): " << path << std::endl;
 		return nullptr;
 	}
-	if (identifier != architectureId()) {
+	const uint32_t wanted = stacked ? architectureId() : singleHeadArchitectureId();
+	if (identifier != wanted) {
 		std::cout << "Error (net of another shape): " << path << ", file says " << identifier
-			<< ", this build wants " << architectureId() << std::endl;
+			<< ", this build wants " << wanted << std::endl;
 		return nullptr;
 	}
 
 	auto network = std::make_unique<Network>();
-	const bool complete = readArray(stream, network->featureBias)
-		&& readArray(stream, network->featureWeight)
-		&& readArray(stream, network->l1Bias)
-		&& readArray(stream, network->l1Weight)
-		&& readArray(stream, network->l2Bias)
-		&& readArray(stream, network->l2Weight)
-		&& bool(stream.read(reinterpret_cast<char*>(&network->outputBias), sizeof(int32_t)))
-		&& readArray(stream, network->outputWeight);
+	bool complete = readArray(stream, network->featureBias)
+		&& readArray(stream, network->featureWeight);
+	if (stacked) {
+		for (Head& head : network->heads) {
+			complete = complete && readHead(stream, head);
+		}
+	}
+	else {
+		// One head for every stack: the net evaluates exactly as it did before there were stacks.
+		complete = complete && readHead(stream, network->heads[0]);
+		for (uint32_t stack = 1; stack < LAYER_STACKS; stack++) {
+			network->heads[stack] = network->heads[0];
+		}
+	}
 	if (!complete) {
 		std::cout << "Error (net file is too short): " << path << std::endl;
 		return nullptr;
@@ -105,12 +135,9 @@ bool QaplaNnue::writeNetwork(const std::string& path, const Network& network) {
 	stream.write(reinterpret_cast<const char*>(&identifier), sizeof(identifier));
 	writeArray(stream, network.featureBias);
 	writeArray(stream, network.featureWeight);
-	writeArray(stream, network.l1Bias);
-	writeArray(stream, network.l1Weight);
-	writeArray(stream, network.l2Bias);
-	writeArray(stream, network.l2Weight);
-	stream.write(reinterpret_cast<const char*>(&network.outputBias), sizeof(int32_t));
-	writeArray(stream, network.outputWeight);
+	for (const Head& head : network.heads) {
+		writeHead(stream, head);
+	}
 	return bool(stream);
 }
 
@@ -123,11 +150,13 @@ std::unique_ptr<Network> QaplaNnue::randomNetwork(uint64_t seed) {
 	// instead of being clipped everywhere.
 	for (int16_t& value : network->featureBias) value = int16_t(random.next(QA / 4));
 	for (int16_t& value : network->featureWeight) value = int16_t(random.next(QA / 16));
-	for (int32_t& value : network->l1Bias) value = random.next(QA * QB / 4);
-	for (int8_t& value : network->l1Weight) value = int8_t(random.next(QB / 2));
-	for (int32_t& value : network->l2Bias) value = random.next(QA * QB / 4);
-	for (int8_t& value : network->l2Weight) value = int8_t(random.next(QB / 2));
-	network->outputBias = random.next(QA * QB / 4);
-	for (int8_t& value : network->outputWeight) value = int8_t(random.next(QB / 2));
+	for (Head& head : network->heads) {
+		for (int32_t& value : head.l1Bias) value = random.next(QA * QB / 4);
+		for (int8_t& value : head.l1Weight) value = int8_t(random.next(QB / 2));
+		for (int32_t& value : head.l2Bias) value = random.next(QA * QB / 4);
+		for (int8_t& value : head.l2Weight) value = int8_t(random.next(QB / 2));
+		head.outputBias = random.next(QA * QB / 4);
+		for (int8_t& value : head.outputWeight) value = int8_t(random.next(QB / 2));
+	}
 	return network;
 }
