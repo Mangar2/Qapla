@@ -17,6 +17,12 @@
 #
 # It ends when the training has stopped and no further epoch appears. It wants the same fourteen pairs
 # as the big gauntlet, so do not start it while that one is playing.
+#
+# To stop it, stop what it started as well:
+#     pkill -f "epoch-tournamen[t].sh"; pkill -f "join-gauntle[t].py"
+# Killing the shell alone leaves a join it is in the middle of running on its own, and that join then
+# starts this tournament - two seconds before the big one was started by hand, once, so that both ran
+# on the same fourteen pairs.
 set -u
 cd "$(dirname "$0")/../.."
 RUN=${1:?usage: epoch-tournament.sh <run name> <nets directory> <training log> [<last epoch>]}
