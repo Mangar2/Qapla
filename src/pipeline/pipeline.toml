@@ -639,6 +639,34 @@ workers = 6
 seed = 1
 validation_every = 100
 
+# Eight layer stacks on the six set corpus. Every corpus from three sets upwards ended at the same
+# strength, 62 to 63 % against hce, and more positions only acted like the same positions again: the net
+# reached its plateau at four to six billion positions whatever they were. Whether that plateau is the
+# size of the net is what this asks. The heads start as one head copied eight times, so the run begins
+# as the same function set123456-train began with, and the epoch tournament shows whether the curve now
+# goes on rising where the single headed one flattened. Straight on six sets rather than first on three:
+# the epochs show the early part of the curve anyway.
+[[steps]]
+id = "set123456-s8-train"
+kind = "train"
+host = "mac"
+doc = "All six sets with eight layer stacks, one head per phase of the game."
+games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set2-nnue1-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set3-nnue2-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set4-nnue1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set5-nnue2-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set6-nnue1-nnue2-depth6-nowdl.gam"]
+out_dir = "test/nnue/nets-set1-to-6-s8"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 2
+workers = 6
+seed = 1
+validation_every = 100
+stacks = 8
+
 # ===========================================================================================
 # The sets as work for the task queue, rather than as steps bound to a machine.
 #

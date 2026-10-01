@@ -104,6 +104,9 @@ def main():
     parser.add_argument('--runlog', default='', help='where the run writes its chatter; derived from '
                                                     'the state file when not given')
     parser.add_argument('--concurrency', type=int, default=14)
+    parser.add_argument('--binary', default='Qapla-blendtest-nnue',
+                        help='the nnue engine in new-versions/ on the tournament machine; a net with '
+                             'layer stacks needs one built after they came in')
     parser.add_argument('--config', default=pl.CONFIG)
     parser.add_argument('--local', default=pl.LOCAL)
     args = parser.parse_args()
@@ -112,7 +115,7 @@ def main():
     runlog = args.runlog or args.state.replace('.state', '-run.log')
     host = cfg['hosts'][args.host]
     there, repo = host['ssh'], host['repo'].rstrip('/')
-    nnue = f'{repo}/new-versions/Qapla-blendtest-nnue'
+    nnue = f'{repo}/new-versions/{args.binary}'
     net_there = f'{repo}/test/nnue/{args.name}-best.nnue'
 
     if args.net:

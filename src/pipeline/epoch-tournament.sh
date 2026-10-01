@@ -30,6 +30,10 @@ cd "$(dirname "$0")/../.."
 RUN=${1:?usage: epoch-tournament.sh <run name> <nets directory> <training log>}
 NETS=${2:?the directory the training writes its nets to}
 TRAINLOG=${3:?the training log, for the line that says which epoch is best}
+# The nnue binary in new-versions/ on the tournament machine. A net with layer stacks needs one built
+# after the stacks came in; the older one is kept for everything else, so that the field it plays in
+# does not change under it.
+BINARY=${4:-Qapla-blendtest-nnue}
 
 STATE=test/log/epochs-$RUN.state
 CFG=src/pipeline/local.toml
@@ -85,14 +89,14 @@ while :; do
     scp -q "$NET" "$THERE:$REPO/test/nnue/epoch-$RUN-e$NN.nnue"
     if $SSH "$THERE" "test -f $REPO/$STATE"; then
         python3 src/pipeline/join-gauntlet.py --state "$STATE" --nets "$NETS" --net "$NET" \
-            --name "$NAME" || say "$NAME did not get in"
+            --name "$NAME" --binary "$BINARY" || say "$NAME did not get in"
     else
         say "first epoch - starting the tournament"
         $SSH "$THERE" "cd $REPO && ( setsid nohup ~/bin/qet \
             --settingsfile=test/tournament/epochs.ini \
             --tournament file=$STATE --pgnoutput file=test/log/epochs-$RUN.pgn \
             --engine name=Qapla-HCE cmd=$REPO/new-versions/Qapla-blendtest-hce gauntlet=true \
-            --engine name=$NAME cmd=$REPO/new-versions/Qapla-blendtest-nnue \
+            --engine name=$NAME cmd=$REPO/new-versions/$BINARY \
               option.NnueFile=$REPO/test/nnue/epoch-$RUN-e$NN.nnue \
             >> test/log/epochs-$RUN-run.log 2>&1 < /dev/null & ) ; sleep 60"
         if ! $SSH "$THERE" "test -f $REPO/$STATE"; then
