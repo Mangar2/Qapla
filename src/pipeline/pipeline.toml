@@ -561,6 +561,11 @@ validation_every = 100
 # Against set 3 it isolates the pairing at the stronger generation, the way set 4 does against set 2.
 [[steps]]
 id = "set5-train"
+# Left out by decision on 01.10.2026, never run: single sets and small combinations
+# lose too much time for what they say. Set 2, 3 and 4 alone all ended in the lower
+# half of the field while every corpus of several sets ended at the top, so only the
+# large corpora are trained from here on - 1 to 4, 1 to 5, 1 to 6.
+done = true
 kind = "train"
 host = "mac"
 doc = "A net from set 5 alone - generation 2 against the hand written evaluation, both colours per opening."
@@ -576,6 +581,11 @@ validation_every = 100
 
 [[steps]]
 id = "set15-train"
+# Left out by decision on 01.10.2026, never run: single sets and small combinations
+# lose too much time for what they say. Set 2, 3 and 4 alone all ended in the lower
+# half of the field while every corpus of several sets ended at the top, so only the
+# large corpora are trained from here on - 1 to 4, 1 to 5, 1 to 6.
+done = true
 kind = "train"
 host = "mac"
 doc = "Set 1 and set 5 - the larger mixed set on top of hce self play."
@@ -600,7 +610,27 @@ games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
          "test/nnue/dataset/set3-nnue2-self-depth6-nowdl.gam",
          "test/nnue/dataset/set4-nnue1-hce-depth6-nowdl.gam",
          "test/nnue/dataset/set5-nnue2-hce-depth6-nowdl.gam"]
-out_dir = "test/nnue/nets-all"
+out_dir = "test/nnue/nets-set1-to-5"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 2
+workers = 6
+seed = 1
+validation_every = 100
+
+[[steps]]
+id = "set123456-train"
+kind = "train"
+host = "mac"
+doc = "All six sets as one corpus."
+games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set2-nnue1-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set3-nnue2-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set4-nnue1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set5-nnue2-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set6-nnue1-nnue2-depth6-nowdl.gam"]
+out_dir = "test/nnue/nets-set1-to-6"
 blend_start = 0.8
 blend_end = 0.7
 epochs = 20
