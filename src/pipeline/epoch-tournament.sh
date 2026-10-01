@@ -58,9 +58,13 @@ while :; do
     fi
     # Idle can mean finished or interrupted. qet ends a finished tournament with its outcome table;
     # anything else - a restart of the machine, a kill - leaves a pairing half played, and being in
-    # the tournament file is then not the same as having been played.
+    # the tournament file is then not the same as having been played. Finished is when the last
+    # outcome table comes after the last game that was started. A window of a fixed number of lines
+    # was used first: the outcome block is 48 lines long, the window was 40, so a finished tournament
+    # looked interrupted, was started again every two minutes, and the next epoch never came.
     if $SSH "$THERE" "test -f $REPO/$STATE" && \
-       ! $SSH "$THERE" "tail -40 $REPO/test/log/epochs-$RUN-run.log | grep -q 'Tournament outcome'"; then
+       ! $SSH "$THERE" "tail -2000 $REPO/test/log/epochs-$RUN-run.log | grep -E 'started round|Tournament outcome' \
+             | tail -1 | grep -q 'Tournament outcome'"; then
         say "the tournament was interrupted - continuing it before choosing the next epoch"
         $SSH "$THERE" "cd $REPO && ( setsid nohup ~/bin/qet --concurrency=14 --logging path=test/log \
             engine=false --tournament file=$STATE >> test/log/epochs-$RUN-run.log 2>&1 < /dev/null & )"
