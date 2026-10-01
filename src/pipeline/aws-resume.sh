@@ -40,12 +40,14 @@ SSH="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o ServerAliveInterval
 # they live in local.toml, which is not in the repository. This file names none of them.
 value() { python3 -c "import tomllib,sys;print(tomllib.load(open('$LOCAL','rb'))['aws']['$1'])"; }
 REGION=$(value region)
-IMAGE=$(value image)
+# The image and the disk may be overridden: a training machine needs a gpu image with cuda and torch
+# already on it, which is a different architecture and a much larger root volume than the arm workers.
+IMAGE=${QAPLA_IMAGE:-$(value image)}
 KEY=$(value key)
 GROUP=$(value group)
 PROFILE=$(value profile)
 BUCKET=$(value bucket)
-VOLUME=$(value volume)
+VOLUME=${QAPLA_VOLUME:-$(value volume)}
 PEM=$(eval echo "$(value pem)")
 
 USERDATA=$(mktemp /tmp/qapla-userdata.XXXXXX)
@@ -128,7 +130,13 @@ scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i "$PEM" "$LOCAL" \
 # "worker" means the machine takes its work out of the table and is bound to nothing; anything else
 # is a host key of the older, machine-bound arrangement. A worker also switches the machine off when
 # the table is empty, which is the cost control: no work, no machine.
-if [ "$HOST" = worker ]; then
+if [ "$HOST" = train ]; then
+    # A training machine runs one thing and nothing else. The files are named here rather than in the
+    # script, because which sets are trained together is the experiment.
+    echo "== bringing up the training, detached =="
+    $SSH -i "$PEM" ubuntu@"$IP" 'bash -s' -- "$BUCKET" "${QAPLA_RUN:?QAPLA_RUN names the training}" \
+        ${QAPLA_FILES:?QAPLA_FILES names the game files} < "$HERE/train-instance.sh"
+elif [ "$HOST" = worker ]; then
     echo "== starting the worker, detached =="
     $SSH -n -i "$PEM" ubuntu@"$IP" \
         "cd ~/Qapla && ( setsid nohup sh -c 'python3 src/pipeline/worker.py \
