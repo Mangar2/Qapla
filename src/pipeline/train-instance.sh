@@ -37,8 +37,19 @@ done
 aws s3 cp "$BUCKET/$RUN/nets/" "$NETS/" --recursive --only-show-errors 2>/dev/null || true
 ls "$NETS" | tail -3
 
-python3 -c "import torch;print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else '')"
-python3 -c "import numpy" 2>/dev/null || pip -q install numpy
+# The deep learning image keeps torch in its own interpreter, not in the system python - asking
+# python3 for it gets "no module named torch" on a machine that has it twice over.
+PY=""
+for candidate in /opt/pytorch/bin/python3 /opt/conda/bin/python3 python3; do
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c "import torch" 2>/dev/null; then
+        PY=$candidate; break
+    fi
+done
+[ -n "$PY" ] || { echo "no interpreter here has torch"; exit 1; }
+$PY -c "import torch;print('$PY', 'torch', torch.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else '')"
+$PY -c "import torch;import sys;sys.exit(0 if torch.cuda.is_available() else 1)" \
+    || { echo "torch does not see the gpu - a training on the cpu here is not worth the machine"; exit 1; }
+$PY -c "import numpy" 2>/dev/null || $PY -m pip -q install numpy
 
 # Every epoch's net and checkpoint leave the machine as they are written: this instance may be taken
 # away at any moment, and what is only here is lost when it is.
@@ -55,7 +66,7 @@ chmod +x "$QAPLA/carry-over.sh"
 cd "$QAPLA/src/trainer"
 RELATIVE=""
 for f in $FILES; do RELATIVE="$RELATIVE ../../test/nnue/dataset/$f"; done
-( setsid nohup python3 -u train.py $RELATIVE --out "../../test/nnue/nets-$RUN" \
+( setsid nohup "$PY" -u train.py $RELATIVE --out "../../test/nnue/nets-$RUN" \
     --blend-start 0.8 --blend-end 0.7 --epochs 20 --patience 2 --workers "$(nproc)" --seed 1 \
     --validation-every 100 --resume \
     >> "$QAPLA/test/log/train-$RUN.log" 2>&1 < /dev/null & )

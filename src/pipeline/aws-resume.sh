@@ -120,8 +120,13 @@ until $SSH -i "$PEM" ubuntu@"$IP" 'test -f BOOTSTRAP-DONE' 2>/dev/null; do
     fi
 done
 
-echo "== bringing it to the state a helper needs =="
-$SSH -i "$PEM" ubuntu@"$IP" 'bash -s' -- "$BUCKET" < "$HERE/bootstrap-instance.sh"
+# A training machine does not get the helper bootstrap: that one builds the engine and the tester,
+# which a training needs neither of, and on the x86 gpu image the engine build fails outright - it ran
+# once and cost the first machine that had capacity.
+if [ "$HOST" != train ]; then
+    echo "== bringing it to the state a helper needs =="
+    $SSH -i "$PEM" ubuntu@"$IP" 'bash -s' -- "$BUCKET" < "$HERE/bootstrap-instance.sh"
+fi
 
 # local.toml is not in the repository, so it cannot arrive by git pull - it is handed over here.
 scp -q -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i "$PEM" "$LOCAL" \
