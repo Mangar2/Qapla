@@ -24,9 +24,21 @@ import netfile
 
 
 class HalfKaNet(nn.Module):
+    """The net, with one head or with LAYER_STACKS of them.
 
-    def __init__(self):
+    With several, the dense layers exist once per phase of the game, chosen by the number of
+    pieces, as in the engine's layer stacks. They are computed as one layer with that many times
+    the outputs and the head of each position is taken out of it - no loop over the stacks, and the
+    gradient reaches only the head a position chose.
+
+    A stacked net starts as the same function as the single headed one drawn from the same seed:
+    every head a copy of that one head. Whatever the two runs then end at differently comes from the
+    heads being allowed to part, and from nothing else.
+    """
+
+    def __init__(self, stacks=1):
         super().__init__()
+        self.stacks = stacks
         # One more row than there are features: it is the padding of a position
         # with fewer than 32 pieces, and it stays zero.
         self.feature_transformer = nn.EmbeddingBag(
@@ -39,14 +51,37 @@ class HalfKaNet(nn.Module):
         nn.init.normal_(self.feature_transformer.weight, std=0.01)
         with torch.no_grad():
             self.feature_transformer.weight[netfile.FEATURE_COUNT].zero_()
+        if stacks > 1:
+            # Made after everything above has drawn its numbers, so that the single headed part
+            # comes out of the seed exactly as it does without stacks.
+            single = (self.l1, self.l2, self.output)
+            self.l1 = nn.Linear(netfile.L1_INPUT_SIZE, netfile.L1_SIZE * stacks)
+            self.l2 = nn.Linear(netfile.L1_SIZE, netfile.L2_SIZE * stacks)
+            self.output = nn.Linear(netfile.L2_SIZE, stacks)
+            with torch.no_grad():
+                for stacked, one in zip((self.l1, self.l2, self.output), single):
+                    stacked.weight.copy_(one.weight.repeat(stacks, 1))
+                    stacked.bias.copy_(one.bias.repeat(stacks))
 
     def forward(self, own_features, opponent_features):
         own = self.feature_transformer(own_features) + self.feature_bias
         opponent = self.feature_transformer(opponent_features) + self.feature_bias
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
-        hidden = self.l1(hidden).clamp(0.0, 1.0)
-        hidden = self.l2(hidden).clamp(0.0, 1.0)
-        return self.output(hidden).squeeze(1)
+        if self.stacks == 1:
+            hidden = self.l1(hidden).clamp(0.0, 1.0)
+            hidden = self.l2(hidden).clamp(0.0, 1.0)
+            return self.output(hidden).squeeze(1)
+        # The own features are every piece but the own king, so their number is the pieces less
+        # one - and (pieces - 1) // 4 is the stack, layerStackOf() in nnue-arch.h.
+        active = (own_features != netfile.FEATURE_COUNT).sum(dim=1)
+        rows = (active // 4).clamp(max=self.stacks - 1).view(-1, 1)
+        hidden = self.l1(hidden).view(-1, self.stacks, netfile.L1_SIZE)
+        hidden = hidden.gather(1, rows.unsqueeze(2).expand(-1, 1, netfile.L1_SIZE))
+        hidden = hidden.squeeze(1).clamp(0.0, 1.0)
+        hidden = self.l2(hidden).view(-1, self.stacks, netfile.L2_SIZE)
+        hidden = hidden.gather(1, rows.unsqueeze(2).expand(-1, 1, netfile.L2_SIZE))
+        hidden = hidden.squeeze(1).clamp(0.0, 1.0)
+        return self.output(hidden).gather(1, rows).squeeze(1)
 
     @torch.no_grad()
     def clamp_weights(self):

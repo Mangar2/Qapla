@@ -110,7 +110,7 @@ def train(arguments):
     # different nets, and their losses could not be compared step by step - which is how the
     # compiled loader was checked against the python one.
     torch.manual_seed(arguments.seed)
-    model = HalfKaNet().to(device)
+    model = HalfKaNet(stacks=arguments.stacks).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
     print('%d positions, %d batches of %d, device %s'
@@ -207,6 +207,9 @@ if __name__ == '__main__':
                              '--validation-every writes it')
     parser.add_argument('--patience', type=int, default=3,
                         help='epochs without an improvement on it before stopping')
+    parser.add_argument('--stacks', type=int, default=1,
+                        help='how many layer stacks: 1 is the net as it was, 8 one head per phase '
+                             'of the game, chosen by the number of pieces as in the engine')
     parser.add_argument('--loader', choices=['native', 'python'], default='native',
                         help='native: the compiled loader, verified bit for bit against the python '
                              'one and about twenty times faster per core; python: the old one')

@@ -44,22 +44,38 @@ def quantize(model):
         _quantized(model.feature_bias.detach().cpu().numpy(), netfile.QA, np.int16), 'h')
 
     scale = netfile.QA * netfile.QB
-    for layer, weight_member, bias_member in (
-            (model.l1, 'l1_weight', 'l1_bias'), (model.l2, 'l2_weight', 'l2_bias')):
-        setattr(network, weight_member, _as_array(
-            _quantized(layer.weight.detach().cpu().numpy(), netfile.QB, np.int8), 'b'))
-        setattr(network, bias_member, _as_array(
-            _quantized(layer.bias.detach().cpu().numpy(), scale, np.int32), 'i'))
+    stacks = getattr(model, 'stacks', 1)
 
-    network.output_weight = _as_array(
-        _quantized(model.output.weight.detach().cpu().numpy(), netfile.QB, np.int8), 'b')
-    network.output_bias = int(_quantized(model.output.bias.detach().cpu().numpy(), scale,
-                                         np.int32)[0])
+    def rows(layer, stack, size):
+        # The outputs of a stacked layer are stack after stack, size of them each.
+        weight = layer.weight.detach().cpu().numpy()[stack * size:(stack + 1) * size]
+        bias = layer.bias.detach().cpu().numpy()[stack * size:(stack + 1) * size]
+        return weight, bias
+
+    heads = []
+    for stack in range(stacks):
+        head = netfile.Head()
+        for layer, size, weight_member, bias_member in (
+                (model.l1, netfile.L1_SIZE, 'l1_weight', 'l1_bias'),
+                (model.l2, netfile.L2_SIZE, 'l2_weight', 'l2_bias')):
+            weight, bias = rows(layer, stack, size)
+            setattr(head, weight_member, _as_array(_quantized(weight, netfile.QB, np.int8), 'b'))
+            setattr(head, bias_member, _as_array(_quantized(bias, scale, np.int32), 'i'))
+        weight, bias = rows(model.output, stack, 1)
+        head.output_weight = _as_array(_quantized(weight, netfile.QB, np.int8), 'b')
+        head.output_bias = int(_quantized(bias, scale, np.int32)[0])
+        heads.append(head)
+    # A single head goes into every stack - the engine reads it that way from the old format too.
+    network.heads = heads if stacks > 1 else heads * netfile.LAYER_STACKS
+    network.stacked = stacks > 1
     return network
 
 
 def export(model, path):
-    netfile.write(path, quantize(model))
+    network = quantize(model)
+    # A net with one head is written in the old format, which every engine binary reads - the ones
+    # a tournament runs were built before there were stacks. Only a stacked net needs the new one.
+    netfile.write(path, network, single_head=not network.stacked)
     print('written %s' % path)
 
 
@@ -68,6 +84,8 @@ if __name__ == '__main__':
         print('usage: export.py <checkpoint> <net file>')
         raise SystemExit(1)
     from model import HalfKaNet
-    trained = HalfKaNet()
-    trained.load_state_dict(torch.load(sys.argv[1], map_location='cpu'))
+    held = torch.load(sys.argv[1], map_location='cpu', weights_only=False)
+    state = held['model'] if isinstance(held, dict) and 'model' in held else held
+    trained = HalfKaNet(stacks=state['output.weight'].shape[0])
+    trained.load_state_dict(state)
     export(trained, sys.argv[2])
