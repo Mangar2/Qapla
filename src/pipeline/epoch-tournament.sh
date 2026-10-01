@@ -56,6 +56,16 @@ while :; do
     if $SSH "$THERE" "pgrep -x qet >/dev/null"; then
         sleep 120; continue          # an epoch is still being played, or another tournament is
     fi
+    # Idle can mean finished or interrupted. qet ends a finished tournament with its outcome table;
+    # anything else - a restart of the machine, a kill - leaves a pairing half played, and being in
+    # the tournament file is then not the same as having been played.
+    if $SSH "$THERE" "test -f $REPO/$STATE" && \
+       ! $SSH "$THERE" "tail -40 $REPO/test/log/epochs-$RUN-run.log | grep -q 'Tournament outcome'"; then
+        say "the tournament was interrupted - continuing it before choosing the next epoch"
+        $SSH "$THERE" "cd $REPO && ( setsid nohup ~/bin/qet --concurrency=14 --logging path=test/log \
+            engine=false --tournament file=$STATE >> test/log/epochs-$RUN-run.log 2>&1 < /dev/null & )"
+        sleep 120; continue
+    fi
     if $SSH "$THERE" "grep -qx 'name=$NAME' $REPO/$STATE 2>/dev/null"; then
         if [ "$training" = no ]; then
             say "the training has stopped and its best epoch $NN has been played - done"
