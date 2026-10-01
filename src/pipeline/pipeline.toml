@@ -621,6 +621,10 @@ validation_every = 100
 
 [[steps]]
 id = "set123456-train"
+# Stopped by hand after epoch 5 on 01.10.2026. From epoch 3 on it stood on the plateau every
+# corpus from three sets upwards ends on, about 62 % against hce; nothing more was to be
+# expected, and the mac was wanted for the same corpus with eight layer stacks.
+done = true
 kind = "train"
 host = "mac"
 doc = "All six sets as one corpus."
