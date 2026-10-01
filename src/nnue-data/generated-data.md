@@ -575,3 +575,38 @@ load 9 of 32, and three quarters of the machine idle. c7g.4xlarge at 0.21 $/h is
 against 0.41 for the 32 core one - the first run of it was started on 32 by carrying the type over
 from the playing hosts, where 30 concurrent games really do need them. A playing or labelling host
 wants the cores; a training host does not.
+
+### A gpu instance, measured on 01.10.2026
+
+`g6.2xlarge`: one NVIDIA L4, 8 vCPU (4 cores with two threads each), spot at about 0.91 $/h. The
+deep learning image (PyTorch 2.7, CUDA 12.8) keeps torch in `/opt/pytorch/bin/python3`, not in the
+system python; `train-instance.sh` looks for it. On the six-set corpus, 1.03 billion positions an
+epoch:
+
+| | positions/s |
+|---|---|
+| the mac, four sets, while the tournament machine was being driven from it | 166,000 - 171,000 |
+| the L4 instance, eight loader processes | 209,000 |
+
+The L4 was **54 % busy** at that rate, so here the loader is the limit and not the gpu - the
+opposite of the mac, whose stronger cores feed six processes at 428,000. How the loader scales on
+that instance, one file, three minutes each:
+
+| loader processes | positions/s | |
+|---|---|---|
+| 2 | 72,500 | |
+| 4 | 116,900 | × 1.61 |
+| 8 | 196,600 | × 1.68 |
+
+It scales well with cores, so a 32 vCPU instance would feed about 500,000. But the L4 itself caps out
+near 390,000 - 54 % busy at 209,000 - which is 2.3 times the mac. **The bar for moving training off
+the mac was three times its speed**, so an L4 does not clear it whatever the core count, and
+`g6.8xlarge` carries the same L4. Only a 32 core machine with a faster gpu could: `g5.8xlarge` with an
+A10G or `g6e.8xlarge` with an L40S. Neither was tried: the spot quota for G instances was 8 vCPU, a
+second request is refused while the first is open, and at the time of measuring no zone had A10G
+capacity at all.
+
+The training stays on the mac. Two things are in place should that change: `train.py --resume`
+continues from the newest checkpoint with the optimizer and the stopping rule restored, so a reclaim
+costs one epoch instead of the run, and `aws-resume.sh` brings up a gpu machine with the host key
+`train`, the image in `QAPLA_IMAGE`, and the sets named in `QAPLA_FILES`.
