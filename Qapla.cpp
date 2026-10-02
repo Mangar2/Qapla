@@ -105,13 +105,10 @@ int main()
 	 */
 #ifdef USE_STOCKFISH_EVAL
 	Stockfish::Engine::initialize();
-#ifdef _WIN32
-	// The nets are linked into the program as resources there.
-	Stockfish::Engine::load_network("NNUE1", "NNUE2");
-#else
-	// Everywhere else they are files, looked for next to the working directory.
+	// Files on every system, looked for next to the working directory. Windows once took them as
+	// resources linked into the program, but the build does not link nnue-files.rc any more, and an
+	// absent resource left both nets empty: every evaluation was 0, without an error that stopped it.
 	Stockfish::Engine::load_network("nnue/nn-1111cefa1111.nnue", "nnue/nn-37f18f62d772.nnue");
-#endif
 #endif
 
 	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;
