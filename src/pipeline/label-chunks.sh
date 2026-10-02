@@ -2,7 +2,10 @@
 # Labels the chunks of a set one after the other, with any engine, on the machine it runs on.
 #
 #     sh src/pipeline/label-chunks.sh <chunk dir> <output dir> <qet> <engine binary> <engine dir> \
-#         <depth> <concurrency>
+#         <depth> <concurrency> [first chunk] [last chunk]
+#
+# The range splits a set between machines: each labels the chunks of its own range, numbered as in
+# chunk-0051.pgn, and leaves the others alone. Without it, every chunk of the directory.
 #
 # What src/pipeline/pipeline.py does in its label step, without the configuration around it: the
 # pipeline knows an engine by a name in local.toml and starts it in its own directory, and an engine
@@ -21,12 +24,21 @@ ENGINE=${4:?engine binary, absolute}
 ENGINE_DIR=${5:?working directory of the engine, absolute}
 DEPTH=${6:?depth}
 CONCURRENCY=${7:?concurrency}
+FIRST=${8:-1}
+LAST=${9:-999999}
 mkdir -p "$OUT"
 say() { echo "=== $(date '+%Y-%m-%d %H:%M:%S') $*"; }
 
-total=$(ls "$CHUNKS"/chunk-*.pgn | wc -l)
-say "$total chunks, $(ls "$CHUNKS"/chunk-*.pgn.done 2>/dev/null | wc -l) done before"
+number_of() { basename "$1" .pgn | sed 's/^chunk-0*//'; }
+mine() { n=$(number_of "$1"); [ "${n:-0}" -ge "$FIRST" ] && [ "${n:-0}" -le "$LAST" ]; }
+total=0; before=0
 for chunk in "$CHUNKS"/chunk-*.pgn; do
+    mine "$chunk" || continue
+    total=$((total + 1)); [ -f "$chunk.done" ] && before=$((before + 1))
+done
+say "$total chunks in $FIRST..$LAST, $before done before"
+for chunk in "$CHUNKS"/chunk-*.pgn; do
+    mine "$chunk" || continue
     [ -f "$chunk.done" ] && continue
     name=$(basename "$chunk")
     output=$OUT/$name
@@ -69,7 +81,8 @@ EOF
         exit 1
     fi
     touch "$chunk.done"
-    done=$(ls "$CHUNKS"/chunk-*.pgn.done | wc -l)
+    done=0
+    for c in "$CHUNKS"/chunk-*.pgn; do mine "$c" && [ -f "$c.done" ] && done=$((done + 1)); done
     say "$name: $got games in $(( $(date +%s) - start )) s, $done of $total done"
 done
 say "all $total chunks done"
