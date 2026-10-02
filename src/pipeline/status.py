@@ -180,7 +180,7 @@ def standings(cfg, host, ip):
     if not newest:
         return
     table = ask(cfg, host, ip, f'grep -n "Rank | Name" {newest.strip()} | tail -1 | cut -d: -f1 '
-                               f'| xargs -I@ sed -n "@,+14p" {newest.strip()}')
+                               f'| xargs -I@ sed -n "@,/^ *$/p" {newest.strip()}')
     if not table:
         return
     rows = []
