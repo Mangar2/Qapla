@@ -52,7 +52,11 @@ def write(game_path, pgn_path, max_games=None):
                 departure, destination, promotion = fmt.unpack_move(packed, board.squares)
                 text = square_name(departure) + square_name(destination)
                 if promotion != fmt.NO_PIECE:
-                    text += 'qrbn'[(promotion >> 1) - 2] if promotion >> 1 >= 2 else 'q'
+                    # A piece code halved is 2 for a knight, 3 bishop, 4 rook, 5 queen. The letters
+                    # stood the other way round, so every queen came out as a knight: the next moves
+                    # of such a game were illegal, and qet dropped it without a word - nearly half of
+                    # a sample of 280, every game that had a promotion in it.
+                    text += 'nbrq'[(promotion >> 1) - 2]
                 moves.append(text)
                 board.apply(departure, destination, promotion)
             out.write('[Event "Qapla rebuilt from a game file"]\n')
