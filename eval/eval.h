@@ -65,7 +65,13 @@ namespace ChessEval {
 		static value_t eval(MoveGenerator& position, PawnTT* pawnttPtr = nullptr, value_t ply = 0,
 			[[maybe_unused]] value_t alpha = -MAX_VALUE) {
 #ifdef USE_STOCKFISH_EVAL
-			return Stockfish::Engine::evaluate();
+			// Stockfish's value is in its own internal unit, about four times Qapla's: its 100 centipawns
+			// are 356 to 420 internal points, depending on the material. Handed over raw, every margin,
+			// delta and aspiration window of the search was four times too narrow for it, and a game
+			// labelled with it got values four times too sharp. to_cp is Stockfish's own conversion,
+			// UCIEngine::to_cp - cp = 100 * v / a, a from its win rate model for the material on the board
+			// - so the search and everything after it sees centipawns, as with every other evaluation.
+			return Stockfish::Engine::to_cp(Stockfish::Engine::evaluate());
 #else
 			value_t positionValue = lazyEval<false>(position, ply, pawnttPtr);
 			return position.isWhiteToMove() ? positionValue : -positionValue;
