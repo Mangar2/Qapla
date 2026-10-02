@@ -109,6 +109,13 @@ else # Release
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 endif
 
+# NATIVE=1 as on Linux: for the machine that compiles. -arch:AVX2 above already takes the avx2
+# path of the nnue; native adds what else the cpu has (bmi2, and avx-512 where there is one).
+ifdef NATIVE
+  CXXFLAGS_BT += /clang:-march=native
+  CFLAGS_BT   += /clang:-march=native
+endif
+
 # Merge tool for raw profiles (LLVM toolchain)
 PROFDATA ?= llvm-profdata
 
