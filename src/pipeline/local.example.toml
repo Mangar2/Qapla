@@ -46,6 +46,15 @@ options = { NnueFile = "<fill in>" }
 binary = "<fill in>"
 options = { NnueFile = "<fill in>" }
 
+# A windows host. os = "windows" makes the scripts drive it through the msys bash there.
+[hosts.ryzen9]
+hostname = "<fill in>"
+ssh = "<fill in>"
+repo = "<fill in>"
+qet = "<fill in>"
+os = "windows"
+concurrency = 15
+
 [hosts.aws]
 instance_type = "<fill in>"   # what to bring up for this host
 repo = "<fill in>"
