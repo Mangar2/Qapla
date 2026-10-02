@@ -128,6 +128,16 @@ while :; do
         *equal*avx2*|*equal*neon*) ;;
         *) say "the net does not load cleanly or the build has no vector path - stopping"; exit 1 ;;
     esac
+    # nnueeval loads the net in every build; only a build with QAPLA_USE_NNUE plays with it. A build
+    # without it plays hce whatever NnueFile says, without a word - on 02.10.2026 the first windows
+    # epoch played hce against hce for ten minutes. With the net the search has to take another path.
+    nodes() { there "printf 'uci\n$1isready\nposition startpos\ngo depth 9\n' | (cat; sleep 3; echo quit) \
+        | new-versions/$BINARY$EXT 2>/dev/null | grep ' depth 9 ' | tail -1 | sed 's/.* nodes \([0-9]*\).*/\1/'"; }
+    with=$(nodes "setoption name NnueFile value $NET\n"); without=$(nodes "")
+    if [ -z "$with" ] || [ "$with" = "$without" ]; then
+        say "new-versions/$BINARY$EXT does not play with the net ($with nodes with it, $without without) - built without QAPLA_USE_NNUE? stopping"
+        exit 1
+    fi
     start "$NN" "$NET"
     sleep 60
     qet_runs || { say "qet did not start - see test/log/epochs-$RUN-$NN-run.log there"; exit 1; }
