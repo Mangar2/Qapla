@@ -671,6 +671,37 @@ seed = 1
 validation_every = 100
 stacks = 8
 
+# Eight stacks, each head also trained on the positions of the stacks next to it: head i learns from
+# stacks i-1, i and i+1, the heads at the edges from two. The number of pieces separates the phases of
+# a game only roughly - a queen less is nearer the endgame than two pawns less - so the neighbours'
+# positions are often a fair lesson, and the heads should part more softly, with less of a jump in the
+# value when a capture moves a position into the next stack. The engine still evaluates with the own
+# head alone, and the held back loss is measured that way. The outputs of all heads are computed by
+# the stacked run already, so this costs the second layer and the output for every head and nothing
+# more.
+[[steps]]
+id = "set123456-s8n-train"
+kind = "train"
+host = "mac"
+doc = "All six sets, eight layer stacks, every head also trained on its neighbours' positions."
+games = ["test/nnue/dataset/set1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set2-nnue1-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set3-nnue2-self-depth6-nowdl.gam",
+         "test/nnue/dataset/set4-nnue1-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set5-nnue2-hce-depth6-nowdl.gam",
+         "test/nnue/dataset/set6-nnue1-nnue2-depth6-nowdl.gam"]
+out_dir = "test/nnue/nets-set1-to-6-s8n"
+blend_start = 0.8
+blend_end = 0.7
+epochs = 20
+patience = 2
+workers = 6
+seed = 1
+validation_every = 100
+stacks = 8
+neighbours = true
+neighbour_weight = 1.0
+
 # ===========================================================================================
 # The sets as work for the task queue, rather than as steps bound to a machine.
 #

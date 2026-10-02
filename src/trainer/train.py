@@ -31,7 +31,7 @@ import export
 import netfile
 from dataset import PositionCache
 from gamedata import GameFile
-from model import HalfKaNet, loss_of
+from model import HalfKaNet, loss_of, neighbour_loss_of
 
 
 def pick_device(name):
@@ -132,8 +132,13 @@ def train(arguments):
         total, seen = 0.0, 0
         start = time.time()
         for own, opponent, value, result, counts in cache.batches(arguments.batch_size, device):
-            prediction = model(own, opponent)
-            loss = loss_of(prediction, value, result, counts, blend)
+            if arguments.neighbours:
+                outputs, stack = model.all_heads(own, opponent)
+                loss = neighbour_loss_of(outputs, stack, value, result, counts, blend,
+                                         arguments.neighbour_weight)
+            else:
+                prediction = model(own, opponent)
+                loss = loss_of(prediction, value, result, counts, blend)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
@@ -210,6 +215,12 @@ if __name__ == '__main__':
     parser.add_argument('--stacks', type=int, default=1,
                         help='how many layer stacks: 1 is the net as it was, 8 one head per phase '
                              'of the game, chosen by the number of pieces as in the engine')
+    parser.add_argument('--neighbours', action='store_true',
+                        help='with stacks: every position trains its own head and the two next to '
+                             'it; the held back loss is still measured with the own head alone, as '
+                             'the engine evaluates')
+    parser.add_argument('--neighbour-weight', type=float, default=1.0,
+                        help='what a neighbouring head counts against the own one')
     parser.add_argument('--loader', choices=['native', 'python'], default='native',
                         help='native: the compiled loader, verified bit for bit against the python '
                              'one and about twenty times faster per core; python: the old one')

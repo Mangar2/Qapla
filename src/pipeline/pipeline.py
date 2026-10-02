@@ -1091,7 +1091,9 @@ def step_train(cfg, host_key, step, state):
                '--epochs', str(step.get('epochs', 20)), '--patience', str(step.get('patience', 3)),
                '--workers', str(step.get('workers', 6)), '--seed', str(step.get('seed', 1)),
                '--validation-every', str(step.get('validation_every', 100)),
-               '--stacks', str(step.get('stacks', 1))]
+               '--stacks', str(step.get('stacks', 1))] + (
+               ['--neighbours', '--neighbour-weight', str(step.get('neighbour_weight', 1.0))]
+               if step.get('neighbours') else [])
     # Every epoch's net goes over as it is written, not at the end: this runs for hours on a
     # machine that may be taken away, and a net per epoch is a piece worth keeping on its own.
     with Progress(state, step['id'], log_path, 'epoch', step.get('epochs', 20), every=900), \
