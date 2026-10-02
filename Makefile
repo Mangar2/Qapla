@@ -61,7 +61,7 @@ ifeq ($(BUILD_TYPE),Debug)
   # Debug: use debug runtime library (-MTd) and debug flags
   CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MTd -EHsc /clang:-MMD /clang:-MP 
   CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MTd /clang:-MMD /clang:-MP 
-  CXXFLAGS_BT   := -D_DEBUG -Od -Zi -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2
+  CXXFLAGS_BT   := -D_DEBUG -Od -Zi -arch:AVX2 -DUSE_POPCNT -DUSE_SSE2 -DUSE_SSSE3 -DUSE_SSE41 -DUSE_AVX2
   CFLAGS_BT     := -D_DEBUG -Od -Zi
   LDFLAGS_PLAT  := -MTd -fuse-ld=lld -link -DEBUG -PDB:$(BUILD_DIR)/Qapla.pdb -SUBSYSTEM:CONSOLE
 else ifeq ($(BUILD_TYPE),WhatifRelease)
@@ -82,7 +82,7 @@ else ifeq ($(BUILD_TYPE),ReleaseOpt)
   # ReleaseOpt: release flags + PARAM_OPTIMIZE define
   CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP 
   CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP 
-  CXXFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2
+  CXXFLAGS_BT   := -DNDEBUG -DPARAM_OPTIMIZE -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_SSE2 -DUSE_SSSE3 -DUSE_SSE41 -DUSE_AVX2
   CFLAGS_BT     := -DNDEBUG -DPARAM_OPTIMIZE -O2 -Oi -Ot -flto
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 else ifeq ($(BUILD_TYPE),ReleasePGOGen)
@@ -90,21 +90,21 @@ else ifeq ($(BUILD_TYPE),ReleasePGOGen)
   # directive for the profile runtime, so the link needs no extra library.
   CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP
   CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP
-  CXXFLAGS_BT   := -DNDEBUG -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2 /clang:-fprofile-generate=$(PGO_PROFDIR)
+  CXXFLAGS_BT   := -DNDEBUG -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_SSE2 -DUSE_SSSE3 -DUSE_SSE41 -DUSE_AVX2 /clang:-fprofile-generate=$(PGO_PROFDIR)
   CFLAGS_BT     := -DNDEBUG -O2 -Oi -Ot -flto /clang:-fprofile-generate=$(PGO_PROFDIR)
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 else ifeq ($(BUILD_TYPE),ReleasePGO)
   # Release built with the profile collected by ReleasePGOGen
   CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP
   CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP
-  CXXFLAGS_BT   := -DNDEBUG -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2 /clang:-fprofile-use=$(PGO_DATA)
+  CXXFLAGS_BT   := -DNDEBUG -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_SSE2 -DUSE_SSSE3 -DUSE_SSE41 -DUSE_AVX2 /clang:-fprofile-use=$(PGO_DATA)
   CFLAGS_BT     := -DNDEBUG -O2 -Oi -Ot -flto /clang:-fprofile-use=$(PGO_DATA)
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 else # Release
   # Release: use release runtime library (-MT)
   CXXFLAGS_BASE := -std:c++20 -W3 -wd4100 -wd4101 -MT -EHsc /clang:-MMD /clang:-MP
   CFLAGS_BASE   := -W3 -wd4100 -wd4101 -MT /clang:-MMD /clang:-MP
-  CXXFLAGS_BT   := -DNDEBUG -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_AVX2
+  CXXFLAGS_BT   := -DNDEBUG -O2 -Oi -Ot -flto -arch:AVX2 -DUSE_POPCNT -DUSE_SSE2 -DUSE_SSSE3 -DUSE_SSE41 -DUSE_AVX2
   CFLAGS_BT     := -DNDEBUG -O2 -Oi -Ot -flto
   LDFLAGS_PLAT  := -MT -flto -fuse-ld=lld -link -SUBSYSTEM:CONSOLE
 endif
