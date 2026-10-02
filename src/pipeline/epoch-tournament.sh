@@ -40,7 +40,7 @@ BINARY=${4:-Qapla-blendtest-nnue}
 HOST=${5:-qapla}
 
 CFG=src/pipeline/local.toml
-host() { python3 -c "import tomllib;print(tomllib.load(open('$CFG','rb'))['hosts']['$HOST'].get('$1','$2'))"; }
+host() { python3 -c "import tomllib;print(tomllib.load(open('$CFG','rb'))['hosts']['$HOST'].get('$1','${2:-}'))"; }
 THERE=$(host ssh)
 REPO=$(host repo | sed 's#/$##')
 QET=$(host qet '~/bin/qet')
