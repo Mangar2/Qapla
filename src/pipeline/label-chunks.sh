@@ -2,10 +2,11 @@
 # Labels the chunks of a set one after the other, with any engine, on the machine it runs on.
 #
 #     sh src/pipeline/label-chunks.sh <chunk dir> <output dir> <qet> <engine binary> <engine dir> \
-#         <depth> <concurrency> [first chunk] [last chunk]
+#         <depth> <concurrency> [first chunk] [last chunk] [Option=value ...]
 #
 # The range splits a set between machines: each labels the chunks of its own range, numbered as in
-# chunk-0051.pgn, and leaves the others alone. Without it, every chunk of the directory.
+# chunk-0051.pgn, and leaves the others alone. Without it, every chunk of the directory. Whatever
+# follows the range is set as a UCI option of the engine, as in ffDepthFactor=5000.
 #
 # What src/pipeline/pipeline.py does in its label step, without the configuration around it: the
 # pipeline knows an engine by a name in local.toml and starts it in its own directory, and an engine
@@ -26,6 +27,9 @@ DEPTH=${6:?depth}
 CONCURRENCY=${7:?concurrency}
 FIRST=${8:-1}
 LAST=${9:-999999}
+shift $(( $# < 9 ? $# : 9 ))
+OPTIONS=""
+for option in "$@"; do OPTIONS="$OPTIONS option.$option"; done
 mkdir -p "$OUT"
 say() { echo "=== $(date '+%Y-%m-%d %H:%M:%S') $*"; }
 
@@ -72,7 +76,8 @@ pv=false
 notation=lan
 EOF
     start=$(date +%s)
-    "$QET" --settingsfile="$ini" --engine name=label cmd="$ENGINE" dir="$ENGINE_DIR"
+    # $OPTIONS unquoted on purpose: one word per option, and an option holds no blank.
+    "$QET" --settingsfile="$ini" --engine name=label cmd="$ENGINE" dir="$ENGINE_DIR" $OPTIONS
     code=$?
     want=$(grep -c '^\[White ' "$chunk")
     got=$(grep -c '^\[White ' "$output" 2>/dev/null || echo 0)
