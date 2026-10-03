@@ -165,7 +165,7 @@ has no torch). Create the output directory first.
 | s8-e14 vs set1234 | +17 Elo (+/-7, 10000 games) |
 | HCE vs set1234 | about -91 Elo (+/-11, 3900 games, paused) |
 | low-selectivity HCE (futility off, lmrDivisor 476, ~2.9x nodes) vs default, depth 8 | +112 Elo (+/-14, 3000 games) |
-| nets from 26 chunks of set 1, Stockfish labels vs HCE labels | SPRT 0/+15 running, `test/log/sprt-sf26-vs-hce26*` |
+| nets from 26 chunks of set 1 (260k games, 1 head, 5 epochs), Stockfish labels vs HCE labels | SPRT H1 accepted after 544 games, bounds 0/+15 |
 
 Open work: Stockfish relabelling of set 1 (Windows chunks 1-50, Linux 51-101), low-selectivity
 HCE relabelling of set 1 on the Mac (paused at 14 of 101, `test/log/label-set1-lowsel.log`),
