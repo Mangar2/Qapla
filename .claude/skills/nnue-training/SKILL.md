@@ -50,6 +50,8 @@ Run outputs - tournament and SPRT state, pgns, run logs, training checkpoints, s
 copies - go to `tmp/` (see CLAUDE.md), which may be emptied at any time. What is worth keeping is
 moved out explicitly: nets to `test/nnue/`, binaries to `new-versions/`. Check free disk space before
 anything that writes gigabytes: a Stockfish-architecture checkpoint is 1.6 GB per epoch.
+Old checkpoints of Stockfish-architecture training go to the external SSD of the Mac,
+`/Volumes/T7/qapla/<run>/` (copy, compare, then remove locally); the `.nnue` nets stay in the repo.
 
 ## The data path
 
