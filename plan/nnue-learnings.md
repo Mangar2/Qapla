@@ -26,3 +26,14 @@ trained without the game result, 124 to 139 million positions each.
 **Not yet shown** either way whether the advantage remains once the net is fully trained: from three
 to four sets on, no effect of the origin of a set could be measured (set123 62.2 %, set1234 63.2 %,
 set12345 62.7 %, 5000 games each).
+
+## 3. Eight layer stacks instead of one head make the net stronger - a detail, not a step
+
+**Confirmed**: the best net with eight heads (set123456, epoch 14) scored +17 Elo against the best
+single-head net (set1234) over 10000 games (qet: +/-5). The two were trained on different corpora,
+set123456 and set1234; without heads, corpora of four and five sets could not be told apart
+(63.2 % and 62.7 % against HCE, 5000 games each).
+
+**Probably needs much more training** - one series only: the eight-head run reached its best held
+back loss at epoch 14 of set123456, about 14.6 billion positions; the single-head run at epoch 11 of
+set1234, about 6.5 billion.
