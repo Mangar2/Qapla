@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <cstdint>  // Added for uint64_t definition
+#include <filesystem>
 #include "interface/selectinterface.h"
 
 #ifdef USE_STOCKFISH_EVAL
@@ -108,7 +109,11 @@ int main()
 	// Files on every system, looked for next to the working directory. Windows once took them as
 	// resources linked into the program, but the build does not link nnue-files.rc any more, and an
 	// absent resource left both nets empty: every evaluation was 0, without an error that stopped it.
-	Stockfish::Engine::load_network("nnue/nn-1111cefa1111.nnue", "nnue/nn-37f18f62d772.nnue");
+	// nnue/big.nnue, where there is one, replaces the big net: a net of our own training is played by
+	// giving the engine a working directory that holds it, without a build of its own.
+	Stockfish::Engine::load_network(
+		std::filesystem::exists("nnue/big.nnue") ? "nnue/big.nnue" : "nnue/nn-1111cefa1111.nnue",
+		"nnue/nn-37f18f62d772.nnue");
 #endif
 
 	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;
