@@ -44,6 +44,13 @@ Background documents in the repository - read the one that matters before acting
   `~/dev/qapla/engine-tester` (branch 0.7.0); on Windows `C:\development\qapla-engine-tester`,
   `cmake --preset release && cmake --build --preset release`, then copy to `C:\development\bin`.
 
+## Where things go
+
+Run outputs - tournament and SPRT state, pgns, run logs, training checkpoints, speed tests, chunk
+copies - go to `tmp/` (see CLAUDE.md), which may be emptied at any time. What is worth keeping is
+moved out explicitly: nets to `test/nnue/`, binaries to `new-versions/`. Check free disk space before
+anything that writes gigabytes: a Stockfish-architecture checkpoint is 1.6 GB per epoch.
+
 ## The data path
 
 ```

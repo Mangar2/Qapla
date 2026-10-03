@@ -44,7 +44,8 @@ The places that already exist and are the ones to use:
 
 | what | where |
 |---|---|
-| SPRT state, pgn and run logs | `test/log/` |
+| SPRT and tournament state, pgn and run logs, training checkpoints, scratch files | `tmp/` (see below) |
+| nets worth keeping, training data | `test/nnue/` |
 | EPD reports | `test/epd/log/` |
 | CLOP logs | `test/clop/log/` |
 | builds | `build/<BUILD_TYPE>/` |
@@ -52,6 +53,20 @@ The places that already exist and are the ones to use:
 
 `.gitignore` keeps them out of commits; staying in the repo is about being findable, not about
 being versioned.
+
+### Temporary data goes to tmp/, and tmp/ can be emptied at any time
+
+Everything a run produces that is not meant to be kept - tournament and SPRT state, pgns and run logs,
+training checkpoints, speed tests, copies of chunks, scratch files - goes to `tmp/` in the repository,
+not to `test/log/` and not beside the data. `tmp/` is ignored by git and may be emptied at any moment
+without asking.
+
+Whatever is worth keeping is moved out of `tmp/` explicitly, at the moment it turns out to be worth
+keeping: a net to `test/nnue/`, a binary to `new-versions/`, a result into the version log or the
+learnings. What has not been moved out is gone the next time `tmp/` is emptied - that is the point.
+
+Before starting anything that writes gigabytes, check the free disk space; a full disk breaks a
+training run at its next checkpoint.
 
 **One working copy, one build directory.** Do not create git worktrees to build several versions
 side by side. Builds are cheap and sequential: build a version, copy its binary to `new-versions/`

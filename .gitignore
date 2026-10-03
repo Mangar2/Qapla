@@ -399,3 +399,6 @@ qapla.nnue
 
 # the machines and the account this installation uses, never in the repository
 src/pipeline/local.toml
+
+# Temporary data of runs - may be emptied at any time, see CLAUDE.md
+/tmp/
