@@ -12,6 +12,13 @@ Not `make BUILD_TYPE=Release -j` — the `Release` target sets `BUILD_TYPE` itse
 binary lands in `build/Release/Qapla.exe` (`build/Release/Qapla` on Linux/macOS) and that
 is the path the EPD, SPRT and CLOP runs below refer to.
 
+## NNUE training
+
+Everything about generating, labelling and converting game sets, training nets, the engine builds
+that play them, the tournaments that measure them and the machines it all runs on is in the skill
+`.claude/skills/nnue-training/SKILL.md`. Read it before any work on nnue data, a training run, a net
+or a tournament between nets, and keep it current: whatever was learned the hard way goes in there.
+
 ## The test tools and where they live
 
 Two programs drive the tests: **qet**, the qapla-engine-tester, and **qcg**, the Qapla Chess
