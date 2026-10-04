@@ -86,6 +86,9 @@ that goal - or the overall goal it belongs to - furthest, not simply the next it
   machine, and delete the branch when the task is done.
 - Write the follow-up as a chain that starts by itself (wait for the end, check the result, start the
   next step), and watch the chain like a run: a chain that stops at a check must wake me.
+- No long chains written hours ahead (Volker, 2026-10-04): a chain covers only the next step, written
+  when that step becomes relevant. Further steps stand in `plan/run-goals.md`, and a watcher on the
+  current run wakes me so that I prepare the next step then.
 - A chain or a guard that kills or stops something writes why into its log, and the watcher reports it.
 
 ## 7. Waiting is minimal
