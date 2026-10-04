@@ -15,10 +15,24 @@ Next: export e10, play it against HCE in the tournament of e1 (2000 games, 10+0.
 
 ### Linux and Windows: set 1 labelled with Qapla's search and Stockfish's evaluation (chunks 51-101 / 1-50)
 Goal: the Stockfish-eval test for set 1 - does a better label of the same positions make the net
-clearly stronger? (Order of the levers, 2026-10-01: capacity, better labels, new games.) The 26-chunk
-pre-test accepted H1 at bounds 40/50. Afterwards, idea 3 (low-selectivity HCE labels, paused below).
-Next: join both halves, convert to .gam, train set 1 exactly like the old set-1 net and play it
-against the old set-1 net (nowdl, HCE labels).
+clearly stronger, and by how much? (Order of the levers, 2026-10-01: capacity, better labels, new games.)
+
+Pre-test: two nets from the same 26 chunks of set 1 (260k games, 1 head, 5 epochs), Stockfish labels
+against HCE labels - SPRT H1 accepted after 544 games at bounds 0/+15, and H1 accepted after 2814 games
+at bounds 40/50. Why the full set anyway: the pre-test had a quarter of the data and short training,
+and the advantage of the set origin (learning 2) was clear early and could no longer be measured from
+three to four sets on. Whether the label advantage stays, grows or vanishes in a fully trained net is
+open; only a tournament gives its size with an uncertainty, i.e. how much of the ~600 Elo gap better
+labels can close. Afterwards, idea 3 (low-selectivity HCE labels, paused below).
+
+Procedure, exactly like the old net `nets-set1-nowdl` (2026-09-28), only the labels differ:
+- data: chunks 1-101 joined in order, `gamefile --pgn2gam wdl=none` -> .gam
+- `src/trainer/train.py`, `--stacks 1`, L1 256, lr 1e-3, batch 16384, seed 1, validation-every 100,
+  max 20 epochs, patience 3; the net is the epoch with the lowest held back loss (old: e08)
+- the held back loss does not compare the two (different labels); only games:
+  new against old head to head at 10+0.05, book8ply.raw, until the error is below +/-10 Elo
+  (~3000 games), and each against HCE in the same setting for the link to older figures
+- one unavoidable difference: the trainer has had the compiled loader since 2026-09-28
 
 ## Paused
 
