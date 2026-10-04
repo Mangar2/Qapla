@@ -72,3 +72,27 @@ the remaining range between machines with `[first] [last]` as for the Stockfish 
 
 ~37 min per chunk at concurrency 9 on the Mac. Not beside a training on the Mac: the training's data
 loader needs the cpu.
+
+## Planned
+
+### Best HCE training again, without captures and without check positions (Volker, 2026-10-04)
+Goal: can our best training so far be improved by leaving out positions whose label the net cannot
+learn? Two filters, in the loader, nothing else changes:
+1. no position from which the move played is a capture - the label there may carry a recapture the
+   search sees and the board does not show
+2. no position with the side to move in check - engines do not evaluate those, the search always
+   extends them
+
+Stockfish's trainer skips both too (nnue-pytorch's fen skipping: captures, in check).
+
+Baseline: `nets-set1-to-6-s8`, best epoch 14 (s8-e14) - sets 1-6 nowdl with HCE labels, `--stacks 8`,
+`--blend-start 0.8 --blend-end 0.7 --epochs 20 --patience 2 --workers 6 --seed 1 --validation-every
+100`. The new run repeats that exactly, with the filtering loader (`src/trainer/native/batcher.cpp`).
+The held back loss does not compare the two (different positions); only games.
+
+Test: the 10000-games reference tournament on Linux (`test/tournament/strength-reference.ini`,
+gauntlet `nnue-set1234`), in which s8-e14 already played: +17 Elo (+/-7) against set1234. The new
+best epoch joins that field (see `src/pipeline/join-gauntlet.py`).
+
+Machine: wherever a trainer is free first; the run takes ~14 epochs of six sets, about 14 hours on
+the Mac.
