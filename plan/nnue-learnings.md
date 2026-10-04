@@ -37,3 +37,29 @@ set123456 and set1234; without heads, corpora of four and five sets could not be
 **Probably needs much more training** - one series only: the eight-head run reached its best held
 back loss at epoch 14 of set123456, about 14.6 billion positions; the single-head run at epoch 11 of
 set1234, about 6.5 billion.
+
+## 4. A better evaluation in the labels makes a better net
+
+**Confirmed** for one set: the same positions of set 1, labelled once by Qapla's search with the hand
+written evaluation and once by the same search at the same depth (8) with Stockfish's evaluation, both
+trained alike (one head, nowdl, stopped by their own held back loss) - the net from the Stockfish labels
+scores about 70 % against the other, roughly +150 Elo (head to head, 10+0.05, see the evidence below).
+
+**Not yet shown**: whether a better search at the same depth with an identical evaluation does the
+same - set 1 relabelled by a less selective HCE search (about 2.9x the nodes at depth 8, +112 Elo +/-14
+over the default at that depth) is being labelled to answer it.
+
+Evidence: tournament `tmp/set1-sf-vs-hce-labels.state`, 2026-10-04 - set1-sf 70.55 % against set1-hce
+after 1100 of 3000 games (+/-19 each).
+
+## 5. Better labels pay more, the more complete the training
+
+**Supported** by one pair of measurements: on 26 chunks of set 1 (260k games, a quarter of it, 5
+epochs) the Stockfish labels won two SPRTs, the second at bounds 40/50 - +50 the likelier of those two
+candidates; on the whole of set 1 trained to its best epoch the advantage is about +150 Elo +/-27.
+The two runs differ in more than the amount of data (fixed 5 epochs against stopped at the best
+epoch), and an SPRT gives no magnitude, so the size of the step is not measured.
+
+The reading: gaps in the training stay gaps however good the labels are - the benefit of better labels
+shows only where the net has learned enough. With more sets and a more complete training, Stockfish
+labels can be expected to pay at least as much again.
