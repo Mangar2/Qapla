@@ -109,3 +109,7 @@ and every machine that stands idle:
 
 State means progress and the expected end. An idle machine stands in the table as idle, with what it
 should do next or the question to Volker. Every strength figure with its uncertainty.
+
+Every figure in the report is checked live, not read from a log alone: the process runs (`pgrep -x`),
+the log was written in the last minutes, and on the machine no leftovers sit beside it - after a test
+run with qet, kill its engines as well (`pkill -x qet` leaves them running as orphans).
