@@ -19,6 +19,12 @@ that play them, the tournaments that measure them and the machines it all runs o
 `.claude/skills/nnue-training/SKILL.md`. Read it before any work on nnue data, a training run, a net
 or a tournament between nets, and keep it current: whatever was learned the hard way goes in there.
 
+## Supervising long runs
+
+Whenever a training, labelling, tournament or SPRT runs on any machine, and after every interruption,
+the skill `.claude/skills/run-supervision/SKILL.md` applies: status timer, start checks within seconds,
+watchers, finding the cause before a restart, follow-up work, no idle machine.
+
 ## The test tools and where they live
 
 Two programs drive the tests: **qet**, the qapla-engine-tester, and **qcg**, the Qapla Chess

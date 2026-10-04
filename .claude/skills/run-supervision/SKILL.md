@@ -1,0 +1,87 @@
+---
+name: run-supervision
+description: Keeping long runs (training, labelling, tournaments, SPRTs) going on all machines without idle time - status timer, watchers, start checks, error handling, follow-up work. Read and apply whenever any long run is going or being started, and after every interruption.
+---
+
+# Supervising long runs - no lost computing time
+
+On 2026-10-04 about four hours of training time were lost: a hung gpu run was restarted several times
+without the cause being found, each restart was checked only after 20 minutes, and the status reports
+stopped silently. Every rule below exists to make that impossible.
+
+## 1. After every interruption: the status timer first
+
+After any interruption - Volker stops an action, a new message arrives in the middle of work, a context
+compaction, a session restart - the first thing is to check that the status timer runs:
+
+    pgrep -f "sleep 1799" >/dev/null && echo timer runs || echo NO TIMER
+
+If it does not run, start it again at once, as a background Bash task:
+
+    sleep 1799; echo status-due
+
+1799 and nothing else: the odd number is how pgrep tells this timer from every other sleep. When it
+fires, give the status report (section 6) and start it again in the same turn. The timer runs as long
+as any run is going on any machine.
+
+## 2. Every start is checked within seconds
+
+A run counts as started only when it is seen computing, never because the command returned:
+
+- gpu training: `ioreg -r -d 1 -c IOAccelerator | grep -o '"Device Utilization %"=[0-9]*'` above 90 %
+  after 30-90 s
+- cpu work: the process exists and its cpu time grows between two `ps` calls a few seconds apart
+- qet: the run log shows `started round` lines, the first result within a minute
+- remote machines: the same checks over ssh
+
+If the check fails, look at the log right away - not after the next progress line.
+
+## 3. Every long run gets a watcher that wakes me
+
+A background Bash task with an until-loop that checks every 10 s and ends - which wakes me - as soon as
+the run stalls or ends:
+
+- gpu training: utilization below 50 % for 2 minutes
+- any run: the process is gone
+- remote runs: a check over ssh every few minutes (the label count, qet running)
+
+A watcher ends when the run ends; the follow-up is then started in that same turn (section 5). A
+progress line written every 10 minutes is no watcher: a stall shows only after 20 minutes or more.
+
+## 4. On an error: find the cause, fix it, then restart
+
+Never restart unchanged. A run that failed once fails again for the same reason. Before a restart:
+
+1. find the cause: stack dumps (python: `faulthandler.dump_traceback_later(60, repeat=True, file=...)`,
+   see `tmp/sf-run-stacks.py`), the logs, `sample <pid>` on the Mac, the exit code
+2. fix it, and reproduce in the shortest possible test - seconds to a few minutes, never a full epoch
+3. restart with the fix and check per section 2
+
+If the cause cannot be found at once, the restarted run gets the instruments that will show it next time
+(stack dumps, a tighter watcher), and that is said in the report.
+
+## 5. No idle machine, the follow-up is decided before the end
+
+- For every run, know before it ends what comes next on that machine. Ask Volker at the latest 30
+  minutes before the expected end if it is not clear - not after the machine has stood still.
+- Write the follow-up as a chain that starts by itself (wait for the end, check the result, start the
+  next step), and watch the chain like a run: a chain that stops at a check must wake me.
+- A chain or a guard that kills or stops something writes why into its log, and the watcher reports it.
+
+## 6. Waiting is minimal
+
+- Never wait a fixed long time for a result that can be checked earlier. Poll the condition in a
+  background loop every few seconds and end the loop when it is met.
+- A test is as short as the question allows: does it start, does it compute, does it hang - seconds.
+- Background tasks of the harness are killed at their timeout; a run that must outlive that starts with
+  `( nohup ... & )`, never as the background task itself.
+
+## 7. The status report covers every machine
+
+Every 30 minutes, a table with every machine that does anything - Mac, Linux (qapla), Windows (Ryzen9) -
+and every machine that stands idle:
+
+| machine | task | state |
+
+State means progress and the expected end. An idle machine stands in the table as idle, with what it
+should do next or the question to Volker. Every strength figure with its uncertainty.
