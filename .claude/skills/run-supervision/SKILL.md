@@ -103,6 +103,13 @@ that goal - or the overall goal it belongs to - furthest, not simply the next it
   current run wakes me so that I prepare the next step then.
 - A chain or a guard that kills or stops something writes why into its log, and the watcher reports it.
 
+## 6a. Which machine does what (Volker, 2026-10-04)
+
+The Mac trains - its gpu is the only training machine. Tournaments and labelling go to Linux and
+Windows. A head to head between two nets does not depend on the machine it runs on, so nothing ties a
+tournament to the Mac; only a figure that is compared with older figures of a field must be played on
+the machine of that field (the reference tournament on Linux).
+
 ## 7. Waiting is minimal
 
 - Never wait a fixed long time for a result that can be checked earlier. Poll the condition in a
