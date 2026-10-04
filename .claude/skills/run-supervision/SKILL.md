@@ -47,7 +47,8 @@ the run stalls or ends:
 
 A watcher is a script in `tmp/` run with `sh`: the Bash tool runs zsh, which does not split `$var` into words,
 and a watcher parsing ssh output that way fired at once three times. Check after its start that it
-reached its wait (`pgrep -f "sleep 120"`), not that it was launched.
+reached its wait (`pgrep -f "sleep 120"`), not that it was launched. A watcher waits on a pid
+(`kill -0 <pid>`), never on `pgrep -f <name>`: its own command line holds the name and matches forever.
 
 A watcher ends when the run ends; the follow-up is then started in that same turn (section 6). A
 progress line written every 10 minutes is no watcher: a stall shows only after 20 minutes or more.
