@@ -14,10 +14,11 @@ on our data stay far below the Stockfish net, the data is the lever; if it comes
 Next: export e10, play it against HCE in the tournament of e1 (2000 games, 10+0.05).
 
 ### Linux and Windows: set 1 labelled with Qapla's search and Stockfish's evaluation (chunks 51-101 / 1-50)
-Goal: does a better label of the same positions make the net stronger? Compare a net trained on set 1
-with SF labels against one trained on set 1 with HCE labels (the 26-chunk SPRT already accepted H1 at
-bounds 40/50).
-Next: join both halves, convert, train on the full set 1 with SF labels.
+Goal: the Stockfish-eval test for set 1 - does a better label of the same positions make the net
+clearly stronger? (Order of the levers, 2026-10-01: capacity, better labels, new games.) The 26-chunk
+pre-test accepted H1 at bounds 40/50. Afterwards, idea 3 (low-selectivity HCE labels, paused below).
+Next: join both halves, convert to .gam, train set 1 exactly like the old set-1 net and play it
+against the old set-1 net (nowdl, HCE labels).
 
 ## Paused
 
