@@ -37,6 +37,11 @@ the net trained on round-0 labels; and so on.
 5. **Round-1 labels**: relabel all sets with the net from 4 and train again. If that pays, further
    rounds - it will saturate.
 
+Depth-8 tournament on Windows, 2026-10-04 (Volker): lowsel without LMR (and with it without move count
+pruning, which reads the same value) against lowsel, 3000 games - nolmr 64.98 % (+/-10 each), about
++107 Elo; nodes on three test positions 1.5x-3x of lowsel. Binary `Qapla-hce-lowsel-nolmr-win.exe` from
+`tmp-lowsel-label` (2db3278), options lmrDivisor=100000 lmrPvDivisor=100000.
+
 Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
 2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage. Linux labels set 3 likewise since
 2026-10-04 18:20 (`test/nnue/chunks-set3-lowsel`), paused 19:10-~20:10 for the head to head of step 1.
