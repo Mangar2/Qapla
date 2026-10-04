@@ -166,6 +166,10 @@ Local changes, see `QAPLA-SF17.md` there:
   pairing, reference `nnue-set1234` (gauntlet). A new engine joins by an `[engine]` section in the
   state file before `[tournament]` (see `src/pipeline/join-gauntlet.py`), then qet is restarted with
   `--tournament file=<state>` alone. Paused tournaments resume with the identical call.
+- **A third engine on the command line of a finished two-engine tournament** (same state file) plays
+  the missing pairing against the gauntlet engine first, but afterwards also the pairing of the two
+  non-gauntlet engines, `gauntlet=true` notwithstanding (2026-10-04, e10 started against e1). Watch for
+  the end of the wanted pairing and stop qet then, or give the newcomer a state file of its own.
 - **SPRT** for "is A better than B": `test/sprt/sprt-standard.ini`, `--each tc=10+0.05 option.Hash=64`
   **before** the engine blocks, challenger `gauntlet=true`, own state file. Exit 14 = H1, 15 = H0,
   16 = undecided.
