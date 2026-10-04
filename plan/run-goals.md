@@ -20,6 +20,9 @@ the net trained on round-0 labels; and so on.
 
 1. **Wider search for the labels** - in progress: set 1 relabelled by the low-selectivity HCE (Linux
    51-101, Windows 15-50, Mac 1-14 done), then trained like the old set-1 net and played against it.
+   Trained 2026-10-04 17:38-19:07: best epoch 9 (held back 0.001941), `test/nnue/nnue-set1-lowsel.nnue`;
+   head to head against the old set-1 net (e08), 3000 games, on Linux since 19:12
+   (`tmp/set1-lowsel-vs-hce.state` there).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament.
 3. **Stockfish-like training procedure**, on top of 2 (2 is kept even if it only holds level):
@@ -34,7 +37,7 @@ the net trained on round-0 labels; and so on.
 
 Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
 2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage. Linux labels set 3 likewise since
-2026-10-04 18:20 (`test/nnue/chunks-set3-lowsel`).
+2026-10-04 18:20 (`test/nnue/chunks-set3-lowsel`), paused 19:10-~20:10 for the head to head of step 1.
 
 Planning stops there; by then we will have learned enough to plan the next part.
 
