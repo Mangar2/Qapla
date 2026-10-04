@@ -44,7 +44,8 @@ pruning, which reads the same value) against lowsel, 3000 games - nolmr 64.98 % 
 
 **Set 1 labelled with nolmr** since 2026-10-04 20:24 (Volker): Windows 1-50, Linux 51-101, concurrency 30,
 `test/nnue/chunks-set1-nolmr`, binaries `Qapla-hce-lowsel-nolmr-{win.exe,linux}` (node counts identical).
-Then trained like the old set-1 net and played against set1-lowsel. If clearly better, the lowsel
+About 57 min per chunk at concurrency 30 (lowsel: ~9), so ~48 hours for the full set - Volker:
+the full set, no subset. Then trained like the old set-1 net and played against set1-lowsel. If clearly better, the lowsel
 labels of sets 2 and 3 below are not needed.
 
 Stopped 2026-10-04 20:20 for it (labels kept): Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
