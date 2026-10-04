@@ -56,7 +56,13 @@ Resume with the identical call (chunks with a .done marker are skipped, the inte
         $HOME/bin/qet $R/new-versions/Qapla-hce-lowsel-wide-mac $R 8 9 1 101 \
         ffDepthFactor=5000 futDepthFactor=5000 lmrDivisor=476 >> test/log/label-set1-lowsel.log 2>&1 < /dev/null & )
 
-Only on the Mac: the binary `Qapla-hce-lowsel-wide-mac` was built from uncommitted, widened option
-limits, which must never be committed - Linux and Windows cannot build it. ~37 min per chunk at
-concurrency 9, so ~54 hours for the remaining 87 chunks. Not beside a training on the Mac: the
-training's data loader needs the cpu.
+Runs on every machine. The widened option limits are on the temporary branch `tmp-lowsel-label`
+(GitHub; never merge, delete it when the labelling is done). To build there: `git fetch`, check out
+`tmp-lowsel-label`, `make Release -j` (plus `NATIVE=1` on x86), copy `build/Release/Qapla` to
+`new-versions/Qapla-hce-lowsel-wide-<os>`, check out `nnue` again. Before labelling, the same few
+positions at depth 8 with the three options set must give node counts identical to the Mac binary.
+The chunks are in `test/nnue/chunks-set1-lowsel` on the Mac (generated data, copied with scp); split
+the remaining range between machines with `[first] [last]` as for the Stockfish labels.
+
+~37 min per chunk at concurrency 9 on the Mac. Not beside a training on the Mac: the training's data
+loader needs the cpu.
