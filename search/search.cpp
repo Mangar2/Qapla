@@ -275,7 +275,7 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 
 	int32_t divisor = node.isPVNode()
 		? tunable<OPT, "lmrPvDivisor", 512, 256, 768>()
-		: tunable<OPT, "lmrDivisor", 261, 133, 389>();
+		: tunable<OPT, "lmrDivisor", 261, 133, 1044>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
 	// counts as such a push.
