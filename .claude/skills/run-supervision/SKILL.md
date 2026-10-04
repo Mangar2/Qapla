@@ -36,6 +36,17 @@ A run counts as started only when it is seen computing, never because the comman
 
 If the check fails, look at the log right away - not after the next progress line.
 
+## 2a. The Mac must not sleep
+
+While anything runs on the Mac, a `caffeinate -dimsu` must be running:
+
+    pgrep -x caffeinate >/dev/null || ( nohup caffeinate -dimsu > /dev/null 2>&1 < /dev/null & )
+
+Checked at every start and in every status report. On 2026-10-04 the Mac went into idle sleep at 02:09
+and at 05:26 - exactly when the gpu training "hung" - and slept until someone touched it; on the same
+day a tournament ran at half speed for 40 minutes for the same reason. A run that stops without an
+error message: look at `pmset -g log | grep -E " (Sleep|Wake|DarkWake) "` first.
+
 ## 3. Every long run gets a watcher that wakes me
 
 A background Bash task with an until-loop that checks every 10 s and ends - which wakes me - as soon as
@@ -111,5 +122,7 @@ State means progress and the expected end. An idle machine stands in the table a
 should do next or the question to Volker. Every strength figure with its uncertainty.
 
 Every figure in the report is checked live, not read from a log alone: the process runs (`pgrep -x`),
+the progress since the last report matches the expected rate (games or steps per minute - a run at half
+speed is a fault to find, as much as a stopped one), caffeinate runs on the Mac,
 the log was written in the last minutes, and on the machine no leftovers sit beside it - after a test
 run with qet, kill its engines as well (`pkill -x qet` leaves them running as orphans).
