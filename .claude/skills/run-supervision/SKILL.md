@@ -45,6 +45,10 @@ the run stalls or ends:
 - any run: the process is gone
 - remote runs: a check over ssh every few minutes (the label count, qet running)
 
+A watcher is a script in `tmp/` run with `sh`: the Bash tool runs zsh, which does not split `$var` into words,
+and a watcher parsing ssh output that way fired at once three times. Check after its start that it
+reached its wait (`pgrep -f "sleep 120"`), not that it was launched.
+
 A watcher ends when the run ends; the follow-up is then started in that same turn (section 5). A
 progress line written every 10 minutes is no watcher: a stall shows only after 20 minutes or more.
 
