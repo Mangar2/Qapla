@@ -97,10 +97,12 @@ def train(arguments):
         # over a seeded permutation, so two files of the same games get the same one.
         cache = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                          validation_every=arguments.validation_every, part='training',
-                         workers=arguments.workers, loader=arguments.loader)
+                         workers=arguments.workers, loader=arguments.loader,
+                         skip_tactical=arguments.skip_tactical)
         validation = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                               validation_every=arguments.validation_every, part='validation',
-                              workers=arguments.workers, loader=arguments.loader)
+                              workers=arguments.workers, loader=arguments.loader,
+                              skip_tactical=arguments.skip_tactical)
     else:
         if len(arguments.cache) != 1:
             raise SystemExit('several sources are only read as .gam game files')
@@ -224,6 +226,9 @@ if __name__ == '__main__':
     parser.add_argument('--loader', choices=['native', 'python'], default='native',
                         help='native: the compiled loader, verified bit for bit against the python '
                              'one and about twenty times faster per core; python: the old one')
+    parser.add_argument('--skip-tactical', action='store_true',
+                        help='leave out every position whose move captures or that is in check, in '
+                             'training and validation alike - the native loader only')
     parser.add_argument('--resume', action='store_true',
                         help='carry on from the newest checkpoint in --out instead of starting over')
     parser.add_argument('--device', default='auto')

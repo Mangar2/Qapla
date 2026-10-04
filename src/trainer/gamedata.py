@@ -226,10 +226,12 @@ class _NativeGames:
     worth having on a machine with a much faster gpu.
     """
 
-    def __init__(self, paths, game_ids, batch_size, seed, buffer=BUFFER_POSITIONS, streams=1):
+    def __init__(self, paths, game_ids, batch_size, seed, buffer=BUFFER_POSITIONS, streams=1,
+                 skip_tactical=False):
         self.paths, self.batch_size, self.seed, self.buffer = paths, batch_size, seed, buffer
         self.game_ids = np.asarray(game_ids)
         self.streams = max(1, streams)
+        self.skip_tactical = skip_tactical
         self.epoch = 0
         self.binary = native_binary()
 
@@ -238,7 +240,9 @@ class _NativeGames:
         seed = self.seed + self.epoch * 1000003 + stream
         order = np.random.default_rng(seed).permutation(ids).astype(np.uint32)
         process = subprocess.Popen([self.binary, '--batch', str(self.batch_size), '--buffer',
-                                    str(self.buffer), '--seed', str(seed)] + list(self.paths),
+                                    str(self.buffer), '--seed', str(seed)]
+                                   + (['--skip-tactical'] if self.skip_tactical else [])
+                                   + list(self.paths),
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         # The loader reads every id before it writes a byte, so writing them all at once cannot
         # block against a full output pipe.
@@ -311,7 +315,7 @@ class GameFile:
     """A game file as a source of batches, with the same shape PositionCache had."""
 
     def __init__(self, paths, batch_size, seed=1, validation_every=100, part='training',
-                 workers=2, buffer=BUFFER_POSITIONS, loader='native'):
+                 workers=2, buffer=BUFFER_POSITIONS, loader='native', skip_tactical=False):
         paths = [paths] if isinstance(paths, str) else list(paths)
         offsets, lengths, usable, _ = load_indexes(paths)
         training, validation = split_games(len(offsets), seed, validation_every)
@@ -322,11 +326,17 @@ class GameFile:
         self.loader = loader
         if loader == 'native':
             self.dataset = _NativeGames(paths, ids, batch_size, seed, buffer,
-                                        streams=min(workers, 2) if workers else 1)
+                                        streams=min(workers, 2) if workers else 1,
+                                        skip_tactical=skip_tactical)
         else:
+            if skip_tactical:
+                raise SystemExit('--skip-tactical needs the native loader')
             self.dataset = _Games(paths, ids, batch_size, seed, buffer)
+        # With skip_tactical the count is that of the positions before the filter: the index does
+        # not know which are skipped. It only sizes the progress lines.
         print(f'{part}: {self.game_count:,} games, {self.position_count:,} positions'
-              f'{" over " + str(len(paths)) + " files" if len(paths) > 1 else ""}')
+              f'{" over " + str(len(paths)) + " files" if len(paths) > 1 else ""}'
+              f'{", captures and checks skipped" if skip_tactical else ""}')
 
     def __len__(self):
         return self.position_count

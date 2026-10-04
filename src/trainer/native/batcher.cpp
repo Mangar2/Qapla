@@ -17,6 +17,7 @@
  *
  *   batcher --batch 16384 --buffer 131072 --seed 7 <game files...>  < game ids (uint32)
  *   batcher --dump <game files...>                                   < game ids (uint32)
+ *   either of the two with --skip-tactical: no position whose move captures or that is in check
  *   batcher --index <one game file>
  *
  * --index writes, for every game of the file, its offset (uint64), its length in plies (uint8) and
@@ -198,6 +199,55 @@ namespace {
 		return games;
 	}
 
+	/** Whether a piece of the given colour attacks the square. */
+	bool attacked(const Board& board, int square, int by) {
+		const int file = square & 7, rank = square >> 3;
+		auto holds = [&](int f, int r, int kind) {
+			return f >= 0 && f < 8 && r >= 0 && r < 8 && board.squares[r * 8 + f] == kind + by;
+		};
+		// A white pawn attacks one rank up, a black one one rank down.
+		const int pawnRank = by == WHITE ? rank - 1 : rank + 1;
+		if (holds(file - 1, pawnRank, PAWN) || holds(file + 1, pawnRank, PAWN)) return true;
+		static constexpr int KNIGHT_STEPS[8][2] = {
+			{ 1, 2 }, { 2, 1 }, { 2, -1 }, { 1, -2 }, { -1, -2 }, { -2, -1 }, { -2, 1 }, { -1, 2 } };
+		for (const auto& step : KNIGHT_STEPS) {
+			if (holds(file + step[0], rank + step[1], KNIGHT)) return true;
+		}
+		static constexpr int RAYS[8][2] = {
+			{ 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } };
+		for (int ray = 0; ray < 8; ++ray) {
+			const int straight = ray < 4 ? ROOK : BISHOP;
+			int f = file + RAYS[ray][0], r = rank + RAYS[ray][1];
+			if (holds(f, r, KING)) return true;
+			while (f >= 0 && f < 8 && r >= 0 && r < 8) {
+				const int piece = board.squares[r * 8 + f];
+				if (piece != NO_PIECE) {
+					if (piece == straight + by || piece == QUEEN + by) return true;
+					break;
+				}
+				f += RAYS[ray][0];
+				r += RAYS[ray][1];
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * --skip-tactical: a position whose label the net cannot read off the board. The move played
+	 * from it captures - the value may hold a recapture the search sees and the board does not show -
+	 * or the side to move is in check, which an engine never evaluates statically. Stockfish's trainer
+	 * skips both.
+	 */
+	bool tactical(const Board& board, int from, int to) {
+		const int own = board.whiteToMove ? WHITE : BLACK;
+		if (attacked(board, board.kings[own], own ^ 1)) return true;
+		if (board.squares[to] != NO_PIECE) return true;
+		const bool pawn = (board.squares[from] & ~1) == PAWN;
+		return pawn && (from & 7) != (to & 7);                    // en passant
+	}
+
+	bool skipTactical = false;
+
 	/** Appends the positions of one game that carry a value - _positions_of() in gamedata.py. */
 	void replay(const File& data, const Game& game, std::vector<Position>& out) {
 		Board board;
@@ -207,7 +257,9 @@ namespace {
 			const uint32_t move = record & 0x7FF;
 			const uint32_t result = (record >> 11) & 0x3;
 			const uint32_t value = (record >> 13) & 0x7FF;
-			if (value != NO_GAME_VALUE) {
+			int from, to, promotion;
+			unpackMove(move, board, from, to, promotion);
+			if (value != NO_GAME_VALUE && !(skipTactical && tactical(board, from, to))) {
 				Position position;
 				const int own = board.whiteToMove ? WHITE : BLACK;
 				features(board, own, position.own);
@@ -216,8 +268,6 @@ namespace {
 				position.result = uint8_t(result);
 				out.push_back(position);
 			}
-			int from, to, promotion;
-			unpackMove(move, board, from, to, promotion);
 			board.apply(from, to, promotion);
 		}
 	}
@@ -282,6 +332,7 @@ int main(int argc, char** argv) {
 		else if (arg == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 10);
 		else if (arg == "--dump") dump = true;
 		else if (arg == "--index") onlyIndex = true;
+		else if (arg == "--skip-tactical") skipTactical = true;
 		else paths.push_back(argv[i]);
 	}
 	if (paths.empty()) fail("no game files named");
