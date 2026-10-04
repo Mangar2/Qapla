@@ -142,7 +142,10 @@ plateau at ~1 G positions, which makes ~12 G for the SF net, at least 90 more ep
 (1.0 G positions) it scored 49 % against HCE and was still rising (e1: 32.6 %); that says nothing yet.
 Measure every 10 epochs against HCE (2000 games, 10+0.05, like e1 and e10) and compare with our nets.
 
-Resume from `test/nnue/sf-train-1/sf-train-1-e10.ckpt` (the state after epoch 10, kept out of tmp/),
+State 2026-10-04 17:38: 12 epochs done, paused for set 1 with low-selectivity labels. Resume with
+`RESUME=<ckpt> ACCELS=mps sh tmp/sf-train-to100.sh` from
+`tmp/sf-train-1/lightning_logs/version_2/checkpoints/epoch=11-step=91559.ckpt` (state after epoch 12;
+`test/nnue/sf-train-1/sf-train-1-e10.ckpt` is the state after epoch 10, kept out of tmp/),
 `--max-epochs 100` or more, otherwise the call of `tmp/sf-train-to10.sh`. ~50 min per epoch on the Mac
 gpu, ~75 hours for 90 epochs - whenever the gpu is free, last on the list.
 
