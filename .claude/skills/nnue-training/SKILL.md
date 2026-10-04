@@ -139,6 +139,23 @@ has no torch). Create the output directory first.
 - Strength follows positions processed, not distinct positions; without heads the plateau was
   ~4-6 G positions at ~62-63 % against HCE.
 
+## Training the Stockfish architecture on the Mac (nnue-pytorch, local branch qapla-sf17)
+
+`~/dev/qapla/nnue-pytorch`, branch `qapla-sf17` (base e215624), venv `.venv` (Python 3.12 via uv).
+Local changes, see `QAPLA-SF17.md` there:
+- `ft_quantized_one = 127`: Stockfish 17 reads the accumulator with 1.0 = 127; with 255 the nets
+  evaluate wrong in Stockfish 17 / Qapla's nnue-branch (wrong sign even).
+- Metal kernels for the sparse feature transformer (`model/modules/feature_transformer/metal.py`):
+  ~37,000 positions/s on the M4 GPU against ~18,000 on the CPU and ~4,900 with the stock MPS path.
+- No pinned memory without CUDA: on MPS the prefetch thread's pinning deadlocks the training
+  (sometimes after hours, sometimes at the first batch).
+- Is it running? Check `ioreg -r -d 1 -c IOAccelerator | grep -o '"Device Utilization %"=[0-9]*'`
+  (99 while training) right after the start - do not wait for the progress bar, it prints every 20 %.
+- Data: `gamefile --gam2binpack` (chess-tools), the score written so that nnue-pytorch's target is our
+  probability. Export: `serialize.py <ckpt> <net> --features "HalfKAv2_hm^" --l1 3072 --l2 15 --l3 32`.
+- Play: nnue-branch built with `-DUSE_STOCKFISH_EVAL -DQAPLA_SF_BIG_NET_ONLY`; the net goes in as
+  `nnue/big.nnue` under the engine's `dir=` (with the small net file beside it, unused).
+
 ## Measuring
 
 - **Epoch tournament** - every epoch against HCE, 1500 games, only the best epoch so far, one at a
