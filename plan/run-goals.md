@@ -14,7 +14,7 @@ on our data stay far below the Stockfish net, the data is the lever; if it comes
 Next: export e10, play it against HCE in the tournament of e1 (2000 games, 10+0.05). After that the
 Mac trains set 1 with Stockfish labels (below) - Volker, 2026-10-04.
 
-### Linux and Windows: set 1 labelled with Qapla's search and Stockfish's evaluation (chunks 51-101 / 1-50)
+### Set 1 labelled with Qapla's search and Stockfish's evaluation - labels done 2026-10-04 11:51
 Goal: the Stockfish-eval test for set 1 - does a better label of the same positions make the net
 clearly stronger, and by how much? (Order of the levers, 2026-10-01: capacity, better labels, new games.)
 
@@ -44,7 +44,8 @@ Goal: a reference figure of our best single-head net against HCE.
 
 ### Mac: set 1 relabelled by a low-selectivity HCE (factor 3 nodes) - 14 of 101 chunks
 Linux has labelled chunks 51-101 with it since 2026-10-04 09:14 (`Qapla-hce-lowsel-wide-linux`, node
-counts identical to the Mac, concurrency 30); 15-50 remain for Windows or the Mac.
+counts identical to the Mac, concurrency 30). Windows labels chunks 15-50 since 2026-10-04 11:55
+(`Qapla-hce-lowsel-wide-win.exe`, node counts identical, concurrency 30).
 
 Situation: labelling of set 1 started on the Mac on 2026-10-02 22:33 and was interrupted at 14 of 101
 chunks so that the Mac could train the Stockfish architecture with Stockfish's training (above). Not
