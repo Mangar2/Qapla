@@ -90,6 +90,98 @@ def take_up(model, optimizer, out, device):
     return held['epoch'] + 1, held['bestLoss'], held['bestEpoch'], held['since']
 
 
+def make_optimizer(model, arguments):
+    """Adam as before, or RangerLite with the settings nnue-pytorch gives it by default."""
+    if arguments.optimizer == 'adam':
+        return torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
+    from ranger_lite import RangerLite
+    # As RangerLiteWrapper(legacy_mode=False) configures it: lookahead every 5 steps blended at
+    # 0.5, positive-negative momentum 1.0, no norm loss, no weight decay, betas and eps default.
+    return RangerLite(model.parameters(), lr=arguments.learning_rate, weight_decay=0.0,
+                      use_legacy_scoping_bug=False, normloss_active=False, pnm_activate=True,
+                      pnm_momentum=1.0, lookahead_blending_alpha=0.5, lookahead_mergetime=5)
+
+
+def train_in_fixed_epochs(arguments, cache, validation, device):
+    """Stockfish's way: an epoch is a fixed number of positions, not a pass over the data.
+
+    The positions come from one endless stream: when a pass over the games is used up the next one
+    starts, with games in a new order, as nnue-pytorch's loader cycles through its files. The
+    learning rate falls by --lr-gamma after every epoch (StepLR, step 1). There is no stopping rule:
+    the run goes to --epochs, and the nets in between are measured in games. The held back loss is
+    only watched, every --validate-every epochs.
+
+    A net goes out every --save-every epochs, the state to continue from after every epoch
+    (last.pt) and kept every 100. --resume continues from last.pt; the stream then starts a fresh
+    pass, which is the one thing a resumed run does differently from an uninterrupted one.
+    """
+    torch.manual_seed(arguments.seed)
+    model = HalfKaNet(stacks=arguments.stacks).to(device)
+    optimizer = make_optimizer(model, arguments)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=arguments.lr_gamma)
+    ranger = arguments.optimizer == 'ranger'
+    steps = arguments.epoch_size // arguments.batch_size
+    print('epochs of %d positions (%d batches of %d), up to %d epochs, %s at lr %g falling by %g '
+          'an epoch, device %s' % (steps * arguments.batch_size, steps, arguments.batch_size,
+                                   arguments.epochs, arguments.optimizer, arguments.learning_rate,
+                                   arguments.lr_gamma, device), flush=True)
+    first = 1
+    last = os.path.join(arguments.out, 'last.pt')
+    if arguments.resume and os.path.exists(last):
+        held = torch.load(last, map_location=device, weights_only=False)
+        model.load_state_dict(held['model'])
+        optimizer.load_state_dict(held['optimizer'])
+        scheduler.load_state_dict(held['scheduler'])
+        first = held['epoch'] + 1
+        print('--resume: going on at epoch %d, lr %g' % (first, scheduler.get_last_lr()[0]),
+              flush=True)
+
+    def stream():
+        while True:
+            yield from cache.batches(arguments.batch_size, device)
+
+    def for_inference(on):
+        # RangerLite keeps its lookahead (slow) weights apart; measuring and writing a net use
+        # them, as nnue-pytorch does when it validates and saves.
+        if ranger:
+            optimizer.eval() if on else optimizer.train()
+
+    batches = stream()
+    for epoch in range(first, arguments.epochs + 1):
+        blend = arguments.blend_start + (arguments.blend_end - arguments.blend_start) \
+            * (epoch - 1) / max(1, arguments.epochs - 1)
+        model.train()
+        for_inference(False)
+        total, start = 0.0, time.time()
+        for seen in range(1, steps + 1):
+            own, opponent, value, result, counts = next(batches)
+            loss = loss_of(model(own, opponent), value, result, counts, blend)
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+            model.clamp_weights()
+            total += loss.detach().item()
+            if seen % arguments.report_every == 0:
+                print('  epoch %d, batch %d/%d, loss %.6f, %.0f positions per second'
+                      % (epoch, seen, steps, total / seen,
+                         seen * arguments.batch_size / (time.time() - start)), flush=True)
+        lr = scheduler.get_last_lr()[0]
+        scheduler.step()
+        for_inference(True)
+        line = 'epoch %d done, lr %.3g, blend %.2f, loss %.6f' % (epoch, lr, blend, total / steps)
+        if validation is not None and epoch % arguments.validate_every == 0:
+            line += ', held back %.6f' % measure(model, validation, arguments.batch_size, device,
+                                                 arguments.blend_end)
+        if epoch % arguments.save_every == 0 or epoch == arguments.epochs:
+            export.export(model, '%s/net-epoch%03d.nnue' % (arguments.out, epoch))
+        state = {'epoch': epoch, 'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
+                 'scheduler': scheduler.state_dict()}
+        torch.save(state, last)
+        if epoch % 100 == 0:
+            torch.save(state, '%s/state-epoch%03d.pt' % (arguments.out, epoch))
+        print('%s, %.0f s' % (line, time.time() - start), flush=True)
+
+
 def train(arguments):
     device = pick_device(arguments.device)
     if all(name.endswith('.gam') for name in arguments.cache):
@@ -108,6 +200,12 @@ def train(arguments):
             raise SystemExit('several sources are only read as .gam game files')
         cache = PositionCache(arguments.cache[0])
         validation = PositionCache(arguments.validation) if arguments.validation else None
+    if arguments.epoch_size > 0:
+        if arguments.neighbours:
+            raise SystemExit('--epoch-size does not take --neighbours')
+        return train_in_fixed_epochs(arguments, cache, validation, device)
+    if arguments.optimizer != 'adam':
+        raise SystemExit('--optimizer ranger only with --epoch-size')
     # The initial weights come from the seed too. Without it two runs on the same data started from
     # different nets, and their losses could not be compared step by step - which is how the
     # compiled loader was checked against the python one.
@@ -229,6 +327,18 @@ if __name__ == '__main__':
     parser.add_argument('--skip-tactical', action='store_true',
                         help='leave out every position whose move captures or that is in check, in '
                              'training and validation alike - the native loader only')
+    parser.add_argument('--epoch-size', type=int, default=0,
+                        help='positions per epoch: an epoch is then a fixed slice of an endless '
+                             'stream, as in nnue-pytorch, with no stopping rule; 0 for one pass')
+    parser.add_argument('--lr-gamma', type=float, default=1.0,
+                        help='with --epoch-size: the learning rate is multiplied by it after every '
+                             'epoch (nnue-pytorch: 0.992)')
+    parser.add_argument('--optimizer', choices=['adam', 'ranger'], default='adam',
+                        help='ranger: RangerLite as nnue-pytorch uses it (with --epoch-size only)')
+    parser.add_argument('--validate-every', type=int, default=10,
+                        help='with --epoch-size: epochs between two measurements of the held back loss')
+    parser.add_argument('--save-every', type=int, default=20,
+                        help='with --epoch-size: epochs between two nets written (nnue-pytorch: 20)')
     parser.add_argument('--resume', action='store_true',
                         help='carry on from the newest checkpoint in --out instead of starting over')
     parser.add_argument('--device', default='auto')
