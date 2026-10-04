@@ -33,7 +33,8 @@ the net trained on round-0 labels; and so on.
    rounds - it will saturate.
 
 Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
-2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage.
+2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage. Linux labels set 3 likewise since
+2026-10-04 18:20 (`test/nnue/chunks-set3-lowsel`).
 
 Planning stops there; by then we will have learned enough to plan the next part.
 
@@ -75,7 +76,8 @@ Procedure, exactly like the old net `nets-set1-nowdl` (2026-09-28), only the lab
 
 ## Paused
 
-### Linux: tournament HCE against the set1234 net - continued 2026-10-04 15:37 from round 45
+### Linux: tournament HCE against the set1234 net - done 2026-10-04 18:13
+HCE 37.15 % against nnue-set1234 over 10000 games (+/-6). Reference field complete.
 Goal: a reference figure of our best single-head net against HCE.
 
 ### Mac: set 1 relabelled by a low-selectivity HCE (factor 3 nodes) - 14 of 101 chunks
