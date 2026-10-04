@@ -39,5 +39,24 @@ Procedure, exactly like the old net `nets-set1-nowdl` (2026-09-28), only the lab
 ### Linux: tournament HCE against the set1234 net, at round 44
 Goal: a reference figure of our best single-head net against HCE.
 
-### Mac: set 1 relabelled by a low-selectivity HCE (factor 3 nodes), 14 of 101 chunks
-Goal: do labels from a deeper, less pruned HCE search alone make the net stronger?
+### Mac: set 1 relabelled by a low-selectivity HCE (factor 3 nodes) - 14 of 101 chunks
+Situation: labelling of set 1 started on the Mac on 2026-10-02 22:33 and was interrupted at 14 of 101
+chunks so that the Mac could train the Stockfish architecture with Stockfish's training (above). Not
+cancelled: it is a task to resume by itself whenever the Mac has nothing else to do.
+
+Goal: idea 3 - do labels from a less selective HCE search alone make the net stronger? At depth 8 the
+low-selectivity setting (futility off, lmrDivisor 476, ~2.9x nodes) beat the default by +112 Elo
+(+/-14, 3000 games). Volker planned it as the next try after the Stockfish-eval test of set 1. Once
+labelled: train set 1 exactly like the old net `nets-set1-nowdl` (procedure as in the Stockfish-label
+test above) and play it against that old net.
+
+Resume with the identical call (chunks with a .done marker are skipped, the interrupted chunk is redone):
+
+    R=$PWD; ( nohup sh src/pipeline/label-chunks.sh test/nnue/chunks-set1-lowsel test/nnue/labelled-set1-lowsel \
+        $HOME/bin/qet $R/new-versions/Qapla-hce-lowsel-wide-mac $R 8 9 1 101 \
+        ffDepthFactor=5000 futDepthFactor=5000 lmrDivisor=476 >> test/log/label-set1-lowsel.log 2>&1 < /dev/null & )
+
+Only on the Mac: the binary `Qapla-hce-lowsel-wide-mac` was built from uncommitted, widened option
+limits, which must never be committed - Linux and Windows cannot build it. ~37 min per chunk at
+concurrency 9, so ~54 hours for the remaining 87 chunks. Not beside a training on the Mac: the
+training's data loader needs the cpu.
