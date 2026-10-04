@@ -24,7 +24,9 @@ the net trained on round-0 labels; and so on.
    head to head against the old set-1 net (e08), 3000 games, on Linux since 19:12
    (`tmp/set1-lowsel-vs-hce.state` there).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
-   reference tournament.
+   reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
+   python-chess, 24 % of the positions skipped); the run starts on the Mac at the end of the filler's
+   epoch ~20:00 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
 3. **Stockfish-like training procedure**, on top of 2 (2 is kept even if it only holds level):
    - fixed epoch size of 10 M positions - Stockfish takes 100 M for a net about ten times as large
    - up to 800 epochs (8 G positions), measured every 100 epochs whether the net still improves
@@ -129,7 +131,7 @@ Stockfish's trainer skips both too (nnue-pytorch's fen skipping: captures, in ch
 
 Baseline: `nets-set1-to-6-s8`, best epoch 14 (s8-e14) - sets 1-6 nowdl with HCE labels, `--stacks 8`,
 `--blend-start 0.8 --blend-end 0.7 --epochs 20 --patience 2 --workers 6 --seed 1 --validation-every
-100`. The new run repeats that exactly, with the filtering loader (`src/trainer/native/batcher.cpp`).
+100`. The new run repeats that exactly, with `--skip-tactical`.
 The held back loss does not compare the two (different positions); only games.
 
 Test: the 10000-games reference tournament on Linux (`test/tournament/strength-reference.ini`,
