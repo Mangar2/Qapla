@@ -43,6 +43,9 @@ Procedure, exactly like the old net `nets-set1-nowdl` (2026-09-28), only the lab
 Goal: a reference figure of our best single-head net against HCE.
 
 ### Mac: set 1 relabelled by a low-selectivity HCE (factor 3 nodes) - 14 of 101 chunks
+Linux has labelled chunks 51-101 with it since 2026-10-04 09:14 (`Qapla-hce-lowsel-wide-linux`, node
+counts identical to the Mac, concurrency 30); 15-50 remain for Windows or the Mac.
+
 Situation: labelling of set 1 started on the Mac on 2026-10-02 22:33 and was interrupted at 14 of 101
 chunks so that the Mac could train the Stockfish architecture with Stockfish's training (above). Not
 cancelled: it is a task to resume by itself whenever the Mac has nothing else to do.
