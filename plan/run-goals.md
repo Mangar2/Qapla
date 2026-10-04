@@ -97,3 +97,19 @@ best epoch joins that field (see `src/pipeline/join-gauntlet.py`).
 
 Machine: wherever a trainer is free first; the old run took 16 epochs of ~70 min, 18.5 hours on
 the Mac (fewer positions per epoch with the filters).
+
+### Stockfish architecture on sets 1-6 with HCE labels, on to at least epoch 100 (Volker, 2026-10-04)
+Goal: the same question as the run to epoch 10 - is it our data or our net and training? - answered at
+a comparable saturation. The SF17 feature transformer is 12 times as wide as ours (3072 against 256), so
+it needs about 12 times the positions before it can be compared with our net: our net was close to its
+plateau at ~1 G positions, which makes ~12 G for the SF net, at least 90 more epochs of 100 M. At e10
+(1.0 G positions) it scored 49 % against HCE and was still rising (e1: 32.6 %); that says nothing yet.
+Measure every 10 epochs against HCE (2000 games, 10+0.05, like e1 and e10) and compare with our nets.
+
+Resume from `test/nnue/sf-train-1/sf-train-1-e10.ckpt` (the state after epoch 10, kept out of tmp/),
+`--max-epochs 100` or more, otherwise the call of `tmp/sf-train-to10.sh`. ~50 min per epoch on the Mac
+gpu, ~75 hours for 90 epochs - whenever the gpu is free, last on the list.
+
+Against the hangs: `caffeinate -dimsu` running for the whole run (the night's two "hangs" were idle sleep
+of the Mac), no pinned memory on MPS (fixed in nnue-pytorch qapla-sf17), stack dumps every minute, the
+gpu watcher, memory log.
