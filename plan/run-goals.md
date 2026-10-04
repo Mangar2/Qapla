@@ -6,6 +6,37 @@ Every run that is going, paused or planned, with the goal it serves. The goal de
 Overall goal: Qapla's own net, at the level of the Stockfish net in Qapla - about 500-600 Elo over the
 hand written evaluation.
 
+## The programme: the best 8-bucket net out of HCE alone (Volker, 2026-10-04)
+
+How do we get the best result for our 8-bucket net starting from the hand written evaluation? The steps
+below build on each other; the single runs further down are parts of them.
+
+**Principle: no external evaluation.** Until further notice no evaluation of another engine goes into
+the training data of our net, although it would pay (Stockfish labels: about +150 Elo on set 1). We pull
+ourselves out of the swamp by our own bootstraps. The Stockfish-label runs are for learning only.
+
+Label rounds: round-0 labels come from the hand written evaluation; round-1 labels from the search with
+the net trained on round-0 labels; and so on.
+
+1. **Wider search for the labels** - in progress: set 1 relabelled by the low-selectivity HCE (Linux
+   51-101, Windows 15-50, Mac 1-14 done), then trained like the old set-1 net and played against it.
+2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
+   reference tournament.
+3. **Stockfish-like training procedure**, on top of 2 (2 is kept even if it only holds level):
+   - fixed epoch size of 10 M positions - Stockfish takes 100 M for a net about ten times as large
+   - up to 800 epochs (8 G positions), measured every 100 epochs whether the net still improves
+   - learning rate lowered every epoch as in Stockfish (gamma per epoch)
+   - needs a fixed epoch size and a per-epoch lr schedule in `src/trainer/train.py`
+4. **If the wider search promises an advantage (1), label all sets wider** and train them with the
+   procedure found best in 2 and 3; otherwise train the current labels with it.
+5. **Round-1 labels**: relabel all sets with the net from 4 and train again. If that pays, further
+   rounds - it will saturate.
+
+Planning stops there; by then we will have learned enough to plan the next part.
+
+Filler for the Mac gpu whenever no training task is due: the Stockfish architecture on to epoch 100
+(last entry of this file).
+
 ## Going
 
 ### Mac: Stockfish architecture (SF17) trained on sets 1-6, HCE labels, to epoch 10
