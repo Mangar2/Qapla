@@ -49,14 +49,14 @@ scores about 70 % against the other, roughly +150 Elo (head to head, 10+0.05, se
 same - set 1 relabelled by a less selective HCE search (about 2.9x the nodes at depth 8, +112 Elo +/-14
 over the default at that depth) is being labelled to answer it.
 
-Evidence: tournament `tmp/set1-sf-vs-hce-labels.state`, 2026-10-04 - set1-sf 70.55 % against set1-hce
-after 1100 of 3000 games (+/-19 each).
+Evidence: tournament `tmp/set1-sf-vs-hce-labels.state`, 2026-10-04 - set1-sf 70.03 % against set1-hce
+after 1700 of 3000 games (+/-15 each); the final figure goes here when the run is done.
 
 ## 5. Better labels pay more, the more complete the training
 
 **Supported** by one pair of measurements: on 26 chunks of set 1 (260k games, a quarter of it, 5
 epochs) the Stockfish labels won two SPRTs, the second at bounds 40/50 - +50 the likelier of those two
-candidates; on the whole of set 1 trained to its best epoch the advantage is about +150 Elo +/-27.
+candidates; on the whole of set 1 trained to its best epoch the advantage is about +150 Elo +/-21.
 The two runs differ in more than the amount of data (fixed 5 epochs against stopped at the best
 epoch), and an SPRT gives no magnitude, so the size of the step is not measured.
 
