@@ -94,5 +94,5 @@ Test: the 10000-games reference tournament on Linux (`test/tournament/strength-r
 gauntlet `nnue-set1234`), in which s8-e14 already played: +17 Elo (+/-7) against set1234. The new
 best epoch joins that field (see `src/pipeline/join-gauntlet.py`).
 
-Machine: wherever a trainer is free first; the run takes ~14 epochs of six sets, about 14 hours on
-the Mac.
+Machine: wherever a trainer is free first; the old run took 16 epochs of ~70 min, 18.5 hours on
+the Mac (fewer positions per epoch with the filters).
