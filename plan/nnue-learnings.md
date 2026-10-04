@@ -45,10 +45,6 @@ written evaluation and once by the same search at the same depth (8) with Stockf
 trained alike (one head, nowdl, stopped by their own held back loss) - the net from the Stockfish labels
 scores 68.90 % against the other over 3000 games (+/-11 each), about +138 Elo (head to head, 10+0.05, see the evidence below).
 
-**Not yet shown**: whether a better search at the same depth with an identical evaluation does the
-same - set 1 relabelled by a less selective HCE search (about 2.9x the nodes at depth 8, +112 Elo +/-14
-over the default at that depth) is being labelled to answer it.
-
 Evidence: tournament `tmp/set1-sf-vs-hce-labels.state`, 2026-10-04 - set1-sf 68.90 % against set1-hce
 over 3000 games (+/-11 each), stopped after the head to head as planned.
 
@@ -63,3 +59,18 @@ epoch), and an SPRT gives no magnitude, so the size of the step is not measured.
 The reading: gaps in the training stay gaps however good the labels are - the benefit of better labels
 shows only where the net has learned enough. With more sets and a more complete training, Stockfish
 labels can be expected to pay at least as much again.
+
+## 6. A better search of our own makes a better net - without any outside help
+
+**Confirmed** for one set: the same positions of set 1, labelled at the same depth (8) with the same
+hand written evaluation, once by the default search and once by a less selective one (futility
+pruning off, lmrDivisor 476 - about 2.9x the nodes, +112 Elo +/-14 over the default at depth 8). Both
+trained alike (one head, nowdl, stopped by their own held back loss): the net from the wider search
+scores 54.17 % against the other over 3000 games (+/-10 each), about +29 Elo (+/-14).
+
+So the quality of the net can be raised by the quality of our own search alone - the lever we keep
+while we use no external evaluation. By entry 5 the advantage can be expected to grow as the training
+gets more complete; for the search that is not measured yet.
+
+Evidence: tournament `tmp/set1-lowsel-vs-hce.state` on Linux, 2026-10-04 - set1-lowsel against the old
+set-1 net (e08, default-search labels), 10+0.05.
