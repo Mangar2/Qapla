@@ -11,8 +11,8 @@ hand written evaluation.
 ### Mac: Stockfish architecture (SF17) trained on sets 1-6, HCE labels, to epoch 10
 Goal: find out whether it is our training data that must improve. If SF's architecture and procedure
 on our data stay far below the Stockfish net, the data is the lever; if it comes close, the training is.
-Next: export e10, play it against HCE in the tournament of e1 (2000 games, 10+0.05). After that the
-Mac trains set 1 with Stockfish labels (below) - Volker, 2026-10-04.
+Done 2026-10-04 12:35: e10 scored 49.08 % against HCE (+/-12, 2000 games), e1 32.64 % (+/-13). Not
+answered yet - the net is far from a comparable saturation, see the run to epoch 100 below.
 
 ### Set 1 labelled with Qapla's search and Stockfish's evaluation - labels done 2026-10-04 11:51
 Goal: the Stockfish-eval test for set 1 - does a better label of the same positions make the net
