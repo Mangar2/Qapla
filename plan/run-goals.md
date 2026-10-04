@@ -21,8 +21,9 @@ the net trained on round-0 labels; and so on.
 1. **Wider search for the labels** - in progress: set 1 relabelled by the low-selectivity HCE (Linux
    51-101, Windows 15-50, Mac 1-14 done), then trained like the old set-1 net and played against it.
    Trained 2026-10-04 17:38-19:07: best epoch 9 (held back 0.001941), `test/nnue/nnue-set1-lowsel.nnue`;
-   head to head against the old set-1 net (e08), 3000 games, on Linux since 19:12
-   (`tmp/set1-lowsel-vs-hce.state` there).
+   Head to head against the old set-1 net (e08), 3000 games on Linux, done 19:48: set1-lowsel 54.17 %
+   (+/-10 each), about +29 Elo. The wider search pays - step 4 goes ahead (sets 2 and 3 already being
+   labelled).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run starts on the Mac at the end of the filler's
