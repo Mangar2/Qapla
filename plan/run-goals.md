@@ -34,6 +34,8 @@ Procedure, exactly like the old net `nets-set1-nowdl` (2026-09-28), only the lab
   new against old head to head at 10+0.05, book8ply.raw, until the error is below +/-10 Elo
   (~3000 games), and each against HCE in the same setting for the link to older figures
 - one unavoidable difference: the trainer has had the compiled loader since 2026-09-28
+- trained 2026-10-04 12:40-13:48: best epoch 6 (held back 0.001448), net `test/nnue/nnue-set1-sf.nnue`;
+  tournament `tmp/set1-sf-vs-hce-labels.state` since 13:50
 - on the Mac, after the e10 tournament (Volker, 2026-10-04). The tournament is one round robin of
   set1-sf, set1-hce (e08) and HCE (the nnue binary without a net), 3000 games per pairing, concurrency 9
 
