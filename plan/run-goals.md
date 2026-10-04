@@ -11,7 +11,8 @@ hand written evaluation.
 ### Mac: Stockfish architecture (SF17) trained on sets 1-6, HCE labels, to epoch 10
 Goal: find out whether it is our training data that must improve. If SF's architecture and procedure
 on our data stay far below the Stockfish net, the data is the lever; if it comes close, the training is.
-Next: export e10, play it against HCE in the tournament of e1 (2000 games, 10+0.05).
+Next: export e10, play it against HCE in the tournament of e1 (2000 games, 10+0.05). After that the
+Mac trains set 1 with Stockfish labels (below) - Volker, 2026-10-04.
 
 ### Linux and Windows: set 1 labelled with Qapla's search and Stockfish's evaluation (chunks 51-101 / 1-50)
 Goal: the Stockfish-eval test for set 1 - does a better label of the same positions make the net
@@ -33,6 +34,8 @@ Procedure, exactly like the old net `nets-set1-nowdl` (2026-09-28), only the lab
   new against old head to head at 10+0.05, book8ply.raw, until the error is below +/-10 Elo
   (~3000 games), and each against HCE in the same setting for the link to older figures
 - one unavoidable difference: the trainer has had the compiled loader since 2026-09-28
+- on the Mac, after the e10 tournament (Volker, 2026-10-04). The tournament is one round robin of
+  set1-sf, set1-hce (e08) and HCE (the nnue binary without a net), 3000 games per pairing, concurrency 9
 
 ## Paused
 
