@@ -80,6 +80,9 @@ that goal - or the overall goal it belongs to - furthest, not simply the next it
   start what follows the goal best by `plan/run-goals.md` - the proposal made in the question - and say
   so in the next report. Work that is thrown away later costs nothing compared with a machine standing
   still; when his answer comes, switch to it.
+- No task may be tied to one machine without need. If a build depends on changes that must not reach
+  the working branch, commit them to a temporary branch (`tmp-<task>`), push it, build from it on every
+  machine, and delete the branch when the task is done.
 - Write the follow-up as a chain that starts by itself (wait for the end, check the result, start the
   next step), and watch the chain like a run: a chain that stops at a check must wake me.
 - A chain or a guard that kills or stops something writes why into its log, and the watcher reports it.
