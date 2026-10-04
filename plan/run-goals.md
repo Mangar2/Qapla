@@ -32,6 +32,9 @@ the net trained on round-0 labels; and so on.
 5. **Round-1 labels**: relabel all sets with the net from 4 and train again. If that pays, further
    rounds - it will saturate.
 
+Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
+2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage.
+
 Planning stops there; by then we will have learned enough to plan the next part.
 
 Filler for the Mac gpu whenever no training task is due: the Stockfish architecture on to epoch 100
