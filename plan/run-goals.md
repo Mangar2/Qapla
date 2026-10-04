@@ -42,7 +42,12 @@ pruning, which reads the same value) against lowsel, 3000 games - nolmr 64.98 % 
 +107 Elo; nodes on three test positions 1.5x-3x of lowsel. Binary `Qapla-hce-lowsel-nolmr-win.exe` from
 `tmp-lowsel-label` (2db3278), options lmrDivisor=100000 lmrPvDivisor=100000.
 
-Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
+**Set 1 labelled with nolmr** since 2026-10-04 20:24 (Volker): Windows 1-50, Linux 51-101, concurrency 30,
+`test/nnue/chunks-set1-nolmr`, binaries `Qapla-hce-lowsel-nolmr-{win.exe,linux}` (node counts identical).
+Then trained like the old set-1 net and played against set1-lowsel. If clearly better, the lowsel
+labels of sets 2 and 3 below are not needed.
+
+Stopped 2026-10-04 20:20 for it (labels kept): Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
 2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage. Linux labels set 3 likewise since
 2026-10-04 18:20 (`test/nnue/chunks-set3-lowsel`), paused 19:10-~20:10 for the head to head of step 1.
 
