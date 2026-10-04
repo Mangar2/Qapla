@@ -21,7 +21,7 @@ If it does not run, start it again at once, as a background Bash task:
     sleep 1799; echo status-due
 
 1799 and nothing else: the odd number is how pgrep tells this timer from every other sleep. When it
-fires, give the status report (section 6) and start it again in the same turn. The timer runs as long
+fires, give the status report (section 8) and start it again in the same turn. The timer runs as long
 as any run is going on any machine.
 
 ## 2. Every start is checked within seconds
@@ -49,7 +49,7 @@ A watcher is a script in `tmp/` run with `sh`: the Bash tool runs zsh, which doe
 and a watcher parsing ssh output that way fired at once three times. Check after its start that it
 reached its wait (`pgrep -f "sleep 120"`), not that it was launched.
 
-A watcher ends when the run ends; the follow-up is then started in that same turn (section 5). A
+A watcher ends when the run ends; the follow-up is then started in that same turn (section 6). A
 progress line written every 10 minutes is no watcher: a stall shows only after 20 minutes or more.
 
 ## 4. On an error: find the cause, fix it, then restart
@@ -64,15 +64,27 @@ Never restart unchanged. A run that failed once fails again for the same reason.
 If the cause cannot be found at once, the restarted run gets the instruments that will show it next time
 (stack dumps, a tighter watcher), and that is said in the report.
 
-## 5. No idle machine, the follow-up is decided before the end
+## 5. Every run has a goal, written down
+
+Every run - started, paused or planned - stands in `plan/run-goals.md` with the goal it serves: the
+question it answers, and what its result decides. Entered when the run starts, updated when it ends or
+the goal changes. The goal is what decides the right follow-up: the next run is the one that brings
+that goal - or the overall goal it belongs to - furthest, not simply the next item on some list.
+
+## 6. No idle machine, the follow-up is decided before the end
 
 - For every run, know before it ends what comes next on that machine. Ask Volker at the latest 30
   minutes before the expected end if it is not clear - not after the machine has stood still.
+- **Waiting for Volker's answer must not leave a machine idle.** He is often away from the computer, and
+  an answer may come hours later or not at all. If no answer has come when a machine runs out of work,
+  start what follows the goal best by `plan/run-goals.md` - the proposal made in the question - and say
+  so in the next report. Work that is thrown away later costs nothing compared with a machine standing
+  still; when his answer comes, switch to it.
 - Write the follow-up as a chain that starts by itself (wait for the end, check the result, start the
   next step), and watch the chain like a run: a chain that stops at a check must wake me.
 - A chain or a guard that kills or stops something writes why into its log, and the watcher reports it.
 
-## 6. Waiting is minimal
+## 7. Waiting is minimal
 
 - Never wait a fixed long time for a result that can be checked earlier. Poll the condition in a
   background loop every few seconds and end the loop when it is met.
@@ -80,7 +92,7 @@ If the cause cannot be found at once, the restarted run gets the instruments tha
 - Background tasks of the harness are killed at their timeout; a run that must outlive that starts with
   `( nohup ... & )`, never as the background task itself.
 
-## 7. The status report covers every machine
+## 8. The status report covers every machine
 
 Every 30 minutes, a table with every machine that does anything - Mac, Linux (qapla), Windows (Ryzen9) -
 and every machine that stands idle:
