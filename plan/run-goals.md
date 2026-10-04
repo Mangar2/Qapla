@@ -72,11 +72,11 @@ Procedure, exactly like the old net `nets-set1-nowdl` (2026-09-28), only the lab
 
 ## Paused
 
-### Linux: tournament HCE against the set1234 net, at round 44
+### Linux: tournament HCE against the set1234 net - continued 2026-10-04 15:37 from round 45
 Goal: a reference figure of our best single-head net against HCE.
 
 ### Mac: set 1 relabelled by a low-selectivity HCE (factor 3 nodes) - 14 of 101 chunks
-Linux has labelled chunks 51-101 with it since 2026-10-04 09:14 (`Qapla-hce-lowsel-wide-linux`, node
+Linux labelled chunks 51-101 with it, 2026-10-04 09:14-15:36 (`Qapla-hce-lowsel-wide-linux`, node
 counts identical to the Mac, concurrency 30). Windows labels chunks 15-50 since 2026-10-04 11:55
 (`Qapla-hce-lowsel-wide-win.exe`, node counts identical, concurrency 30).
 
