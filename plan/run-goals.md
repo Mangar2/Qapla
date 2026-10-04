@@ -26,8 +26,7 @@ the net trained on round-0 labels; and so on.
    labelled).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
-   python-chess, 24 % of the positions skipped); the run starts on the Mac at the end of the filler's
-   epoch ~20:00 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
+   python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
 3. **Stockfish-like training procedure**, on top of 2 (2 is kept even if it only holds level):
    - fixed epoch size of 10 M positions - Stockfish takes 100 M for a net about ten times as large
    - up to 800 epochs (8 G positions), measured every 100 epochs whether the net still improves
@@ -150,9 +149,9 @@ plateau at ~1 G positions, which makes ~12 G for the SF net, at least 90 more ep
 (1.0 G positions) it scored 49 % against HCE and was still rising (e1: 32.6 %); that says nothing yet.
 Measure every 10 epochs against HCE (2000 games, 10+0.05, like e1 and e10) and compare with our nets.
 
-State 2026-10-04 17:38: 12 epochs done, paused for set 1 with low-selectivity labels. Resume with
+State 2026-10-04 19:59: 13 epochs done, paused for step 2. Resume with
 `RESUME=<ckpt> ACCELS=mps sh tmp/sf-train-to100.sh` from
-`tmp/sf-train-1/lightning_logs/version_2/checkpoints/epoch=11-step=91559.ckpt` (state after epoch 12;
+`tmp/sf-train-1/lightning_logs/version_3/checkpoints/epoch=12-step=97663.ckpt` (state after epoch 13;
 `test/nnue/sf-train-1/sf-train-1-e10.ckpt` is the state after epoch 10, kept out of tmp/),
 `--max-epochs 100` or more, otherwise the call of `tmp/sf-train-to10.sh`. ~50 min per epoch on the Mac
 gpu, ~75 hours for 90 epochs - whenever the gpu is free, last on the list.
