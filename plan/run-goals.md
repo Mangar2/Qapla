@@ -170,6 +170,15 @@ side is the harder part: feature indices mirrored without costing nps, the king 
 them), and when the king crosses the d/e line the cached positions have to be updated with mirrored
 bitboards.
 
+### Architecture A3: the net chooses its bucket (Volker, 2026-10-05)
+After A2. Buckets are cheap in the engine; today the bucket is the piece count. Idea: a gating layer
+learns which of e.g. 16 buckets evaluates a position (mixture of experts). Soft (softmax) in training,
+hard towards the end or straight-through; the engine always picks one bucket, so it stays as fast.
+A load-balancing term against the choice collapsing onto few buckets.
+Cheap gate input first (piece counts per type and colour, king squares) - from the accumulator it would
+cost about a second first layer. Intermediate step to keep the effects apart: 16 buckets by piece count
+without gating, then the learned gate on top. 16 buckets halve the data per head (learning 3).
+
 ### Stockfish architecture on sets 1-6 with HCE labels, on to at least epoch 100 (Volker, 2026-10-04)
 Goal: the same question as the run to epoch 10 - is it our data or our net and training? - answered at
 a comparable saturation. The SF17 feature transformer is 12 times as wide as ours (3072 against 256), so
