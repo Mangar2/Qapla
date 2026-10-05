@@ -185,6 +185,8 @@ Loader filter `--skip-early` done 2026-10-05 (13fa48f); the run starts on the Ma
 written e800 (`tmp/after-e800.sh`, nets to `test/nnue/nets-s8-sflike-early`), stopped after epoch 200.
 Result 2026-10-05, head to head on Windows, 2000 games each: early-e100 against step-3 e100 51.73 %
 (+/-11), early-e200 against e200 50.72 % (+/-11) - no effect measurable either way.
+SPRT on Windows (Volker, 2026-10-05 19:22): early-e200 against e200, H0 -2, H1 +3, max 10000 games. Meanwhile
+the early run goes on on the Mac to e800 from its state after e200; stopped if the SPRT accepts H0.
 
 ### Architecture A1: (2 x 512) x (8 x 16) x (8 x 32) x (8 x 1) (Volker, 2026-10-05)
 Goal: does a more complex net play better? A wider accumulator (512 instead of 256) with a narrower
@@ -231,9 +233,9 @@ plateau at ~1 G positions, which makes ~12 G for the SF net, at least 90 more ep
 (1.0 G positions) it scored 49 % against HCE and was still rising (e1: 32.6 %); that says nothing yet.
 Measure every 10 epochs against HCE (2000 games, 10+0.05, like e1 and e10) and compare with our nets.
 
-State 2026-10-04 19:59: 13 epochs done, paused for step 2. Resume with
+State 2026-10-05 19:25: 14 epochs done, paused for the early-position run. Resume with
 `RESUME=<ckpt> ACCELS=mps sh tmp/sf-train-to100.sh` from
-`tmp/sf-train-1/lightning_logs/version_3/checkpoints/epoch=12-step=97663.ckpt` (state after epoch 13;
+`tmp/sf-train-1/lightning_logs/version_4/checkpoints/epoch=13-step=103767.ckpt` (state after epoch 14;
 `test/nnue/sf-train-1/sf-train-1-e10.ckpt` is the state after epoch 10, kept out of tmp/),
 `--max-epochs 100` or more, otherwise the call of `tmp/sf-train-to10.sh`. ~50 min per epoch on the Mac
 gpu, ~75 hours for 90 epochs - whenever the gpu is free, last on the list.
