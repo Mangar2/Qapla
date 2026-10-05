@@ -171,13 +171,13 @@ them), and when the king crosses the d/e line the cached positions have to be up
 bitboards.
 
 ### Architecture A3: the net chooses its bucket (Volker, 2026-10-05)
-After A2. Buckets are cheap in the engine; today the bucket is the piece count. Idea: a gating layer
-learns which of e.g. 16 buckets evaluates a position (mixture of experts). Soft (softmax) in training,
-hard towards the end or straight-through; the engine always picks one bucket, so it stays as fast.
-A load-balancing term against the choice collapsing onto few buckets.
+After A2. Today the bucket of a position is its piece count. Idea: a gating layer learns which of the
+**8** buckets evaluates a position (mixture of experts) - same number of buckets, only the choice is
+learned. Soft (softmax) in training, hard towards the end or straight-through; the engine always picks
+one bucket, so it stays as fast. A load-balancing term against the choice collapsing onto few buckets.
 Cheap gate input first (piece counts per type and colour, king squares) - from the accumulator it would
-cost about a second first layer. Intermediate step to keep the effects apart: 16 buckets by piece count
-without gating, then the learned gate on top. 16 buckets halve the data per head (learning 3).
+cost about a second first layer. Compared against the same net with buckets by piece count.
+Only if the learned choice works: more buckets become an option, as they are cheap in the engine.
 
 ### Stockfish architecture on sets 1-6 with HCE labels, on to at least epoch 100 (Volker, 2026-10-04)
 Goal: the same question as the run to epoch 10 - is it our data or our net and training? - answered at
