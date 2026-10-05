@@ -16,7 +16,7 @@ the HCE.
 
 ## The net
 
-A standard NNUE in the style of the Stockfish nets of a few years ago, kept small:
+A standard NNUE architecture, kept small:
 
 - **Input:** HalfKA features - every piece on its square, seen from the king of each side,
   45,056 features per perspective.
@@ -85,13 +85,13 @@ net cannot read off the board: the search value contains a recapture or an escap
 show. Leaving these positions out (about a quarter of all) changed nothing else and was one of the
 largest single gains. It is now always on.
 
-### Stockfish's training procedure: +41 (+224 vs. HCE)
+### Fixed-size epochs and a decaying learning rate: +41 (+224 vs. HCE)
 
 Until here an epoch was one pass over the data, with a fixed learning rate, stopped when the loss on
-held-back games stopped improving. We switched to the procedure of Stockfish's trainer: epochs of a
-fixed size (10 million positions, scaled down from Stockfish's 100 million to our much smaller net),
-the RangerLite optimizer, and a learning rate that falls a little after every epoch - 800 epochs in
-all, with no stopping rule. The falling learning rate lets the net settle into its optimum instead of
+held-back games stopped improving. We switched to a different procedure: epochs of a fixed size
+(10 million positions, scaled to the size of our net) drawn from an endless stream of the data, the
+RangerLite optimizer, and a learning rate that falls a little after every epoch - 800 epochs in all,
+with no stopping rule. The falling learning rate lets the net settle into its optimum instead of
 jumping around it; the new procedure overtook the old one at the very point where its learning rate
 fell below a quarter of the old one, and with fewer passes over the data.
 
@@ -113,7 +113,8 @@ of the net - a lever that needs no outside help.
 
 ### Labels from a stronger evaluation: +138
 
-For comparison only: the same positions labelled by Qapla's search using Stockfish's evaluation. It
+For comparison only: the same positions labelled by Qapla's search using the evaluation of a much
+stronger engine. It
 shows how much label quality matters. Following our rule, nothing of this went into Qapla's net.
 
 ## What comes next
