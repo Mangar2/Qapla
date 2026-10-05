@@ -62,7 +62,10 @@ play (qet, depth 6)  ->  template pgn  ->  label (qet analysis, depth 8, directi
 
 - **.gam format**: 3 bytes per ply - 11 bit move, 2 bit result, 11 bit value code (win
   probability, sigmoid(v/400)). Defined in `src/trainer/format.py`.
-- Sets 1-6 are a million games each (set 1 = HCE self play). Each exists as `<set>.gam` (with
+- Sets 1-3 are 1 M games each, sets 4-6 2 M each - 9 M games, 1.04 G positions in all (counted
+  2026-10-05). Who played them: set 1 HCE-HCE (1/9 of the games), set 2 nnue1-nnue1, set 3 nnue2-nnue2,
+  set 4 nnue1-HCE, set 5 nnue2-HCE, set 6 nnue1-nnue2. Positions with a value: 139 M, 124 M, 138 M,
+  190 M, 252 M, 197 M. Each exists as `<set>.gam` (with
   results) and `<set>-nowdl.gam` (result RESULT_NONE). **nowdl trains better** - use it.
 - The template pgn of a set is not kept; it is derivable from the .gam.
 - **Converters** - use the C++ tool, byte-identical to the Python scripts and ~60x faster:
