@@ -130,8 +130,10 @@ has no torch). Create the output directory first.
 - **Captures and checks are skipped by default** (`--skip-tactical`, learning 7: about +75 Elo).
   `--no-skip-tactical` only to reproduce an old result trained without it. The held back loss of a
   filtered run compares only with filtered runs.
-- `--epoch-size N --lr-gamma G --optimizer ranger` trains in Stockfish's way: fixed epochs out of an
-  endless stream, lr falling every epoch, no stopping rule; `--save-every`, `--validate-every`.
+- **Stockfish's procedure is the default** (learning 8, about +44 to +53 Elo over our old way): epochs of
+  10 M positions out of an endless stream, RangerLite at lr 8.75e-4 falling by 0.992 an epoch, up to 800
+  epochs, no stopping rule, a net every 100 epochs (`--save-every`), held back loss every 10
+  (`--validate-every`). `--epoch-size 0` gives the old way (one pass an epoch, Adam, `--patience`).
 - `--stacks 8` = 8 layer stacks (heads by piece count, one shared accumulator). Needs a lot of
   data - for small corpora (a single set or less) train **one head** (`--stacks 1`).
 - `--neighbours` trains head i on buckets i-1, i, i+1 as well; it only reaches the heads (~1 % of

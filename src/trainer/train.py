@@ -300,9 +300,11 @@ if __name__ == '__main__':
     parser.add_argument('--workers', type=int, default=2,
                         help='processes that read and build features, 0 for none')
     parser.add_argument('--out', default='.', help='where the checkpoints and nets go')
-    parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--epochs', type=int, default=None,
+                        help='800 with --epoch-size (the default), 20 with --epoch-size 0')
     parser.add_argument('--batch-size', type=int, default=16384)
-    parser.add_argument('--learning-rate', type=float, default=1e-3)
+    parser.add_argument('--learning-rate', type=float, default=None,
+                        help='8.75e-4 with ranger, 1e-3 with adam')
     parser.add_argument('--blend-start', type=float, default=0.8,
                         help='weight of the search value at the first epoch')
     parser.add_argument('--blend-end', type=float, default=0.7,
@@ -329,14 +331,16 @@ if __name__ == '__main__':
                              'training and validation alike - the native loader only. On by default '
                              '(learning 7: about +75 Elo); --no-skip-tactical only to reproduce an '
                              'old result without it')
-    parser.add_argument('--epoch-size', type=int, default=0,
-                        help='positions per epoch: an epoch is then a fixed slice of an endless '
-                             'stream, as in nnue-pytorch, with no stopping rule; 0 for one pass')
-    parser.add_argument('--lr-gamma', type=float, default=1.0,
+    parser.add_argument('--epoch-size', type=int, default=10_000_000,
+                        help='positions per epoch: an epoch is a fixed slice of an endless stream, as '
+                             'in nnue-pytorch, with no stopping rule - the standard (learning 8); 0 for '
+                             'the old way, one pass an epoch and a stop on the held back loss')
+    parser.add_argument('--lr-gamma', type=float, default=0.992,
                         help='with --epoch-size: the learning rate is multiplied by it after every '
                              'epoch (nnue-pytorch: 0.992)')
-    parser.add_argument('--optimizer', choices=['adam', 'ranger'], default='adam',
-                        help='ranger: RangerLite as nnue-pytorch uses it (with --epoch-size only)')
+    parser.add_argument('--optimizer', choices=['adam', 'ranger'], default=None,
+                        help='ranger: RangerLite as nnue-pytorch uses it - the default with --epoch-size; '
+                             'adam: the default with --epoch-size 0, and the only choice there')
     parser.add_argument('--validate-every', type=int, default=10,
                         help='with --epoch-size: epochs between two measurements of the held back loss')
     parser.add_argument('--save-every', type=int, default=100,
@@ -345,4 +349,12 @@ if __name__ == '__main__':
                         help='carry on from the newest checkpoint in --out instead of starting over')
     parser.add_argument('--device', default='auto')
     parser.add_argument('--report-every', type=int, default=50)
-    train(parser.parse_args())
+    arguments = parser.parse_args()
+    fixed = arguments.epoch_size > 0
+    if arguments.epochs is None:
+        arguments.epochs = 800 if fixed else 20
+    if arguments.optimizer is None:
+        arguments.optimizer = 'ranger' if fixed else 'adam'
+    if arguments.learning_rate is None:
+        arguments.learning_rate = 8.75e-4 if arguments.optimizer == 'ranger' else 1e-3
+    train(arguments)

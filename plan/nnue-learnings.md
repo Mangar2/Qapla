@@ -87,3 +87,18 @@ has to be reproduced for a comparison.
 
 Evidence: `test/log/strength-reference.state` on Linux, 2026-10-05, nnue-set123456-s8-skip (best epoch
 9) against nnue-set123456-s8 (best epoch 14), both against nnue-set1234 at 10+0.05.
+
+## 8. Stockfish's training procedure beats ours - it is the new standard
+
+**Confirmed**: the same net (8 heads), the same data (sets 1-6, HCE labels) and the same filter
+(learning 7), trained once our way (an epoch is one pass, Adam lr 1e-3, stopped by the held back loss:
+best epoch 9 of 11) and once Stockfish's way (epochs of 10 M positions from an endless stream - scaled
+from Stockfish's 100 M to a net about a tenth of its size -, RangerLite, lr 8.75e-4 falling by 0.992 an
+epoch, no stopping rule). Head to head, 2000 games each at 10+0.05: Stockfish's way at epoch 300 scored
+56.35 % (+/-11), about +44 Elo; at epoch 420 57.57 % (+/-11), about +53 Elo.
+
+Epoch 300 is 3 G positions, about four passes over the filtered data, against nine passes for our way.
+So the trainer uses Stockfish's procedure by default.
+
+Evidence: `tmp/sflike-e300-vs-s8-skip.state` and `tmp/sflike-e420-vs-s8-skip.state` on Linux,
+2026-10-05.
