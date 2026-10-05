@@ -64,6 +64,10 @@ Outlook, not planned in detail (Volker, 2026-10-05) - WDL in two phases:
   the old games stay as weak as the evaluation that played them, so phase 2 needs new games.
 - one measurement that fits the hardware: the first new games of phase 2 trained once with and once
   without the result.
+- open (Volker, 2026-10-05): play the phase-2 games deeper than the labels (e.g. depth 12) and relabel
+  every position at depth 8, or play at depth 8? Deeper games make the result a statement about the
+  position rather than about a blunder a few moves later, at a multiple of the cost per game. Test:
+  the same compute in depth-8 games and in deeper games, both relabelled at depth 8, both with WDL.
 
 Planning stops there; by then we will have learned enough to plan the next part.
 
