@@ -112,6 +112,18 @@ The Makefile release build is `make Release -j`. Variants needed here:
   nnue-branch Makefile) - without them the values are deterministic but wrong. Check any new
   platform build against Linux or the Mac: identical node counts on a few positions.
 - `nnue-branch` converts Stockfish's value with its own `to_cp` before the search sees it.
+- **A change of EXTRA_DEFINES needs `make BUILD_TYPE=Release clean` first.** The defines are no make
+  dependency: without the clean the old objects are linked and the binary is the previous shape or
+  variant, silently (2026-10-05: an "A1" build on the Mac was 256 x 32, a "before" build on Windows
+  was A1 and refused the 256 net, so its node check ran without a net). After every build check what
+  it is: `printf 'stat\nnew\nnnueeval net <net>\nquit\n' | <binary>` - the `new` is needed, without
+  it nnueeval evaluates the empty board.
+- **A new net shape is checked across the SIMD paths**: the same net, the same positions at a fixed
+  depth on the Mac (NEON) and on Linux or Windows (AVX2) must give identical node counts. The AVX2 dot
+  product once stepped by 32 bytes and read past a 16-wide layer (fixed in 2527211); nnueeval at one
+  position did not show it, a tournament did (-175 Elo).
+- Net shapes: `-DQAPLA_NNUE_ACCUMULATOR=512 -DQAPLA_NNUE_L1=16` and `train.py --accumulator 512 --l1 16`
+  (architecture test A1); the shape number of the file refuses a net of another shape.
 - Build one version at a time in the one working copy; copy binaries to `new-versions/` under a
   telling name. Never commit search flags switched on for an experiment.
 - The Makefile compiles **every `.cpp` under the repo** - never leave scratch `.cpp` files in
