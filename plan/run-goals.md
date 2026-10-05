@@ -165,6 +165,15 @@ best epoch joins that field (see `src/pipeline/join-gauntlet.py`).
 Machine: wherever a trainer is free first; the old run took 16 epochs of ~70 min, 18.5 hours on
 the Mac (fewer positions per epoch with the filters).
 
+### Fewer early positions in the training (Volker, 2026-10-05)
+Our games start from the initial position and their first 8 plies come from book8ply, so the same
+opening positions recur in thousands of games, each with a label - the net sees them a hundredfold.
+Stockfish skips early positions with a probability falling over the ply (soft_early_fen_skipping:
+keeps ~10 % at ply 0, ~15 % at 6, ~25 % at 10, ~75 % at 18, all later). To build into the loader like
+the capture/check filter, Stockfish's curve first. Expected effect small: the positions concerned have
+30-32 pieces, i.e. the last head (bucket 7, 32 pieces -> (32-1)/4 = 7).
+Test in the Stockfish-like mode against the nets of the running step 3 at epochs 100 and 200.
+
 ### Architecture A1: (2 x 512) x (8 x 16) x (8 x 32) x (8 x 1) (Volker, 2026-10-05)
 Goal: does a more complex net play better? A wider accumulator (512 instead of 256) with a narrower
 first layer (16 instead of 32, as Stockfish's 15+1) - the cost of an evaluation is dominated by the
