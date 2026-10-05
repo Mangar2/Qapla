@@ -57,7 +57,7 @@ positions a strong engine would never reach, while the labels still come from a 
 | 6 | early net 1 - early net 2 | 2 M |
 
 Together **9 million games and about 1 billion labelled positions**. The result of a game is not used
-in training (see the experiments below).
+in training.
 
 ## The main line
 
@@ -90,30 +90,3 @@ held-back games stopped improving. We switched to a different procedure: epochs 
 (10 million positions, scaled to the size of our net) drawn from an endless stream of the data, the
 RangerLite optimizer, and a learning rate that falls a little after every epoch - 800 epochs in all,
 with no stopping rule.
-
-## Experiments on set 1
-
-Single questions, answered on one set with two otherwise identical nets.
-
-### The game result in the loss: −79
-
-Training on a blend of search value and game result, as is common, cost 79 Elo here.
-
-### Labels from a less selective search: +29
-
-The same positions labelled at the same depth by a less selective version of Qapla's search (less
-pruning, about three times the nodes).
-
-### Labels from a stronger evaluation: +138
-
-For comparison only: the same positions labelled by Qapla's search using the evaluation of a much
-stronger engine. Following our rule, nothing of this went into Qapla's net.
-
-## What comes next
-
-- **Better labels from our own search:** all sets relabelled with less selective search.
-- **A larger net:** a wider accumulator with a narrower first layer, a mirrored king, a learned
-  choice of heads.
-- **Generations:** relabel everything with the best net instead of the HCE and train again, and repeat
-  until it stops paying. The HCE is generation 0, everything above is generation 1.
-- **Game results, later:** once the generations saturate, new games played by the best net.
