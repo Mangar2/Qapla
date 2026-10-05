@@ -29,7 +29,11 @@ produced them (gen-0 labels = HCE labels).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
-3. **Stockfish-like training procedure**, on top of 2 (2 is kept even if it only holds level):
+3. **Stockfish-like training procedure** - done, the new standard (learning 8). Run 2026-10-05 from 04:52,
+   nets every 100 epochs in `test/nnue/nets-s8-sflike`. Against s8-skip, 2000 games each: e100 46.67 %,
+   e200 55.62 %, e300 56.35 %, e420 57.57 % (+/-11-12). e500 being played. Volker: no worsening expected
+   as the learning rate falls; e800 (~15:00) goes into the 10000-games reference tournament on Linux.
+   The plan as it was:
    - fixed epoch size of 10 M positions - Stockfish takes 100 M for a net about ten times as large
    - up to 800 epochs (8 G positions), measured every 100 epochs whether the net still improves
    - learning rate lowered every epoch as in Stockfish (gamma per epoch)
