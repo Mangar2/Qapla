@@ -203,6 +203,13 @@ same data with the same filter, against the 256 x 32 net of that procedure.
 Work: the sizes are compile time constants in `src/nnue/nnue-arch.h` and `src/trainer/netfile.py`
 (the architecture id follows from them) - a build with 512/16, and the SIMD paths checked for it.
 
+Result so far (A1 trained in the Stockfish-like mode from 2026-10-05 ~20:50, nets in `test/nnue/nets-a1`):
+held back loss below the 256 x 32 net at every epoch (e100 0.000996 against 0.001047, e200 0.000911
+against 0.000949), but head to head on Windows, 2000 games each: A1-e100 against step-3 e100 50.85 %,
+A1-e200 against e200 48.93 % (+/-11) - no difference in play. The A1 binary searches about 9 % fewer
+nodes per second. (A first A1 match at 27.5 % was void: the AVX2 dot product read past the 16-wide
+layer, fixed in 2527211.)
+
 ### Architecture A2: king mirrored left-right, HalfKA_hm (Volker, 2026-10-05)
 A test of its own, after A1, so that nothing goes wrong unseen. With the own king on files e-h the
 board is mirrored a<->h, 32 king squares instead of 64, each weight sees twice the positions. The engine
