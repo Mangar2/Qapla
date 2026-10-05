@@ -188,6 +188,9 @@ Result 2026-10-05, head to head on Windows, 2000 games each: early-e100 against 
 (+/-11), early-e200 against e200 50.72 % (+/-11) - no effect measurable either way.
 SPRT on Windows (Volker, 2026-10-05 19:22): early-e200 against e200, H0 -2, H1 +3, max 10000 games. Meanwhile
 the early run goes on on the Mac to e800 from its state after e200; stopped if the SPRT accepts H0.
+Stopped 2026-10-05 21:18 at 7875 games, 50.00 %, LLR -0.14 - undecided, no decision expected before
+10000 games. Volker: the old procedure stays, skipping early positions is not pursued for now (the start
+book may be varied enough). The early run was stopped at e300 (`test/nnue/nets-s8-sflike-early`).
 
 ### Architecture A1: (2 x 512) x (8 x 16) x (8 x 32) x (8 x 1) (Volker, 2026-10-05)
 Goal: does a more complex net play better? A wider accumulator (512 instead of 256) with a narrower
