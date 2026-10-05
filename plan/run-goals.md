@@ -179,6 +179,16 @@ Cheap gate input first (piece counts per type and colour, king squares) - from t
 cost about a second first layer. Compared against the same net with buckets by piece count.
 Only if the learned choice works: more buckets become an option, as they are cheap in the engine.
 
+### Architecture A4: further mixture-of-experts steps - only if A3 shows success (Volker, 2026-10-05)
+Taken from large MoE language models (one with 512 experts per layer, better than its dense sibling at
+less compute per token). Costs measured against the first layer of A1 (2 x 512 x 16 = 16,384 MACs):
+- a router with access to the context: the choice computed from the accumulator (2 x 512 -> 8),
+  +8,192 MACs, about +50 % on the first layer
+- a choice of its own per layer: layer 2 picks its expert from the 16 outputs of layer 1 - almost free
+- a fixed expert plus chosen ones (e.g. 9 x 16: one always, one of 8): the fixed one learns what holds
+  everywhere, the chosen ones only the particular - doubles the first layer
+- more experts (8 -> 16 -> ...): no cost per position, only data per expert
+
 ### Stockfish architecture on sets 1-6 with HCE labels, on to at least epoch 100 (Volker, 2026-10-04)
 Goal: the same question as the run to epoch 10 - is it our data or our net and training? - answered at
 a comparable saturation. The SF17 feature transformer is 12 times as wide as ours (3072 against 256), so
