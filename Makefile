@@ -43,8 +43,8 @@ PGO_PROFDIR := $(shell cygpath -m '$(abspath $(BUILD_BASE)/pgo)')
 PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
-SRC_CPP := $(shell C:/msys64/usr/bin/find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
-SRC_C   := $(shell C:/msys64/usr/bin/find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
+SRC_CPP := $(shell C:/msys64/usr/bin/find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "./tmp/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
+SRC_C   := $(shell C:/msys64/usr/bin/find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "./tmp/*" ! -path "$(NON_ENGINE)" | C:/msys64/usr/bin/sed 's|^\./||')
 SRC     := $(SRC_CPP) $(SRC_C)
 
 OBJ_CPP := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_CPP))
@@ -149,8 +149,8 @@ PGO_PROFDIR := $(abspath $(BUILD_BASE)/pgo)
 PGO_DATA    := $(PGO_PROFDIR)/qapla.profdata
 
 # Source discovery (exclude build dir)
-SRC_CPP := $(shell find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
-SRC_C   := $(shell find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
+SRC_CPP := $(shell find . -type f -name "*.cpp" ! -path "$(BUILD_BASE)/*" ! -path "./tmp/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
+SRC_C   := $(shell find . -type f -name "*.c"   ! -path "$(BUILD_BASE)/*" ! -path "./tmp/*" ! -path "$(NON_ENGINE)" | sed 's|^\./||')
 SRC     := $(SRC_CPP) $(SRC_C)
 
 OBJ_CPP := $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC_CPP))

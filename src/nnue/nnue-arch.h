@@ -52,6 +52,19 @@
 
 namespace QaplaNnue {
 
+	/*
+	 * The widths of the accumulator and of the first dense layer can be set at build time, for testing
+	 * other shapes: EXTRA_DEFINES="-DQAPLA_USE_NNUE -DQAPLA_NNUE_ACCUMULATOR=512 -DQAPLA_NNUE_L1=16".
+	 * The shape number of the net file follows from them, so a binary only accepts nets of its own
+	 * shape. The accumulator has to be a multiple of 16 and the first layer of 4.
+	 */
+#ifndef QAPLA_NNUE_ACCUMULATOR
+#define QAPLA_NNUE_ACCUMULATOR 256
+#endif
+#ifndef QAPLA_NNUE_L1
+#define QAPLA_NNUE_L1 32
+#endif
+
 	enum architecture : uint32_t {
 		SQUARE_COUNT = 64,
 		/** Piece planes of a perspective: twelve pieces less the own king. */
@@ -61,10 +74,10 @@ namespace QaplaNnue {
 		/** Pieces on a board, and with it the largest number of active features. */
 		MAX_ACTIVE_FEATURES = 32,
 
-		ACCUMULATOR_SIZE = 256,
+		ACCUMULATOR_SIZE = QAPLA_NNUE_ACCUMULATOR,
 		/** The first dense layer sees both perspectives. */
 		L1_INPUT_SIZE = 2 * ACCUMULATOR_SIZE,
-		L1_SIZE = 32,
+		L1_SIZE = QAPLA_NNUE_L1,
 		L2_SIZE = 32,
 		/**
 		 * The dense layers exist once per phase of the game, chosen by the number of pieces on
