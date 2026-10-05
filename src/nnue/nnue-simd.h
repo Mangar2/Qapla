@@ -203,7 +203,8 @@ namespace QaplaNnue {
 		__m256i sum[4] = { _mm256_setzero_si256(), _mm256_setzero_si256(),
 			_mm256_setzero_si256(), _mm256_setzero_si256() };
 		const __m256i ones = _mm256_set1_epi16(1);
-		for (uint32_t index = 0; index < count; index += 32) {
+		uint32_t index = 0;
+		for (; index + 32 <= count; index += 32) {
 			const __m256i activations =
 				_mm256_loadu_si256(reinterpret_cast<const __m256i*>(input + index));
 			for (uint32_t row = 0; row < 4; row++) {
@@ -217,6 +218,20 @@ namespace QaplaNnue {
 		for (uint32_t row = 0; row < 4; row++) {
 			folded[row] = _mm_add_epi32(_mm256_castsi256_si128(sum[row]),
 				_mm256_extracti128_si256(sum[row], 1));
+		}
+		// A count that is a multiple of 16 but not of 32 - a layer of 16 inputs - leaves half a
+		// register. A 32 byte load there read past the end of the activations and into the next
+		// weight row; the rest is done with 16 byte loads instead.
+		if (index < count) {
+			const __m128i activations =
+				_mm_loadu_si128(reinterpret_cast<const __m128i*>(input + index));
+			for (uint32_t row = 0; row < 4; row++) {
+				const __m128i products = _mm_maddubs_epi16(activations,
+					_mm_loadu_si128(reinterpret_cast<const __m128i*>(
+						weights + size_t(row) * stride + index)));
+				folded[row] = _mm_add_epi32(folded[row],
+					_mm_madd_epi16(products, _mm_set1_epi16(1)));
+			}
 		}
 		const __m128i rows = _mm_hadd_epi32(_mm_hadd_epi32(folded[0], folded[1]),
 			_mm_hadd_epi32(folded[2], folded[3]));
@@ -266,14 +281,21 @@ namespace QaplaNnue {
 #if defined(QAPLA_NNUE_SIMD_AVX2)
 		__m256i sum = _mm256_setzero_si256();
 		const __m256i ones = _mm256_set1_epi16(1);
-		for (uint32_t index = 0; index < count; index += 32) {
+		uint32_t index = 0;
+		for (; index + 32 <= count; index += 32) {
 			const __m256i products = _mm256_maddubs_epi16(
 				_mm256_loadu_si256(reinterpret_cast<const __m256i*>(input + index)),
 				_mm256_loadu_si256(reinterpret_cast<const __m256i*>(weights + index)));
 			sum = _mm256_add_epi32(sum, _mm256_madd_epi16(products, ones));
 		}
-		const __m128i folded = _mm_add_epi32(_mm256_castsi256_si128(sum),
+		__m128i folded = _mm_add_epi32(_mm256_castsi256_si128(sum),
 			_mm256_extracti128_si256(sum, 1));
+		if (index < count) {           // half a register left, see dotProduct4
+			const __m128i products = _mm_maddubs_epi16(
+				_mm_loadu_si128(reinterpret_cast<const __m128i*>(input + index)),
+				_mm_loadu_si128(reinterpret_cast<const __m128i*>(weights + index)));
+			folded = _mm_add_epi32(folded, _mm_madd_epi16(products, _mm_set1_epi16(1)));
+		}
 		const __m128i pairs = _mm_add_epi32(folded, _mm_shuffle_epi32(folded, 0x4E));
 		return _mm_cvtsi128_si32(_mm_add_epi32(pairs, _mm_shuffle_epi32(pairs, 0xB1)));
 #elif defined(QAPLA_NNUE_SIMD_SSSE3)
