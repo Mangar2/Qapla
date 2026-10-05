@@ -152,6 +152,24 @@ best epoch joins that field (see `src/pipeline/join-gauntlet.py`).
 Machine: wherever a trainer is free first; the old run took 16 epochs of ~70 min, 18.5 hours on
 the Mac (fewer positions per epoch with the filters).
 
+### Architecture A1: (2 x 512) x (8 x 16) x (8 x 32) x (8 x 1) (Volker, 2026-10-05)
+Goal: does a more complex net play better? A wider accumulator (512 instead of 256) with a narrower
+first layer (16 instead of 32, as Stockfish's 15+1) - the cost of an evaluation is dominated by the
+first layer (2 x width x L1), so 512 x 16 costs about what 256 x 32 does. Taken over from Stockfish as one
+step although it changes two things: Stockfish's shape is well tested; what the two parts contribute
+separately can be found out later if needed.
+Trained after the current training, with the procedure that turns out best (step 3 or s8-skip), on the
+same data with the same filter, against the 256 x 32 net of that procedure.
+Work: the sizes are compile time constants in `src/nnue/nnue-arch.h` and `src/trainer/netfile.py`
+(the architecture id follows from them) - a build with 512/16, and the SIMD paths checked for it.
+
+### Architecture A2: king mirrored left-right, HalfKA_hm (Volker, 2026-10-05)
+A test of its own, after A1, so that nothing goes wrong unseen. With the own king on files e-h the
+board is mirrored a<->h, 32 king squares instead of 64, each weight sees twice the positions. The engine
+side is the harder part: feature indices mirrored without costing nps, the king caches (fewer of
+them), and when the king crosses the d/e line the cached positions have to be updated with mirrored
+bitboards.
+
 ### Stockfish architecture on sets 1-6 with HCE labels, on to at least epoch 100 (Volker, 2026-10-04)
 Goal: the same question as the run to epoch 10 - is it our data or our net and training? - answered at
 a comparable saturation. The SF17 feature transformer is 12 times as wide as ours (3072 against 256), so
