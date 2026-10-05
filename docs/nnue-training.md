@@ -83,7 +83,7 @@ Positions from which a capture is played, or in which the side to move is in che
 Leaving these positions out (about a quarter of all) changed nothing else and was one of the
 largest single gains. It is now always on.
 
-### Fixed-size epochs and a decaying learning rate: +41 (+224 vs. HCE)
+### Fixed-size epochs and a decaying learning rate: +49 (+233 vs. HCE)
 
 Until here an epoch was one pass over the data, with a fixed learning rate, stopped when the loss on
 held-back games stopped improving. We switched to a different procedure: epochs of a fixed size

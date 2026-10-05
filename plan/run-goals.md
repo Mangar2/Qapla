@@ -31,7 +31,8 @@ produced them (gen-0 labels = HCE labels).
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
 3. **Stockfish-like training procedure** - done, the new standard (learning 8). Run 2026-10-05 from 04:52,
    nets every 100 epochs in `test/nnue/nets-s8-sflike`. Against s8-skip, 2000 games each: e100 46.67 %,
-   e200 55.62 %, e300 56.35 %, e420 57.57 % (+/-11-12). e500 being played. Volker: no worsening expected
+   e200 55.62 %, e300 56.35 %, e420 57.57 %, e500 58.33 % (+/-11-12). Reference field 2026-10-05: e800
+   69.32 % against set1234 (+/-5, 10000 games), s8-skip 63.03 % - about +49, +233 against HCE. Volker: no worsening expected
    as the learning rate falls; e800 (~15:00) goes into the 10000-games reference tournament on Linux.
    The plan as it was:
    - fixed epoch size of 10 M positions - Stockfish takes 100 M for a net about ten times as large
