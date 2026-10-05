@@ -15,8 +15,10 @@ below build on each other; the single runs further down are parts of them.
 the training data of our net, although it would pay (Stockfish labels: about +150 Elo on set 1). We pull
 ourselves out of the swamp by our own bootstraps. The Stockfish-label runs are for learning only.
 
-Label rounds: round-0 labels come from the hand written evaluation; round-1 labels from the search with
-the net trained on round-0 labels; and so on.
+Generations (Volker, 2026-10-05), a line of descent: the hand written evaluation is the root generation
+(gen 0); a net trained on labels of gen 0 is a gen-1 net - what we train now; relabelling with a gen-1
+net and training on those labels gives a gen-2 net; and so on. Labels are named by the generation that
+produced them (gen-0 labels = HCE labels).
 
 1. **Wider search for the labels** - in progress: set 1 relabelled by the low-selectivity HCE (Linux
    51-101, Windows 15-50, Mac 1-14 done), then trained like the old set-1 net and played against it.
@@ -34,8 +36,8 @@ the net trained on round-0 labels; and so on.
    - needs a fixed epoch size and a per-epoch lr schedule in `src/trainer/train.py`
 4. **If the wider search promises an advantage (1), label all sets wider** and train them with the
    procedure found best in 2 and 3; otherwise train the current labels with it.
-5. **Round-1 labels**: relabel all sets with the net from 4 and train again. If that pays, further
-   rounds - it will saturate.
+5. **Generation 2**: relabel all sets with the gen-1 net from 4 and train a gen-2 net. If that pays,
+   further generations - it will saturate.
 
 Depth-8 tournament on Windows, 2026-10-04 (Volker): lowsel without LMR (and with it without move count
 pruning, which reads the same value) against lowsel, 3000 games - nolmr 64.98 % (+/-10 each), about

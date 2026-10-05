@@ -18,9 +18,9 @@ Stockfish's internal unit, about four times Qapla's centipawn scale.
 
 ## 2. Games between players with a weak evaluation make the net learn faster
 
-**Confirmed** for a single set: set 2 (generation 1, a weak net, against itself) gave a net at least
+**Confirmed** for a single set: set 2 (the first net, nnue1, a weak one, against itself) gave a net at least
 73 Elo stronger than set 1 (HCE against itself) and at least 100 Elo stronger than set 3
-(generation 2 against itself) - 5000 games each against HCE, all three labelled by HCE at depth 8,
+(the second net, nnue2, against itself) - 5000 games each against HCE, all three labelled by HCE at depth 8,
 trained without the game result, 124 to 139 million positions each.
 
 **Not yet shown** either way whether the advantage remains once the net is fully trained: from three
