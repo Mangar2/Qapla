@@ -94,6 +94,25 @@ _HEAD_MEMBERS = (
 assert array('h').itemsize == 2 and array('i').itemsize == 4 and array('b').itemsize == 1
 
 
+def configure(accumulator=256, l1=32):
+    """Sets the width of the accumulator and of the first dense layer, before any net is made.
+
+    The defaults are the net as it has been. The engine has the same sizes as compile time constants;
+    the shape number of the file follows from them on both sides, so a net of other sizes is refused
+    by an engine built for the old ones instead of being misread.
+    """
+    global ACCUMULATOR_SIZE, L1_INPUT_SIZE, L1_SIZE, _HEAD_MEMBERS
+    ACCUMULATOR_SIZE = accumulator
+    L1_INPUT_SIZE = 2 * ACCUMULATOR_SIZE
+    L1_SIZE = l1
+    _HEAD_MEMBERS = (
+        ('l1_bias', 'i', L1_SIZE),
+        ('l1_weight', 'b', L1_SIZE * L1_INPUT_SIZE),
+        ('l2_bias', 'i', L2_SIZE),
+        ('l2_weight', 'b', L2_SIZE * L1_SIZE),
+    )
+
+
 def _read_array(stream, code, count):
     # fromfile appends, so the array has to start out empty.
     target = array(code)

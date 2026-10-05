@@ -183,6 +183,9 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
 
 
 def train(arguments):
+    netfile.configure(accumulator=arguments.accumulator, l1=arguments.l1)
+    print('net: accumulator %d, first layer %d, %d stack(s)'
+          % (netfile.ACCUMULATOR_SIZE, netfile.L1_SIZE, arguments.stacks), flush=True)
     device = pick_device(arguments.device)
     if all(name.endswith('.gam') for name in arguments.cache):
         # Straight out of the packed game file: no prepared cache, the split over whole games and
@@ -317,6 +320,12 @@ if __name__ == '__main__':
     parser.add_argument('--stacks', type=int, default=1,
                         help='how many layer stacks: 1 is the net as it was, 8 one head per phase '
                              'of the game, chosen by the number of pieces as in the engine')
+    parser.add_argument('--accumulator', type=int, default=256,
+                        help='width of the accumulator per perspective; the engine has to be built '
+                             'with the same size')
+    parser.add_argument('--l1', type=int, default=32,
+                        help='width of the first dense layer of each head; the engine has to be '
+                             'built with the same size')
     parser.add_argument('--neighbours', action='store_true',
                         help='with stacks: every position trains its own head and the two next to '
                              'it; the held back loss is still measured with the own head alone, as '
