@@ -124,6 +124,11 @@ has no torch). Create the output directory first.
     --epochs 20 --patience 2 --workers 6 --seed 1 --validation-every 100 --stacks 1
 ```
 
+- **Captures and checks are skipped by default** (`--skip-tactical`, learning 7: about +77 Elo).
+  `--no-skip-tactical` only to reproduce an old result trained without it. The held back loss of a
+  filtered run compares only with filtered runs.
+- `--epoch-size N --lr-gamma G --optimizer ranger` trains in Stockfish's way: fixed epochs out of an
+  endless stream, lr falling every epoch, no stopping rule; `--save-every`, `--validate-every`.
 - `--stacks 8` = 8 layer stacks (heads by piece count, one shared accumulator). Needs a lot of
   data - for small corpora (a single set or less) train **one head** (`--stacks 1`).
 - `--neighbours` trains head i on buckets i-1, i, i+1 as well; it only reaches the heads (~1 % of

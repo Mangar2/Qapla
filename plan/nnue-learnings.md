@@ -74,3 +74,16 @@ gets more complete; for the search that is not measured yet.
 
 Evidence: tournament `tmp/set1-lowsel-vs-hce.state` on Linux, 2026-10-04 - set1-lowsel against the old
 set-1 net (e08, default-search labels), 10+0.05.
+
+## 7. Leaving out captures and checks is a must
+
+**Confirmed**: the best run so far (sets 1-6, HCE labels, 8 heads) trained again identically, only
+leaving out every position whose move captures or that is in check (24 % of the positions; Stockfish's
+trainer skips the same) - in the reference field against nnue-set1234 the filtered net stands at 2689
+Elo (+/-6, 7900 games so far), the unfiltered one at 2612 (+/-5, 10000 games): about +77 Elo (+/-8).
+
+So the filter is the default of the trainer; it is switched off only where an old result without it
+has to be reproduced for a comparison.
+
+Evidence: `test/log/strength-reference.state` on Linux, 2026-10-05, nnue-set123456-s8-skip (best epoch
+9) against nnue-set123456-s8 (best epoch 14), both against nnue-set1234 at 10+0.05.

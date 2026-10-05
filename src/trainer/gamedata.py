@@ -315,7 +315,7 @@ class GameFile:
     """A game file as a source of batches, with the same shape PositionCache had."""
 
     def __init__(self, paths, batch_size, seed=1, validation_every=100, part='training',
-                 workers=2, buffer=BUFFER_POSITIONS, loader='native', skip_tactical=False):
+                 workers=2, buffer=BUFFER_POSITIONS, loader='native', skip_tactical=True):
         paths = [paths] if isinstance(paths, str) else list(paths)
         offsets, lengths, usable, _ = load_indexes(paths)
         training, validation = split_games(len(offsets), seed, validation_every)
@@ -330,7 +330,8 @@ class GameFile:
                                         skip_tactical=skip_tactical)
         else:
             if skip_tactical:
-                raise SystemExit('--skip-tactical needs the native loader')
+                raise SystemExit('skipping captures and checks needs the native loader; '
+                                 'the python loader only with --no-skip-tactical')
             self.dataset = _Games(paths, ids, batch_size, seed, buffer)
         # With skip_tactical the count is that of the positions before the filter: the index does
         # not know which are skipped. It only sizes the progress lines.
