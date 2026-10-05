@@ -190,11 +190,11 @@ def train(arguments):
         cache = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                          validation_every=arguments.validation_every, part='training',
                          workers=arguments.workers, loader=arguments.loader,
-                         skip_tactical=arguments.skip_tactical)
+                         skip_tactical=arguments.skip_tactical, skip_early=arguments.skip_early)
         validation = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                               validation_every=arguments.validation_every, part='validation',
                               workers=arguments.workers, loader=arguments.loader,
-                              skip_tactical=arguments.skip_tactical)
+                              skip_tactical=arguments.skip_tactical, skip_early=arguments.skip_early)
     else:
         if len(arguments.cache) != 1:
             raise SystemExit('several sources are only read as .gam game files')
@@ -331,6 +331,10 @@ if __name__ == '__main__':
                              'training and validation alike - the native loader only. On by default '
                              '(learning 7: about +75 Elo); --no-skip-tactical only to reproduce an '
                              'old result without it')
+    parser.add_argument('--skip-early', action=argparse.BooleanOptionalAction, default=False,
+                        help='keep early positions only with a probability rising over the ply, by '
+                             'nnue-pytorch\'s default curve (0.1 at ply 0 to 1.0 from ply 20) - '
+                             'in training and validation alike; a test, off by default')
     parser.add_argument('--epoch-size', type=int, default=10_000_000,
                         help='positions per epoch: an epoch is a fixed slice of an endless stream, as '
                              'in nnue-pytorch, with no stopping rule - the standard (learning 8); 0 for '

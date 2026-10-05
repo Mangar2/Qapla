@@ -17,7 +17,8 @@
  *
  *   batcher --batch 16384 --buffer 131072 --seed 7 <game files...>  < game ids (uint32)
  *   batcher --dump <game files...>                                   < game ids (uint32)
- *   either of the two with --skip-tactical: no position whose move captures or that is in check
+ *   either of the two with --skip-tactical: no position whose move captures or that is in check,
+ *   and with --skip-early: fewer early positions, by Stockfish's curve
  *   batcher --index <one game file>
  *
  * --index writes, for every game of the file, its offset (uint64), its length in plies (uint8) and
@@ -248,6 +249,33 @@ namespace {
 
 	bool skipTactical = false;
 
+	/**
+	 * --skip-early: an early position is kept only with a probability rising over the ply, as
+	 * nnue-pytorch's soft_early_fen_skipping does with its default curve - 0.1 at ply 0, 0.15 at 6,
+	 * 0.25 at 10, 0.75 at 18, 1.0 from 20 on, linear in between. The openings come out of one book,
+	 * so the same early positions recur in thousands of games.
+	 */
+	bool skipEarly = false;
+	constexpr int EARLY_PLIES = 20;
+	std::mt19937_64 earlyRandom(1);
+
+	double earlyAcceptance(int ply) {
+		static constexpr double X[5] = { 0, 6, 10, 18, EARLY_PLIES };
+		static constexpr double Y[5] = { 0.1, 0.15, 0.25, 0.75, 1.0 };
+		if (ply >= EARLY_PLIES) return 1.0;
+		for (int i = 0; i < 4; ++i) {
+			if (ply >= X[i] && ply <= X[i + 1]) {
+				return Y[i] + (ply - X[i]) / (X[i + 1] - X[i]) * (Y[i + 1] - Y[i]);
+			}
+		}
+		return 1.0;
+	}
+
+	bool skippedEarly(uint32_t ply) {
+		if (!skipEarly || ply >= uint32_t(EARLY_PLIES)) return false;
+		return std::uniform_real_distribution<double>(0.0, 1.0)(earlyRandom) >= earlyAcceptance(int(ply));
+	}
+
 	/** Appends the positions of one game that carry a value - _positions_of() in gamedata.py. */
 	void replay(const File& data, const Game& game, std::vector<Position>& out) {
 		Board board;
@@ -259,7 +287,7 @@ namespace {
 			const uint32_t value = (record >> 13) & 0x7FF;
 			int from, to, promotion;
 			unpackMove(move, board, from, to, promotion);
-			if (value != NO_GAME_VALUE && !(skipTactical && tactical(board, from, to))) {
+			if (value != NO_GAME_VALUE && !(skipTactical && tactical(board, from, to)) && !skippedEarly(i)) {
 				Position position;
 				const int own = board.whiteToMove ? WHITE : BLACK;
 				features(board, own, position.own);
@@ -333,6 +361,7 @@ int main(int argc, char** argv) {
 		else if (arg == "--dump") dump = true;
 		else if (arg == "--index") onlyIndex = true;
 		else if (arg == "--skip-tactical") skipTactical = true;
+		else if (arg == "--skip-early") skipEarly = true;
 		else paths.push_back(argv[i]);
 	}
 	if (paths.empty()) fail("no game files named");
@@ -364,6 +393,7 @@ int main(int argc, char** argv) {
 		std::fflush(stdout);
 		return 0;
 	}
+	earlyRandom.seed(seed ^ 0x9E3779B97F4A7C15ull);
 	const std::vector<uint32_t> ids = readIds();
 
 	std::vector<uint8_t> out;
