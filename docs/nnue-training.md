@@ -32,18 +32,20 @@ A standard NNUE architecture, kept small:
 
 We did not start from games of strong players. We started from a book of **one million start
 positions** built by Qapla itself: from the initial position, all moves, then lines taken half at
-random out of Qapla's own search tree, kept only while their value stays close to the best line.
+random out of Qapla's own search tree, kept only while their value stays close to the best line. The
+idea: a net is asked to evaluate the positions a search visits, not only the positions that end up
+being played, so the training positions should come from the same place.
 
 ### Six sets of games, labelled by Qapla's search
 
 From every book position a game was played at depth 6. Every position of every game was then searched
 to depth 8 by the HCE, and that search value became the label. The labelling ran in
-[qapla-engine-tester](https://github.com/Mangar2/qapla-engine-tester), which analyses each game
-backwards and spread the work over a Linux machine, a Windows machine and, for a while, cloud
-instances.
+[qapla-engine-tester](https://github.com/Mangar2/qapla-engine-tester), which walks each game backwards and
+which spread the work over a Linux machine, a Windows machine and, for a while, cloud instances.
 
-The games were played by three different players: the HCE and two deliberately weak early nets,
-trained on far too little data - all against all, six sets:
+To make the games diverse we used three different players: the HCE and two deliberately weak early
+nets, trained on far too little data. Games between them - all against all, six sets - wander into
+positions a strong engine would never reach, while the labels still come from a sound search:
 
 | set | players | games |
 |---|---|---|
@@ -66,18 +68,20 @@ it learned from.
 
 ### More and more diverse data: +223 (+91 vs. HCE)
 
-Trained on sets 1 to 4 the net passed the HCE. A set played by a weak net against itself gave a
-stronger net than the HCE's own games. From three or four sets on, adding data no longer helped this
-net.
+Trained on sets 1 to 4 the net passed the HCE. The games of the weak nets mattered: a set played by a
+weak net against itself made the net learn faster than the HCE's own games. From three or four sets
+on, adding data no longer helped this net.
 
 ### Eight heads instead of one: +17 (+108 vs. HCE)
 
-One head per range of piece counts, sharing the same accumulator, trained on all six sets.
+One head per range of piece counts, sharing the same accumulator. A small step, and one that needs
+more training than a single head before it pays.
 
 ### Leaving out captures and checks: +75 (+184 vs. HCE)
 
-Positions from which a capture is played, or in which the side to move is in check, are left out of
-the training - about a quarter of all. Nothing else changed. It is now always on.
+Positions from which a capture is played, or in which the side to move is in check, are left out.
+Leaving these positions out (about a quarter of all) changed nothing else and was one of the
+largest single gains. It is now always on.
 
 ### Fixed-size epochs and a decaying learning rate: +41 (+224 vs. HCE)
 
@@ -93,7 +97,7 @@ Single questions, answered on one set with two otherwise identical nets.
 
 ### The game result in the loss: −79
 
-Training on a blend of search value and game result cost 79 Elo here.
+Training on a blend of search value and game result, as is common, cost 79 Elo here.
 
 ### Labels from a less selective search: +29
 
@@ -112,5 +116,4 @@ stronger engine. Following our rule, nothing of this went into Qapla's net.
   choice of heads.
 - **Generations:** relabel everything with the best net instead of the HCE and train again, and repeat
   until it stops paying. The HCE is generation 0, everything above is generation 1.
-- **Game results, later:** once the generations saturate, new games played by the best net, trained
-  with their results.
+- **Game results, later:** once the generations saturate, new games played by the best net.
