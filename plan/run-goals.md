@@ -54,6 +54,17 @@ Stopped 2026-10-04 20:20 for it (labels kept): Started on speculation (no idle m
 2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage. Linux labels set 3 likewise since
 2026-10-04 18:20 (`test/nnue/chunks-set3-lowsel`), paused 19:10-~20:10 for the head to head of step 1.
 
+Outlook, not planned in detail (Volker, 2026-10-05) - WDL in two phases:
+- phase 1: generations without the game result until they saturate. Search-based labels can only fix
+  errors that show inside the search horizon; a misjudgement that pays off later (e.g. a king attack)
+  is a stable fixpoint of "eval = search over eval" and stays in every generation.
+- phase 2: new games played by the best net, trained with the game result, again generations until
+  they saturate - the result plays such errors out and corrects the fixpoint of phase 1. Early WDL from
+  weak games risks blurring rather than correcting (set 1: HCE game results cost 79 Elo). The results of
+  the old games stay as weak as the evaluation that played them, so phase 2 needs new games.
+- one measurement that fits the hardware: the first new games of phase 2 trained once with and once
+  without the result.
+
 Planning stops there; by then we will have learned enough to plan the next part.
 
 Filler for the Mac gpu whenever no training task is due: the Stockfish architecture on to epoch 100
