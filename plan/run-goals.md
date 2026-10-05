@@ -181,6 +181,8 @@ keeps ~10 % at ply 0, ~15 % at 6, ~25 % at 10, ~75 % at 18, all later). To build
 the capture/check filter, Stockfish's curve first. Expected effect small: the positions concerned have
 30-32 pieces, i.e. the last head (bucket 7, 32 pieces -> (32-1)/4 = 7).
 Test in the Stockfish-like mode against the nets of the running step 3 at epochs 100 and 200.
+Loader filter `--skip-early` done 2026-10-05 (13fa48f); the run starts on the Mac when step 3 has
+written e800 (`tmp/after-e800.sh`, nets to `test/nnue/nets-s8-sflike-early`), stopped after epoch 200.
 
 ### Architecture A1: (2 x 512) x (8 x 16) x (8 x 32) x (8 x 1) (Volker, 2026-10-05)
 Goal: does a more complex net play better? A wider accumulator (512 instead of 256) with a narrower
