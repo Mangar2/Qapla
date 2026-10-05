@@ -339,8 +339,8 @@ if __name__ == '__main__':
                         help='ranger: RangerLite as nnue-pytorch uses it (with --epoch-size only)')
     parser.add_argument('--validate-every', type=int, default=10,
                         help='with --epoch-size: epochs between two measurements of the held back loss')
-    parser.add_argument('--save-every', type=int, default=20,
-                        help='with --epoch-size: epochs between two nets written (nnue-pytorch: 20)')
+    parser.add_argument('--save-every', type=int, default=100,
+                        help='with --epoch-size: epochs between two nets written (nnue-pytorch: 20; ours 100, Volker 2026-10-05)')
     parser.add_argument('--resume', action='store_true',
                         help='carry on from the newest checkpoint in --out instead of starting over')
     parser.add_argument('--device', default='auto')
