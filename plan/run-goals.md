@@ -183,6 +183,8 @@ the capture/check filter, Stockfish's curve first. Expected effect small: the po
 Test in the Stockfish-like mode against the nets of the running step 3 at epochs 100 and 200.
 Loader filter `--skip-early` done 2026-10-05 (13fa48f); the run starts on the Mac when step 3 has
 written e800 (`tmp/after-e800.sh`, nets to `test/nnue/nets-s8-sflike-early`), stopped after epoch 200.
+Result 2026-10-05, head to head on Windows, 2000 games each: early-e100 against step-3 e100 51.73 %
+(+/-11), early-e200 against e200 50.72 % (+/-11) - no effect measurable either way.
 
 ### Architecture A1: (2 x 512) x (8 x 16) x (8 x 32) x (8 x 1) (Volker, 2026-10-05)
 Goal: does a more complex net play better? A wider accumulator (512 instead of 256) with a narrower
