@@ -327,7 +327,7 @@ if __name__ == '__main__':
     parser.add_argument('--skip-tactical', action=argparse.BooleanOptionalAction, default=True,
                         help='leave out every position whose move captures or that is in check, in '
                              'training and validation alike - the native loader only. On by default '
-                             '(learning 7: about +77 Elo); --no-skip-tactical only to reproduce an '
+                             '(learning 7: about +75 Elo); --no-skip-tactical only to reproduce an '
                              'old result without it')
     parser.add_argument('--epoch-size', type=int, default=0,
                         help='positions per epoch: an epoch is then a fixed slice of an endless '
