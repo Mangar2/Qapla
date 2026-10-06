@@ -210,6 +210,11 @@ A1-e200 against e200 48.93 % (+/-11) - no difference in play. The A1 binary sear
 nodes per second. (A first A1 match at 27.5 % was void: the AVX2 dot product read past the 16-wide
 layer, fixed in 2527211.)
 
+Restarted 2026-10-06 ~03:00 with 20 M positions an epoch (Volker): with the learning rate falling per epoch,
+a net twice as wide got its high-rate phase with half the positions it needs, which a longer run of the
+same schedule cannot make up. Nets in `test/nnue/nets-a1`; the 10 M run (to e270) kept in
+`test/nnue/nets-a1-10m`. ~35 hours to e800.
+
 ### Architecture A2: king mirrored left-right, HalfKA_hm (Volker, 2026-10-05)
 A test of its own, after A1, so that nothing goes wrong unseen. With the own king on files e-h the
 board is mirrored a<->h, 32 king squares instead of 64, each weight sees twice the positions. The engine
