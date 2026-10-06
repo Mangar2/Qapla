@@ -216,6 +216,10 @@ same schedule cannot make up. Nets in `test/nnue/nets-a1`; the 10 M run (to e270
 `test/nnue/nets-a1-10m`. ~35 hours to e800.
 Result 2026-10-06: A1 (20 M) e100 against step-3 e100 57.57 % (+/-11, 2000 games), about +53 - against
 50.85 % for the 10 M run at the same epoch. With the data scaled to its size the wider net plays better.
+A1 (20 M) e200 against step-3 e200 55.00 % (+/-11), about +35. Against step 3 at the same amount of
+data (A1 eN has seen what step-3 e2N has): about -9 at e100, about +21 at e200 (+/-22 each) - not shown
+better, no sign of the advantage melting either. Volker: go on to e800, then A1-e800 into the reference
+field (10000 games against set1234, where step-3 e800 stands at 69.32 %) - that decides.
 
 ### Architecture PSQT: a learned piece-square part per bucket - next topic (Volker, 2026-10-06)
 Taken ahead of the earlier rule (Stockfish details only after +500 Elo): cheap, it improves the
