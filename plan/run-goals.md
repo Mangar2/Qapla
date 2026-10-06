@@ -215,6 +215,15 @@ a net twice as wide got its high-rate phase with half the positions it needs, wh
 same schedule cannot make up. Nets in `test/nnue/nets-a1`; the 10 M run (to e270) kept in
 `test/nnue/nets-a1-10m`. ~35 hours to e800.
 
+### Architecture PSQT: a learned piece-square part per bucket - next topic (Volker, 2026-10-06)
+Taken ahead of the earlier rule (Stockfish details only after +500 Elo): cheap, it improves the
+evaluation substantially and carries over into every generation. Every feature gets, besides its
+accumulator column, 8 PSQT values, one per bucket; they are summed and added straight to the output of
+the chosen head. Training as in nnue-pytorch: output = head + (own psqt - opponent psqt) / 2, no
+weighting; the PSQT weights start from the material values of the pieces. Stockfish blends 125/128 psqt
+with 131/128 positional in the engine, tuned after training - for us an engine parameter for later, 1:1
+to start. Cost: ~3 % more accumulator update, 1.4 MB, a new net format; checked across the SIMD paths.
+
 ### Architecture A2: king mirrored left-right, HalfKA_hm (Volker, 2026-10-05)
 A test of its own, after A1, so that nothing goes wrong unseen. With the own king on files e-h the
 board is mirrored a<->h, 32 king squares instead of 64, each weight sees twice the positions. The engine
