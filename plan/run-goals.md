@@ -52,7 +52,12 @@ pruning, which reads the same value) against lowsel, 3000 games - nolmr 64.98 % 
 **Set 1 labelled with nolmr** since 2026-10-04 20:24 (Volker): Windows 1-50, Linux 51-101, concurrency 30,
 `test/nnue/chunks-set1-nolmr`, binaries `Qapla-hce-lowsel-nolmr-{win.exe,linux}` (node counts identical).
 About 57 min per chunk at concurrency 30 (lowsel: ~9), so ~48 hours for the full set - Volker:
-the full set, no subset. Then trained like the old set-1 net and played against set1-lowsel. If clearly better, the lowsel
+the full set, no subset. Then trained like the old set-1 net and played against set1-lowsel.
+Volker 2026-10-06: the test starts only when Linux and Windows have both finished. Training exactly as
+set1-lowsel was trained (old procedure: `--epoch-size 0 --no-skip-tactical --stacks 1 --patience 3`,
+seed 1, validation-every 100, full loop until the stop), then head to head against set1-lowsel. When
+Windows has finished, its labels are copied to the Mac and Windows is hibernated (`tmp/win-end-nolmr.sh`).
+Meanwhile the Mac trains A1 on from epoch 293. If clearly better, the lowsel
 labels of sets 2 and 3 below are not needed.
 
 Stopped 2026-10-04 20:20 for it (labels kept): Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
