@@ -220,6 +220,9 @@ A1 (20 M) e200 against step-3 e200 55.00 % (+/-11), about +35. Against step 3 at
 data (A1 eN has seen what step-3 e2N has): about -9 at e100, about +21 at e200 (+/-22 each) - not shown
 better, no sign of the advantage melting either. Volker: go on to e800, then A1-e800 into the reference
 field (10000 games against set1234, where step-3 e800 stands at 69.32 %) - that decides.
+Paused 2026-10-06 15:58 after epoch 292 (Volker needs the Mac). Resume: the same train.py call with
+`--resume` (`--out ../../test/nnue/nets-a1 --stacks 8 --accumulator 512 --l1 16 --epoch-size 20000000
+--workers 6 --seed 1 --validation-every 100`, sets 1-6 nowdl), log to `tmp/train-a1.log`.
 
 ### Architecture PSQT: a learned piece-square part per bucket - next topic (Volker, 2026-10-06)
 Taken ahead of the earlier rule (Stockfish details only after +500 Elo): cheap, it improves the
