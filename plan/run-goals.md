@@ -26,6 +26,12 @@ produced them (gen-0 labels = HCE labels).
    Head to head against the old set-1 net (e08), 3000 games on Linux, done 19:48: set1-lowsel 54.17 %
    (+/-10 each), about +29 Elo. The wider search pays - step 4 goes ahead (sets 2 and 3 already being
    labelled).
+   **Correction 2026-10-07:** only chunks 1-14 (Mac) of set1-lowsel carry lowsel labels; 15-101 (Windows,
+   Linux) were labelled with plain HCE - both machines still had a label-chunks.sh before 239020f, which
+   dropped the options (proven: labels identical, position for position, to a run without the options).
+   So the +29 above is not a measurement of the wider search, and set1-nolmr (47.98 % in the head to head
+   below) was played against a net with 86 % HCE labels. Redone: set 3 chunks 1-9 and set 2 chunks 1-20
+   go into the queue again; the old labels are in Linux `tmp/hce-not-lowsel/`.
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).

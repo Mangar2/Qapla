@@ -87,6 +87,13 @@ play (qet, depth 6)  ->  template pgn  ->  label (qet analysis, depth 8, directi
    restarted. `[first] [last]` splits a set between machines. Everything after the range becomes a
    UCI option of the engine. Use a separate chunk directory per labelling engine (hard links), so
    the markers do not mix.
+   **Pull the working copy of every machine before a labelling with options, and prove the options
+   reach the engine.** A label-chunks.sh older than 239020f takes the range but drops every option
+   after it without a word: on 2026-10-04 Linux and Windows (both at fe600b3) labelled set1-lowsel
+   15-101, set 2 1-20 and set 3 1-9 with plain HCE; it showed only as half the chunk time, found three
+   days later. The proof: label ~50 games of the chunk with and without the options and compare with
+   the run's output - it must be identical to the one with options (`tmp/cmp2.py` style, matched by
+   move sequence). The chunk time is a hint too: the wide lowsel options cost a factor ~2.2.
 4. qet analysis may write games in a different order; the game set is the same. Check with a
    multiset comparison of the move sequences before comparing two labellings.
 
