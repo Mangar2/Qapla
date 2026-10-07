@@ -56,6 +56,9 @@ produced them (gen-0 labels = HCE labels).
    history is numbered (CHANGELOG, now 2.2.1): learnings 7 and 8 compared one factor; 3 to 6 did not.
    **Do the buckets pay today?** s8-sflike e800 (1.3.0 = 2.2.1 under its command, CPU-proven) against the
    same command with `--stacks 1` (`tmp/mac-sflike-1head.sh`, ~10 h after the reproduction), then head to head.
+   2026-10-08 00:37: both nets retrained with their original trainers, played as on 10-04: HCE (0.6.1, e10)
+   57.12 % against lowsel (1.1.1, e06), +/-10 each, 3000 games - the old 54.17 % for lowsel does not come
+   back. It was those two nets, not the trainer. Details in the forensics README.
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
