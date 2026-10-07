@@ -32,6 +32,12 @@ produced them (gen-0 labels = HCE labels).
    So the +29 above is not a measurement of the wider search, and set1-nolmr (47.98 % in the head to head
    below) was played against a net with 86 % HCE labels. Redone: set 3 chunks 1-9 and set 2 chunks 1-20
    go into the queue again; the old labels are in Linux `tmp/hce-not-lowsel/`.
+   **Volker 2026-10-07: everything built on it is void until set 1 is right.** Sets 2-6 stopped (set 3
+   chunks 10-16 with options are valid and kept). Set 1 chunks 15-101 relabelled with lowsel on Linux
+   since ~10:45 (`test/nnue/chunks-set1-lowsel-fix` -> `labelled-set1-lowsel-fix`, options checked on the
+   qet command line), ~1100 s a chunk, ~27 h. Then: chunks 1-14 (Mac, correct) + 15-101 -> .gam, trained
+   exactly like the old set-1 net, head to head against it (e08, HCE labels). If the full lowsel set is
+   not better, find out why the set with 14 % lowsel labels was (+29).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
