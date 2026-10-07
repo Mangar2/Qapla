@@ -40,7 +40,7 @@ produced them (gen-0 labels = HCE labels).
    not better, find out why the set with 14 % lowsel labels was (+29).
    15:16-16:00 the Mac helped from chunk 101 downwards (chunks 101 and 100, 2055 s a chunk with 9 engines);
    stopped by Volker, the Mac trains A1 again (resumed at epoch 446). Linux does the rest alone, done
-   ~2026-10-08 10:30.
+   ~2026-10-08 11:30.
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
