@@ -118,7 +118,8 @@ while :; do
         sleep 120; continue
     fi
 
-    LOCAL=$NETS/net-epoch$(printf %02d "$best").nnue
+    # trainer 1.0.0 on: net-v<version>-epochNN.nnue; before: net-epochNN.nnue
+    LOCAL=$(ls "$NETS"/net-v*-epoch$(printf %02d "$best").nnue "$NETS"/net-epoch$(printf %02d "$best").nnue 2>/dev/null | head -1)
     [ -f "$LOCAL" ] || { say "the log calls epoch $best best but $LOCAL is not there - stopping"; exit 1; }
     say "the machine is free and $NN is the best epoch so far - playing it"
     scp -q "$LOCAL" "$THERE:$REPO/$NET"

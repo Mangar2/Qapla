@@ -23,15 +23,28 @@ enough.
 
 import argparse
 import os
+import re
 import time
 
 import torch
 
 import export
 import netfile
+import version
 from dataset import PositionCache
 from gamedata import GameFile
 from model import HalfKaNet, loss_of, neighbour_loss_of
+
+
+# Every file a training writes carries the version of the trainer in its name (CHANGELOG.md), so that
+# a net can always be traced to the trainer that made it.
+def file_name(kind, epoch, digits, extension):
+    return '%s-v%s-epoch%0*d.%s' % (kind, version.VERSION, digits, epoch, extension)
+
+
+def same_minor(other):
+    """A run may only be continued by a trainer that makes the same nets: same major and minor."""
+    return other.split('.')[:2] == version.VERSION.split('.')[:2]
 
 
 def pick_device(name):
@@ -70,22 +83,27 @@ def take_up(model, optimizer, out, device):
     name gives, but Adam starts with empty moments and the stopping rule starts over: what it does not
     know it cannot restore, and saying so is better than pretending otherwise.
     """
-    kept = sorted(f for f in os.listdir(out) if f.startswith('net-epoch') and f.endswith('.pt'))
+    pattern = re.compile(r'^net-(?:v(\d+\.\d+\.\d+)-)?epoch(\d+)\.pt$')
+    kept = sorted((int(m.group(2)), m.group(1), f) for f in os.listdir(out)
+                  for m in [pattern.match(f)] if m)
     if not kept:
         print('--resume: nothing to take up in %s, starting at epoch 1' % out, flush=True)
         return 1, float('inf'), 0, 0
-    path = os.path.join(out, kept[-1])
+    epoch, made_by, name = kept[-1]
+    if made_by is None or not same_minor(made_by):
+        raise SystemExit('--resume: %s was written by trainer %s, this is %s - a run is only continued '
+                         'by the same major.minor' % (name, made_by or 'before 1.0.0', version.VERSION))
+    path = os.path.join(out, name)
     held = torch.load(path, map_location=device, weights_only=False)
     if not isinstance(held, dict) or 'model' not in held:
-        epoch = int(kept[-1][len('net-epoch'):-len('.pt')])
         model.load_state_dict(held)
         print('--resume: %s holds the weights only - going on at epoch %d, with the optimizer and '
-              'the stopping rule starting over' % (kept[-1], epoch + 1), flush=True)
+              'the stopping rule starting over' % (name, epoch + 1), flush=True)
         return epoch + 1, float('inf'), 0, 0
     model.load_state_dict(held['model'])
     optimizer.load_state_dict(held['optimizer'])
     print('--resume: %s, going on at epoch %d, best so far epoch %d at %.6f, %d epochs without an '
-          'improvement' % (kept[-1], held['epoch'] + 1, held['bestEpoch'], held['bestLoss'],
+          'improvement' % (name, held['epoch'] + 1, held['bestEpoch'], held['bestLoss'],
                            held['since']), flush=True)
     return held['epoch'] + 1, held['bestLoss'], held['bestEpoch'], held['since']
 
@@ -129,6 +147,10 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
     last = os.path.join(arguments.out, 'last.pt')
     if arguments.resume and os.path.exists(last):
         held = torch.load(last, map_location=device, weights_only=False)
+        if not same_minor(held.get('version', '0.0.0')):
+            raise SystemExit('--resume: %s was written by trainer %s, this is %s - a run is only '
+                             'continued by the same major.minor'
+                             % (last, held.get('version', 'before 1.0.0'), version.VERSION))
         model.load_state_dict(held['model'])
         optimizer.load_state_dict(held['optimizer'])
         scheduler.load_state_dict(held['scheduler'])
@@ -173,16 +195,17 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
             line += ', held back %.6f' % measure(model, validation, arguments.batch_size, device,
                                                  arguments.blend_end)
         if epoch % arguments.save_every == 0 or epoch == arguments.epochs:
-            export.export(model, '%s/net-epoch%03d.nnue' % (arguments.out, epoch))
+            export.export(model, os.path.join(arguments.out, file_name('net', epoch, 3, 'nnue')))
         state = {'epoch': epoch, 'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
-                 'scheduler': scheduler.state_dict()}
+                 'scheduler': scheduler.state_dict(), 'version': version.VERSION}
         torch.save(state, last)
         if epoch % 100 == 0:
-            torch.save(state, '%s/state-epoch%03d.pt' % (arguments.out, epoch))
+            torch.save(state, os.path.join(arguments.out, file_name('state', epoch, 3, 'pt')))
         print('%s, %.0f s' % (line, time.time() - start), flush=True)
 
 
 def train(arguments):
+    print('trainer %s' % version.VERSION, flush=True)
     netfile.configure(accumulator=arguments.accumulator, l1=arguments.l1)
     print('net: accumulator %d, first layer %d, %d stack(s)'
           % (netfile.ACCUMULATOR_SIZE, netfile.L1_SIZE, arguments.stacks), flush=True)
@@ -260,8 +283,8 @@ def train(arguments):
         torch.save({'epoch': epoch, 'model': model.state_dict(),
                     'optimizer': optimizer.state_dict(), 'bestLoss': bestLoss,
                     'bestEpoch': bestEpoch, 'since': since},
-                   '%s/net-epoch%02d.pt' % (arguments.out, epoch))
-        export.export(model, '%s/net-epoch%02d.nnue' % (arguments.out, epoch))
+                   os.path.join(arguments.out, file_name('net', epoch, 2, 'pt')))
+        export.export(model, os.path.join(arguments.out, file_name('net', epoch, 2, 'nnue')))
         if validation is None:
             print('epoch %d done, blend %.2f, loss %.6f, %.0f s'
                   % (epoch, blend, trained, time.time() - start), flush=True)
@@ -280,15 +303,15 @@ def train(arguments):
         torch.save({'epoch': epoch, 'model': model.state_dict(),
                     'optimizer': optimizer.state_dict(), 'bestLoss': bestLoss,
                     'bestEpoch': bestEpoch, 'since': since},
-                   '%s/net-epoch%02d.pt' % (arguments.out, epoch))
+                   os.path.join(arguments.out, file_name('net', epoch, 2, 'pt')))
         if since >= arguments.patience:
             print('stopping: the loss on the games it does not train on has not improved '
                   'for %d epochs. Epoch %d was the best of them at %.6f.'
                   % (since, bestEpoch, bestLoss), flush=True)
             break
     if validation is not None and bestEpoch:
-        print('best epoch %d, held back loss %.6f - net-epoch%02d.nnue'
-              % (bestEpoch, bestLoss, bestEpoch), flush=True)
+        print('best epoch %d, held back loss %.6f - %s'
+              % (bestEpoch, bestLoss, file_name('net', bestEpoch, 2, 'nnue')), flush=True)
 
 
 if __name__ == '__main__':

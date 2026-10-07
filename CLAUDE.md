@@ -19,6 +19,14 @@ that play them, the tournaments that measure them and the machines it all runs o
 `.claude/skills/nnue-training/SKILL.md`. Read it before any work on nnue data, a training run, a net
 or a tournament between nets, and keep it current: whatever was learned the hard way goes in there.
 
+## The NNUE trainer
+
+How to run, change and version the trainer in `src/trainer` - major.minor.patch in `version.py` and
+`CHANGELOG.md`, the reproducibility test that proves a patch, the trainer version in every trained
+file name, and the one-factor rule for comparing two nets - is in the skill
+`.claude/skills/nnue-trainer/SKILL.md`. Read it before touching `src/trainer`, before a training and
+before a head to head between nets.
+
 ## Supervising long runs
 
 Whenever a training, labelling, tournament or SPRT runs on any machine, and after every interruption,
