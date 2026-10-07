@@ -61,7 +61,7 @@ Meanwhile the Mac trains A1 on from epoch 293.
 2026-10-07: Windows done 04:51 (copied, hibernated 04:57), Linux done 05:06; .gam 417339651 bytes as
 set 1. A1 paused after epoch 415. Trained 05:15-06:52: best epoch 10 (held back 0.002042),
 `test/nnue/nnue-set1-nolmr.nnue`. Head to head against set1-lowsel on Linux since 06:54, 3000 games
-(`tmp/set1-nolmr-vs-lowsel.state`); A1 resumed at epoch 416.
+(`tmp/set1-nolmr-vs-lowsel.state`); A1 resumed at epoch 416, paused again after epoch 445 (08:2x, Volker needs the Mac); resume with --resume.
 Stopped 07:28 by Volker after 2600 games: set1-lowsel 52.02 %, set1-nolmr 47.98 % (+/-11 each). nolmr is
 not clearly better, so lowsel stays the label search (nolmr costs ~6x the labelling time).
 **Next (Volker 2026-10-07): label sets 2-6 with lowsel on Linux**, concurrency 30, binary
