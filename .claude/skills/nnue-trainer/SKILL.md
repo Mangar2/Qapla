@@ -44,11 +44,26 @@ numbers, a resumed run) and compares the md5 of every net with `reproducible.jso
   longer used is removed (a minor) rather than kept "just in case".
 - The number of workers changes the order of the data; it belongs to the command like any option.
 
+### Comparing two states of the trainer
+
+```
+cd src/trainer && .venv/bin/python compare_trainers.py <commit A> <commit B> -- <train.py options>
+```
+
+Takes both states out of git (never the working copy), trains the fixture with the same command on the
+CPU and reports `identical` or `different from epoch n on`; appends the result to
+`trainer-comparisons.md`. It refuses an option one of the states does not know. Use it to check
+whether two nets came from trainers that work alike under the command used, and to find the commit
+where a behaviour changed. Trainers before 0.9.0 (52dc531) are not reproducible at all - their initial
+weights do not come from the seed - so they compare as `different` even with themselves.
+Run it with `nice -n 19` while a training runs; a forgotten `--epoch-size 0` on a version from 2.0.0
+on trains epochs of 10 M positions on the CPU.
+
 ### File names carry the version
 
-Every file a training writes: `net-v1.0.0-epoch09.nnue`, `net-v1.0.0-epoch09.pt`,
-`state-v1.0.0-epoch100.pt`; `last.pt` holds it as `version`. Keep the version in the name when a net
-is copied elsewhere (`test/nnue/nnue-set1-hce-v1.0.0-e09.nnue`), so that every net in a tournament can
+Every file a training writes: `net-v2.2.1-epoch09.nnue`, `net-v2.2.1-epoch09.pt`,
+`state-v2.2.1-epoch100.pt`; `last.pt` holds it as `version`. Keep the version in the name when a net
+is copied elsewhere (`test/nnue/nnue-set1-hce-v2.2.1-e09.nnue`), so that every net in a tournament can
 be traced to its trainer. `--resume` refuses a checkpoint of another major.minor.
 
 Nets from before 2026-10-07 have no version; CHANGELOG.md lists which commit was current when.
@@ -59,7 +74,7 @@ Nets from before 2026-10-07 have no version; CHANGELOG.md lists which commit was
 .venv/bin/python -u train.py <gam> [<gam> ...] --out <dir> --workers 6 --seed 1 --validation-every 100
 ```
 
-Defaults (1.0.0): Stockfish's procedure (`--epoch-size 10000000`, RangerLite, lr 8.75e-4, gamma 0.992,
+Defaults (2.2.1): Stockfish's procedure (`--epoch-size 10000000`, RangerLite, lr 8.75e-4, gamma 0.992,
 800 epochs, a net every 100), captures and checks skipped, `--accumulator 256 --l1 32`, one head.
 The old procedure (one pass an epoch, Adam 1e-3, stop on the held back loss) is `--epoch-size 0`.
 Write the whole command into the run's script or log; the defaults are part of the version, the

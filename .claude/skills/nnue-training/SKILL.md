@@ -140,7 +140,7 @@ The Makefile release build is `make Release -j`. Variants needed here:
 
 **Read the skill `nnue-trainer` first**: the trainer is versioned (major.minor.patch, CHANGELOG.md),
 every change is proven or recorded by `test_reproducible.py`, trained files carry the version in their
-name (`net-v1.0.0-epoch09.nnue`), and two nets are compared only when they differ in one factor.
+name (`net-v2.2.1-epoch09.nnue`), and two nets are compared only when they differ in one factor.
 
 Run on the Mac, from `src/trainer`, with the venv: `src/trainer/.venv/bin/python` (system python
 has no torch). Create the output directory first.
@@ -163,7 +163,7 @@ has no torch). Create the output directory first.
   the weights), the accumulator sees the same data - expect little.
 - `--resume` continues from the newest checkpoint; `--loader native` (default) is the compiled
   loader `src/trainer/native/batcher.cpp`.
-- Nets are written per epoch as `net-v<version>-epochNN.nnue` (before 1.0.0: `net-epochNN.nnue`); the log's `best epoch` line names the one with
+- Nets are written per epoch as `net-v<version>-epochNN.nnue` (before versioning, i.e. nets trained before 2026-10-07: `net-epochNN.nnue`); the log's `best epoch` line names the one with
   the lowest held back loss. Single-head nets are written as QAPLANN1, stacked as QAPLANN2.
 - The pipeline wraps this: `python3 src/pipeline/pipeline.py run --only <step>`; steps carry
   `done = true` when they must not run again.

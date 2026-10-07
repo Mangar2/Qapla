@@ -92,7 +92,7 @@ def take_up(model, optimizer, out, device):
     epoch, made_by, name = kept[-1]
     if made_by is None or not same_minor(made_by):
         raise SystemExit('--resume: %s was written by trainer %s, this is %s - a run is only continued '
-                         'by the same major.minor' % (name, made_by or 'before 1.0.0', version.VERSION))
+                         'by the same major.minor' % (name, made_by or 'before versioning', version.VERSION))
     path = os.path.join(out, name)
     held = torch.load(path, map_location=device, weights_only=False)
     if not isinstance(held, dict) or 'model' not in held:
@@ -150,7 +150,7 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
         if not same_minor(held.get('version', '0.0.0')):
             raise SystemExit('--resume: %s was written by trainer %s, this is %s - a run is only '
                              'continued by the same major.minor'
-                             % (last, held.get('version', 'before 1.0.0'), version.VERSION))
+                             % (last, held.get('version', 'before versioning'), version.VERSION))
         model.load_state_dict(held['model'])
         optimizer.load_state_dict(held['optimizer'])
         scheduler.load_state_dict(held['scheduler'])
