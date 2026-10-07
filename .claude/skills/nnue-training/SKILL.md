@@ -163,6 +163,16 @@ has no torch). Create the output directory first.
   the lowest held back loss. Single-head nets are written as QAPLANN1, stacked as QAPLANN2.
 - The pipeline wraps this: `python3 src/pipeline/pipeline.py run --only <step>`; steps carry
   `done = true` when they must not run again.
+- **Determinism (measured 2026-10-07, 30 000 games of set 1, seed 1):** on the CPU (`--device cpu`)
+  two runs give bit-identical nets, `--workers 6` included. On the GPU (mps) they do not, not even
+  with `--workers 0`: the loss agrees to ~3 digits, the nets differ. The number of workers changes the
+  order of the data, so it is part of the command. Consequence: a trainer change that is meant to
+  change nothing is proven on the CPU (identical md5 before/after, like the node count for the
+  engine); a GPU run has a run-to-run spread of its own, which a head to head between two nets of
+  the same command measures.
+- **A comparison of two nets differs in one factor only.** Never play a new net against an old one
+  trained with an older trainer or another command; retrain the baseline first (2026-10-07: the
+  "+29 Elo for lowsel labels" compared a 14 % lowsel net trained with f6ee940 against e08 from 171fc0a).
 - **Held back loss compares runs only with the same labels.** Nets trained on different labels
   (HCE vs Stockfish) have different targets - only games decide.
 - Strength follows positions processed, not distinct positions; without heads the plateau was
