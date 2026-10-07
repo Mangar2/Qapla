@@ -57,7 +57,11 @@ Volker 2026-10-06: the test starts only when Linux and Windows have both finishe
 set1-lowsel was trained (old procedure: `--epoch-size 0 --no-skip-tactical --stacks 1 --patience 3`,
 seed 1, validation-every 100, full loop until the stop), then head to head against set1-lowsel. When
 Windows has finished, its labels are copied to the Mac and Windows is hibernated (`tmp/win-end-nolmr.sh`).
-Meanwhile the Mac trains A1 on from epoch 293. If clearly better, the lowsel
+Meanwhile the Mac trains A1 on from epoch 293.
+2026-10-07: Windows done 04:51 (copied, hibernated 04:57), Linux done 05:06; .gam 417339651 bytes as
+set 1. A1 paused after epoch 415. Trained 05:15-06:52: best epoch 10 (held back 0.002042),
+`test/nnue/nnue-set1-nolmr.nnue`. Head to head against set1-lowsel on Linux since 06:54, 3000 games
+(`tmp/set1-nolmr-vs-lowsel.state`); A1 resumed at epoch 416. If clearly better, the lowsel
 labels of sets 2 and 3 below are not needed.
 
 Stopped 2026-10-04 20:20 for it (labels kept): Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
