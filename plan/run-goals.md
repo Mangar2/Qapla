@@ -43,6 +43,10 @@ produced them (gen-0 labels = HCE labels).
    ~2026-10-08 11:30.
    All traces of the +29 secured in `test/nnue/forensics-set1-lowsel/` (README there): it compared 14 %
    lowsel labels **and** a trainer 818 lines newer (f6ee940, compiled loader) against e08 (171fc0a, Sep 28).
+   Control (Volker 2026-10-07): set 1 HCE labels retrained 16:58 with today's trainer (851de77) and exactly
+   the nolmr command -> `nnue-set1-hce-retrain.nnue`; A1 paused after epoch 462. Then on Linux, 3000 games
+   each: hce-retrain vs nolmr (labels only differ), hce-retrain vs e08 (trainer only differs); the set-1
+   relabelling pauses for it (`tmp/linux-hce-retrain-h2h.sh`).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
