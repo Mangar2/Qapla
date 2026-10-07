@@ -35,3 +35,5 @@ Written by compare_trainers.py: two commits, one command, the fixture of test_re
 | 171fc0a | 171fc0a | `--epochs 2 --workers 2` | different from epoch 1 on | 65 s / 86 s |
 | b396152 | b396152 | `--epochs 2 --workers 2` | different from epoch 1 on | 96 s / 97 s |
 | 52dc531 | 52dc531 | `--epochs 2 --workers 2` | identical (2 nets) | 39 s / 38 s |
+| 2eb17be | ec65c49 | `--stacks 8 --skip-tactical --epoch-size 100000 --epochs 2 --optimizer ranger --learning-rate 8.75e-4 --lr-gamma 0.992 --save-every 1 --validate-every 1 --workers 6 --seed 1 --validation-every 100` | identical (2 nets) | 23 s / 25 s |
+| 2eb17be | ec65c49 | `--stacks 1 --skip-tactical --epoch-size 100000 --epochs 2 --optimizer ranger --learning-rate 8.75e-4 --lr-gamma 0.992 --save-every 1 --validate-every 1 --workers 6 --seed 1 --validation-every 100` | identical (2 nets) | 20 s / 19 s |

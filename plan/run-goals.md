@@ -50,6 +50,12 @@ produced them (gen-0 labels = HCE labels).
    test with labels as the only factor). On the CPU f6ee940 (lowsel) = 1.0.0 bit for bit, 171fc0a (e08)
    differs. Then the GPU spread: the retrain once more (`tmp/mac-set1-hce-retrain2.sh`), both against
    each other. Trainer versioned from now on (1.0.0, skill nnue-trainer).
+   Evening 2026-10-07 (Volker): first a starting point. The tournament of 10-04 repeated with the originals:
+   set1-lowsel 53.57 % (+/-10 each, 10-04: 54.17 %) - reproduced. Now both nets retrained with their
+   original trainers (e08: 0.6.1, lowsel: 1.1.1, `tmp/mac-repro-damals.sh`), then head to head. The trainer
+   history is numbered (CHANGELOG, now 2.2.1): learnings 7 and 8 compared one factor; 3 to 6 did not.
+   **Do the buckets pay today?** s8-sflike e800 (1.3.0 = 2.2.1 under its command, CPU-proven) against the
+   same command with `--stacks 1` (`tmp/mac-sflike-1head.sh`, ~10 h after the reproduction), then head to head.
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
