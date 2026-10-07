@@ -61,8 +61,14 @@ Meanwhile the Mac trains A1 on from epoch 293.
 2026-10-07: Windows done 04:51 (copied, hibernated 04:57), Linux done 05:06; .gam 417339651 bytes as
 set 1. A1 paused after epoch 415. Trained 05:15-06:52: best epoch 10 (held back 0.002042),
 `test/nnue/nnue-set1-nolmr.nnue`. Head to head against set1-lowsel on Linux since 06:54, 3000 games
-(`tmp/set1-nolmr-vs-lowsel.state`); A1 resumed at epoch 416. If clearly better, the lowsel
-labels of sets 2 and 3 below are not needed.
+(`tmp/set1-nolmr-vs-lowsel.state`); A1 resumed at epoch 416.
+Stopped 07:28 by Volker after 2600 games: set1-lowsel 52.02 %, set1-nolmr 47.98 % (+/-11 each). nolmr is
+not clearly better, so lowsel stays the label search (nolmr costs ~6x the labelling time).
+**Next (Volker 2026-10-07): label sets 2-6 with lowsel on Linux**, concurrency 30, binary
+`Qapla-hce-lowsel-wide-linux`, options ffDepthFactor=5000 futDepthFactor=5000 lmrDivisor=476: set 3
+resumed 07:29 (9 of 101 chunks done before), then 2, 4, 5, 6 (`tmp/linux-lowsel-queue.sh`; chunks made
+on the Mac by `tmp/make-lowsel-chunks.sh`). The set-2 labels Windows made in October are on the
+hibernated Windows machine and not used.
 
 Stopped 2026-10-04 20:20 for it (labels kept): Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
 2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage. Linux labels set 3 likewise since
