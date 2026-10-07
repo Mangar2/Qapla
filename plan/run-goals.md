@@ -67,8 +67,8 @@ not clearly better, so lowsel stays the label search (nolmr costs ~6x the labell
 **Next (Volker 2026-10-07): label sets 2-6 with lowsel on Linux**, concurrency 30, binary
 `Qapla-hce-lowsel-wide-linux`, options ffDepthFactor=5000 futDepthFactor=5000 lmrDivisor=476: set 3
 resumed 07:29 (9 of 101 chunks done before), then 2, 4, 5, 6 (`tmp/linux-lowsel-queue.sh`; chunks made
-on the Mac by `tmp/make-lowsel-chunks.sh`). The set-2 labels Windows made in October are on the
-hibernated Windows machine and not used.
+on the Mac by `tmp/make-lowsel-chunks.sh`). Chunks 1-20 of set 2 were labelled by Windows on 2026-10-04 with the
+same binary and options; input chunks md5-identical, copied to Linux 2026-10-07 with .done markers.
 
 Stopped 2026-10-04 20:20 for it (labels kept): Started on speculation (no idle machine): Windows labels set 2 with the low-selectivity HCE from
 2026-10-04 ~17:15 (`test/nnue/chunks-set2-lowsel`, 101 chunks); thrown away if step 1 shows no advantage. Linux labels set 3 likewise since
