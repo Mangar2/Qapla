@@ -342,6 +342,10 @@ gpu, ~75 hours for 90 epochs - whenever the gpu is free, last on the list.
 Against the hangs: `caffeinate -dimsu` running for the whole run (the night's two "hangs" were idle sleep
 of the Mac), no pinned memory on MPS (fixed in nnue-pytorch qapla-sf17), stack dumps every minute, the
 gpu watcher, memory log.
+   **Pure lowsel, 2026-10-08 22:31:** set1-lowselpure (2.2.1, best e07, held back 0.002041) against set1-hce-retrain
+   (2.2.0 = 2.2.1, e07) - same trainer, command, games; only the labels differ: lowsel 53.88 %, +/-10 each, 3000
+   games, about +27 (difference error about +/-14). The wider search does make better labels; nolmr (lmr off as
+   well) made worse ones (hce-retrain 55.08 % against it). Logs in test/nnue/results-lowselpure/.
    **Open question (Volker 2026-10-08): the order of the data.** E.g. the "wild" games of the weak nets first as a
    grounding, the "good" HCE-HCE games after. Needs a trainer option that reads the files one after another
    instead of mixed (a minor version). Not started.
