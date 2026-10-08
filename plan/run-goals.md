@@ -66,6 +66,10 @@ produced them (gen-0 labels = HCE labels).
    Except one point (Volker 2026-10-08): no net was ever trained on pure lowsel labels (set1-lowsel and its
    retrain: 14 % lowsel). So set 1 is relabelled with lowsel to the end (Linux, from 03:3x, ~17 h), then
    trained with 2.2.1 and exactly the hce-retrain command, and played against hce-retrain.
+   **Buckets, 2026-10-08 09:03:** s1-sflike e800 (2.2.1, one head) against s8-sflike e800 (1.3.0 = 2.2.1 under
+   the command, eight heads), only --stacks different: one head 50.92 %, +/-9 each, 3000 games - no
+   difference measurable (difference about +6 for one head, its error about +/-13). Held back loss e800:
+   0.000909 against 0.000907. The buckets pay nothing measurable today. Logs in test/nnue/results-buckets/.
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
