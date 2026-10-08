@@ -70,6 +70,12 @@ produced them (gen-0 labels = HCE labels).
    the command, eight heads), only --stacks different: one head 50.92 %, +/-9 each, 3000 games - no
    difference measurable (difference about +6 for one head, its error about +/-13). Held back loss e800:
    0.000909 against 0.000907. The buckets pay nothing measurable today. Logs in test/nnue/results-buckets/.
+   **Set 1b - more data (Volker 2026-10-08):** HCE against HCE from the same book at depth 6, but 2 threads per
+   engine. Tested on the Mac with the original set-1 binary, 200 leaves: 1 thread plays the old set-1 games
+   move for move; 2 threads give 200 of 200 different games, from right after the book, and a second 2-thread
+   run differs again. On Linux after the lowsel labelling (`tmp/linux-newset.sh`: first the same 1-thread check
+   with the Linux binary, then the whole book, concurrency 15 x 2 threads), then labelled at depth 8 as set 1.
+   In parallel the pure-lowsel set 1 is assembled and trained on the Mac (`tmp/mac-lowsel-pure.sh`).
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
