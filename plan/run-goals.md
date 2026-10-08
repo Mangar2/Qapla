@@ -342,3 +342,8 @@ gpu, ~75 hours for 90 epochs - whenever the gpu is free, last on the list.
 Against the hangs: `caffeinate -dimsu` running for the whole run (the night's two "hangs" were idle sleep
 of the Mac), no pinned memory on MPS (fixed in nnue-pytorch qapla-sf17), stack dumps every minute, the
 gpu watcher, memory log.
+   **Open question (Volker 2026-10-08): the order of the data.** E.g. the "wild" games of the weak nets first as a
+   grounding, the "good" HCE-HCE games after. Needs a trainer option that reads the files one after another
+   instead of mixed (a minor version). Not started.
+   Data saturation is unknown (Volker): the old measurements had too few games for small steps and came from the
+   old training, which may not have used more data; Stockfish sees every position about once, we ~8 times.
