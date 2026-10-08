@@ -61,8 +61,11 @@ produced them (gen-0 labels = HCE labels).
    back. It was those two nets, not the trainer. Details in the forensics README.
    **Labelling with lowsel/nolmr ended for good (Volker 2026-10-08):** with the same trainer HCE labels give
    the stronger net (hce-retrain 55.08 % against nolmr; retrained 0.6.1 HCE 57.12 % against 1.1.1 lowsel).
-   The relabelled set-1 chunks (`labelled-set1-lowsel-fix`, 34 of 87) and the set 2-6 chunks stay on Linux
+   The relabelled set-1 chunks (`labelled-set1-lowsel-fix`, 29 of 87) and the set 2-6 chunks stay on Linux
    untouched until Volker decides what to delete.
+   Except one point (Volker 2026-10-08): no net was ever trained on pure lowsel labels (set1-lowsel and its
+   retrain: 14 % lowsel). So set 1 is relabelled with lowsel to the end (Linux, from 03:3x, ~17 h), then
+   trained with 2.2.1 and exactly the hce-retrain command, and played against hce-retrain.
 2. **No captures, no check positions** in the training - the filter run below, against s8-e14 in the
    reference tournament. Loader filter `--skip-tactical` done 2026-10-04 (794a3d0, checked against
    python-chess, 24 % of the positions skipped); the run started on the Mac 2026-10-04 19:59 (`tmp/mac-s8-skip-train.sh`, nets to `test/nnue/nets-set1-to-6-s8-skip`).
