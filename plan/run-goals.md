@@ -310,6 +310,10 @@ and engine are switched only after the control below.
 sizes, so that A1 against it differs in the size only (A1 in the reference field also had twice the positions
 of the sflike e800 nets). On the Mac after the psqt training (`tmp/mac-s8-20m.sh`).
 
+**PSQT, 2026-10-09 18:40:** s1-sflike-psqt e800 (3.0.0) against s1-sflike e800 (2.2.1), --psqt the only
+difference, one binary (d3cb308): psqt 49.12 %, +/-9 each, 3000 games - no measurable difference (about
+-6, error of the difference about +/-13). Held back loss e800 0.000901 against 0.000909. So A1 + psqt is
+not trained; the control goes on. Logs in test/nnue/results-psqt/.
 **A1 + psqt only if psqt pays (Volker 2026-10-09)** - the A1 command with `--psqt` the only difference,
 ~35 h on the Mac (`tmp/mac-a1-psqt.sh`, not started), then against A1 e800. The psqt test now running
 on Linux is the same question on the 256 x 32 one-head net (s1-sflike).
