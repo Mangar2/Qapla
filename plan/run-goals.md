@@ -346,6 +346,10 @@ gpu watcher, memory log.
    (2.2.0 = 2.2.1, e07) - same trainer, command, games; only the labels differ: lowsel 53.88 %, +/-10 each, 3000
    games, about +27 (difference error about +/-14). The wider search does make better labels; nolmr (lmr off as
    well) made worse ones (hce-retrain 55.08 % against it). Logs in test/nnue/results-lowselpure/.
+   Set 1b played 2026-10-08 20:34 - 10-09 04:25: 1,000,333 games (`test/nnue/games-hce-t2-depth6.pgn`) - 313 more
+   than leaves, from the pause for the lowsel head to head (qet replayed some leaves on resume; with 2 threads
+   they are other games). Labelling on Linux since 04:27 (`chunks-set1b` -> `labelled-set1b`, HCE depth 8,
+   1 thread, concurrency 30, chunk 101 has 333 games).
    **Open question (Volker 2026-10-08): the order of the data.** E.g. the "wild" games of the weak nets first as a
    grounding, the "good" HCE-HCE games after. Needs a trainer option that reads the files one after another
    instead of mixed (a minor version). Not started.
