@@ -314,6 +314,10 @@ of the sflike e800 nets). On the Mac after the psqt training (`tmp/mac-s8-20m.sh
 difference, one binary (d3cb308): psqt 49.12 %, +/-9 each, 3000 games - no measurable difference (about
 -6, error of the difference about +/-13). Held back loss e800 0.000901 against 0.000909. So A1 + psqt is
 not trained; the control goes on. Logs in test/nnue/results-psqt/.
+**Data quantity, 2026-10-09 19:15:** set 4 whole (2 M games) against every second game of set 4 (1 M), same
+source, same steps (8 heads, sflike, 200 epochs of 10 M, 2.2.1), one binary: whole 59.87 %, +/-10 each,
+3000 games - about +70 for twice the distinct games. More distinct data pays clearly; the data is not
+saturated. Held back loss e200 0.001090 against 0.001306. Logs in test/nnue/results-data/.
 **A1 + psqt only if psqt pays (Volker 2026-10-09)** - the A1 command with `--psqt` the only difference,
 ~35 h on the Mac (`tmp/mac-a1-psqt.sh`, not started), then against A1 e800. The psqt test now running
 on Linux is the same question on the 256 x 32 one-head net (s1-sflike).
