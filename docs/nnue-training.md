@@ -20,10 +20,10 @@ A standard NNUE architecture, kept small:
 
 - **Input:** HalfKA features - every piece on its square, seen from the king of each side,
   45,056 features per perspective.
-- **Accumulator:** 256 neurons per perspective, updated incrementally as moves are made and unmade;
-  the two perspectives are concatenated.
-- **Head:** 512 → 32 → 32 → 1 with clipped ReLU, in eight copies ("layer stacks"); the number of
-  pieces on the board chooses which one evaluates a position.
+- **Accumulator:** 256 neurons per perspective (512 in the best net, see the last step), updated
+  incrementally as moves are made and unmade; the two perspectives are concatenated.
+- **Head:** 512 → 32 → 32 → 1 with clipped ReLU (1024 → 16 → 32 → 1 in the best net), in eight copies
+  ("layer stacks"); the number of pieces on the board chooses which one evaluates a position.
 - **Quantized** to 16-bit accumulator weights and 8-bit dense weights for fast integer inference.
 
 ## The training data
@@ -69,13 +69,12 @@ it learned from.
 ### More and more diverse data: +223 (+91 vs. HCE)
 
 Trained on sets 1 to 4 the net passed the HCE. The games of the weak nets mattered: a set played by a
-weak net against itself made the net learn faster than the HCE's own games. From three or four sets
-on, adding data no longer helped this net.
+weak net against itself made the net learn faster than the HCE's own games.
 
-### Eight heads instead of one: +17 (+108 vs. HCE)
+### Eight heads and a newer trainer: +17 (+108 vs. HCE)
 
-One head per range of piece counts, sharing the same accumulator. A small step, and one that needs
-more training than a single head before it pays.
+One head per range of piece counts, sharing the same accumulator, measured together with a change of
+the trainer. Trained identically under the final procedure, one head and eight play equally strong.
 
 ### Leaving out captures and checks: +75 (+184 vs. HCE)
 
@@ -90,3 +89,9 @@ held-back games stopped improving. We switched to a different procedure: epochs 
 (10 million positions, scaled to the size of our net) drawn from an endless stream of the data, the
 RangerLite optimizer, and a learning rate that falls a little after every epoch - 800 epochs in all,
 with no stopping rule.
+
+### A wider accumulator and twice the training: +20 (+253 vs. HCE)
+
+512 accumulator neurons instead of 256, a first dense layer of 16 instead of 32, and epochs of 20
+million positions instead of 10. How much of the gain comes from the size and how much from the
+longer training is not yet measured.
