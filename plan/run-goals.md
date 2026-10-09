@@ -310,8 +310,8 @@ and engine are switched only after the control below.
 sizes, so that A1 against it differs in the size only (A1 in the reference field also had twice the positions
 of the sflike e800 nets). On the Mac after the psqt training (`tmp/mac-s8-20m.sh`).
 
-**Queued after the control (Volker 2026-10-09): A1 + psqt** - the A1 command with `--psqt` the only
-difference, ~35 h on the Mac (`tmp/mac-a1-psqt.sh`), then against A1 e800. The psqt test now running
+**A1 + psqt only if psqt pays (Volker 2026-10-09)** - the A1 command with `--psqt` the only difference,
+~35 h on the Mac (`tmp/mac-a1-psqt.sh`, not started), then against A1 e800. The psqt test now running
 on Linux is the same question on the 256 x 32 one-head net (s1-sflike).
 
 ### Architecture A2: king mirrored left-right, HalfKA_hm (Volker, 2026-10-05)
