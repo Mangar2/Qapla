@@ -303,7 +303,10 @@ CHANGELOG entry). Training since 06:16 on the Mac: the command of s1-sflike e800
 difference (`tmp/mac-sflike-psqt.sh`, ~34 s an epoch, done ~14:00); then head to head against s1-sflike e800
 on Linux (the engine built there from GitHub, d3cb308).
 
-**Queued (Volker 2026-10-09): 256 x 32, 8 heads, 20 M an epoch, 800 epochs** - the A1 command with the default
+**A1 is the new standard (Volker 2026-10-09):** reference field, 10000 games each: A1 e800 2695.1 +/-6,
+s1-sflike e800 2678.6 +/-6, s8-sflike e800 2674.8 +/-5, HCE 2441.8 - A1 +253 over HCE. Defaults of trainer
+and engine are switched only after the control below.
+**Queued, top priority after psqt (Volker 2026-10-09): 256 x 32, 8 heads, 20 M an epoch, 800 epochs** - the A1 command with the default
 sizes, so that A1 against it differs in the size only (A1 in the reference field also had twice the positions
 of the sflike e800 nets). On the Mac after the psqt training (`tmp/mac-s8-20m.sh`).
 
