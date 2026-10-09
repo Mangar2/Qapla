@@ -36,9 +36,10 @@ class HalfKaNet(nn.Module):
     heads being allowed to part, and from nothing else.
     """
 
-    def __init__(self, stacks=1):
+    def __init__(self, stacks=1, psqt=False):
         super().__init__()
         self.stacks = stacks
+        self.psqt = None
         # One more row than there are features: it is the padding of a position
         # with fewer than 32 pieces, and it stays zero.
         self.feature_transformer = nn.EmbeddingBag(
@@ -62,8 +63,28 @@ class HalfKaNet(nn.Module):
                 for stacked, one in zip((self.l1, self.l2, self.output), single):
                     stacked.weight.copy_(one.weight.repeat(stacks, 1))
                     stacked.bias.copy_(one.bias.repeat(stacks))
+        if psqt:
+            # The piece-square part, made last and drawing no random numbers: a run without it comes
+            # out of the seed exactly as before. One value per bucket and feature, started from the
+            # material, so the net begins as a counter of material and learns the rest.
+            self.psqt = nn.EmbeddingBag(netfile.FEATURE_COUNT + 1, netfile.PSQT_BUCKETS, mode='sum',
+                                        padding_idx=netfile.FEATURE_COUNT)
+            with torch.no_grad():
+                self.psqt.weight.copy_(netfile.psqt_start_values())
 
     def forward(self, own_features, opponent_features):
+        head = self._heads(own_features, opponent_features)
+        if self.psqt is None:
+            return head
+        # Stockfish's psqt: the bucket is chosen as the layer stack, by the number of pieces, and
+        # half the difference of the two perspectives' sums goes straight to the output.
+        active = (own_features != netfile.FEATURE_COUNT).sum(dim=1)
+        bucket = (active // 4).clamp(max=netfile.PSQT_BUCKETS - 1).view(-1, 1)
+        own = self.psqt(own_features).gather(1, bucket).squeeze(1)
+        opponent = self.psqt(opponent_features).gather(1, bucket).squeeze(1)
+        return head + (own - opponent) / 2
+
+    def _heads(self, own_features, opponent_features):
         own = self.feature_transformer(own_features) + self.feature_bias
         opponent = self.feature_transformer(opponent_features) + self.feature_bias
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
@@ -114,6 +135,8 @@ class HalfKaNet(nn.Module):
         self.feature_transformer.weight.clamp_(-2.0, 2.0)
         self.feature_bias.clamp_(-2.0, 2.0)
         self.feature_transformer.weight[netfile.FEATURE_COUNT].zero_()
+        if self.psqt is not None:
+            self.psqt.weight[netfile.FEATURE_COUNT].zero_()
 
 
 def neighbour_loss_of(outputs, stack, value, result, counts, blend, neighbour_weight=1.0):

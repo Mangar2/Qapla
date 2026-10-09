@@ -52,6 +52,10 @@ RUNS = {
                                  '--stacks', '8', '--accumulator', '512', '--l1', '16', '--skip-early',
                                  '--optimizer', 'adam', '--lr-gamma', '0.9', '--learning-rate', '2e-3',
                                  '--no-skip-tactical', '--workers', '1'],
+    'fixed-ranger-1head-psqt': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
+                                '--psqt', '--workers', '2'],
+    'pass-adam-8heads-psqt': ['--epoch-size', '0', '--epochs', '2', '--stacks', '8', '--psqt',
+                              '--no-skip-tactical', '--workers', '2'],
 }
 # A resumed run: one epoch, then --resume to the second. Its second net is recorded.
 RESUMED = ('fixed-ranger-resumed', ['--epoch-size', '100000', '--save-every', '1', '--workers', '2'])

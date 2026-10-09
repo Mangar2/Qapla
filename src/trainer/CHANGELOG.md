@@ -78,6 +78,24 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 3.0.0 - 2026-10-09
+
+`--psqt`: the piece-square part as Stockfish has it (plan/run-goals.md, "Architecture PSQT"). Every
+feature carries, besides its accumulator column, one value per bucket; the bucket is chosen like the
+layer stack, by the number of pieces; half the difference of the two perspectives' sums goes straight to
+the output. The values start from the material (pawn 90, knight 300, bishop 310, rook 480, queen 930
+engine units, positive for the own pieces) and are not clamped. Major: a new net file format,
+`QAPLANN3` - the stacked format with PSQT_BUCKETS int32 per feature between the feature weights and the
+heads, of the output scale QA*QB.
+
+- Without `--psqt` identical to 2.2.1: `test_reproducible.py` against the 2.2.1 record, all six runs.
+- Two runs added to the test (`fixed-ranger-1head-psqt`, `pass-adam-8heads-psqt`), record rewritten.
+- The engine reads the new format (same commit); trainer and engine agree to the integer on 202
+  positions of a small psqt net, vector path and plain path equal, and a search with
+  QAPLA_VERIFY_NNUE_INCREMENTAL over wmtest at depth 10 found no difference of the incremental sums.
+  For the old formats the engine is unchanged: wmtest depth 18 with s1-sflike e800, 194,484,867 nodes
+  before and after, runtime +2.4 % (mean of four runs each).
+
 ## 2.2.1 - 2026-10-07
 
 First version kept by these rules (named 1.0.0 for a few hours on 2026-10-07 before the history was

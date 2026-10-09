@@ -20,10 +20,18 @@
       "bcc397f13c8f0f71f59ca04d6f6321de",
       "005006c86a13e1a1b67373f3db583628"
     ],
+    "fixed-ranger-1head-psqt": [
+      "76aef382cae9cb8574d5e4e65f6d2c66",
+      "51d631096a65cfaa2cfa561d863fc5f9"
+    ],
+    "pass-adam-8heads-psqt": [
+      "19e5c32bf26aa32ef7d9fab505a808e0",
+      "4fe252fb0a3e9064a4c431613e78c011"
+    ],
     "fixed-ranger-resumed": [
       "a413845ab94927625e7807eb4bf9443c",
       "e7005248f863b49c12641e6d44677a13"
     ]
   },
-  "version": "2.2.1"
+  "version": "3.0.0"
 }

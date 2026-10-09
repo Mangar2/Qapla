@@ -42,25 +42,30 @@ namespace QaplaNnue {
 	 */
 	template <QaplaBasics::Piece PERSPECTIVE>
 	void refreshAccumulator(const Network& network, const QaplaBasics::Board& board,
-		int16_t* accumulator);
-
-	/** Adds the weight column of a feature to an accumulator. */
-	void addFeature(const Network& network, int16_t* accumulator, uint32_t feature);
-
-	/** Takes it away again. */
-	void removeFeature(const Network& network, int16_t* accumulator, uint32_t feature);
+		int16_t* accumulator, int32_t* psqt);
 
 	/**
-	 * The dense layers on two accumulators, the one of the side to move first.
-	 * Returns the value in the unit of the engine.
+	 * Adds the weight column of a feature to an accumulator, and its piece-square values to the
+	 * psqt sums of the perspective - only if the net has a piece-square part.
+	 */
+	void addFeature(const Network& network, int16_t* accumulator, int32_t* psqt, uint32_t feature);
+
+	/** Takes it away again. */
+	void removeFeature(const Network& network, int16_t* accumulator, int32_t* psqt,
+		uint32_t feature);
+
+	/**
+	 * The dense layers on two accumulators, the one of the side to move first, plus half the
+	 * difference of the two psqt sums of the stack's bucket. Returns the value in the unit of the
+	 * engine.
 	 */
 	QaplaBasics::value_t forward(const Network& network, const int16_t* own,
-		const int16_t* opponent,
+		const int16_t* opponent, const int32_t* ownPsqt, const int32_t* opponentPsqt,
 		uint32_t stack);
 
 	/** The same without vector instructions, for the test of the one above. */
 	QaplaBasics::value_t forwardReference(const Network& network, const int16_t* own,
-		const int16_t* opponent,
+		const int16_t* opponent, const int32_t* ownPsqt, const int32_t* opponentPsqt,
 		uint32_t stack);
 
 	class Evaluator {

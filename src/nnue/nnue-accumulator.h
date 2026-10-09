@@ -94,7 +94,7 @@ namespace QaplaNnue {
 		/** Writes the accumulator of a perspective and keeps the entry up to date. */
 		template <QaplaBasics::Piece PERSPECTIVE>
 		void refresh(const Network& network, const QaplaBasics::Board& board,
-			int16_t* accumulator);
+			int16_t* accumulator, int32_t* psqt);
 
 		/** Throws everything away, for a new net or a new game. */
 		void clear(const Network& network);
@@ -102,6 +102,8 @@ namespace QaplaNnue {
 	private:
 		struct Entry {
 			alignas(NNUE_ALIGNMENT) int16_t accumulator[ACCUMULATOR_SIZE];
+			/** The psqt sums of the same pieces, zero for a net without a piece-square part. */
+			int32_t psqt[PSQT_BUCKETS];
 			/** The pieces the accumulator above holds, by piece. */
 			std::array<QaplaBasics::bitBoard_t, QaplaBasics::PIECE_AMOUNT> pieces;
 		};
@@ -141,6 +143,7 @@ namespace QaplaNnue {
 	private:
 		struct Entry {
 			alignas(NNUE_ALIGNMENT) int16_t accumulator[2][ACCUMULATOR_SIZE];
+			int32_t psqt[2][PSQT_BUCKETS];
 		};
 
 		Entry& top() {

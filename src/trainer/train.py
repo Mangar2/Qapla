@@ -134,7 +134,7 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
     pass, which is the one thing a resumed run does differently from an uninterrupted one.
     """
     torch.manual_seed(arguments.seed)
-    model = HalfKaNet(stacks=arguments.stacks).to(device)
+    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt).to(device)
     optimizer = make_optimizer(model, arguments)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=arguments.lr_gamma)
     ranger = arguments.optimizer == 'ranger'
@@ -226,6 +226,8 @@ def train(arguments):
             raise SystemExit('several sources are only read as .gam game files')
         cache = PositionCache(arguments.cache[0])
         validation = PositionCache(arguments.validation) if arguments.validation else None
+    if arguments.psqt and arguments.neighbours:
+        raise SystemExit('--psqt does not take --neighbours')
     if arguments.epoch_size > 0:
         if arguments.neighbours:
             raise SystemExit('--epoch-size does not take --neighbours')
@@ -236,7 +238,7 @@ def train(arguments):
     # different nets, and their losses could not be compared step by step - which is how the
     # compiled loader was checked against the python one.
     torch.manual_seed(arguments.seed)
-    model = HalfKaNet(stacks=arguments.stacks).to(device)
+    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
     print('%d positions, %d batches of %d, device %s'
@@ -349,6 +351,11 @@ if __name__ == '__main__':
     parser.add_argument('--l1', type=int, default=32,
                         help='width of the first dense layer of each head; the engine has to be '
                              'built with the same size')
+    parser.add_argument('--psqt', action='store_true',
+                        help='a piece-square part as Stockfish has it: per feature one value per bucket '
+                             '(chosen like the layer stack), half the difference of the two '
+                             'perspectives added to the output; started from the material. Writes the '
+                             'net format QAPLANN3')
     parser.add_argument('--neighbours', action='store_true',
                         help='with stacks: every position trains its own head and the two next to '
                              'it; the held back loss is still measured with the own head alone, as '

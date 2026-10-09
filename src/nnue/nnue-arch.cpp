@@ -89,13 +89,15 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(const std::string& path) {
 	stream.read(magic, sizeof(magic));
 	stream.read(reinterpret_cast<char*>(&identifier), sizeof(identifier));
 	const std::string found(magic, sizeof(magic));
-	const bool stacked = found == std::string(NNUE_MAGIC, sizeof(NNUE_MAGIC));
+	const bool psqt = found == std::string(NNUE_MAGIC_PSQT, sizeof(NNUE_MAGIC_PSQT));
+	const bool stacked = psqt || found == std::string(NNUE_MAGIC, sizeof(NNUE_MAGIC));
 	const bool single = found == std::string(NNUE_MAGIC_SINGLE_HEAD, sizeof(NNUE_MAGIC_SINGLE_HEAD));
 	if (!stream || (!stacked && !single)) {
 		std::cout << "Error (not a net file): " << path << std::endl;
 		return nullptr;
 	}
-	const uint32_t wanted = stacked ? architectureId() : singleHeadArchitectureId();
+	const uint32_t wanted = psqt ? psqtArchitectureId()
+		: stacked ? architectureId() : singleHeadArchitectureId();
 	if (identifier != wanted) {
 		std::cout << "Error (net of another shape): " << path << ", file says " << identifier
 			<< ", this build wants " << wanted << std::endl;
@@ -105,6 +107,10 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(const std::string& path) {
 	auto network = std::make_unique<Network>();
 	bool complete = readArray(stream, network->featureBias)
 		&& readArray(stream, network->featureWeight);
+	if (psqt) {
+		complete = complete && readArray(stream, network->psqtWeight);
+		network->hasPsqt = true;
+	}
 	if (stacked) {
 		for (Head& head : network->heads) {
 			complete = complete && readHead(stream, head);
@@ -130,11 +136,12 @@ bool QaplaNnue::writeNetwork(const std::string& path, const Network& network) {
 		std::cout << "Error (cannot write net): " << path << std::endl;
 		return false;
 	}
-	const uint32_t identifier = architectureId();
-	stream.write(NNUE_MAGIC, sizeof(NNUE_MAGIC));
+	const uint32_t identifier = network.hasPsqt ? psqtArchitectureId() : architectureId();
+	stream.write(network.hasPsqt ? NNUE_MAGIC_PSQT : NNUE_MAGIC, sizeof(NNUE_MAGIC));
 	stream.write(reinterpret_cast<const char*>(&identifier), sizeof(identifier));
 	writeArray(stream, network.featureBias);
 	writeArray(stream, network.featureWeight);
+	if (network.hasPsqt) writeArray(stream, network.psqtWeight);
 	for (const Head& head : network.heads) {
 		writeHead(stream, head);
 	}

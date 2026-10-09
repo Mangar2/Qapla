@@ -85,7 +85,13 @@ namespace QaplaNnue {
 		 * learned once, how to judge it is learned per phase. Only the chosen stack is computed, so
 		 * eight cost memory for eight small heads and no time at all.
 		 */
-		LAYER_STACKS = 8
+		LAYER_STACKS = 8,
+		/**
+		 * A net of the third format has a piece-square part: every feature carries, besides its
+		 * accumulator column, one value per bucket, chosen like the layer stack. The two
+		 * perspectives' sums go straight to the output, (own - opponent) / 2 - Stockfish's psqt.
+		 */
+		PSQT_BUCKETS = LAYER_STACKS
 	};
 
 	/**
@@ -136,6 +142,12 @@ namespace QaplaNnue {
 	struct alignas(NNUE_ALIGNMENT) Network {
 		std::array<int16_t, ACCUMULATOR_SIZE> featureBias{};
 		std::array<int16_t, size_t(FEATURE_COUNT)* size_t(ACCUMULATOR_SIZE)> featureWeight{};
+		/**
+		 * The piece-square values, PSQT_BUCKETS per feature, of the scale QA*QB of the output.
+		 * Zero and unused in a net of the first two formats, which then evaluates exactly as before.
+		 */
+		std::array<int32_t, size_t(FEATURE_COUNT)* size_t(PSQT_BUCKETS)> psqtWeight{};
+		bool hasPsqt = false;
 
 		std::array<Head, LAYER_STACKS> heads{};
 	};
@@ -156,6 +168,12 @@ namespace QaplaNnue {
 	 */
 	inline constexpr char NNUE_MAGIC_SINGLE_HEAD[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '1' };
 
+	/**
+	 * The format with the piece-square part: as the stacked one, and the psqt weights between the
+	 * feature weights and the heads.
+	 */
+	inline constexpr char NNUE_MAGIC_PSQT[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '3' };
+
 	constexpr uint32_t singleHeadArchitectureId() {
 		return uint32_t(FEATURE_COUNT) * 31u + uint32_t(ACCUMULATOR_SIZE) * 7u
 			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u
@@ -164,6 +182,10 @@ namespace QaplaNnue {
 
 	constexpr uint32_t architectureId() {
 		return singleHeadArchitectureId() + uint32_t(LAYER_STACKS) * 1009u;
+	}
+
+	constexpr uint32_t psqtArchitectureId() {
+		return architectureId() + uint32_t(PSQT_BUCKETS) * 7919u;
 	}
 
 	/**

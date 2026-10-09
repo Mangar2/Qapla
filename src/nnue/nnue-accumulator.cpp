@@ -19,6 +19,7 @@
  * The accumulators of a search, see nnue-accumulator.h
  */
 
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -67,13 +68,15 @@ void KingSquareCache::clear(const Network& network) {
 	for (Entry& entry : _entries) {
 		std::memcpy(entry.accumulator, network.featureBias.data(),
 			ACCUMULATOR_SIZE * sizeof(int16_t));
+		std::fill(entry.psqt, entry.psqt + PSQT_BUCKETS, 0);
 		// An empty board: the accumulator is the bias and holds no piece at all.
 		entry.pieces.fill(0);
 	}
 }
 
 template <Piece PERSPECTIVE>
-void KingSquareCache::refresh(const Network& network, const Board& board, int16_t* accumulator) {
+void KingSquareCache::refresh(const Network& network, const Board& board, int16_t* accumulator,
+	int32_t* psqt) {
 	const Square kingSquare = squareOf<PERSPECTIVE>(PERSPECTIVE == QaplaBasics::WHITE
 		? board.getKingSquare<QaplaBasics::WHITE>() : board.getKingSquare<QaplaBasics::BLACK>());
 	Entry& entry = _entries[size_t(PERSPECTIVE) * SQUARE_COUNT + size_t(kingSquare)];
@@ -88,22 +91,25 @@ void KingSquareCache::refresh(const Network& network, const Board& board, int16_
 		QaplaBasics::bitBoard_t removed = entry.pieces[piece] & ~current;
 		while (added != 0) {
 			const Square square = QaplaBasics::popLSB(added);
-			addFeature(network, entry.accumulator,
+			addFeature(network, entry.accumulator, entry.psqt,
 				featureIndex(kingSquare, plane, squareOf<PERSPECTIVE>(square)));
 		}
 		while (removed != 0) {
 			const Square square = QaplaBasics::popLSB(removed);
-			removeFeature(network, entry.accumulator,
+			removeFeature(network, entry.accumulator, entry.psqt,
 				featureIndex(kingSquare, plane, squareOf<PERSPECTIVE>(square)));
 		}
 		entry.pieces[piece] = current;
 	}
 	std::memcpy(accumulator, entry.accumulator, ACCUMULATOR_SIZE * sizeof(int16_t));
+	std::memcpy(psqt, entry.psqt, PSQT_BUCKETS * sizeof(int32_t));
 }
 
 void AccumulatorStack::computeBoth(const Board& board, Entry& entry) {
-	_cache.refresh<QaplaBasics::WHITE>(*theNetwork, board, entry.accumulator[QaplaBasics::WHITE]);
-	_cache.refresh<QaplaBasics::BLACK>(*theNetwork, board, entry.accumulator[QaplaBasics::BLACK]);
+	_cache.refresh<QaplaBasics::WHITE>(*theNetwork, board, entry.accumulator[QaplaBasics::WHITE],
+		entry.psqt[QaplaBasics::WHITE]);
+	_cache.refresh<QaplaBasics::BLACK>(*theNetwork, board, entry.accumulator[QaplaBasics::BLACK],
+		entry.psqt[QaplaBasics::BLACK]);
 }
 
 void AccumulatorStack::reset(const Board& board) {
@@ -156,8 +162,10 @@ void AccumulatorStack::push(const Board& board, Move move) {
 
 	for (const Piece perspective : { QaplaBasics::WHITE, QaplaBasics::BLACK }) {
 		int16_t* accumulator = child.accumulator[perspective];
+		int32_t* psqt = child.psqt[perspective];
 		std::memcpy(accumulator, parent.accumulator[perspective],
 			ACCUMULATOR_SIZE * sizeof(int16_t));
+		std::memcpy(psqt, parent.psqt[perspective], PSQT_BUCKETS * sizeof(int32_t));
 		// No king has moved, so the king squares are the ones of the parent.
 		const Square kingSquare = perspective == QaplaBasics::WHITE
 			? squareOf<QaplaBasics::WHITE>(board.getKingSquare<QaplaBasics::WHITE>())
@@ -171,13 +179,13 @@ void AccumulatorStack::push(const Board& board, Move move) {
 			return perspective == QaplaBasics::WHITE
 				? squareOf<QaplaBasics::WHITE>(square) : squareOf<QaplaBasics::BLACK>(square);
 		};
-		removeFeature(*theNetwork, accumulator,
+		removeFeature(*theNetwork, accumulator, psqt,
 			featureIndex(kingSquare, planeOf(piece), squareFor(departure)));
 		if (captured != NO_PIECE) {
-			removeFeature(*theNetwork, accumulator,
+			removeFeature(*theNetwork, accumulator, psqt,
 				featureIndex(kingSquare, planeOf(captured), squareFor(captureSquare)));
 		}
-		addFeature(*theNetwork, accumulator,
+		addFeature(*theNetwork, accumulator, psqt,
 			featureIndex(kingSquare, planeOf(placed), squareFor(destination)));
 	}
 }
@@ -196,11 +204,25 @@ value_t AccumulatorStack::evaluate(const Board& board) {
 	const bool whiteToMove = board.isWhiteToMove();
 	const int16_t* own = entry.accumulator[whiteToMove ? QaplaBasics::WHITE : QaplaBasics::BLACK];
 	const int16_t* opponent = entry.accumulator[whiteToMove ? QaplaBasics::BLACK : QaplaBasics::WHITE];
+	const int32_t* ownPsqt = entry.psqt[whiteToMove ? QaplaBasics::WHITE : QaplaBasics::BLACK];
+	const int32_t* opponentPsqt = entry.psqt[whiteToMove ? QaplaBasics::BLACK : QaplaBasics::WHITE];
 
 #ifdef QAPLA_VERIFY_NNUE_INCREMENTAL
 	Entry fresh;
-	refreshAccumulator<QaplaBasics::WHITE>(*theNetwork, board, fresh.accumulator[QaplaBasics::WHITE]);
-	refreshAccumulator<QaplaBasics::BLACK>(*theNetwork, board, fresh.accumulator[QaplaBasics::BLACK]);
+	refreshAccumulator<QaplaBasics::WHITE>(*theNetwork, board, fresh.accumulator[QaplaBasics::WHITE],
+		fresh.psqt[QaplaBasics::WHITE]);
+	refreshAccumulator<QaplaBasics::BLACK>(*theNetwork, board, fresh.accumulator[QaplaBasics::BLACK],
+		fresh.psqt[QaplaBasics::BLACK]);
+	for (const Piece perspective : { QaplaBasics::WHITE, QaplaBasics::BLACK }) {
+		for (uint32_t bucket = 0; bucket < PSQT_BUCKETS; bucket++) {
+			if (entry.psqt[perspective][bucket] == fresh.psqt[perspective][bucket]) continue;
+			std::cerr << "nnue: the psqt sum kept up to date move by move differs from a fresh one "
+				<< "at ply " << _top << ", perspective " << int(perspective) << ", bucket " << bucket
+				<< ": " << entry.psqt[perspective][bucket] << " against "
+				<< fresh.psqt[perspective][bucket] << std::endl;
+			std::abort();
+		}
+	}
 	for (const Piece perspective : { QaplaBasics::WHITE, QaplaBasics::BLACK }) {
 		for (uint32_t index = 0; index < ACCUMULATOR_SIZE; index++) {
 			if (entry.accumulator[perspective][index] == fresh.accumulator[perspective][index]) {
@@ -215,6 +237,6 @@ value_t AccumulatorStack::evaluate(const Board& board) {
 	}
 #endif
 
-	return forward(*theNetwork, own, opponent,
+	return forward(*theNetwork, own, opponent, ownPsqt, opponentPsqt,
 		layerStackOf(QaplaBasics::popCount(board.getAllPiecesBB())));
 }

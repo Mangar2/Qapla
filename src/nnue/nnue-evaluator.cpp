@@ -82,6 +82,27 @@ namespace {
 			"the product has to stay inside an int32");
 		return value_t(netOutput * int32_t(NET_VALUE_SCALE) / (int32_t(QA) * int32_t(QB)));
 	}
+
+	/**
+	 * The value of a net with a piece-square part: the output of the head plus half the difference
+	 * of the two psqt sums. Those carry the material and grow far beyond what toEngineValue's int32
+	 * product may hold, so this one computes in 64 bits. A net without the part never gets here and
+	 * keeps the cheaper path above.
+	 */
+	inline value_t toEngineValueWithPsqt(int32_t netOutput, int32_t ownPsqt, int32_t opponentPsqt) {
+		const int64_t total = int64_t(netOutput) + (int64_t(ownPsqt) - int64_t(opponentPsqt)) / 2;
+		return value_t(total * int64_t(NET_VALUE_SCALE) / (int64_t(QA) * int64_t(QB)));
+	}
+
+	inline void addPsqt(const Network& network, int32_t* psqt, uint32_t feature) {
+		const int32_t* weight = network.psqtWeight.data() + size_t(feature) * PSQT_BUCKETS;
+		for (uint32_t bucket = 0; bucket < PSQT_BUCKETS; bucket++) psqt[bucket] += weight[bucket];
+	}
+
+	inline void subtractPsqt(const Network& network, int32_t* psqt, uint32_t feature) {
+		const int32_t* weight = network.psqtWeight.data() + size_t(feature) * PSQT_BUCKETS;
+		for (uint32_t bucket = 0; bucket < PSQT_BUCKETS; bucket++) psqt[bucket] -= weight[bucket];
+	}
 }
 
 bool Evaluator::usesVectorInstructions() {
@@ -92,32 +113,39 @@ const char* Evaluator::vectorPath() {
 	return vectorPathName();
 }
 
-void QaplaNnue::addFeature(const Network& network, int16_t* accumulator, uint32_t feature) {
+void QaplaNnue::addFeature(const Network& network, int16_t* accumulator, int32_t* psqt,
+	uint32_t feature) {
 	accumulatorAdd(accumulator,
 		network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE);
+	if (network.hasPsqt) addPsqt(network, psqt, feature);
 }
 
-void QaplaNnue::removeFeature(const Network& network, int16_t* accumulator, uint32_t feature) {
+void QaplaNnue::removeFeature(const Network& network, int16_t* accumulator, int32_t* psqt,
+	uint32_t feature) {
 	accumulatorSubtract(accumulator,
 		network.featureWeight.data() + size_t(feature) * ACCUMULATOR_SIZE);
+	if (network.hasPsqt) subtractPsqt(network, psqt, feature);
 }
 
 template <Piece PERSPECTIVE>
 void QaplaNnue::refreshAccumulator(const Network& network, const Board& board,
-	int16_t* accumulator) {
+	int16_t* accumulator, int32_t* psqt) {
 	uint32_t features[MAX_ACTIVE_FEATURES];
 	const uint32_t count = computeActiveFeatures<PERSPECTIVE>(board, features);
 	std::memcpy(accumulator, network.featureBias.data(), ACCUMULATOR_SIZE * sizeof(int16_t));
+	std::fill(psqt, psqt + PSQT_BUCKETS, 0);
 	for (uint32_t index = 0; index < count; index++) {
-		addFeature(network, accumulator, features[index]);
+		addFeature(network, accumulator, psqt, features[index]);
 	}
 }
 
-template void QaplaNnue::refreshAccumulator<QaplaBasics::WHITE>(const Network&, const Board&, int16_t*);
-template void QaplaNnue::refreshAccumulator<QaplaBasics::BLACK>(const Network&, const Board&, int16_t*);
+template void QaplaNnue::refreshAccumulator<QaplaBasics::WHITE>(const Network&, const Board&,
+	int16_t*, int32_t*);
+template void QaplaNnue::refreshAccumulator<QaplaBasics::BLACK>(const Network&, const Board&,
+	int16_t*, int32_t*);
 
 value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int16_t* opponent,
-	uint32_t stack) {
+	const int32_t* ownPsqt, const int32_t* opponentPsqt, uint32_t stack) {
 	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
 	clippedReluBlock(own, input, ACCUMULATOR_SIZE);
@@ -128,11 +156,13 @@ value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int
 	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
 	affineRelu<L1_SIZE, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
 
-	return toEngineValue(head.outputBias + dotProduct(head.outputWeight.data(), hidden2, L2_SIZE));
+	const int32_t output = head.outputBias + dotProduct(head.outputWeight.data(), hidden2, L2_SIZE);
+	return network.hasPsqt ? toEngineValueWithPsqt(output, ownPsqt[stack], opponentPsqt[stack])
+		: toEngineValue(output);
 }
 
 value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
-	const int16_t* opponent, uint32_t stack) {
+	const int16_t* opponent, const int32_t* ownPsqt, const int32_t* opponentPsqt, uint32_t stack) {
 	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
 	for (uint32_t index = 0; index < ACCUMULATOR_SIZE; index++) {
@@ -149,25 +179,31 @@ value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
 	for (uint32_t index = 0; index < L2_SIZE; index++) {
 		output += int32_t(head.outputWeight[index]) * int32_t(hidden2[index]);
 	}
-	return toEngineValue(output);
+	return network.hasPsqt ? toEngineValueWithPsqt(output, ownPsqt[stack], opponentPsqt[stack])
+		: toEngineValue(output);
 }
 
 value_t Evaluator::evaluate(const Board& board) const {
 	alignas(NNUE_ALIGNMENT) int16_t white[ACCUMULATOR_SIZE];
 	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
-	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white);
-	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black);
+	int32_t whitePsqt[PSQT_BUCKETS];
+	int32_t blackPsqt[PSQT_BUCKETS];
+	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white, whitePsqt);
+	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black, blackPsqt);
 	const uint32_t stack = layerStackOf(QaplaBasics::popCount(board.getAllPiecesBB()));
-	return board.isWhiteToMove() ? forward(_network, white, black, stack)
-		: forward(_network, black, white, stack);
+	return board.isWhiteToMove() ? forward(_network, white, black, whitePsqt, blackPsqt, stack)
+		: forward(_network, black, white, blackPsqt, whitePsqt, stack);
 }
 
 value_t Evaluator::evaluateReference(const Board& board) const {
 	alignas(NNUE_ALIGNMENT) int16_t white[ACCUMULATOR_SIZE];
 	alignas(NNUE_ALIGNMENT) int16_t black[ACCUMULATOR_SIZE];
-	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white);
-	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black);
+	int32_t whitePsqt[PSQT_BUCKETS];
+	int32_t blackPsqt[PSQT_BUCKETS];
+	refreshAccumulator<QaplaBasics::WHITE>(_network, board, white, whitePsqt);
+	refreshAccumulator<QaplaBasics::BLACK>(_network, board, black, blackPsqt);
 	const uint32_t stack = layerStackOf(QaplaBasics::popCount(board.getAllPiecesBB()));
-	return board.isWhiteToMove() ? forwardReference(_network, white, black, stack)
-		: forwardReference(_network, black, white, stack);
+	return board.isWhiteToMove()
+		? forwardReference(_network, white, black, whitePsqt, blackPsqt, stack)
+		: forwardReference(_network, black, white, blackPsqt, whitePsqt, stack);
 }

@@ -18,6 +18,9 @@ MAGIC = b'QAPLANN2'
 # The format before layer stacks, a single head. It is still read: its head is copied into every
 # stack, and the net evaluates exactly as it did.
 MAGIC_SINGLE_HEAD = b'QAPLANN1'
+# The format with the piece-square part: the stacked one, and between the feature weights and the
+# heads PSQT_BUCKETS int32 values per feature, of the scale QA*QB of the output.
+MAGIC_PSQT = b'QAPLANN3'
 
 SQUARE_COUNT = 64
 PIECE_PLANES = 11
@@ -29,6 +32,7 @@ L2_SIZE = 32
 # The dense layers exist once per phase, chosen by the number of pieces: see LAYER_STACKS in
 # nnue-arch.h. The accumulator is shared.
 LAYER_STACKS = 8
+PSQT_BUCKETS = LAYER_STACKS
 
 QA = 127                 # scale of an activation, and its largest value
 QB = 64                  # scale of a weight of a dense layer
@@ -50,6 +54,28 @@ def single_head_architecture_id():
 def architecture_id():
     """The shape number of the file header, see architectureId() in nnue-arch.h."""
     return (single_head_architecture_id() + LAYER_STACKS * 1009) & 0xFFFFFFFF
+
+
+def psqt_architecture_id():
+    """The shape number of a file with the piece-square part, psqtArchitectureId()."""
+    return (architecture_id() + PSQT_BUCKETS * 7919) & 0xFFFFFFFF
+
+
+# The values a psqt column starts from: the material of the piece, in output units (one is
+# NET_VALUE_SCALE engine units), positive for the own pieces and negative for the opponent's. The
+# planes run pawn, knight, bishop, rook, queen with the own piece first; plane 10 is the enemy king.
+PSQT_START_MATERIAL = (90, 300, 310, 480, 930)
+
+
+def psqt_start_values():
+    import torch
+    values = torch.zeros(FEATURE_COUNT + 1, PSQT_BUCKETS)
+    for plane in range(PIECE_PLANES - 1):
+        value = PSQT_START_MATERIAL[plane // 2] / NET_VALUE_SCALE * (1 if plane % 2 == 0 else -1)
+        for king in range(SQUARE_COUNT):
+            start = (king * PIECE_PLANES + plane) * SQUARE_COUNT
+            values[start:start + SQUARE_COUNT] = value
+    return values
 
 
 def layer_stack_of(piece_count):
@@ -74,11 +100,12 @@ class Head:
 class Network:
     """The quantized weights, in the order they stand in the file."""
 
-    __slots__ = ('feature_bias', 'feature_weight', 'heads', 'stacked')
+    __slots__ = ('feature_bias', 'feature_weight', 'psqt_weight', 'heads', 'stacked')
 
     def __init__(self):
         self.feature_bias = array('h', [0]) * ACCUMULATOR_SIZE
         self.feature_weight = array('h', [0]) * (FEATURE_COUNT * ACCUMULATOR_SIZE)
+        self.psqt_weight = None      # array('i'), PSQT_BUCKETS per feature, or None
         self.heads = [Head() for _ in range(LAYER_STACKS)]
         self.stacked = True
 
@@ -135,14 +162,17 @@ def read(path):
     with open(path, 'rb') as stream:
         magic = stream.read(len(MAGIC))
         identifier = struct.unpack('<I', stream.read(4))[0]
-        if magic not in (MAGIC, MAGIC_SINGLE_HEAD):
+        if magic not in (MAGIC, MAGIC_SINGLE_HEAD, MAGIC_PSQT):
             raise ValueError('%s is not a net file' % path)
-        wanted = architecture_id() if magic == MAGIC else single_head_architecture_id()
+        wanted = (psqt_architecture_id() if magic == MAGIC_PSQT else
+                  architecture_id() if magic == MAGIC else single_head_architecture_id())
         if identifier != wanted:
             raise ValueError('%s has shape %d, this code wants %d' % (path, identifier, wanted))
         network.feature_bias = _read_array(stream, 'h', ACCUMULATOR_SIZE)
         network.feature_weight = _read_array(stream, 'h', FEATURE_COUNT * ACCUMULATOR_SIZE)
-        if magic == MAGIC:
+        if magic == MAGIC_PSQT:
+            network.psqt_weight = _read_array(stream, 'i', FEATURE_COUNT * PSQT_BUCKETS)
+        if magic in (MAGIC, MAGIC_PSQT):
             network.heads = [_read_head(stream) for _ in range(LAYER_STACKS)]
         else:
             head = _read_head(stream)
@@ -156,12 +186,17 @@ def write(path, network, single_head=False):
     single_head writes the old format with the first head alone - for a net whose heads are all the
     same, which every engine binary can read, also the ones built before there were stacks.
     """
+    psqt = network.psqt_weight is not None
+    single_head = single_head and not psqt
     with open(path, 'wb') as stream:
-        stream.write(MAGIC_SINGLE_HEAD if single_head else MAGIC)
-        stream.write(struct.pack('<I', single_head_architecture_id() if single_head
+        stream.write(MAGIC_PSQT if psqt else MAGIC_SINGLE_HEAD if single_head else MAGIC)
+        stream.write(struct.pack('<I', psqt_architecture_id() if psqt else
+                                 single_head_architecture_id() if single_head
                                  else architecture_id()))
         network.feature_bias.tofile(stream)
         network.feature_weight.tofile(stream)
+        if psqt:
+            network.psqt_weight.tofile(stream)
         for head in network.heads[:1] if single_head else network.heads:
             for member, _code, _count in _HEAD_MEMBERS:
                 getattr(head, member).tofile(stream)
@@ -206,7 +241,8 @@ def evaluate(network, own_features, opponent_features):
 
     The own features are every piece but the own king, so the pieces on the board are one more.
     """
-    head = network.heads[layer_stack_of(len(own_features) + 1)]
+    stack = layer_stack_of(len(own_features) + 1)
+    head = network.heads[stack]
     inputs = [_clipped_relu(value) for value in _accumulator(network, own_features)]
     inputs += [_clipped_relu(value) for value in _accumulator(network, opponent_features)]
     hidden = _affine_relu(inputs, head.l1_weight, head.l1_bias, L1_SIZE)
@@ -214,4 +250,8 @@ def evaluate(network, own_features, opponent_features):
     total = head.output_bias
     for index in range(L2_SIZE):
         total += head.output_weight[index] * hidden[index]
+    if network.psqt_weight is not None:
+        own = sum(network.psqt_weight[f * PSQT_BUCKETS + stack] for f in own_features)
+        opponent = sum(network.psqt_weight[f * PSQT_BUCKETS + stack] for f in opponent_features)
+        total += _truncating_division(own - opponent, 2)
     return _truncating_division(total * NET_VALUE_SCALE, QA * QB)

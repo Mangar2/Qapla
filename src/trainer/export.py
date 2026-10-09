@@ -68,6 +68,9 @@ def quantize(model):
     # A single head goes into every stack - the engine reads it that way from the old format too.
     network.heads = heads if stacks > 1 else heads * netfile.LAYER_STACKS
     network.stacked = stacks > 1
+    if getattr(model, 'psqt', None) is not None:
+        values = model.psqt.weight.detach().cpu().numpy()[:netfile.FEATURE_COUNT]
+        network.psqt_weight = _as_array(_quantized(values, scale, np.int32), 'i')
     return network
 
 
@@ -86,6 +89,6 @@ if __name__ == '__main__':
     from model import HalfKaNet
     held = torch.load(sys.argv[1], map_location='cpu', weights_only=False)
     state = held['model'] if isinstance(held, dict) and 'model' in held else held
-    trained = HalfKaNet(stacks=state['output.weight'].shape[0])
+    trained = HalfKaNet(stacks=state['output.weight'].shape[0], psqt='psqt.weight' in state)
     trained.load_state_dict(state)
     export(trained, sys.argv[2])
