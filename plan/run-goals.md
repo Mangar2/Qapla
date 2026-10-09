@@ -298,6 +298,11 @@ weighting; the PSQT weights start from the material values of the pieces. Stockf
 with 131/128 positional in the engine, tuned after training - for us an engine parameter for later, 1:1
 to start. Cost: ~3 % more accumulator update, 1.4 MB, a new net format; checked across the SIMD paths.
 
+State 2026-10-09: implemented (d3cb308, trainer 3.0.0 `--psqt`, net format QAPLANN3; checks in the
+CHANGELOG entry). Training since 06:16 on the Mac: the command of s1-sflike e800 with `--psqt` the only
+difference (`tmp/mac-sflike-psqt.sh`, ~34 s an epoch, done ~14:00); then head to head against s1-sflike e800
+on Linux (the engine built there from GitHub, d3cb308).
+
 ### Architecture A2: king mirrored left-right, HalfKA_hm (Volker, 2026-10-05)
 A test of its own, after A1, so that nothing goes wrong unseen. With the own king on files e-h the
 board is mirrored a<->h, 32 king squares instead of 64, each weight sees twice the positions. The engine
