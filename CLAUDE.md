@@ -68,6 +68,18 @@ The places that already exist and are the ones to use:
 `.gitignore` keeps them out of commits; staying in the repo is about being findable, not about
 being versioned.
 
+### On the Mac, kept training data lives on the external T7
+
+The internal disk of the Mac is too small for the nnue data. **Data that is kept for the long term -
+game sets, `.gam` files, labelled chunks, trained nets and their checkpoints, the forensics - goes to
+the external volume T7**, under `/Volumes/T7/qapla/test-nnue/`. Every entry there has a symlink in
+`test/nnue/`, so all paths stay the same and remain findable inside the working copy.
+
+A computation that is running may keep its data on the internal disk (`test/nnue/<dir>` as a real
+directory, or `tmp/`); once it is finished and the result is worth keeping, its data moves to the T7
+and is replaced by a symlink. T7 is exFAT: no hard links (they become copies), and macOS adds `._*`
+files there, which are not data.
+
 ### Temporary data goes to tmp/, and tmp/ can be emptied at any time
 
 Everything a run produces that is not meant to be kept - tournament and SPRT state, pgns and run logs,
