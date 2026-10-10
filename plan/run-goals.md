@@ -335,6 +335,10 @@ The set-1 test running on the Mac (A1 method, 50 epochs of 20 M) is an early sig
 skip (512 x 16, 8 heads, 20 M an epoch, 50 epochs, trainer 3.0.0), head to head 3000 games: lowsel 50.78 %,
 +/-9 each - no measurable difference (about +5, error about +/-13). The +27 of the old procedure without skip
 does not carry over.
+**Safeguard result, 2026-10-10 19:38:** lowsel sets 1+3 against HCE sets 1+3, 256 x 32, 8 heads, 20 M an epoch,
+100 epochs, trainer 3.1.0, labels the only difference, 3000 games: 50.00 % each, +/-9 - no difference. Together
+with the set-1 test (50.78 %): under today's training lowsel labels bring nothing measurable. The lowsel
+labelling stays ended; the time goes into more data (the two 10 M sets). Logs in test/nnue/results-lowsel-safeguard/.
 Order on the Mac (Volker 2026-10-10): the safeguard first - it decides whether the time goes into more lowsel
 or into more training data - then the epoch-size search. `tmp/mac-safeguard-lowsel.sh`: 256 x 32, 8 heads,
 20 M an epoch, 100 epochs (2 G positions), HCE sets 1+3 then lowsel sets 1+3 (~2 x 2.3 h).
