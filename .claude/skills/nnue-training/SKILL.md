@@ -150,9 +150,8 @@ has no torch). Create the output directory first.
     --epochs 20 --patience 2 --workers 6 --seed 1 --validation-every 100 --stacks 1
 ```
 
-- **Captures and checks are skipped by default** (`--skip-tactical`, learning 7: about +75 Elo).
-  `--no-skip-tactical` only to reproduce an old result trained without it. The held back loss of a
-  filtered run compares only with filtered runs.
+- **Captures and checks are always skipped** (learning 7: about +75 Elo); from trainer 3.1.0 there is no
+  option to keep them. The held back loss of a filtered run compares only with filtered runs.
 - **Stockfish's procedure is the default** (learning 8, about +44 to +53 Elo over our old way): epochs of
   10 M positions out of an endless stream, RangerLite at lr 8.75e-4 falling by 0.992 an epoch, up to 800
   epochs, no stopping rule, a net every 100 epochs (`--save-every`), held back loss every 10

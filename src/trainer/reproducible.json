@@ -2,36 +2,33 @@
   "fixture": "e284107fe2eb3f743495da5792b97bbd",
   "runs": {
     "pass-adam-1head": [
-      "2b29bfae4e4f074c034dba03d436ec09",
-      "2bc6b4006a9cf248c868c11b7942d86c"
+      "ef2240a02563d94dc7bc0d37be019d80",
+      "55cb0439d052f441daf10a278845fdb9"
     ],
     "pass-adam-8heads-neighbours": [
       "98c100a02da921828ce1593cc6a2b3f8",
       "f3f30f34840db3267b74b8b88d43c922"
-    ],
-    "pass-python-loader": [
-      "0c71ff0c6c5b63efa0f7598317693b1d"
     ],
     "fixed-ranger-1head": [
       "a413845ab94927625e7807eb4bf9443c",
       "9b601bc1089a52fece74ef3f928328f2"
     ],
     "fixed-adam-8heads-512x16": [
-      "bcc397f13c8f0f71f59ca04d6f6321de",
-      "005006c86a13e1a1b67373f3db583628"
+      "4c309aec975bbe2660ade94c4ac8e09a",
+      "c279163c901d91bd3f35c7cb2bfe7dd4"
     ],
     "fixed-ranger-1head-psqt": [
       "76aef382cae9cb8574d5e4e65f6d2c66",
       "51d631096a65cfaa2cfa561d863fc5f9"
     ],
     "pass-adam-8heads-psqt": [
-      "19e5c32bf26aa32ef7d9fab505a808e0",
-      "4fe252fb0a3e9064a4c431613e78c011"
+      "42308a9cbf72e2854a001207a19c42ff",
+      "5430125c731b14f7d4829d69ec392c74"
     ],
     "fixed-ranger-resumed": [
       "a413845ab94927625e7807eb4bf9443c",
       "e7005248f863b49c12641e6d44677a13"
     ]
   },
-  "version": "3.0.0"
+  "version": "3.1.0"
 }

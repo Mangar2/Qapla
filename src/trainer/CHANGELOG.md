@@ -78,6 +78,15 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 3.1.0 - 2026-10-10
+
+Captures and checks are always skipped; `--skip-tactical` / `--no-skip-tactical` are gone, and with them
+`--loader python` (the python loader cannot skip). Volker: a test with those positions makes no sense any more.
+Minor: options removed. Runs at the defaults are bit-identical to 3.0.0 (`pass-adam-8heads-neighbours`,
+`fixed-ranger-1head`, `fixed-ranger-1head-psqt`, `fixed-ranger-resumed`); the runs that used the removed options
+were changed to skip (`pass-adam-1head`, `fixed-adam-8heads-512x16`, `pass-adam-8heads-psqt`) or dropped
+(`pass-python-loader`), and the record rewritten.
+
 ## 3.0.0 - 2026-10-09
 
 `--psqt`: the piece-square part as Stockfish has it (plan/run-goals.md, "Architecture PSQT"). Every

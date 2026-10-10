@@ -215,12 +215,12 @@ def train(arguments):
         # over a seeded permutation, so two files of the same games get the same one.
         cache = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                          validation_every=arguments.validation_every, part='training',
-                         workers=arguments.workers, loader=arguments.loader,
-                         skip_tactical=arguments.skip_tactical, skip_early=arguments.skip_early)
+                         workers=arguments.workers, loader='native',
+                         skip_tactical=True, skip_early=arguments.skip_early)
         validation = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                               validation_every=arguments.validation_every, part='validation',
-                              workers=arguments.workers, loader=arguments.loader,
-                              skip_tactical=arguments.skip_tactical, skip_early=arguments.skip_early)
+                              workers=arguments.workers, loader='native',
+                              skip_tactical=True, skip_early=arguments.skip_early)
     else:
         if len(arguments.cache) != 1:
             raise SystemExit('several sources are only read as .gam game files')
@@ -362,14 +362,6 @@ if __name__ == '__main__':
                              'the engine evaluates')
     parser.add_argument('--neighbour-weight', type=float, default=1.0,
                         help='what a neighbouring head counts against the own one')
-    parser.add_argument('--loader', choices=['native', 'python'], default='native',
-                        help='native: the compiled loader, verified bit for bit against the python '
-                             'one and about twenty times faster per core; python: the old one')
-    parser.add_argument('--skip-tactical', action=argparse.BooleanOptionalAction, default=True,
-                        help='leave out every position whose move captures or that is in check, in '
-                             'training and validation alike - the native loader only. On by default '
-                             '(learning 7: about +75 Elo); --no-skip-tactical only to reproduce an '
-                             'old result without it')
     parser.add_argument('--skip-early', action=argparse.BooleanOptionalAction, default=False,
                         help='keep early positions only with a probability rising over the ply, by '
                              'nnue-pytorch\'s default curve (0.1 at ply 0 to 1.0 from ply 20) - '

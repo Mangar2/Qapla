@@ -13,7 +13,7 @@ do not, not even without workers (measured 2026-10-07), so this test cannot run 
 training carries a spread of its own that only games measure.
 
 RUNS is the smallest set that still reaches every option that changes a net: each procedure (one pass
-an epoch with Adam, fixed epochs with RangerLite or Adam), one and eight heads, both loaders, the
+an epoch with Adam, fixed epochs with RangerLite or Adam), one and eight heads, the
 filters, the sizes, the worker count (it changes the order), non-default values of every number, and a
 resumed run. A new option that changes nets gets a place in one of them, or a run of its own.
 """
@@ -39,23 +39,21 @@ GAMES = 2000
 
 COMMON = ['--device', 'cpu', '--batch-size', '1024', '--report-every', '1000000']
 RUNS = {
-    'pass-adam-1head': ['--epoch-size', '0', '--epochs', '2', '--no-skip-tactical', '--workers', '2'],
+    'pass-adam-1head': ['--epoch-size', '0', '--epochs', '2', '--workers', '2'],
     'pass-adam-8heads-neighbours': ['--epoch-size', '0', '--epochs', '2', '--stacks', '8', '--neighbours',
                                     '--neighbour-weight', '0.5', '--skip-early', '--seed', '7',
                                     '--validation-every', '50', '--blend-start', '0.9', '--blend-end',
                                     '0.5', '--learning-rate', '5e-4', '--patience', '1', '--workers', '0'],
-    'pass-python-loader': ['--epoch-size', '0', '--epochs', '1', '--no-skip-tactical', '--loader', 'python',
-                           '--workers', '0'],
     'fixed-ranger-1head': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
                            '--validate-every', '1', '--workers', '2'],
     'fixed-adam-8heads-512x16': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
                                  '--stacks', '8', '--accumulator', '512', '--l1', '16', '--skip-early',
                                  '--optimizer', 'adam', '--lr-gamma', '0.9', '--learning-rate', '2e-3',
-                                 '--no-skip-tactical', '--workers', '1'],
+                                 '--workers', '1'],
     'fixed-ranger-1head-psqt': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
                                 '--psqt', '--workers', '2'],
     'pass-adam-8heads-psqt': ['--epoch-size', '0', '--epochs', '2', '--stacks', '8', '--psqt',
-                              '--no-skip-tactical', '--workers', '2'],
+                              '--workers', '2'],
 }
 # A resumed run: one epoch, then --resume to the second. Its second net is recorded.
 RESUMED = ('fixed-ranger-resumed', ['--epoch-size', '100000', '--save-every', '1', '--workers', '2'])
