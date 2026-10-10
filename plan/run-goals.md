@@ -322,8 +322,10 @@ saturated. Held back loss e200 0.001090 against 0.001306. Logs in test/nnue/resu
 training), head to head, 3000 games: 256 x 32 50.70 %, +/-9 each - no measurable difference (about +5, error of
 the difference about +/-13). A1's lead in the reference field came from the doubled training, not from the size.
 Current training: 256 x 32, 8 heads, 20 M an epoch, 800 epochs. Logs: Linux tmp/control-vs-a1*.
-**To do (Volker 2026-10-10): 40 M an epoch.** 20 M beat 10 M (A1 and the control); 40 M may beat 20 M. 256 x 32,
-8 heads, 800 epochs of 40 M (~32 G positions, ~2 x 18 h on the Mac), against the control (20 M) head to head.
+**Plan (Volker 2026-10-10): optimise the amount of training first, by binary search on the epoch size.**
+256 x 32, 8 heads, 800 epochs, everything else the control's command. 40 M against 20 M (the control); if 40 is
+better, then 80 against 40, else 30 against 20; and so on halving the step. Each step a head to head, 3000 games;
+only the optimum goes into the reference field. Cost on the Mac: 40 M ~36 h, 80 M ~72 h.
 **Safeguarding lowsel (Volker 2026-10-10)** - lowsel labelling costs days, so its gain must be secured under
 today's training: (1) the control against A1 decides which training is current; (2) set 3 lowsel finished,
 copied, converted; (3) HCE sets 1+3 against lowsel sets 1+3, today's training, skip, one command - labels the
