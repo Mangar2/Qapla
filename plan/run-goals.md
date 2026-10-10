@@ -331,6 +331,9 @@ today's training: (1) the control against A1 decides which training is current; 
 copied, converted; (3) HCE sets 1+3 against lowsel sets 1+3, today's training, skip, one command - labels the
 only difference - then head to head. Only that decides whether sets 2, 4, 5, 6 are labelled with lowsel.
 The set-1 test running on the Mac (A1 method, 50 epochs of 20 M) is an early signal.
+Order on the Mac (Volker 2026-10-10): the safeguard first - it decides whether the time goes into more lowsel
+or into more training data - then the epoch-size search. `tmp/mac-safeguard-lowsel.sh`: 256 x 32, 8 heads,
+20 M an epoch, 100 epochs (2 G positions), HCE sets 1+3 then lowsel sets 1+3 (~2 x 2.3 h).
 **To do after the label test (Volker 2026-10-10): remove `--skip-tactical`/`--no-skip-tactical` from the
 trainer (always skip) and with it `--loader python` (it cannot skip) - trainer 3.1.0, default nets identical
 (test_reproducible). Not before both label-test trainings are done, so that both run the same code.**
