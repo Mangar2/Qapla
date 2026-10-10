@@ -338,6 +338,13 @@ does not carry over.
 Order on the Mac (Volker 2026-10-10): the safeguard first - it decides whether the time goes into more lowsel
 or into more training data - then the epoch-size search. `tmp/mac-safeguard-lowsel.sh`: 256 x 32, 8 heads,
 20 M an epoch, 100 epochs (2 G positions), HCE sets 1+3 then lowsel sets 1+3 (~2 x 2.3 h).
+**More data (Volker 2026-10-10) - two sets of 10 M games to compare:**
+- old book 10x, mixed: sets 1-6 (9 games per leaf) + set 1b (HCE-HCE, 2 threads) = 10 M games; set 1b labelled
+  on Linux after set 3 (lowsel labelling ends with set 3).
+- new book, HCE only: the book extended from 1 M to 10 M leaves (same generator and settings, seed 2,
+  `new-versions/Qapla-bookgen-mac`, built from c03335a without the uncommitted search files), one game per leaf
+  HCE-HCE at depth 6 with 1 thread, labelled at depth 8 - ~3 days playing and ~6 days labelling on Linux alone.
+Allows e.g.: HCE-only set against the mixed set of the same size.
 **To do after the label test (Volker 2026-10-10): remove `--skip-tactical`/`--no-skip-tactical` from the
 trainer (always skip) and with it `--loader python` (it cannot skip) - trainer 3.1.0, default nets identical
 (test_reproducible). Not before both label-test trainings are done, so that both run the same code.**
