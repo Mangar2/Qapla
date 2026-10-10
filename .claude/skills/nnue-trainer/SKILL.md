@@ -82,6 +82,10 @@ command is not.
 
 ## Comparing two nets - one factor only
 
+**Test with today's standard, never with captures and checks** (Volker 2026-10-10): every test training keeps
+the default `--skip-tactical`; `--no-skip-tactical` (and the old `--epoch-size 0` procedure) only to repeat an
+old run 1:1. When a command is copied from an old run, strip those first.
+
 Before a head to head, write down every difference between the two sides: trainer version, every
 option, the data, the labels, the engine binary. **Exactly one entry is allowed.**
 
