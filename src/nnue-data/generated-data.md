@@ -641,3 +641,22 @@ shuffle inside the buffer is the loader's own. Verified:
 `train.py` seeds torch with `--seed` now as well. Before, the initial weights were not seeded, and two
 runs on the same data could not be compared step by step: the first comparison of the two loaders
 showed an 18 % higher loss for the new one that turned out to be the other starting net.
+
+## The book of 10 M start positions (2026-10-10)
+
+**Built from:** `test/nnue/start-positions-1m.bok`, extended by 9,000,000 leaves, as the 1 M book was from the
+100 k one (Volker 2026-10-10: a new HCE-HCE set of 10 M games, one per leaf):
+
+    printf 'nnuebook add test/nnue/start-positions-1m.bok out test/nnue/start-positions-10m.bok \
+        leaves 9000000 sd 8 collect 2 margin 100 seed 2\nquit\n' | new-versions/Qapla-bookgen-mac stat
+
+`Qapla-bookgen-mac` is c03335a built with `EXTRA_DEFINES=-DQAPLA_GENERATE_NNUE_DATA` (the search observer).
+Seed 2, not 1, so that the walk is not the one that made the 1 M book. 10 min 57 s on the Mac:
+
+    Searches: 46328, candidates: 16920129, rejected in check: 1511730, mate: 8522, off margin: 5077172,
+    lines: 10322705, new leaves: 9000000
+    Book: 17484675 moves, 10000020 leaves, 9000000 of them new
+
+As the opening library: `nnueopenings test/nnue/start-positions-10m.bok test/nnue/start-positions-10m.pgn`,
+10,000,020 lines in 24 s, 1.68 GB. Some old leaves are inner nodes now - their lines run on to new leaves.
+Both files on the T7 (symlinked in test/nnue/), the pgn also on Linux.
