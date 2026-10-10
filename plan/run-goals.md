@@ -318,6 +318,11 @@ not trained; the control goes on. Logs in test/nnue/results-psqt/.
 source, same steps (8 heads, sflike, 200 epochs of 10 M, 2.2.1), one binary: whole 59.87 %, +/-10 each,
 3000 games - about +70 for twice the distinct games. More distinct data pays clearly; the data is not
 saturated. Held back loss e200 0.001090 against 0.001306. Logs in test/nnue/results-data/.
+**Safeguarding lowsel (Volker 2026-10-10)** - lowsel labelling costs days, so its gain must be secured under
+today's training: (1) the control against A1 decides which training is current; (2) set 3 lowsel finished,
+copied, converted; (3) HCE sets 1+3 against lowsel sets 1+3, today's training, skip, one command - labels the
+only difference - then head to head. Only that decides whether sets 2, 4, 5, 6 are labelled with lowsel.
+The set-1 test running on the Mac (A1 method, 50 epochs of 20 M) is an early signal.
 **To do after the label test (Volker 2026-10-10): remove `--skip-tactical`/`--no-skip-tactical` from the
 trainer (always skip) and with it `--loader python` (it cannot skip) - trainer 3.1.0, default nets identical
 (test_reproducible). Not before both label-test trainings are done, so that both run the same code.**
