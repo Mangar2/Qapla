@@ -201,6 +201,10 @@ Local changes, see `QAPLA-SF17.md` there:
 
 ## Measuring
 
+**The reference field measures how much better, not whether** (Volker 2026-10-10). "Is X better?" is a
+direct head to head, 3000 games, one factor. Only a net that won it - or is at least ahead, even if not yet
+statistically safe - goes into the 10000-game reference field to get its place and its figure against HCE.
+
 - **Epoch tournament** - every epoch against HCE, 1500 games, only the best epoch so far, one at a
   time: `sh src/pipeline/epoch-tournament.sh <run> <nets dir> <training log> <binary> <host>`
   (host from local.toml: `qapla` or `ryzen9`). One state file per epoch:
