@@ -318,6 +318,10 @@ not trained; the control goes on. Logs in test/nnue/results-psqt/.
 source, same steps (8 heads, sflike, 200 epochs of 10 M, 2.2.1), one binary: whole 59.87 %, +/-10 each,
 3000 games - about +70 for twice the distinct games. More distinct data pays clearly; the data is not
 saturated. Held back loss e200 0.001090 against 0.001306. Logs in test/nnue/results-data/.
+**Control, 2026-10-10 10:33:** 256 x 32, 8 heads, 20 M an epoch, e800 (3.0.0) against A1 e800 (512 x 16, same
+training), head to head, 3000 games: 256 x 32 50.70 %, +/-9 each - no measurable difference (about +5, error of
+the difference about +/-13). A1's lead in the reference field came from the doubled training, not from the size.
+Current training: 256 x 32, 8 heads, 20 M an epoch, 800 epochs. Logs: Linux tmp/control-vs-a1*.
 **Safeguarding lowsel (Volker 2026-10-10)** - lowsel labelling costs days, so its gain must be secured under
 today's training: (1) the control against A1 decides which training is current; (2) set 3 lowsel finished,
 copied, converted; (3) HCE sets 1+3 against lowsel sets 1+3, today's training, skip, one command - labels the
