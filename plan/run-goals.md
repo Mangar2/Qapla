@@ -318,6 +318,9 @@ not trained; the control goes on. Logs in test/nnue/results-psqt/.
 source, same steps (8 heads, sflike, 200 epochs of 10 M, 2.2.1), one binary: whole 59.87 %, +/-10 each,
 3000 games - about +70 for twice the distinct games. More distinct data pays clearly; the data is not
 saturated. Held back loss e200 0.001090 against 0.001306. Logs in test/nnue/results-data/.
+**To do after the label test (Volker 2026-10-10): remove `--skip-tactical`/`--no-skip-tactical` from the
+trainer (always skip) and with it `--loader python` (it cannot skip) - trainer 3.1.0, default nets identical
+(test_reproducible). Not before both label-test trainings are done, so that both run the same code.**
 **A1 + psqt only if psqt pays (Volker 2026-10-09)** - the A1 command with `--psqt` the only difference,
 ~35 h on the Mac (`tmp/mac-a1-psqt.sh`, not started), then against A1 e800. The psqt test now running
 on Linux is the same question on the 256 x 32 one-head net (s1-sflike).
