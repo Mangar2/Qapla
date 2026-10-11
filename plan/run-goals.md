@@ -355,6 +355,22 @@ or into more training data - then the epoch-size search. `tmp/mac-safeguard-lows
   The 1.68 GB book pgn made qet exit silently, so it is played in 11 parts of 1 M leaves
   (`tmp/book10m-d9/run-linux.sh`, out `test/nnue/games-book10m-d9/part-NN.pgn`).
 Allows e.g.: HCE-only set against the mixed set of the same size.
+
+**What the new set is tested for (Volker 2026-10-11).** Always against the best set so far (sets 1-6, nowdl),
+with the identical procedure of today's standard (256 x 32, 8 heads, sflike, 800 epochs, 20 M per epoch - or
+40 M if the running 40 M training wins its head to head), head to head 3000 games; the reference field only for
+a winner. The mixed 10 M set is no longer the comparison.
+1. new set only against old set only, both without the result.
+   1b. only if the new set is not worse: the new set with WDL, the weight of the result optimised. Start with the
+   weighting that was successful then: `blend 0.95` (5 % result) - on set 1 it scored 40.65 % against HCE
+   against 36.45 % for nowdl (1000 games each, +/-19 each, 2026-09-29), while blend 0.7-0.8 cost 79 Elo.
+   In today's procedure that means `--blend-start 0.95 --blend-end 0.95` on the `.gam` with results.
+2. new set + old set together (more training data).
+3. first the old set, then in all further epochs only the new set - the coarse training may take the "odd"
+   games too, the fine training only the new ones.
+4. first the old set without the result, then only the new set with WDL - the fine training with WDL once a
+   coarse net exists.
+3 and 4 need a trainer option to change the data at an epoch (minor version); the epoch of the switch is open.
 **To do after the label test (Volker 2026-10-10): remove `--skip-tactical`/`--no-skip-tactical` from the
 trainer (always skip) and with it `--loader python` (it cannot skip) - trainer 3.1.0, default nets identical
 (test_reproducible). Not before both label-test trainings are done, so that both run the same code.**
