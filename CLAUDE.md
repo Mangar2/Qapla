@@ -239,6 +239,19 @@ decisions, not amounts. The closing run is the only statement that covers the it
 
 If it fails, the series produced nothing, whatever the single runs said.
 
+### Evaluations are not tested versions
+
+The items in `test/todo.md` are **evaluations**, a different procedure from trying out a version.
+Their code is complete and committed before the first run, every variant switched off. Each item
+is switched on in the working copy, measured (EPD, CLOP, SPRT against that committed baseline),
+and switched off again — afterwards `git diff` is empty. No commit, no tag, no `dead/` branch,
+no version log entry; the result, including exactly what was switched on and any tuned values, is
+recorded in the „Erledigt“ section of `test/todo.md`. The rules above on what an SPRT does and
+does not say apply unchanged.
+
+Nothing an evaluation finds stays active, H1 included. Turning results into a version comes
+afterwards, as a tested version by the procedure above.
+
 ## The version log
 
 `plan/version-log.md` gets an entry for **every** tagged version, written as soon as its result

@@ -76,6 +76,15 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 		node.setCutoff(Cutoff::FUTILITY);
 		return true;
 	} 
+	if (false && node.remainingDepth > 1) {
+		auto searchQuiescence = [&](value_t alpha, value_t beta) {
+			return _quiescence.search(false, position, _computingInfo, node.previousMove, alpha, beta, ply);
+		};
+		if (node.forewardFutility3(position, searchQuiescence)) {
+			node.setCutoff(Cutoff::FUTILITY);
+			return true;
+		}
+	}
 	if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, depth, ply)) {
 		node.setCutoff(Cutoff::NULL_MOVE);
 		return true;

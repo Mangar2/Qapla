@@ -37,6 +37,7 @@
 #include "tunable.h"
 #include "extension.h"
 #include "../eval/eval.h"
+
 #ifdef USE_STOCKFISH_EVAL
 #include "../nnue/engine.h"
 #endif
@@ -347,15 +348,12 @@ namespace QaplaSearch {
 			return false;
 			constexpr bool OPT = false;
 			if (10 <= remainingDepth) return false;
-			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
+			// We prune, if eval + margin is <= alpha.
 			if (adjustedEval >= alpha) return false;
 			// We do not prune in PV nodes. 
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
 			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
-			// Tested 0.4.0-081: no futility pruning when the tt value is <= alpha: flat at
-			// 50.0 %, undecided after 20000 games
-			// if (ttValueIsLessOrEqualAlpha) return false;
 			// Avoids discarding moves solely because no special-case loss evaluation applies. 
 			if (beta < -MIN_MATE_VALUE) return false;
 			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
@@ -374,7 +372,52 @@ namespace QaplaSearch {
 			return doFutility;
 		}
 
+		/**
+		 * Examine, if we can do a fail low futility pruning based on a quiescence value.
+		 * The quiescence rules out a direct material gain, which may allow a smaller margin
+		 * than a pruning on the plain evaluation.
+		 * @param searchQuiescence callable (value_t alpha, value_t beta) -> value_t, runs a
+		 *        quiescence search on the current position with the given window
+		 */
+		template <typename QuiescenceSearch>
+		inline bool forewardFutility3(MoveGenerator& position, QuiescenceSearch&& searchQuiescence) {
+			return false;
+			constexpr bool OPT = false;
+			if (adjustedEval >= alpha) return false;
+			if (10 <= remainingDepth) return false;
+			// We do not prune in PV nodes. 
+			if (isPVNode()) return false;
+			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
+			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
+			// Avoids discarding moves solely because no special-case loss evaluation applies. 
+			if (beta < -MIN_MATE_VALUE) return false;
+			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
+			if (alpha > WINNING_BONUS) return false;
 
+			// Each influence carries its own coefficient. The depth term and the constant part are
+			// separate, so a run can change the slope without moving the whole line.
+			const value_t margin3 = tunable<OPT, "ffDepthFactor3", 100, 0, 200>() * remainingDepth
+				+ tunable<OPT, "ffBase3", 100, 0, 200>()
+				+ tunable<OPT, "ffImprovingBonus3", 100, 0, 200>() * isImproving;
+
+			// The quiescence value is at least the stand pat value, thus it cannot prune where the
+			// evaluation does not. Saves the quiescence search in that case.
+			if (adjustedEval + margin3 > alpha) return false;
+
+			// Only the question "quiescenceValue <= alpha - margin3" matters, a null window at
+			// that threshold answers it. Fail soft keeps the result an upper bound.
+			const value_t threshold = alpha - margin3;
+			const value_t quiescenceValue = searchQuiescence(threshold, threshold + 1);
+
+			const bool doFutility = quiescenceValue <= threshold;
+			if (doFutility) {
+				bestValue = alpha - (alpha - quiescenceValue) * 10 / 
+					tunable<OPT, "ffBestValueDivisor3", 20, 1, 41>();
+			}
+			return doFutility;
+		}
+
+		
 		/**
 		 * Check if a quiet move can be pruned via futility pruning (in move loop)
 		 * Futility pruning predicts that forward futility will prune after this move
