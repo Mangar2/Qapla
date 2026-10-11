@@ -347,7 +347,13 @@ or into more training data - then the epoch-size search. `tmp/mac-safeguard-lows
   on Linux after set 3 (lowsel labelling ends with set 3).
 - new book, HCE only: the book extended from 1 M to 10 M leaves (same generator and settings, seed 2,
   `new-versions/Qapla-bookgen-mac`, built from c03335a without the uncommitted search files), one game per leaf
-  HCE-HCE at depth 6 with 1 thread, labelled at depth 8 - ~3 days playing and ~6 days labelling on Linux alone.
+  HCE-HCE with 1 thread. **Changed (Volker 2026-10-11): played at depth 9 (as Stockfish), the evaluations of
+  the play written into the pgn (`eval=true`) are the labels - no separate labelling; WDL from the results to be
+  used too.** Depth 10 too risky as labels. Measured on 100 games: depth 10 costs ~8.5x depth 6, depth 9 ~0.65x
+  depth 10, so ~8 days on Linux alone (Windows not used). 20 test games: the play values carry the same perspective
+  as a separate depth-9 labelling and the converter reads them (`/9` suffix, mates); book plies get no value.
+  The 1.68 GB book pgn made qet exit silently, so it is played in 11 parts of 1 M leaves
+  (`tmp/book10m-d9/run-linux.sh`, out `test/nnue/games-book10m-d9/part-NN.pgn`).
 Allows e.g.: HCE-only set against the mixed set of the same size.
 **To do after the label test (Volker 2026-10-10): remove `--skip-tactical`/`--no-skip-tactical` from the
 trainer (always skip) and with it `--loader python` (it cannot skip) - trainer 3.1.0, default nets identical
