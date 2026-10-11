@@ -660,3 +660,27 @@ Seed 2, not 1, so that the walk is not the one that made the 1 M book. 10 min 57
 As the opening library: `nnueopenings test/nnue/start-positions-10m.bok test/nnue/start-positions-10m.pgn`,
 10,000,020 lines in 24 s, 1.68 GB. Some old leaves are inner nodes now - their lines run on to new leaves.
 Both files on the T7 (symlinked in test/nnue/), the pgn also on Linux.
+
+### Played at depth 9, the play values as labels (2026-10-11)
+
+Volker 2026-10-11: one game per leaf, HCE against HCE (`new-versions/Qapla-hce-linux`, 1 thread), **depth 9**, and
+the values of the play itself are the labels - qet writes them into the pgn (`eval=true`, `depth=true`, e.g.
+`{+4.66/9}`), no separate labelling pass. Depth 10 was judged too risky as labels. The results are kept, for WDL.
+
+- The 1.68 GB library made qet exit after ~5 min without a word, so it is split into 11 parts of 1 M leaves
+  (`test/nnue/book10m-parts/openings-NN.pgn` on Linux, the last one 20 leaves; md5-identical to the Mac split)
+  and played one part after the other: `tmp/book10m-d9/run-linux.sh`, ini `play-template.ini`, out
+  `test/nnue/games-book10m-d9/part-NN.pgn`.
+- Checked on 20 games: the play values are from the side to move, as the labels of `label-chunks.sh`; a
+  separate depth-9 labelling of the same games gives close values (mean |p diff| 0.010, sign agreement 97 %;
+  not identical, the play keeps its hash between moves). `gamefile --pgn2gam` reads them (`/9`, mates); the
+  book plies carry no value.
+- Cost on 100 games (Mac): depth 10 ~8.5x depth 6, depth 9 ~0.65x depth 10. Linux, concurrency 30: 12 games/s,
+  ~9.5 days for the 10 M. Started 2026-10-11 04:27.
+
+## Set 1b: set 1's book again, HCE-HCE with 2 threads (2026-10-11)
+
+1,000,333 games (the pause and resume of the play replayed a few leaves), depth 6, 2 threads per engine so that
+every game is a new one; labelled with `Qapla-hce-linux` at depth 8, 1 thread, as set 1. Converted on the Mac:
+`test/nnue/dataset/set1b-hce-t2-depth6.gam` and `-nowdl.gam`, 139,007,738 plies with a value, 21,958 games
+truncated at 255 plies.
