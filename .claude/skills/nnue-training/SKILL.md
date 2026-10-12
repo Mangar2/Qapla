@@ -86,10 +86,18 @@ nps per engine means equal search.
 Up to 16 games each has a core of its own: flat nps, tiny spread (NNUE 15-30 k). From 17 on two games share a
 core through SMT; the spread jumps (NNUE up to 187 k at 22, HCE up to 476 k at 21) while some cores are shared
 and some not, and falls again once nearly all are (NNUE 51 k at 30). At 30 an engine has 58 % (NNUE) and 61 %
-(HCE) of its single-game speed. A Ryzen core runs NNUE at less than half the speed of a Mac core (1.67 M
-against 3.9 M) but HCE at ~70 % (3.64 M against 5.25 M). That compares one engine on one core (one game alone, SMT unused).
-Per physical core with both SMT threads busy (30 games): NNUE 2 x 0.97 = 1.94 M (+16 % over one thread),
-HCE 2 x 2.22 = 4.44 M (+22 %).
+(HCE) of its single-game speed. SMT pays: 30 games give 29.1 M NNUE in all against 24.8 M with 16 (+17 %).
+
+**Compare machines by what the whole machine delivers at the number of games it is run with**, never core
+against core: the cores are of different kinds (super, performance, efficiency, SMT threads) and a single
+game alone says nothing about a tournament. NNUE in all (nps per engine x parallel games, short runs):
+
+| machine | parallel games | NNUE in all |
+|---|---|---|
+| Mac Studio M5 Max, normal | 17 | 46.4 M |
+| Ryzen 5950X (Windows; Linux the same CPU) | 30 | 29.1 M |
+| Mac Studio M5 Max, low power | 12 | 20.6 M |
+| M4 MacBook Air | 9 | 14.7 M (less under sustained load) |
 
 **These figures hold for that NNUE version only, not for HCE, and the other way round.** The ratio between
 the machines differs: HCE is 1.35x the NNUE speed on the M4 with one game, 1.58x with nine. A time control
