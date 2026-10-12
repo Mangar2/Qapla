@@ -81,11 +81,15 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
   showed the CPU at ~12 W from 4 games on, falling to ~10 W at 7 and ~8 W after; the E-core clock stayed
   about constant, the P-core clock fell. In the long tournaments it is clearly warmer than in these tests.
   For a time control that has to hold over hours, measure over a much longer run.
-- Mac Studio in **low power mode** (Volker uses it, at full load the machine is loud) never goes above ~70 %
-  load: the throughput flattens from ~11 games on (2.6 M with one game, 19.7 M total with 17). Volker's
-  reading, consistent with the figures: low power runs on the 12 performance cores only (12/18 = 67 %).
-  So at most 12 parallel games there, fewer if each engine is to keep its speed. The first SPRT there ran
-  12 games at 6+0.03.
+- Mac Studio in **low power mode** (Volker uses it, at full load the machine is loud): the throughput flattens
+  from ~11 games on (2.6 M with one game, 19.7 M total with 17). It is **not** "performance cores only" (an
+  earlier guess): powermetrics during the 12-game SPRT showed all 18 cores busy at ~14 W CPU, the clocks
+  capped - both performance clusters at 2652 MHz (max 4380), the super cluster at 1980 MHz (max 4608).
+  Volker's reading: macOS caps the clocks so that a super core at ~1980 MHz is about as fast as a performance
+  core at ~2652 MHz and treats all threads alike. The systemtest supports it: the per-move nps spread stays
+  as small as in normal mode (80-105 k on 1.7-2.9 M, i.e. 3-6 %, up to 14 games); a 25 % slower cluster would
+  show a far larger spread. From 15 games on the spread grows (139-217 k). The first SPRT there ran 12 games
+  at 6+0.03.
 - mediaanalysisd (photo analysis of a new Mac) took up to ~1.8 cores at times during the low-power run
   (steps 11-13 too low).
 
