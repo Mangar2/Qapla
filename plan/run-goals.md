@@ -336,6 +336,8 @@ also as `test/nnue/nnue-s8-40m-v3.1.0-e800.nnue`).
 **SPRT on the Mac Studio (2026-10-12): H1 accepted after 7650 games, bounds 0/5** (6+0.03, 12 parallel games,
 low power mode). 40 M is the new standard. It joined the reference field on Linux the same day (the depth-9
 play paused for it, `tmp/linux-40m-reference.sh`).
+Reference field (10000 games, 10+0.05): nnue-s8-40m-256x32-e800 2686.3 +/-6, A1 512x16 e800 2682.8 +/-6,
+s1-sflike 2666.3, s8-sflike 2662.4, HCE 2429.5 +/-6 - 40 M at the top, its interval overlapping A1's.
 **Safeguarding lowsel (Volker 2026-10-10)** - lowsel labelling costs days, so its gain must be secured under
 today's training: (1) the control against A1 decides which training is current; (2) set 3 lowsel finished,
 copied, converted; (3) HCE sets 1+3 against lowsel sets 1+3, today's training, skip, one command - labels the
