@@ -87,7 +87,9 @@ Up to 16 games each has a core of its own: flat nps, tiny spread (NNUE 15-30 k).
 core through SMT; the spread jumps (NNUE up to 187 k at 22, HCE up to 476 k at 21) while some cores are shared
 and some not, and falls again once nearly all are (NNUE 51 k at 30). At 30 an engine has 58 % (NNUE) and 61 %
 (HCE) of its single-game speed. A Ryzen core runs NNUE at less than half the speed of a Mac core (1.67 M
-against 3.9 M) but HCE at ~70 % (3.64 M against 5.25 M).
+against 3.9 M) but HCE at ~70 % (3.64 M against 5.25 M). That compares one engine on one core (one game alone, SMT unused).
+Per physical core with both SMT threads busy (30 games): NNUE 2 x 0.97 = 1.94 M (+16 % over one thread),
+HCE 2 x 2.22 = 4.44 M (+22 %).
 
 **These figures hold for that NNUE version only, not for HCE, and the other way round.** The ratio between
 the machines differs: HCE is 1.35x the NNUE speed on the M4 with one game, 1.58x with nine. A time control
