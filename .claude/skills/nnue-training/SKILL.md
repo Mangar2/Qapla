@@ -81,6 +81,8 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
   showed the CPU at ~12 W from 4 games on, falling to ~10 W at 7 and ~8 W after; the E-core clock stayed
   about constant, the P-core clock fell. In the long tournaments it is clearly warmer than in these tests.
   For a time control that has to hold over hours, measure over a much longer run.
+  Training (GPU) and games (CPU) on the M4 share this one heat budget: running both at once always cost
+  speed on both sides - this is why. Train or play on the M4, not both.
 - Mac Studio in **low power mode** (Volker uses it, at full load the machine is loud): the throughput flattens
   from ~11 games on (2.6 M with one game, 19.7 M total with 17). It is **not** "performance cores only" (an
   earlier guess): powermetrics during the 12-game SPRT showed all 18 cores busy at ~14 W CPU, the clocks
