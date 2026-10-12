@@ -25,6 +25,7 @@ Background documents in the repository - read the one that matters before acting
 | machine | reach | repo | used for |
 |---|---|---|---|
 | Mac (M4, local) | - | `/Users/volkerbohm/dev/qapla/qapla` | training (MPS GPU), small tournaments/SPRTs at concurrency 9 |
+| Mac Studio (M5 Max) | `ssh macstudio` | `~/dev/qapla/Qapla` | tournaments/SPRTs (from 2026-10-12). 18 cores: 6 super + 12 performance, 48 GB |
 | Linux `qapla` | `ssh mangar@qapla` | `~/dev/qapla` | tournaments (14 pairs), labelling (15 engines). 16 real cores |
 | Windows `Ryzen9` | `ssh mangar@Ryzen9` | `C:\development\Qapla2` | tournaments, labelling. 16 cores (5950X, Zen 3, AVX2, no AVX-512) |
 | AWS | `aws login --remote` | - | spot instances; currently nothing runs there, data removed |
@@ -43,6 +44,48 @@ Background documents in the repository - read the one that matters before acting
 - Tools: Mac/Linux `~/bin/qet`, Windows `C:\development\bin\qet.exe`. The qet source is
   `~/dev/qapla/engine-tester` (branch 0.7.0); on Windows `C:\development\qapla-engine-tester`,
   `cmake --preset release && cmake --build --preset release`, then copy to `C:\development\bin`.
+
+### Speed of the machines
+
+Measured with `qet --systemtest maxcores=N step=1 steptime=30` (10+0.05, Hash 64): nps **per engine**
+(qet's `avg-nps`) at a given number of parallel games. qet's `total-nps` is not used - at the last step of the
+M4 run it reported 22.1 M against 9 x 1.63 M. Use the table to scale a time control between machines: equal
+nps per engine means equal search.
+
+**NNUE** - the 256 x 32 8-head net (`nnue-s8-40m-v3.1.0-e800.nnue`), binary from 39d3491/d3cb308 built with
+`QAPLA_USE_NNUE`, 2026-10-12:
+
+| parallel games | M4 | Mac Studio, normal | Mac Studio, low power |
+|---|---|---|---|
+| 1 | 3.90 M | 3.95 M | 2.98 M |
+| 6 | 2.31 M | 3.45 M | 2.78 M |
+| 9 | 1.63 M | 3.15 M | 2.22 M |
+| 12 | - | 2.90 M | 1.71 M |
+| 17 | - | 2.73 M | 1.38 M |
+
+**HCE** - the same binary without a net (run in a directory without `qapla.nnue`), M4, 2026-10-12:
+
+| parallel games | M4 |
+|---|---|
+| 1 | 5.25 M |
+| 6 | 3.08 M |
+| 9 | 2.58 M |
+
+**These figures hold for that NNUE version only, not for HCE, and the other way round.** The ratio between
+the machines differs: HCE is 1.35x the NNUE speed on the M4 with one game, 1.58x with nine. A time control
+scaled for the one does not carry over to the other. Mac Studio HCE and Linux are not measured yet.
+
+- Mac Studio in **low power mode** (Volker uses it, at full load the machine is loud) never goes above ~70 %
+  load: the throughput flattens from ~11 games on (2.6 M with one game, 19.7 M total with 17). Volker's
+  reading, consistent with the figures: low power runs on the 12 performance cores only (12/18 = 67 %).
+  So at most 12 parallel games there, fewer if each engine is to keep its speed. The first SPRT there ran
+  12 games at 6+0.03.
+- mediaanalysisd (photo analysis of a new Mac) took up to ~1.8 cores at times during the low-power run
+  (steps 11-13 too low).
+
+**Training on the M4** (MPS), today's procedure (256 x 32, 8 heads, sflike, 40 M positions an epoch,
+6 workers), from the 40 M run of 2026-10-11/12: ~163 s an epoch, ~247 k positions/s when nothing else runs;
+170-190 s while the Mac is used. 800 epochs ~36-38 h.
 
 ## Where things go
 
