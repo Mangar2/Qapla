@@ -71,9 +71,27 @@ nps per engine means equal search.
 | 6 | 3.08 M |
 | 9 | 2.58 M |
 
+**Windows Ryzen9** (5950X, 16 cores / 32 threads, the same CPU as Linux - similar, not identical),
+`Qapla-stacks-nnue.exe` (4725387, avx2; same node count as the Mac with the 40 M net), 2026-10-12:
+
+| parallel games | NNUE | HCE | HCE / NNUE |
+|---|---|---|---|
+| 1 | 1.67 M | 3.64 M | 2.18 |
+| 8 | 1.61 M | 3.44 M | 2.14 |
+| 16 | 1.55 M | 3.34 M | 2.16 |
+| 20 | 1.35 M | 2.95 M | 2.19 |
+| 24 | 1.19 M | 2.59 M | 2.18 |
+| 30 | 0.97 M | 2.22 M | 2.30 |
+
+Up to 16 games each has a core of its own: flat nps, tiny spread (NNUE 15-30 k). From 17 on two games share a
+core through SMT; the spread jumps (NNUE up to 187 k at 22, HCE up to 476 k at 21) while some cores are shared
+and some not, and falls again once nearly all are (NNUE 51 k at 30). At 30 an engine has 58 % (NNUE) and 61 %
+(HCE) of its single-game speed. A Ryzen core runs NNUE at less than half the speed of a Mac core (1.67 M
+against 3.9 M) but HCE at ~70 % (3.64 M against 5.25 M).
+
 **These figures hold for that NNUE version only, not for HCE, and the other way round.** The ratio between
 the machines differs: HCE is 1.35x the NNUE speed on the M4 with one game, 1.58x with nine. A time control
-scaled for the one does not carry over to the other. Mac Studio HCE and Linux are not measured yet.
+scaled for the one does not carry over to the other. Mac Studio HCE and Linux are not measured yet (Linux has the same CPU as Windows).
 
 - **The figures are short-run figures and higher than under sustained load.** A systemtest step lasts
   30 s on a cool machine. The M4 is a fanless MacBook Air - it holds its temperature by lowering the clock: in a repeat on 2026-10-12, after three tests, it was ~20 %
