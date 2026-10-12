@@ -24,7 +24,7 @@ Background documents in the repository - read the one that matters before acting
 
 | machine | reach | repo | used for |
 |---|---|---|---|
-| Mac (M4, local) | - | `/Users/volkerbohm/dev/qapla/qapla` | training (MPS GPU), small tournaments/SPRTs at concurrency 9 |
+| Mac (M4 notebook, local) | - | `/Users/volkerbohm/dev/qapla/qapla` | training (MPS GPU), small tournaments/SPRTs at concurrency 9 |
 | Mac Studio (M5 Max) | `ssh macstudio` | `~/dev/qapla/Qapla` | tournaments/SPRTs (from 2026-10-12). 18 cores: 6 super + 12 performance, 48 GB |
 | Linux `qapla` | `ssh mangar@qapla` | `~/dev/qapla` | tournaments (14 pairs), labelling (15 engines). 16 real cores |
 | Windows `Ryzen9` | `ssh mangar@Ryzen9` | `C:\development\Qapla2` | tournaments, labelling. 16 cores (5950X, Zen 3, AVX2, no AVX-512) |
@@ -75,6 +75,12 @@ nps per engine means equal search.
 the machines differs: HCE is 1.35x the NNUE speed on the M4 with one game, 1.58x with nine. A time control
 scaled for the one does not carry over to the other. Mac Studio HCE and Linux are not measured yet.
 
+- **The figures are short-run figures and higher than under sustained load.** A systemtest step lasts
+  30 s on a cool machine. The M4 is a notebook: in a repeat on 2026-10-12, after three tests, it was ~20 %
+  slower at every step (3.05 M with one game, 1.88 M with six, 1.43 M with eight). powermetrics (Volker)
+  showed the CPU at ~12 W from 4 games on, falling to ~10 W at 7 and ~8 W after; the E-core clock stayed
+  about constant, the P-core clock fell. In the long tournaments it is clearly warmer than in these tests.
+  For a time control that has to hold over hours, measure over a much longer run.
 - Mac Studio in **low power mode** (Volker uses it, at full load the machine is loud) never goes above ~70 %
   load: the throughput flattens from ~11 games on (2.6 M with one game, 19.7 M total with 17). Volker's
   reading, consistent with the figures: low power runs on the 12 performance cores only (12/18 = 67 %).
