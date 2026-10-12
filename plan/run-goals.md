@@ -333,6 +333,9 @@ tournament is continued to 5000 games (`tmp/mac-40m-h2h-extend.sh`).
 **Result after 5000 games (2026-10-12):** 40 M 2605 +/-7, 20 M 2595 +/-7, 51.45 % for 40 M, draws 52.3 % - 40 M
 ahead, the two intervals still touch (2598-2612 against 2588-2602). Nets on the T7 (`test/nnue/nets-s8-40m`, e800
 also as `test/nnue/nnue-s8-40m-v3.1.0-e800.nnue`).
+**SPRT on the Mac Studio (2026-10-12): H1 accepted after 7650 games, bounds 0/5** (6+0.03, 12 parallel games,
+low power mode). 40 M is the new standard. It joined the reference field on Linux the same day (the depth-9
+play paused for it, `tmp/linux-40m-reference.sh`).
 **Safeguarding lowsel (Volker 2026-10-10)** - lowsel labelling costs days, so its gain must be secured under
 today's training: (1) the control against A1 decides which training is current; (2) set 3 lowsel finished,
 copied, converted; (3) HCE sets 1+3 against lowsel sets 1+3, today's training, skip, one command - labels the
