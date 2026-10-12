@@ -330,6 +330,9 @@ only the optimum goes into the reference field. Cost on the Mac: 40 M ~36 h, 80 
 ahead, inside the error bars. **Volker 2026-10-12: the search stops here - the gap is too small for 80 M to pay,
 and 30 M will not be clearly better.** If after 3000 games 40 M is ahead but still inside the bars, the same
 tournament is continued to 5000 games (`tmp/mac-40m-h2h-extend.sh`).
+**Result after 5000 games (2026-10-12):** 40 M 2605 +/-7, 20 M 2595 +/-7, 51.45 % for 40 M, draws 52.3 % - 40 M
+ahead, the two intervals still touch (2598-2612 against 2588-2602). Nets on the T7 (`test/nnue/nets-s8-40m`, e800
+also as `test/nnue/nnue-s8-40m-v3.1.0-e800.nnue`).
 **Safeguarding lowsel (Volker 2026-10-10)** - lowsel labelling costs days, so its gain must be secured under
 today's training: (1) the control against A1 decides which training is current; (2) set 3 lowsel finished,
 copied, converted; (3) HCE sets 1+3 against lowsel sets 1+3, today's training, skip, one command - labels the
