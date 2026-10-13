@@ -120,6 +120,10 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
   as small as in normal mode (80-105 k on 1.7-2.9 M, i.e. 3-6 %, up to 14 games); a 25 % slower cluster would
   show a far larger spread. From 15 games on the spread grows (139-217 k). The first SPRT there ran 12 games
   at 6+0.03.
+- **Mac Studio for long runs: normal mode, 12 parallel games.** At 12 games in normal mode the CPU draws ~50 W
+  and the machine stays quiet; with 17 it gets loud (Volker 2026-10-13) - so never more than 12 there. HCE at
+  depth 9 (10 M book play): ~10.2 games/s in low power mode (~14 W), 14.1 games/s in normal mode (~50 W);
+  Linux at 30 ~12, the M4 at 9 ~6.1 (throttled).
 - mediaanalysisd (photo analysis of a new Mac) took up to ~1.8 cores at times during the low-power run
   (steps 11-13 too low).
 
