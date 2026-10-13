@@ -121,12 +121,14 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
   show a far larger spread. From 15 games on the spread grows (139-217 k). The first SPRT there ran 12 games
   at 6+0.03.
 - **Mac Studio for long runs: normal mode, 12 parallel games.** At 12 games in normal mode the CPU draws ~50 W
-  and the machine stays quiet; with 17 it gets loud (Volker 2026-10-13) - so never more than 12 there. HCE at
+  and the machine stays quiet; in the systemtest with 17 it got loud (Volker 2026-10-13). HCE at
   depth 9 (10 M book play): ~10.2 games/s in low power mode (~14 W), 14.1 games/s in normal mode (~50 W);
   Linux at 30 ~12, the M4 at 9 ~6.1 (throttled).
   14 games (2026-10-13): ~56 W, 16.9 games/s, the fan came on briefly and went quiet again - the limit of what
   runs without the fan. Depth-9 games are short moves with much engine-tester traffic in between, so the load
   is not continuous; a time-control tournament at 14 may well be louder.
+  16 games (2026-10-13): 19.0 games/s; the fan rose at the start and settled quiet again - the fan reacts to
+  the step in load, not to the steady heat. 16 is the setting for depth-9 play there.
 - mediaanalysisd (photo analysis of a new Mac) took up to ~1.8 cores at times during the low-power run
   (steps 11-13 too low).
 
