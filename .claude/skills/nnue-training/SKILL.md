@@ -25,7 +25,7 @@ Background documents in the repository - read the one that matters before acting
 | machine | reach | repo | used for |
 |---|---|---|---|
 | Mac (MacBook Air M4, fanless, local) | - | `/Users/volkerbohm/dev/qapla/qapla` | training (MPS GPU), small tournaments/SPRTs at concurrency 9 |
-| Mac Studio (M5 Max) | `ssh macstudio` | `~/dev/qapla/Qapla` | tournaments/SPRTs (from 2026-10-12). 18 cores: 6 super + 12 performance, 48 GB |
+| Mac Studio (M5 Max) | `ssh macstudio` | `~/dev/qapla/Qapla` | **training (MPS) from 2026-10-13**, tournaments/SPRTs, depth-9 play. 18 cores: 6 super + 12 performance, 48 GB, 820 GB free |
 | Linux `qapla` | `ssh mangar@qapla` | `~/dev/qapla` | tournaments (14 pairs), labelling (15 engines). 16 real cores |
 | Windows `Ryzen9` | `ssh mangar@Ryzen9` | `C:\development\Qapla2` | tournaments, labelling. 16 cores (5950X, Zen 3, AVX2, no AVX-512) |
 | AWS | `aws login --remote` | - | spot instances; currently nothing runs there, data removed |
@@ -135,6 +135,13 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
 **Training on the M4** (MPS), today's procedure (256 x 32, 8 heads, sflike, 40 M positions an epoch,
 6 workers), from the 40 M run of 2026-10-11/12: ~163 s an epoch, ~247 k positions/s when nothing else runs;
 170-190 s while the Mac is used. 800 epochs ~36-38 h.
+
+**Training on the Mac Studio** (MPS, M5 Max), same command, 2026-10-13, while the depth-9 play ran with 16 games:
+~38 s an epoch, ~1.05-1.12 M positions/s - **4.3x the M4**; 800 epochs ~8.5 h. The play lost ~11 % meanwhile
+(19 -> 16.9 games/s); no heat contest as on the M4, only noise. Setup there: `src/trainer/.venv` from brew
+python 3.14 with torch 2.14.0 and numpy 2.5.3 (the M4's versions), the native batcher builds itself on first use,
+sets 1-6 nowdl copied to `test/nnue/dataset/` (md5 checked). `train.py` does not create `--out` - mkdir it first.
+Pull the working copy there before every training: the trainer reaches the Studio only through GitHub.
 
 ## Where things go
 
