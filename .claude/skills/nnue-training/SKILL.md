@@ -119,7 +119,7 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
   core at ~2652 MHz and treats all threads alike. The systemtest supports it: the per-move nps spread stays
   as small as in normal mode (80-105 k on 1.7-2.9 M, i.e. 3-6 %, up to 14 games); a 25 % slower cluster would
   show a far larger spread. From 15 games on the spread grows (139-217 k). The first SPRT there ran 12 games
-  at 6+0.03.
+  at 6+0.03. **In low power mode never more than 12 parallel games** - the throughput does not grow beyond that.
 - **Mac Studio for long runs: normal mode, 12 parallel games.** At 12 games in normal mode the CPU draws ~50 W
   and the machine stays quiet; in the systemtest with 17 it got loud (Volker 2026-10-13). HCE at
   depth 9 (10 M book play): ~10.2 games/s in low power mode (~14 W), 14.1 games/s in normal mode (~50 W);
