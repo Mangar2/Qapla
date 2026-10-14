@@ -368,6 +368,17 @@ or into more training data - then the epoch-size search. `tmp/mac-safeguard-lows
   (`tmp/book10m-d9/run-linux.sh`, out `test/nnue/games-book10m-d9/part-NN.pgn`).
 Allows e.g.: HCE-only set against the mixed set of the same size.
 
+**Test programme once the new set is played (Volker 2026-10-14)** - replaces the list below where they differ.
+Training always on the Mac Studio, testing always on Linux. Every test is an SPRT of two versions against each
+other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--each tc=10+0.05 option.Hash=64`.
+1. Make the trainer use the Mac Studio as fully as possible (the GPU idles at ~20 W, the main thread at ~22 %).
+2. Old set (sets 1-6 nowdl), 20 M x 800, with the faster trainer, SPRT against the 20 M control
+   (`nnue-s8-20m-v3.0.0-e800`). H0 -> ask Volker; H1 or undecided -> the new trainer is fine.
+3. New set, 20 M x 800, SPRT against 2 (old set, same trainer).
+4. Old + new set, 20 M x 800, SPRT against 2.
+5. New set with WDL, three weightings of the result (looking for the best one), each SPRT against 2.
+Then decide according to what was reached.
+
 **What the new set is tested for (Volker 2026-10-11).** Always against the best set so far (sets 1-6, nowdl),
 with the identical procedure of today's standard (256 x 32, 8 heads, sflike, 800 epochs, 20 M per epoch - or
 40 M if the running 40 M training wins its head to head), head to head 3000 games; the reference field only for
