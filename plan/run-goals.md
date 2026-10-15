@@ -376,7 +376,11 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
 1. Make the trainer use the Mac Studio as fully as possible (the GPU idles at ~20 W, the main thread at ~22 %).
 2. Old set (sets 1-6 nowdl), 20 M x 800, with the faster trainer, SPRT against the 20 M control
    (`nnue-s8-20m-v3.0.0-e800`). H0 -> ask Volker; H1 or undecided -> the new trainer is fine.
-3. New set, 20 M x 800, SPRT against 2 (old set, same trainer).
+   Trainer 3.2.0 (fastft, 1.9x on the Mac Studio). Net `nnue-s8-20m-v3.2.0-e800` (Mac Studio, 2026-10-15 07:42-09:57),
+   SPRT on the M4 from 10:01. **Volker 2026-10-15 16:20, the SPRT at LLR -2.27 after 8514 games: let it run, but
+   3.2.0 is taken anyway - it is very close; steps 3-5 are tested against `nnue-s8-20m-v3.2.0-e800`**, the net of
+   the same trainer.
+3. New set, 20 M x 800, SPRT against 2 (old set, same trainer: `nnue-s8-20m-v3.2.0-e800`).
 4. Old + new set, 20 M x 800, SPRT against 2.
 5. New set with WDL, three weightings of the result (looking for the best one), each SPRT against 2.
 Then decide according to what was reached.
