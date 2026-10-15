@@ -78,6 +78,20 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 3.2.0 - 2026-10-15
+
+Fast training on the gpu of a Mac (Volker: the trainer has to use the Mac Studio). Three changes:
+- `fastft.py`: the feature transformer on two own Metal kernels instead of EmbeddingBag, both perspectives in one
+  call. The backward pass sums, per weight, over the positions holding its feature - the loader groups each batch
+  by feature (`batcher --csr`, a counting sort), so no atomics. Forward bit-identical to EmbeddingBag; the
+  gradient adds the same terms in another order.
+- the loss is summed on the device and read only when printed - no host wait after every batch.
+- the csr batches are copied to the gpu without blocking, so the next batch is prepared while one runs.
+`--fast-ft auto|on|off`, auto = on for mps in the fixed-epoch mode. Mac Studio, sets 1-6, 20 M an epoch: 9 s an
+epoch against 17.5 s (1.9x), loss at epoch 5 0.001872 against 0.001870. M4: 11 s against 15.5 s.
+Minor: nets on mps change (another summation order; mps was never bit-reproducible anyway). The cpu keeps
+EmbeddingBag: `test_reproducible.py` identical to 3.1.0 in all runs.
+
 ## 3.1.0 - 2026-10-10
 
 Captures and checks are always skipped; `--skip-tactical` / `--no-skip-tactical` are gone, and with them
