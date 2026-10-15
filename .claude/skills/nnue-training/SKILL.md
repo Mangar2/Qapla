@@ -138,10 +138,13 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
 
 **SPRTs between nets run on the Mac Studio, beside the training (Volker 2026-10-15)** - one machine for train and
 test, no copying of nets; Linux stays for the reference field and data, the M4 for extra runs. Concurrency 12
-(quiet). The time control is scaled to the nps of Linux, where 10+0.05 is the standard: NNUE per engine at 12
-games on the Studio 2.90 M, on Linux at 30 games 0.97 M (systemtest, short runs) - factor 0.33, so
-**`--each tc=3.3+0.017 option.Hash=64`** gives the search of Linux at 10+0.05. For NNUE only (the HCE ratio is
-another one). Results still compare only within a machine.
+(quiet). The time control was first scaled to the nps of Linux, where 10+0.05 is the standard: NNUE per engine at 12
+games on the Studio 2.90 M, on Linux at 30 games 0.97 M (systemtest, short runs) - factor 0.33: 3.3+0.017 would
+give the search of Linux at 10+0.05. **Volker 2026-10-15: the SPRT has to finish within one training (20 M x 800,
+~2.2 h), `--sprt maxgames=15000`, so a test round closes every 2.2 h with one net in training ahead.** 15000 games
+in 2.2 h at 12 games is 6.3 s a game; at 10+0.05 a game takes ~24 s a slot (M4 SPRT, 2026-10-15), so
+**`--each tc=2.6+0.013 option.Hash=64`** (0.26 of 10+0.05 - shallower than Linux at 10+0.05). For NNUE only.
+Results still compare only within a machine.
 
 **Trainer 3.2.0 (fastft, 2026-10-15) on the Mac Studio**: 20 M an epoch in 9 s (10 s with 16 games of play beside
 it), ~2.1-2.2 M positions/s - 1.9x trainer 3.1.0; 800 x 20 M in ~2.2 h. The python process then needs about half

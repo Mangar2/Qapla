@@ -369,8 +369,9 @@ or into more training data - then the epoch-size search. `tmp/mac-safeguard-lows
 Allows e.g.: HCE-only set against the mixed set of the same size.
 
 **Test programme once the new set is played (Volker 2026-10-14)** - replaces the list below where they differ.
-Training on the Mac Studio, and from 2026-10-15 (Volker) the SPRTs there too, beside the training, at 12 games
-and `tc=3.3+0.017` (the Linux search of 10+0.05, see the nnue skill); step 2 still runs on the M4. Every test is an SPRT of two versions against each
+Training on the Mac Studio, and from 2026-10-15 (Volker) the SPRTs there too, beside the training, at 12 games,
+`tc=2.6+0.013`, `maxgames=15000` - an SPRT finishes within one 2.2 h training, so a test round closes every
+2.2 h with the next net training ahead (see the nnue skill); step 2 still runs on the M4. Every test is an SPRT of two versions against each
 other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--each tc=10+0.05 option.Hash=64`.
 1. Make the trainer use the Mac Studio as fully as possible (the GPU idles at ~20 W, the main thread at ~22 %).
 2. Old set (sets 1-6 nowdl), 20 M x 800, with the faster trainer, SPRT against the 20 M control
