@@ -376,12 +376,13 @@ class GameFile:
         """Batches with the features grouped by feature (batcher --csr), for fastft on MPS:
         (own, opponent as int32, values, results, counts, (start, rows))."""
         self.dataset.epoch += 1
+        # non_blocking: the copies go into the gpu queue without the host waiting for it, so the next
+        # batch is prepared while the current one runs.
         for own, other, values, results, counts, csr in self.dataset:
-            yield (torch.from_numpy(own.astype(np.int32)).to(device),
-                   torch.from_numpy(other.astype(np.int32)).to(device),
-                   torch.from_numpy(values).to(device), torch.from_numpy(results).to(device),
-                   torch.from_numpy(counts).to(device),
-                   (torch.from_numpy(csr[0]).to(device), torch.from_numpy(csr[1]).to(device)))
+            yield tuple(torch.from_numpy(a).to(device, non_blocking=True) for a in
+                        (own.astype(np.int32), other.astype(np.int32), values, results, counts)) \
+                + ((torch.from_numpy(csr[0]).to(device, non_blocking=True),
+                    torch.from_numpy(csr[1]).to(device, non_blocking=True)),)
 
     def batches(self, batch_size, device, shuffle=True, generator=None):
         # batch_size and shuffle are fixed when the file is opened; the arguments stay for the
