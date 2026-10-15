@@ -136,6 +136,10 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
 6 workers), from the 40 M run of 2026-10-11/12: ~163 s an epoch, ~247 k positions/s when nothing else runs;
 170-190 s while the Mac is used. 800 epochs ~36-38 h.
 
+**Trainer 3.2.0 (fastft, 2026-10-15) on the Mac Studio**: 20 M an epoch in 9 s (10 s with 16 games of play beside
+it), ~2.1-2.2 M positions/s - 1.9x trainer 3.1.0; 800 x 20 M in ~2.2 h. The python process then needs about half
+a core, the gpu shows ~100 % at ~30 W (memory-bound gathers and sums, not the matrix units an image model fills
+at ~100 W). So the Mac Studio trains AND plays (or tests) at the same time; the play lost ~11 % beside 3.1.0.
 **Training on the Mac Studio** (MPS, M5 Max), same command, 2026-10-13, while the depth-9 play ran with 16 games:
 ~38 s an epoch, ~1.05-1.12 M positions/s - **4.3x the M4**; 800 epochs ~8.5 h. The play lost ~11 % meanwhile
 (19 -> 16.9 games/s); no heat contest as on the M4, only noise. Setup there: `src/trainer/.venv` from brew
