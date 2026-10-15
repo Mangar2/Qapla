@@ -43,6 +43,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 NATIVE_SOURCE = os.path.join(HERE, 'native', 'batcher.cpp')
 NATIVE_BINARY = os.path.join(HERE, '..', '..', 'build', 'trainer', 'batcher')
 RECORD = 2 * SLOTS * 2 + 2 + 1          # the bytes of one position in a native batch
+CSR_STARTS = netfile.FEATURE_COUNT + 2   # the start[] of batcher --csr
 
 
 def native_binary():
@@ -227,8 +228,9 @@ class _NativeGames:
     """
 
     def __init__(self, paths, game_ids, batch_size, seed, buffer=BUFFER_POSITIONS, streams=1,
-                 skip_tactical=False, skip_early=False):
+                 skip_tactical=False, skip_early=False, csr=False):
         self.paths, self.batch_size, self.seed, self.buffer = paths, batch_size, seed, buffer
+        self.csr = csr
         self.game_ids = np.asarray(game_ids)
         self.streams = max(1, streams)
         self.skip_tactical = skip_tactical
@@ -244,6 +246,7 @@ class _NativeGames:
                                     str(self.buffer), '--seed', str(seed)]
                                    + (['--skip-tactical'] if self.skip_tactical else [])
                                    + (['--skip-early'] if self.skip_early else [])
+                                   + (['--csr'] if self.csr else [])
                                    + list(self.paths),
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         # The loader reads every id before it writes a byte, so writing them all at once cannot
@@ -259,7 +262,20 @@ class _NativeGames:
                 if len(chunk) < size:
                     waiting.put(None)
                     return
-                waiting.put(chunk)
+                if not self.csr:
+                    waiting.put(chunk)
+                    continue
+                # batcher --csr: uint32 n, int32 start[FEATURE_COUNT + 2], int32 rows[n]
+                head = process.stdout.read(4)
+                if len(head) < 4:
+                    waiting.put(None)
+                    return
+                n = int.from_bytes(head, 'little')
+                tail = process.stdout.read(4 * (CSR_STARTS + n))
+                if len(tail) < 4 * (CSR_STARTS + n):
+                    waiting.put(None)
+                    return
+                waiting.put((chunk, tail))
 
         threading.Thread(target=read, daemon=True).start()
         return process, waiting
@@ -276,6 +292,11 @@ class _NativeGames:
                     if chunk is None:
                         active.remove(stream)
                         continue
+                    csr = None
+                    if self.csr:
+                        chunk, tail = chunk
+                        csr = (np.frombuffer(tail, dtype=np.int32, count=CSR_STARTS),
+                               np.frombuffer(tail, dtype=np.int32, offset=4 * CSR_STARTS))
                     features = size * SLOTS * 2
                     own = np.frombuffer(chunk, dtype=np.uint16, count=size * SLOTS).reshape(size, SLOTS)
                     other = np.frombuffer(chunk, dtype=np.uint16, count=size * SLOTS,
@@ -288,7 +309,10 @@ class _NativeGames:
                     values = (codes - fmt.MIN_VALUE_CODE) / span
                     counts = (stored != fmt.RESULT_NONE).astype(np.float32)
                     results = np.minimum(stored, 2).astype(np.float32) / 2.0
-                    yield own, other, values, results, counts
+                    if self.csr:
+                        yield own, other, values, results, counts, csr
+                    else:
+                        yield own, other, values, results, counts
         finally:
             for process, _ in streams:
                 if process.poll() is None:
@@ -318,7 +342,7 @@ class GameFile:
 
     def __init__(self, paths, batch_size, seed=1, validation_every=100, part='training',
                  workers=2, buffer=BUFFER_POSITIONS, loader='native', skip_tactical=True,
-                 skip_early=False):
+                 skip_early=False, csr=False):
         paths = [paths] if isinstance(paths, str) else list(paths)
         offsets, lengths, usable, _ = load_indexes(paths)
         training, validation = split_games(len(offsets), seed, validation_every)
@@ -327,10 +351,12 @@ class GameFile:
         self.game_count = len(ids)
         self.position_count = int(usable[ids].sum())
         self.loader = loader
+        self.csr = csr
         if loader == 'native':
             self.dataset = _NativeGames(paths, ids, batch_size, seed, buffer,
                                         streams=min(workers, 2) if workers else 1,
-                                        skip_tactical=skip_tactical, skip_early=skip_early)
+                                        skip_tactical=skip_tactical, skip_early=skip_early,
+                                        csr=csr)
         else:
             if skip_tactical or skip_early:
                 raise SystemExit('skipping captures and checks needs the native loader; '
@@ -346,12 +372,24 @@ class GameFile:
     def __len__(self):
         return self.position_count
 
+    def csr_batches(self, device):
+        """Batches with the features grouped by feature (batcher --csr), for fastft on MPS:
+        (own, opponent as int32, values, results, counts, (start, rows))."""
+        self.dataset.epoch += 1
+        for own, other, values, results, counts, csr in self.dataset:
+            yield (torch.from_numpy(own.astype(np.int32)).to(device),
+                   torch.from_numpy(other.astype(np.int32)).to(device),
+                   torch.from_numpy(values).to(device), torch.from_numpy(results).to(device),
+                   torch.from_numpy(counts).to(device),
+                   (torch.from_numpy(csr[0]).to(device), torch.from_numpy(csr[1]).to(device)))
+
     def batches(self, batch_size, device, shuffle=True, generator=None):
         # batch_size and shuffle are fixed when the file is opened; the arguments stay for the
         # sake of the interface PositionCache defined.
         self.dataset.epoch += 1
         if self.loader == 'native':
-            for own, other, values, results, counts in self.dataset:
+            for row in self.dataset:
+                own, other, values, results, counts = row[:5]
                 yield (torch.from_numpy(own).to(device).long(),
                        torch.from_numpy(other).to(device).long(),
                        torch.from_numpy(values).to(device), torch.from_numpy(results).to(device),

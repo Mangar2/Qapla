@@ -300,6 +300,45 @@ namespace {
 		}
 	}
 
+	/**
+	 * --csr: after every batch, the batch's features grouped by feature, for the gpu backward pass of the
+	 * feature transformer (model.py). Written as uint32 n, int32 start[FEATURE_COUNT + 2], int32 rows[n]:
+	 * the entries of feature f are rows[start[f] .. start[f + 1]), each the row of the batch output that
+	 * holds the feature - i for the own perspective of position i, count + i for the other one - in
+	 * ascending order. The padding row has no entries. A counting sort, linear in the features.
+	 */
+	bool csr = false;
+	std::vector<int32_t> csrStart, csrRows, csrCursor;
+
+	void writeCsr(const std::vector<Position>& pool, size_t first, size_t count) {
+		csrStart.assign(FEATURE_COUNT + 2, 0);
+		for (size_t side = 0; side < 2; ++side) {
+			for (size_t i = 0; i < count; ++i) {
+				const uint16_t* f = side == 0 ? pool[first + i].own : pool[first + i].other;
+				for (int k = 0; k < SLOTS; ++k) {
+					if (f[k] != PADDING) ++csrStart[size_t(f[k]) + 1];
+				}
+			}
+		}
+		for (int f = 0; f <= FEATURE_COUNT; ++f) csrStart[size_t(f) + 1] += csrStart[size_t(f)];
+		const uint32_t n = uint32_t(csrStart[FEATURE_COUNT + 1]);
+		csrRows.resize(n);
+		csrCursor.assign(csrStart.begin(), csrStart.end() - 1);
+		for (size_t side = 0; side < 2; ++side) {
+			for (size_t i = 0; i < count; ++i) {
+				const uint16_t* f = side == 0 ? pool[first + i].own : pool[first + i].other;
+				for (int k = 0; k < SLOTS; ++k) {
+					if (f[k] != PADDING) csrRows[size_t(csrCursor[f[k]]++)] = int32_t(side * count + i);
+				}
+			}
+		}
+		if (std::fwrite(&n, sizeof(n), 1, stdout) != 1
+			|| std::fwrite(csrStart.data(), sizeof(int32_t), csrStart.size(), stdout) != csrStart.size()
+			|| std::fwrite(csrRows.data(), sizeof(int32_t), n, stdout) != n) {
+			std::exit(0);
+		}
+	}
+
 	/** Writes positions [first, first + count) as one batch, column by column. */
 	void writeBatch(const std::vector<Position>& pool, size_t first, size_t count,
 		std::vector<uint8_t>& buffer) {
@@ -319,6 +358,7 @@ namespace {
 		if (std::fwrite(buffer.data(), 1, buffer.size(), stdout) != buffer.size()) {
 			std::exit(0);              // the reader went away - nothing left to do
 		}
+		if (csr) writeCsr(pool, first, count);
 	}
 
 	File mapFile(const char* path) {
@@ -362,6 +402,7 @@ int main(int argc, char** argv) {
 		else if (arg == "--index") onlyIndex = true;
 		else if (arg == "--skip-tactical") skipTactical = true;
 		else if (arg == "--skip-early") skipEarly = true;
+		else if (arg == "--csr") csr = true;
 		else paths.push_back(argv[i]);
 	}
 	if (paths.empty()) fail("no game files named");

@@ -72,8 +72,10 @@ class HalfKaNet(nn.Module):
             with torch.no_grad():
                 self.psqt.weight.copy_(netfile.psqt_start_values())
 
-    def forward(self, own_features, opponent_features):
-        head = self._heads(own_features, opponent_features)
+    def forward(self, own_features, opponent_features, csr=None):
+        """csr: the batch's features grouped by feature (gamedata csr_batches) - then the feature
+        transformer runs on fastft's Metal kernels instead of EmbeddingBag (MPS only, no psqt)."""
+        head = self._heads(own_features, opponent_features, csr)
         if self.psqt is None:
             return head
         # Stockfish's psqt: the bucket is chosen as the layer stack, by the number of pieces, and
@@ -84,9 +86,16 @@ class HalfKaNet(nn.Module):
         opponent = self.psqt(opponent_features).gather(1, bucket).squeeze(1)
         return head + (own - opponent) / 2
 
-    def _heads(self, own_features, opponent_features):
-        own = self.feature_transformer(own_features) + self.feature_bias
-        opponent = self.feature_transformer(opponent_features) + self.feature_bias
+    def _heads(self, own_features, opponent_features, csr=None):
+        if csr is None:
+            own = self.feature_transformer(own_features)
+            opponent = self.feature_transformer(opponent_features)
+        else:
+            import fastft
+            own, opponent = fastft.transform(own_features, opponent_features,
+                                             self.feature_transformer.weight, csr)
+        own = own + self.feature_bias
+        opponent = opponent + self.feature_bias
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
         if self.stacks == 1:
             hidden = self.l1(hidden).clamp(0.0, 1.0)

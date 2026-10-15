@@ -158,9 +158,14 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
         print('--resume: going on at epoch %d, lr %g' % (first, scheduler.get_last_lr()[0]),
               flush=True)
 
+    fast = getattr(cache, 'csr', False)
+
     def stream():
         while True:
-            yield from cache.batches(arguments.batch_size, device)
+            if fast:
+                yield from cache.csr_batches(device)
+            else:
+                yield from ((*batch, None) for batch in cache.batches(arguments.batch_size, device))
 
     def for_inference(on):
         # RangerLite keeps its lookahead (slow) weights apart; measuring and writing a net use
@@ -176,8 +181,8 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
         for_inference(False)
         total, start = 0.0, time.time()
         for seen in range(1, steps + 1):
-            own, opponent, value, result, counts = next(batches)
-            loss = loss_of(model(own, opponent), value, result, counts, blend)
+            own, opponent, value, result, counts, csr = next(batches)
+            loss = loss_of(model(own, opponent, csr), value, result, counts, blend)
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
@@ -213,10 +218,16 @@ def train(arguments):
     if all(name.endswith('.gam') for name in arguments.cache):
         # Straight out of the packed game file: no prepared cache, the split over whole games and
         # over a seeded permutation, so two files of the same games get the same one.
+        fast = arguments.epoch_size > 0 and (arguments.fast_ft == 'on'
+                                             or (arguments.fast_ft == 'auto' and device.type == 'mps'))
+        if fast and device.type != 'mps':
+            raise SystemExit('--fast-ft on needs the mps device')
         cache = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                          validation_every=arguments.validation_every, part='training',
                          workers=arguments.workers, loader='native',
-                         skip_tactical=True, skip_early=arguments.skip_early)
+                         skip_tactical=True, skip_early=arguments.skip_early, csr=fast)
+        print('feature transformer: %s' % ('fastft (Metal kernels, csr batches)' if fast
+                                           else 'EmbeddingBag'), flush=True)
         validation = GameFile(arguments.cache, arguments.batch_size, seed=arguments.seed,
                               validation_every=arguments.validation_every, part='validation',
                               workers=arguments.workers, loader='native',
@@ -331,6 +342,9 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=None,
                         help='800 with --epoch-size (the default), 20 with --epoch-size 0')
     parser.add_argument('--batch-size', type=int, default=16384)
+    parser.add_argument('--fast-ft', choices=['auto', 'on', 'off'], default='auto',
+                        help='the feature transformer on fastft\'s Metal kernels: auto = on for mps '
+                             '(trainer 3.2.0); off = EmbeddingBag as before')
     parser.add_argument('--learning-rate', type=float, default=None,
                         help='8.75e-4 with ranger, 1e-3 with adam')
     parser.add_argument('--blend-start', type=float, default=0.8,
