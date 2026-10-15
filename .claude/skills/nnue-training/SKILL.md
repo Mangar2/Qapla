@@ -136,6 +136,13 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
 6 workers), from the 40 M run of 2026-10-11/12: ~163 s an epoch, ~247 k positions/s when nothing else runs;
 170-190 s while the Mac is used. 800 epochs ~36-38 h.
 
+**SPRTs between nets run on the Mac Studio, beside the training (Volker 2026-10-15)** - one machine for train and
+test, no copying of nets; Linux stays for the reference field and data, the M4 for extra runs. Concurrency 12
+(quiet). The time control is scaled to the nps of Linux, where 10+0.05 is the standard: NNUE per engine at 12
+games on the Studio 2.90 M, on Linux at 30 games 0.97 M (systemtest, short runs) - factor 0.33, so
+**`--each tc=3.3+0.017 option.Hash=64`** gives the search of Linux at 10+0.05. For NNUE only (the HCE ratio is
+another one). Results still compare only within a machine.
+
 **Trainer 3.2.0 (fastft, 2026-10-15) on the Mac Studio**: 20 M an epoch in 9 s (10 s with 16 games of play beside
 it), ~2.1-2.2 M positions/s - 1.9x trainer 3.1.0; 800 x 20 M in ~2.2 h. The python process then needs about half
 a core, the gpu shows ~100 % at ~30 W (memory-bound gathers and sums, not the matrix units an image model fills
