@@ -179,7 +179,11 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
             * (epoch - 1) / max(1, arguments.epochs - 1)
         model.train()
         for_inference(False)
-        total, start = 0.0, time.time()
+        # The loss is summed on the device and read only when it is printed: reading it after
+        # every batch made the host wait for the GPU, so the next batch could not be prepared
+        # while the current one ran.
+        total, start = torch.zeros((), device=device, dtype=torch.float64 if device.type == 'cpu'
+                                   else torch.float32), time.time()
         for seen in range(1, steps + 1):
             own, opponent, value, result, counts, csr = next(batches)
             loss = loss_of(model(own, opponent, csr), value, result, counts, blend)
@@ -187,11 +191,12 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
             loss.backward()
             optimizer.step()
             model.clamp_weights()
-            total += loss.detach().item()
+            total += loss.detach()
             if seen % arguments.report_every == 0:
                 print('  epoch %d, batch %d/%d, loss %.6f, %.0f positions per second'
-                      % (epoch, seen, steps, total / seen,
+                      % (epoch, seen, steps, total.item() / seen,
                          seen * arguments.batch_size / (time.time() - start)), flush=True)
+        total = total.item()
         lr = scheduler.get_last_lr()[0]
         scheduler.step()
         for_inference(True)
