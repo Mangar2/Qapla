@@ -380,6 +380,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    SPRT on the M4 from 10:01. **Volker 2026-10-15 16:20, the SPRT at LLR -2.27 after 8514 games: let it run, but
    3.2.0 is taken anyway - it is very close; steps 3-5 are tested against `nnue-s8-20m-v3.2.0-e800`**, the net of
    the same trainer.
+   **Result: H0 accepted after 8933 games, bounds -2/+3** (M4, 10+0.05, 9 games; 2026-10-15 16:5x). 3.2.0 stays
+   anyway (Volker, above).
 3. New set, 20 M x 800, SPRT against 2 (old set, same trainer: `nnue-s8-20m-v3.2.0-e800`).
 4. Old + new set, 20 M x 800, SPRT against 2.
 5. New set with WDL, three weightings of the result (looking for the best one), each SPRT against 2.
