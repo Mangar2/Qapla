@@ -150,6 +150,9 @@ Results still compare only within a machine.
 it), ~2.1-2.2 M positions/s - 1.9x trainer 3.1.0; 800 x 20 M in ~2.2 h. The python process then needs about half
 a core, the gpu shows ~100 % at ~30 W (memory-bound gathers and sums, not the matrix units an image model fills
 at ~100 W). So the Mac Studio trains AND plays (or tests) at the same time; the play lost ~11 % beside 3.1.0.
+The training fills the gpu so far that the screen of the Mac Studio can hang - a login at its console did
+(2026-10-16). Freeze the training for that and let it go on: `kill -STOP <pid of train.py>`, then `kill -CONT`;
+nothing is lost.
 **Training on the Mac Studio** (MPS, M5 Max), same command, 2026-10-13, while the depth-9 play ran with 16 games:
 ~38 s an epoch, ~1.05-1.12 M positions/s - **4.3x the M4**; 800 epochs ~8.5 h. The play lost ~11 % meanwhile
 (19 -> 16.9 games/s); no heat contest as on the M4, only noise. Setup there: `src/trainer/.venv` from brew
