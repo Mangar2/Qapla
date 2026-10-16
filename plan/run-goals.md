@@ -386,6 +386,7 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **H1 accepted after 14856 games, bounds -2/+3** (Mac Studio, 12 games, 2.6+0.013, 2026-10-16 04:39-06:53):
    the new set (10 M HCE games from the new book, depth 9, play values as labels) beats the old sets 1-6.
 4. Old + new set, 20 M x 800, SPRT against 2.
+   **H1 accepted after 1728 games, bounds -2/+3** (Mac Studio, 12 games, 2.6+0.013, 2026-10-16 06:55-07:07).
 5. New set with WDL, three weightings of the result (looking for the best one), each SPRT against 2.
 Then decide according to what was reached.
 
