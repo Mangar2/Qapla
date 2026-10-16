@@ -383,6 +383,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **Result: H0 accepted after 8933 games, bounds -2/+3** (M4, 10+0.05, 9 games; 2026-10-15 16:5x). 3.2.0 stays
    anyway (Volker, above).
 3. New set, 20 M x 800, SPRT against 2 (old set, same trainer: `nnue-s8-20m-v3.2.0-e800`).
+   **H1 accepted after 14856 games, bounds -2/+3** (Mac Studio, 12 games, 2.6+0.013, 2026-10-16 04:39-06:53):
+   the new set (10 M HCE games from the new book, depth 9, play values as labels) beats the old sets 1-6.
 4. Old + new set, 20 M x 800, SPRT against 2.
 5. New set with WDL, three weightings of the result (looking for the best one), each SPRT against 2.
 Then decide according to what was reached.
