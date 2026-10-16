@@ -387,6 +387,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    the new set (10 M HCE games from the new book, depth 9, play values as labels) beats the old sets 1-6.
 4. Old + new set, 20 M x 800, SPRT against 2.
    **H1 accepted after 1728 games, bounds -2/+3** (Mac Studio, 12 games, 2.6+0.013, 2026-10-16 06:55-07:07).
+   Reference field (Linux, 10000 games, 10+0.05, 2026-10-16): nnue-oldnew-20m-v3.2.0-e800 2694.3 +/-6, ahead of
+   nnue-s8-40m 2674.5 +/-6 and A1 2671.0 +/-6; HCE 2417.7 +/-6. **Caveat found afterwards: the new set has no value
+   on its ~18 book plies a game (the play never searched them), so a net from it never saw early positions** - fix
+   under way (book evaluation in qet, values filled in by gamefile).
 5. New set with WDL, three weightings of the result (looking for the best one), each SPRT against 2.
 Then decide according to what was reached.
 
