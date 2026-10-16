@@ -396,6 +396,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    without one - fixed in chess-tools e703775); its nets are kept as nets-wdl95/90-noresult, their SPRTs measured
    nothing. **Again with results: WDL 0.95 (new set, book plies without value as in step 3) against step 3 - H1
    accepted after 1404 games, bounds -2/+3** (Mac Studio, 12 games, 2.6+0.013, 2026-10-16 17:26-17:36).
+   **WDL 0.95 against step 4 (old + new set, no WDL): H1 accepted after 3752 games, bounds -2/+3** (2026-10-16
+   17:50-18:21; 51.99 %, W 1069 D 1763 L 920) - the new set alone with WDL 0.95 is now the best net.
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
