@@ -396,7 +396,12 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
 7. (Volker 2026-10-16) Old + new set at 40 M x 800 - the one left with a chance to beat 4 (WDL looks like no gain).
-8. (Volker 2026-10-16) Buckets with old + new, 20 M x 800, to see whether old + new profits from them.
+8. (Volker 2026-10-16) One bucket (--stacks 1) with old + new, 20 M x 800, to see whether old + new profits from them. Against the best 8-bucket
+   20 M x 800 net (curr if it beats 4, else 4).
+9. (Volker 2026-10-16) The book plies of the new set, evaluated once each (qet --bookeval, depth 9, HCE), two ways:
+   (a) the values filled into all 10 M games (gamefile --pgn2gam book=) - early positions weighted as in the old sets;
+   (b) the evaluated book as a set of its own (gamefile --book2gam, every book position once) beside the games
+   without their book plies. Both old + new, 20 M x 800; SPRT against 4 and against each other.
 Then decide according to what was reached.
 
 **What the new set is tested for (Volker 2026-10-11).** Always against the best set so far (sets 1-6, nowdl),
