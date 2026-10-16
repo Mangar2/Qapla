@@ -398,6 +398,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    accepted after 1404 games, bounds -2/+3** (Mac Studio, 12 games, 2.6+0.013, 2026-10-16 17:26-17:36).
    **WDL 0.95 against step 4 (old + new set, no WDL): H1 accepted after 3752 games, bounds -2/+3** (2026-10-16
    17:50-18:21; 51.99 %, W 1069 D 1763 L 920) - the new set alone with WDL 0.95 is now the best net.
+   Reference field (Linux, 10000 games, 10+0.05, 2026-10-16 18:50-21:30): nnue-wdl95-20m-v3.2.0-e800 2692.8 +/-6,
+   step 4 (oldnew) 2684.0 +/-6, HCE 2407.4 +/-6.
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
@@ -412,6 +414,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    without their book plies. Both old + new, 20 M x 800; SPRT against 4 and against each other.
    Volker 2026-10-16: if (a) against (b) comes out undecided, (b) - the book as a book, every position once - is the
    standard for all further trainings (the logical one; the old sets already overweight the start positions).
+   **(a) filled against 4: undecided after 15000 games** (LLR -1.79, bounds -2/+3; 49.77 %, W 3694 D 7542 L 3764;
+   Mac Studio 2026-10-16 19:45-21:50).
 10. (Volker 2026-10-16) After the WDL weighting is settled: the old sets together with the new set with WDL at the
    best blend - (a) sets 1-6 without results (`oldwdl1`), SPRT against the best WDL net; (b) sets 1-3 with results
    (equal players: HCE-HCE, nnue1-nnue1, nnue2-nnue2), 4-6 without (`oldwdl2`), SPRT against (a). The trainer weights
