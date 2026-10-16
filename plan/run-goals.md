@@ -392,6 +392,11 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    on its ~18 book plies a game (the play never searched them), so a net from it never saw early positions** - fix
    under way (book evaluation in qet, values filled in by gamefile).
 5. New set with WDL, three weightings of the result (looking for the best one), each SPRT against 2.
+6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
+   set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
+   Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
+7. (Volker 2026-10-16) Old + new set at 40 M x 800 - the one left with a chance to beat 4 (WDL looks like no gain).
+8. (Volker 2026-10-16) Buckets with old + new, 20 M x 800, to see whether old + new profits from them.
 Then decide according to what was reached.
 
 **What the new set is tested for (Volker 2026-10-11).** Always against the best set so far (sets 1-6, nowdl),
