@@ -404,6 +404,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    (a) the values filled into all 10 M games (gamefile --pgn2gam book=) - early positions weighted as in the old sets;
    (b) the evaluated book as a set of its own (gamefile --book2gam, every book position once) beside the games
    without their book plies. Both old + new, 20 M x 800; SPRT against 4 and against each other.
+   Volker 2026-10-16: if (a) against (b) comes out undecided, (b) - the book as a book, every position once - is the
+   standard for all further trainings (the logical one; the old sets already overweight the start positions).
 Then decide according to what was reached.
 
 **What the new set is tested for (Volker 2026-10-11).** Always against the best set so far (sets 1-6, nowdl),
