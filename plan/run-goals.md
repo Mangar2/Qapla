@@ -412,6 +412,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    without their book plies. Both old + new, 20 M x 800; SPRT against 4 and against each other.
    Volker 2026-10-16: if (a) against (b) comes out undecided, (b) - the book as a book, every position once - is the
    standard for all further trainings (the logical one; the old sets already overweight the start positions).
+10. (Volker 2026-10-16) After the WDL weighting is settled: the old sets together with the new set with WDL at the
+   best blend - (a) sets 1-6 without results (`oldwdl1`), SPRT against the best WDL net; (b) sets 1-3 with results
+   (equal players: HCE-HCE, nnue1-nnue1, nnue2-nnue2), 4-6 without (`oldwdl2`), SPRT against (a). The trainer weights
+   per position, so files with and without results train together without a change.
 Then decide according to what was reached.
 
 **What the new set is tested for (Volker 2026-10-11).** Always against the best set so far (sets 1-6, nowdl),
