@@ -431,8 +431,9 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **c2 (c1 + sets 1-6 without results, 0.75) against c1: H1 accepted after 4541 games, bounds -2/+3** (Mac Studio,
    2026-10-17 18:47-19:24; 51.61 %, W 1241 D 2205 L 1095) - the old data helps under WDL too. Then c2 against wdl80
    (whether it is the new best net; not one factor): **c2 against wdl80: H1 accepted after 4828 games, bounds
-   -2/+3** (2026-10-17 19:25-20:06; 51.50 %, W 1274 D 2425 L 1129). **c2 is the best net**; it joins the
-   reference field (Linux, from 20:0x).
+   -2/+3** (2026-10-17 19:25-20:06; 51.50 %, W 1274 D 2425 L 1129). **c2 is the best net**; reference field
+   (Linux, 10000 games, 20:07-22:20): nnue-c2-20m-v3.2.0-e800 2700.5 +/-6, wdl80 2691.2 +/-7, wdl75 2678.8 +/-6,
+   HCE 2361.1 +/-6 - c2 +339 over HCE.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
    against c1 at 0.80 (WDL in the book), c3 against c2 (the results of the old sets). **Goal: a final set that uses
