@@ -435,7 +435,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
    **H0 accepted after 10490 games, bounds -2/+3** against 4 (Mac Studio, 12 games, 2.6+0.013, 2026-10-16
    13:15-14:42; 49.40 %, W 2406 D 5552 L 2532). 4 stays the best 8-bucket 20 M net.
-7. (Volker 2026-10-16) Old + new set at 40 M x 800 - the one left with a chance to beat 4 (WDL looks like no gain).
+7. (Volker 2026-10-16) Old + new set at 40 M x 800 - the one left with a chance to beat 4. (Written when the first
+   WDL runs looked like no gain - they had trained without results; with results WDL is the largest step, see 5.)
 8. (Volker 2026-10-16) One bucket (--stacks 1) with old + new, 20 M x 800, to see whether old + new profits from them. Against the best 8-bucket
    20 M x 800 net (curr if it beats 4, else 4).
 9. (Volker 2026-10-16) The book plies of the new set, evaluated once each (qet --bookeval, depth 9, HCE), two ways:
