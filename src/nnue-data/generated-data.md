@@ -735,4 +735,11 @@ independent set of 10 M games. Built from the 10 M book like that one from the 1
     printf 'nnuebook add test/nnue/start-positions-10m.bok out tmp/book100m/start-positions-100m.bok \
         leaves 90000000 sd 8 collect 2 margin 100 seed 3\nquit\n' | new-versions/Qapla-bookgen-mac stat
 
-Started 19:10 on the M4 (log `tmp/book100m/bookgen.log`).
+19:10-19:51 on the M4: `Searches: 465791, candidates: 176229252, rejected in check: 17402319, mate: 125114, off
+margin: 55300469, lines: 103401350, new leaves: 90000000` - **Book: 174,845,166 moves, 100,000,020 leaves**,
+`test/nnue/start-positions-100m.bok` (T7, 350 MB). As the opening library: `nnueopenings ...
+start-positions-100m.pgn`, 100,000,020 lines in 2 min, 18.9 GB (T7). The 9-bit book for the evaluation again from
+the pgn (`gamefile --pgn2book`, 17 min; nodes as the generator's book, only the header differs), then
+`qet --bookeval` version 2 on the M4 from 20:11 (9 engines, `Qapla-set1-hce`, depth 9; 174,845,167 positions,
+~460 a second at the start - 4 to 7 days with the M4's throttling; out `tmp/book100m/start-positions-100m-eval-v2.bok`,
+log `tmp/book100m/bookeval.log`, resumable with the identical call).
