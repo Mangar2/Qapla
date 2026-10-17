@@ -433,6 +433,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    (whether it is the new best net; not one factor): **c2 against wdl80: H1 accepted after 4828 games, bounds
    -2/+3** (2026-10-17 19:25-20:06; 51.50 %, W 1274 D 2425 L 1129). **c2 is the best net**; it joins the
    reference field (Linux, from 20:0x).
+   **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
+   tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
+   against c1 at 0.80 (WDL in the book), c3 against c2 (the results of the old sets). **Goal: a final set that uses
+   the winning choice of every factor**, trained once all factors are decided.
    **Old and new data together with WDL** (Volker 2026-10-17, replaces 10. below), blend 0.75, the book once as
    standard, one factor per step: c1 = new set with results + book, against wdl75 (the book under WDL); c2 = c1 +
    sets 1-6 without results, against c1 (the old data); c3 = c1 + sets 1-3 with results and 4-6 without, against
