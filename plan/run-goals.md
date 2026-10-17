@@ -402,7 +402,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    step 4 (oldnew) 2684.0 +/-6, HCE 2407.4 +/-6.
    **WDL 0.90 against WDL 0.95 (both new set, with results): H1 accepted after 1983 games, bounds -2/+3** (Mac
    Studio, 12 games, 2.6+0.013, 2026-10-17 04:27-04:44; 53.73 %, W 578 D 975 L 430). 0.90 joins the reference
-   field; 0.85 is in training.
+   field; 0.85 is in training. Reference field (Linux, 10000 games, 2026-10-17 04:46-06:57):
+   nnue-wdl90-20m-v3.2.0-e800 2698.3 +/-6, wdl95 2683.0 +/-6, step 4 (oldnew) 2674.2 +/-6, HCE 2397.6 +/-6.
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
