@@ -421,6 +421,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    Mac Studio 2026-10-16 19:45-21:50).
    **(b) bookonce against 4: H1 accepted after 12102 games, bounds -2/+3** (50.64 %, W 3118 D 6020 L 2964; Mac
    Studio 2026-10-17 02:22-04:04). (b) is the standard for the book plies from now on.
+   **(a) filled against (b) bookonce: H0 accepted after 5588 games, bounds -2/+3** (48.73 %, W 1374 D 2698
+   L 1516; Mac Studio 2026-10-17 04:05-05:10, paused 04:27-04:45 for the WDL 0.90 SPRT).
 10. (Volker 2026-10-16) After the WDL weighting is settled: the old sets together with the new set with WDL at the
    best blend - (a) sets 1-6 without results (`oldwdl1`), SPRT against the best WDL net; (b) sets 1-3 with results
    (equal players: HCE-HCE, nnue1-nnue1, nnue2-nnue2), 4-6 without (`oldwdl2`), SPRT against (a). The trainer weights
