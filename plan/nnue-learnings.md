@@ -184,8 +184,9 @@ weight against the previous: 0.90 > 0.95 H1 after 1983, 0.85 > 0.90 H1 after 439
 0.75 > 0.80 H1 after 11640 (the decisions getting slower: the optimum flattens), 0.60 against 0.75 **H0 after
 2979**. Closing run 0.75 against 0.95: **H1 after 1620 games** (all bounds -2/+3, Mac Studio, 2.6+0.013,
 2026-10-16/17). Reference field 2026-10-17 (one table): wdl80 2709.5 +/-7, wdl85 2690.2 +/-6, wdl90 2680.2
-+/-6, wdl95 2664.9 +/-6, oldnew (no results) 2656.0 +/-6; at 15:00, still running: wdl75 2684.8 +/-7 (7600
-games), wdl60 2667.5 +/-7 (7577). Between 0.75 and 0.80 SPRT (0.75 better) and reference field (0.80 ahead,
++/-6, wdl95 2664.9 +/-6, oldnew (no results) 2656.0 +/-6; completed at 16:3x (the scale had shifted by ~12):
+wdl80 2697.9 +/-7, wdl75 2685.5 +/-6, wdl85 2678.6 +/-6, wdl90 2668.6 +/-6, wdl60 2665.5 +/-6, wdl95 2653.2 +/-6,
+oldnew 2644.4 +/-6. Between 0.75 and 0.80 SPRT (0.75 better) and reference field (0.80 ahead,
 about 12 +/-11) disagree; the two measure against different opponents at different time controls - flat
 there either way.
 
