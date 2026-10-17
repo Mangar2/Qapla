@@ -39,6 +39,12 @@ report to Volker:
 - the trend over all steps, not just the last one
 - what runs where (GPU, game cores, every machine), what each will deliver and when, what would become useless
 - what each next step costs (training ~2 h, SPRT 0.5-2 h, reference field ~2 h) and what it can tell
+- **what the project already knows**: search the docs (`plan/run-goals.md`, `plan/version-log.md`,
+  `src/nnue-data/generated-data.md`, the trainer README and the skills) and the reference sources (nnue-pytorch,
+  Stockfish) for earlier tests of the same question - their result, their method and how it differs from today's -
+  and for the values others use. Example missed 2026-10-17 for the WDL weight: the first WDL test on set 1 (blend
+  0.8-0.7 cost 79 Elo, 0.95 helped) and the lambda of nnue-pytorch/Stockfish (default 1.0, trainer README: towards
+  0.7 from the second generation).
 
 ## 3. Make the decision
 
