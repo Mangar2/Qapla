@@ -425,6 +425,9 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **Volker 2026-10-17 17:0x: the standard is blend 0.80** (the reference field result is the basis); every new
    test 1:1 against the last 0.80 net (wdl80) until something better exists. c1 and c2 (0.75, started before)
    finish and are compared within the 0.75 line (c1 against wdl75, c2 against c1).
+   **c1 (new set with results + book, 0.75) against wdl75: H1 accepted after 12112 games, bounds -2/+3** (Mac
+   Studio, 2026-10-17 16:30-18:12; 50.62 %, W 3049 D 6163 L 2900) - the book helps under WDL too. c2 was stopped
+   by mistake at epoch 357 (17:31) and resumed from its checkpoint (17:32).
    **Old and new data together with WDL** (Volker 2026-10-17, replaces 10. below), blend 0.75, the book once as
    standard, one factor per step: c1 = new set with results + book, against wdl75 (the book under WDL); c2 = c1 +
    sets 1-6 without results, against c1 (the old data); c3 = c1 + sets 1-3 with results and 4-6 without, against
