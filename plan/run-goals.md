@@ -428,6 +428,9 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **c1 (new set with results + book, 0.75) against wdl75: H1 accepted after 12112 games, bounds -2/+3** (Mac
    Studio, 2026-10-17 16:30-18:12; 50.62 %, W 3049 D 6163 L 2900) - the book helps under WDL too. c2 was stopped
    by mistake at epoch 357 (17:31) and resumed from its checkpoint (17:32).
+   **c2 (c1 + sets 1-6 without results, 0.75) against c1: H1 accepted after 4541 games, bounds -2/+3** (Mac Studio,
+   2026-10-17 18:47-19:24; 51.61 %, W 1241 D 2205 L 1095) - the old data helps under WDL too. Then c2 against wdl80
+   (whether it is the new best net; not one factor).
    **Old and new data together with WDL** (Volker 2026-10-17, replaces 10. below), blend 0.75, the book once as
    standard, one factor per step: c1 = new set with results + book, against wdl75 (the book under WDL); c2 = c1 +
    sets 1-6 without results, against c1 (the old data); c3 = c1 + sets 1-3 with results and 4-6 without, against

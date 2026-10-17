@@ -199,6 +199,12 @@ A trap on the way: the first WDL runs (2026-10-16) trained without any result - 
 [Result] tag, qet writes min=true pgns without one (fixed in chess-tools e703775). Their nets are kept as
 `-noresult`; their SPRTs measured nothing. A conversion is checked for its results before it is trained.
 
+## 14. The old sets still help - beside the new set with WDL
+
+**Confirmed**: the new set with results + book (blend 0.75) with sets 1-6 (9 M games, depth-6 HCE labels, without
+results) against the same without them: **H1 accepted after 4541 games**, bounds -2/+3 (2026-10-17). Without
+WDL the same had held (old + new against old, entry 11).
+
 ## Tried, and level with the best net of its day
 
 Each against the best net of the same training at the time, one factor different:
