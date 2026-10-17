@@ -700,3 +700,11 @@ The same book as rate and significance (Volker 2026-10-17): `test/nnue/start-pos
 `gamefile --wdl2rate in=start-positions-10m-wdl.bok out=...` (reproduced byte for byte). Of the 604,279 nodes with
 16 games or more, 12,433 were always lost and 13,873 always won; of the 16,880,396 nodes with 1-15 games,
 6,446,085 and 4,835,940 (13,829,821 nodes carry a single game).
+
+Created from the evaluated book as template (Volker 2026-10-17, chess-tools 03f8e4c):
+`gamefile --bookwdl book=start-positions-10m-eval.bok out=start-positions-10m-eval-wdl.bok
+rate=start-positions-10m-eval-wdlrate.bok in=games-book10m-d9-clean/part-01..10.pgn` (138 s, M4; both on the T7,
+symlinked in test/nnue). `-eval-wdlrate` (`qapla-score-wdl-rate-v1`, 4 bytes: int16 score of the position the move
+is played from, rate, significance) is the book to use; `-eval-wdl` (`qapla-score-wdl-count-v1`, score + three
+uint32) is the source for training it further. Every node carries a score (7,484,656 evaluated positions);
+counts and statistics as above. Reproduced byte for byte here.
