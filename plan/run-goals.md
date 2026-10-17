@@ -414,6 +414,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    10:28-12:07; 50.66 %, W 2903 D 5987 L 2750) - the games to the decision rose from 2-4 k to 11.6 k. 0.70 was
    started and aborted after 4 min for 0.60 (a point beyond the expected optimum). Volker 2026-10-17: 0.75 and
    0.60 go into the reference field without a won head to head, to measure the curve.
+   Closing run of the series (CLAUDE.md): **WDL 0.75 against WDL 0.95: H1 accepted after 1620 games, bounds
+   -2/+3** (2026-10-17 12:08-12:21; 54.72 %, W 503 D 767 L 350).
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
