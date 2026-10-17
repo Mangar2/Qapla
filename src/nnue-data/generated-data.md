@@ -693,3 +693,10 @@ wins, draws, losses of the side that plays the node's move). Built on the M4 wit
 `gamefile --bookwdl book=<9-bit book of start-positions-10m.pgn> out=... in=games-book10m-d9-clean/part-01..10.pgn`
 (138 s). 10,000,020 games read and counted, none without a result, none outside the book; 1-0 3,790,628,
 0-1 3,667,526, 1/2 2,541,866; 179,477,454 counts in book nodes. Read back with `--book2pgn values=true`.
+
+The same book as rate and significance (Volker 2026-10-17): `test/nnue/start-positions-10m-wdlrate.bok` (on the T7,
+70 MB), payload `qapla-wdl-rate-v1` - byte 1 the score (W + D/2)/N of the side that plays the move on 0..255
+(0 and 255 only at exactly 0 % / 100 %), byte 2 floor(log2 N) + 1. Built with chess-tools c7cdf9e,
+`gamefile --wdl2rate in=start-positions-10m-wdl.bok out=...` (reproduced byte for byte). Of the 604,279 nodes with
+16 games or more, 12,433 were always lost and 13,873 always won; of the 16,880,396 nodes with 1-15 games,
+6,446,085 and 4,835,940 (13,829,821 nodes carry a single game).
