@@ -684,3 +684,12 @@ the values of the play itself are the labels - qet writes them into the pgn (`ev
 every game is a new one; labelled with `Qapla-hce-linux` at depth 8, 1 thread, as set 1. Converted on the Mac:
 `test/nnue/dataset/set1b-hce-t2-depth6.gam` and `-nowdl.gam`, 139,007,738 plies with a value, 21,958 games
 truncated at 255 plies.
+
+### The 10 M book with W/D/L counts (2026-10-17)
+
+Volker 2026-10-17: the book of the new set trained with the results of its 10 M games -
+`test/nnue/start-positions-10m-wdl.bok` (on the T7, 245 MB), payload `qapla-wdl-count-v1` (three uint32 per node:
+wins, draws, losses of the side that plays the node's move). Built on the M4 with chess-tools 26534de:
+`gamefile --bookwdl book=<9-bit book of start-positions-10m.pgn> out=... in=games-book10m-d9-clean/part-01..10.pgn`
+(138 s). 10,000,020 games read and counted, none without a result, none outside the book; 1-0 3,790,628,
+0-1 3,667,526, 1/2 2,541,866; 179,477,454 counts in book nodes. Read back with `--book2pgn values=true`.
