@@ -422,6 +422,9 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    field figures of 0.75 and 0.60 complete the curve - reference field, 10000 games each, 2026-10-17 16:3x: wdl80
    2697.9 +/-7, wdl75 2685.5 +/-6, wdl85 2678.6 +/-6, wdl90 2668.6 +/-6, wdl60 2665.5 +/-6, wdl95 2653.2 +/-6, oldnew
    2644.4 +/-6, HCE 2367.7 +/-6.
+   **Volker 2026-10-17 17:0x: the standard is blend 0.80** (the reference field result is the basis); every new
+   test 1:1 against the last 0.80 net (wdl80) until something better exists. c1 and c2 (0.75, started before)
+   finish and are compared within the 0.75 line (c1 against wdl75, c2 against c1).
    **Old and new data together with WDL** (Volker 2026-10-17, replaces 10. below), blend 0.75, the book once as
    standard, one factor per step: c1 = new set with results + book, against wdl75 (the book under WDL); c2 = c1 +
    sets 1-6 without results, against c1 (the old data); c3 = c1 + sets 1-3 with results and 4-6 without, against

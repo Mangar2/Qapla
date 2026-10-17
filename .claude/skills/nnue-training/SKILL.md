@@ -304,8 +304,11 @@ has no torch). Create the output directory first.
   (`src/nnue/nnue-arch.h`, also the scale the net is quantized and read with), `VALUE_SCALE` in
   `src/trainer/format.py`, in `src/nnue-data/game-file.h` and in chess-tools `game-file.h`. A .gam holds the
   probability as an 11-bit code.
-- **WDL weight of the games: blend 0.75** (`--blend-start 0.75 --blend-end 0.75`), settled 2026-10-17 by the
-  series 0.95 -> 0.60 (`plan/run-goals.md`); a position with a game result gets 25 % result, 75 % value.
+- **WDL weight of the games: blend 0.80** (`--blend-start 0.80 --blend-end 0.80`; Volker 2026-10-17 17:0x, from
+  the reference field, where wdl80 stands above wdl75 - the SPRT had preferred 0.75; the series 0.95 -> 0.60 is in
+  `plan/run-goals.md`). A position with a game result gets 20 % result, 80 % value - the same 20 % the book
+  formula below gives one game. **New nets are compared 1:1 against the last 0.80 net** (wdl80 for now) until a
+  better one exists. Runs started at 0.75 before that (c1, c2) finish and are compared within the 0.75 line.
 - **Book positions are trained once each** (bookonce, `gamefile --book2gam compact=true`), however often they
   were played. Up to 2026-10-17 they carried no WDL at all (result "none", value only).
 - **WDL in the book values** (`gamefile --book2gam ... compact=true wdl=k:4`, chess-tools 37d86c0): the
