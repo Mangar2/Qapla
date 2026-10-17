@@ -174,7 +174,8 @@ oldnew without book values: **H1 accepted after 12102 games**. The same values f
 (every opening position as often as it was played): undecided against oldnew after 15000 games, and against
 bookonce **H0 accepted after 5588 games** (bounds -2/+3). The book as a book, every position once, is the
 standard. Under WDL too: the new set with results + book against the same without book (both blend 0.75):
-**H1 accepted after 12112 games** (2026-10-17).
+**H1 accepted after 12112 games** (2026-10-17); at blend 0.80 the same comparison was undecided after 15000
+games (50.04 %) - a small step either way.
 
 ## 13. The game result helps a lot - at blend 0.75, a quarter result
 
