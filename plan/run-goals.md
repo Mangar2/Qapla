@@ -416,6 +416,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    0.60 go into the reference field without a won head to head, to measure the curve.
    Closing run of the series (CLAUDE.md): **WDL 0.75 against WDL 0.95: H1 accepted after 1620 games, bounds
    -2/+3** (2026-10-17 12:08-12:21; 54.72 %, W 503 D 767 L 350).
+   **WDL 0.60 against WDL 0.75: H0 accepted after 2979 games, bounds -2/+3** (2026-10-17 12:36-13:01; 47.67 %,
+   W 671 D 1498 L 810). **The WDL weighting is settled: blend 0.75** for every further training with results. The
+   optimum lies between 0.60 and 0.80, flat at 0.75-0.80; a point at 0.70 would not pay for itself. The reference
+   field figures of 0.75 and 0.60 complete the curve (Linux, ~16:00).
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
