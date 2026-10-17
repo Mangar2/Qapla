@@ -40,8 +40,9 @@ set12345 62.7 %, 5000 games each).
 **Corrected 2026-10-17: not shown.** Measured with one factor (2026-10-08): s1-sflike e800 (one head) against
 s8-sflike e800 (eight heads), the same trainer and command, only `--stacks` different - one head 50.92 %, +/-9
 each, 3000 games, no measurable difference; in the reference field later s1-sflike 2604.5 +/-6, s8-sflike
-2600.6 +/-5. The test on today's data (old + new set + book, one head against eight, SPRT) runs since
-2026-10-17. The original entry, kept as it was:
+2600.6 +/-5. On today's data (old + new set + book, 20 M x 800, trainer 3.2.0) one head against eight:
+**H0 accepted after 10777 games**, bounds -2/+3 (2026-10-17) - one head not better; eight stay the standard,
+as they cost nothing measurable either. The original entry, kept as it was:
 
 **Confirmed** (two factors - see the revision note): the best net with eight heads (set123456, epoch 14) scored +17 Elo against the best
 single-head net (set1234) over 10000 games (qet: +/-5). The two were trained on different corpora,
@@ -204,7 +205,8 @@ Each against the best net of the same training at the time, one factor different
 - **Wider accumulator** A1, 512 x 16 against 256 x 32, the same training (20 M): 50.70 % for 256 x 32, +/-9 each,
   3000 games (2026-10-10). The cheaper 256 x 32 stays.
 - **PSQT** (a learned piece-square part per bucket): 49.12 %, +/-9 each, 3000 games (2026-10-09).
-- **Eight heads instead of one** under today's training: 50.92 % for one head (entry 3).
+- **One head instead of eight** under today's training: 50.92 % for one head; on today's data H0 after 10777
+  games (entry 3).
 - **Wider label search** (lowsel, nolmr) under today's training: 50.78 % and 50.00 % (entry 6).
 - **Trainer 3.2.0** (own Metal kernels, 1.9x faster) against 3.0.0, same data and command: **H0 accepted after
   8933 games**, bounds -2/+3 - kept for its speed (Volker 2026-10-15).

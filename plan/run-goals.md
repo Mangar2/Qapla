@@ -439,6 +439,9 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    WDL runs looked like no gain - they had trained without results; with results WDL is the largest step, see 5.)
 8. (Volker 2026-10-16) One bucket (--stacks 1) with old + new, 20 M x 800, to see whether old + new profits from them. Against the best 8-bucket
    20 M x 800 net (curr if it beats 4, else 4).
+   Run with the book as standard (2026-10-17): bookonce1 = old + new set + book, --stacks 1, against bookonce (8
+   stacks, otherwise identical): **H0 accepted after 10777 games, bounds -2/+3** (Mac Studio, 14:27-15:58; 49.38 %,
+   W 2659 D 5326 L 2792). The 8 stacks stay.
 9. (Volker 2026-10-16) The book plies of the new set, evaluated once each (qet --bookeval, depth 9, HCE), two ways:
    (a) the values filled into all 10 M games (gamefile --pgn2gam book=) - early positions weighted as in the old sets;
    (b) the evaluated book as a set of its own (gamefile --book2gam, every book position once) beside the games
