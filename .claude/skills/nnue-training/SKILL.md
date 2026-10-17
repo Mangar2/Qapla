@@ -182,7 +182,8 @@ play (qet, depth 6)  ->  template pgn  ->  label (qet analysis, depth 8, directi
   2026-10-05). Who played them: set 1 HCE-HCE (1/9 of the games), set 2 nnue1-nnue1, set 3 nnue2-nnue2,
   set 4 nnue1-HCE, set 5 nnue2-HCE, set 6 nnue1-nnue2. Positions with a value: 139 M, 124 M, 138 M,
   190 M, 252 M, 197 M. Each exists as `<set>.gam` (with
-  results) and `<set>-nowdl.gam` (result RESULT_NONE). **nowdl trains better** - use it.
+  results) and `<set>-nowdl.gam` (result RESULT_NONE). nowdl trained better on set 1 in September (0.x trainer);
+  on the new set the results help a lot (blend 0.80, see "Value, win probability and WDL").
 - The template pgn of a set is not kept; it is derivable from the .gam.
 - **Converters** - use the C++ tool, byte-identical to the Python scripts and ~60x faster:
   `~/dev/qapla/chess-tools/build/release/gamefile --pgn2gam in=<pgn> out=<gam> wdl=none`
@@ -191,6 +192,20 @@ play (qet, depth 6)  ->  template pgn  ->  label (qet analysis, depth 8, directi
   in `~/dev/qapla/chess-tools`.
 - A subset of a .gam by game index: `format.read_games` / `format.write_games` in a few lines of
   Python, run from `src/trainer`.
+
+### The new sets: one game per leaf of a large book (Volker 2026-10-11 / 2026-10-17)
+
+The data that made the best nets: a book of N leaves (Qapla's `nnuebook add`, `new-versions/Qapla-bookgen-mac`), one
+game per leaf HCE against HCE at depth 9, the play values as labels, the results for WDL; the book itself evaluated
+once (`qet --bookeval`, version 2) and trained once per position (bookonce). Details and commands in
+`src/nnue-data/generated-data.md`.
+
+**For more data (Volker 2026-10-17): a book ten times the largest so far - 100 M leaves** (`start-positions-100m.bok`,
+the 10 M book extended by 90 M leaves, seed 3), built and evaluated on the M4. **Once evaluated it is split into 10
+books** with `gamefile --booksplit in=<book> out=<name>.bok parts=10` (chess-tools 4add7dc, Volker's splitter: leaf i
+in book order goes with its line into part (i mod 10) + 1, so every part gets all opening moves alike, each carries
+the payload, together they hold every line once). **Each part is the start of an independent training set** - 10
+sets of 10 M games that can be produced one after another, on any machine.
 
 ### Labelling (relabelling a set with another engine)
 

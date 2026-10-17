@@ -725,3 +725,14 @@ builds agree (5 positions at depth 9; 358,841 values of a sample of the book).
   (`wdl=w:0.20`, fixed 20 %) and `book10m-d9-bookonce-wdl-k4.gam` (`wdl=k:4`, w = N/(N+4)), both 4,330,676 lines,
   7,484,656 values, no results; 7,472,276 values mixed, 12,380 mate scores unchanged; mean |target - p| 0.051 and
   0.082. On the T7 (dataset) and on the Mac Studio, md5 identical.
+
+### The book of 100 M start positions (2026-10-17, building)
+
+Volker 2026-10-17: more training data will be needed - a book ten times the 10 M book, built and evaluated on the
+M4, then split into 10 books (`gamefile --booksplit ... parts=10`, chess-tools 4add7dc), each the start of an
+independent set of 10 M games. Built from the 10 M book like that one from the 1 M book, seed 3:
+
+    printf 'nnuebook add test/nnue/start-positions-10m.bok out tmp/book100m/start-positions-100m.bok \
+        leaves 90000000 sd 8 collect 2 margin 100 seed 3\nquit\n' | new-versions/Qapla-bookgen-mac stat
+
+Started 19:10 on the M4 (log `tmp/book100m/bookgen.log`).
