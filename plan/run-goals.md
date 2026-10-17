@@ -424,6 +424,12 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    standard, one factor per step: c1 = new set with results + book, against wdl75 (the book under WDL); c2 = c1 +
    sets 1-6 without results, against c1 (the old data); c3 = c1 + sets 1-3 with results and 4-6 without, against
    c2 (the results of the equal-player sets). Later: the mix of old and new, the WDL rate of the book.
+   **WDL in the book values** (Volker 2026-10-17; the rule is in the nnue-training skill, "Value, win
+   probability and WDL"): target = (1 - w) * sigmoid(score/400) + w * rate, w = N/(N+4) (20 % at one game, towards
+   100 % at many), the same conversion as everywhere. Two steps, one factor each: (1) the book with a fixed
+   w = 0.25 against c1 (WDL in the book at all); (2) w = N/(N+4) against (1) - probably not measurable, taken for
+   being the logical one unless it loses. Needs the v2 book (M4, ~18:20) and `gamefile --book2gam wdl=`
+   (chess-tools 37d86c0).
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.

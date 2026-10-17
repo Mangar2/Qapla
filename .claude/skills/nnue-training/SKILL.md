@@ -297,6 +297,30 @@ has no torch). Create the output directory first.
 - Strength follows positions processed, not distinct positions; without heads the plateau was
   ~4-6 G positions at ~62-63 % against HCE.
 
+### Value, win probability and WDL - fixed, everywhere the same (Volker 2026-10-17)
+
+- **One conversion, never changed in one place alone:** probability = 1 / (1 + exp(-value / 400)), value
+  in the engine's unit (a pawn 80-95, what Qapla reports as UCI cp). The 400 is `NET_VALUE_SCALE`
+  (`src/nnue/nnue-arch.h`, also the scale the net is quantized and read with), `VALUE_SCALE` in
+  `src/trainer/format.py`, in `src/nnue-data/game-file.h` and in chess-tools `game-file.h`. A .gam holds the
+  probability as an 11-bit code.
+- **WDL weight of the games: blend 0.75** (`--blend-start 0.75 --blend-end 0.75`), settled 2026-10-17 by the
+  series 0.95 -> 0.60 (`plan/run-goals.md`); a position with a game result gets 25 % result, 75 % value.
+- **Book positions are trained once each** (bookonce, `gamefile --book2gam compact=true`), however often they
+  were played. Up to 2026-10-17 they carried no WDL at all (result "none", value only).
+- **WDL in the book values** (`gamefile --book2gam ... compact=true wdl=k:4`, chess-tools 37d86c0): the
+  value of a book position is mixed in probability space with the score rate r = (W + D/2)/N of the N games
+  through it: target = (1 - w) * sigmoid(score/400) + w * r, **w = N / (N + 4)** - 20 % at one game, 50 % at 4,
+  80 % at 16, towards 100 % at many. Rationale (Volker): at high significance WDL is the true win
+  probability, HCE only estimates it. Consequence, intended: an early rook loss, which the games lose
+  practically always, gets ~100 % like a lost queen - more than the formula gives even a queen (rook ~76 %,
+  queen ~91 %); the meaning sits in the position, not in the piece. Mates stay unchanged, N = 0 unchanged.
+  Source: the v2 count book with scores (`--bookwdl book=<eval-v2.bok> out=<eval-v2-wdl.bok>`), where a node
+  is the position after its move for score and counts alike.
+- **Measured, for reference:** the games of the new set are much sharper than the formula - positions at 65 %
+  by the formula score 88 %, at 75 % they score 97 % (2.25 M positions of part 01, 2026-10-17). That is a
+  property of HCE playing HCE to the end, not a reason to change the 400.
+
 ## Training the Stockfish architecture on the Mac (nnue-pytorch, local branch qapla-sf17)
 
 `~/dev/qapla/nnue-pytorch`, branch `qapla-sf17` (base e215624), venv `.venv` (Python 3.12 via uv).
