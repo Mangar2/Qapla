@@ -416,6 +416,8 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    standard for all further trainings (the logical one; the old sets already overweight the start positions).
    **(a) filled against 4: undecided after 15000 games** (LLR -1.79, bounds -2/+3; 49.77 %, W 3694 D 7542 L 3764;
    Mac Studio 2026-10-16 19:45-21:50).
+   **(b) bookonce against 4: H1 accepted after 12102 games, bounds -2/+3** (50.64 %, W 3118 D 6020 L 2964; Mac
+   Studio 2026-10-17 02:22-04:04). (b) is the standard for the book plies from now on.
 10. (Volker 2026-10-16) After the WDL weighting is settled: the old sets together with the new set with WDL at the
    best blend - (a) sets 1-6 without results (`oldwdl1`), SPRT against the best WDL net; (b) sets 1-3 with results
    (equal players: HCE-HCE, nnue1-nnue1, nnue2-nnue2), 4-6 without (`oldwdl2`), SPRT against (a). The trainer weights
