@@ -708,3 +708,20 @@ symlinked in test/nnue). `-eval-wdlrate` (`qapla-score-wdl-rate-v1`, 4 bytes: in
 is played from, rate, significance) is the book to use; `-eval-wdl` (`qapla-score-wdl-count-v1`, score + three
 uint32) is the source for training it further. Every node carries a score (7,484,656 evaluated positions);
 counts and statistics as above. Reproduced byte for byte here.
+
+### The book evaluated again, version 2 - a node is the position after its move (2026-10-17)
+
+The first evaluation gave every node the score of the position before its move, while the W/D/L counts belong to
+the position after it - the combined book was shifted by one ply. Re-evaluated on the M4 (qet 0620e6c,
+`--bookeval` version 2, engine `new-versions/Qapla-set1-hce`, depth 9, 9 engines, 10:12-18:35): the 7,484,656
+values of v1 taken over exactly, the 10,000,020 leaves searched. Node counts and scores of the M4 and Linux HCE
+builds agree (5 positions at depth 9; 358,841 values of a sample of the book).
+- `test/nnue/start-positions-10m-eval-v2.bok` (`qapla-search-score-v2`, start position in header record 7)
+- `test/nnue/start-positions-10m-eval-v2-wdl.bok` (score + W/D/L counts, the source for training further) and
+  `-eval-v2-wdlrate.bok` (score + rate + significance), from `gamefile --bookwdl book=<eval-v2> ...` over the 10
+  clean parts (chess-tools 89e3f57) - counts identical to the v1 count book.
+- `book10m-d9-bookonce.gam` rebuilt from the v2 book (`--book2gam compact=true`): byte for byte the old file.
+- **WDL in the book values** (chess-tools 37d86c0, rule in the nnue-training skill): `book10m-d9-bookonce-wdl-w020.gam`
+  (`wdl=w:0.20`, fixed 20 %) and `book10m-d9-bookonce-wdl-k4.gam` (`wdl=k:4`, w = N/(N+4)), both 4,330,676 lines,
+  7,484,656 values, no results; 7,472,276 values mixed, 12,380 mate scores unchanged; mean |target - p| 0.051 and
+  0.082. On the T7 (dataset) and on the Mac Studio, md5 identical.
