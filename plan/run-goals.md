@@ -420,6 +420,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    W 671 D 1498 L 810). **The WDL weighting is settled: blend 0.75** for every further training with results. The
    optimum lies between 0.60 and 0.80, flat at 0.75-0.80; a point at 0.70 would not pay for itself. The reference
    field figures of 0.75 and 0.60 complete the curve (Linux, ~16:00).
+   **Old and new data together with WDL** (Volker 2026-10-17, replaces 10. below), blend 0.75, the book once as
+   standard, one factor per step: c1 = new set with results + book, against wdl75 (the book under WDL); c2 = c1 +
+   sets 1-6 without results, against c1 (the old data); c3 = c1 + sets 1-3 with results and 4-6 without, against
+   c2 (the results of the equal-player sets). Later: the mix of old and new, the WDL rate of the book.
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
