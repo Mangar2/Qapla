@@ -437,6 +437,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **c1-b80 (new set with results + book, blend 0.80) against wdl80: undecided after 15000 games** (LLR -0.08, bounds
    -2/+3; 50.04 %, W 3676 D 7659 L 3665; Mac Studio 20:50-22:56). At 0.80 the book shows nothing measurable (at 0.75 it
    was H1); it stays the standard as the logical one (Volker's rule for an undecided book test).
+   **c3 (c2 with the results of sets 1-3) against c2: H1 accepted after 2564 games, bounds -2/+3** (Mac Studio,
+   2026-10-17 23:05-23:26; 52.75 %, W 658 D 1389 L 517) - the results of the equal-player old sets help. **c3 is the
+   best net**; it joins the reference field (Linux, from 23:2x). In training: c1-b80-k4 (the book with WDL values,
+   k = 4) against c1-b80.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
    against c1 at 0.80 (WDL in the book), c3 against c2 (the results of the old sets). **Goal: a final set that uses
