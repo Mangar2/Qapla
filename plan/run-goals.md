@@ -410,6 +410,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    08:28-08:52; 52.45 %, W 769 D 1486 L 628). 0.80 joins the reference field; 0.75 is in training.
    Reference field (Linux, 10000 games each, 2026-10-17 07:06-11:28): wdl80 2709.5 +/-7, wdl85 2690.2 +/-6,
    wdl90 2680.2 +/-6, wdl95 2664.9 +/-6, step 4 (oldnew) 2656.0 +/-6, HCE 2379.4 +/-6.
+   **WDL 0.75 against WDL 0.80: H1 accepted after 11640 games, bounds -2/+3** (Mac Studio, 2026-10-17
+   10:28-12:07; 50.66 %, W 2903 D 5987 L 2750) - the games to the decision rose from 2-4 k to 11.6 k. 0.70 was
+   started and aborted after 4 min for 0.60 (a point beyond the expected optimum). Volker 2026-10-17: 0.75 and
+   0.60 go into the reference field without a won head to head, to measure the curve.
 6. (Volker 2026-10-16) Curriculum: epochs 1-400 old + new set, 401-800 the new set only (the "fine tuning" on the
    set that did a little better), 20 M an epoch; SPRT against 4. In the gpu gap after the wdl90 training.
    Caveat: the new set still lacks values on its book plies, so the second half sees no early positions.
