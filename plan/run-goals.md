@@ -456,7 +456,11 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    with WDL values k = 4, sets 1-3 with results, sets 4-6 by c4, blend 0.80, 40 M x 800, 256 x 32, 8 stacks) - SPRT
    against c3, then the reference field. **Once the final net is trained and shows in the Linux reference field that it
    is the best, move the evaluation of the 100 M book from the M4 to the Mac Studio** (resume there from the M4's
-   state; the same HCE build, depth 9). In training: c1-b80-k4 (the book with WDL values,
+   state; the same HCE build, depth 9).
+   **After final1 (Volker 2026-10-18): the WDL weight by bucket** - c1-b80-k4 again with `--blend-buckets
+   0.69,0.72,0.75,0.78,0.81,0.84,0.87,0.90` (bucket 7, the opening, 0.90; bucket 0, the endgame, 0.69; trainer 3.3.0,
+   0bf5a15; without the option 3.3.0 trains the nets of 3.2.0, CPU-proven) against c1-b80-k4 - the distribution of
+   the WDL weight over the game the only difference. Idea: the result says more the nearer the end of the game. In training: c1-b80-k4 (the book with WDL values,
    k = 4) against c1-b80.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
