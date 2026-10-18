@@ -16,6 +16,9 @@ RUNS is the smallest set that still reaches every option that changes a net: eac
 an epoch with Adam, fixed epochs with RangerLite or Adam), one and eight heads, the
 filters, the sizes, the worker count (it changes the order), non-default values of every number, and a
 resumed run. A new option that changes nets gets a place in one of them, or a run of its own.
+
+The fixture has no game results, so the blend has no effect on it. RUNS_WDL train a second fixture, the same
+2000 games with their results (3.3.0: before, no run reached the game result at all).
 """
 
 import argparse
@@ -33,6 +36,7 @@ import format
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SOURCE = os.path.join(HERE, '../../test/nnue/dataset/set1-hce-depth6-nowdl.gam')
+SOURCE_WDL = os.path.join(HERE, '../../test/nnue/dataset/set1-hce-depth6.gam')
 WORK = os.path.join(HERE, '../../tmp/reproducible')
 RECORD = os.path.join(HERE, 'reproducible.json')
 GAMES = 2000
@@ -55,6 +59,15 @@ RUNS = {
     'pass-adam-8heads-psqt': ['--epoch-size', '0', '--epochs', '2', '--stacks', '8', '--psqt',
                               '--workers', '2'],
 }
+# On the fixture with results: the blend as one number, and one blend per bucket.
+RUNS_WDL = {
+    'wdl-fixed-ranger-8heads-blend': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
+                                      '--stacks', '8', '--blend-start', '0.8', '--blend-end', '0.8',
+                                      '--workers', '2'],
+    'wdl-fixed-ranger-8heads-blendbuckets': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
+                                             '--stacks', '8', '--blend-buckets',
+                                             '0.69,0.72,0.75,0.78,0.81,0.84,0.87,0.90', '--workers', '2'],
+}
 # A resumed run: one epoch, then --resume to the second. Its second net is recorded.
 RESUMED = ('fixed-ranger-resumed', ['--epoch-size', '100000', '--save-every', '1', '--workers', '2'])
 
@@ -64,11 +77,11 @@ def md5(path):
         return hashlib.md5(stream.read()).hexdigest()
 
 
-def fixture():
-    path = os.path.join(WORK, 'fixture.gam')
+def fixture(source=SOURCE, name='fixture.gam'):
+    path = os.path.join(WORK, name)
     if not os.path.exists(path):
         os.makedirs(WORK, exist_ok=True)
-        format.write_games(path, list(itertools.islice(format.read_games(SOURCE), GAMES)))
+        format.write_games(path, list(itertools.islice(format.read_games(source), GAMES)))
     return path
 
 
@@ -107,6 +120,11 @@ def run_all():
         raise SystemExit('%s failed:\n%s' % (name, done.stdout[-2000:] + done.stderr[-2000:]))
     result['runs'][name] = nets(out)
     print('%-30s %s' % (name, ' '.join(m[:8] for m in result['runs'][name])), flush=True)
+    data = fixture(SOURCE_WDL, 'fixture-wdl.gam')
+    result['fixture_wdl'] = md5(data)
+    for name, options in RUNS_WDL.items():
+        result['runs'][name] = nets(train(name, options, data))
+        print('%-30s %s' % (name, ' '.join(m[:8] for m in result['runs'][name])), flush=True)
     return result
 
 
@@ -126,7 +144,7 @@ def main():
         return
     with open(RECORD) as stream:
         record = json.load(stream)
-    if result['fixture'] != record['fixture']:
+    if result['fixture'] != record['fixture'] or result['fixture_wdl'] != record.get('fixture_wdl', result['fixture_wdl']):
         raise SystemExit('the fixture differs from the recorded one - the test proves nothing')
     differ = [name for name in record['runs'] if record['runs'][name] != result['runs'].get(name)]
     missing = [name for name in result['runs'] if name not in record['runs']]

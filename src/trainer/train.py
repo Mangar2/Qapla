@@ -57,6 +57,15 @@ def pick_device(name):
     return torch.device('cpu')
 
 
+def blend_of(blend, own_features):
+    """The blend of every position of a batch: one number for all, or with --blend-buckets (a tensor of
+    one blend per bucket) the blend of each position's bucket - (pieces - 1) // 4, as the layer stack."""
+    if not torch.is_tensor(blend):
+        return blend
+    active = (own_features != netfile.FEATURE_COUNT).sum(dim=1)
+    return blend[(active // 4).clamp(max=len(blend) - 1)]
+
+
 def measure(model, cache, batch_size, device, blend, max_batches=None):
     """The mean loss over a cache, without training on it."""
     model.eval()
@@ -64,7 +73,8 @@ def measure(model, cache, batch_size, device, blend, max_batches=None):
     with torch.no_grad():
         for own, opponent, value, result, counts in cache.batches(
                 batch_size, device, shuffle=False):
-            total += float(loss_of(model(own, opponent), value, result, counts, blend))
+            total += float(loss_of(model(own, opponent), value, result, counts,
+                                   blend_of(blend, own)))
             batches += 1
             if max_batches is not None and batches >= max_batches:
                 break
@@ -173,10 +183,14 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
         if ranger:
             optimizer.eval() if on else optimizer.train()
 
+    # --blend-buckets: one fixed blend per bucket for the whole run, in training and for the held back
+    # loss alike; it replaces --blend-start and --blend-end.
+    buckets = None if arguments.blend_buckets is None else torch.tensor(
+        arguments.blend_buckets, device=device, dtype=torch.float32)
     batches = stream()
     for epoch in range(first, arguments.epochs + 1):
         blend = arguments.blend_start + (arguments.blend_end - arguments.blend_start) \
-            * (epoch - 1) / max(1, arguments.epochs - 1)
+            * (epoch - 1) / max(1, arguments.epochs - 1) if buckets is None else buckets
         model.train()
         for_inference(False)
         # The loss is summed on the device and read only when it is printed: reading it after
@@ -186,7 +200,7 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
                                    else torch.float32), time.time()
         for seen in range(1, steps + 1):
             own, opponent, value, result, counts, csr = next(batches)
-            loss = loss_of(model(own, opponent, csr), value, result, counts, blend)
+            loss = loss_of(model(own, opponent, csr), value, result, counts, blend_of(blend, own))
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
@@ -200,10 +214,11 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
         lr = scheduler.get_last_lr()[0]
         scheduler.step()
         for_inference(True)
-        line = 'epoch %d done, lr %.3g, blend %.2f, loss %.6f' % (epoch, lr, blend, total / steps)
+        line = 'epoch %d done, lr %.3g, blend %s, loss %.6f' % (
+            epoch, lr, '%.2f' % blend if buckets is None else 'by bucket', total / steps)
         if validation is not None and epoch % arguments.validate_every == 0:
             line += ', held back %.6f' % measure(model, validation, arguments.batch_size, device,
-                                                 arguments.blend_end)
+                                                 arguments.blend_end if buckets is None else buckets)
         if epoch % arguments.save_every == 0 or epoch == arguments.epochs:
             export.export(model, os.path.join(arguments.out, file_name('net', epoch, 3, 'nnue')))
         state = {'epoch': epoch, 'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
@@ -244,6 +259,11 @@ def train(arguments):
         validation = PositionCache(arguments.validation) if arguments.validation else None
     if arguments.psqt and arguments.neighbours:
         raise SystemExit('--psqt does not take --neighbours')
+    if arguments.blend_buckets is not None:
+        if arguments.epoch_size <= 0:
+            raise SystemExit('--blend-buckets only with --epoch-size')
+        print('blend by bucket (0 = fewest pieces): %s'
+              % ' '.join('%.2f' % b for b in arguments.blend_buckets), flush=True)
     if arguments.epoch_size > 0:
         if arguments.neighbours:
             raise SystemExit('--epoch-size does not take --neighbours')
@@ -356,6 +376,11 @@ if __name__ == '__main__':
                         help='weight of the search value at the first epoch')
     parser.add_argument('--blend-end', type=float, default=0.7,
                         help='and at the last one; what is left is the game result')
+    parser.add_argument('--blend-buckets', default=None,
+                        help='with --epoch-size: one blend per bucket for the whole run, comma separated, '
+                             'bucket 0 (1-4 pieces) first - the bucket of the layer stack, (pieces - 1) // 4, '
+                             'whatever --stacks is; replaces --blend-start/--blend-end, the held back loss '
+                             'too. E.g. 0.69,0.72,0.75,0.78,0.81,0.84,0.87,0.90 (Volker 2026-10-18)')
     parser.add_argument('--validation', default=None,
                         help='prefix of a cache of games not trained on, as prepare.py '
                              '--validation-every writes it')
@@ -404,6 +429,13 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='auto')
     parser.add_argument('--report-every', type=int, default=50)
     arguments = parser.parse_args()
+    if arguments.blend_buckets is not None:
+        try:
+            arguments.blend_buckets = [float(b) for b in arguments.blend_buckets.split(',')]
+        except ValueError:
+            raise SystemExit('--blend-buckets: numbers separated by commas')
+        if len(arguments.blend_buckets) != 8 or not all(0.0 <= b <= 1.0 for b in arguments.blend_buckets):
+            raise SystemExit('--blend-buckets: eight blends from 0 to 1, bucket 0 first')
     fixed = arguments.epoch_size > 0
     if arguments.epochs is None:
         arguments.epochs = 800 if fixed else 20

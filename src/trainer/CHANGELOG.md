@@ -78,6 +78,21 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 3.3.0 - 2026-10-18
+
+`--blend-buckets b0,...,b7` (Volker): one blend per bucket for the whole run - the bucket of the layer stack,
+(pieces - 1) // 4, bucket 0 the fewest pieces, whatever `--stacks` is - in training and for the held back loss;
+it replaces `--blend-start`/`--blend-end`, only with `--epoch-size`. The idea: the game result says more the
+nearer a position is to the end of the game, e.g. `0.69,0.72,0.75,0.78,0.81,0.84,0.87,0.90` (31 % result in the
+endgame, 10 % in the opening, 0.795 on average).
+- Without the option the nets are unchanged: `test_reproducible.py` identical to 3.1.0 in all runs before the
+  new ones.
+- Eight equal blends give the net of the one blend, bit for bit (0.8 x 8 against `--blend-start 0.8 --blend-end
+  0.8`, fixture with results, 8 stacks, CPU); 0.69-0.90 gives another net.
+- **The test did not reach the game result before:** its fixture is set 1 without results, so no blend ever
+  changed a net in it. `RUNS_WDL` now train the same 2000 games with their results (`fixture-wdl.gam`): the blend
+  as one number and by bucket. Recorded with this version.
+
 ## 3.2.0 - 2026-10-15
 
 Fast training on the gpu of a Mac (Volker: the trainer has to use the Mac Studio). Three changes:

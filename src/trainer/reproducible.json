@@ -28,7 +28,16 @@
     "fixed-ranger-resumed": [
       "a413845ab94927625e7807eb4bf9443c",
       "e7005248f863b49c12641e6d44677a13"
+    ],
+    "wdl-fixed-ranger-8heads-blend": [
+      "0329a4d2a96888b6f32410998ddcd87a",
+      "d7227d94ae84522171705d4e0b6be1a3"
+    ],
+    "wdl-fixed-ranger-8heads-blendbuckets": [
+      "4f6523d3d5f3c01a2aff195a7570dc86",
+      "27bbc39b0bb2d84fa9f66e20e99a56c3"
     ]
   },
-  "version": "3.1.0"
+  "fixture_wdl": "4397def0b1bdf99906bde603e5341f84",
+  "version": "3.3.0"
 }
