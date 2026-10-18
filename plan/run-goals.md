@@ -13,6 +13,12 @@ known that can be learned faster with HCE data: how much data pays, how to train
 its distribution, book), with which parameters. With HCE the sets are fastest to make; generation 2 should then need
 only fine adjustment. Open with HCE, among others: the data quantity curve (a second and further 10 M sets from the
 100 M book), training length against data size, the WDL weight by bucket.
+**The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
+is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
+(~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
+set 1 (1 M games, September) WDL hurt; the new set (10 M) optimum 0.75-0.80; old + new (19 M) the SPRT preferred 0.75
+to 0.80. **The blend is tested again whenever the data grows.** A direct test with the data at hand: the new set cut
+to 2.5 M games, blend 0.90 against 0.80 (at 10 M 0.80 won clearly) - if 0.90 wins there, the hypothesis holds.
 
 ## The programme: the best 8-bucket net out of HCE alone (Volker, 2026-10-04)
 
