@@ -224,3 +224,6 @@ Each against the best net of the same training at the time, one factor different
 - **Curriculum**: epochs 1-400 old + new set, 401-800 the new set only, against oldnew: **H0 accepted after
   10490 games**, bounds -2/+3 (2026-10-16).
 - **Book values filled into every game** against no book values: undecided after 15000 games (entry 12).
+- **WDL in the book values** (w = N/(N+4)) against the plain book, blend 0.80: undecided after 15000 games
+  (49.97 %, 2026-10-18) - taken for being the logical one.
+- **The book itself at blend 0.80** against no book: undecided after 15000 games (entry 12).

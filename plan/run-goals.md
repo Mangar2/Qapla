@@ -440,7 +440,11 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **c3 (c2 with the results of sets 1-3) against c2: H1 accepted after 2564 games, bounds -2/+3** (Mac Studio,
    2026-10-17 23:05-23:26; 52.75 %, W 658 D 1389 L 517) - the results of the equal-player old sets help. **c3 is the
    best net**; reference field (Linux, 10000 games, 23:28-01:40): nnue-c3-20m-v3.2.0-e800 2701.6 +/-7, c2 2694.1 +/-6,
-   wdl80 2684.9 +/-7, HCE 2354.8 +/-6 - c3 +347 over HCE. In training: c1-b80-k4 (the book with WDL values,
+   wdl80 2684.9 +/-7, HCE 2354.8 +/-6 - c3 +347 over HCE.
+   **c1-b80-k4 (the book with WDL values, w = N/(N+4)) against c1-b80 (the plain book), blend 0.80: undecided after
+   15000 games** (LLR -0.50, bounds -2/+3; 49.97 %, W 3565 D 7861 L 3574; Mac Studio 2026-10-18 01:06-03:12). Taken as
+   agreed: the logical one, it did not lose - the book with WDL values (k = 4) is the standard.
+   In training: c3-b80 (c3 at blend 0.80) against c3 - the blend on the combined data. In training: c1-b80-k4 (the book with WDL values,
    k = 4) against c1-b80.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
