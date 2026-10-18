@@ -21,6 +21,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "nnue-arch.h"
 
@@ -84,6 +85,15 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(const std::string& path) {
 		std::cout << "Error (cannot read net): " << path << std::endl;
 		return nullptr;
 	}
+	return readNetwork(stream, path);
+}
+
+std::unique_ptr<Network> QaplaNnue::readNetwork(const uint8_t* data, size_t size, const std::string& name) {
+	std::istringstream stream(std::string(reinterpret_cast<const char*>(data), size), std::ios::binary);
+	return readNetwork(stream, name);
+}
+
+std::unique_ptr<Network> QaplaNnue::readNetwork(std::istream& stream, const std::string& path) {
 	char magic[sizeof(NNUE_MAGIC)] = {};
 	uint32_t identifier = 0;
 	stream.read(magic, sizeof(magic));

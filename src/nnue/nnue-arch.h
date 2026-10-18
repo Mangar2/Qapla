@@ -46,7 +46,9 @@
 #include <algorithm>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <iosfwd>
 #include <memory>
 #include <string>
 
@@ -193,6 +195,12 @@ namespace QaplaNnue {
 	 * another shape, and says why on the console.
 	 */
 	std::unique_ptr<Network> readNetwork(const std::string& path);
+
+	/** The same from a net held in memory - the one compiled into the engine; name is what errors call it. */
+	std::unique_ptr<Network> readNetwork(const uint8_t* data, size_t size, const std::string& name);
+
+	/** The same from an open stream. */
+	std::unique_ptr<Network> readNetwork(std::istream& stream, const std::string& name);
 
 	/**
 	 * Writes a net, which is what the exporter of the trainer has to produce.

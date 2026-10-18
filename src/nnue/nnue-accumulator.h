@@ -63,6 +63,12 @@ namespace QaplaNnue {
 	 */
 	bool loadNetwork(const std::string& path);
 
+	/**
+	 * Loads the net compiled into the engine (src/nnue/embedded-net.cpp), the default of a build with
+	 * QAPLA_USE_NNUE; the uci option NnueFile replaces it. Returns false in a build without one.
+	 */
+	bool loadEmbeddedNetwork();
+
 	/** The net, or nullptr while none is loaded. */
 	const Network* network();
 

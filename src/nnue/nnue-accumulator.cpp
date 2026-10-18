@@ -25,6 +25,7 @@
 #include <memory>
 
 #include "nnue-accumulator.h"
+#include "embedded-net.h"
 #include "nnue-evaluator.h"
 #include "nnue-features.h"
 #include "../../basics/bits.h"
@@ -48,6 +49,18 @@ bool QaplaNnue::loadNetwork(const std::string& path) {
 	if (loaded == nullptr) return false;
 	theNetwork = std::move(loaded);
 	return true;
+}
+
+bool QaplaNnue::loadEmbeddedNetwork() {
+#ifdef QAPLA_USE_NNUE
+	auto loaded = readNetwork(reinterpret_cast<const uint8_t*>(QaplaEmbeddedNet), QaplaEmbeddedNetSize,
+		"the embedded net");
+	if (loaded == nullptr) return false;
+	theNetwork = std::move(loaded);
+	return true;
+#else
+	return false;
+#endif
 }
 
 const Network* QaplaNnue::network() {

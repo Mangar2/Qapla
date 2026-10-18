@@ -114,16 +114,13 @@ int main()
 
 #ifdef QAPLA_USE_NNUE
 	/*
-	 * Built to play with a net of its own. The file is looked for next to the
-	 * engine's working directory; the uci option NnueFile names another one.
+	 * Built to play with a net of its own: the net compiled into the engine
+	 * (src/nnue/embedded-net.cpp) is the default; the uci option NnueFile names another one.
 	 */
-	{
-		const std::string defaultNet = "qapla.nnue";
-		std::cout << (QaplaNnue::loadNetwork(defaultNet)
-			? "info string net " + defaultNet + " loaded"
-			: "info string no net at " + defaultNet + ", set the option NnueFile")
-			<< std::endl;
-	}
+	std::cout << (QaplaNnue::loadEmbeddedNetwork()
+		? "info string embedded net loaded"
+		: "info string the embedded net cannot be read, set the option NnueFile")
+		<< std::endl;
 #endif
 
 	std::cout << "Qapla " QAPLA_VERSION " (C) 2025 Volker Boehm" << std::endl;
