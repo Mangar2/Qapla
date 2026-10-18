@@ -6,6 +6,14 @@ Every run that is going, paused or planned, with the goal it serves. The goal de
 Overall goal: Qapla's own net, at the level of the Stockfish net in Qapla - about 500-600 Elo over the
 hand written evaluation.
 
+## The strategy (Volker 2026-10-18): all methodology with HCE first, then generation 2
+
+Generation 2 (games and labels from the best net) is the larger lever, but it is planned only once everything is
+known that can be learned faster with HCE data: how much data pays, how to train it (epoch size, length, blend and
+its distribution, book), with which parameters. With HCE the sets are fastest to make; generation 2 should then need
+only fine adjustment. Open with HCE, among others: the data quantity curve (a second and further 10 M sets from the
+100 M book), training length against data size, the WDL weight by bucket.
+
 ## The programme: the best 8-bucket net out of HCE alone (Volker, 2026-10-04)
 
 How do we get the best result for our 8-bucket net starting from the hand written evaluation? The steps
