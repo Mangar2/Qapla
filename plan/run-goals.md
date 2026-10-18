@@ -448,7 +448,12 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    2026-10-18 03:21-04:17; 48.99 %, W 1558 D 3405 L 1692) - on the combined data 0.80 is not the better blend.
    **Volker 2026-10-18: the final set is trained at blend 0.80** (the reference field had 0.80 ahead of 0.75 where the
    SPRTs preferred 0.75).
-   In training: c4 (c3 with the results of sets 4-6 too) against c3. In training: c1-b80-k4 (the book with WDL values,
+   In training: c4 (c3 with the results of sets 4-6 too) against c3.
+   **Then (agreed with Volker 2026-10-18):** the final set - every factor's winner (new set with results, book once
+   with WDL values k = 4, sets 1-3 with results, sets 4-6 by c4, blend 0.80, 40 M x 800, 256 x 32, 8 stacks) - SPRT
+   against c3, then the reference field. **Once the final net is trained and shows in the Linux reference field that it
+   is the best, move the evaluation of the 100 M book from the M4 to the Mac Studio** (resume there from the M4's
+   state; the same HCE build, depth 9). In training: c1-b80-k4 (the book with WDL values,
    k = 4) against c1-b80.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
