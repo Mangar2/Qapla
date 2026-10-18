@@ -206,7 +206,9 @@ A trap on the way: the first WDL runs (2026-10-16) trained without any result - 
 results) against the same without them: **H1 accepted after 4541 games**, bounds -2/+3 (2026-10-17). Without
 WDL the same had held (old + new against old, entry 11). **And their results help as well**: sets 1-3 (equal players: HCE-HCE, nnue1-nnue1, nnue2-nnue2) with results,
 sets 4-6 without, against all six without: **H1 accepted after 2564 games**, bounds -2/+3 (2026-10-17) - against
-the September finding on set 1 (results cost 79 Elo with the 0.x trainer, blend 0.8-0.7, 8 epochs).
+the September finding on set 1 (results cost 79 Elo with the 0.x trainer, blend 0.8-0.7, 8 epochs). **The results of games between unequal players hurt**: sets 4-6 (nnue1-HCE, nnue2-HCE, nnue1-nnue2; 6-14 %
+draws) with results as well: **H0 accepted after 1075 games** (43.16 %, 2026-10-18) - the result there says more
+about the players than about the position.
 
 ## Tried, and level with the best net of its day
 

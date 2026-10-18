@@ -448,7 +448,10 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    2026-10-18 03:21-04:17; 48.99 %, W 1558 D 3405 L 1692) - on the combined data 0.80 is not the better blend.
    **Volker 2026-10-18: the final set is trained at blend 0.80** (the reference field had 0.80 ahead of 0.75 where the
    SPRTs preferred 0.75).
-   In training: c4 (c3 with the results of sets 4-6 too) against c3.
+   **c4 (c3 with the results of sets 4-6 too, unequal players) against c3: H0 accepted after 1075 games, bounds
+   -2/+3** (Mac Studio, 2026-10-18 05:36-05:45; 43.16 %, W 203 D 522 L 350) - the results of games between unequal
+   players hurt, as Volker had assumed; sets 4-6 stay without results.
+   **final1 in training since 05:37** (Mac Studio, `tmp/book10m-d9/train-final.sh final1`, ~17 s an epoch, done ~09:30).
    **Then (agreed with Volker 2026-10-18):** the final set - every factor's winner (new set with results, book once
    with WDL values k = 4, sets 1-3 with results, sets 4-6 by c4, blend 0.80, 40 M x 800, 256 x 32, 8 stacks) - SPRT
    against c3, then the reference field. **Once the final net is trained and shows in the Linux reference field that it
