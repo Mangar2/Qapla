@@ -144,7 +144,11 @@ Sets 1 to 3, where both sides were the same player, with their results as well. 
 games between unequal players, made the net clearly weaker - there the result says more about the players
 than about the position.
 
-A net that combines every winning choice, with 40 million positions an epoch, is in training.
+### Every winning choice, with 40 million positions an epoch: +17 (+364 vs. HCE)
+
+One net from all the choices that won: the new games with their results, the book once per position with
+the score of its games mixed in, sets 1 to 3 with results and 4 to 6 without, a fifth of the target from
+the result, and epochs of 40 million positions. It is the net Qapla 2.0 carries inside the engine.
 
 ## Tried, and no better
 

@@ -460,8 +460,9 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    -2/+3** (Mac Studio, 2026-10-18 05:36-05:45; 43.16 %, W 203 D 522 L 350) - the results of games between unequal
    players hurt, as Volker had assumed; sets 4-6 stay without results.
    **final1** (Mac Studio, `tmp/book10m-d9/train-final.sh final1`, 05:37-09:41, ~18 s an epoch) **against c3: H1 accepted
-   after 4087 games, bounds -2/+3** (09:42-10:16; 51.77 %, W 1081 D 2070 L 936) - the best net; joins the reference
-   field (Linux, from 10:1x).
+   after 4087 games, bounds -2/+3** (09:42-10:16; 51.77 %, W 1081 D 2070 L 936) - the best net. Reference field (Linux,
+   10000 games, 10:17-12:3x): **nnue-final1-40m-v3.2.0-e800 2712.0 +/-7**, c3 2695.0 +/-7, HCE 2348.2 +/-6 - final1
+   +364 over HCE. Embedded as the default net of the engine (7e6881a); Linux build `new-versions/Qapla-2.0.0-001`.
    **Then (agreed with Volker 2026-10-18):** the final set - every factor's winner (new set with results, book once
    with WDL values k = 4, sets 1-3 with results, sets 4-6 by c4, blend 0.80, 40 M x 800, 256 x 32, 8 stacks) - SPRT
    against c3, then the reference field. **Once the final net is trained and shows in the Linux reference field that it
