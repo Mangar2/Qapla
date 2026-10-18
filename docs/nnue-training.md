@@ -8,11 +8,12 @@ Qapla, and every label comes from Qapla's own search. No evaluation of another e
 net. The net is meant to grow out of Qapla's hand-crafted evaluation (HCE), pulling itself up by its
 own bootstraps.
 
-**How strength is measured.** Every figure is the result of a tournament at 10+0.05 seconds per game
-from a common opening book, mostly 10,000 games per engine against a fixed reference. The figures are
-typically accurate to within about ±5 to ±15 Elo; differences smaller than that are not claimed.
-Each heading gives what a step gained over the previous one and, in brackets, where it stands against
-the HCE.
+**How strength is measured.** Whether a step is better is decided by a sequential test (SPRT) of the new
+net against the previous one, differing in that step alone. How much it is worth is measured in a
+reference field: tournaments at 10+0.05 seconds per game from a common opening book, 10,000 games per net
+against a fixed reference. Those figures are typically accurate to within about ±6 to ±7 Elo per net;
+differences smaller than that are not claimed. Each heading gives what a step gained over the previous one
+and, in brackets, where it stands against the HCE - all from one reference table (October 18, 2026).
 
 ## The net
 
@@ -20,11 +21,14 @@ A standard NNUE architecture, kept small:
 
 - **Input:** HalfKA features - every piece on its square, seen from the king of each side,
   45,056 features per perspective.
-- **Accumulator:** 256 neurons per perspective (512 in the best net, see the last step), updated
-  incrementally as moves are made and unmade; the two perspectives are concatenated.
-- **Head:** 512 → 32 → 32 → 1 with clipped ReLU (1024 → 16 → 32 → 1 in the best net), in eight copies
-  ("layer stacks"); the number of pieces on the board chooses which one evaluates a position.
+- **Accumulator:** 256 neurons per perspective, updated incrementally as moves are made and unmade; the
+  two perspectives are concatenated.
+- **Head:** 512 → 32 → 32 → 1 with clipped ReLU, in eight copies ("layer stacks"); the number of pieces
+  on the board chooses which one evaluates a position.
 - **Quantized** to 16-bit accumulator weights and 8-bit dense weights for fast integer inference.
+
+A wider net (512 accumulator neurons, 1024 → 16 → 32 → 1) was tried and played no better at the same
+amount of training, so the cheaper one stayed.
 
 ## The training data
 
@@ -56,8 +60,25 @@ positions a strong engine would never reach, while the labels still come from a 
 | 5 | early net 2 - HCE | 2 M |
 | 6 | early net 1 - early net 2 | 2 M |
 
-Together **9 million games and about 1 billion labelled positions**. The result of a game is not used
-in training.
+Together **9 million games and about 1 billion labelled positions**.
+
+### A larger book, one game per leaf
+
+The second generation of data uses the same idea at a larger scale. The book was grown from one million
+to **ten million leaves**, and from every leaf exactly one game was played, HCE against HCE, at **depth 9**.
+The evaluations of the play itself are the labels - no separate labelling pass - and the results of the
+games are kept. About 18 opening moves of each game come from the book and were never searched in the
+games; so the book itself was evaluated once, every position at depth 9, and is trained as a set of its
+own, **each book position exactly once**, however often it was played.
+
+For each book position the book also counts the wins, draws and losses of the games through it. Where
+many games went through a position, that score is a better estimate of its value than the search: its
+value is mixed with the score, with a weight that grows with the number of games (20 % for one game, 50 %
+for four, close to 100 % for many). An early lost rook, which these games lose practically always, thus
+counts like a lost queen - the meaning sits in the position, not in the piece.
+
+A book of 100 million leaves is being evaluated now; split into ten books that share the opening moves
+alike, it is the start of ten further sets that can be played independently of each other.
 
 ## The main line
 
@@ -90,8 +111,50 @@ held-back games stopped improving. We switched to a different procedure: epochs 
 RangerLite optimizer, and a learning rate that falls a little after every epoch - 800 epochs in all,
 with no stopping rule.
 
-### A wider accumulator and twice the training: +20 (+253 vs. HCE)
+### More training per epoch: +24 (+257 vs. HCE)
 
-512 accumulator neurons instead of 256, a first dense layer of 16 instead of 32, and epochs of 20
-million positions instead of 10. How much of the gain comes from the size and how much from the
-longer training is not yet measured.
+With the learning rate falling after every epoch, the size of an epoch decides how many positions the
+net sees while it still learns fast. Epochs of 20 million positions instead of 10 gave a clear gain, and 40
+million gave a little more again. (The wider net of the earlier version of this page owed its lead to the
+doubled training, not to its size.)
+
+### The new games: +20 (+277 vs. HCE)
+
+The old six sets together with the ten million new games, at half the training per epoch of the step
+before. The new set alone already beat the old six sets.
+
+### The result of the game, a fifth of the target: +53 (+330 vs. HCE)
+
+The largest step since leaving out captures. The label of a position becomes 80 % its search value and
+20 % the result of its game - the result knows what a depth-9 search does not. The share was searched from
+5 % to 40 %: each step up to 20-25 % won clearly, 40 % lost. In these games a small advantage is converted
+very reliably - positions the search gives 65 % end up scoring 88 % - and the result carries exactly that.
+
+An early test on the old set 1 had found the opposite (the result cost about 80 Elo); it used an older
+trainer, a far shorter training and other games, and did not hold up here.
+
+### Old sets, book and new games together: +9 (+339 vs. HCE)
+
+The new games with their results, the book once per position, and the six old sets without results - each
+of these confirmed separately to help.
+
+### The results of the old games between equal players: +8 (+347 vs. HCE)
+
+Sets 1 to 3, where both sides were the same player, with their results as well. The results of sets 4 to 6,
+games between unequal players, made the net clearly weaker - there the result says more about the players
+than about the position.
+
+A net that combines every winning choice, with 40 million positions an epoch, is in training.
+
+## Tried, and no better
+
+Each against the best net of its day, differing in that point only:
+
+- **A wider label search** (less pruning, about three times the nodes per label): no difference once the
+  training was the final one.
+- **A wider net** (512 instead of 256 accumulator neurons): no difference at the same training.
+- **A piece-square part per bucket**, as Stockfish has it: no difference.
+- **Fewer early positions**, as Stockfish skips them: no difference.
+- **One head instead of eight**: no difference.
+- **First all data, then the new games only** (a fine tuning on the better set): no gain.
+- **The book values written into every game** instead of once per position: no gain.
