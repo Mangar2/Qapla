@@ -462,7 +462,11 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **After final1 (Volker 2026-10-18): the WDL weight by bucket** - c1-b80-k4 again with `--blend-buckets
    0.69,0.72,0.75,0.78,0.81,0.84,0.87,0.90` (bucket 7, the opening, 0.90; bucket 0, the endgame, 0.69; trainer 3.3.0,
    0bf5a15; without the option 3.3.0 trains the nets of 3.2.0, CPU-proven) against c1-b80-k4 - the distribution of
-   the WDL weight over the game the only difference. Idea: the result says more the nearer the end of the game. In training: c1-b80-k4 (the book with WDL values,
+   the WDL weight over the game the only difference. Idea: the result says more the nearer the end of the game.
+   **Move of the 100 M book evaluation (Volker 2026-10-18):** only when the test now on the Mac Studio is through (the
+   bucket training and its SPRT against c1-b80-k4) - then the evaluation goes to the Studio with 12 engines (qet 0620e6c
+   built there, `~/dev/qapla/qapla-engine-tester/build/release`; `new-versions/Qapla-hce-53f972f-studio` gives the
+   node counts and scores of the M4's `Qapla-set1-hce` at depth 9, 6 positions; the state is the out file itself). In training: c1-b80-k4 (the book with WDL values,
    k = 4) against c1-b80.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
