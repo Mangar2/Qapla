@@ -474,7 +474,13 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **Move of the 100 M book evaluation (Volker 2026-10-18):** only when the test now on the Mac Studio is through (the
    bucket training and its SPRT against c1-b80-k4) - then the evaluation goes to the Studio with 12 engines (qet 0620e6c
    built there, `~/dev/qapla/qapla-engine-tester/build/release`; `new-versions/Qapla-hce-53f972f-studio` gives the
-   node counts and scores of the M4's `Qapla-set1-hce` at depth 9, 6 positions; the state is the out file itself). In training: c1-b80-k4 (the book with WDL values,
+   node counts and scores of the M4's `Qapla-set1-hce` at depth 9, 6 positions; the state is the out file itself).
+   **Bucket test: c1-k4-buckets (blend 0.69 endgame - 0.90 opening, trainer 3.3.0) against c1-b80-k4: H0 accepted
+   after 2467 games, bounds -2/+3** (Mac Studio, 2026-10-18 11:44-12:05; 47.28 %, W 537 D 1259 L 671) - a WDL weight
+   rising towards the endgame is not better than 0.80 everywhere.
+   **Moved 12:08:** the M4 stopped at 19,223,238 of 174,845,167 positions (SIGTERM; the out file is saved every 60 s via
+   .part), out and book copied (md5 identical), resumed on the Mac Studio with 12 engines (`Qapla-hce-53f972f-studio`):
+   155,621,929 open, ~950 positions a second, ~45 h - done ~2026-10-20 09:00. In training: c1-b80-k4 (the book with WDL values,
    k = 4) against c1-b80.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values

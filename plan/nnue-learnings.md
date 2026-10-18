@@ -229,3 +229,5 @@ Each against the best net of the same training at the time, one factor different
 - **WDL in the book values** (w = N/(N+4)) against the plain book, blend 0.80: undecided after 15000 games
   (49.97 %, 2026-10-18) - taken for being the logical one.
 - **The book itself at blend 0.80** against no book: undecided after 15000 games (entry 12).
+- **The WDL weight by bucket** (blend 0.69 in the endgame rising to 0.90 in the opening, 0.795 on average) against 0.80
+  everywhere: H0 accepted after 2467 games (47.28 %, 2026-10-18) - worse, not level.
