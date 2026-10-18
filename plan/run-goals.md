@@ -444,7 +444,9 @@ other, `test/sprt/sprt-standard.ini` (H0 -2, H1 3, maxgames 20000), nets at `--e
    **c1-b80-k4 (the book with WDL values, w = N/(N+4)) against c1-b80 (the plain book), blend 0.80: undecided after
    15000 games** (LLR -0.50, bounds -2/+3; 49.97 %, W 3565 D 7861 L 3574; Mac Studio 2026-10-18 01:06-03:12). Taken as
    agreed: the logical one, it did not lose - the book with WDL values (k = 4) is the standard.
-   In training: c3-b80 (c3 at blend 0.80) against c3 - the blend on the combined data. In training: c1-b80-k4 (the book with WDL values,
+   **c3-b80 (c3 at blend 0.80) against c3 (blend 0.75): H0 accepted after 6655 games, bounds -2/+3** (Mac Studio,
+   2026-10-18 03:21-04:17; 48.99 %, W 1558 D 3405 L 1692) - on the combined data 0.80 is not the better blend.
+   In training: c4 (c3 with the results of sets 4-6 too) against c3. In training: c1-b80-k4 (the book with WDL values,
    k = 4) against c1-b80.
    **How the tests go on (Volker 2026-10-17):** every test against the net that differs in exactly the factor
    tested, whichever is the best net at the time - c1 at 0.80 against wdl80 (the book), the book with WDL values
