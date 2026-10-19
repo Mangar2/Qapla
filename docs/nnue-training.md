@@ -150,6 +150,17 @@ One net from all the choices that won: the new games with their results, the boo
 the score of its games mixed in, sets 1 to 3 with results and 4 to 6 without, a fifth of the target from
 the result, and epochs of 40 million positions. It is the net Qapla 2.0 carries inside the engine.
 
+## Against other engines
+
+In a tournament against other engines the version with the final net gained about **315 Elo over the HCE
+version, not the 364** our reference field measures - about 15 % less. The figures on this page are
+therefore not transferable one to one to play against other engines. Two possible causes:
+
+- **A gap of more than 300 Elo is hard to measure exactly.** At scores around 80 % a few games more or less
+  move the figure a lot, and our reference field measures every net against one far weaker opponent.
+- **We optimise against ourselves.** Every step was decided by games between Qapla versions; what wins
+  there does not have to win as much against engines that play differently.
+
 ## Tried, and no better
 
 Each against the best net of its day, differing in that point only:
