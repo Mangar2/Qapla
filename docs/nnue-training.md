@@ -154,7 +154,21 @@ the result, and epochs of 40 million positions. It is the net Qapla 2.0 carries 
 
 In a tournament against other engines the version with the final net gained about **315 Elo over the HCE
 version, not the 364** our reference field measures - about 15 % less. The figures on this page are
-therefore not transferable one to one to play against other engines. Two possible causes:
+therefore not transferable one to one to play against other engines.
+
+The tournament: a gauntlet against the 16 engines of the Qapla 0.5 test set (Amoeba 3.4, Avalanche 1.3.0,
+Carp 2.0.0, Counter 3.8, Drofa 3.1.0, Lynx 1.7.0, Marvin 5.0.0, Minic 2.46, Nalwald 17.1, Princhess 0.17.0,
+Simbelmyne 1.9.0, Tcheran 7.0, Vajolet2 2.8, Viridithas 5.1.0, Willow 3.0 and Qapla 0.4.0-091), 1,000 games
+per opponent at 20+0.1 seconds, one thread each, from an 8-ply book:
+
+| | score | performance |
+|---|---|---|
+| Qapla 0.5.0-001, the HCE release | 37.7 % (16,000 games) | −87 |
+| Qapla 2.0.0-001, the final net | 77.4 % (16,000 games) | +213 |
+
+Taken opponent by opponent the net version is between 250 and 365 Elo stronger, **+318 on average** (each
+opponent's figure about ±20). The HCE of that tournament is the 0.5.0 release, not quite the HCE build of our
+reference field. Two possible causes for the smaller gap:
 
 - **A gap of more than 300 Elo is hard to measure exactly.** At scores around 80 % a few games more or less
   move the figure a lot, and our reference field measures every net against one far weaker opponent.
