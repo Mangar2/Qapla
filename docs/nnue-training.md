@@ -167,8 +167,7 @@ per opponent at 20+0.1 seconds, one thread each, from an 8-ply book:
 | Qapla 2.0.0-001, the final net | 77.4 % (16,000 games) | +213 |
 
 Taken opponent by opponent the net version is between 250 and 365 Elo stronger, **+318 on average** (each
-opponent's figure about ±20). The HCE of that tournament is the 0.5.0 release, not quite the HCE build of our
-reference field. Two possible causes for the smaller gap:
+opponent's figure about ±20). Two possible causes for the smaller gap:
 
 - **A gap of more than 300 Elo is hard to measure exactly.** At scores around 80 % a few games more or less
   move the figure a lot, and our reference field measures every net against one far weaker opponent.
