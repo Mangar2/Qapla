@@ -95,7 +95,7 @@ weak net against itself made the net learn faster than the HCE's own games.
 ### Eight heads and a newer trainer: +17 (+108 vs. HCE)
 
 One head per range of piece counts, sharing the same accumulator, measured together with a change of
-the trainer. Trained identically under the final procedure, one head and eight play equally strong.
+the trainer. Trained identically under today's procedure, one head and eight play equally strong.
 
 ### Leaving out captures and checks: +75 (+184 vs. HCE)
 
@@ -152,7 +152,7 @@ the result, and epochs of 40 million positions. It is the net Qapla 2.0 carries 
 
 ## Against other engines
 
-In a tournament against other engines the version with the final net gained about **315 Elo over the HCE
+In a tournament against other engines the version with the current best net (Qapla 2.0.0-001) gained about **315 Elo over the HCE
 version, not the 364** our reference field measures - about 15 % less. The figures on this page are
 therefore not transferable one to one to play against other engines.
 
@@ -164,7 +164,7 @@ per opponent at 20+0.1 seconds, one thread each, from an 8-ply book:
 | | score | performance |
 |---|---|---|
 | Qapla 0.5.0-001, the HCE release | 37.7 % (16,000 games) | −87 |
-| Qapla 2.0.0-001, the final net | 77.4 % (16,000 games) | +213 |
+| Qapla 2.0.0-001, the current best net | 77.4 % (16,000 games) | +213 |
 
 Over all 16 opponents the net version is **about 318 Elo stronger**. Two possible causes for the smaller gap:
 
@@ -178,7 +178,7 @@ Over all 16 opponents the net version is **about 318 Elo stronger**. Two possibl
 Each against the best net of its day, differing in that point only:
 
 - **A wider label search** (less pruning, about three times the nodes per label): no difference once the
-  training was the final one.
+  training was today's.
 - **A wider net** (512 instead of 256 accumulator neurons): no difference at the same training.
 - **A piece-square part per bucket**, as Stockfish has it: no difference.
 - **Fewer early positions**, as Stockfish skips them: no difference.
