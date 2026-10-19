@@ -17,7 +17,11 @@ only fine adjustment. Open with HCE, among others: the data quantity curve (a se
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
 set 1 (1 M games, September) WDL hurt; the new set (10 M) optimum 0.75-0.80; old + new (19 M) the SPRT preferred 0.75
-to 0.80. **The blend is tested again whenever the data grows.** A direct test with the data at hand: the new set cut
+to 0.80. **The blend is tested again whenever the data grows.**
+**Idea, not planned (Volker 2026-10-19):** a set played HCE against a slightly stronger other engine, every
+position labelled by HCE (no knowledge of the opponent in the labels), the WDL from those games. Caveats: c4 showed
+results between unequal players hurt (there the gap was large, nnue against HCE); the principle of no external
+evaluation (the result carries the other engine's play). A direct test with the data at hand: the new set cut
 to 2.5 M games, blend 0.90 against 0.80 (at 10 M 0.80 won clearly) - if 0.90 wins there, the hypothesis holds.
 
 ## The programme: the best 8-bucket net out of HCE alone (Volker, 2026-10-04)
