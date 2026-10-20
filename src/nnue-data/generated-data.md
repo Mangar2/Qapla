@@ -743,3 +743,21 @@ the pgn (`gamefile --pgn2book`, 17 min; nodes as the generator's book, only the 
 `qet --bookeval` version 2 on the M4 from 20:11 (9 engines, `Qapla-set1-hce`, depth 9; 174,845,167 positions,
 ~460 a second at the start - 4 to 7 days with the M4's throttling; out `tmp/book100m/start-positions-100m-eval-v2.bok`,
 log `tmp/book100m/bookeval.log`, resumable with the identical call).
+Moved to the Mac Studio on 2026-10-18 12:08 (12 engines, `Qapla-hce-53f972f-studio`, the same node counts as the M4's
+and Linux's HCE builds) and finished there on 2026-10-20 18:32: **174,845,167 positions evaluated**,
+`test/nnue/start-positions-100m-eval-v2.bok` (T7, 699 MB, md5 fe730ecc657ed16a8dafa802c8b8a254).
+
+**Split into 10 books** (`gamefile --booksplit ... parts=10`, chess-tools 4add7dc, 17 s): `test/nnue/book100m-parts/
+start-positions-100m-eval-v2-01..10.bok` (T7, 127 MB each, also on the Mac Studio in `tmp/book100m/parts`, md5
+identical) - 10,000,002 lines each, 100,000,020 together; leaf i of the book goes with its line into part
+(i mod 10) + 1, so every part has all opening moves alike. Each part carries the scores of the book.
+
+### Set from book part 01 - playing (2026-10-20)
+
+Volker 2026-10-20: part 01 played on the Mac Studio like the 10 M set - one game per leaf, HCE against HCE
+(`Qapla-hce-53f972f-studio`, 1 thread), depth 9, the play values as labels and the results kept for WDL; qet reads
+the 9-bit book directly as its opening file (qapla-engine-tester 0620e6c, `--openings file=<part>.bok`), 12 games at
+a time. `tmp/book100m-d9/play-part.sh 01`, ini from `tmp/book100m-d9/play-template.ini`, out
+`test/nnue/games-book100m-d9/part-01.pgn`, state `tmp/book100m-d9/part-01.state` (resumable). Started 18:45; qet
+needs ~100 s to read the 10 M lines before the first game. Checked on the first games: the book line is played
+without values, then every move carries its depth-9 value (`{+0.12/9}`), the result stands as the final token.

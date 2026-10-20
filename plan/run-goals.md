@@ -13,6 +13,9 @@ known that can be learned faster with HCE data: how much data pays, how to train
 its distribution, book), with which parameters. With HCE the sets are fastest to make; generation 2 should then need
 only fine adjustment. Open with HCE, among others: the data quantity curve (a second and further 10 M sets from the
 100 M book), training length against data size, the WDL weight by bucket.
+**More data (Volker 2026-10-20):** the 100 M book is evaluated (2026-10-20 18:32) and split into 10 parts; part 01 is
+played on the Mac Studio since 18:45 (12 games, depth 9, HCE, labels and results as the 10 M set) - the second
+10 M set. Then the data quantity curve and the blend again with more data.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
