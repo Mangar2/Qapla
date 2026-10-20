@@ -769,3 +769,10 @@ lines are written as three opening pgns (`gamefile --book2pgn`, then cut: `tmp/b
 The Studio run is stopped by `tmp/book100m-d9/stop-01-at.sh` once it starts opening 7,500,001 (0-based); the games
 cut off then are found by their book line when the two pgns are joined (duplicates removed the same way) and
 played afterwards.
+Both runs were stopped on 2026-10-20 22:55 (Volker): the Studio at 215,896 games, the M4 at 20,126 of
+`openings-01b-1.pgn` (openings started up to 7,520,136). **qet fix 3bc23c1** (chess-tools-cf): a book as opening
+file is kept as its tree, a line built only when its game starts - a 10 M part book now takes ~300 MB instead of
+over 6 GB (M4: peak 305 MB, 18 games from start=7500002 in 3 s, exactly book lines 7,500,002-7,500,019). The M4
+goes on from the book since 2026-10-21 01:15: `tmp/book100m-d9/play-01b-book.ini`, start=7520137, 2,479,866 games,
+appended to `part-01b.pgn` (state `part-01b-book.state`); the 9 games cut off at the stop are found at the join.
+The Studio resumes its state once the fix is on GitHub.
