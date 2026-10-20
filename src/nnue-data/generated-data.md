@@ -761,3 +761,11 @@ a time. `tmp/book100m-d9/play-part.sh 01`, ini from `tmp/book100m-d9/play-templa
 `test/nnue/games-book100m-d9/part-01.pgn`, state `tmp/book100m-d9/part-01.state` (resumable). Started 18:45; qet
 needs ~100 s to read the 10 M lines before the first game. Checked on the first games: the book line is played
 without values, then every move carries its depth-9 value (`{+0.12/9}`), the result stands as the final token.
+**The M4 plays the last quarter of part 01** (Volker 2026-10-20): openings 7,500,002-10,000,002 (1-based). qet holds a
+whole 10 M part book in memory and was killed for it on the M4 (17 GB; exit 137 after ~75 s), so these 2,500,001
+lines are written as three opening pgns (`gamefile --book2pgn`, then cut: `tmp/book100m-d9/openings-01b-1..3.pgn`,
+833,334 / 833,334 / 833,333 lines, the first being line 7,500,002) and played one after the other by
+`tmp/book100m-d9/play-01b.sh` (9 games, `Qapla-set1-hce`, depth 9) into `test/nnue/games-book100m-d9/part-01b.pgn`.
+The Studio run is stopped by `tmp/book100m-d9/stop-01-at.sh` once it starts opening 7,500,001 (0-based); the games
+cut off then are found by their book line when the two pgns are joined (duplicates removed the same way) and
+played afterwards.
