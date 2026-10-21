@@ -776,3 +776,28 @@ over 6 GB (M4: peak 305 MB, 18 games from start=7500002 in 3 s, exactly book lin
 goes on from the book since 2026-10-21 01:15: `tmp/book100m-d9/play-01b-book.ini`, start=7520137, 2,479,866 games,
 appended to `part-01b.pgn` (state `part-01b-book.state`); the 9 games cut off at the stop are found at the join.
 The Studio resumes its state once the fix is on GitHub.
+The Studio resumed on 2026-10-21 03:23 with qet 3bc23c1 (pushed), 261 MB, from its state.
+
+### The part books pruned of the leaves the 10 M games played (2026-10-21)
+
+The 100 M book was grown out of the 10 M book instead of being built anew, and its new leaves lie on the old games:
+**9,809,232 of the 10,000,020 games of the 10 M set run exactly through a leaf of the 100 M book** (9.8 % of its
+leaves; no game through two) - start positions whose games have been played. Counted by following every game
+through the book (`tmp/q1prep/leafhit.cpp`, checked against Python on a sample). Volker 2026-10-21: remove them
+from the 10 part books, every leaf with its line back to the branching - **`gamefile --bookprune`** (chess-tools
+e65b23f; checked on 20,000 games: exactly the 1,960 leaves they reach gone, the other lines in their order with
+identical values, none of the games reaching a leaf of the result). `tmp/q1prep/prune-parts.sh` on the M4, all 10 M
+games against each part, ~5 min a part: `test/nnue/book100m-parts-pruned/start-positions-100m-eval-v2-NN-pruned.bok`
+(T7). Part 01: 981,155 of 10,000,002 leaves removed, 9,018,847 kept, 28,871,127 of 31,720,966 nodes.
+
+**Part 01 goes on from its pruned book** (Volker 2026-10-21): both runs stopped at 15:43, the next opening mapped to
+the pruned book by walking both books' leaves side by side (`tmp/q1prep/map-index.py`; the first new games checked
+to start from exactly the expected pruned leaves), a margin of 300 (Studio) and 200 (M4) openings before the last
+one started so that no game cut off is lost:
+- Studio: `tmp/book100m-d9/play-01c.sh`, ini `play-01c.ini`, pruned leaves 755,159-6,759,852 (original 839,141 to
+  7,500,001, 0-based 839,140 on), 6,004,694 games into `part-01c.pgn`; it ends exactly before the M4's range, no stop
+  watcher needed. `part-01.pgn` holds 839,538 games (original openings up to 839,440 started).
+- M4: ini `play-01d.ini`, pruned leaves 7,094,209-9,018,847 (original 0-based 7,868,920 on), 1,924,639 games into
+  `part-01d.pgn`. `part-01b.pgn` holds 369,102 games (original openings up to 7,869,120 started).
+At the conversion the four pgns are joined by book line: games of removed leaves and duplicates out, missing leaves
+played afterwards.
