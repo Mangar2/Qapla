@@ -16,6 +16,15 @@ only fine adjustment. Open with HCE, among others: the data quantity curve (a se
 **More data (Volker 2026-10-20):** the 100 M book is evaluated (2026-10-20 18:32) and split into 10 parts; part 01 is
 played on the Mac Studio since 18:45 (12 games, depth 9, HCE, labels and results as the 10 M set) - the second
 10 M set. Then the data quantity curve and the blend again with more data.
+**The data quantity curve, step by step (Volker 2026-10-21):** whenever another quarter of a 10 M part book is played
+(2.5 M games), the Mac Studio trains a net exactly as the current best (final1, Qapla 2.0.0-001: its data, its
+options, 40 M per epoch) plus the data of all quarters finished so far - the data grows step by step, in the
+expectation that every step brings more Elo. Each net then plays a tournament of 20000 games against 2.0.0-001 with
+the settings of the 10000-game reference tournament (`test/tournament/strength-reference.ini`, Linux, 10+0.05).
+2.0.0-001 stays the fixed opponent of every step. This goes on through the quarters of part 01 and further parts of
+the 100 M book until **two versions in a row fail to reach 5 Elo more than the best version so far** - the 5 Elo
+count absolutely, the error bars are ignored for this rule. Quarter 1 of part 01 = openings 1-2.5 M (Studio, about
+2026-10-23 02:00), quarter 4 = openings 7.5-10 M (M4, about 2026-10-25 06:30).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
