@@ -20,7 +20,7 @@ played on the Mac Studio since 18:45 (12 games, depth 9, HCE, labels and results
 (2.5 M games), the Mac Studio trains a net exactly as the current best (final1, Qapla 2.0.0-001: its data, its
 options, 40 M per epoch) plus the data of all quarters finished so far - the data grows step by step, in the
 expectation that every step brings more Elo. Each net then plays a tournament of 20000 games against 2.0.0-001 with
-the settings of the 10000-game reference tournament (`test/tournament/strength-reference.ini`, Linux, 10+0.05).
+the settings of the 10000-game reference tournament (`test/tournament/strength-reference.ini`, 10+0.05) - always on Linux, so that the M4 and the Studio keep playing games until no more gain is seen.
 2.0.0-001 stays the fixed opponent of every step. This goes on through the quarters of part 01 and further parts of
 the 100 M book until **two versions in a row fail to reach 5 Elo more than the best version so far** - the 5 Elo
 count absolutely, the error bars are ignored for this rule. Quarter 1 of part 01 = openings 1-2.5 M (Studio, about
