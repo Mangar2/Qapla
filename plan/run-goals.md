@@ -25,6 +25,10 @@ the settings of the 10000-game reference tournament (`test/tournament/strength-r
 the 100 M book until **two versions in a row fail to reach 5 Elo more than the best version so far** - the 5 Elo
 count absolutely, the error bars are ignored for this rule. Quarter 1 of part 01 = openings 1-2.5 M (Studio, about
 2026-10-23 02:00), quarter 4 = openings 7.5-10 M (M4, about 2026-10-25 06:30).
+**Step 1, q1** (2026-10-22): final1's data with the 100 M book instead of the 10 M book (Volker 2026-10-22) plus quarter 1
+(2,252,716 games), `tmp/book100m-d9/train-curve.sh q1 ...` on the Mac Studio from 23:17 (trainer 3.3.0, the train.py call
+of final1 character for character), net `test/nnue/nets-q1-40m-v3.3.0/`; then 20000 games against 2.0.0-001 on Linux
+(`tmp/curve/tournament.sh`).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:

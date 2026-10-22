@@ -801,3 +801,21 @@ one started so that no game cut off is lost:
   `part-01d.pgn`. `part-01b.pgn` holds 369,102 games (original openings up to 7,869,120 started).
 At the conversion the four pgns are joined by book line: games of removed leaves and duplicates out, missing leaves
 played afterwards.
+
+### Quarter 1 of part 01 and the 100 M book as training data (2026-10-22)
+
+Quarter 1 = the pruned leaves 0-2,252,715 (original 0-2,499,999; first moves a3, b3, c3, d3, e3 and part of f3 - the
+book is ordered by the first move, so a quarter holds some opening families only). Collected on the Mac Studio at
+21:41 by `tmp/book100m-d9/q1/collect-quarter.py` from `part-01.pgn` and `part-01c.pgn`: every leaf once, **2,252,716
+games, none missing**; left out 84,051 games of leaves removed by the pruning and 426 duplicates of the restarts.
+`gamefile --pgn2gam wdl=result` (chess-tools e65b23f, built on the Studio): **`test/nnue/dataset/book100m-d9-p01q1-wdl.gam`**
+(Studio), 316,491,310 plies, 268,401,050 with a value, 65,014 games truncated at 255 plies; 1-0 835,299, 0-1 893,422,
+1/2 523,995 (37.1 / 39.7 / 23.3 %; part 01 of the 10 M set 35.7 / 38.4 / 25.8 %).
+
+**The book trained is the whole 100 M book** (Volker 2026-10-22), no longer the 10 M book: it holds every position of
+the 10 M book too and all of it is evaluated. `gamefile --bookwdl` on `start-positions-100m-eval-v2.bok` with the 10 M
+games and quarter 1 as game files (the same call on the 10 M book reproduces `start-positions-10m-eval-v2-wdl.bok`
+byte for byte): 12,252,736 games counted; then `--book2gam compact=true wdl=k:4`:
+**`test/nnue/dataset/book100m-d9-bookonce-wdl-k4-q1.gam`** (Studio, 2.8 GB) - 43,538,915 lines, **74,845,147 positions
+once each** (final1's book file had 7,484,656), 13,138,217 of them mixed with the results of their games (mean
+|target - p| 0.078), 61,537,134 without a game keep their depth-9 value, 169,796 mate scores unchanged.
