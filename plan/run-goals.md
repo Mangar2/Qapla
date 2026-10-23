@@ -29,6 +29,10 @@ count absolutely, the error bars are ignored for this rule. Quarter 1 of part 01
 (2,252,716 games), `tmp/book100m-d9/train-curve.sh q1 ...` on the Mac Studio from 23:17 (trainer 3.3.0, the train.py call
 of final1 character for character), net `test/nnue/nets-q1-40m-v3.3.0/`; then 20000 games against 2.0.0-001 on Linux
 (`tmp/curve/tournament.sh`).
+**Do the old sets 1-6 still help once there is enough new data? (Volker 2026-10-23)** They may help now only because
+the depth-9 WDL data is still small; with "enough" of it they may help, be neutral or even hurt. First point: q1-no16,
+q1 without sets 1-6 (`tmp/book100m-d9/train-curve-no16.sh`, Studio from 09:58), into the same gauntlet against
+2.0.0-001. One comparison says how it is now; the trend over the steps of the curve answers the question.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
