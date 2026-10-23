@@ -377,6 +377,9 @@ statistically safe - goes into the 10000-game reference field to get its place a
   the missing pairing against the gauntlet engine first, but afterwards also the pairing of the two
   non-gauntlet engines, `gauntlet=true` notwithstanding (2026-10-04, e10 started against e1). Watch for
   the end of the wanted pairing and stop qet then, or give the newcomer a state file of its own.
+  **An engine added as an `[engine]` section to the state file** of a `type=gauntlet` tournament (qet restarted with
+  `--tournament file=<state>` alone) plays the gauntlet engine only - tested 2026-10-23 with three engines at depth 1:
+  A-G and B-G played, A-B not. That is the way to add candidates to the curve tournament (`tmp/curve/` on Linux).
 - **SPRT** for "is A better than B": `test/sprt/sprt-standard.ini`, `--each tc=10+0.05 option.Hash=64`
   **before** the engine blocks, challenger `gauntlet=true`, own state file. Exit 14 = H1, 15 = H0,
   16 = undecided.
