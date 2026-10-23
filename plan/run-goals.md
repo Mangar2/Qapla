@@ -32,7 +32,8 @@ of final1 character for character), net `test/nnue/nets-q1-40m-v3.3.0/`; then 20
 **Do the old sets 1-6 still help once there is enough new data? (Volker 2026-10-23)** They may help now only because
 the depth-9 WDL data is still small; with "enough" of it they may help, be neutral or even hurt. First point: q1-no16,
 q1 without sets 1-6 (`tmp/book100m-d9/train-curve-no16.sh`, Studio from 09:58), into the same gauntlet against
-2.0.0-001. One comparison says how it is now; the trend over the steps of the curve answers the question.
+2.0.0-001. One comparison says how it is now; the trend over the steps of the curve answers the question. **Every step of the curve is trained twice** (Volker 2026-10-23): with and without sets 1-6, both into the
+gauntlet against 2.0.0-001; once the lead of the old sets is gone or turns, they are left out.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
