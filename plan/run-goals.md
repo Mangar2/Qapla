@@ -28,7 +28,9 @@ count absolutely, the error bars are ignored for this rule. Quarter 1 of part 01
 **Step 1, q1** (2026-10-22): final1's data with the 100 M book instead of the 10 M book (Volker 2026-10-22) plus quarter 1
 (2,252,716 games), `tmp/book100m-d9/train-curve.sh q1 ...` on the Mac Studio from 23:17 (trainer 3.3.0, the train.py call
 of final1 character for character), net `test/nnue/nets-q1-40m-v3.3.0/`; then 20000 games against 2.0.0-001 on Linux
-(`tmp/curve/tournament.sh`).
+(`tmp/curve/tournament.sh`). **Result (2026-10-23 13:10): q1 2604.8 +/-3, 2.0.0-001 2595.2 +/-3, 20000 games, q1 51.38 %, draws 57.2 %
+- q1 is 9.6 Elo ahead, more than 5: the best version so far.** The next step has to reach 5 more than q1, i.e. at least
++14.6 against 2.0.0-001.
 **Do the old sets 1-6 still help once there is enough new data? (Volker 2026-10-23)** They may help now only because
 the depth-9 WDL data is still small; with "enough" of it they may help, be neutral or even hurt. First point: q1-no16,
 q1 without sets 1-6 (`tmp/book100m-d9/train-curve-no16.sh`, Studio from 09:58), into the same gauntlet against
