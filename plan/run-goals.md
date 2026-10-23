@@ -35,7 +35,9 @@ of final1 character for character), net `test/nnue/nets-q1-40m-v3.3.0/`; then 20
 the depth-9 WDL data is still small; with "enough" of it they may help, be neutral or even hurt. First point: q1-no16,
 q1 without sets 1-6 (`tmp/book100m-d9/train-curve-no16.sh`, Studio from 09:58), into the same gauntlet against
 2.0.0-001. One comparison says how it is now; the trend over the steps of the curve answers the question. **Every step of the curve is trained twice** (Volker 2026-10-23): with and without sets 1-6, both into the
-gauntlet against 2.0.0-001; once the lead of the old sets is gone or turns, they are left out.
+gauntlet against 2.0.0-001; once the lead of the old sets is gone or turns, they are left out. **Step 1 (2026-10-23 23:45, gauntlet tmp/curve/q1.state, 20000 games each): q1 2609.2 +/-3, 2.0.0-001 2599.6
++/-2, q1-no16 2591.1 +/-3 (48.78 %, draws 55.4 %)** - without sets 1-6 the net is 8.5 Elo below 2.0.0-001, with them
+9.6 above: at this amount of new data the old sets help by about 18 Elo (two measurements, about +/-4).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
