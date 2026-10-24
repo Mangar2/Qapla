@@ -43,6 +43,10 @@ over two consecutive quarters together. When a machine runs out of games it goes
 after quarter 4 of part 01, plays quarter 1 of part 02 (pruned leaves 1-2,252,836 = original 1-2,500,000,
 `tmp/book100m-d9/play-02a.ini`, started by `next-02a.sh` once part 01d ends with exit 0). Part 02's quarter borders in
 its pruned book: 2,252,836 / 4,507,289 / 6,760,142.
+**Step 2 = quarters 1, 2 and 4 together (Volker 2026-10-24):** a training takes ~4 h, so quarter 2 (Studio, ~24.10.
+18:20) and quarter 4 (M4, ~25.10. 03:30) are trained as one step instead of two - one point of the curve fewer, but
+no training that the next result makes superfluous; q124 and q124-no16 one after the other, then both into the
+gauntlet.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
