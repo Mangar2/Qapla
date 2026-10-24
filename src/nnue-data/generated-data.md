@@ -819,3 +819,8 @@ byte for byte): 12,252,736 games counted; then `--book2gam compact=true wdl=k:4`
 **`test/nnue/dataset/book100m-d9-bookonce-wdl-k4-q1.gam`** (Studio, 2.8 GB) - 43,538,915 lines, **74,845,147 positions
 once each** (final1's book file had 7,484,656), 13,138,217 of them mixed with the results of their games (mean
 |target - p| 0.078), 61,537,134 without a game keep their depth-9 value, 169,796 mate scores unchanged.
+
+**Quarter 2 of part 01** (2026-10-24 18:27, Studio): pruned leaves 2,252,716-4,507,086 from `part-01c.pgn`, **2,254,371
+games, none missing, no duplicate**; `test/nnue/dataset/book100m-d9-p01q2-wdl.gam`, 314,206,493 plies, 267,241,497 with a
+value, 61,116 truncated; 1-0 866,775, 0-1 869,904, 1/2 517,692 (38.4 / 38.6 / 23.0 %). Trained together with quarter 4
+(Volker 2026-10-24).
