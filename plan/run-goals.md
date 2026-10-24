@@ -38,6 +38,11 @@ q1 without sets 1-6 (`tmp/book100m-d9/train-curve-no16.sh`, Studio from 09:58), 
 gauntlet against 2.0.0-001; once the lead of the old sets is gone or turns, they are left out. **Step 1 (2026-10-23 23:45, gauntlet tmp/curve/q1.state, 20000 games each): q1 2609.2 +/-3, 2.0.0-001 2599.6
 +/-2, q1-no16 2591.1 +/-3 (48.78 %, draws 55.4 %)** - without sets 1-6 the net is 8.5 Elo below 2.0.0-001, with them
 9.6 above: at this amount of new data the old sets help by about 18 Elo (two measurements, about +/-4).
+**How long data is generated (Volker 2026-10-24):** on until the version without sets 1-6 has gained less than 5 Elo
+over two consecutive quarters together. When a machine runs out of games it goes on with the next part book: the M4,
+after quarter 4 of part 01, plays quarter 1 of part 02 (pruned leaves 1-2,252,836 = original 1-2,500,000,
+`tmp/book100m-d9/play-02a.ini`, started by `next-02a.sh` once part 01d ends with exit 0). Part 02's quarter borders in
+its pruned book: 2,252,836 / 4,507,289 / 6,760,142.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
