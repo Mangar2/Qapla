@@ -43,6 +43,10 @@ over two consecutive quarters together. When a machine runs out of games it goes
 after quarter 4 of part 01, plays quarter 1 of part 02 (pruned leaves 1-2,252,836 = original 1-2,500,000,
 `tmp/book100m-d9/play-02a.ini`, started by `next-02a.sh` once part 01d ends with exit 0). Part 02's quarter borders in
 its pruned book: 2,252,836 / 4,507,289 / 6,760,142.
+**HCE-HCE data ends with part 02 (Volker 2026-10-25).** Then part 03 is played **Qapla HCE against Spike**, depth 9;
+the labels are each engine's own values for its own moves (Qapla's for Qapla's, Spike's for Spike's). Spike is also
+Volker's engine, so its values may go into the training (the exception to "no external evaluation") - the point is
+to see whether that makes a difference.
 **Step 2 = quarters 1, 2 and 4 together (Volker 2026-10-24):** a training takes ~4 h, so quarter 2 (Studio, ~24.10.
 18:20) and quarter 4 (M4, ~25.10. 03:30) are trained as one step instead of two - one point of the curve fewer, but
 no training that the next result makes superfluous; q124 and q124-no16 one after the other, then both into the
