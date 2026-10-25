@@ -824,3 +824,12 @@ once each** (final1's book file had 7,484,656), 13,138,217 of them mixed with th
 games, none missing, no duplicate**; `test/nnue/dataset/book100m-d9-p01q2-wdl.gam`, 314,206,493 plies, 267,241,497 with a
 value, 61,116 truncated; 1-0 866,775, 0-1 869,904, 1/2 517,692 (38.4 / 38.6 / 23.0 %). Trained together with quarter 4
 (Volker 2026-10-24).
+
+**Quarter 4 of part 01** (2026-10-25, M4): pruned leaves 6,759,852-9,018,846 from `part-01b.pgn` (old book, 34,570 games
+of removed leaves left out) and `part-01d.pgn` (185 duplicates of the restart); the 9 leaves cut off at the stop of the
+pgn-based run played afterwards (`tmp/q1prep/play-missing.ini`, same engine and settings): **2,258,995 games, none
+missing**. `book100m-d9-p01q4-wdl.gam` (Studio dataset, md5 2cb38a40...), 312,094,805 plies, 263,893,948 with a value,
+60,654 truncated; 1-0 827,656, 0-1 925,144, 1/2 506,195 (36.6 / 41.0 / 22.4 %).
+**Book file for step 2:** `--bookwdl` on the 100 M book with the 10 M games and quarters 1, 2, 4 - 16,766,102 games -
+then `--book2gam compact=true wdl=k:4`: `book100m-d9-bookonce-wdl-k4-q124.gam`, 74,845,147 positions, 22,220,900 of them
+mixed with their results. The M4 plays quarter 1 of part 02 since 2026-10-25 02:56 (`part-02a.pgn`).
