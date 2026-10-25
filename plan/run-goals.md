@@ -46,7 +46,9 @@ its pruned book: 2,252,836 / 4,507,289 / 6,760,142.
 **Step 2 = quarters 1, 2 and 4 together (Volker 2026-10-24):** a training takes ~4 h, so quarter 2 (Studio, ~24.10.
 18:20) and quarter 4 (M4, ~25.10. 03:30) are trained as one step instead of two - one point of the curve fewer, but
 no training that the next result makes superfluous; q124 and q124-no16 one after the other, then both into the
-gauntlet.
+gauntlet. **q124 (2026-10-25 16:15, 20000 games): 2601.7 +/-3 against 2.0.0-001 2599.1 +/-2 (50.38 %, draws 57.1 %) - 2.6
+Elo ahead, q1 9.6: about 7 below q1 (two measurements, about +/-4). The first version that does not reach 5 more than
+the best (q1).**
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
