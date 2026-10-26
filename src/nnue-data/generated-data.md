@@ -833,3 +833,11 @@ missing**. `book100m-d9-p01q4-wdl.gam` (Studio dataset, md5 2cb38a40...), 312,09
 **Book file for step 2:** `--bookwdl` on the 100 M book with the 10 M games and quarters 1, 2, 4 - 16,766,102 games -
 then `--book2gam compact=true wdl=k:4`: `book100m-d9-bookonce-wdl-k4-q124.gam`, 74,845,147 positions, 22,220,900 of them
 mixed with their results. The M4 plays quarter 1 of part 02 since 2026-10-25 02:56 (`part-02a.pgn`).
+
+**Quarter 3 of part 01 - part 01 complete** (2026-10-26, Studio): `part-01c` ended 11:36 with all 6,004,694 games (exit
+0); quarter 3 = pruned leaves 4,507,087-6,759,851, **2,252,765 games, none missing**; `book100m-d9-p01q3-wdl.gam`,
+302,987,063 plies, 254,013,769 with a value, 51,812 truncated; 1-0 1,062,395, 0-1 755,330, 1/2 435,040 (47.2 / 33.5 /
+19.3 % - other first moves). The four quarters hold 9,018,847 games, every leaf of the pruned part book once. The Studio
+plays quarter 2 of part 02 since 11:37 (`part-02b.pgn`, `play-02b.ini`). Book file for step 3: `--bookwdl` with the
+10 M games and all of part 01 (19,018,867 games), `book100m-d9-bookonce-wdl-k4-q1234.gam`, 26,763,365 of 74,845,147
+positions mixed with their results.
