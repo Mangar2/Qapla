@@ -52,7 +52,9 @@ to see whether that makes a difference. One game per leaf, Qapla alternately whi
 no training that the next result makes superfluous; q124 and q124-no16 one after the other, then both into the
 gauntlet. **q124 (2026-10-25 16:15, 20000 games): 2601.7 +/-3 against 2.0.0-001 2599.1 +/-2 (50.38 %, draws 57.1 %) - 2.6
 Elo ahead, q1 9.6: about 7 below q1 (two measurements, about +/-4). The first version that does not reach 5 more than
-the best (q1).**
+the best (q1).** **q124-no16 (2026-10-26 09:29, 20000 games): 2596.9 +/-3 against 2.0.0-001 2599.8 +/-2 (49.57 %, draws 55.4 %) -
+2.9 Elo below, q1-no16 was 8.4 below: without sets 1-6 the step gained 5.5 Elo (quarters 2 and 4 together, two
+measurements about +/-4), so data generation goes on. The lead of the old sets: 18.0 at step 1, 5.6 at step 2.**
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
