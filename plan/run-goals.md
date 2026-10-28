@@ -57,7 +57,9 @@ the best (q1).** **q124-no16 (2026-10-26 09:29, 20000 games): 2596.9 +/-3 agains
 measurements about +/-4), so data generation goes on. The lead of the old sets: 18.0 at step 1, 5.6 at step 2.** **Step 3, q1234 = all of part 01 (2026-10-27 11:58, 20000 games): 2606.0 +/-3 against 2.0.0-001 2598.6 +/-1
 (51.07 %, draws 56.5 %) - 7.4 ahead, q1 9.6: the second version in a row that does not reach 5 more than the best
 (q1). By Volker's rule the curve with sets 1-6 ends here, q1 stays the best.** q1234-no16 (paused at epoch 584 while
-the Studio is used for images) decides how data generation goes on.
+the Studio is used for images) decides how data generation goes on. **q1234-no16 (2026-10-28 13:50, 20000 games):
+2599.2 +/-3 against 2.0.0-001 2598.8 +/-1 (50.06 %, draws 56.0 %) - +0.4, q124-no16 -3.0 in the same table: quarter 3
+gained 3.4 without sets 1-6, the step before (quarters 2 and 4) 5.5. The lead of the old sets: 18.0, 5.6, 7.0.**
 **Qapla 2.0.0-002 (Volker 2026-10-28): q1234 is the final net of generation 1, Qapla data only.** Embedded as the
 default net (tag 2.0.0-002); Linux build (NATIVE=1, QAPLA_USE_NNUE) `new-versions/Qapla-2.0.0-002` and
 `~/chess/release20/engines/qapla20_002`. Embedded net and NnueFile give identical nodes on the M4 and on Linux.
