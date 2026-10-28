@@ -58,6 +58,9 @@ measurements about +/-4), so data generation goes on. The lead of the old sets: 
 (51.07 %, draws 56.5 %) - 7.4 ahead, q1 9.6: the second version in a row that does not reach 5 more than the best
 (q1). By Volker's rule the curve with sets 1-6 ends here, q1 stays the best.** q1234-no16 (paused at epoch 584 while
 the Studio is used for images) decides how data generation goes on.
+**Qapla 2.0.0-002 (Volker 2026-10-28): q1234 is the final net of generation 1, Qapla data only.** Embedded as the
+default net (tag 2.0.0-002); Linux build (NATIVE=1, QAPLA_USE_NNUE) `new-versions/Qapla-2.0.0-002` and
+`~/chess/release20/engines/qapla20_002`. Embedded net and NnueFile give identical nodes on the M4 and on Linux.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
