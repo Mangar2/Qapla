@@ -60,6 +60,11 @@ measurements about +/-4), so data generation goes on. The lead of the old sets: 
 the Studio is used for images) decides how data generation goes on. **q1234-no16 (2026-10-28 13:50, 20000 games):
 2599.2 +/-3 against 2.0.0-001 2598.8 +/-1 (50.06 %, draws 56.0 %) - +0.4, q124-no16 -3.0 in the same table: quarter 3
 gained 3.4 without sets 1-6, the step before (quarters 2 and 4) 5.5. The lead of the old sets: 18.0, 5.6, 7.0.**
+**Step 4, without sets 1-6 only: q1234-02b-no16 = q1234-no16 plus quarter 2 of part 02 (2026-10-29 14:01, 20000
+games): 2604.2 +/-3 against 2.0.0-001 2598.2 +/-1 (50.87 %, draws 55.6 %) - +6.0; q1234-no16 +0.4 and q124-no16 -3.0
+in the same table: the quarter gained 5.6, quarters 3 and 02b together 9.0 - data generation goes on. q1234 (with
+sets) +7.4.** (The Studio trains only between 23:00 and 05:30 and not while Volker's image jobs run, Volker
+2026-10-28; two starts were aborted for that.)
 **Qapla 2.0.0-002 (Volker 2026-10-28): q1234 is the final net of generation 1, Qapla data only.** Embedded as the
 default net (tag 2.0.0-002); Linux build (NATIVE=1, QAPLA_USE_NNUE) `new-versions/Qapla-2.0.0-002` and
 `~/chess/release20/engines/qapla20_002`. Embedded net and NnueFile give identical nodes on the M4 and on Linux.
