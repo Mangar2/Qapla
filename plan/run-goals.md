@@ -63,7 +63,10 @@ gained 3.4 without sets 1-6, the step before (quarters 2 and 4) 5.5. The lead of
 **Step 4, without sets 1-6 only: q1234-02b-no16 = q1234-no16 plus quarter 2 of part 02 (2026-10-29 14:01, 20000
 games): 2604.2 +/-3 against 2.0.0-001 2598.2 +/-1 (50.87 %, draws 55.6 %) - +6.0; q1234-no16 +0.4 and q124-no16 -3.0
 in the same table: the quarter gained 5.6, quarters 3 and 02b together 9.0 - data generation goes on. q1234 (with
-sets) +7.4.** (The Studio trains only between 23:00 and 05:30 and not while Volker's image jobs run, Volker
+sets) +7.4.** **Step 5, q1234-02ab-no16 = plus quarter 1 of part 02 (2026-10-30 13:21, 20000 games): 2606.0 +/-3
+against 2.0.0-001 2597.4 +/-1 (51.24 %, draws 55.6 %) - +8.6; in the same table q1234-02b-no16 +6.1: quarter 02a
+gained 2.5, quarters 02b and 02a together 8.2 - data generation goes on. Without sets 1-6 the net is now level with
+q1234 (with them, 2604.8): the lead of the old sets is gone (18.0, 5.6, 7.0, 1.4, -1.2).** (The Studio trains only between 23:00 and 05:30 and not while Volker's image jobs run, Volker
 2026-10-28; two starts were aborted for that.)
 **Qapla 2.0.0-002 (Volker 2026-10-28): q1234 is the final net of generation 1, Qapla data only.** Embedded as the
 default net (tag 2.0.0-002); Linux build (NATIVE=1, QAPLA_USE_NNUE) `new-versions/Qapla-2.0.0-002` and
