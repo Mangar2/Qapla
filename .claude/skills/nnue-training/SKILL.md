@@ -169,6 +169,12 @@ anything that writes gigabytes: a Stockfish-architecture checkpoint is 1.6 GB pe
 Old checkpoints of Stockfish-architecture training go to the external SSD of the Mac,
 `/Volumes/T7/qapla/<run>/` (copy, compare, then remove locally); the `.nnue` nets stay in the repo.
 
+**Milestone nets** (Volker 2026-10-30/31): only milestones are kept - the first net, every new standard, every
+release net, the best of each measured series and the top 4 of the running gauntlet. They sit in
+`test/nnue/milestones/` on the T7 (M4 symlink), the Mac Studio and Linux, identical on all three (`MD5.txt`,
+`README.txt` with the role of each). Training directories with checkpoints and every net in between are deleted
+once the result is recorded. A net a running tournament state loads stays until that tournament has ended.
+
 ## The data path
 
 ```
