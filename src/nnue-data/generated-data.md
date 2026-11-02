@@ -841,3 +841,29 @@ mixed with their results. The M4 plays quarter 1 of part 02 since 2026-10-25 02:
 plays quarter 2 of part 02 since 11:37 (`part-02b.pgn`, `play-02b.ini`). Book file for step 3: `--bookwdl` with the
 10 M games and all of part 01 (19,018,867 games), `book100m-d9-bookonce-wdl-k4-q1234.gam`, 26,763,365 of 74,845,147
 positions mixed with their results.
+
+### Part 02 complete - the end of the HCE-against-HCE data (2026-11-02)
+
+All four quarters of part 02 played from the pruned book, one game per leaf, HCE against HCE, depth 9, each collected
+with `collect-quarter.py` (every leaf once, none missing, no duplicate) and converted with `--pgn2gam wdl=result`:
+- q1 (M4, `part-02a.pgn`): leaves 0-2,252,835, 2,252,836 games, `book100m-d9-p02q1-wdl.gam`
+- q2 (Studio, `part-02b.pgn`): leaves 2,252,836-4,507,288, 2,254,453 games, `book100m-d9-p02q2-wdl.gam`
+- q3 (Studio, `part-02c.pgn`): leaves 4,507,289-6,760,141, 2,252,853 games, `book100m-d9-p02q3-wdl.gam`
+  (1-0 47.2 %, 0-1 33.5 %, draws 19.3 % - the book is ordered by the first move, other opening families)
+- q4 (M4, `part-02d.pgn`, finished 2026-11-02 12:10): leaves 6,760,142-9,019,148, 2,259,007 games,
+  `book100m-d9-p02q4-wdl.gam` (md5 aa36a725...; 1-0 36.7 %, 0-1 40.9 %, draws 22.4 %)
+
+The gam files are in the dataset on the T7 and on the Mac Studio (md5 identical); the M4's finished part pgns moved to
+the T7 (`test/nnue/games-book100m-d9/` symlinks). Book file for the next step: `--bookwdl` with the 10 M games and all of
+parts 01 and 02 (28,038,016 games), `book100m-d9-bookonce-wdl-k4-q1234-02abcd.gam` (Studio).
+
+### Part 03 - Qapla HCE against Spike (2026-10-30 on)
+
+Volker 2026-10-25: from part 03 on Qapla HCE plays Spike 1.4.3 (the release binary, Volker's engine), each engine's
+own evaluations in the pgn. 2026-10-30: Spike at depth 8, Qapla at depth 9 (at 9 against 9 Spike scored 56.8 % and the
+games came at half the speed of HCE against HCE; at 8 against 9 Qapla 54.9 %, 1.5 times faster). 2026-10-31: **two games
+per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 of quarter 1 are not kept.
+- q1 (Studio): leaves 0-2,252,994, 4,505,990 games from four runs - `part-03a-s8.pgn` (leaves 536,475-1,474,741,
+  one colour), `part-03a-s8-p1.pgn` (leaves 0-536,474, both), `part-03a-s8-swap.pgn` (the other colour of
+  `part-03a-s8.pgn`), `part-03a-s8-p2.pgn` (leaves 1,474,742-2,252,994, both); `tmp/book100m-d9/run-03a-pairs.sh`.
+- q2 (M4, since 2026-11-02 12:16): leaves 2,252,995-4,507,502, 4,509,016 games, `part-03b.pgn`, `play-03b.ini`.
