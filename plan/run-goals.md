@@ -69,7 +69,11 @@ gained 2.5, quarters 02b and 02a together 8.2 - data generation goes on. Without
 q1234 (with them, 2604.8): the lead of the old sets is gone (18.0, 5.6, 7.0, 1.4, -1.2).** **Step 6, q1234-02abc-no16 = plus quarter 3 of part
 02 (2026-10-31 14:37, 20000 games): 2608.7 +/-3 against 2.0.0-001 2596.4 +/-1 (51.76 %, draws 56.0 %) - +12.3, first
 place of the gauntlet (q1 2606.1); in the same table q1234-02ab-no16 +8.7: quarter 02c gained 3.6, quarters 02a and
-02c together 6.2 - data generation goes on.** (The Studio trains only between 23:00 and 05:30 and not while Volker's image jobs run, Volker
+02c together 6.2 - data generation goes on.** **Step 7, q1234-02abcd-no16 = all of part 02 (2026-11-03 13:25, 20000
+games): 2605.2 +/-3 against 2.0.0-001 2595.9 +/-1 (51.34 %, draws 56.7 %) - +9.3; in the same table q1234-02abc-no16
++12.3 and q1234-02ab-no16 +8.6: quarter 02d -3.0, quarters 02c and 02d together +0.7 - below the 5 of Volker's stop
+rule for the data generation (2026-10-24).** The HCE-against-HCE data had ended with part 02 anyway (Volker
+2026-10-25); part 03 (Qapla HCE against Spike) runs on as its own experiment. (The Studio trains only between 23:00 and 05:30 and not while Volker's image jobs run, Volker
 2026-10-28; two starts were aborted for that.)
 **Qapla 2.0.0-002 (Volker 2026-10-28): q1234 is the final net of generation 1, Qapla data only.** Embedded as the
 default net (tag 2.0.0-002); Linux build (NATIVE=1, QAPLA_USE_NNUE) `new-versions/Qapla-2.0.0-002` and
