@@ -78,6 +78,14 @@ rule for the data generation (2026-10-24).** The HCE-against-HCE data had ended 
 **Qapla 2.0.0-002 (Volker 2026-10-28): q1234 is the final net of generation 1, Qapla data only.** Embedded as the
 default net (tag 2.0.0-002); Linux build (NATIVE=1, QAPLA_USE_NNUE) `new-versions/Qapla-2.0.0-002` and
 `~/chess/release20/engines/qapla20_002`. Embedded net and NnueFile give identical nodes on the M4 and on Linux.
+**WDL weight 0.75, q1234-02abcd-no16-b75 (Volker 2026-11-03) = q1234-02abcd-no16 with blend 0.75 instead of 0.80, the
+one factor (data, trainer 3.3.0 and every other option identical, checked on the log; 2026-11-04 13:51, 20000
+games): 2608.1 +/-3 against 2.0.0-001 2595.2 +/-1 (51.86 %, draws 55.5 %), first place; q1234-02abcd-no16 (0.80)
+2604.5 +/-3 in the same table - 3.6 apart, a difference of two figures of +/-3 carries about +/-4.** By Volker's plan
+the blend that did better goes on: the Spike data are tried with 0.75 (q1234-02abcd-03a-no16-b75).
+**Qapla 2.0.0-003 (Volker 2026-11-04): q1234-02abcd-no16 (blend 0.80) embedded** (tag 2.0.0-003; embedded net and
+net file, M4 and Studio builds: identical nodes and scores, 3 positions, depth 16) - the engine of the generation 1
+evaluation of the big book (src/nnue-data/generated-data.md).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
