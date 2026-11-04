@@ -884,7 +884,7 @@ the generation 1 evaluation, depth 9. On the Mac Studio, `tmp/bigbook/build-bigb
   so the thresholds were compared - 100: 89,188,203 leaves, 50: 87,655,180, 20: 84,535,018, 10: 81,779,365 - and
   Volker chose **50**: 7,280 dead nodes, 167,048 subtrees removed, **87,655,180 leaves, 153,921,421 nodes**,
   `tmp/bigbook/100m-pruned-dead50.bok` (scores of HCE, dropped by the evaluation) and `-dead50-wdl.bok` (counts).
-- `qet --bookeval` version 2, `Qapla-2.0.0-003-studio`, depth 9, 14 engines, from 06:40: 153,921,422 positions, none
+- `qet --bookeval` version 2, `Qapla-2.0.0-003-studio`, depth 9, from 06:40 with 14 engines, from 07:31 with 12 (Volker; continued from the saved state, `eval-gen1-12.sh`): 153,921,422 positions, none
   taken over, ~630 a second at the start (16 engines 665, 12 engines 580, measured on 30,000 positions while
   Volker's image jobs ran) - about 2.8 days. Out `tmp/bigbook/100m-pruned-dead50-eval-gen1.bok`, log `eval-gen1.log`,
   resumable with the identical call.
