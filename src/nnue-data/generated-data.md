@@ -867,3 +867,24 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
   one colour), `part-03a-s8-p1.pgn` (leaves 0-536,474, both), `part-03a-s8-swap.pgn` (the other colour of
   `part-03a-s8.pgn`), `part-03a-s8-p2.pgn` (leaves 1,474,742-2,252,994, both); `tmp/book100m-d9/run-03a-pairs.sh`.
 - q2 (M4, since 2026-11-02 12:16): leaves 2,252,995-4,507,502, 4,509,016 games, `part-03b.pgn`, `play-03b.ini`.
+
+### The big book thinned, evaluated as generation 1 by Qapla 2.0.0-003 (2026-11-04)
+
+Volker 2026-11-04: start again from the whole 100 M book - without the leaves the 10 M games played - thin out its
+dead branches, and evaluate every position of it with q1234-02abcd-no16, which becomes **Qapla 2.0.0-003** (tag,
+net embedded; embedded net and net file, M4 and Studio builds: identical nodes and scores, 3 positions, depth 16):
+the generation 1 evaluation, depth 9. On the Mac Studio, `tmp/bigbook/build-bigbook.sh` and `eval-gen1.sh`:
+- `gamefile --bookprune` of `start-positions-100m-eval-v2.bok` with the 10 M games (`book10m-d9-wdl-part01..10.gam`):
+  9,809,232 of 100,000,020 leaves removed - the count of 2026-10-21 -, 90,190,788 lines, 158,247,611 nodes. The same
+  on its twin of counts, `start-positions-100m-eval-v2-wdl-q1234-02abcd-03a.bok` (all 32,543,994 games so far: the
+  10 M set, parts 01 and 02, quarter 03a).
+- **`gamefile --bookprunedead`** (chess-tools 35d9ec4): a node with more than N games, all won or all lost by the side
+  that plays its move, is dead; below it every node with fewer than N games goes with its subtree, so the dead
+  positions stay with far fewer lines. Volker asked for N = 100; it removed only 1,002,585 leaves (1,695 dead nodes),
+  so the thresholds were compared - 100: 89,188,203 leaves, 50: 87,655,180, 20: 84,535,018, 10: 81,779,365 - and
+  Volker chose **50**: 7,280 dead nodes, 167,048 subtrees removed, **87,655,180 leaves, 153,921,421 nodes**,
+  `tmp/bigbook/100m-pruned-dead50.bok` (scores of HCE, dropped by the evaluation) and `-dead50-wdl.bok` (counts).
+- `qet --bookeval` version 2, `Qapla-2.0.0-003-studio`, depth 9, 14 engines, from 06:40: 153,921,422 positions, none
+  taken over, ~630 a second at the start (16 engines 665, 12 engines 580, measured on 30,000 positions while
+  Volker's image jobs ran) - about 2.8 days. Out `tmp/bigbook/100m-pruned-dead50-eval-gen1.bok`, log `eval-gen1.log`,
+  resumable with the identical call.
