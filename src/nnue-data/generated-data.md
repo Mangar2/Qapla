@@ -893,3 +893,14 @@ the generation 1 evaluation, depth 9. On the Mac Studio, `tmp/bigbook/build-bigb
   resumable with the identical call.
   **Stopped 2026-11-05 05:52** (Volker: the Studio plays quarter 3 of part 03 instead) at 53,643,613 of 153,921,422
   positions; the state `100m-pruned-dead50-eval-gen1.bok` is kept and goes on with `eval-gen1-12.sh`.
+
+### Cleanup of test/nnue (Volker 2026-11-05)
+
+Deleted as no longer needed, about 120 GB: on the Studio the book files of past trainings (q1 ... q1234-02abcd; each
+rebuilt in two minutes by `--bookwdl` + `--book2gam`), the old 10 M variants (filled, without WDL, bookonce - only
+`book10m-d9-wdl-partNN.gam` is trained) and its copy of the 10 M pgns; on the T7 `start-positions-100m.pgn` (made
+from the book in two minutes), `sf-train-1`, the chunks and labelled files of set 1, binpack, set3-chunks/-played;
+on Linux the 77 epoch nets of the old epoch tournaments, the chunks and labelled files of sets 1-6, their game pgns
+and its copies of the 10 M set and the dataset; book10m-parts everywhere. Kept: the training data of the curve and
+of part 03, the raw pgns of the 100 M parts and of the 10 M set (`games-book10m-d9-clean`, T7), the sets 1-6 as
+.gam, the books, milestones, forensics, the nets of the running gauntlet.
