@@ -4,9 +4,8 @@ Everything that waits for Volker's answer or is left over. Shown at the end of e
 
 - 2026-11-05: Linux is free from 13:07 until the gauntlet of q1234-02ab-03a-no16-b75 (about 6.11. 03:30) - anything to
   run there meanwhile?
-- 2026-11-05 19:35: Spotlight - M4: T7 indexing off (mdutil), rpcsvchost/mds restarted, swap 11 -> 5 GB. The folder
-  exclusions cannot be written with sudo (the file is protected); add on M4 and Studio by hand: System Settings ->
-  Spotlight -> Search privacy -> + the repo's tmp and test/nnue (Studio: ~/dev/qapla/Qapla/...).
+- 2026-11-05 19:45: Spotlight - M4 done (T7 off, ~/dev in search privacy, swap 11 -> 5 GB). Studio: ~/dev in search
+  privacy too, if not done yet.
 - 2026-11-05: Studio test/nnue/nets-q1234-02abcd-no16-b75-40m-v3.3.0-aborted (481 MB, the training aborted for your
   jobs on 4.11. 00:01, epoch 172) - delete? Aborted runs are only renamed by the rule.
 - 2026-11-05: test/nnue - about 120 GB no longer needed (old book files of past trainings, old 10 M variants, the
