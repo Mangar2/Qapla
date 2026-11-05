@@ -86,6 +86,12 @@ the blend that did better goes on: the Spike data are tried with 0.75 (q1234-02a
 **Qapla 2.0.0-003 (Volker 2026-11-04): q1234-02abcd-no16 (blend 0.80) embedded** (tag 2.0.0-003; embedded net and
 net file, M4 and Studio builds: identical nodes and scores, 3 positions, depth 16) - the engine of the generation 1
 evaluation of the big book (src/nnue-data/generated-data.md).
+**Spike data, q1234-02abcd-03a-no16-b75 = q1234-02abcd-no16-b75 plus quarter 03a (Qapla HCE depth 9 against Spike
+1.4.3 depth 8, both colours per leaf, 4,505,978 games; Volker 2026-11-03; 2026-11-05 13:07, 20000 games):
+2622.2 +/-3 against 2.0.0-001 2593.3 +/-1 (54.14 %, draws 55.4 %), first place; q1234-02abcd-no16-b75 2606.3 +/-3
+in the same table - 15.9 apart (a difference of two figures of +/-3 carries about +/-4).** Volker 2026-11-05: the
+Spike experiment works, the Spike games go on (03c on the Studio). Next, to tell "more data" from "other data":
+q1234-02ab-03a-no16-b75, quarters 02c and 02d out for 03a (28,032,134 games in the book WDL against 28,038,016).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
