@@ -867,6 +867,9 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
   one colour), `part-03a-s8-p1.pgn` (leaves 0-536,474, both), `part-03a-s8-swap.pgn` (the other colour of
   `part-03a-s8.pgn`), `part-03a-s8-p2.pgn` (leaves 1,474,742-2,252,994, both); `tmp/book100m-d9/run-03a-pairs.sh`.
 - q2 (M4, since 2026-11-02 12:16): leaves 2,252,995-4,507,502, 4,509,016 games, `part-03b.pgn`, `play-03b.ini`.
+- q3 (Studio, since 2026-11-05 05:53, Volker: "das Spike-Experiment funktioniert"): leaves 4,507,503-6,760,397,
+  4,505,790 games, 12 at a time, `part-03c.pgn`, `play-03c.ini`, `run-03c.sh`; the first games checked to start at
+  leaf 4,507,503 with both colours.
 
 ### The big book thinned, evaluated as generation 1 by Qapla 2.0.0-003 (2026-11-04)
 
@@ -888,3 +891,5 @@ the generation 1 evaluation, depth 9. On the Mac Studio, `tmp/bigbook/build-bigb
   taken over, ~630 a second at the start (16 engines 665, 12 engines 580, measured on 30,000 positions while
   Volker's image jobs ran) - about 2.8 days. Out `tmp/bigbook/100m-pruned-dead50-eval-gen1.bok`, log `eval-gen1.log`,
   resumable with the identical call.
+  **Stopped 2026-11-05 05:52** (Volker: the Studio plays quarter 3 of part 03 instead) at 53,643,613 of 153,921,422
+  positions; the state `100m-pruned-dead50-eval-gen1.bok` is kept and goes on with `eval-gen1-12.sh`.
