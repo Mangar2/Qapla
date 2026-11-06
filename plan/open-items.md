@@ -2,5 +2,5 @@
 
 Everything that waits for Volker's answer or is left over. Shown at the end of every report until answered.
 
-- 2026-11-06 12:55: Linux is free until the gauntlet of q1234-02abcd-03ahce-no16-b75 (training after the relabel of 03a,
-  about 9.11.) - nearly three days. Anything to run there meanwhile?
+- 2026-11-06 21:10: Linux hibernates - please switch it on on 10.11. in the morning (the gauntlet of
+  q1234-02abcd-03ahce-no16-b75 starts after the training of the night 9./10.11., done about 03:30).
