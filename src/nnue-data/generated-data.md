@@ -870,6 +870,15 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
 - q3 (Studio, since 2026-11-05 05:53, Volker: "das Spike-Experiment funktioniert"): leaves 4,507,503-6,760,397,
   4,505,790 games, 12 at a time, `part-03c.pgn`, `play-03c.ini`, `run-03c.sh`; the first games checked to start at
   leaf 4,507,503 with both colours.
+  Paused 2026-11-06 09:19 at 1,267,983 games (Volker: the Studio relabels 03a first); resumes with
+  `sh tmp/book100m-d9/run-03c.sh` from its state (qet 3bc23c1 in build/release, copy in new-versions/qet-3bc23c1-studio).
+- **03a relabelled by Qapla HCE** (Volker 2026-11-06: do the gains of the Spike quarter come from Spike's values or from
+  the games?): the 4,505,978 games of 03a, every position after the book searched again by `Qapla-hce-53f972f-studio`,
+  depth 9, reverse, 12 engines - qet 291af9d `--analysis ... book=skip` leaves the book moves unsearched and without
+  value, as in the played games (240 games checked: identical to the full analysis with the book values removed).
+  Chunks of 100,000 games, `tmp/relabel03a/run-relabel03a.sh` (resumable), from 2026-11-06 11:17, ~13 games a second.
+  Caveat for the reading: reverse analysis changes Qapla's own values too (it meets a move knowing the end of the
+  game), not only Spike's.
 
 ### The big book thinned, evaluated as generation 1 by Qapla 2.0.0-003 (2026-11-04)
 
