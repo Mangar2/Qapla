@@ -92,6 +92,12 @@ evaluation of the big book (src/nnue-data/generated-data.md).
 in the same table - 15.9 apart (a difference of two figures of +/-3 carries about +/-4).** Volker 2026-11-05: the
 Spike experiment works, the Spike games go on (03c on the Studio). Next, to tell "more data" from "other data":
 q1234-02ab-03a-no16-b75, quarters 02c and 02d out for 03a (28,032,134 games in the book WDL against 28,038,016).
+**More data or other data, q1234-02ab-03a-no16-b75 = 02c and 02d out, 03a in (2026-11-06 12:54, 20000 games):
+2620.5 +/-3 against 2.0.0-001 2591.8 +/-1 (54.12 %, draws 54.5 %); in the same table q1234-02abcd-03a-no16-b75 2620.6
+and q1234-02abcd-no16-b75 2604.7.** At the same amount of data the Spike quarter in place of two HCE quarters gives
+15.8 (difference of two figures of +/-3: about +/-4); the two HCE quarters on top give 0.1. The gain comes from the
+other data, not from more data. Next (Volker 2026-11-06): 03a relabelled by Qapla HCE, to tell Spike's values from
+the games themselves.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
