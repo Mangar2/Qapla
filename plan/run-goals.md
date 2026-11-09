@@ -98,6 +98,10 @@ and q1234-02abcd-no16-b75 2604.7.** At the same amount of data the Spike quarter
 15.8 (difference of two figures of +/-3: about +/-4); the two HCE quarters on top give 0.1. The gain comes from the
 other data, not from more data. Next (Volker 2026-11-06): 03a relabelled by Qapla HCE, to tell Spike's values from
 the games themselves.
+**q1234-02abcd-03ahce-no16-b75** (Studio, from 2026-11-09 03:57, Volker: start at once whatever the hour): as
+q1234-02abcd-03a-no16-b75 with `p03q1hce` (the 03a games valued by Qapla HCE depth 9) for `p03q1` (valued by Spike) -
+trainer 3.3.0 at 5df1414 as there, the data list identical but for that file. Goal: tell whether the gain of 03a comes
+from Spike's values or from the games. Then the 20000 games against 2.0.0-001 on Linux, in the table of 02abcd-03a.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:

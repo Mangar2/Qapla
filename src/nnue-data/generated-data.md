@@ -882,6 +882,15 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
   Chunks of 100,000 games, `tmp/relabel03a/run-relabel03a.sh` (resumable), from 2026-11-06 11:17, ~13 games a second.
   Caveat for the reading: reverse analysis changes Qapla's own values too (it meets a move knowing the end of the
   game), not only Spike's.
+  Done 2026-11-09 03:55, all 46 chunks complete; `tmp/relabel03a/after-relabel.sh` joined them and converted them:
+  `book100m-d9-p03q1hce-wdl.gam` - games 4,505,978, valued moves 512,441,563, results 1-0 1,859,311 / 0-1 1,971,349 /
+  draws 675,318: all exactly as `p03q1`, the same size in bytes. **The order of the games differs inside each chunk of
+  100,000**: qet writes an analysed game when it is done, with 12 engines not in the order read, so the file holds the
+  same games as `p03q1` permuted within each block of 100,000 - for the training a different shuffle of the same games.
+  Values compared on the first 100,000 games, matched by their moves (11,626,950 moves valued in both, none in only
+  one): correlation 0.991, |Spike - HCE| (clipped at 5 pawns) median 0.08, mean 0.25, 90 % below 0.73; same sign in
+  99.2 % where both are beyond 0.2; mean from the side to move Spike +0.19, HCE +0.05; the spread over the bins nearly
+  the same (HCE a little more beyond -1, a little less beyond +1).
 
 ### The big book thinned, evaluated as generation 1 by Qapla 2.0.0-003 (2026-11-04)
 
