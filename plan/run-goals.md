@@ -107,6 +107,13 @@ job was done (`train-q1234-02abcd-03ahce-no16-b75-resume.sh`, same command and d
 Stopped again 07:40 at epoch 419 for the next video job; taken up again 08:57 on Volker's go (epoch 420 on).
 Done 11:01 (exit 0; epoch 800: loss 0.001544, held back 0.001623); e800 md5 c97a99e1..., on Linux as
 `test/nnue/nnue-q1234-02abcd-03ahce-no16-b75-40m-v3.3.0-e800.nnue`, joined the curve gauntlet 11:02 (20000 games).
+**Result (2026-11-09 20:35, 20000 games): 2614.5 +/-3** (53.42 %, draws 55.3 %); in the same table
+q1234-02abcd-03a-no16-b75 (Spike's values) 2619.6, q1234-02abcd-no16-b75 (without 03a) 2603.7, 2.0.0-001 2590.7 +/-1.
+Of the 15.9 that 03a gives, 10.8 (difference of two figures of +/-3: about +/-4) remain with Qapla's own values: most
+of the gain comes from the games. Spike's values add 5.1 (+/-4) on top - just beyond the error of a difference.
+Caveat: the relabelling searched in reverse, so Qapla's own moves changed their values too - this is Spike forward +
+Qapla forward against Qapla reverse throughout; whether reverse values themselves help or hurt is what the p02q1/p02q2
+reverse run tests.
 **Reverse values for part 02, quarters 1 and 2** (Studio, from 2026-11-09 08:37, Volker): the 4,507,289 games of
 `p02q1` and `p02q2` (Qapla HCE against itself, depth 9) valued again by the same engine at the same depth in reverse
 (qet 291af9d `--analysis direction=reverse book=skip`) - a value that knows how the game went on sees a bad position
