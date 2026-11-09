@@ -102,6 +102,8 @@ the games themselves.
 q1234-02abcd-03a-no16-b75 with `p03q1hce` (the 03a games valued by Qapla HCE depth 9) for `p03q1` (valued by Spike) -
 trainer 3.3.0 at 5df1414 as there, the data list identical but for that file. Goal: tell whether the gain of 03a comes
 from Spike's values or from the games. Then the 20000 games against 2.0.0-001 on Linux, in the table of 02abcd-03a.
+Stopped 05:52 at epoch 368 for Volker's video job (the watcher's rule); taken up with `--resume` at 07:24 once the
+job was done (`train-q1234-02abcd-03ahce-no16-b75-resume.sh`, same command and data, the data stream starting fresh).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
