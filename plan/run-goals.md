@@ -105,6 +105,14 @@ from Spike's values or from the games. Then the 20000 games against 2.0.0-001 on
 Stopped 05:52 at epoch 368 for Volker's video job (the watcher's rule); taken up with `--resume` at 07:24 once the
 job was done (`train-q1234-02abcd-03ahce-no16-b75-resume.sh`, same command and data, the data stream starting fresh).
 Stopped again 07:40 at epoch 419 for the next video job; waits for Volker's go.
+**Reverse values for part 02, quarters 1 and 2** (Studio, from 2026-11-09 08:37, Volker): the 4,507,289 games of
+`p02q1` and `p02q2` (Qapla HCE against itself, depth 9) valued again by the same engine at the same depth in reverse
+(qet 291af9d `--analysis direction=reverse book=skip`) - a value that knows how the game went on sees a bad position
+as bad earlier. Does that train a better net than the value of the game? The games are taken from the training
+files (`gam2pgn values=true`), so they are exactly the trained ones; `tmp/relabel02ab/run-relabel02ab.sh` (resumable),
+46 chunks, ~18 games a second, then `book100m-d9-p02q1rev-wdl.gam` and `-p02q2rev-wdl.gam`. Test before (20 games):
+all matched, book end unchanged, e.g. a game ending in a repetition valued 0.00 from move 11 instead of +0.29.
+Comparison: q1234-02abcd-no16-b75 with p02q1/p02q2 replaced by their reverse twins, against q1234-02abcd-no16-b75.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
