@@ -88,7 +88,7 @@ net file, M4 and Studio builds: identical nodes and scores, 3 positions, depth 1
 evaluation of the big book (src/nnue-data/generated-data.md).
 **Qapla 2.0.0-004 (Volker 2026-11-10): q1234-02abcd-03a-no16-b75 embedded** - the best of the curve gauntlet (2619.6
 +/-3; 02ab-03a 2619.4) - as a new test release: tag 2.0.0-004, Linux build `make Release -j
-EXTRA_DEFINES="-DQAPLA_USE_NNUE" NATIVE=1` (md5 b14ae109...) in `~/chess/release20/engines/qapla20_004` and
+EXTRA_DEFINES="-DQAPLA_USE_NNUE" NATIVE=1` (md5 b14ae109...) in `~/chess/release20/versions/qapla20_004` (first put into `engines/`, the opponents - moved) and
 `new-versions/Qapla-2.0.0-004`; embedded net and net file identical in nodes and scores (3 positions, depth 16), the
 2.0.0-003 net different (and equal to qapla20_003). A first plain `make Release -j` gave the HCE engine (2.7 MB) - the
 nnue build needs the define.
