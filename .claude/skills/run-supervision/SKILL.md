@@ -42,6 +42,11 @@ While anything runs on the Mac, a `caffeinate -dimsu` must be running:
 
     pgrep -x caffeinate >/dev/null || ( nohup caffeinate -dimsu > /dev/null 2>&1 < /dev/null & )
 
+**On the M4 (a MacBook) only `caffeinate -s`** (Volker 2026-11-10): it keeps the system awake on AC power only, so
+with the lid closed on battery the Mac sleeps as it should. A run started under `caffeinate -is` (or `-dimsu`) went
+on with the lid closed on battery on 2026-11-09/10 - at ~0.1 instead of ~5 games a second for three hours, load up
+to 118 - "it should not have run at all". The Studio is no laptop; `-dimsu` stays right there.
+
 Checked at every start and in every status report. On 2026-10-04 the Mac went into idle sleep at 02:09
 and at 05:26 - exactly when the gpu training "hung" - and slept until someone touched it; on the same
 day a tournament ran at half speed for 40 minutes for the same reason. A run that stops without an
