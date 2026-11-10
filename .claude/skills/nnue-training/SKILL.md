@@ -111,9 +111,9 @@ scaled for the one does not carry over to the other. Mac Studio HCE and Linux ar
   For a time control that has to hold over hours, measure over a much longer run.
   Training (GPU) and games (CPU) on the M4 share this one heat budget: running both at once always cost
   speed on both sides - this is why. Train or play on the M4, not both.
-  **On battery the M4 nearly stops**: 2026-11-09/10 (Volker unplugged it on purpose) 03b fell from ~5 to ~0.1 games
-  a second for three hours, load up to 118, the engines still at ~50 % CPU each. A sudden collapse of the rate there:
-  check `pmset -g batt` first.
+  **With the lid closed on battery the M4 sleeps** (2026-11-09/10, Volker closed it on purpose): only DarkWakes of a
+  few seconds every 2-16 minutes - 03b fell from ~5 to ~0.1 games a second for three hours. A sudden collapse of
+  the rate there: `pmset -g log | grep -E " (Sleep|Wake|DarkWake) "` first.
 - Mac Studio in **low power mode** (Volker uses it, at full load the machine is loud): the throughput flattens
   from ~11 games on (2.6 M with one game, 19.7 M total with 17). It is **not** "performance cores only" (an
   earlier guess): powermetrics during the 12-game SPRT showed all 18 cores busy at ~14 W CPU, the clocks
