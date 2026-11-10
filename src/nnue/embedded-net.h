@@ -17,10 +17,11 @@
  * @copyright Copyright (c) 2026 Volker Böhm
  * @Overview
  * The net compiled into the engine, the default net of a build with QAPLA_USE_NNUE.
- * Generated - do not edit: chess-tools embedbin --input=test/nnue/nnue-q1234-02abcd-no16-40m-v3.3.0-e800.nnue
+ * Generated - do not edit: chess-tools embedbin --input=test/nnue/milestones/nnue-q1234-02abcd-03a-no16-b75-40m-v3.3.0-e800.nnue
  *     --name=QaplaEmbeddedNet --header=src/nnue/embedded-net.h --source=src/nnue/embedded-net.cpp
- * Net: q1234-02abcd-no16 (trainer 3.3.0, epoch 800) - all of parts 01 and 02 of the 100 M book (HCE against HCE,
- * depth 9 WDL) with the 10 M set, without sets 1-6, Qapla 2.0.0-003, 2026-11-04.
+ * Net: q1234-02abcd-03a-no16-b75 (trainer 3.3.0, epoch 800) - all of parts 01 and 02 of the 100 M book (HCE against
+ * HCE, depth 9 WDL) plus quarter 03a (Qapla HCE against Spike 1.4.3), with the 10 M set, without sets 1-6, WDL
+ * weight 0.75, Qapla 2.0.0-004, 2026-11-10.
  */
 
 #pragma once
