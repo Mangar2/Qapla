@@ -86,6 +86,12 @@ the blend that did better goes on: the Spike data are tried with 0.75 (q1234-02a
 **Qapla 2.0.0-003 (Volker 2026-11-04): q1234-02abcd-no16 (blend 0.80) embedded** (tag 2.0.0-003; embedded net and
 net file, M4 and Studio builds: identical nodes and scores, 3 positions, depth 16) - the engine of the generation 1
 evaluation of the big book (src/nnue-data/generated-data.md).
+**Qapla 2.0.0-004 (Volker 2026-11-10): q1234-02abcd-03a-no16-b75 embedded** - the best of the curve gauntlet (2619.6
++/-3; 02ab-03a 2619.4) - as a new test release: tag 2.0.0-004, Linux build `make Release -j
+EXTRA_DEFINES="-DQAPLA_USE_NNUE" NATIVE=1` (md5 b14ae109...) in `~/chess/release20/engines/qapla20_004` and
+`new-versions/Qapla-2.0.0-004`; embedded net and net file identical in nodes and scores (3 positions, depth 16), the
+2.0.0-003 net different (and equal to qapla20_003). A first plain `make Release -j` gave the HCE engine (2.7 MB) - the
+nnue build needs the define.
 **Spike data, q1234-02abcd-03a-no16-b75 = q1234-02abcd-no16-b75 plus quarter 03a (Qapla HCE depth 9 against Spike
 1.4.3 depth 8, both colours per leaf, 4,505,978 games; Volker 2026-11-03; 2026-11-05 13:07, 20000 games):
 2622.2 +/-3 against 2.0.0-001 2593.3 +/-1 (54.14 %, draws 55.4 %), first place; q1234-02abcd-no16-b75 2606.3 +/-3
