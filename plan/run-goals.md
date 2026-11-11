@@ -150,6 +150,13 @@ Linux on again 11.11. evening: build d1db6ba (`new-versions/Qapla-d1db6ba-sqr`),
 like `Qapla-2.0.0-001` (3 positions, depth 16) - so the build is no second factor; the sqr net loads (depth 12 from the
 start: 141,036 nodes against 116,124 with 004's net). Joined the curve gauntlet 21:28 with `tmp/curve/join-bin.sh`
 (join.sh with the binary as an argument), 20000 games.
+**Order of the next runs (Volker 2026-11-11 21:40):** 1. the reverse values of 02a/02b instead of the originals,
+trained and tested (q1234-02abcd-rev02ab-no16-b75); 2. quarter 03b (Spike against HCE, M4, done ~13.11. 00:00)
+added to the training and tested; 3. the MoE net: the accumulator 256 + 16, a router (the 16 extra values of both
+perspectives, 32 -> 16) picks the top 2 of 16 experts of 16 neurons (512 -> 16 each), so L1 computes 32 outputs as
+now; every expert has its own L2 weights (16 -> 32), the two chosen ones' contributions summed with the router's
+weights - in place of the buckets by piece count, a load-balancing term in the training (A3/A4 below). One factor
+against the best net with buckets on the same data (on sqr if sqr wins).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
