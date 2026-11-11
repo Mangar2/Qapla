@@ -873,6 +873,8 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
   2026-11-09 22:46 to 11-10 ~02:00 nearly stalled (~0.1 games a second): the lid was closed on battery (Volker, on
   purpose) and the M4 slept - `pmset -g log` shows Sleep from 22:46 and DarkWakes of seconds every 2-16 minutes, in
   which the run went on. Paused 02:01 when it was back on AC, resumed 02:02 at 6.9 games a second.
+  Paused 2026-11-11 22:30 at 4,027,163 games (Volker: until further notice); resumes with `sh tmp/book100m-d9/run-03b.sh`
+  from its state.
 - q3 (Studio, since 2026-11-05 05:53, Volker: "das Spike-Experiment funktioniert"): leaves 4,507,503-6,760,397,
   4,505,790 games, 12 at a time, `part-03c.pgn`, `play-03c.ini`, `run-03c.sh`; the first games checked to start at
   leaf 4,507,503 with both colours.
