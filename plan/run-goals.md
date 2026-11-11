@@ -132,6 +132,15 @@ files (`gam2pgn values=true`), so they are exactly the trained ones; `tmp/relabe
 46 chunks, ~18 games a second, then `book100m-d9-p02q1rev-wdl.gam` and `-p02q2rev-wdl.gam`. Test before (20 games):
 all matched, book end unchanged, e.g. a game ending in a repetition valued 0.00 from move 11 instead of +0.29.
 Comparison: q1234-02abcd-no16-b75 with p02q1/p02q2 replaced by their reverse twins, against q1234-02abcd-no16-b75.
+**Architecture: the first layer activated twice (Volker 2026-11-11, "teste das verdoppeln")** - Stockfish's pair:
+every output x of L1 goes to L2 as `min(x^2, 1) * 127/128` and as `clamp(x, 0, 1)`, so L2 reads 64 inputs instead of
+32; the square keeps an output below zero alive. Trainer 4.0.0 `--sqr`, net format QAPLANN4, the engine reads it
+(checks in the CHANGELOG entry: without `--sqr` bit-identical to 3.3.0, trainer and engine equal on 400 positions,
+old nets 207,841,327 nodes before and after). Net **q1234-02abcd-03a-sqr-no16-b75**: the command and data of
+q1234-02abcd-03a-no16-b75 (2.0.0-004, 2619.6) with `--sqr` the one factor (`tmp/book100m-d9/train-q1234-02abcd-03a-sqr-no16-b75.sh`,
+Studio, on Volker's request beside the reverse relabel). Then the 20000 games against 2.0.0-001 on Linux, in the
+table of 02abcd-03a - with a Linux build of this commit, since only it reads QAPLANN4. Not tested yet with it: the
+skip output of L1 straight to the result, and the pairwise multiplication in the accumulator (each its own factor).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
