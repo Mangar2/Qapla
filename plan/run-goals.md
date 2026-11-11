@@ -141,6 +141,11 @@ q1234-02abcd-03a-no16-b75 (2.0.0-004, 2619.6) with `--sqr` the one factor (`tmp/
 Studio, on Volker's request beside the reverse relabel). Then the 20000 games against 2.0.0-001 on Linux, in the
 table of 02abcd-03a - with a Linux build of this commit, since only it reads QAPLANN4. Not tested yet with it: the
 skip output of L1 straight to the result, and the pairwise multiplication in the accumulator (each its own factor).
+Started 07:43 (07:10 started beside a video job by mistake and stopped after 10 s, no epoch); done 12:12, exit 0, 17 s
+an epoch beside the relabel. e800: loss 0.001514, held back 0.001595 (2.0.0-004's net: 0.001520 and 0.001601). md5
+ea1042bd..., in milestones (M4/T7, Studio; Linux when awake), Studio training dir deleted. Trainer and engine equal on
+300 positions of the net. About 5-8 % fewer nodes a second than 004's net (M4 under load, 8 s from one position,
+two runs each) - the games decide. Next: Linux build of 60d16a3 or later (reads QAPLANN4), then the 20000 games.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
