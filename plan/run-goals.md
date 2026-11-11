@@ -92,6 +92,10 @@ EXTRA_DEFINES="-DQAPLA_USE_NNUE" NATIVE=1` (md5 b14ae109...) in `~/chess/release
 `new-versions/Qapla-2.0.0-004`; embedded net and net file identical in nodes and scores (3 positions, depth 16), the
 2.0.0-003 net different (and equal to qapla20_003). A first plain `make Release -j` gave the HCE engine (2.7 MB) - the
 nnue build needs the define.
+**2.0.0-004 against the 16 opponents of release20** (Volker, qcg on Linux, 2026-11-10 10:35 to 11-11 04:25, 1000 games
+each, the same set 2.0.0-001 played in October, `~/chess/release05/qapla050-test.pgn`): 30.7 % against 29.2 % for
+2.0.0-001 - **+12.8 Elo (about +/-7)**. Directly against 2.0.0-001 the same net had given +28.9 (curve gauntlet): against
+other engines less than half of it remains. Per opponent from -1.0 % (Black Marlin, Minic, Counter) to +3.8 % (Velvet).
 **Spike data, q1234-02abcd-03a-no16-b75 = q1234-02abcd-no16-b75 plus quarter 03a (Qapla HCE depth 9 against Spike
 1.4.3 depth 8, both colours per leaf, 4,505,978 games; Volker 2026-11-03; 2026-11-05 13:07, 20000 games):
 2622.2 +/-3 against 2.0.0-001 2593.3 +/-1 (54.14 %, draws 55.4 %), first place; q1234-02abcd-no16-b75 2606.3 +/-3
