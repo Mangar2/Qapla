@@ -146,6 +146,10 @@ an epoch beside the relabel. e800: loss 0.001514, held back 0.001595 (2.0.0-004'
 ea1042bd..., in milestones (M4/T7, Studio; Linux when awake), Studio training dir deleted. Trainer and engine equal on
 300 positions of the net. About 5-8 % fewer nodes a second than 004's net (M4 under load, 8 s from one position,
 two runs each) - the games decide. Next: Linux build of 60d16a3 or later (reads QAPLANN4), then the 20000 games.
+Linux on again 11.11. evening: build d1db6ba (`new-versions/Qapla-d1db6ba-sqr`), with 2.0.0-004's net node for node
+like `Qapla-2.0.0-001` (3 positions, depth 16) - so the build is no second factor; the sqr net loads (depth 12 from the
+start: 141,036 nodes against 116,124 with 004's net). Joined the curve gauntlet 21:28 with `tmp/curve/join-bin.sh`
+(join.sh with the binary as an argument), 20000 games.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
