@@ -70,6 +70,50 @@ namespace {
 	}
 
 	/**
+	 * The square of an output of the first layer, at the scale QA: (QA x)^2 / 128 is QA * x^2 *
+	 * 127/128, Stockfish's SqrClippedReLU, cut at QA. A value beyond 128 gives QA anyway, so it is
+	 * cut there first and the product stays small.
+	 */
+	constexpr int8_t squaredRelu(int32_t value) {
+		const int32_t bounded = std::min(value < 0 ? -value : value, 128);
+		return int8_t(std::min((bounded * bounded) >> 7, int32_t(QA)));
+	}
+
+	/**
+	 * The first layer of a net of the fourth format: every output activated twice, the squares in
+	 * the first L1_SIZE values of output, the clipped relu in the next L1_SIZE.
+	 */
+	template <uint32_t INPUT_SIZE, uint32_t OUTPUT_SIZE>
+	void affineSqrRelu(const int8_t* input, const int8_t* weight, const int32_t* bias,
+		int8_t* output) {
+		static_assert(INPUT_SIZE % 16 == 0, "the dot product takes a multiple of sixteen");
+		static_assert(OUTPUT_SIZE % 4 == 0, "four output rows are computed at a time");
+		for (uint32_t out = 0; out < OUTPUT_SIZE; out += 4) {
+			int32_t sums[4];
+			dotProduct4(weight + size_t(out) * INPUT_SIZE, INPUT_SIZE, input, INPUT_SIZE, sums);
+			for (uint32_t row = 0; row < 4; row++) {
+				const int32_t value = (bias[out + row] + sums[row]) >> QB_SHIFT;
+				output[out + row] = squaredRelu(value);
+				output[OUTPUT_SIZE + out + row] = clippedRelu(value);
+			}
+		}
+	}
+
+	/** The same layer without any instruction of the processor. */
+	template <uint32_t INPUT_SIZE, uint32_t OUTPUT_SIZE>
+	void affineSqrReluPlain(const int8_t* input, const int8_t* weight, const int32_t* bias,
+		int8_t* output) {
+		for (uint32_t out = 0; out < OUTPUT_SIZE; out++) {
+			int32_t sum = bias[out];
+			const int8_t* row = weight + size_t(out) * INPUT_SIZE;
+			for (uint32_t in = 0; in < INPUT_SIZE; in++) sum += int32_t(row[in]) * int32_t(input[in]);
+			const int32_t value = sum >> QB_SHIFT;
+			output[out] = squaredRelu(value);
+			output[OUTPUT_SIZE + out] = clippedRelu(value);
+		}
+	}
+
+	/**
 	 * The value the net produces, brought into the value unit of the engine.
 	 *
 	 * In 32 bits and not in 64: the output of the last layer is at most its bias plus
@@ -151,10 +195,16 @@ value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int
 	clippedReluBlock(own, input, ACCUMULATOR_SIZE);
 	clippedReluBlock(opponent, input + ACCUMULATOR_SIZE, ACCUMULATOR_SIZE);
 
-	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
+	alignas(NNUE_ALIGNMENT) int8_t hidden1[L2_INPUT_SIZE_SQR];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
-	affineRelu<L1_SIZE, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
+	if (network.hasSqr) {
+		affineSqrRelu<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
+		affineRelu<L2_INPUT_SIZE_SQR, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
+	}
+	else {
+		affineRelu<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
+		affineRelu<L1_SIZE, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
+	}
 
 	const int32_t output = head.outputBias + dotProduct(head.outputWeight.data(), hidden2, L2_SIZE);
 	return network.hasPsqt ? toEngineValueWithPsqt(output, ownPsqt[stack], opponentPsqt[stack])
@@ -170,10 +220,16 @@ value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
 		input[index + ACCUMULATOR_SIZE] = clippedRelu(opponent[index]);
 	}
 
-	alignas(NNUE_ALIGNMENT) int8_t hidden1[L1_SIZE];
+	alignas(NNUE_ALIGNMENT) int8_t hidden1[L2_INPUT_SIZE_SQR];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
-	affineReluPlain<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
-	affineReluPlain<L1_SIZE, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
+	if (network.hasSqr) {
+		affineSqrReluPlain<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
+		affineReluPlain<L2_INPUT_SIZE_SQR, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
+	}
+	else {
+		affineReluPlain<L1_INPUT_SIZE, L1_SIZE>(input, head.l1Weight.data(), head.l1Bias.data(), hidden1);
+		affineReluPlain<L1_SIZE, L2_SIZE>(hidden1, head.l2Weight.data(), head.l2Bias.data(), hidden2);
+	}
 
 	int32_t output = head.outputBias;
 	for (uint32_t index = 0; index < L2_SIZE; index++) {

@@ -25,6 +25,18 @@
       "42308a9cbf72e2854a001207a19c42ff",
       "5430125c731b14f7d4829d69ec392c74"
     ],
+    "fixed-ranger-1head-sqr": [
+      "5a5838489cae31ebb91fdf7f39a8ca9d",
+      "69e9423bf7cb699e89d3d380f55a0626"
+    ],
+    "fixed-ranger-8heads-sqr": [
+      "d5874df5eb37c9ada4090aa4e9238766",
+      "389dc5a54914d044228067e967465ded"
+    ],
+    "pass-adam-8heads-neighbours-sqr": [
+      "c1b5e2cac3a8f06154c5a8468451e808",
+      "dfebac869baf6b6ebcdd637ceca1a23e"
+    ],
     "fixed-ranger-resumed": [
       "a413845ab94927625e7807eb4bf9443c",
       "e7005248f863b49c12641e6d44677a13"
@@ -39,5 +51,5 @@
     ]
   },
   "fixture_wdl": "4397def0b1bdf99906bde603e5341f84",
-  "version": "3.3.0"
+  "version": "4.0.0"
 }

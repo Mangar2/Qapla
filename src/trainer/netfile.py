@@ -21,6 +21,9 @@ MAGIC_SINGLE_HEAD = b'QAPLANN1'
 # The format with the piece-square part: the stacked one, and between the feature weights and the
 # heads PSQT_BUCKETS int32 values per feature, of the scale QA*QB of the output.
 MAGIC_PSQT = b'QAPLANN3'
+# The format with the doubled activation of the first layer (model.HalfKaNet.activate_l1): the stacked
+# one with a second layer of 2 * L1_SIZE inputs a row, the squares first. No piece-square part.
+MAGIC_SQR = b'QAPLANN4'
 
 SQUARE_COUNT = 64
 PIECE_PLANES = 11
@@ -61,6 +64,11 @@ def psqt_architecture_id():
     return (architecture_id() + PSQT_BUCKETS * 7919) & 0xFFFFFFFF
 
 
+def sqr_architecture_id():
+    """The shape number of a file with the doubled activation, sqrArchitectureId()."""
+    return (architecture_id() + 2 * L1_SIZE * 7907) & 0xFFFFFFFF
+
+
 # The values a psqt column starts from: the material of the piece, in output units (one is
 # NET_VALUE_SCALE engine units), positive for the own pieces and negative for the opponent's. The
 # planes run pawn, knight, bishop, rook, queen with the own piece first; plane 10 is the enemy king.
@@ -88,11 +96,11 @@ class Head:
 
     __slots__ = ('l1_bias', 'l1_weight', 'l2_bias', 'l2_weight', 'output_bias', 'output_weight')
 
-    def __init__(self):
+    def __init__(self, sqr=False):
         self.l1_bias = array('i', [0]) * L1_SIZE
         self.l1_weight = array('b', [0]) * (L1_SIZE * L1_INPUT_SIZE)
         self.l2_bias = array('i', [0]) * L2_SIZE
-        self.l2_weight = array('b', [0]) * (L2_SIZE * L1_SIZE)
+        self.l2_weight = array('b', [0]) * (L2_SIZE * L1_SIZE * (2 if sqr else 1))
         self.output_bias = 0
         self.output_weight = array('b', [0]) * L2_SIZE
 
@@ -100,7 +108,7 @@ class Head:
 class Network:
     """The quantized weights, in the order they stand in the file."""
 
-    __slots__ = ('feature_bias', 'feature_weight', 'psqt_weight', 'heads', 'stacked')
+    __slots__ = ('feature_bias', 'feature_weight', 'psqt_weight', 'heads', 'stacked', 'sqr')
 
     def __init__(self):
         self.feature_bias = array('h', [0]) * ACCUMULATOR_SIZE
@@ -108,6 +116,7 @@ class Network:
         self.psqt_weight = None      # array('i'), PSQT_BUCKETS per feature, or None
         self.heads = [Head() for _ in range(LAYER_STACKS)]
         self.stacked = True
+        self.sqr = False             # the doubled activation of the first layer, format QAPLANN4
 
 
 # The arrays of a head in their order: name, type code and length. The output bias, a single int32,
@@ -147,9 +156,17 @@ def _read_array(stream, code, count):
     return target
 
 
-def _read_head(stream):
+def _head_members(sqr):
+    """_HEAD_MEMBERS, with the second layer twice as wide in a net of the doubled activation."""
+    if not sqr:
+        return _HEAD_MEMBERS
+    return tuple((member, code, count * 2 if member == 'l2_weight' else count)
+                 for member, code, count in _HEAD_MEMBERS)
+
+
+def _read_head(stream, sqr=False):
     head = Head()
-    for member, code, count in _HEAD_MEMBERS:
+    for member, code, count in _head_members(sqr):
         setattr(head, member, _read_array(stream, code, count))
     head.output_bias = struct.unpack('<i', stream.read(4))[0]
     head.output_weight = _read_array(stream, 'b', L2_SIZE)
@@ -162,9 +179,11 @@ def read(path):
     with open(path, 'rb') as stream:
         magic = stream.read(len(MAGIC))
         identifier = struct.unpack('<I', stream.read(4))[0]
-        if magic not in (MAGIC, MAGIC_SINGLE_HEAD, MAGIC_PSQT):
+        if magic not in (MAGIC, MAGIC_SINGLE_HEAD, MAGIC_PSQT, MAGIC_SQR):
             raise ValueError('%s is not a net file' % path)
+        network.sqr = magic == MAGIC_SQR
         wanted = (psqt_architecture_id() if magic == MAGIC_PSQT else
+                  sqr_architecture_id() if network.sqr else
                   architecture_id() if magic == MAGIC else single_head_architecture_id())
         if identifier != wanted:
             raise ValueError('%s has shape %d, this code wants %d' % (path, identifier, wanted))
@@ -172,8 +191,8 @@ def read(path):
         network.feature_weight = _read_array(stream, 'h', FEATURE_COUNT * ACCUMULATOR_SIZE)
         if magic == MAGIC_PSQT:
             network.psqt_weight = _read_array(stream, 'i', FEATURE_COUNT * PSQT_BUCKETS)
-        if magic in (MAGIC, MAGIC_PSQT):
-            network.heads = [_read_head(stream) for _ in range(LAYER_STACKS)]
+        if magic in (MAGIC, MAGIC_PSQT, MAGIC_SQR):
+            network.heads = [_read_head(stream, network.sqr) for _ in range(LAYER_STACKS)]
         else:
             head = _read_head(stream)
             network.heads = [head] * LAYER_STACKS
@@ -187,10 +206,15 @@ def write(path, network, single_head=False):
     same, which every engine binary can read, also the ones built before there were stacks.
     """
     psqt = network.psqt_weight is not None
-    single_head = single_head and not psqt
+    sqr = network.sqr
+    if psqt and sqr:
+        raise ValueError('no net format has both the piece-square part and the doubled activation')
+    single_head = single_head and not psqt and not sqr
     with open(path, 'wb') as stream:
-        stream.write(MAGIC_PSQT if psqt else MAGIC_SINGLE_HEAD if single_head else MAGIC)
+        stream.write(MAGIC_PSQT if psqt else MAGIC_SQR if sqr else
+                     MAGIC_SINGLE_HEAD if single_head else MAGIC)
         stream.write(struct.pack('<I', psqt_architecture_id() if psqt else
+                                 sqr_architecture_id() if sqr else
                                  single_head_architecture_id() if single_head
                                  else architecture_id()))
         network.feature_bias.tofile(stream)
@@ -198,7 +222,7 @@ def write(path, network, single_head=False):
         if psqt:
             network.psqt_weight.tofile(stream)
         for head in network.heads[:1] if single_head else network.heads:
-            for member, _code, _count in _HEAD_MEMBERS:
+            for member, _code, _count in _head_members(sqr):
                 getattr(head, member).tofile(stream)
             stream.write(struct.pack('<i', head.output_bias))
             head.output_weight.tofile(stream)
@@ -224,6 +248,25 @@ def _accumulator(network, active_features):
     return accumulator
 
 
+def _squared_relu(value):
+    """squaredRelu() of nnue-evaluator.cpp: (value^2) >> 7, cut at QA."""
+    bounded = min(abs(value), 128)
+    return min((bounded * bounded) >> 7, QA)
+
+
+def _affine_sqr_relu(inputs, weight, bias, output_size):
+    """The first layer of the doubled activation: the squares, then the clipped relus."""
+    input_size = len(inputs)
+    values = []
+    for out in range(output_size):
+        offset = out * input_size
+        total = bias[out]
+        for index in range(input_size):
+            total += weight[offset + index] * inputs[index]
+        values.append(total >> QB_SHIFT)
+    return [_squared_relu(v) for v in values] + [_clipped_relu(v) for v in values]
+
+
 def _affine_relu(inputs, weight, bias, output_size):
     input_size = len(inputs)
     output = []
@@ -245,7 +288,8 @@ def evaluate(network, own_features, opponent_features):
     head = network.heads[stack]
     inputs = [_clipped_relu(value) for value in _accumulator(network, own_features)]
     inputs += [_clipped_relu(value) for value in _accumulator(network, opponent_features)]
-    hidden = _affine_relu(inputs, head.l1_weight, head.l1_bias, L1_SIZE)
+    first_layer = _affine_sqr_relu if network.sqr else _affine_relu
+    hidden = first_layer(inputs, head.l1_weight, head.l1_bias, L1_SIZE)
     hidden = _affine_relu(hidden, head.l2_weight, head.l2_bias, L2_SIZE)
     total = head.output_bias
     for index in range(L2_SIZE):

@@ -36,10 +36,15 @@ class HalfKaNet(nn.Module):
     heads being allowed to part, and from nothing else.
     """
 
-    def __init__(self, stacks=1, psqt=False):
+    def __init__(self, stacks=1, psqt=False, sqr=False):
         super().__init__()
         self.stacks = stacks
         self.psqt = None
+        # sqr: every output of the first dense layer activated twice, as Stockfish does - see
+        # activate_l1(). The second layer then reads twice as many inputs; nothing else changes, and
+        # without it every number is drawn from the seed as before.
+        self.sqr = sqr
+        self.l2_input = netfile.L1_SIZE * (2 if sqr else 1)
         # One more row than there are features: it is the padding of a position
         # with fewer than 32 pieces, and it stays zero.
         self.feature_transformer = nn.EmbeddingBag(
@@ -47,7 +52,7 @@ class HalfKaNet(nn.Module):
             padding_idx=netfile.FEATURE_COUNT)
         self.feature_bias = nn.Parameter(torch.zeros(netfile.ACCUMULATOR_SIZE))
         self.l1 = nn.Linear(netfile.L1_INPUT_SIZE, netfile.L1_SIZE)
-        self.l2 = nn.Linear(netfile.L1_SIZE, netfile.L2_SIZE)
+        self.l2 = nn.Linear(self.l2_input, netfile.L2_SIZE)
         self.output = nn.Linear(netfile.L2_SIZE, 1)
         nn.init.normal_(self.feature_transformer.weight, std=0.01)
         with torch.no_grad():
@@ -57,7 +62,7 @@ class HalfKaNet(nn.Module):
             # comes out of the seed exactly as it does without stacks.
             single = (self.l1, self.l2, self.output)
             self.l1 = nn.Linear(netfile.L1_INPUT_SIZE, netfile.L1_SIZE * stacks)
-            self.l2 = nn.Linear(netfile.L1_SIZE, netfile.L2_SIZE * stacks)
+            self.l2 = nn.Linear(self.l2_input, netfile.L2_SIZE * stacks)
             self.output = nn.Linear(netfile.L2_SIZE, stacks)
             with torch.no_grad():
                 for stacked, one in zip((self.l1, self.l2, self.output), single):
@@ -71,6 +76,18 @@ class HalfKaNet(nn.Module):
                                         padding_idx=netfile.FEATURE_COUNT)
             with torch.no_grad():
                 self.psqt.weight.copy_(netfile.psqt_start_values())
+
+    def activate_l1(self, hidden):
+        """The activation of the first dense layer's outputs, over the last dimension.
+
+        Without sqr the clipped relu. With it Stockfish's pair: min(x^2, 1) * 127/128 and
+        clamp(x, 0, 1), the squares first. The square drops the sign, so an output below zero still
+        reaches the next layer. 127/128 is what the engine's integer square comes to: (127 x)^2 / 128
+        at the scale 127 (SqrClippedReLU, squaredRelu() in nnue-evaluator.cpp).
+        """
+        if not self.sqr:
+            return hidden.clamp(0.0, 1.0)
+        return torch.cat((hidden.pow(2.0) * (127.0 / 128.0), hidden), dim=-1).clamp(0.0, 1.0)
 
     def forward(self, own_features, opponent_features, csr=None):
         """csr: the batch's features grouped by feature (gamedata csr_batches) - then the feature
@@ -98,7 +115,7 @@ class HalfKaNet(nn.Module):
         opponent = opponent + self.feature_bias
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
         if self.stacks == 1:
-            hidden = self.l1(hidden).clamp(0.0, 1.0)
+            hidden = self.activate_l1(self.l1(hidden))
             hidden = self.l2(hidden).clamp(0.0, 1.0)
             return self.output(hidden).squeeze(1)
         # The own features are every piece but the own king, so their number is the pieces less
@@ -107,7 +124,7 @@ class HalfKaNet(nn.Module):
         rows = (active // 4).clamp(max=self.stacks - 1).view(-1, 1)
         hidden = self.l1(hidden).view(-1, self.stacks, netfile.L1_SIZE)
         hidden = hidden.gather(1, rows.unsqueeze(2).expand(-1, 1, netfile.L1_SIZE))
-        hidden = hidden.squeeze(1).clamp(0.0, 1.0)
+        hidden = self.activate_l1(hidden.squeeze(1))
         hidden = self.l2(hidden).view(-1, self.stacks, netfile.L2_SIZE)
         hidden = hidden.gather(1, rows.unsqueeze(2).expand(-1, 1, netfile.L2_SIZE))
         hidden = hidden.squeeze(1).clamp(0.0, 1.0)
@@ -125,8 +142,8 @@ class HalfKaNet(nn.Module):
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
         active = (own_features != netfile.FEATURE_COUNT).sum(dim=1)
         stack = (active // 4).clamp(max=self.stacks - 1)
-        hidden = self.l1(hidden).view(-1, self.stacks, netfile.L1_SIZE).clamp(0.0, 1.0)
-        w2 = self.l2.weight.view(self.stacks, netfile.L2_SIZE, netfile.L1_SIZE)
+        hidden = self.activate_l1(self.l1(hidden).view(-1, self.stacks, netfile.L1_SIZE))
+        w2 = self.l2.weight.view(self.stacks, netfile.L2_SIZE, self.l2_input)
         b2 = self.l2.bias.view(self.stacks, netfile.L2_SIZE)
         hidden = (torch.einsum('bsi,soi->bso', hidden, w2) + b2).clamp(0.0, 1.0)
         w3 = self.output.weight.view(self.stacks, 1, netfile.L2_SIZE)

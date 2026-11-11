@@ -78,6 +78,22 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 4.0.0 - 2026-11-11
+
+`--sqr` (Volker): every output x of the first dense layer activated twice, as Stockfish does -
+`min(x^2, 1) * 127/128` and `clamp(x, 0, 1)`, the squares first - so the second layer reads 2 x 32 inputs.
+The square drops the sign: an output below zero, which the clipped relu turns into nothing, still reaches the
+next layer. 127/128 is what the engine's integer square comes to, `(v*v) >> 7` at the scale QA (Stockfish's
+SqrClippedReLU). Major: a new net file format, `QAPLANN4` - the stacked format with a second layer of 64
+inputs a row; no piece-square part (`--psqt` and `--sqr` refuse each other).
+- Without `--sqr` identical to 3.3.0: `test_reproducible.py` against the 3.3.0 record, all nine runs.
+- Three runs added (`fixed-ranger-1head-sqr`, `fixed-ranger-8heads-sqr`, `pass-adam-8heads-neighbours-sqr`:
+  one head, the stacked forward and all_heads), record rewritten.
+- The engine reads the new format (same commit): trainer and engine agree to the integer on 400 positions of
+  a small sqr net (8 stacks), the first layer's values from -166 to 163, so both cuts are reached; vector path
+  and plain path equal. For the old formats the engine is unchanged: wmtest depth 18 with the embedded net
+  (q1234-02abcd-03a-no16-b75), 207,841,327 nodes before and after.
+
 ## 3.3.0 - 2026-10-18
 
 `--blend-buckets b0,...,b7` (Volker): one blend per bucket for the whole run - the bucket of the layer stack,

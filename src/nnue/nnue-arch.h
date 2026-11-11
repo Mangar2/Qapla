@@ -21,6 +21,8 @@
  *
  *   features -> accumulator 256 per perspective -> 32 -> 32 -> 1
  *
+ * or, in a net of the fourth format, 32 -> 2 x 32 (squared and clipped) -> 32 -> 1.
+ *
  * Quantization. A real activation lies in [0,1] after the clipped relu and is
  * stored as an integer of scale QA, a real weight as one of scale QB, a real
  * bias as one of scale QA*QB. An affine layer therefore computes a sum of scale
@@ -93,7 +95,15 @@ namespace QaplaNnue {
 		 * accumulator column, one value per bucket, chosen like the layer stack. The two
 		 * perspectives' sums go straight to the output, (own - opponent) / 2 - Stockfish's psqt.
 		 */
-		PSQT_BUCKETS = LAYER_STACKS
+		PSQT_BUCKETS = LAYER_STACKS,
+		/**
+		 * A net of the fourth format activates every output of the first dense layer twice, as
+		 * Stockfish does: min(x^2, 1) * 127/128 and clamp(x, 0, 1), the squares first. The second
+		 * layer then reads twice as many inputs. The square keeps the sign out, so an output below
+		 * zero, which the clipped relu turns into nothing, still tells the next layer how far below
+		 * zero it lies.
+		 */
+		L2_INPUT_SIZE_SQR = 2 * L1_SIZE
 	};
 
 	/**
@@ -135,7 +145,11 @@ namespace QaplaNnue {
 		std::array<int8_t, size_t(L1_SIZE)* size_t(L1_INPUT_SIZE)> l1Weight{};
 
 		std::array<int32_t, L2_SIZE> l2Bias{};
-		std::array<int8_t, size_t(L2_SIZE)* size_t(L1_SIZE)> l2Weight{};
+		/**
+		 * Room for the second layer of the fourth format, L2_INPUT_SIZE_SQR inputs a row. A net
+		 * of the other formats uses the first L2_SIZE * L1_SIZE values only, L1_SIZE a row.
+		 */
+		std::array<int8_t, size_t(L2_SIZE)* size_t(L2_INPUT_SIZE_SQR)> l2Weight{};
 
 		int32_t outputBias = 0;
 		std::array<int8_t, L2_SIZE> outputWeight{};
@@ -150,6 +164,8 @@ namespace QaplaNnue {
 		 */
 		std::array<int32_t, size_t(FEATURE_COUNT)* size_t(PSQT_BUCKETS)> psqtWeight{};
 		bool hasPsqt = false;
+		/** A net of the fourth format: the first layer's outputs activated twice, see L2_INPUT_SIZE_SQR. */
+		bool hasSqr = false;
 
 		std::array<Head, LAYER_STACKS> heads{};
 	};
@@ -176,6 +192,12 @@ namespace QaplaNnue {
 	 */
 	inline constexpr char NNUE_MAGIC_PSQT[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '3' };
 
+	/**
+	 * The format with the doubled activation of the first layer: as the stacked one, with a second
+	 * layer of L2_INPUT_SIZE_SQR inputs a row. No piece-square part.
+	 */
+	inline constexpr char NNUE_MAGIC_SQR[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '4' };
+
 	constexpr uint32_t singleHeadArchitectureId() {
 		return uint32_t(FEATURE_COUNT) * 31u + uint32_t(ACCUMULATOR_SIZE) * 7u
 			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u
@@ -188,6 +210,10 @@ namespace QaplaNnue {
 
 	constexpr uint32_t psqtArchitectureId() {
 		return architectureId() + uint32_t(PSQT_BUCKETS) * 7919u;
+	}
+
+	constexpr uint32_t sqrArchitectureId() {
+		return architectureId() + uint32_t(L2_INPUT_SIZE_SQR) * 7907u;
 	}
 
 	/**

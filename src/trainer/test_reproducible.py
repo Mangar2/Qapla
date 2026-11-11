@@ -58,6 +58,14 @@ RUNS = {
                                 '--psqt', '--workers', '2'],
     'pass-adam-8heads-psqt': ['--epoch-size', '0', '--epochs', '2', '--stacks', '8', '--psqt',
                               '--workers', '2'],
+    # The doubled activation (4.0.0) on every path that activates the first layer: one head, the
+    # stacked forward, and all_heads through the neighbours.
+    'fixed-ranger-1head-sqr': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
+                               '--sqr', '--workers', '2'],
+    'fixed-ranger-8heads-sqr': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
+                                '--stacks', '8', '--sqr', '--workers', '2'],
+    'pass-adam-8heads-neighbours-sqr': ['--epoch-size', '0', '--epochs', '2', '--stacks', '8',
+                                        '--neighbours', '--sqr', '--workers', '2'],
 }
 # On the fixture with results: the blend as one number, and one blend per bucket.
 RUNS_WDL = {

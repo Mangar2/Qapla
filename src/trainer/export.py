@@ -53,8 +53,9 @@ def quantize(model):
         return weight, bias
 
     heads = []
+    sqr = getattr(model, 'sqr', False)
     for stack in range(stacks):
-        head = netfile.Head()
+        head = netfile.Head(sqr)
         for layer, size, weight_member, bias_member in (
                 (model.l1, netfile.L1_SIZE, 'l1_weight', 'l1_bias'),
                 (model.l2, netfile.L2_SIZE, 'l2_weight', 'l2_bias')):
@@ -68,6 +69,7 @@ def quantize(model):
     # A single head goes into every stack - the engine reads it that way from the old format too.
     network.heads = heads if stacks > 1 else heads * netfile.LAYER_STACKS
     network.stacked = stacks > 1
+    network.sqr = sqr
     if getattr(model, 'psqt', None) is not None:
         values = model.psqt.weight.detach().cpu().numpy()[:netfile.FEATURE_COUNT]
         network.psqt_weight = _as_array(_quantized(values, scale, np.int32), 'i')
@@ -89,6 +91,7 @@ if __name__ == '__main__':
     from model import HalfKaNet
     held = torch.load(sys.argv[1], map_location='cpu', weights_only=False)
     state = held['model'] if isinstance(held, dict) and 'model' in held else held
-    trained = HalfKaNet(stacks=state['output.weight'].shape[0], psqt='psqt.weight' in state)
+    trained = HalfKaNet(stacks=state['output.weight'].shape[0], psqt='psqt.weight' in state,
+                        sqr=state['l2.weight'].shape[1] != netfile.L1_SIZE)
     trained.load_state_dict(state)
     export(trained, sys.argv[2])

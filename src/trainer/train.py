@@ -144,7 +144,7 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
     pass, which is the one thing a resumed run does differently from an uninterrupted one.
     """
     torch.manual_seed(arguments.seed)
-    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt).to(device)
+    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr).to(device)
     optimizer = make_optimizer(model, arguments)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=arguments.lr_gamma)
     ranger = arguments.optimizer == 'ranger'
@@ -232,8 +232,9 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
 def train(arguments):
     print('trainer %s' % version.VERSION, flush=True)
     netfile.configure(accumulator=arguments.accumulator, l1=arguments.l1)
-    print('net: accumulator %d, first layer %d, %d stack(s)'
-          % (netfile.ACCUMULATOR_SIZE, netfile.L1_SIZE, arguments.stacks), flush=True)
+    print('net: accumulator %d, first layer %d%s, %d stack(s)'
+          % (netfile.ACCUMULATOR_SIZE, netfile.L1_SIZE,
+             ' activated twice (sqr)' if arguments.sqr else '', arguments.stacks), flush=True)
     device = pick_device(arguments.device)
     if all(name.endswith('.gam') for name in arguments.cache):
         # Straight out of the packed game file: no prepared cache, the split over whole games and
@@ -259,6 +260,8 @@ def train(arguments):
         validation = PositionCache(arguments.validation) if arguments.validation else None
     if arguments.psqt and arguments.neighbours:
         raise SystemExit('--psqt does not take --neighbours')
+    if arguments.psqt and arguments.sqr:
+        raise SystemExit('--psqt does not take --sqr: no net format has both')
     if arguments.blend_buckets is not None:
         if arguments.epoch_size <= 0:
             raise SystemExit('--blend-buckets only with --epoch-size')
@@ -274,7 +277,7 @@ def train(arguments):
     # different nets, and their losses could not be compared step by step - which is how the
     # compiled loader was checked against the python one.
     torch.manual_seed(arguments.seed)
-    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt).to(device)
+    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
     print('%d positions, %d batches of %d, device %s'
@@ -400,6 +403,10 @@ if __name__ == '__main__':
                              '(chosen like the layer stack), half the difference of the two '
                              'perspectives added to the output; started from the material. Writes the '
                              'net format QAPLANN3')
+    parser.add_argument('--sqr', action='store_true',
+                        help='every output of the first dense layer activated twice, as Stockfish '
+                             'does: min(x^2, 1) * 127/128 and clamp(x, 0, 1), so the second layer reads '
+                             'twice as many inputs. Writes the net format QAPLANN4')
     parser.add_argument('--neighbours', action='store_true',
                         help='with stacks: every position trains its own head and the two next to '
                              'it; the held back loss is still measured with the own head alone, as '

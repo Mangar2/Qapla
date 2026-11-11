@@ -60,20 +60,27 @@ namespace {
 }
 
 namespace {
-	bool readHead(std::istream& stream, QaplaNnue::Head& head) {
+	/** The values of the second layer a net holds: twice as many inputs a row in the fourth format. */
+	constexpr size_t l2WeightCount(bool sqr) {
+		return size_t(L2_SIZE) * size_t(sqr ? L2_INPUT_SIZE_SQR : L1_SIZE);
+	}
+
+	bool readHead(std::istream& stream, QaplaNnue::Head& head, bool sqr) {
 		return readArray(stream, head.l1Bias)
 			&& readArray(stream, head.l1Weight)
 			&& readArray(stream, head.l2Bias)
-			&& readArray(stream, head.l2Weight)
+			&& bool(stream.read(reinterpret_cast<char*>(head.l2Weight.data()),
+				std::streamsize(l2WeightCount(sqr))))
 			&& bool(stream.read(reinterpret_cast<char*>(&head.outputBias), sizeof(int32_t)))
 			&& readArray(stream, head.outputWeight);
 	}
 
-	void writeHead(std::ostream& stream, const QaplaNnue::Head& head) {
+	void writeHead(std::ostream& stream, const QaplaNnue::Head& head, bool sqr) {
 		writeArray(stream, head.l1Bias);
 		writeArray(stream, head.l1Weight);
 		writeArray(stream, head.l2Bias);
-		writeArray(stream, head.l2Weight);
+		stream.write(reinterpret_cast<const char*>(head.l2Weight.data()),
+			std::streamsize(l2WeightCount(sqr)));
 		stream.write(reinterpret_cast<const char*>(&head.outputBias), sizeof(int32_t));
 		writeArray(stream, head.outputWeight);
 	}
@@ -100,13 +107,14 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(std::istream& stream, const std:
 	stream.read(reinterpret_cast<char*>(&identifier), sizeof(identifier));
 	const std::string found(magic, sizeof(magic));
 	const bool psqt = found == std::string(NNUE_MAGIC_PSQT, sizeof(NNUE_MAGIC_PSQT));
-	const bool stacked = psqt || found == std::string(NNUE_MAGIC, sizeof(NNUE_MAGIC));
+	const bool sqr = found == std::string(NNUE_MAGIC_SQR, sizeof(NNUE_MAGIC_SQR));
+	const bool stacked = psqt || sqr || found == std::string(NNUE_MAGIC, sizeof(NNUE_MAGIC));
 	const bool single = found == std::string(NNUE_MAGIC_SINGLE_HEAD, sizeof(NNUE_MAGIC_SINGLE_HEAD));
 	if (!stream || (!stacked && !single)) {
 		std::cout << "Error (not a net file): " << path << std::endl;
 		return nullptr;
 	}
-	const uint32_t wanted = psqt ? psqtArchitectureId()
+	const uint32_t wanted = psqt ? psqtArchitectureId() : sqr ? sqrArchitectureId()
 		: stacked ? architectureId() : singleHeadArchitectureId();
 	if (identifier != wanted) {
 		std::cout << "Error (net of another shape): " << path << ", file says " << identifier
@@ -115,6 +123,7 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(std::istream& stream, const std:
 	}
 
 	auto network = std::make_unique<Network>();
+	network->hasSqr = sqr;
 	bool complete = readArray(stream, network->featureBias)
 		&& readArray(stream, network->featureWeight);
 	if (psqt) {
@@ -123,12 +132,12 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(std::istream& stream, const std:
 	}
 	if (stacked) {
 		for (Head& head : network->heads) {
-			complete = complete && readHead(stream, head);
+			complete = complete && readHead(stream, head, sqr);
 		}
 	}
 	else {
 		// One head for every stack: the net evaluates exactly as it did before there were stacks.
-		complete = complete && readHead(stream, network->heads[0]);
+		complete = complete && readHead(stream, network->heads[0], false);
 		for (uint32_t stack = 1; stack < LAYER_STACKS; stack++) {
 			network->heads[stack] = network->heads[0];
 		}
@@ -146,14 +155,20 @@ bool QaplaNnue::writeNetwork(const std::string& path, const Network& network) {
 		std::cout << "Error (cannot write net): " << path << std::endl;
 		return false;
 	}
-	const uint32_t identifier = network.hasPsqt ? psqtArchitectureId() : architectureId();
-	stream.write(network.hasPsqt ? NNUE_MAGIC_PSQT : NNUE_MAGIC, sizeof(NNUE_MAGIC));
+	if (network.hasPsqt && network.hasSqr) {
+		std::cout << "Error (no net format has both psqt and sqr): " << path << std::endl;
+		return false;
+	}
+	const uint32_t identifier = network.hasPsqt ? psqtArchitectureId()
+		: network.hasSqr ? sqrArchitectureId() : architectureId();
+	stream.write(network.hasPsqt ? NNUE_MAGIC_PSQT : network.hasSqr ? NNUE_MAGIC_SQR : NNUE_MAGIC,
+		sizeof(NNUE_MAGIC));
 	stream.write(reinterpret_cast<const char*>(&identifier), sizeof(identifier));
 	writeArray(stream, network.featureBias);
 	writeArray(stream, network.featureWeight);
 	if (network.hasPsqt) writeArray(stream, network.psqtWeight);
 	for (const Head& head : network.heads) {
-		writeHead(stream, head);
+		writeHead(stream, head, network.hasSqr);
 	}
 	return bool(stream);
 }
@@ -171,7 +186,10 @@ std::unique_ptr<Network> QaplaNnue::randomNetwork(uint64_t seed) {
 		for (int32_t& value : head.l1Bias) value = random.next(QA * QB / 4);
 		for (int8_t& value : head.l1Weight) value = int8_t(random.next(QB / 2));
 		for (int32_t& value : head.l2Bias) value = random.next(QA * QB / 4);
-		for (int8_t& value : head.l2Weight) value = int8_t(random.next(QB / 2));
+		// The second layer of the stacked format only: a net of the fourth format is never drawn here.
+		for (size_t index = 0; index < l2WeightCount(false); index++) {
+			head.l2Weight[index] = int8_t(random.next(QB / 2));
+		}
 		head.outputBias = random.next(QA * QB / 4);
 		for (int8_t& value : head.outputWeight) value = int8_t(random.next(QB / 2));
 	}
