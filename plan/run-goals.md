@@ -132,6 +132,12 @@ files (`gam2pgn values=true`), so they are exactly the trained ones; `tmp/relabe
 46 chunks, ~18 games a second, then `book100m-d9-p02q1rev-wdl.gam` and `-p02q2rev-wdl.gam`. Test before (20 games):
 all matched, book end unchanged, e.g. a game ending in a repetition valued 0.00 from move 11 instead of +0.29.
 Comparison: q1234-02abcd-no16-b75 with p02q1/p02q2 replaced by their reverse twins, against q1234-02abcd-no16-b75.
+Relabel done 2026-11-11 23:46, converted 23:47: 2,252,836 and 2,254,453 games, moves and valued moves and file sizes
+exactly as the originals; chunk 1 (100,000 games) matched by moves: all matched, same results, same valued moves,
+reverse - forward mean +0.0013, mean |diff| 0.0114 win probability, 97 % within 0.05. Training
+q1234-02abcd-rev02ab-no16-b75 (trainer 4.0.0 at 60d16a3, without --sqr identical to 3.3.0 of the baseline; same book
+file) started 2026-11-12 00:48 on the Studio, then 20000 games on Linux after the sqr gauntlet. Relabel in/ and out/
+(20 GB) deleted.
 **Architecture: the first layer activated twice (Volker 2026-11-11, "teste das verdoppeln")** - Stockfish's pair:
 every output x of L1 goes to L2 as `min(x^2, 1) * 127/128` and as `clamp(x, 0, 1)`, so L2 reads 64 inputs instead of
 32; the square keeps an output below zero alive. Trainer 4.0.0 `--sqr`, net format QAPLANN4, the engine reads it
