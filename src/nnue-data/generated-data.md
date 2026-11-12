@@ -875,6 +875,7 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
   which the run went on. Paused 02:01 when it was back on AC, resumed 02:02 at 6.9 games a second.
   Paused 2026-11-11 22:30 at 4,027,163 games (Volker: until further notice); resumes with `sh tmp/book100m-d9/run-03b.sh`
   from its state.
+  Resumed 2026-11-12 02:19 on Volker's go, from the state, the game numbers going on where they stopped.
 - q3 (Studio, since 2026-11-05 05:53, Volker: "das Spike-Experiment funktioniert"): leaves 4,507,503-6,760,397,
   4,505,790 games, 12 at a time, `part-03c.pgn`, `play-03c.ini`, `run-03c.sh`; the first games checked to start at
   leaf 4,507,503 with both colours.
