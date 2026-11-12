@@ -384,6 +384,9 @@ Planning stops there; by then we will have learned enough to plan the next part.
 Filler for the Mac gpu whenever no training task is due: the Stockfish architecture on to epoch 100
 (last entry of this file).
 
+**Spike against Qapla (Volker 2026-11-12): 03c is the last part.** After it nothing new of Spike against Qapla is
+started - no 03d, no further parts of that kind.
+
 ## Going
 
 ### Mac: Stockfish architecture (SF17) trained on sets 1-6, HCE labels, to epoch 10
