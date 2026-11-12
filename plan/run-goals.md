@@ -136,7 +136,10 @@ Relabel done 2026-11-11 23:46, converted 23:47: 2,252,836 and 2,254,453 games, m
 exactly as the originals; chunk 1 (100,000 games) matched by moves: all matched, same results, same valued moves,
 reverse - forward mean +0.0013, mean |diff| 0.0114 win probability, 97 % within 0.05. Training
 q1234-02abcd-rev02ab-no16-b75 (trainer 4.0.0 at 60d16a3, without --sqr identical to 3.3.0 of the baseline; same book
-file) started 2026-11-12 00:48 on the Studio, then 20000 games on Linux after the sqr gauntlet. Stopped 02:21 at epoch
+file) started 2026-11-12 00:48 on the Studio, then 20000 games on Linux after the sqr gauntlet. **Result (2026-11-12 22:56,
+20000 games): 2606.5 +/-3** against q1234-02abcd-no16-b75 (the same with the values of the games) 2602.9 - 3.6 more,
+inside the error of a difference (about +/-4): the reverse values bring nothing measurable. With 03ahce (2613.8 against
+03a's 2618.8, -5) this says the -5 there came from Qapla's values against Spike's, not from the direction. Stopped 02:21 at epoch
 301 for Volker's image/video jobs (watcher), taken up 02:51 with `--resume` once they had been gone 10 minutes
 (`train-q1234-02abcd-rev02ab-no16-b75-resume.sh`, same command, data in the same order). Done 05:24 (exit 0;
 e800 loss 0.001418, held back 0.001505 - not comparable with the baseline's 0.001480, the held back targets are other
