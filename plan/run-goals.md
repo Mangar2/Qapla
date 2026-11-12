@@ -240,6 +240,10 @@ Volker's image/video jobs, taken up 17:07 with `--resume` (`train-q1234-02abcd-0
 done 17:38, exit 0: e800 loss 0.001548, held back 0.001614 (pair 0.001608, 004's buckets 0.001601). md5 720def16...,
 in milestones on all three; Studio training dir and the pair run's states deleted. Joins the Linux gauntlet when
 rev02ab ends (`tmp/curve/after-rev02ab-moefull.sh`, the MoE build 60d4dc2).
+Joined the gauntlet 18:02 (on Volker's word, ahead of rev02ab's last 1,929 games); **stopped 22:01 on Volker's word at
+8,101 games: 2582.3 +/-5** against the buckets' 2619.9 - about 38 below (+/-6), as far as the pair run: the punishment
+that works changed nothing in games. The state before it joined was put back (`q1.state.moefull-aborted` kept);
+rev02ab plays its last 1,929 games alone from 22:01.
 **The fundamental error (Volker 2026-11-12):** the experts were counted with factor one, so the value did not depend on
 the router's weights at all - the router learned through a straight-through factor at a function the net never
 computed; and MoE models choose in every layer. **Built: trainer 6.0.0 `--moe-mix layers` (cf3de58)** - experts in all
