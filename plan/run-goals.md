@@ -384,6 +384,18 @@ Planning stops there; by then we will have learned enough to plan the next part.
 Filler for the Mac gpu whenever no training task is due: the Stockfish architecture on to epoch 100
 (last entry of this file).
 
+**Next: a new HCE version (Volker 2026-11-12) - goal about +100 Elo over 0.4.** Built on the HCE branch `release0.5`
+(0.5.0-028), whose `test/todo.md` (the open evaluations, each switched on, tested and switched off alone) and
+`plan/ideas-0.5.0.md` (27 ideas) are the base. To them come:
+- what Spike evaluates better (measured 2026-11-12, `tmp/spikecmp/` on the Studio): HCE too sure of the leading side in
+  drawish endings - rook endings (+0.066 win probability), opposite-coloured bishops (+0.064), 0-8 pieces, minor
+  endings; an advanced passed pawn in the ending valued too high; bishop v knight: the bishop side too low
+- pawn pushes against the enemy king, above all where the own pawns cover attacks of rook or queen (x-ray through
+  the own pawns)
+- the history table to adjust the LMR reduction (ideas 16)
+- above all follow-up and counter moves (ideas 1 and 2)
+Measured against 0.4 in the end.
+
 **Spike against Qapla (Volker 2026-11-12): 03c is the last part.** After it nothing new of Spike against Qapla is
 started - no 03d, no further parts of that kind.
 
