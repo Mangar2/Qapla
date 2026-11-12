@@ -78,6 +78,22 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 5.1.0 - 2026-11-12
+
+`--moe-share pair|full` (Volker: "baue ein bestrafungsverfahren das funktioniert"). 5.0.0 renormalized the chosen
+experts' softmax share over the two of them (`pair`, still the default): the gradients of their two logits are then
+equal and opposite, only their difference is trained - two chosen experts that are both wrong the same way get no
+gradient at all, and no third one ever moves up. `full` takes their share of the softmax over all 16 (Switch
+Transformer): a chosen expert that hurts loses share against every other one, its logit falls and the others rise
+until one overtakes it. Checked on four logits, both chosen harmful: `pair` moves no logit, `full` lowers the two
+chosen and raises the others.
+With `--moe` and held back data every epoch line now ends with `switched x %`: the share of 16,384 fixed held back
+positions whose pair of experts differs from the epoch before - the probe reads the validation set and changes no
+net.
+- With the default `pair` identical to 5.0.0: `test_reproducible.py`, all thirteen runs (the probe included).
+- One run added (`fixed-ranger-moe-full`), record rewritten.
+- Minor: a new option; the net format is unchanged.
+
 ## 5.0.0 - 2026-11-12
 
 `--moe` (Volker): a mixture of experts in place of the layer stacks. The accumulator gets 16 more values per

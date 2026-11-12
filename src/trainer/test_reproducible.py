@@ -69,6 +69,9 @@ RUNS = {
     # The mixture of experts (5.0.0), with the balancing term at a non-default weight.
     'fixed-ranger-moe': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1', '--moe',
                          '--moe-balance', '0.002', '--workers', '2'],
+    # 5.1.0: the router trained with the share of the full softmax.
+    'fixed-ranger-moe-full': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1', '--moe',
+                              '--moe-share', 'full', '--workers', '2'],
 }
 # On the fixture with results: the blend as one number, and one blend per bucket.
 RUNS_WDL = {

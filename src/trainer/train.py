@@ -145,7 +145,7 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
     """
     torch.manual_seed(arguments.seed)
     model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr,
-                      moe=arguments.moe).to(device)
+                      moe=arguments.moe, moe_share=arguments.moe_share).to(device)
     optimizer = make_optimizer(model, arguments)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=arguments.lr_gamma)
     ranger = arguments.optimizer == 'ranger'
@@ -189,6 +189,14 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
     buckets = None if arguments.blend_buckets is None else torch.tensor(
         arguments.blend_buckets, device=device, dtype=torch.float32)
     batches = stream()
+    # With --moe: the router's choices on fixed held back positions, compared from epoch to epoch - how many
+    # positions get another pair of experts. The probe only reads the validation set; it changes no net.
+    probe, choices = [], None
+    if arguments.moe and validation is not None:
+        for own, opponent, *_rest in validation.batches(arguments.batch_size, device, shuffle=False):
+            probe.append((own, opponent))
+            if sum(len(o) for o, _ in probe) >= 16384:
+                break
     for epoch in range(first, arguments.epochs + 1):
         blend = arguments.blend_start + (arguments.blend_end - arguments.blend_start) \
             * (epoch - 1) / max(1, arguments.epochs - 1) if buckets is None else buckets
@@ -226,6 +234,11 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
             usage = model.usage / model.usage.sum()
             line += ', experts %s' % ' '.join('%.1f' % (100 * u) for u in usage.tolist())
             model.usage = torch.zeros_like(model.usage)
+            if probe:
+                now = torch.cat([model.moe_choice(own, opponent) for own, opponent in probe])
+                if choices is not None:
+                    line += ', switched %.2f %%' % (100 * (now != choices).any(dim=1).float().mean().item())
+                choices = now
         if validation is not None and epoch % arguments.validate_every == 0:
             line += ', held back %.6f' % measure(model, validation, arguments.batch_size, device,
                                                  arguments.blend_end if buckets is None else buckets)
@@ -292,7 +305,7 @@ def train(arguments):
     # compiled loader was checked against the python one.
     torch.manual_seed(arguments.seed)
     model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr,
-                      moe=arguments.moe).to(device)
+                      moe=arguments.moe, moe_share=arguments.moe_share).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
     print('%d positions, %d batches of %d, device %s'
@@ -427,6 +440,11 @@ if __name__ == '__main__':
                              'perspective feed a router (32 -> 16) that picks the top 2 of 16 experts of 16 '
                              'first-layer neurons; each expert has its own columns of the shared second layer. '
                              'Only with --epoch-size and --stacks 1. Writes the net format QAPLANN5')
+    parser.add_argument('--moe-share', choices=('pair', 'full'), default='pair',
+                        help='how the router learns: pair (5.0.0) trains only the difference between the two '
+                             'chosen experts, so two wrong ones are never punished; full takes their share of the '
+                             'softmax over all experts, so a chosen expert that hurts loses share against every '
+                             'other one until another takes its place (Switch Transformer)')
     parser.add_argument('--moe-balance', type=float, default=1e-3,
                         help='weight of the balancing term against the router collapsing onto few experts '
                              '(Switch Transformer: experts x sum of choice fraction x mean share, 1 when even)')

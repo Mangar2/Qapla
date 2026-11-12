@@ -36,13 +36,15 @@ class HalfKaNet(nn.Module):
     heads being allowed to part, and from nothing else.
     """
 
-    def __init__(self, stacks=1, psqt=False, sqr=False, moe=False):
+    def __init__(self, stacks=1, psqt=False, sqr=False, moe=False, moe_share='pair'):
         super().__init__()
         self.stacks = stacks
         self.psqt = None
         # moe: a mixture of experts in place of the layer stacks - see _moe_heads(). Made at the end,
         # so that a net without it draws every number from the seed as before.
         self.moe = moe
+        # How the router is trained, see _moe_heads(): 'pair' (5.0.0) or 'full'.
+        self.moe_share = moe_share
         # sqr: every output of the first dense layer activated twice, as Stockfish does - see
         # activate_l1(). The second layer then reads twice as many inputs; nothing else changes, and
         # without it every number is drawn from the seed as before.
@@ -171,7 +173,14 @@ class HalfKaNet(nn.Module):
         chosen = logits.topk(netfile.MOE_TOP, dim=1).indices
         share = torch.softmax(logits, dim=1)
         picked = share.gather(1, chosen)
-        picked = picked / picked.sum(dim=1, keepdim=True)
+        if self.moe_share == 'pair':
+            # 5.0.0: the share renormalized over the chosen two. Their logits then get equal and opposite
+            # gradients - only the difference between the two is trained, two chosen experts that are both
+            # wrong the same way get none, and no third one ever moves up.
+            picked = picked / picked.sum(dim=1, keepdim=True)
+        # 'full' (Switch Transformer): the share of all MOE_EXPERTS. A chosen expert whose contribution
+        # hurts loses share against every other one - its logit falls, the others rise, until another
+        # one overtakes it; one that helps gains share and holds its place.
         gate = torch.zeros_like(logits).scatter(1, chosen, picked - picked.detach() + 1.0)
         hidden = self.l1(hidden).clamp(0.0, 1.0).view(-1, netfile.MOE_EXPERTS, netfile.MOE_EXPERT_SIZE)
         hidden = (hidden * gate.unsqueeze(2)).view(-1, netfile.MOE_EXPERTS * netfile.MOE_EXPERT_SIZE)
@@ -182,6 +191,15 @@ class HalfKaNet(nn.Module):
             self.balance = netfile.MOE_EXPERTS * (fraction.detach() * share.mean(dim=0)).sum()
             self.usage = self.usage.to(counts.device) + counts.detach()
         return self.output(hidden).squeeze(1)
+
+    @torch.no_grad()
+    def moe_choice(self, own_features, opponent_features):
+        """The experts the router picks for a batch, sorted per position - for watching the choice."""
+        size = netfile.ACCUMULATOR_SIZE
+        own = self.feature_transformer(own_features) + self.feature_bias
+        opponent = self.feature_transformer(opponent_features) + self.feature_bias
+        logits = self.router(torch.cat((own[:, size:], opponent[:, size:]), dim=1))
+        return logits.topk(netfile.MOE_TOP, dim=1).indices.sort(dim=1).values
 
     def all_heads(self, own_features, opponent_features):
         """The output of every head for every position, and the stack each position belongs to.
