@@ -205,6 +205,13 @@ other pawnless endings (e.g. Q v R) Spike better. Further (Volker): opposite-col
 38,009) Spike clearly better; same-coloured bishops not confirmed; B v N with pawns Spike better; an advanced passed
 pawn (6th/7th rank) Spike better in endings (349,146), Qapla in the middlegame; an outside passed pawn (3+ files from
 every enemy pawn) Spike better in endings, Qapla in the middlegame. `result2.txt`, `result3.txt` beside it.
+Direction of the errors (`direction.txt`; positions 30+ cp apart; in win probability): Qapla HCE is too sure of the
+side it favours - the advantage too high - in rook endings (+0.066, Spike -0.008), opposite-coloured bishops (+0.064,
+Spike +0.004), minor endings (+0.037/+0.011), positions of 0-8 pieces (+0.085 to +0.109 against +0.013 to +0.024),
+pawnless other endings (+0.131/+0.009), endings with an advanced passed pawn (+0.041/+0.013) - the drawish endings it
+does not see as drawish. Rook v minor with pawns: HCE slightly too cautious (-0.010, Spike +0.005). By the owner's
+side: an advanced passed pawn valued too high by HCE (+0.020, Spike +0.006); bishop v knight: the bishop's side too
+low by HCE (-0.014) and too high by Spike (+0.014); outside passed pawn: HCE +0.007 too high, Spike -0.008 too low.
 How the choice comes about (Volker 2026-11-12): the router starts random and assigns positions to untrained experts;
 each expert is then trained only on what it was given and becomes good at exactly that - the assignment confirms
 itself. The router only learns which of its two chosen experts fits better, never whether another would have become
