@@ -184,9 +184,13 @@ each expert is then trained only on what it was given and becomes good at exactl
 itself. The router only learns which of its two chosen experts fits better, never whether another would have become
 better. Measured on the run (20,000 positions of 03a): choices changed between e100 and e200 for 18 %, e400-e500
 1.5 %; the experts split by game phase - which a random router does by itself, its inputs being sums over the
-pieces on the board. Each expert 6.2-6.3 % of the choices in training, 52-62 of the 120 pairs used. Next factor,
-should MoE be worth it: the router trained towards the experts that would have had the smallest loss (all 16 are
-cheap to compute in training) - noise on the logits alone would not break the self-confirmation.
+pieces on the board. Each expert 6.2-6.3 % of the choices in training, 52-62 of the 120 pairs used.
+Why a chosen expert is never punished enough to be switched (Volker: "das funktioniert anscheinend nicht"): the
+straight-through factor uses the softmax share renormalized over the two chosen experts, so the gradients of their
+two logits are equal and opposite, p1 p2 (contribution1 - contribution2): only the difference between the two is
+trained. Two chosen experts that are both wrong in the same way get no gradient at all, and no third one moves up.
+**Next factor:** the share from the full softmax over all 16 (Switch Transformer) - a harmful chosen expert loses
+share against all others, its logit falls until another overtakes it. One line in the trainer, the engine unchanged.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
