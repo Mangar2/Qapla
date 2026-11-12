@@ -185,6 +185,19 @@ on average. Joined the Linux gauntlet 12:03 on Volker's word ("direkt in den lin
 QAPLA_NNUE_MOE (`new-versions/Qapla-60d4dc2-moe`; with the net 142,819 nodes at depth 12 from the start, without it
 132,488): rev02ab's qet stopped at 10,566 games and restarted from the state with both - qet plays round by round,
 so the MoE net plays alone until it reaches rev02ab's round (~105), then both share the machine.
+Speed (Linux, one thread, 6 s from one middlegame position, beside the gauntlet, two runs each): the MoE build
+with its net 1.25-1.27 M nodes a second, 2.0.0-001 with 004's net 1.43 M - the MoE engine is about 12 % slower
+(accumulator 272 wide, the router computed in scalar int64, the experts' layers in pieces of 16).
+**Where Spike evaluates better (Volker 2026-11-12):** 50,000 games of 03a (part-03a-s8-p1.pgn), every position searched
+again by Qapla HCE depth 9 forward (`tmp/spikecmp/`, the Studio 11:45-12:42, 03c paused meanwhile); 2,527,242
+positions with Spike to move: Spike's game value (depth 8) against Qapla's (depth 9), each turned into a win
+probability by its own fitted scale (Spike 130 cp, Qapla 140 - practically the same), paired Brier score against the
+game result, positions with less than 30 cp between the two values left out (Volker: noise); found on the first 25,000
+games, confirmed on the second. Spike better: minor piece endings (by far the most), rook endings (R v R), the phases
+of 0-8 pieces, rook v minor and other endings with up to 4 officers (slightly). Qapla better: the middlegame with
+queens and the phases of 13+ pieces (rising to the opening) - part of that may be its one ply more. Only different:
+positions with a passed pawn. Pawn endings: with up to 4 pawns Qapla better, with more not confirmed (the two halves
+disagree) - not the advantage for Spike that was expected. Results in `tmp/spikecmp/result.txt` on the Studio.
 How the choice comes about (Volker 2026-11-12): the router starts random and assigns positions to untrained experts;
 each expert is then trained only on what it was given and becomes good at exactly that - the assignment confirms
 itself. The router only learns which of its two chosen experts fits better, never whether another would have become
