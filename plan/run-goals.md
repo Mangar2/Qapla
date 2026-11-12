@@ -179,6 +179,14 @@ q1234-02abcd-03a-moe-no16-b75 = the command and data of q1234-02abcd-03a-no16-b7
 the 3.3.0 of the baseline), balance 1e-3; based on 004 and not on sqr, which stays below it (2605 +/-3 after 17,600
 games). Studio, ~21 s an epoch beside 03c, done ~11:15; experts evenly used from epoch 2 (6.1-6.4 % each). Engine:
 a build with `-DQAPLA_NNUE_MOE` (accumulator 272); then 20000 games on Linux after the rev02ab gauntlet.
+How the choice comes about (Volker 2026-11-12): the router starts random and assigns positions to untrained experts;
+each expert is then trained only on what it was given and becomes good at exactly that - the assignment confirms
+itself. The router only learns which of its two chosen experts fits better, never whether another would have become
+better. Measured on the run (20,000 positions of 03a): choices changed between e100 and e200 for 18 %, e400-e500
+1.5 %; the experts split by game phase - which a random router does by itself, its inputs being sums over the
+pieces on the board. Each expert 6.2-6.3 % of the choices in training, 52-62 of the 120 pairs used. Next factor,
+should MoE be worth it: the router trained towards the experts that would have had the smallest loss (all 16 are
+cheap to compute in training) - noise on the logits alone would not break the self-confirmation.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
