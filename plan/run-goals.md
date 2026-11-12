@@ -188,6 +188,10 @@ so the MoE net plays alone until it reaches rev02ab's round (~105), then both sh
 Speed (Linux, one thread, 6 s from one middlegame position, beside the gauntlet, two runs each): the MoE build
 with its net 1.25-1.27 M nodes a second, 2.0.0-001 with 004's net 1.43 M - the MoE engine is about 12 % slower
 (accumulator 272 wide, the router computed in scalar int64, the experts' layers in pieces of 16).
+**Result: stopped 14:27 on Volker's word ("die version ist klar schwächer") at 4,900 games: 2589.3 +/-7** against
+q1234-02abcd-03a-no16-b75 (the same with the 8 buckets) 2619.5 - about 30 below (+/-8), of which the 12 % fewer nodes
+a second explain only a part. The state before it joined was put back (`q1.state.before-...-moe-...`, the aborted one
+kept as `q1.state.moe-aborted`), so the table holds no MoE games; rev02ab plays on alone from 10,562 games.
 **Where Spike evaluates better (Volker 2026-11-12):** 50,000 games of 03a (part-03a-s8-p1.pgn), every position searched
 again by Qapla HCE depth 9 forward (`tmp/spikecmp/`, the Studio 11:45-12:42, 03c paused meanwhile); 2,527,242
 positions with Spike to move: Spike's game value (depth 8) against Qapla's (depth 9), each turned into a win
