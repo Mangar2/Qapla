@@ -194,10 +194,11 @@ positions with Spike to move: Spike's game value (depth 8) against Qapla's (dept
 probability by its own fitted scale (Spike 130 cp, Qapla 140 - practically the same), paired Brier score against the
 game result, positions with less than 30 cp between the two values left out (Volker: noise); found on the first 25,000
 games, confirmed on the second. Spike better: minor piece endings (by far the most), rook endings (R v R), the phases
-of 0-8 pieces, rook v minor and other endings with up to 4 officers (slightly). Qapla better: the middlegame with
-queens and the phases of 13+ pieces (rising to the opening) - part of that may be its one ply more. Only different:
-positions with a passed pawn. Pawn endings: with up to 4 pawns Qapla better, with more not confirmed (the two halves
-disagree) - not the advantage for Spike that was expected. Results in `tmp/spikecmp/result.txt` on the Studio.
+of 0-8 pieces, rook v minor and other endings with up to 4 officers (slightly) - as Volker expected: endings with
+pawns and few pieces. Qapla better: the middlegame with queens and the phases of 13+ pieces (rising to the opening);
+the two depths (Spike 8, Qapla 9) were chosen for equal strength and say nothing about who searched more. Only
+different: positions with a passed pawn. Pure pawn endings (no pieces): with up to 4 pawns Qapla better, with more
+not confirmed (the two halves disagree). Results in `tmp/spikecmp/result.txt` on the Studio.
 How the choice comes about (Volker 2026-11-12): the router starts random and assigns positions to untrained experts;
 each expert is then trained only on what it was given and becomes good at exactly that - the assignment confirms
 itself. The router only learns which of its two chosen experts fits better, never whether another would have become
