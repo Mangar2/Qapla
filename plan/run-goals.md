@@ -179,6 +179,12 @@ q1234-02abcd-03a-moe-no16-b75 = the command and data of q1234-02abcd-03a-no16-b7
 the 3.3.0 of the baseline), balance 1e-3; based on 004 and not on sqr, which stays below it (2605 +/-3 after 17,600
 games). Studio, ~21 s an epoch beside 03c, done ~11:15; experts evenly used from epoch 2 (6.1-6.4 % each). Engine:
 a build with `-DQAPLA_NNUE_MOE` (accumulator 272); then 20000 games on Linux after the rev02ab gauntlet.
+Done 11:46 (exit 0; e800 loss 0.001527, held back 0.001608 against 004's 0.001520/0.001601); md5 d4f4d5ce..., in
+milestones on all three; quantized router picks the float router's experts in 396 of 400 positions, values 11 apart
+on average. Joined the Linux gauntlet 12:03 on Volker's word ("direkt in den linux test"), build 60d4dc2 with
+QAPLA_NNUE_MOE (`new-versions/Qapla-60d4dc2-moe`; with the net 142,819 nodes at depth 12 from the start, without it
+132,488): rev02ab's qet stopped at 10,566 games and restarted from the state with both - qet plays round by round,
+so the MoE net plays alone until it reaches rev02ab's round (~105), then both share the machine.
 How the choice comes about (Volker 2026-11-12): the router starts random and assigns positions to untrained experts;
 each expert is then trained only on what it was given and becomes good at exactly that - the assignment confirms
 itself. The router only learns which of its two chosen experts fits better, never whether another would have become
