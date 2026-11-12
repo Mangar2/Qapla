@@ -136,7 +136,9 @@ Relabel done 2026-11-11 23:46, converted 23:47: 2,252,836 and 2,254,453 games, m
 exactly as the originals; chunk 1 (100,000 games) matched by moves: all matched, same results, same valued moves,
 reverse - forward mean +0.0013, mean |diff| 0.0114 win probability, 97 % within 0.05. Training
 q1234-02abcd-rev02ab-no16-b75 (trainer 4.0.0 at 60d16a3, without --sqr identical to 3.3.0 of the baseline; same book
-file) started 2026-11-12 00:48 on the Studio, then 20000 games on Linux after the sqr gauntlet. Relabel in/ and out/
+file) started 2026-11-12 00:48 on the Studio, then 20000 games on Linux after the sqr gauntlet. Stopped 02:21 at epoch
+301 for Volker's image/video jobs (watcher), taken up 02:51 with `--resume` once they had been gone 10 minutes
+(`train-q1234-02abcd-rev02ab-no16-b75-resume.sh`, same command, data in the same order). Relabel in/ and out/
 (20 GB) deleted.
 **Architecture: the first layer activated twice (Volker 2026-11-11, "teste das verdoppeln")** - Stockfish's pair:
 every output x of L1 goes to L2 as `min(x^2, 1) * 127/128` and as `clamp(x, 0, 1)`, so L2 reads 64 inputs instead of
