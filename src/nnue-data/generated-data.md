@@ -881,6 +881,7 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
   leaf 4,507,503 with both colours.
   Paused 2026-11-06 09:19 at 1,267,983 games (Volker: the Studio relabels 03a first); resumes with
   `sh tmp/book100m-d9/run-03c.sh` from its state (qet 3bc23c1 in build/release, copy in new-versions/qet-3bc23c1-studio).
+  Resumed 2026-11-12 05:26 from its state (1,267,983 games), the Studio's CPUs being free again.
 - **03a relabelled by Qapla HCE** (Volker 2026-11-06: do the gains of the Spike quarter come from Spike's values or from
   the games?): the 4,505,978 games of 03a, every position after the book searched again by `Qapla-hce-53f972f-studio`,
   depth 9, reverse, 12 engines - qet 291af9d `--analysis ... book=skip` leaves the book moves unsearched and without

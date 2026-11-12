@@ -138,7 +138,11 @@ reverse - forward mean +0.0013, mean |diff| 0.0114 win probability, 97 % within 
 q1234-02abcd-rev02ab-no16-b75 (trainer 4.0.0 at 60d16a3, without --sqr identical to 3.3.0 of the baseline; same book
 file) started 2026-11-12 00:48 on the Studio, then 20000 games on Linux after the sqr gauntlet. Stopped 02:21 at epoch
 301 for Volker's image/video jobs (watcher), taken up 02:51 with `--resume` once they had been gone 10 minutes
-(`train-q1234-02abcd-rev02ab-no16-b75-resume.sh`, same command, data in the same order). Relabel in/ and out/
+(`train-q1234-02abcd-rev02ab-no16-b75-resume.sh`, same command, data in the same order). Done 05:24 (exit 0;
+e800 loss 0.001418, held back 0.001505 - not comparable with the baseline's 0.001480, the held back targets are other
+values). md5 ad0939cc..., in milestones on all three machines, Studio training dir deleted. On Linux
+`tmp/curve/after-sqr-rev02ab.sh` joins it (join.sh, 2.0.0-001 binary as the baseline) as soon as the sqr gauntlet's qet
+has ended (~07:00). The Studio's CPUs, free again, play quarter 03c on from 1,267,983 games (05:26, no machine idle). Relabel in/ and out/
 (20 GB) deleted.
 **Architecture: the first layer activated twice (Volker 2026-11-11, "teste das verdoppeln")** - Stockfish's pair:
 every output x of L1 goes to L2 as `min(x^2, 1) * 127/128` and as `clamp(x, 0, 1)`, so L2 reads 64 inputs instead of
