@@ -162,6 +162,10 @@ Linux on again 11.11. evening: build d1db6ba (`new-versions/Qapla-d1db6ba-sqr`),
 like `Qapla-2.0.0-001` (3 positions, depth 16) - so the build is no second factor; the sqr net loads (depth 12 from the
 start: 141,036 nodes against 116,124 with 004's net). Joined the curve gauntlet 21:28 with `tmp/curve/join-bin.sh`
 (join.sh with the binary as an argument), 20000 games.
+**Result (2026-11-12 07:00, 20000 games): 2604.1 +/-3** (52.04 %, draws 55.3 %); in the same table
+q1234-02abcd-03a-no16-b75 (the same without --sqr) 2618.7, 2.0.0-001 2589.9 +/-1. The doubled activation costs 14.6
+(difference of two figures of +/-3: about +/-4) - although its held back loss was lower (0.001595 against 0.001601);
+part of it may be its 5-8 % fewer nodes a second. Not kept; the MoE net builds on the net without it.
 **Order of the next runs (Volker 2026-11-11 21:40):** 1. the reverse values of 02a/02b instead of the originals,
 trained and tested (q1234-02abcd-rev02ab-no16-b75); 2. quarter 03b (Spike against HCE, M4, done ~13.11. 00:00)
 added to the training and tested; 3. the MoE net: the accumulator 256 + 16, a router (the 16 extra values of both
