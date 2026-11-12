@@ -233,6 +233,13 @@ choice changes clearly in the first states and then converges):** trainer 5.1.0 
 default `pair` identical to 5.0.0); every MoE epoch line ends with `switched x %` on 16,384 fixed held back
 positions. Net q1234-02abcd-03a-moefull-no16-b75 = q1234-02abcd-03a-moe-no16-b75 with `--moe-share full`, the one
 factor; queued on the Studio (`tmp/book100m-d9/after-moe-moefull.sh`) to start when the pair run ends (~11:50).
+Started 11:56; `switched` per epoch (16,384 fixed positions): 43 % at epoch 2, ~20 % at 20, 13-16 % at 69, 8-9 % at
+143, 2.6-3.2 % at 290, 1-2 % at 365, 0.5 % at 510, 0.2-0.3 % at 660, 0.07-0.16 % at the end - changing clearly at
+first, then converging, as asked (the pair run: 18 % between e100 and e200 together). Stopped 16:50 at epoch 724 for
+Volker's image/video jobs, taken up 17:07 with `--resume` (`train-q1234-02abcd-03a-moefull-no16-b75-resume.sh`);
+done 17:38, exit 0: e800 loss 0.001548, held back 0.001614 (pair 0.001608, 004's buckets 0.001601). md5 720def16...,
+in milestones on all three; Studio training dir and the pair run's states deleted. Joins the Linux gauntlet when
+rev02ab ends (`tmp/curve/after-rev02ab-moefull.sh`, the MoE build 60d4dc2).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
