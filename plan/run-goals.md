@@ -169,6 +169,12 @@ perspectives, 32 -> 16) picks the top 2 of 16 experts of 16 neurons (512 -> 16 e
 now; every expert has its own L2 weights (16 -> 32), the two chosen ones' contributions summed with the router's
 weights - in place of the buckets by piece count, a load-balancing term in the training (A3/A4 below). One factor
 against the best net with buckets on the same data (on sqr if sqr wins).
+**MoE training started 2026-11-12 06:22 (Volker: "fange an zu trainieren", before the M4 finishes 03b):**
+q1234-02abcd-03a-moe-no16-b75 = the command and data of q1234-02abcd-03a-no16-b75 (2.0.0-004, 8 buckets, 2619.2) with
+`--stacks 1 --moe` in place of `--stacks 8`, the one factor; trainer 5.0.0 at 9abe486 (without --moe identical to
+the 3.3.0 of the baseline), balance 1e-3; based on 004 and not on sqr, which stays below it (2605 +/-3 after 17,600
+games). Studio, ~21 s an epoch beside 03c, done ~11:15; experts evenly used from epoch 2 (6.1-6.4 % each). Engine:
+a build with `-DQAPLA_NNUE_MOE` (accumulator 272); then 20000 games on Linux after the rev02ab gauntlet.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
