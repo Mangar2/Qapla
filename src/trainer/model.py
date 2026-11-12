@@ -36,7 +36,7 @@ class HalfKaNet(nn.Module):
     heads being allowed to part, and from nothing else.
     """
 
-    def __init__(self, stacks=1, psqt=False, sqr=False, moe=False, moe_share='pair'):
+    def __init__(self, stacks=1, psqt=False, sqr=False, moe=False, moe_share='pair', moe_mix='sum'):
         super().__init__()
         self.stacks = stacks
         self.psqt = None
@@ -45,6 +45,10 @@ class HalfKaNet(nn.Module):
         self.moe = moe
         # How the router is trained, see _moe_heads(): 'pair' (5.0.0) or 'full'.
         self.moe_share = moe_share
+        # 'sum' (5.x): experts in the first layer only, chosen by a router, each counted with factor one. 'layers' (6.0.0,
+        # Volker): experts in all three layers, the logits straight from the accumulator, the two chosen mixed by their
+        # weights - see _moe_layers().
+        self.moe_mix = moe_mix
         # sqr: every output of the first dense layer activated twice, as Stockfish does - see
         # activate_l1(). The second layer then reads twice as many inputs; nothing else changes, and
         # without it every number is drawn from the seed as before.
@@ -81,7 +85,28 @@ class HalfKaNet(nn.Module):
                                         padding_idx=netfile.FEATURE_COUNT)
             with torch.no_grad():
                 self.psqt.weight.copy_(netfile.psqt_start_values())
-        if moe:
+        if moe and moe_mix == 'layers':
+            width = netfile.ACCUMULATOR_SIZE + netfile.MOE_LAYER_LOGITS
+            self.feature_transformer = nn.EmbeddingBag(
+                netfile.FEATURE_COUNT + 1, width, mode='sum', padding_idx=netfile.FEATURE_COUNT)
+            self.feature_bias = nn.Parameter(torch.zeros(width))
+            nn.init.normal_(self.feature_transformer.weight, std=0.01)
+            with torch.no_grad():
+                self.feature_transformer.weight[netfile.FEATURE_COUNT].zero_()
+            e, size = netfile.MOE_LAYER_EXPERTS, netfile.MOE_EXPERT_SIZE
+            self.l1 = nn.Linear(netfile.L1_INPUT_SIZE, e * size)
+
+            def uniform(shape, fan_in):
+                bound = 1.0 / fan_in ** 0.5
+                return nn.Parameter(torch.empty(shape).uniform_(-bound, bound))
+            self.l2_weight = uniform((e, netfile.L2_SIZE, size), size)
+            self.l2_bias = uniform((e, netfile.L2_SIZE), size)
+            self.output_weight = uniform((e, netfile.L2_SIZE), netfile.L2_SIZE)
+            self.output_bias = uniform((e,), netfile.L2_SIZE)
+            self.l2 = self.output = None
+            self.balance = torch.zeros(())
+            self.usage = torch.zeros(e)
+        elif moe:
             # The accumulator gets MOE_ROUTER more columns; a router reads those of both perspectives
             # and picks MOE_TOP of MOE_EXPERTS experts. Each expert is MOE_EXPERT_SIZE neurons of the
             # first layer and its own columns of the second, which is shared by all: the two chosen
@@ -138,6 +163,8 @@ class HalfKaNet(nn.Module):
                                              self.feature_transformer.weight, csr)
         own = own + self.feature_bias
         opponent = opponent + self.feature_bias
+        if self.moe and self.moe_mix == 'layers':
+            return self._moe_layers(own, opponent)
         if self.moe:
             return self._moe_heads(own, opponent)
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
@@ -192,12 +219,74 @@ class HalfKaNet(nn.Module):
             self.usage = self.usage.to(counts.device) + counts.detach()
         return self.output(hidden).squeeze(1)
 
+    def _moe_choose(self, logits):
+        """The two chosen experts of a layer, their mixing weights and the full softmax share.
+
+        The weights are what the engine mixes with: g1 = sigmoid(l1 - l2) for the higher logit, g2 = 1 - g1 - its
+        gradient is exact. With moe_share 'full' the chosen experts' share of the softmax over all 16 is added straight
+        through (value zero, its gradient): a chosen pair that is wrong together loses share against the other experts
+        until another one overtakes them.
+        """
+        chosen = logits.topk(2, dim=1).indices
+        top = logits.gather(1, chosen)
+        first = torch.sigmoid(top[:, :1] - top[:, 1:])
+        weights = torch.cat((first, 1.0 - first), dim=1)
+        share = torch.softmax(logits, dim=1)
+        if self.moe_share == 'full':
+            picked = share.gather(1, chosen)
+            weights = weights + (picked - picked.detach())
+        return chosen, weights, share
+
+    def _moe_layers(self, own, opponent):
+        """Experts in all three layers (Volker 2026-11-12): 512 -> 16, 16 -> 32, 32 -> 1, 16 experts each.
+
+        The 3 x 16 values behind the transformed ones are the logits of the three choices, own plus opponent value - no
+        router layer, the accumulator learns them directly. In each layer the two experts of the highest logits are
+        computed and mixed by their weights (see _moe_choose); the balancing term covers all three choices.
+        """
+        size, e = netfile.ACCUMULATOR_SIZE, netfile.MOE_LAYER_EXPERTS
+        hidden = torch.cat((own[:, :size], opponent[:, :size]), dim=1).clamp(0.0, 1.0)
+        logits = [own[:, size + m * e:size + (m + 1) * e] + opponent[:, size + m * e:size + (m + 1) * e]
+                  for m in range(3)]
+        choices = [self._moe_choose(l) for l in logits]
+
+        chosen, weights, _share = choices[0]
+        experts = self.l1(hidden).clamp(0.0, 1.0).view(-1, e, netfile.MOE_EXPERT_SIZE)
+        picked = experts.gather(1, chosen.unsqueeze(2).expand(-1, -1, netfile.MOE_EXPERT_SIZE))
+        first = (picked * weights.unsqueeze(2)).sum(dim=1)
+
+        chosen, weights, _share = choices[1]
+        w2, b2 = self.l2_weight[chosen], self.l2_bias[chosen]           # (B, 2, 32, 16), (B, 2, 32)
+        second = (torch.einsum('bkoi,bi->bko', w2, first) + b2).clamp(0.0, 1.0)
+        second = (second * weights.unsqueeze(2)).sum(dim=1)
+
+        chosen, weights, _share = choices[2]
+        w3, b3 = self.output_weight[chosen], self.output_bias[chosen]   # (B, 2, 32), (B, 2)
+        values = torch.einsum('bko,bo->bk', w3, second) + b3
+        value = (values * weights).sum(dim=1)
+
+        if self.training:
+            balance = 0.0
+            counts_all = []
+            for chosen, _weights, share in choices:
+                counts = torch.zeros_like(share).scatter(1, chosen, 1.0).sum(dim=0)
+                balance = balance + e * ((counts / counts.sum()).detach() * share.mean(dim=0)).sum()
+                counts_all.append(counts.detach())
+            self.balance = balance / 3
+            self.usage = self.usage.to(value.device) + counts_all[0]
+        return value
+
     @torch.no_grad()
     def moe_choice(self, own_features, opponent_features):
         """The experts the router picks for a batch, sorted per position - for watching the choice."""
         size = netfile.ACCUMULATOR_SIZE
         own = self.feature_transformer(own_features) + self.feature_bias
         opponent = self.feature_transformer(opponent_features) + self.feature_bias
+        if self.moe_mix == 'layers':
+            # the choices of all three layers side by side, each pair sorted
+            e = netfile.MOE_LAYER_EXPERTS
+            return torch.cat([(own[:, size + m * e:size + (m + 1) * e] + opponent[:, size + m * e:size + (m + 1) * e])
+                              .topk(2, dim=1).indices.sort(dim=1).values for m in range(3)], dim=1)
         logits = self.router(torch.cat((own[:, size:], opponent[:, size:]), dim=1))
         return logits.topk(netfile.MOE_TOP, dim=1).indices.sort(dim=1).values
 
@@ -225,9 +314,13 @@ class HalfKaNet(nn.Module):
     def clamp_weights(self):
         """Keeps every weight inside the range its quantized form can hold."""
         limit = netfile.MAX_DENSE_WEIGHT
-        for layer in (self.l1, self.l2, self.output):
-            layer.weight.clamp_(-limit, limit)
-        if self.moe:
+        if self.moe and self.moe_mix == 'layers':
+            for weight in (self.l1.weight, self.l2_weight, self.output_weight):
+                weight.clamp_(-limit, limit)
+        else:
+            for layer in (self.l1, self.l2, self.output):
+                layer.weight.clamp_(-limit, limit)
+        if self.moe and self.moe_mix != 'layers':
             self.router.weight.clamp_(-netfile.MOE_ROUTER_LIMIT, netfile.MOE_ROUTER_LIMIT)
         # An accumulator of int16 could take far more, but two keeps it away from
         # its limit even with 31 pieces on the board.

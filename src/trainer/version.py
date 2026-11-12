@@ -1,3 +1,3 @@
 """The version of the trainer - see CHANGELOG.md for what each one changed and the rules for raising it."""
 
-VERSION = '5.1.0'
+VERSION = '6.0.0'

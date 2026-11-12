@@ -72,6 +72,9 @@ RUNS = {
     # 5.1.0: the router trained with the share of the full softmax.
     'fixed-ranger-moe-full': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1', '--moe',
                               '--moe-share', 'full', '--workers', '2'],
+    # 6.0.0: experts in all three layers, the logits from the accumulator, the chosen two mixed by their weights.
+    'fixed-ranger-moe-layers': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1', '--moe',
+                                '--moe-share', 'full', '--moe-mix', 'layers', '--workers', '2'],
 }
 # On the fixture with results: the blend as one number, and one blend per bucket.
 RUNS_WDL = {

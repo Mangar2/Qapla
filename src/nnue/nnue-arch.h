@@ -73,7 +73,13 @@ namespace QaplaNnue {
 	 * -DQAPLA_NNUE_MOE". Its accumulator is MOE_ROUTER values wider, so it reads those nets only - and
 	 * a normal build refuses them; the shape number tells the two apart.
 	 */
-#ifdef QAPLA_NNUE_MOE
+	/*
+	 * A build for nets with experts in all three layers (format QAPLANN6): EXTRA_DEFINES="-DQAPLA_USE_NNUE
+	 * -DQAPLA_NNUE_MOE_LAYERS" - the accumulator 3 x 16 values wider, the logits of the three choices.
+	 */
+#if defined(QAPLA_NNUE_MOE_LAYERS)
+#define QAPLA_NNUE_ROUTER 48
+#elif defined(QAPLA_NNUE_MOE)
 #define QAPLA_NNUE_ROUTER 16
 #else
 #define QAPLA_NNUE_ROUTER 0
@@ -127,7 +133,18 @@ namespace QaplaNnue {
 		MOE_EXPERT_SIZE = 16,
 		MOE_TOP = 2,
 		/** The router's weights are int16 of this scale, its bias int32 of QA times it. */
-		MOE_ROUTER_SCALE = 1024
+		MOE_ROUTER_SCALE = 1024,
+		/**
+		 * Experts in all three layers (format QAPLANN6): 16 a layer, the 3 x 16 logits straight from the
+		 * accumulator (own plus opponent value). The better chosen expert's weight comes from a table over the
+		 * difference of the two logits (scale QA), MOE_GATE_STEPS entries a logit unit, of scale MOE_GATE_SCALE.
+		 */
+		MOE_LAYER_EXPERTS = 16,
+		MOE_LAYER_LOGITS = 3 * MOE_LAYER_EXPERTS,
+		MOE_GATE_STEPS = 32,
+		MOE_GATE_TABLE = 256,
+		MOE_GATE_SCALE = 128,
+		MOE_GATE_SHIFT = 7
 	};
 
 	/**
@@ -194,6 +211,19 @@ namespace QaplaNnue {
 		std::array<int8_t, L2_SIZE> outputWeight{};
 	};
 
+	/** The layers of a net with experts in all three layers, in the order of its file. */
+	struct alignas(NNUE_ALIGNMENT) MoeLayerSet {
+		std::array<int32_t, size_t(MOE_LAYER_EXPERTS)* MOE_EXPERT_SIZE> l1Bias{};
+		/** Expert after expert, MOE_EXPERT_SIZE rows of L1_INPUT_SIZE each. */
+		std::array<int8_t, size_t(MOE_LAYER_EXPERTS)* MOE_EXPERT_SIZE* size_t(L1_INPUT_SIZE)> l1Weight{};
+		std::array<int32_t, size_t(MOE_LAYER_EXPERTS)* L2_SIZE> l2Bias{};
+		/** Expert after expert, L2_SIZE rows of MOE_EXPERT_SIZE each. */
+		std::array<int8_t, size_t(MOE_LAYER_EXPERTS)* L2_SIZE* MOE_EXPERT_SIZE> l2Weight{};
+		std::array<int32_t, MOE_LAYER_EXPERTS> outputBias{};
+		/** Expert after expert, one row of L2_SIZE. */
+		std::array<int8_t, size_t(MOE_LAYER_EXPERTS)* L2_SIZE> outputWeight{};
+	};
+
 	struct alignas(NNUE_ALIGNMENT) Network {
 		std::array<int16_t, ACCUMULATOR_SIZE> featureBias{};
 		std::array<int16_t, size_t(FEATURE_COUNT)* size_t(ACCUMULATOR_SIZE)> featureWeight{};
@@ -208,6 +238,9 @@ namespace QaplaNnue {
 		/** A net of the fifth format, a mixture of experts: moe holds its layers, heads stay unused. */
 		bool isMoe = false;
 		MoeLayers moe{};
+		/** A net of the sixth format, experts in all three layers: moeLayers holds them. */
+		bool isMoeLayers = false;
+		MoeLayerSet moeLayers{};
 
 		std::array<Head, LAYER_STACKS> heads{};
 	};
@@ -243,6 +276,9 @@ namespace QaplaNnue {
 	/** The mixture of experts, read by a build with QAPLA_NNUE_MOE only. */
 	inline constexpr char NNUE_MAGIC_MOE[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '5' };
 
+	/** Experts in all three layers, read by a build with QAPLA_NNUE_MOE_LAYERS only. */
+	inline constexpr char NNUE_MAGIC_MOE_LAYERS[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '6' };
+
 	constexpr uint32_t singleHeadArchitectureId() {
 		return uint32_t(FEATURE_COUNT) * 31u + uint32_t(ACCUMULATOR_SIZE) * 7u
 			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u
@@ -263,6 +299,14 @@ namespace QaplaNnue {
 			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u
 			+ uint32_t(QB) * 17u + uint32_t(MOE_ROUTER) * 7u + uint32_t(MOE_EXPERTS) * 7901u
 			+ uint32_t(MOE_EXPERT_SIZE) * 3u + uint32_t(MOE_TOP) * 911u + uint32_t(MOE_ROUTER_SCALE);
+	}
+
+	/** As netfile.moe_layers_architecture_id(). */
+	constexpr uint32_t moeLayersArchitectureId() {
+		return uint32_t(FEATURE_COUNT) * 31u + uint32_t(TRANSFORMED_SIZE) * 7u
+			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u + uint32_t(QB) * 17u
+			+ uint32_t(MOE_LAYER_LOGITS) * 7u + uint32_t(MOE_LAYER_EXPERTS) * 7901u
+			+ uint32_t(MOE_GATE_STEPS) * 13u + uint32_t(MOE_GATE_SCALE) * 17u + 6u;
 	}
 
 	constexpr uint32_t sqrArchitectureId() {

@@ -27,6 +27,10 @@ MAGIC_SQR = b'QAPLANN4'
 # The mixture of experts (model.HalfKaNet._moe_heads): an accumulator MOE_ROUTER wider, a router, the experts' first
 # layer and a second layer read in expert blocks; no stacks. See write_moe() for the layout.
 MAGIC_MOE = b'QAPLANN5'
+# The mixture of experts in all three layers (6.0.0, model.HalfKaNet moe_mix='layers', Volker 2026-11-12): the accumulator
+# 3 x 16 values wider - the logits of the three choices, own plus opponent - and in each layer the two chosen of 16
+# experts mixed by their weights: 512 -> 16, 16 -> 32, 32 -> 1. See write_moe_layers() for the layout.
+MAGIC_MOE_LAYERS = b'QAPLANN6'
 
 SQUARE_COUNT = 64
 PIECE_PLANES = 11
@@ -51,6 +55,15 @@ MOE_TOP = 2
 # at most 8128 times weights of at most MOE_ROUTER_LIMIT * MOE_ROUTER_SCALE = 8192.
 MOE_ROUTER_SCALE = 1024
 MOE_ROUTER_LIMIT = 8.0
+# The three-layer mixture: experts per layer, the logits per choice (3 x 16 accumulator values), and the weight of the
+# better of the two chosen experts - a table over the difference of their logits (an integer of scale QA), MOE_GATE_STEPS
+# entries a logit unit, of scale MOE_GATE_SCALE; the other gets the rest.
+MOE_LAYER_EXPERTS = 16
+MOE_LAYER_LOGITS = 3 * MOE_LAYER_EXPERTS
+MOE_GATE_STEPS = 32
+MOE_GATE_TABLE = 256
+MOE_GATE_SCALE = 128
+MOE_GATE_SHIFT = 7
 
 QA = 127                 # scale of an activation, and its largest value
 QB = 64                  # scale of a weight of a dense layer
@@ -424,3 +437,129 @@ def evaluate_moe(network, own_features, opponent_features):
     for index in range(L2_SIZE):
         total += network.output_weight[index] * second[index]
     return _truncating_division(total * NET_VALUE_SCALE, QA * QB)
+
+
+# --- the mixture of experts in all three layers -------------------------------------------------------------------
+
+def moe_gate_of(difference):
+    """The weight of the better of two chosen experts, of scale MOE_GATE_SCALE, from the difference of their logits (an
+    integer of scale QA, not negative): MOE_GATE_SCALE / (1 + exp(-step / MOE_GATE_STEPS)), rounded half away from zero
+    as std::lround - moeGateOf() in the engine."""
+    import math
+    step = min(MOE_GATE_TABLE - 1, difference * MOE_GATE_STEPS // QA)
+    return int(math.floor(MOE_GATE_SCALE / (1.0 + math.exp(-step / MOE_GATE_STEPS)) + 0.5))
+
+
+def moe_layers_architecture_id():
+    return (single_head_architecture_id() + MOE_LAYER_LOGITS * 7 + MOE_LAYER_EXPERTS * 7901 + MOE_GATE_STEPS * 13
+            + MOE_GATE_SCALE * 17 + 6) & 0xFFFFFFFF
+
+
+def _moe_layers_members():
+    width = ACCUMULATOR_SIZE + MOE_LAYER_LOGITS
+    e, size = MOE_LAYER_EXPERTS, MOE_EXPERT_SIZE
+    return (
+        ('feature_bias', 'h', width),
+        ('feature_weight', 'h', FEATURE_COUNT * width),
+        ('l1_bias', 'i', e * size),
+        ('l1_weight', 'b', e * size * L1_INPUT_SIZE),       # expert after expert, size rows of L1_INPUT_SIZE
+        ('l2_bias', 'i', e * L2_SIZE),
+        ('l2_weight', 'b', e * L2_SIZE * size),             # expert after expert, L2_SIZE rows of size
+        ('output_bias', 'i', e),
+        ('output_weight', 'b', e * L2_SIZE),                # expert after expert, one row of L2_SIZE
+    )
+
+
+class MoeLayersNetwork:
+    __slots__ = tuple(m for m, _c, _n in _moe_layers_members())
+
+
+def write_moe_layers(path, network):
+    with open(path, 'wb') as stream:
+        stream.write(MAGIC_MOE_LAYERS)
+        stream.write(struct.pack('<I', moe_layers_architecture_id()))
+        for member, code, count in _moe_layers_members():
+            values = getattr(network, member)
+            assert len(values) == count and values.typecode == code, member
+            values.tofile(stream)
+
+
+def read_moe_layers(path):
+    network = MoeLayersNetwork()
+    with open(path, 'rb') as stream:
+        magic = stream.read(len(MAGIC_MOE_LAYERS))
+        identifier = struct.unpack('<I', stream.read(4))[0]
+        if magic != MAGIC_MOE_LAYERS or identifier != moe_layers_architecture_id():
+            raise ValueError('%s is not a three-layer mixture-of-experts net of this shape' % path)
+        for member, code, count in _moe_layers_members():
+            setattr(network, member, _read_array(stream, code, count))
+    return network
+
+
+def is_moe_layers(path):
+    with open(path, 'rb') as stream:
+        return stream.read(len(MAGIC_MOE_LAYERS)) == MAGIC_MOE_LAYERS
+
+
+def moe_layer_choice(own, opponent, layer):
+    """The two experts of a layer and the better one's weight: logit k = own + opponent value k of the layer's 16, the
+    highest first, the lower index on a tie."""
+    start = ACCUMULATOR_SIZE + layer * MOE_LAYER_EXPERTS
+    logits = [own[start + k] + opponent[start + k] for k in range(MOE_LAYER_EXPERTS)]
+    best, second = sorted(range(MOE_LAYER_EXPERTS), key=lambda k: (-logits[k], k))[:2]
+    return best, second, moe_gate_of(logits[best] - logits[second])
+
+
+def _mix(gate, a, b):
+    return (gate * a + (MOE_GATE_SCALE - gate) * b) >> MOE_GATE_SHIFT
+
+
+def evaluate_moe_layers(network, own_features, opponent_features):
+    """The value of a position by a three-layer mixture-of-experts net, with the integer arithmetic of the engine."""
+    width = ACCUMULATOR_SIZE + MOE_LAYER_LOGITS
+
+    def accumulator(features):
+        values = list(network.feature_bias)
+        for feature in features:
+            offset = feature * width
+            for index in range(width):
+                values[index] += network.feature_weight[offset + index]
+        return values
+
+    own, opponent = accumulator(own_features), accumulator(opponent_features)
+    inputs = [_clipped_relu(v) for v in own[:ACCUMULATOR_SIZE]] + [_clipped_relu(v) for v in opponent[:ACCUMULATOR_SIZE]]
+    size = MOE_EXPERT_SIZE
+
+    best, second, gate = moe_layer_choice(own, opponent, 0)
+    outs = []
+    for expert in (best, second):
+        hidden = []
+        for row in range(expert * size, (expert + 1) * size):
+            total = network.l1_bias[row]
+            for index in range(L1_INPUT_SIZE):
+                total += network.l1_weight[row * L1_INPUT_SIZE + index] * inputs[index]
+            hidden.append(_clipped_relu(total >> QB_SHIFT))
+        outs.append(hidden)
+    first = [_mix(gate, a, b) for a, b in zip(*outs)]
+
+    best, second, gate = moe_layer_choice(own, opponent, 1)
+    outs = []
+    for expert in (best, second):
+        hidden = []
+        for row in range(L2_SIZE):
+            total = network.l2_bias[expert * L2_SIZE + row]
+            offset = (expert * L2_SIZE + row) * size
+            for index in range(size):
+                total += network.l2_weight[offset + index] * first[index]
+            hidden.append(_clipped_relu(total >> QB_SHIFT))
+        outs.append(hidden)
+    second_layer = [_mix(gate, a, b) for a, b in zip(*outs)]
+
+    best, second, gate = moe_layer_choice(own, opponent, 2)
+    values = []
+    for expert in (best, second):
+        total = network.output_bias[expert]
+        for index in range(L2_SIZE):
+            total += network.output_weight[expert * L2_SIZE + index] * second_layer[index]
+        values.append(total)
+    return _truncating_division(_mix(gate, values[0], values[1]) * NET_VALUE_SCALE, QA * QB)

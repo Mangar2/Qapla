@@ -20,7 +20,9 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <climits>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -219,6 +221,89 @@ namespace {
 		return toEngineValue(output);
 	}
 
+	/** The better chosen expert's weight over the logit difference, as netfile.moe_gate_of(). */
+	struct MoeGateTable {
+		std::array<int32_t, MOE_GATE_TABLE> weight{};
+		MoeGateTable() {
+			for (uint32_t step = 0; step < MOE_GATE_TABLE; step++) {
+				weight[step] = int32_t(std::lround(double(MOE_GATE_SCALE)
+					/ (1.0 + std::exp(-double(step) / double(MOE_GATE_STEPS)))));
+			}
+		}
+	};
+
+	inline int32_t moeGateOf(int32_t difference) {
+		static const MoeGateTable table;
+		const int32_t step = std::min<int32_t>(int32_t(MOE_GATE_TABLE) - 1,
+			difference * int32_t(MOE_GATE_STEPS) / int32_t(QA));
+		return table.weight[size_t(step)];
+	}
+
+	/**
+	 * The two experts of a layer of a three-layer MoE net and the better one's weight: logit k is the own plus the
+	 * opponent value k of the layer's 16 behind the transformed values; highest first, the lower index on a tie.
+	 */
+	inline int32_t chooseLayerExperts(const int16_t* own, const int16_t* opponent, uint32_t layer,
+		uint32_t& best, uint32_t& second) {
+		const uint32_t start = TRANSFORMED_SIZE + layer * MOE_LAYER_EXPERTS;
+		int32_t first = INT32_MIN, next = INT32_MIN;
+		best = second = 0;
+		for (uint32_t k = 0; k < MOE_LAYER_EXPERTS; k++) {
+			const int32_t logit = int32_t(own[start + k]) + int32_t(opponent[start + k]);
+			if (logit > first) { next = first; second = best; first = logit; best = k; }
+			else if (logit > next) { next = logit; second = k; }
+		}
+		return moeGateOf(first - next);
+	}
+
+	/** Signed throughout: the constants live in an enum of uint32_t, and an output value can be negative. */
+	inline int32_t mixOf(int32_t gate, int32_t a, int32_t b) {
+		return (gate * a + (int32_t(MOE_GATE_SCALE) - gate) * b) >> int32_t(MOE_GATE_SHIFT);
+	}
+
+	/** A net with experts in all three layers: 512 -> 16, 16 -> 32, 32 -> 1, two of 16 in each, mixed. */
+	template <bool VECTOR>
+	value_t forwardMoeLayers(const Network& network, const int16_t* own, const int16_t* opponent) {
+		const MoeLayerSet& set = network.moeLayers;
+		alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
+		for (uint32_t index = 0; index < TRANSFORMED_SIZE; index++) {
+			input[index] = clippedRelu(own[index]);
+			input[index + TRANSFORMED_SIZE] = clippedRelu(opponent[index]);
+		}
+		uint32_t experts[2];
+		alignas(NNUE_ALIGNMENT) int8_t out1[2][MOE_EXPERT_SIZE];
+		int32_t gate = chooseLayerExperts(own, opponent, 0, experts[0], experts[1]);
+		for (uint32_t k = 0; k < 2; k++) {
+			const int8_t* w = set.l1Weight.data() + size_t(experts[k]) * MOE_EXPERT_SIZE * L1_INPUT_SIZE;
+			const int32_t* b = set.l1Bias.data() + size_t(experts[k]) * MOE_EXPERT_SIZE;
+			if (VECTOR) affineRelu<L1_INPUT_SIZE, MOE_EXPERT_SIZE>(input, w, b, out1[k]);
+			else affineReluPlain<L1_INPUT_SIZE, MOE_EXPERT_SIZE>(input, w, b, out1[k]);
+		}
+		alignas(NNUE_ALIGNMENT) int8_t first[MOE_EXPERT_SIZE];
+		for (uint32_t i = 0; i < MOE_EXPERT_SIZE; i++) first[i] = int8_t(mixOf(gate, out1[0][i], out1[1][i]));
+
+		alignas(NNUE_ALIGNMENT) int8_t out2[2][L2_SIZE];
+		gate = chooseLayerExperts(own, opponent, 1, experts[0], experts[1]);
+		for (uint32_t k = 0; k < 2; k++) {
+			const int8_t* w = set.l2Weight.data() + size_t(experts[k]) * L2_SIZE * MOE_EXPERT_SIZE;
+			const int32_t* b = set.l2Bias.data() + size_t(experts[k]) * L2_SIZE;
+			if (VECTOR) affineRelu<MOE_EXPERT_SIZE, L2_SIZE>(first, w, b, out2[k]);
+			else affineReluPlain<MOE_EXPERT_SIZE, L2_SIZE>(first, w, b, out2[k]);
+		}
+		alignas(NNUE_ALIGNMENT) int8_t second[L2_SIZE];
+		for (uint32_t i = 0; i < L2_SIZE; i++) second[i] = int8_t(mixOf(gate, out2[0][i], out2[1][i]));
+
+		gate = chooseLayerExperts(own, opponent, 2, experts[0], experts[1]);
+		int32_t value[2];
+		for (uint32_t k = 0; k < 2; k++) {
+			const int8_t* w = set.outputWeight.data() + size_t(experts[k]) * L2_SIZE;
+			int32_t total = set.outputBias[experts[k]];
+			for (uint32_t i = 0; i < L2_SIZE; i++) total += int32_t(w[i]) * int32_t(second[i]);
+			value[k] = total;
+		}
+		return toEngineValue(mixOf(gate, value[0], value[1]));
+	}
+
 	inline void addPsqt(const Network& network, int32_t* psqt, uint32_t feature) {
 		const int32_t* weight = network.psqtWeight.data() + size_t(feature) * PSQT_BUCKETS;
 		for (uint32_t bucket = 0; bucket < PSQT_BUCKETS; bucket++) psqt[bucket] += weight[bucket];
@@ -271,6 +356,7 @@ template void QaplaNnue::refreshAccumulator<QaplaBasics::BLACK>(const Network&, 
 
 value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int16_t* opponent,
 	const int32_t* ownPsqt, const int32_t* opponentPsqt, uint32_t stack) {
+	if (network.isMoeLayers) return forwardMoeLayers<true>(network, own, opponent);
 	if (network.isMoe) return forwardMoe<true>(network, own, opponent);
 	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
@@ -295,6 +381,7 @@ value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int
 
 value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
 	const int16_t* opponent, const int32_t* ownPsqt, const int32_t* opponentPsqt, uint32_t stack) {
+	if (network.isMoeLayers) return forwardMoeLayers<false>(network, own, opponent);
 	if (network.isMoe) return forwardMoe<false>(network, own, opponent);
 	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];

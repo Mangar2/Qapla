@@ -102,7 +102,31 @@ def quantize_moe(model):
     return network
 
 
+def quantize_moe_layers(model):
+    """A three-layer mixture-of-experts model as netfile.write_moe_layers() holds it."""
+    network = netfile.MoeLayersNetwork()
+    scale = netfile.QA * netfile.QB
+
+    def values(tensor):
+        return tensor.detach().cpu().numpy()
+
+    network.feature_weight = _as_array(
+        _quantized(values(model.feature_transformer.weight)[:netfile.FEATURE_COUNT], netfile.QA, np.int16), 'h')
+    network.feature_bias = _as_array(_quantized(values(model.feature_bias), netfile.QA, np.int16), 'h')
+    network.l1_weight = _as_array(_quantized(values(model.l1.weight), netfile.QB, np.int8), 'b')
+    network.l1_bias = _as_array(_quantized(values(model.l1.bias), scale, np.int32), 'i')
+    network.l2_weight = _as_array(_quantized(values(model.l2_weight), netfile.QB, np.int8), 'b')
+    network.l2_bias = _as_array(_quantized(values(model.l2_bias), scale, np.int32), 'i')
+    network.output_weight = _as_array(_quantized(values(model.output_weight), netfile.QB, np.int8), 'b')
+    network.output_bias = _as_array(_quantized(values(model.output_bias), scale, np.int32), 'i')
+    return network
+
+
 def export(model, path):
+    if getattr(model, 'moe', False) and getattr(model, 'moe_mix', 'sum') == 'layers':
+        netfile.write_moe_layers(path, quantize_moe_layers(model))
+        print('written %s' % path)
+        return
     if getattr(model, 'moe', False):
         netfile.write_moe(path, quantize_moe(model))
         print('written %s' % path)
@@ -121,6 +145,11 @@ if __name__ == '__main__':
     from model import HalfKaNet
     held = torch.load(sys.argv[1], map_location='cpu', weights_only=False)
     state = held['model'] if isinstance(held, dict) and 'model' in held else held
+    if 'l2_weight' in state:
+        trained = HalfKaNet(moe=True, moe_mix='layers')
+        trained.load_state_dict(state)
+        export(trained, sys.argv[2])
+        raise SystemExit(0)
     moe = 'router.weight' in state
     trained = HalfKaNet(stacks=1 if moe else state['output.weight'].shape[0], psqt='psqt.weight' in state,
                         sqr=not moe and state['l2.weight'].shape[1] != netfile.L1_SIZE, moe=moe)

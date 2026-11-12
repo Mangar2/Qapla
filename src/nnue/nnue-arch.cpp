@@ -98,6 +98,18 @@ namespace {
 		writeArray(stream, moe.outputWeight);
 	}
 
+	bool readMoeLayers(std::istream& stream, QaplaNnue::MoeLayerSet& set) {
+		return readArray(stream, set.l1Bias) && readArray(stream, set.l1Weight)
+			&& readArray(stream, set.l2Bias) && readArray(stream, set.l2Weight)
+			&& readArray(stream, set.outputBias) && readArray(stream, set.outputWeight);
+	}
+
+	void writeMoeLayers(std::ostream& stream, const QaplaNnue::MoeLayerSet& set) {
+		writeArray(stream, set.l1Bias); writeArray(stream, set.l1Weight);
+		writeArray(stream, set.l2Bias); writeArray(stream, set.l2Weight);
+		writeArray(stream, set.outputBias); writeArray(stream, set.outputWeight);
+	}
+
 	void writeHead(std::ostream& stream, const QaplaNnue::Head& head, bool sqr) {
 		writeArray(stream, head.l1Bias);
 		writeArray(stream, head.l1Weight);
@@ -131,6 +143,27 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(std::istream& stream, const std:
 	const std::string found(magic, sizeof(magic));
 	const bool psqt = found == std::string(NNUE_MAGIC_PSQT, sizeof(NNUE_MAGIC_PSQT));
 	const bool sqr = found == std::string(NNUE_MAGIC_SQR, sizeof(NNUE_MAGIC_SQR));
+	const bool moeLayers = found == std::string(NNUE_MAGIC_MOE_LAYERS, sizeof(NNUE_MAGIC_MOE_LAYERS));
+	if (moeLayers) {
+		if (MOE_ROUTER != MOE_LAYER_LOGITS) {
+			std::cout << "Error (a net with experts in all layers needs a build with QAPLA_NNUE_MOE_LAYERS): "
+				<< path << std::endl;
+			return nullptr;
+		}
+		if (!stream || identifier != moeLayersArchitectureId()) {
+			std::cout << "Error (net of another shape): " << path << ", file says " << identifier
+				<< ", this build wants " << moeLayersArchitectureId() << std::endl;
+			return nullptr;
+		}
+		auto network = std::make_unique<Network>();
+		network->isMoeLayers = true;
+		if (!readArray(stream, network->featureBias) || !readArray(stream, network->featureWeight)
+			|| !readMoeLayers(stream, network->moeLayers)) {
+			std::cout << "Error (net file is too short): " << path << std::endl;
+			return nullptr;
+		}
+		return network;
+	}
 	const bool moe = found == std::string(NNUE_MAGIC_MOE, sizeof(NNUE_MAGIC_MOE));
 	if (moe) {
 		if (MOE_ROUTER != 16) {
@@ -197,6 +230,15 @@ bool QaplaNnue::writeNetwork(const std::string& path, const Network& network) {
 	if (!stream) {
 		std::cout << "Error (cannot write net): " << path << std::endl;
 		return false;
+	}
+	if (network.isMoeLayers) {
+		const uint32_t identifier = moeLayersArchitectureId();
+		stream.write(NNUE_MAGIC_MOE_LAYERS, sizeof(NNUE_MAGIC_MOE_LAYERS));
+		stream.write(reinterpret_cast<const char*>(&identifier), sizeof(identifier));
+		writeArray(stream, network.featureBias);
+		writeArray(stream, network.featureWeight);
+		writeMoeLayers(stream, network.moeLayers);
+		return bool(stream);
 	}
 	if (network.isMoe) {
 		const uint32_t identifier = moeArchitectureId();

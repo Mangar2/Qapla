@@ -78,6 +78,26 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 6.0.0 - 2026-11-12
+
+`--moe-mix sum|layers` (Volker: MoE models choose in every layer; 2 x 16 -> 16 with weighted experts). `layers`: experts in
+all three layers, 16 each - 512 -> 16, 16 -> 32, 32 -> 1 - and in each layer the two of the highest logits computed and
+mixed by their weights, g1 = sigmoid(l1 - l2) for the higher logit, g2 = 1 - g1. The 3 x 16 logits are accumulator values
+(own plus opponent value k of the layer's 16): the accumulator is 256 + 48 wide and learns them directly, no router
+layer - a router on accumulator values was only another linear map. The forward value is the mix, with the exact
+gradient; with `--moe-share full` the chosen experts' share of the softmax over all 16 is added straight through, so a
+chosen pair that is wrong together loses share against the others. The balancing term covers all three choices, the
+`experts` and `switched` reports follow the choices (switched: any of the three pairs). `sum` (5.x) stays the default.
+In the engine (build with `-DQAPLA_NNUE_MOE_LAYERS`, accumulator 304) g1 comes from a table over the logit difference (32
+steps a logit unit, 256 entries, scale 128) and the mix is (g1 x + (128 - g1) y) >> 7 in every layer - the same table
+and integers in `netfile.evaluate_moe_layers`. Major: a new net file format, `QAPLANN6`.
+- Without `--moe-mix layers` identical to 5.1.0: `test_reproducible.py`, all fourteen runs.
+- One run added (`fixed-ranger-moe-layers`), record rewritten.
+- Trainer and engine agree to the integer on 300 positions of a small net of the format, vector and plain path equal
+  (found on the way: the mix computed unsigned, the constants living in an enum of uint32_t - every negative output
+  value came out wrong). The QAPLANN5 build reads q1234-02abcd-03a-moe-no16-b75 as before; the normal build 207,841,327
+  nodes on wmtest depth 18. Quantized against float on that small net: 11.7 apart on average, 7.7 the median.
+
 ## 5.1.0 - 2026-11-12
 
 `--moe-share pair|full` (Volker: "baue ein bestrafungsverfahren das funktioniert"). 5.0.0 renormalized the chosen

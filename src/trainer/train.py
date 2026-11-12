@@ -145,7 +145,8 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
     """
     torch.manual_seed(arguments.seed)
     model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr,
-                      moe=arguments.moe, moe_share=arguments.moe_share).to(device)
+                      moe=arguments.moe, moe_share=arguments.moe_share,
+                      moe_mix=arguments.moe_mix).to(device)
     optimizer = make_optimizer(model, arguments)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=arguments.lr_gamma)
     ranger = arguments.optimizer == 'ranger'
@@ -305,7 +306,8 @@ def train(arguments):
     # compiled loader was checked against the python one.
     torch.manual_seed(arguments.seed)
     model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr,
-                      moe=arguments.moe, moe_share=arguments.moe_share).to(device)
+                      moe=arguments.moe, moe_share=arguments.moe_share,
+                      moe_mix=arguments.moe_mix).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
     print('%d positions, %d batches of %d, device %s'
@@ -445,6 +447,12 @@ if __name__ == '__main__':
                              'chosen experts, so two wrong ones are never punished; full takes their share of the '
                              'softmax over all experts, so a chosen expert that hurts loses share against every '
                              'other one until another takes its place (Switch Transformer)')
+    parser.add_argument('--moe-mix', choices=('sum', 'layers'), default='sum',
+                        help='sum (5.x): experts in the first layer only, picked by a router, each counted with factor '
+                             'one; layers (Volker): experts in all three layers, 512 -> 16, 16 -> 32, 32 -> 1, 16 each, '
+                             'the 3 x 16 logits straight from the accumulator (own plus opponent), the two chosen in each '
+                             'layer mixed by their weights g1 = sigmoid(l1 - l2), g2 = 1 - g1. Writes the net format '
+                             'QAPLANN6')
     parser.add_argument('--moe-balance', type=float, default=1e-3,
                         help='weight of the balancing term against the router collapsing onto few experts '
                              '(Switch Transformer: experts x sum of choice fraction x mean share, 1 when even)')
