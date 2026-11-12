@@ -199,6 +199,12 @@ pawns and few pieces. Qapla better: the middlegame with queens and the phases of
 the two depths (Spike 8, Qapla 9) were chosen for equal strength and say nothing about who searched more. Only
 different: positions with a passed pawn. Pure pawn endings (no pieces): with up to 4 pawns Qapla better, with more
 not confirmed (the two halves disagree). Results in `tmp/spikecmp/result.txt` on the Studio.
+Split by pawns (Volker: Spike is better where pawns are left): minor and rook endings with pawns Spike better, without
+pawns the two values nearly always agree (2-7 % of the positions 30 cp apart); R v minor without pawns Qapla better;
+other pawnless endings (e.g. Q v R) Spike better. Further (Volker): opposite-coloured bishops (B v B, with pawns,
+38,009) Spike clearly better; same-coloured bishops not confirmed; B v N with pawns Spike better; an advanced passed
+pawn (6th/7th rank) Spike better in endings (349,146), Qapla in the middlegame; an outside passed pawn (3+ files from
+every enemy pawn) Spike better in endings, Qapla in the middlegame. `result2.txt`, `result3.txt` beside it.
 How the choice comes about (Volker 2026-11-12): the router starts random and assigns positions to untrained experts;
 each expert is then trained only on what it was given and becomes good at exactly that - the assignment confirms
 itself. The router only learns which of its two chosen experts fits better, never whether another would have become
