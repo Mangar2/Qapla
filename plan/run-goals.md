@@ -240,6 +240,15 @@ Volker's image/video jobs, taken up 17:07 with `--resume` (`train-q1234-02abcd-0
 done 17:38, exit 0: e800 loss 0.001548, held back 0.001614 (pair 0.001608, 004's buckets 0.001601). md5 720def16...,
 in milestones on all three; Studio training dir and the pair run's states deleted. Joins the Linux gauntlet when
 rev02ab ends (`tmp/curve/after-rev02ab-moefull.sh`, the MoE build 60d4dc2).
+**The fundamental error (Volker 2026-11-12):** the experts were counted with factor one, so the value did not depend on
+the router's weights at all - the router learned through a straight-through factor at a function the net never
+computed; and MoE models choose in every layer. **Built: trainer 6.0.0 `--moe-mix layers` (cf3de58)** - experts in all
+three layers, 16 each: 512 -> 16, 16 -> 32, 32 -> 1; 3 x 16 logits straight from the accumulator (304 wide, own plus
+opponent value; a router layer on accumulator values was only another linear map); in each layer the two of the highest
+logits computed and mixed by their weights g1 = sigmoid(l1 - l2), g2 = 1 - g1; with `--moe-share full`. Engine build
+`-DQAPLA_NNUE_MOE_LAYERS`, format QAPLANN6. Net **q1234-02abcd-03a-moel-no16-b75** = moefull's command and data with
+`--moe-mix layers` (two changes against moefull, by Volker's decision); starts on the Studio when Volker's image/video
+jobs have been gone 10 minutes (`tmp/start-when-free-03amoel.sh`), then the Linux gauntlet with a build of cf3de58.
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
