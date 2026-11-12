@@ -144,7 +144,8 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
     pass, which is the one thing a resumed run does differently from an uninterrupted one.
     """
     torch.manual_seed(arguments.seed)
-    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr).to(device)
+    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr,
+                      moe=arguments.moe).to(device)
     optimizer = make_optimizer(model, arguments)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=arguments.lr_gamma)
     ranger = arguments.optimizer == 'ranger'
@@ -201,11 +202,15 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
         for seen in range(1, steps + 1):
             own, opponent, value, result, counts, csr = next(batches)
             loss = loss_of(model(own, opponent, csr), value, result, counts, blend_of(blend, own))
+            reported = loss.detach()
+            if arguments.moe:
+                # The balancing term trains the router; the loss printed is the loss of the values alone.
+                loss = loss + arguments.moe_balance * model.balance
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
             model.clamp_weights()
-            total += loss.detach()
+            total += reported
             if seen % arguments.report_every == 0:
                 print('  epoch %d, batch %d/%d, loss %.6f, %.0f positions per second'
                       % (epoch, seen, steps, total.item() / seen,
@@ -216,6 +221,11 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
         for_inference(True)
         line = 'epoch %d done, lr %.3g, blend %s, loss %.6f' % (
             epoch, lr, '%.2f' % blend if buckets is None else 'by bucket', total / steps)
+        if arguments.moe:
+            # The share of each expert in this epoch's choices, in per cent, expert 0 first.
+            usage = model.usage / model.usage.sum()
+            line += ', experts %s' % ' '.join('%.1f' % (100 * u) for u in usage.tolist())
+            model.usage = torch.zeros_like(model.usage)
         if validation is not None and epoch % arguments.validate_every == 0:
             line += ', held back %.6f' % measure(model, validation, arguments.batch_size, device,
                                                  arguments.blend_end if buckets is None else buckets)
@@ -262,6 +272,10 @@ def train(arguments):
         raise SystemExit('--psqt does not take --neighbours')
     if arguments.psqt and arguments.sqr:
         raise SystemExit('--psqt does not take --sqr: no net format has both')
+    if arguments.moe and (arguments.psqt or arguments.sqr or arguments.stacks != 1 or arguments.neighbours
+                          or arguments.epoch_size <= 0 or arguments.accumulator != 256 or arguments.l1 != 32):
+        raise SystemExit('--moe stands alone: no --psqt, --sqr, --stacks, --neighbours, other sizes, and only '
+                         'with --epoch-size')
     if arguments.blend_buckets is not None:
         if arguments.epoch_size <= 0:
             raise SystemExit('--blend-buckets only with --epoch-size')
@@ -277,7 +291,8 @@ def train(arguments):
     # different nets, and their losses could not be compared step by step - which is how the
     # compiled loader was checked against the python one.
     torch.manual_seed(arguments.seed)
-    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr).to(device)
+    model = HalfKaNet(stacks=arguments.stacks, psqt=arguments.psqt, sqr=arguments.sqr,
+                      moe=arguments.moe).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=arguments.learning_rate)
     batches = len(cache) // arguments.batch_size
     print('%d positions, %d batches of %d, device %s'
@@ -407,6 +422,14 @@ if __name__ == '__main__':
                         help='every output of the first dense layer activated twice, as Stockfish '
                              'does: min(x^2, 1) * 127/128 and clamp(x, 0, 1), so the second layer reads '
                              'twice as many inputs. Writes the net format QAPLANN4')
+    parser.add_argument('--moe', action='store_true',
+                        help='a mixture of experts in place of the layer stacks: 16 more accumulator values per '
+                             'perspective feed a router (32 -> 16) that picks the top 2 of 16 experts of 16 '
+                             'first-layer neurons; each expert has its own columns of the shared second layer. '
+                             'Only with --epoch-size and --stacks 1. Writes the net format QAPLANN5')
+    parser.add_argument('--moe-balance', type=float, default=1e-3,
+                        help='weight of the balancing term against the router collapsing onto few experts '
+                             '(Switch Transformer: experts x sum of choice fraction x mean share, 1 when even)')
     parser.add_argument('--neighbours', action='store_true',
                         help='with stacks: every position trains its own head and the two next to '
                              'it; the held back loss is still measured with the own head alone, as '

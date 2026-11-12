@@ -66,6 +66,9 @@ RUNS = {
                                 '--stacks', '8', '--sqr', '--workers', '2'],
     'pass-adam-8heads-neighbours-sqr': ['--epoch-size', '0', '--epochs', '2', '--stacks', '8',
                                         '--neighbours', '--sqr', '--workers', '2'],
+    # The mixture of experts (5.0.0), with the balancing term at a non-default weight.
+    'fixed-ranger-moe': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1', '--moe',
+                         '--moe-balance', '0.002', '--workers', '2'],
 }
 # On the fixture with results: the blend as one number, and one blend per bucket.
 RUNS_WDL = {

@@ -78,6 +78,28 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 5.0.0 - 2026-11-12
+
+`--moe` (Volker): a mixture of experts in place of the layer stacks. The accumulator gets 16 more values per
+perspective; a router (32 -> 16, the 16 values of both perspectives, own first, unclipped) picks the top 2 of 16
+experts of 16 first-layer neurons each (512 -> 16), so 32 neurons are computed as with the stacks. Every expert has
+its own 16 columns of the second layer (shared 256 -> 32): the two chosen experts' contributions are summed into it,
+then 32 -> 1. Forward exactly as the engine: the chosen experts count one each; the router learns through a
+straight-through factor, the chosen experts' renormalized softmax share (value one, its gradient). `--moe-balance`
+(default 1e-3) weighs the Switch Transformer balancing term (16 x sum of choice fraction x mean share); 1e-4 let
+three experts take 75 % on a test, 1e-3 spread them over 4-15 %, 1e-2 forced them even. The loss printed is that of
+the values alone; every epoch line gives each expert's share in per cent. Router weights are int16 of scale 1024
+(int8 of scale 64 flipped one choice in five), clamped to +-8. Major: a new net file format, `QAPLANN5`
+(`netfile.write_moe`). Only with `--epoch-size`, `--stacks 1`, no `--psqt`, `--sqr`, `--neighbours`, default sizes.
+- Without `--moe` identical to 4.0.0: `test_reproducible.py` against the 4.0.0 record, all twelve runs.
+- One run added (`fixed-ranger-moe`, balance 0.002), record rewritten.
+- The engine reads the format in a build with `EXTRA_DEFINES="-DQAPLA_USE_NNUE -DQAPLA_NNUE_MOE"` (accumulator 272
+  wide; a normal build refuses the net, the MoE build every other format): trainer and engine agree to the integer
+  on 300 positions of a small MoE net, vector path and plain path equal. The normal build is unchanged: wmtest
+  depth 18 with the embedded net, 207,841,327 nodes.
+- On a net of three short epochs the quantized router picked other experts than the float one in 39 of 300
+  positions (near ties of a young router); with the same choice the value differs by 5 on average, 20 at most.
+
 ## 4.0.0 - 2026-11-11
 
 `--sqr` (Volker): every output x of the first dense layer activated twice, as Stockfish does -

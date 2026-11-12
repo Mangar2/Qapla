@@ -24,6 +24,9 @@ MAGIC_PSQT = b'QAPLANN3'
 # The format with the doubled activation of the first layer (model.HalfKaNet.activate_l1): the stacked
 # one with a second layer of 2 * L1_SIZE inputs a row, the squares first. No piece-square part.
 MAGIC_SQR = b'QAPLANN4'
+# The mixture of experts (model.HalfKaNet._moe_heads): an accumulator MOE_ROUTER wider, a router, the experts' first
+# layer and a second layer read in expert blocks; no stacks. See write_moe() for the layout.
+MAGIC_MOE = b'QAPLANN5'
 
 SQUARE_COUNT = 64
 PIECE_PLANES = 11
@@ -36,6 +39,18 @@ L2_SIZE = 32
 # nnue-arch.h. The accumulator is shared.
 LAYER_STACKS = 8
 PSQT_BUCKETS = LAYER_STACKS
+# The mixture of experts: MOE_ROUTER extra accumulator values per perspective feed a router that picks MOE_TOP of
+# MOE_EXPERTS experts of MOE_EXPERT_SIZE first-layer neurons each - 2 x 16 = 32 computed, as with the stacks.
+MOE_ROUTER = 16
+MOE_EXPERTS = 16
+MOE_EXPERT_SIZE = 16
+MOE_TOP = 2
+# The router decides which experts run, and a choice flipped by rounding changes the value by far more than any
+# rounded weight: its weights are int16 of scale MOE_ROUTER_SCALE (int8 of scale QB flipped one choice in five on a
+# young net), its bias int32 of scale QA * MOE_ROUTER_SCALE. The largest logit stays far inside an int32: 32 inputs of
+# at most 8128 times weights of at most MOE_ROUTER_LIMIT * MOE_ROUTER_SCALE = 8192.
+MOE_ROUTER_SCALE = 1024
+MOE_ROUTER_LIMIT = 8.0
 
 QA = 127                 # scale of an activation, and its largest value
 QB = 64                  # scale of a weight of a dense layer
@@ -62,6 +77,12 @@ def architecture_id():
 def psqt_architecture_id():
     """The shape number of a file with the piece-square part, psqtArchitectureId()."""
     return (architecture_id() + PSQT_BUCKETS * 7919) & 0xFFFFFFFF
+
+
+def moe_architecture_id():
+    """The shape number of a mixture-of-experts file, moeArchitectureId() in nnue-arch.h."""
+    return (single_head_architecture_id() + MOE_ROUTER * 7 + MOE_EXPERTS * 7901 + MOE_EXPERT_SIZE * 3
+            + MOE_TOP * 911 + MOE_ROUTER_SCALE) & 0xFFFFFFFF
 
 
 def sqr_architecture_id():
@@ -298,4 +319,108 @@ def evaluate(network, own_features, opponent_features):
         own = sum(network.psqt_weight[f * PSQT_BUCKETS + stack] for f in own_features)
         opponent = sum(network.psqt_weight[f * PSQT_BUCKETS + stack] for f in opponent_features)
         total += _truncating_division(own - opponent, 2)
+    return _truncating_division(total * NET_VALUE_SCALE, QA * QB)
+
+
+# --- the mixture of experts ------------------------------------------------------------------------------------
+
+class MoeNetwork:
+    """A mixture-of-experts net, quantized, in the order the file holds it (write_moe)."""
+
+    __slots__ = ('feature_bias', 'feature_weight', 'router_bias', 'router_weight', 'l1_bias', 'l1_weight',
+                 'l2_bias', 'l2_weight', 'output_bias', 'output_weight')
+
+
+def _moe_members():
+    width = ACCUMULATOR_SIZE + MOE_ROUTER
+    experts = MOE_EXPERTS * MOE_EXPERT_SIZE
+    return (
+        ('feature_bias', 'h', width),
+        ('feature_weight', 'h', FEATURE_COUNT * width),
+        ('router_bias', 'i', MOE_EXPERTS),
+        ('router_weight', 'h', MOE_EXPERTS * 2 * MOE_ROUTER),
+        ('l1_bias', 'i', experts),
+        ('l1_weight', 'b', experts * L1_INPUT_SIZE),
+        ('l2_bias', 'i', L2_SIZE),
+        # expert by expert: the L2_SIZE x MOE_EXPERT_SIZE block of each, row by row
+        ('l2_weight', 'b', MOE_EXPERTS * L2_SIZE * MOE_EXPERT_SIZE),
+        ('output_bias', 'i', 1),
+        ('output_weight', 'b', L2_SIZE),
+    )
+
+
+def write_moe(path, network):
+    """MAGIC_MOE, the shape number, then the arrays of _moe_members() in their order, little endian."""
+    with open(path, 'wb') as stream:
+        stream.write(MAGIC_MOE)
+        stream.write(struct.pack('<I', moe_architecture_id()))
+        for member, code, count in _moe_members():
+            values = getattr(network, member)
+            assert len(values) == count and values.typecode == code, member
+            values.tofile(stream)
+
+
+def read_moe(path):
+    network = MoeNetwork()
+    with open(path, 'rb') as stream:
+        magic = stream.read(len(MAGIC_MOE))
+        identifier = struct.unpack('<I', stream.read(4))[0]
+        if magic != MAGIC_MOE or identifier != moe_architecture_id():
+            raise ValueError('%s is not a mixture-of-experts net of this shape' % path)
+        for member, code, count in _moe_members():
+            setattr(network, member, _read_array(stream, code, count))
+    return network
+
+
+def is_moe(path):
+    with open(path, 'rb') as stream:
+        return stream.read(len(MAGIC_MOE)) == MAGIC_MOE
+
+
+def moe_experts_of(network, own_accumulator, opponent_accumulator):
+    """The MOE_TOP experts the router picks: highest logit first, the lower index on a tie."""
+    inputs = own_accumulator[ACCUMULATOR_SIZE:] + opponent_accumulator[ACCUMULATOR_SIZE:]
+    logits = []
+    for expert in range(MOE_EXPERTS):
+        offset = expert * 2 * MOE_ROUTER
+        total = network.router_bias[expert]
+        for index in range(2 * MOE_ROUTER):
+            total += network.router_weight[offset + index] * inputs[index]
+        logits.append(total)
+    return sorted(range(MOE_EXPERTS), key=lambda e: (-logits[e], e))[:MOE_TOP]
+
+
+def evaluate_moe(network, own_features, opponent_features):
+    """The value of a position by a mixture-of-experts net, with the integer arithmetic of the engine."""
+    width = ACCUMULATOR_SIZE + MOE_ROUTER
+
+    def accumulator(features):
+        values = list(network.feature_bias)
+        for feature in features:
+            offset = feature * width
+            for index in range(width):
+                values[index] += network.feature_weight[offset + index]
+        return values
+
+    own, opponent = accumulator(own_features), accumulator(opponent_features)
+    inputs = [_clipped_relu(v) for v in own[:ACCUMULATOR_SIZE]]
+    inputs += [_clipped_relu(v) for v in opponent[:ACCUMULATOR_SIZE]]
+    sums = list(network.l2_bias)
+    for expert in moe_experts_of(network, own, opponent):
+        rows = range(expert * MOE_EXPERT_SIZE, (expert + 1) * MOE_EXPERT_SIZE)
+        hidden = []
+        for row in rows:
+            total = network.l1_bias[row]
+            offset = row * L1_INPUT_SIZE
+            for index in range(L1_INPUT_SIZE):
+                total += network.l1_weight[offset + index] * inputs[index]
+            hidden.append(_clipped_relu(total >> QB_SHIFT))
+        block = expert * L2_SIZE * MOE_EXPERT_SIZE
+        for out in range(L2_SIZE):
+            for index in range(MOE_EXPERT_SIZE):
+                sums[out] += network.l2_weight[block + out * MOE_EXPERT_SIZE + index] * hidden[index]
+    second = [_clipped_relu(v >> QB_SHIFT) for v in sums]
+    total = network.output_bias[0]
+    for index in range(L2_SIZE):
+        total += network.output_weight[index] * second[index]
     return _truncating_division(total * NET_VALUE_SCALE, QA * QB)

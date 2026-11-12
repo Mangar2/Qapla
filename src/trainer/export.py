@@ -76,7 +76,37 @@ def quantize(model):
     return network
 
 
+def quantize_moe(model):
+    """A mixture-of-experts model as netfile.write_moe() holds it."""
+    network = netfile.MoeNetwork()
+    scale = netfile.QA * netfile.QB
+
+    def values(tensor):
+        return tensor.detach().cpu().numpy()
+
+    network.feature_weight = _as_array(
+        _quantized(values(model.feature_transformer.weight)[:netfile.FEATURE_COUNT], netfile.QA, np.int16), 'h')
+    network.feature_bias = _as_array(_quantized(values(model.feature_bias), netfile.QA, np.int16), 'h')
+    network.router_weight = _as_array(
+        _quantized(values(model.router.weight), netfile.MOE_ROUTER_SCALE, np.int16), 'h')
+    network.router_bias = _as_array(
+        _quantized(values(model.router.bias), netfile.QA * netfile.MOE_ROUTER_SCALE, np.int32), 'i')
+    network.l1_weight = _as_array(_quantized(values(model.l1.weight), netfile.QB, np.int8), 'b')
+    network.l1_bias = _as_array(_quantized(values(model.l1.bias), scale, np.int32), 'i')
+    # torch keeps the second layer as [out][expert * size + j]; the file holds it expert by expert.
+    l2 = values(model.l2.weight).reshape(netfile.L2_SIZE, netfile.MOE_EXPERTS, netfile.MOE_EXPERT_SIZE)
+    network.l2_weight = _as_array(_quantized(np.ascontiguousarray(l2.transpose(1, 0, 2)), netfile.QB, np.int8), 'b')
+    network.l2_bias = _as_array(_quantized(values(model.l2.bias), scale, np.int32), 'i')
+    network.output_weight = _as_array(_quantized(values(model.output.weight), netfile.QB, np.int8), 'b')
+    network.output_bias = _as_array(_quantized(values(model.output.bias), scale, np.int32), 'i')
+    return network
+
+
 def export(model, path):
+    if getattr(model, 'moe', False):
+        netfile.write_moe(path, quantize_moe(model))
+        print('written %s' % path)
+        return
     network = quantize(model)
     # A net with one head is written in the old format, which every engine binary reads - the ones
     # a tournament runs were built before there were stacks. Only a stacked net needs the new one.
@@ -91,7 +121,8 @@ if __name__ == '__main__':
     from model import HalfKaNet
     held = torch.load(sys.argv[1], map_location='cpu', weights_only=False)
     state = held['model'] if isinstance(held, dict) and 'model' in held else held
-    trained = HalfKaNet(stacks=state['output.weight'].shape[0], psqt='psqt.weight' in state,
-                        sqr=state['l2.weight'].shape[1] != netfile.L1_SIZE)
+    moe = 'router.weight' in state
+    trained = HalfKaNet(stacks=1 if moe else state['output.weight'].shape[0], psqt='psqt.weight' in state,
+                        sqr=not moe and state['l2.weight'].shape[1] != netfile.L1_SIZE, moe=moe)
     trained.load_state_dict(state)
     export(trained, sys.argv[2])

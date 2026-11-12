@@ -36,10 +36,13 @@ class HalfKaNet(nn.Module):
     heads being allowed to part, and from nothing else.
     """
 
-    def __init__(self, stacks=1, psqt=False, sqr=False):
+    def __init__(self, stacks=1, psqt=False, sqr=False, moe=False):
         super().__init__()
         self.stacks = stacks
         self.psqt = None
+        # moe: a mixture of experts in place of the layer stacks - see _moe_heads(). Made at the end,
+        # so that a net without it draws every number from the seed as before.
+        self.moe = moe
         # sqr: every output of the first dense layer activated twice, as Stockfish does - see
         # activate_l1(). The second layer then reads twice as many inputs; nothing else changes, and
         # without it every number is drawn from the seed as before.
@@ -76,6 +79,26 @@ class HalfKaNet(nn.Module):
                                         padding_idx=netfile.FEATURE_COUNT)
             with torch.no_grad():
                 self.psqt.weight.copy_(netfile.psqt_start_values())
+        if moe:
+            # The accumulator gets MOE_ROUTER more columns; a router reads those of both perspectives
+            # and picks MOE_TOP of MOE_EXPERTS experts. Each expert is MOE_EXPERT_SIZE neurons of the
+            # first layer and its own columns of the second, which is shared by all: the two chosen
+            # experts' contributions are summed into it. The layers are replaced as a whole.
+            width = netfile.ACCUMULATOR_SIZE + netfile.MOE_ROUTER
+            self.feature_transformer = nn.EmbeddingBag(
+                netfile.FEATURE_COUNT + 1, width, mode='sum', padding_idx=netfile.FEATURE_COUNT)
+            self.feature_bias = nn.Parameter(torch.zeros(width))
+            nn.init.normal_(self.feature_transformer.weight, std=0.01)
+            with torch.no_grad():
+                self.feature_transformer.weight[netfile.FEATURE_COUNT].zero_()
+            experts = netfile.MOE_EXPERTS * netfile.MOE_EXPERT_SIZE
+            self.router = nn.Linear(2 * netfile.MOE_ROUTER, netfile.MOE_EXPERTS)
+            self.l1 = nn.Linear(netfile.L1_INPUT_SIZE, experts)
+            self.l2 = nn.Linear(experts, netfile.L2_SIZE)
+            self.output = nn.Linear(netfile.L2_SIZE, 1)
+            # What the router chose and how sure it was, for the balancing term and the log.
+            self.balance = torch.zeros(())
+            self.usage = torch.zeros(netfile.MOE_EXPERTS)
 
     def activate_l1(self, hidden):
         """The activation of the first dense layer's outputs, over the last dimension.
@@ -113,6 +136,8 @@ class HalfKaNet(nn.Module):
                                              self.feature_transformer.weight, csr)
         own = own + self.feature_bias
         opponent = opponent + self.feature_bias
+        if self.moe:
+            return self._moe_heads(own, opponent)
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
         if self.stacks == 1:
             hidden = self.activate_l1(self.l1(hidden))
@@ -129,6 +154,34 @@ class HalfKaNet(nn.Module):
         hidden = hidden.gather(1, rows.unsqueeze(2).expand(-1, 1, netfile.L2_SIZE))
         hidden = hidden.squeeze(1).clamp(0.0, 1.0)
         return self.output(hidden).gather(1, rows).squeeze(1)
+
+    def _moe_heads(self, own, opponent):
+        """The mixture of experts on the two accumulators (each ACCUMULATOR_SIZE + MOE_ROUTER wide).
+
+        The router reads the last MOE_ROUTER values of both perspectives, own first, unclipped - an
+        integer of scale QA in the engine - and picks the MOE_TOP experts of the highest logits. In the
+        forward pass the chosen experts count one each and the others nothing, exactly what the engine
+        computes; the router learns through the backward pass, where the factor is the chosen experts'
+        softmax share (straight through: value one, gradient of the share). The balancing term (Switch
+        Transformer) pushes against the choice collapsing onto a few experts.
+        """
+        size = netfile.ACCUMULATOR_SIZE
+        hidden = torch.cat((own[:, :size], opponent[:, :size]), dim=1).clamp(0.0, 1.0)
+        logits = self.router(torch.cat((own[:, size:], opponent[:, size:]), dim=1))
+        chosen = logits.topk(netfile.MOE_TOP, dim=1).indices
+        share = torch.softmax(logits, dim=1)
+        picked = share.gather(1, chosen)
+        picked = picked / picked.sum(dim=1, keepdim=True)
+        gate = torch.zeros_like(logits).scatter(1, chosen, picked - picked.detach() + 1.0)
+        hidden = self.l1(hidden).clamp(0.0, 1.0).view(-1, netfile.MOE_EXPERTS, netfile.MOE_EXPERT_SIZE)
+        hidden = (hidden * gate.unsqueeze(2)).view(-1, netfile.MOE_EXPERTS * netfile.MOE_EXPERT_SIZE)
+        hidden = self.l2(hidden).clamp(0.0, 1.0)
+        if self.training:
+            counts = torch.zeros_like(logits).scatter(1, chosen, 1.0).sum(dim=0)
+            fraction = counts / counts.sum()
+            self.balance = netfile.MOE_EXPERTS * (fraction.detach() * share.mean(dim=0)).sum()
+            self.usage = self.usage.to(counts.device) + counts.detach()
+        return self.output(hidden).squeeze(1)
 
     def all_heads(self, own_features, opponent_features):
         """The output of every head for every position, and the stack each position belongs to.
@@ -156,6 +209,8 @@ class HalfKaNet(nn.Module):
         limit = netfile.MAX_DENSE_WEIGHT
         for layer in (self.l1, self.l2, self.output):
             layer.weight.clamp_(-limit, limit)
+        if self.moe:
+            self.router.weight.clamp_(-netfile.MOE_ROUTER_LIMIT, netfile.MOE_ROUTER_LIMIT)
         # An accumulator of int16 could take far more, but two keeps it away from
         # its limit even with 31 pieces on the board.
         self.feature_transformer.weight.clamp_(-2.0, 2.0)

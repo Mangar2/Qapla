@@ -75,6 +75,29 @@ namespace {
 			&& readArray(stream, head.outputWeight);
 	}
 
+	/** The layers of a mixture-of-experts net, after the feature weights, see netfile.write_moe(). */
+	bool readMoe(std::istream& stream, QaplaNnue::MoeLayers& moe) {
+		return readArray(stream, moe.routerBias)
+			&& readArray(stream, moe.routerWeight)
+			&& readArray(stream, moe.l1Bias)
+			&& readArray(stream, moe.l1Weight)
+			&& readArray(stream, moe.l2Bias)
+			&& readArray(stream, moe.l2Weight)
+			&& bool(stream.read(reinterpret_cast<char*>(&moe.outputBias), sizeof(int32_t)))
+			&& readArray(stream, moe.outputWeight);
+	}
+
+	void writeMoe(std::ostream& stream, const QaplaNnue::MoeLayers& moe) {
+		writeArray(stream, moe.routerBias);
+		writeArray(stream, moe.routerWeight);
+		writeArray(stream, moe.l1Bias);
+		writeArray(stream, moe.l1Weight);
+		writeArray(stream, moe.l2Bias);
+		writeArray(stream, moe.l2Weight);
+		stream.write(reinterpret_cast<const char*>(&moe.outputBias), sizeof(int32_t));
+		writeArray(stream, moe.outputWeight);
+	}
+
 	void writeHead(std::ostream& stream, const QaplaNnue::Head& head, bool sqr) {
 		writeArray(stream, head.l1Bias);
 		writeArray(stream, head.l1Weight);
@@ -108,6 +131,26 @@ std::unique_ptr<Network> QaplaNnue::readNetwork(std::istream& stream, const std:
 	const std::string found(magic, sizeof(magic));
 	const bool psqt = found == std::string(NNUE_MAGIC_PSQT, sizeof(NNUE_MAGIC_PSQT));
 	const bool sqr = found == std::string(NNUE_MAGIC_SQR, sizeof(NNUE_MAGIC_SQR));
+	const bool moe = found == std::string(NNUE_MAGIC_MOE, sizeof(NNUE_MAGIC_MOE));
+	if (moe) {
+		if (MOE_ROUTER != 16) {
+			std::cout << "Error (a mixture-of-experts net needs a build with QAPLA_NNUE_MOE): " << path << std::endl;
+			return nullptr;
+		}
+		if (!stream || identifier != moeArchitectureId()) {
+			std::cout << "Error (net of another shape): " << path << ", file says " << identifier
+				<< ", this build wants " << moeArchitectureId() << std::endl;
+			return nullptr;
+		}
+		auto network = std::make_unique<Network>();
+		network->isMoe = true;
+		if (!readArray(stream, network->featureBias) || !readArray(stream, network->featureWeight)
+			|| !readMoe(stream, network->moe)) {
+			std::cout << "Error (net file is too short): " << path << std::endl;
+			return nullptr;
+		}
+		return network;
+	}
 	const bool stacked = psqt || sqr || found == std::string(NNUE_MAGIC, sizeof(NNUE_MAGIC));
 	const bool single = found == std::string(NNUE_MAGIC_SINGLE_HEAD, sizeof(NNUE_MAGIC_SINGLE_HEAD));
 	if (!stream || (!stacked && !single)) {
@@ -154,6 +197,15 @@ bool QaplaNnue::writeNetwork(const std::string& path, const Network& network) {
 	if (!stream) {
 		std::cout << "Error (cannot write net): " << path << std::endl;
 		return false;
+	}
+	if (network.isMoe) {
+		const uint32_t identifier = moeArchitectureId();
+		stream.write(NNUE_MAGIC_MOE, sizeof(NNUE_MAGIC_MOE));
+		stream.write(reinterpret_cast<const char*>(&identifier), sizeof(identifier));
+		writeArray(stream, network.featureBias);
+		writeArray(stream, network.featureWeight);
+		writeMoe(stream, network.moe);
+		return bool(stream);
 	}
 	if (network.hasPsqt && network.hasSqr) {
 		std::cout << "Error (no net format has both psqt and sqr): " << path << std::endl;

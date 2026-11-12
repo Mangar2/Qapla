@@ -68,6 +68,16 @@ namespace QaplaNnue {
 #ifndef QAPLA_NNUE_L1
 #define QAPLA_NNUE_L1 32
 #endif
+	/*
+	 * A build for nets of the mixture of experts (format QAPLANN5): EXTRA_DEFINES="-DQAPLA_USE_NNUE
+	 * -DQAPLA_NNUE_MOE". Its accumulator is MOE_ROUTER values wider, so it reads those nets only - and
+	 * a normal build refuses them; the shape number tells the two apart.
+	 */
+#ifdef QAPLA_NNUE_MOE
+#define QAPLA_NNUE_ROUTER 16
+#else
+#define QAPLA_NNUE_ROUTER 0
+#endif
 
 	enum architecture : uint32_t {
 		SQUARE_COUNT = 64,
@@ -78,9 +88,13 @@ namespace QaplaNnue {
 		/** Pieces on a board, and with it the largest number of active features. */
 		MAX_ACTIVE_FEATURES = 32,
 
-		ACCUMULATOR_SIZE = QAPLA_NNUE_ACCUMULATOR,
+		/** The accumulator values of a perspective that the first dense layer reads. */
+		TRANSFORMED_SIZE = QAPLA_NNUE_ACCUMULATOR,
+		/** The values behind them that only the router of a mixture of experts reads; none otherwise. */
+		MOE_ROUTER = QAPLA_NNUE_ROUTER,
+		ACCUMULATOR_SIZE = TRANSFORMED_SIZE + MOE_ROUTER,
 		/** The first dense layer sees both perspectives. */
-		L1_INPUT_SIZE = 2 * ACCUMULATOR_SIZE,
+		L1_INPUT_SIZE = 2 * TRANSFORMED_SIZE,
 		L1_SIZE = QAPLA_NNUE_L1,
 		L2_SIZE = 32,
 		/**
@@ -103,7 +117,17 @@ namespace QaplaNnue {
 		 * zero, which the clipped relu turns into nothing, still tells the next layer how far below
 		 * zero it lies.
 		 */
-		L2_INPUT_SIZE_SQR = 2 * L1_SIZE
+		L2_INPUT_SIZE_SQR = 2 * L1_SIZE,
+		/**
+		 * The mixture of experts: the router (2 x MOE_ROUTER -> MOE_EXPERTS) picks MOE_TOP experts, each
+		 * MOE_EXPERT_SIZE neurons of the first layer with its own columns of the second, which sums the
+		 * chosen ones - 2 x 16 neurons computed, as many as with the stacks. No stacks, no psqt.
+		 */
+		MOE_EXPERTS = 16,
+		MOE_EXPERT_SIZE = 16,
+		MOE_TOP = 2,
+		/** The router's weights are int16 of this scale, its bias int32 of QA times it. */
+		MOE_ROUTER_SCALE = 1024
 	};
 
 	/**
@@ -155,6 +179,21 @@ namespace QaplaNnue {
 		std::array<int8_t, L2_SIZE> outputWeight{};
 	};
 
+	/** The layers of a mixture-of-experts net, in the order of its file. */
+	struct alignas(NNUE_ALIGNMENT) MoeLayers {
+		std::array<int32_t, MOE_EXPERTS> routerBias{};
+		/** Expert after expert, the 2 x 16 router values of both perspectives each (sized for a build with them). */
+		std::array<int16_t, size_t(MOE_EXPERTS) * 32> routerWeight{};
+		std::array<int32_t, size_t(MOE_EXPERTS)* MOE_EXPERT_SIZE> l1Bias{};
+		/** Expert after expert, MOE_EXPERT_SIZE rows of L1_INPUT_SIZE each. */
+		std::array<int8_t, size_t(MOE_EXPERTS)* MOE_EXPERT_SIZE* size_t(L1_INPUT_SIZE)> l1Weight{};
+		std::array<int32_t, L2_SIZE> l2Bias{};
+		/** Expert after expert, L2_SIZE rows of MOE_EXPERT_SIZE each. */
+		std::array<int8_t, size_t(MOE_EXPERTS)* L2_SIZE* MOE_EXPERT_SIZE> l2Weight{};
+		int32_t outputBias = 0;
+		std::array<int8_t, L2_SIZE> outputWeight{};
+	};
+
 	struct alignas(NNUE_ALIGNMENT) Network {
 		std::array<int16_t, ACCUMULATOR_SIZE> featureBias{};
 		std::array<int16_t, size_t(FEATURE_COUNT)* size_t(ACCUMULATOR_SIZE)> featureWeight{};
@@ -166,6 +205,9 @@ namespace QaplaNnue {
 		bool hasPsqt = false;
 		/** A net of the fourth format: the first layer's outputs activated twice, see L2_INPUT_SIZE_SQR. */
 		bool hasSqr = false;
+		/** A net of the fifth format, a mixture of experts: moe holds its layers, heads stay unused. */
+		bool isMoe = false;
+		MoeLayers moe{};
 
 		std::array<Head, LAYER_STACKS> heads{};
 	};
@@ -198,6 +240,9 @@ namespace QaplaNnue {
 	 */
 	inline constexpr char NNUE_MAGIC_SQR[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '4' };
 
+	/** The mixture of experts, read by a build with QAPLA_NNUE_MOE only. */
+	inline constexpr char NNUE_MAGIC_MOE[8] = { 'Q', 'A', 'P', 'L', 'A', 'N', 'N', '5' };
+
 	constexpr uint32_t singleHeadArchitectureId() {
 		return uint32_t(FEATURE_COUNT) * 31u + uint32_t(ACCUMULATOR_SIZE) * 7u
 			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u
@@ -210,6 +255,14 @@ namespace QaplaNnue {
 
 	constexpr uint32_t psqtArchitectureId() {
 		return architectureId() + uint32_t(PSQT_BUCKETS) * 7919u;
+	}
+
+	/** As netfile.moe_architecture_id(): the single head number of the transformed size, plus the experts. */
+	constexpr uint32_t moeArchitectureId() {
+		return uint32_t(FEATURE_COUNT) * 31u + uint32_t(TRANSFORMED_SIZE) * 7u
+			+ uint32_t(L1_SIZE) * 3u + uint32_t(L2_SIZE) + uint32_t(QA) * 131u
+			+ uint32_t(QB) * 17u + uint32_t(MOE_ROUTER) * 7u + uint32_t(MOE_EXPERTS) * 7901u
+			+ uint32_t(MOE_EXPERT_SIZE) * 3u + uint32_t(MOE_TOP) * 911u + uint32_t(MOE_ROUTER_SCALE);
 	}
 
 	constexpr uint32_t sqrArchitectureId() {

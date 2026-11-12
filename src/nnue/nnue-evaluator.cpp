@@ -20,6 +20,8 @@
  */
 
 #include <algorithm>
+#include <climits>
+#include <cstdint>
 #include <cstring>
 
 #include "nnue-evaluator.h"
@@ -138,6 +140,85 @@ namespace {
 		return value_t(total * int64_t(NET_VALUE_SCALE) / (int64_t(QA) * int64_t(QB)));
 	}
 
+	/**
+	 * The MOE_TOP experts the router of a mixture-of-experts net picks: the highest logits, the lower
+	 * index on a tie, as netfile.moe_experts_of(). The router reads the MOE_ROUTER values behind the
+	 * transformed ones, own perspective first, unclipped.
+	 */
+	inline void chooseExperts(const MoeLayers& moe, const int16_t* own, const int16_t* opponent,
+		uint32_t experts[MOE_TOP]) {
+		static_assert(MOE_TOP == 2, "the choice below keeps the best two");
+		int64_t best[2] = { INT64_MIN, INT64_MIN };
+		experts[0] = experts[1] = 0;
+		for (uint32_t expert = 0; expert < MOE_EXPERTS; expert++) {
+			const int16_t* weight = moe.routerWeight.data() + size_t(expert) * 2 * MOE_ROUTER;
+			int64_t logit = moe.routerBias[expert];
+			for (uint32_t index = 0; index < MOE_ROUTER; index++) {
+				logit += int64_t(weight[index]) * own[TRANSFORMED_SIZE + index]
+					+ int64_t(weight[MOE_ROUTER + index]) * opponent[TRANSFORMED_SIZE + index];
+			}
+			if (logit > best[0]) {
+				best[1] = best[0]; experts[1] = experts[0];
+				best[0] = logit; experts[0] = expert;
+			}
+			else if (logit > best[1]) {
+				best[1] = logit; experts[1] = expert;
+			}
+		}
+	}
+
+	/**
+	 * A mixture-of-experts net: the two chosen experts' neurons of the first layer, their columns of
+	 * the second summed with its bias, then the output. VECTOR selects the dot products of the
+	 * processor; the plain path is the reference for the test of the other.
+	 */
+	template <bool VECTOR>
+	value_t forwardMoe(const Network& network, const int16_t* own, const int16_t* opponent) {
+		const MoeLayers& moe = network.moe;
+		alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
+		for (uint32_t index = 0; index < TRANSFORMED_SIZE; index++) {
+			input[index] = clippedRelu(own[index]);
+			input[index + TRANSFORMED_SIZE] = clippedRelu(opponent[index]);
+		}
+		uint32_t experts[MOE_TOP];
+		chooseExperts(moe, own, opponent, experts);
+
+		alignas(NNUE_ALIGNMENT) int8_t hidden[MOE_TOP * MOE_EXPERT_SIZE];
+		alignas(NNUE_ALIGNMENT) int32_t sums[L2_SIZE];
+		for (uint32_t out = 0; out < L2_SIZE; out++) sums[out] = moe.l2Bias[out];
+		for (uint32_t chosen = 0; chosen < MOE_TOP; chosen++) {
+			const uint32_t expert = experts[chosen];
+			int8_t* expertHidden = hidden + chosen * MOE_EXPERT_SIZE;
+			const int8_t* l1 = moe.l1Weight.data() + size_t(expert) * MOE_EXPERT_SIZE * L1_INPUT_SIZE;
+			const int32_t* l1Bias = moe.l1Bias.data() + size_t(expert) * MOE_EXPERT_SIZE;
+			const int8_t* l2 = moe.l2Weight.data() + size_t(expert) * L2_SIZE * MOE_EXPERT_SIZE;
+			if (VECTOR) {
+				affineRelu<L1_INPUT_SIZE, MOE_EXPERT_SIZE>(input, l1, l1Bias, expertHidden);
+				for (uint32_t out = 0; out < L2_SIZE; out += 4) {
+					int32_t four[4];
+					dotProduct4(l2 + size_t(out) * MOE_EXPERT_SIZE, MOE_EXPERT_SIZE, expertHidden,
+						MOE_EXPERT_SIZE, four);
+					for (uint32_t row = 0; row < 4; row++) sums[out + row] += four[row];
+				}
+			}
+			else {
+				affineReluPlain<L1_INPUT_SIZE, MOE_EXPERT_SIZE>(input, l1, l1Bias, expertHidden);
+				for (uint32_t out = 0; out < L2_SIZE; out++) {
+					for (uint32_t index = 0; index < MOE_EXPERT_SIZE; index++) {
+						sums[out] += int32_t(l2[out * MOE_EXPERT_SIZE + index]) * int32_t(expertHidden[index]);
+					}
+				}
+			}
+		}
+		alignas(NNUE_ALIGNMENT) int8_t second[L2_SIZE];
+		for (uint32_t out = 0; out < L2_SIZE; out++) second[out] = clippedRelu(sums[out] >> QB_SHIFT);
+		int32_t output = moe.outputBias;
+		for (uint32_t index = 0; index < L2_SIZE; index++) {
+			output += int32_t(moe.outputWeight[index]) * int32_t(second[index]);
+		}
+		return toEngineValue(output);
+	}
+
 	inline void addPsqt(const Network& network, int32_t* psqt, uint32_t feature) {
 		const int32_t* weight = network.psqtWeight.data() + size_t(feature) * PSQT_BUCKETS;
 		for (uint32_t bucket = 0; bucket < PSQT_BUCKETS; bucket++) psqt[bucket] += weight[bucket];
@@ -190,10 +271,11 @@ template void QaplaNnue::refreshAccumulator<QaplaBasics::BLACK>(const Network&, 
 
 value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int16_t* opponent,
 	const int32_t* ownPsqt, const int32_t* opponentPsqt, uint32_t stack) {
+	if (network.isMoe) return forwardMoe<true>(network, own, opponent);
 	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
-	clippedReluBlock(own, input, ACCUMULATOR_SIZE);
-	clippedReluBlock(opponent, input + ACCUMULATOR_SIZE, ACCUMULATOR_SIZE);
+	clippedReluBlock(own, input, TRANSFORMED_SIZE);
+	clippedReluBlock(opponent, input + TRANSFORMED_SIZE, TRANSFORMED_SIZE);
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L2_INPUT_SIZE_SQR];
 	alignas(NNUE_ALIGNMENT) int8_t hidden2[L2_SIZE];
@@ -213,11 +295,12 @@ value_t QaplaNnue::forward(const Network& network, const int16_t* own, const int
 
 value_t QaplaNnue::forwardReference(const Network& network, const int16_t* own,
 	const int16_t* opponent, const int32_t* ownPsqt, const int32_t* opponentPsqt, uint32_t stack) {
+	if (network.isMoe) return forwardMoe<false>(network, own, opponent);
 	const Head& head = network.heads[stack];
 	alignas(NNUE_ALIGNMENT) int8_t input[L1_INPUT_SIZE];
-	for (uint32_t index = 0; index < ACCUMULATOR_SIZE; index++) {
+	for (uint32_t index = 0; index < TRANSFORMED_SIZE; index++) {
 		input[index] = clippedRelu(own[index]);
-		input[index + ACCUMULATOR_SIZE] = clippedRelu(opponent[index]);
+		input[index + TRANSFORMED_SIZE] = clippedRelu(opponent[index]);
 	}
 
 	alignas(NNUE_ALIGNMENT) int8_t hidden1[L2_INPUT_SIZE_SQR];

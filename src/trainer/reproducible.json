@@ -37,6 +37,10 @@
       "c1b5e2cac3a8f06154c5a8468451e808",
       "dfebac869baf6b6ebcdd637ceca1a23e"
     ],
+    "fixed-ranger-moe": [
+      "62f453f0d4b248f5dba05dffc83384fc",
+      "0faef34f1fdbdae2f68a1bc5190d574f"
+    ],
     "fixed-ranger-resumed": [
       "a413845ab94927625e7807eb4bf9443c",
       "e7005248f863b49c12641e6d44677a13"
@@ -51,5 +55,5 @@
     ]
   },
   "fixture_wdl": "4397def0b1bdf99906bde603e5341f84",
-  "version": "4.0.0"
+  "version": "5.0.0"
 }
