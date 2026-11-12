@@ -191,6 +191,11 @@ two logits are equal and opposite, p1 p2 (contribution1 - contribution2): only t
 trained. Two chosen experts that are both wrong in the same way get no gradient at all, and no third one moves up.
 **Next factor:** the share from the full softmax over all 16 (Switch Transformer) - a harmful chosen expert loses
 share against all others, its logit falls until another overtakes it. One line in the trainer, the engine unchanged.
+**Built (Volker 2026-11-12: "baue ein bestrafungsverfahren das funktioniert" - and check during the training that the
+choice changes clearly in the first states and then converges):** trainer 5.1.0 `--moe-share full` (af9652a; the
+default `pair` identical to 5.0.0); every MoE epoch line ends with `switched x %` on 16,384 fixed held back
+positions. Net q1234-02abcd-03a-moefull-no16-b75 = q1234-02abcd-03a-moe-no16-b75 with `--moe-share full`, the one
+factor; queued on the Studio (`tmp/book100m-d9/after-moe-moefull.sh`) to start when the pair run ends (~11:50).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
