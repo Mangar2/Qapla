@@ -167,8 +167,8 @@ value_t Quiescence::search(bool isPvNode,
 		// move is not tried first - it never was: the old staged selection started behind the
 		// pv stage here. Trying it first changes the search and needs an SPRT of its own.
 		MoveProvider moveProvider;
-		moveProvider.computeEvades(position, lastMove);
-		moveProvider.weightCaptures(position);
+		moveProvider.computeEvades(position);
+		moveProvider.weightCaptures(position, lastMove);
 		bool goodCapturesLeft = true;
 		Move move;
 

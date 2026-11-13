@@ -45,7 +45,7 @@ namespace QaplaSearch {
 
 		void clear() {
 			for (uint32_t ply = 0; ply < _stack.size(); ply++) {
-				_stack[ply].clearMoveProvider();
+				_stack[ply].clearMoveOrdering();
 			}
 		}
 

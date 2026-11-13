@@ -237,6 +237,13 @@ namespace QaplaSearch {
 		void computeMoves(MoveGenerator& position, SearchNode& node);
 
 		/**
+		 * Selects the next move of the node, running through the stages of MoveType in
+		 * enum order, and counts it as tried
+		 * @returns an empty move when all moves are selected
+		 */
+		Move selectNextMove(MoveGenerator& position, SearchNode& node);
+
+		/**
 		 * Asks the tablebases and cuts the node if the answer is usable. Must be called
 		 * after the moves have been generated - the move list decides whether the stored
 		 * entry is exact.

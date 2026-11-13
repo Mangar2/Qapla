@@ -498,7 +498,7 @@ RootMove& RootMoves::findMove(Move move) {
 void RootMoves::setMoves(MoveGenerator& position, const std::vector<Move>& searchMoves, ButterflyBoard& butterflyBoard) {
 	MoveProvider moveProvider;
 	position.computeAttackMasksForBothColors();
-	moveProvider.computeMoves(position, butterflyBoard, Move::EMPTY_MOVE, Move::EMPTY_MOVE);
+	moveProvider.computeMoves(position);
 	_moves.clear();
 	auto addMove = [&](Move move) {
 		if (!searchMoves.empty() && std::find(searchMoves.begin(), searchMoves.end(), move) == searchMoves.end()) {
@@ -510,12 +510,12 @@ void RootMoves::setMoves(MoveGenerator& position, const std::vector<Move>& searc
 	};
 	// Good captures by weight, then the losing captures and the silent moves, the first of
 	// them sorted by the history
-	moveProvider.weightCaptures(position);
+	moveProvider.weightCaptures(position, Move::EMPTY_MOVE);
 	Move move;
 	while (!(move = moveProvider.selectGoodCapture(position)).isEmpty()) {
 		addMove(move);
 	}
-	moveProvider.sortSilentMoves();
+	moveProvider.sortSilentMoves(butterflyBoard);
 	while (!(move = moveProvider.selectRemainingMove()).isEmpty()) {
 		addMove(move);
 	}

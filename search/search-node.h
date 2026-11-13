@@ -75,6 +75,31 @@ namespace QaplaSearch {
 		bool pvNode = false;
 	};
 
+	/**
+	 * The order of move selection is defined by the MoveType enum, the stages are run
+	 * through in enum order by Search::selectNextMove. The stage is state of the node,
+	 * the move list and its tools are the MoveProvider.
+	 *
+	 * Two kinds of stages exist. A selecting stage returns one move per call and stays
+	 * active until it runs out of moves. A preparing stage returns no move at all, it
+	 * only sets weights and immediately falls through to the next stage.
+	 */
+	enum class MoveType {
+		PV, 							// Selects the PV move, else the tt move
+		WEIGHT_CAPTURES, 				// Prepares: weights every capture. Nothing is sorted, the order
+										// emerges from searching the maximum on every single selection
+		GOOD_CAPTURES, 					// Selects the captures that SEE does not rate as loosing, highest
+										// weight first. Weight is the value of the captured piece plus the
+										// recapture bonus, the capturing piece does not take part.
+										// Loosing captures are dropped here and reappear in REMAINING_MOVES
+		KILLER1, KILLER2, 				// Selects the killers, thus only after the good captures are used up
+		SORT_MOVES, 					// Prepares: weights the silent moves by butterfly value and sorts
+										// the first few of them
+		REMAINING_MOVES,				// Selects everything still left in list order: first the loosing
+										// captures dropped by GOOD_CAPTURES, unsorted, then the silent moves
+	};
+
+
 	struct SearchNode {
 
 		enum class SearchFinding {
@@ -91,12 +116,16 @@ namespace QaplaSearch {
 		/**
 		 * Adds a move to the primary variant
 		 */
-		void setPVMove(Move pvMove) {
-			moveProvider.setPVMove(pvMove);
+		void setPVMove(Move move) {
+			pvMove = move;
 		}
 
-		void clearMoveProvider() {
-			moveProvider.clear();
+		/**
+		 * Clears what the move ordering keeps from search to search: killers and pv move
+		 */
+		void clearMoveOrdering() {
+			killerMove.clear();
+			pvMove.setEmpty();
 			//moveProvider = MoveProvider();
 		}
 
@@ -132,7 +161,6 @@ namespace QaplaSearch {
 			_nodeType = childNodeType(parentNode._nodeType, isPVNode);
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
-			moveProvider.init();
 		}
 
 		/**
@@ -193,7 +221,6 @@ namespace QaplaSearch {
 			sideToMoveIsInCheck = position.isInCheck();
 			eval = adjustedEval = sideToMoveIsInCheck ? NO_VALUE : Eval::eval(position, pawnTT); 
 			isImproving = false;
-			moveProvider.init();
 		}
 
 		/**
@@ -502,15 +529,6 @@ namespace QaplaSearch {
 			// _searchState = SearchFinding::SE;
 		}
 
-		/**
-		 * Selects the next move to try
-		 */
-		inline Move selectNextMove(MoveGenerator& position) {
-			Move result = moveProvider.selectNextMove(position);
-			movesTried++;
-			return result;
-		}
-
 
 		/**
 		 * applies the search result to the status
@@ -564,14 +582,14 @@ namespace QaplaSearch {
 		}
 
 		Move getMoveFromPVMovesStore(ply_t ply) const { return pv.getMove(ply); }
-		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
+		const KillerMove& getKillerMove() const { return killerMove; }
 
 		Move getTTMove() const { return ttMove; }
 		bool isLastMove() const { return moveProvider.isLastMove(); }
 		void setTTMove(Move move) { ttMove = move; }
 
 		/** The move from the previous iteration, if this node is on the former primary variant */
-		bool hasPVMove() const { return moveProvider.hasPVMove(); }
+		bool hasPVMove() const { return !pvMove.isEmpty(); }
 
 		/**
 		 * Amount of captures, en passant captures and promotions in the generated
@@ -689,6 +707,11 @@ namespace QaplaSearch {
 		value_t ttValue;
 		ply_t ttDepth;
 		Move ttMove;
+		// Move ordering state, see MoveType and Search::selectNextMove
+		MoveType selectStage = MoveType::WEIGHT_CAPTURES;
+		// The move of the previous iteration's pv, tried first and then cleared
+		Move pvMove;
+		KillerMove killerMove;
 
 		Cutoff cutoff;
 		// ---- Split point, see Search::moveLoop. The mutex guards move list, window and best
