@@ -98,7 +98,7 @@ void Search::computeMoves(MoveGenerator& position, SearchNode& node) {
 	node.bestValue = node.moveProvider.checkForGameEnd(position, node.ply);
 }
 
-Move Search::selectNextMove(MoveGenerator& position, SearchNode& node) {
+Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, SearchNode& node) {
 	node.movesTried++;
 	MoveProvider& provider = node.moveProvider;
 	Move move;
@@ -121,9 +121,16 @@ Move Search::selectNextMove(MoveGenerator& position, SearchNode& node) {
 		node.selectStage = MoveType::KILLER1;
 		[[fallthrough]];
 	case MoveType::KILLER1:
-		node.selectStage = MoveType::KILLER2;
+		node.selectStage = MoveType::FOLLOW_UP_MOVE;
 		move = provider.selectProposedMove(node.killerMove[0]);
 		if (!move.isEmpty()) return move;
+		[[fallthrough]];
+	case MoveType::FOLLOW_UP_MOVE:
+		node.selectStage = MoveType::KILLER2;
+		if constexpr (SearchConfig::USE_FOLLOW_UP_MOVE) {
+			move = provider.selectProposedMove(_continuationHistory->getFollowUpMove(stack, node.ply));
+			if (!move.isEmpty()) return move;
+		}
 		[[fallthrough]];
 	case MoveType::KILLER2:
 		node.selectStage = MoveType::SORT_MOVES;
@@ -356,7 +363,7 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, va
 	node.probeTT(false, alpha, beta, depth, ply);
 	computeMoves(position, node);
 	Move curMove;
-	while (!(curMove = selectNextMove(position, node)).isEmpty()) {
+	while (!(curMove = selectNextMove(position, stack, node)).isEmpty()) {
 
 		childNode.doMove(position, curMove);
 		const auto result = -negaMax<SearchRegion::INNER>(position, stack, -node.alpha - 1, -node.alpha, depth - 1, ply + 1);
@@ -467,7 +474,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 
 	computeMoves(position, node);
 	Move curMove;
-	while (!(curMove = selectNextMove(position, node)).isEmpty()) {
+	while (!(curMove = selectNextMove(position, stack, node)).isEmpty()) {
 		if (curMove == ttMove) continue;
 
 		childNode.doMove(position, curMove);
@@ -635,6 +642,13 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 			node.killerMove.setKiller(node.bestMove);
 			_butterflyBoard->newBestMove(node.bestMove, depth,
 				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
+			// Quiet moves only: a capture would only take the place of a quiet answer, the
+			// capture stages order captures
+			if constexpr (SearchConfig::USE_FOLLOW_UP_MOVE) {
+				if (!node.bestMove.isCaptureOrPromote()) {
+					_continuationHistory->setMove(stack, ply, node.bestMove);
+				}
+			}
 		}
 	}
 	// Inform the user about advances in search
@@ -664,7 +678,7 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 			if constexpr (SPLIT) {
 				if (splitNode.isFailHigh()) break;
 			}
-			curMove = selectNextMove(position, splitNode);
+			curMove = selectNextMove(position, stack, splitNode);
 			if (curMove.isEmpty()) break;
 			if constexpr (SPLIT) {
 				node.alpha = splitNode.alpha;

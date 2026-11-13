@@ -120,6 +120,18 @@ namespace QaplaSearch {
 			}
 		}
 
+		/**
+		 * @returns the follow-up move of the node at ply, an empty move if there is none
+		 */
+		QaplaBasics::Move getFollowUpMove(const SearchStack& stack, ply_t ply) const {
+			if (ply < 1) {
+				return QaplaBasics::Move();
+			}
+			const QaplaBasics::Move ownPreviousMove = stack[ply - 1].previousMove;
+			return MoveKeyedTable<QaplaBasics::Move>::isKey(ownPreviousMove)
+				? _followUpMove.get(ownPreviousMove) : QaplaBasics::Move();
+		}
+
 	private:
 		FollowUpMove _followUpMove;
 	};

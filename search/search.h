@@ -241,7 +241,7 @@ namespace QaplaSearch {
 		 * enum order, and counts it as tried
 		 * @returns an empty move when all moves are selected
 		 */
-		Move selectNextMove(MoveGenerator& position, SearchNode& node);
+		Move selectNextMove(MoveGenerator& position, const SearchStack& stack, SearchNode& node);
 
 		/**
 		 * Asks the tablebases and cuts the node if the answer is usable. Must be called
