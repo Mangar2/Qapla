@@ -876,12 +876,21 @@ per leaf with swapped colours** (qet `repeat=2`); the 536,463 games 9 against 9 
   Paused 2026-11-11 22:30 at 4,027,163 games (Volker: until further notice); resumes with `sh tmp/book100m-d9/run-03b.sh`
   from its state.
   Resumed 2026-11-12 02:19 on Volker's go, from the state, the game numbers going on where they stopped.
+  Done 2026-11-13 04:43 (exit 0): 4,509,114 games, 96 of them exact duplicates and 2 games played anew after the
+  resumes; without the duplicates 4,509,018 games (`tmp/p03b/p03-q2.pgn`), converted on the Studio to
+  `book100m-d9-p03q2-wdl.gam`, the book file `book100m-d9-bookonce-wdl-k4-q1234-02abcd-03ab.gam` (03a and 03b).
 - q3 (Studio, since 2026-11-05 05:53, Volker: "das Spike-Experiment funktioniert"): leaves 4,507,503-6,760,397,
   4,505,790 games, 12 at a time, `part-03c.pgn`, `play-03c.ini`, `run-03c.sh`; the first games checked to start at
   leaf 4,507,503 with both colours.
   Paused 2026-11-06 09:19 at 1,267,983 games (Volker: the Studio relabels 03a first); resumes with
   `sh tmp/book100m-d9/run-03c.sh` from its state (qet 3bc23c1 in build/release, copy in new-versions/qet-3bc23c1-studio).
   Resumed 2026-11-12 05:26 from its state (1,267,983 games), the Studio's CPUs being free again.
+  Split 2026-11-13 04:52: the M4 (free after 03b) plays its last 342,895 leaves - 03c leaves 1,910,000-2,252,894 =
+  book openings 6,417,504-6,760,398 (1-based, as `start=` and the run log's "opening") - into `part-03c-m4.pgn`
+  (`play-03c-m4.ini`, `run-03c-m4.sh`, 685,790 games); `tmp/book100m-d9/stop-03c-at-m4.sh` on the Studio ends its qet 3
+  minutes after it starts opening 6,417,504. Numbering checked: start=5507504 on the M4 plays the opening of the Studio's
+  games 2,000,226/227. The Studio's file holds ~110 duplicate games from its pause; both files are deduplicated at the
+  merge. Expected end of both about 14.11. 16:00 (the Studio alone would have needed until 15.11. ~07:30).
 - **03a relabelled by Qapla HCE** (Volker 2026-11-06: do the gains of the Spike quarter come from Spike's values or from
   the games?): the 4,505,978 games of 03a, every position after the book searched again by `Qapla-hce-53f972f-studio`,
   depth 9, reverse, 12 engines - qet 291af9d `--analysis ... book=skip` leaves the book moves unsearched and without
