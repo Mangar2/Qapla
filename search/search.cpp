@@ -92,6 +92,11 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 	return false;
 }
 
+void Search::computeMoves(MoveGenerator& position, SearchNode& node) {
+	node.moveProvider.computeMoves(position, *_butterflyBoard, node.previousMove, node.ttMove);
+	node.bestValue = node.moveProvider.checkForGameEnd(position, node.ply);
+}
+
 /**
  * Asks the tablebases and cuts the node if the answer is usable.
  *
@@ -306,7 +311,7 @@ value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, va
 	node.setFromParentNode(position, stack[ply - 1], alpha, beta, depth, false);
 	// Must be after setFromParentNode
 	node.probeTT(false, alpha, beta, depth, ply);
-	node.computeMoves(position, *_butterflyBoard);
+	computeMoves(position, node);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 
@@ -417,7 +422,7 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// basis to drop the pv move without having searched it
 	constexpr bool doMultiCut = SearchConfig::DO_MULTI_CUT && !IS_PV;
 
-	node.computeMoves(position, *_butterflyBoard);
+	computeMoves(position, node);
 	Move curMove;
 	while (!(curMove = node.selectNextMove(position)).isEmpty()) {
 		if (curMove == ttMove) continue;
@@ -558,7 +563,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		return node.bestValue;
 	}
 
-	node.computeMoves(position, *_butterflyBoard);
+	computeMoves(position, node);
 
 	// 7b. Ask the tablebases. It has to be here and not earlier: the move list decides whether
 	// the stored entry is exact, the hash probe above keeps a repeated position cheap, and the
@@ -914,8 +919,8 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 
 	ply_t depth = node.remainingDepth;
 
-	// we use the movelist from rootmoves. node.computeMoves is only to initialize other variables
-	node.computeMoves(position, *_butterflyBoard);
+	// we use the movelist from rootmoves. computeMoves is only to initialize other variables
+	computeMoves(position, node);
 	_computingInfo.nextIteration(node);
 	WhatIf::whatIf.moveSelected(position, _computingInfo, stack, Move::EMPTY_MOVE, depth, 0);
     //printStackInfo("stack size: ");

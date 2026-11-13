@@ -231,6 +231,12 @@ namespace QaplaSearch {
 		};
 
 		/**
+		 * Generates all moves of the node's position for its move provider and sets the
+		 * node's bestValue to mate or stalemate if there is none
+		 */
+		void computeMoves(MoveGenerator& position, SearchNode& node);
+
+		/**
 		 * Asks the tablebases and cuts the node if the answer is usable. Must be called
 		 * after the moves have been generated - the move list decides whether the stored
 		 * entry is exact.

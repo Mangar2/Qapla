@@ -451,15 +451,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Generates all moves in the current position
-		 */
-		void computeMoves(MoveGenerator& position, ButterflyBoard& butterflyBoard) {
-			position.isWhiteToMove();
-			moveProvider.computeMoves(position, butterflyBoard, previousMove, ttMove);
-			bestValue = moveProvider.checkForGameEnd(position, ply);
-		}
-
-		/**
 		 * The squares from which each piece type would check the opponent king. Only the move
 		 * loop of negaMax reads them, through isCheckMove, so only it computes them - se(),
 		 * the nullmove verification and the root loop generate moves without ever asking.
