@@ -419,6 +419,13 @@ Filler for the Mac gpu whenever no training task is due: the Stockfish architect
 - above all follow-up and counter moves (ideas 1 and 2)
 Measured against 0.4 in the end.
 
+**Step 2 of the order - 03b added (2026-11-13):** 03b done 04:43 (4,509,018 games without 96 duplicates from the
+resumes), converted on the Studio: `book100m-d9-p03q2-wdl.gam` and the book file `...-bookonce-wdl-k4-q1234-02abcd-03ab.gam`
+(03a and 03b). Net **q1234-02abcd-03ab-no16-b75** = q1234-02abcd-03a-no16-b75 (2.0.0-004) with p03q2 and that book file,
+the one factor the data of 03b; trainer 6.0.0 (at the defaults identical to the 3.3.0 of the baseline). Starts on the
+Studio when the moel training ends (~07:05) and the GPU lock is free (`tmp/p03b/after-moel-03ab.sh`), ~4.5 h; then
+the Linux gauntlet against 2619.
+
 **Spike against Qapla (Volker 2026-11-12): 03c is the last part.** After it nothing new of Spike against Qapla is
 started - no 03d, no further parts of that kind.
 
