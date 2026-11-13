@@ -163,12 +163,22 @@ value_t Quiescence::search(bool isPvNode,
 		// mate value the node returns when the evade list stays empty.
 		auto bestValue = -MAX_VALUE + ply;
 
+		// Good captures by weight first, then every other evade in generation order. The tt
+		// move is not tried first - it never was: the old staged selection started behind the
+		// pv stage here. Trying it first changes the search and needs an SPRT of its own.
 		MoveProvider moveProvider;
-		Move move;
-		moveProvider.setTTMove(ttMove);
 		moveProvider.computeEvades(position, lastMove);
+		moveProvider.weightCaptures(position);
+		bool goodCapturesLeft = true;
+		Move move;
 
-		while (!(move = moveProvider.selectNextMove(position)).isEmpty()) {
+		while (true) {
+			move = goodCapturesLeft ? moveProvider.selectGoodCapture(position) : Move();
+			if (move.isEmpty()) {
+				goodCapturesLeft = false;
+				move = moveProvider.selectRemainingMove();
+				if (move.isEmpty()) break;
+			}
 
 			const PositionSnapshot snapshot = position.getSnapshot();
 			position.doMove(move);

@@ -179,9 +179,8 @@ namespace QaplaSearch {
 		 */
 		Move selectNextMove(const MoveGenerator& board) {
 			int32_t selectedMoveNo = -1;
-			Move move;
 
-			while (selectedMoveNo == -1 && move.isEmpty()) {
+			while (selectedMoveNo == -1) {
 				switch (selectStage) {
 				case MoveType::PV:
 					selectedMoveNo = selectProposedMove(pvMove.isEmpty() ? _ttMove : pvMove);
@@ -202,6 +201,9 @@ namespace QaplaSearch {
 					break;
 				case MoveType::GOOD_CAPTURES:
 					selectedMoveNo = selectNextCaptureMoveHandlingLoosingCaptures(board);
+					if (selectedMoveNo == -1) {
+						++selectStage;
+					}
 					break;
 				case MoveType::SORT_MOVES:
 					sortNonCaptures();
@@ -213,16 +215,38 @@ namespace QaplaSearch {
 				default: break;
 				}
 			}
-			if (selectedMoveNo != -1 && selectedMoveNo < (int32_t)moveList.getTotalMoveAmount()) {
-				move = moveList[(uint32_t)selectedMoveNo];
-				moveList[(uint32_t)selectedMoveNo].setEmpty();
+			return takeMove(selectedMoveNo);
+		}
 
-				assert(triedMovesAmount < TRIED_MOVES_STORE_SIZE);
-				triedMoves[triedMovesAmount] = move;
-				triedMovesAmount++;
+		/**
+		 * Gives every capture its ordering weight. Must come before selectGoodCapture.
+		 */
+		void weightCaptures(const MoveGenerator& board) {
+			computeAllCaptureWeight(board);
+		}
 
-			}
-			return move;
+		/**
+		 * Selects the next capture that SEE does not rate as losing, highest weight first.
+		 * Losing captures are deferred and come with selectRemainingMove.
+		 * @returns an empty move when no such capture is left
+		 */
+		Move selectGoodCapture(const MoveGenerator& board) {
+			return takeMove(selectNextCaptureMoveHandlingLoosingCaptures(board));
+		}
+
+		/**
+		 * Sorts the first silent moves by their butterfly value
+		 */
+		void sortSilentMoves() {
+			sortNonCaptures();
+		}
+
+		/**
+		 * Selects the next move still in the list, in list order
+		 * @returns an empty move at the end of the list
+		 */
+		Move selectRemainingMove() {
+			return takeMove(selectNextSilentMove());
 		}
 
 		/**
@@ -262,6 +286,23 @@ namespace QaplaSearch {
 		}
 
 	private:
+
+		/**
+		 * Takes the move with the given number out of the list and records it as tried
+		 * @returns the move, an empty move for -1 or a number past the end of the list
+		 */
+		Move takeMove(int32_t moveNo) {
+			Move move;
+			if (moveNo != -1 && moveNo < (int32_t)moveList.getTotalMoveAmount()) {
+				move = moveList[(uint32_t)moveNo];
+				moveList[(uint32_t)moveNo].setEmpty();
+
+				assert(triedMovesAmount < TRIED_MOVES_STORE_SIZE);
+				triedMoves[triedMovesAmount] = move;
+				triedMovesAmount++;
+			}
+			return move;
+		}
 
 		/**
 		 * Calculate the weight (winning material in centi-pawn) of a capture move for more ordering
@@ -325,10 +366,7 @@ namespace QaplaSearch {
 				moveList.setWeight(moveNo, moveList.getWeight(moveNo) - CAPTURE_DEFERRAL_MALUS);
 				moveNo = findNextBestCaptureMove();
 			}
-			if (moveNo == -1) {
-				++selectStage;
-			}
-			else {
+			if (moveNo != -1) {
 				moveList.dragMoveToTheBack(curMoveNo, moveNo);
 				moveNo = curMoveNo;
 				curMoveNo++;
