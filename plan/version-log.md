@@ -1765,3 +1765,21 @@ quiet.
 The parallel node counts cannot be compared run to run — a parallel search is not reproducible. What
 the fix is checked against is the single threaded run, which must not move at all, and the order of
 magnitude of the multi-threaded figures, which now matches it.
+
+## 0.5.0-029 — follow-up move after the first killer
+
+Kept. SPRT against 0.5.0-028-8-g19cec17 (the same code with `USE_FOLLOW_UP_MOVE = false`),
+`test/sprt/sprt-standard.ini` as it is (5+0.01, bounds −2/+3): **H1 accepted after 4998 games**,
+W 1352 D 2443 L 1203. EPD nodes 248740566 → 252572679, different.
+
+The follow-up move is the quiet best move found after the own move two plies back, keyed by piece
+and destination of that own move (`ContinuationHistory`, `search/continuation-history.h`). It is
+learned where the killer and the butterfly board learn, in negaMax after the move loop, for quiet
+best moves only, and read only when the new stage `FOLLOW_UP_MOVE` is reached, between the first
+and the second killer.
+
+Before it, behaviour neutral, the move selection was rebuilt (0.5.0-028-5 to -7): the staged
+selection runs in `Search::selectNextMove`, the ordering state (stage, pv move, killers) lives in
+`SearchNode`, and `MoveProvider` holds the move list and its tools only, with nothing of the search
+stored in it. Nodes identical throughout; on Linux, wmtest at depth 18 one position at a time, the
+rebuilt version ran 98.6 s against 100.2 s in four interleaved pairs, every run of it faster.
