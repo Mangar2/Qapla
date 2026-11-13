@@ -572,23 +572,6 @@ namespace QaplaSearch {
 			return bestValue <= alphaAtPlyStart;
 		}
 
-		/**
-		 * terminates the search-ply
-		 */
-		void updateTTandKiller(MoveGenerator& position, ButterflyBoard& butterflyBoard, bool isPV, ply_t depth) {
-			if (cutoff == Cutoff::NONE && bestValue != -MAX_VALUE && !bestMove.isNullMove()) {
-				if (!bestMove.isEmpty()) {
-					moveProvider.setKillerMove(bestMove);
-					butterflyBoard.newBestMove(bestMove, depth, moveProvider.getTriedMoves(), moveProvider.getTriedMovesAmount());
-				}
-				
-				// The node owns the hash of its own position: it was stored on entry, and by the
-				// time the ply terminates every move tried below has been taken back.
-				assert(positionHash == position.computeBoardHash());
-				setTTEntry(positionHash, isPV);
-			}
-		}
-
 		Move getMoveFromPVMovesStore(ply_t ply) const { return pv.getMove(ply); }
 		const KillerMove& getKillerMove() const { return moveProvider.getKillerMove(); }
 

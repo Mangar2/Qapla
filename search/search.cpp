@@ -574,8 +574,21 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 	moveLoop<TYPE, false>(position, stack, node, depth, seExtension, ply, Move::EMPTY_MOVE);
 
-	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong  
-	if (!isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, TYPE == SearchRegion::PV, depth);
+	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong.
+	// Every cutoff has returned above and the first move is always searched (pruning needs a
+	// bestValue), so the move loop leaves a real value. bestMove stays empty on a fail low.
+	if (!isSearchStopped()) {
+		assert(node.cutoff == Cutoff::NONE && node.bestValue != -MAX_VALUE);
+		// The node owns the hash of its own position: it was stored on entry, and by the
+		// time the ply terminates every move tried below has been taken back.
+		assert(node.positionHash == position.computeBoardHash());
+		node.setTTEntry(node.positionHash, TYPE == SearchRegion::PV);
+		if (!node.bestMove.isEmpty()) {
+			node.moveProvider.setKillerMove(node.bestMove);
+			_butterflyBoard->newBestMove(node.bestMove, depth,
+				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
+		}
+	}
 	// Inform the user about advances in search
 	if (TYPE != SearchRegion::NEAR_LEAF && _isMaster) {
 		_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
@@ -963,7 +976,20 @@ void Search::negaMaxRoot(MoveGenerator& position, SearchStack& stack, uint32_t s
 
 	_computingInfo.setDebug(-1);
 
-	if (!_clockManager->isSearchStopped()) node.updateTTandKiller(position, *_butterflyBoard, true, depth);
+	// No move searched (all skipped, or an abort before the first result) leaves -MAX_VALUE: nothing to store
+	if (!_clockManager->isSearchStopped() && node.bestValue != -MAX_VALUE) {
+		assert(node.positionHash == position.computeBoardHash());
+		node.setTTEntry(node.positionHash, true);
+		// No killer here: the root takes its moves from the root move list, its move provider
+		// never selects a move and would never read it.
+		// Known flaw, left as it is: for the same reason the tried moves of the root are empty,
+		// so newBestMove only raises the best move and never lowers the root moves tried
+		// before it. One update per iteration cannot have a measurable effect on playing strength.
+		if (!node.bestMove.isEmpty()) {
+			_butterflyBoard->newBestMove(node.bestMove, depth,
+				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
+		}
+	}
 	_computingInfo.getRootMoves().bubbleSort(0);
 	_computingInfo.setHashFullInPermill(node.getHashFillRateInPermill());
 	collectThreadTotals();

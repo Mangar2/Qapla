@@ -31,6 +31,7 @@
 #include "clockmanager.h"
 #include "tt.h"
 #include "butterfly-boards.h"
+#include "continuation-history.h"
 #include "../eval/pawntt.h"
 #include "quiescence.h"
 #include "isearch-totals.h"
@@ -60,10 +61,12 @@ namespace QaplaSearch {
 		 */
 		void startNewGame() {
 			_butterflyBoard->clear();
+			_continuationHistory->clear();
 		}
 
 		void clearMemories() {
 			_butterflyBoard->clear();
+			_continuationHistory->clear();
 			_pawnTT.clear();
 		}
 
@@ -160,6 +163,7 @@ namespace QaplaSearch {
 			_tbRootWin = master._tbRootWin;
 			_tbSearchableMoves = master._tbSearchableMoves;
 			_butterflyBoard = master._butterflyBoard;
+			_continuationHistory = master._continuationHistory;
 		}
 
 		/**
@@ -420,8 +424,11 @@ namespace QaplaSearch {
 		// The history the move ordering reads. Shared: a helper points to the master's, see
 		// initAsHelper. Lost updates between threads are accepted, it holds ordering weights only.
 		ButterflyBoard _ownButterflyBoard;
+		// The tables keyed by earlier moves of the search line, shared like the butterfly board
+		ContinuationHistory _ownContinuationHistory;
 	public:
 		ButterflyBoard* _butterflyBoard = &_ownButterflyBoard;
+		ContinuationHistory* _continuationHistory = &_ownContinuationHistory;
 	};
 }
 
