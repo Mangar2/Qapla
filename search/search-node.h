@@ -93,8 +93,8 @@ namespace QaplaSearch {
 										// recapture bonus, the capturing piece does not take part.
 										// Loosing captures are dropped here and reappear in REMAINING_MOVES
 		KILLER1, 						// Selects the first killer, thus only after the good captures are used up
-		FOLLOW_UP_MOVE,					// Selects the follow-up move, if SearchConfig::USE_FOLLOW_UP_MOVE
 		KILLER2, 						// Selects the second killer
+		FOLLOW_UP_MOVE,					// Selects the follow-up move, if SearchConfig::USE_FOLLOW_UP_MOVE
 		SORT_MOVES, 					// Prepares: weights the silent moves by butterfly value and sorts
 										// the first few of them
 		REMAINING_MOVES,				// Selects everything still left in list order: first the loosing

@@ -121,21 +121,21 @@ Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, S
 		node.selectStage = MoveType::KILLER1;
 		[[fallthrough]];
 	case MoveType::KILLER1:
-		node.selectStage = MoveType::FOLLOW_UP_MOVE;
+		node.selectStage = MoveType::KILLER2;
 		move = provider.selectProposedMove(node.killerMove[0]);
 		if (!move.isEmpty()) return move;
 		[[fallthrough]];
+	case MoveType::KILLER2:
+		node.selectStage = MoveType::FOLLOW_UP_MOVE;
+		move = provider.selectProposedMove(node.killerMove[1]);
+		if (!move.isEmpty()) return move;
+		[[fallthrough]];
 	case MoveType::FOLLOW_UP_MOVE:
-		node.selectStage = MoveType::KILLER2;
+		node.selectStage = MoveType::SORT_MOVES;
 		if constexpr (SearchConfig::USE_FOLLOW_UP_MOVE) {
 			move = provider.selectProposedMove(_continuationHistory->getFollowUpMove(stack, node.ply));
 			if (!move.isEmpty()) return move;
 		}
-		[[fallthrough]];
-	case MoveType::KILLER2:
-		node.selectStage = MoveType::SORT_MOVES;
-		move = provider.selectProposedMove(node.killerMove[1]);
-		if (!move.isEmpty()) return move;
 		[[fallthrough]];
 	case MoveType::SORT_MOVES:
 		node.selectStage = MoveType::REMAINING_MOVES;
