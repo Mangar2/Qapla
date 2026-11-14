@@ -78,6 +78,14 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 6.1.1 - 2026-11-14
+
+Every checkpoint (`last.pt`, the `state-*` kept every 100 epochs, the `.pt` of the old procedure) is written to a
+temporary file and renamed into place. Trainings on the Studio now hold the GPU lock as interruptible runs
+(`~/dev/sglang/gpu-lock`, profile `schach-training`), which ends them with SIGTERM at any moment when an image or video
+job waits; a stop in the middle of a save left half a `last.pt` before. Patch: `test_reproducible.py` identical to 6.1.0
+in every run but `fixed-ranger-moe-layers` (not reproducible, see 6.1.0).
+
 ## 6.1.0 - 2026-11-14
 
 `--future-weight W` (Volker: a bucket learns from the current pieces only and never sees how its positions go on once a

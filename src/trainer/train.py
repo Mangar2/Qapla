@@ -42,6 +42,14 @@ def file_name(kind, epoch, digits, extension):
     return '%s-v%s-epoch%0*d.%s' % (kind, version.VERSION, digits, epoch, extension)
 
 
+def save_state(state, path):
+    """torch.save through a temporary file and a rename: a run stopped in the middle of the save (the GPU
+    lock ends interruptible runs with SIGTERM) leaves the previous file whole instead of half of a new one."""
+    temporary = path + '.tmp'
+    torch.save(state, temporary)
+    os.replace(temporary, path)
+
+
 def same_minor(other):
     """A run may only be continued by a trainer that makes the same nets: same major and minor."""
     return other.split('.')[:2] == version.VERSION.split('.')[:2]
@@ -252,9 +260,9 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
             export.export(model, os.path.join(arguments.out, file_name('net', epoch, 3, 'nnue')))
         state = {'epoch': epoch, 'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
                  'scheduler': scheduler.state_dict(), 'version': version.VERSION}
-        torch.save(state, last)
+        save_state(state, last)
         if epoch % 100 == 0:
-            torch.save(state, os.path.join(arguments.out, file_name('state', epoch, 3, 'pt')))
+            save_state(state, os.path.join(arguments.out, file_name('state', epoch, 3, 'pt')))
         print('%s, %.0f s' % (line, time.time() - start), flush=True)
 
 
@@ -359,7 +367,7 @@ def train(arguments):
         # --resume continues the run rather than starting a similar one. Adam's moments are part of
         # the state: without them the first epoch after a resume takes a different step than it would
         # have, and the run is no longer the run it claims to continue.
-        torch.save({'epoch': epoch, 'model': model.state_dict(),
+        save_state({'epoch': epoch, 'model': model.state_dict(),
                     'optimizer': optimizer.state_dict(), 'bestLoss': bestLoss,
                     'bestEpoch': bestEpoch, 'since': since},
                    os.path.join(arguments.out, file_name('net', epoch, 2, 'pt')))
@@ -379,7 +387,7 @@ def train(arguments):
               % (epoch, blend, trained, held, ' (best)' if improved else
                  ' (%d epochs without an improvement)' % since, time.time() - start),
               flush=True)
-        torch.save({'epoch': epoch, 'model': model.state_dict(),
+        save_state({'epoch': epoch, 'model': model.state_dict(),
                     'optimizer': optimizer.state_dict(), 'bestLoss': bestLoss,
                     'bestEpoch': bestEpoch, 'since': since},
                    os.path.join(arguments.out, file_name('net', epoch, 2, 'pt')))
