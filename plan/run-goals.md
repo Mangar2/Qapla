@@ -434,6 +434,18 @@ resumes), converted on the Studio: `book100m-d9-p03q2-wdl.gam` and the book file
 the one factor the data of 03b; trainer 6.0.0 (at the defaults identical to the 3.3.0 of the baseline). Starts on the
 Studio when the moel training ends (~07:05) and the GPU lock is free (`tmp/p03b/after-moel-03ab.sh`), ~4.5 h; then
 the Linux gauntlet against 2619.
+Trained 13.11. 22:53 - 14.11. 03:18 (e800 held back 0.001696 - another held back set than 03a's, not comparable). Net in
+milestones on all three: `nnue-q1234-02abcd-03ab-no16-b75-40m-v6.0.0-e800.nnue`, md5 3b485c72..., format QAPLANN2.
+**Gauntlet 14.11. 05:03-15:41, 20,000 games: 2622.6 +/-3** against 03a's 2617.5 +/-3 - about 5 above with about +/-4 on
+the difference: 03b adds a little, just outside the noise.
+
+**Bucket heads trained with their future (Volker 2026-11-14):** a bucket learns from its own pieces only and never sees
+how its positions go on with a few pieces less; the heads also disagree at the borders (`tmp/hce/bucket_jump.py` on
+2.0.0-004: same position, own head against the head below - median 13-23 cp from 17 pieces up, 58 cp at 9 pieces, 252
+cp at 5). Trainer 6.1.0 `--future-weight W`: every position also trains the head one bucket up at W. Net
+**q1234-02abcd-03ab-fw75-no16-b75** = 03ab's command and data with `--future-weight 0.75`, the one factor; on the
+Studio from 14.11. ~16:00 (`tmp/book100m-d9/train-q1234-02abcd-03ab-fw75-no16-b75.sh`), then the gauntlet against
+2622.6 and bucket_jump.py on it.
 
 **Spike against Qapla (Volker 2026-11-12): 03c is the last part.** After it nothing new of Spike against Qapla is
 started - no 03d, no further parts of that kind.
