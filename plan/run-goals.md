@@ -256,6 +256,14 @@ logits computed and mixed by their weights g1 = sigmoid(l1 - l2), g2 = 1 - g1; w
 `-DQAPLA_NNUE_MOE_LAYERS`, format QAPLANN6. Net **q1234-02abcd-03a-moel-no16-b75** = moefull's command and data with
 `--moe-mix layers` (two changes against moefull, by Volker's decision); starts on the Studio when Volker's image/video
 jobs have been gone 10 minutes (`tmp/start-when-free-03amoel.sh`), then the Linux gauntlet with a build of cf3de58.
+Trained 13.11. 00:05-22:42 on the Studio, aborted ten times by the GPU lock and resumed; net in milestones on all
+three (0cbcd85d). Joined the gauntlet 14.11. 00:42; **stopped 01:31 on Volker's word at 1,701 rated games: 2579.2
++/-11**, about 40 below the buckets' 2619.9 (+/-3), like the two MoE nets before it. The held back losses at e800 rank
+the same way: buckets 0.001601, pair 0.001608, moefull 0.001614, moel 0.001617 - the nets predict worse already, it
+is not the engine or the quantisation. **MoE in this form is not worth it (Volker 2026-11-14).** Assumed reason, not
+checked: the buckets split by piece count, the strongest single signal; the router has to learn a split and spreads
+the positions evenly over all 16 experts (6.2-6.3 % each), while the phases are not equally frequent
+(`tmp/moe/phase.py` would show it).
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
