@@ -1798,3 +1798,10 @@ Branch `followup-after-killer2`, not merged. SPRT against 0.5.0-029, `test/sprt/
 252572679 → 252694000, different. The only change is the place of the stage `FOLLOW_UP_MOVE`, after `KILLER2`.
 Neither place (030, 031) separated from 029's; 029 stays. Three SPRTs on the follow-up move, so 029 plays a closing
 run against 0.5.0-028-8 (CLAUDE.md, closing run after a series of SPRTs).
+
+## Closing run of the follow-up move series
+
+0.5.0-029 against 0.5.0-028-8-g19cec17 (the version the item started from, follow-up switched off), after three SPRTs
+on the follow-up move (029 H1; 030 and 031 undecided against 029). `test/sprt/sprt-standard.ini` as it is (5+0.01,
+bounds −2/+3), openings with a seed of their own (srand 20261114): **H1 accepted after 7242 games**,
+W 1931 D 3532 L 1779. The series holds; 029 is the version to build on.
