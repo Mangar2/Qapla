@@ -172,3 +172,16 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
   `test/sprt/sprt-standard.ini` mit `--each tc=20+0.1`, `--sprt eloh0=-3 eloh1=2`, Concurrency 8:
   **H1 accepted nach 16509 Partien** (W 3467 D 9685 L 3357), Grenzen −3/+2.
 - **Abgeschaltet:** Default wieder 10, `git diff` leer.
+
+### 2. ffBestValueDivisor — H1 accepted
+
+- **Baseline:** 0.5.0-028-3-g3f460e1, EPD wmtest Tiefe 18: 248740566 Nodes.
+- **CLOP (M4, 2026-11-14):** `optimizeFutility = true`, nur `ffBestValueDivisor min=1 max=39`, 2000 Samples,
+  `test/clop/clop-standard.ini` mit `--each tc=2+0.004` (Zeitkontrolle für den M4 skaliert: eine M4-Partie hat etwa
+  2,5-mal die Knoten/s einer Linux-Partie unter Volllast), Concurrency 8. Schätzung **23.89**, gerundet **24**.
+- **Zugeschaltet:** in `forewardFutility()` (`search/search-node.h`)
+  `tunable<OPT, "ffBestValueDivisor", 24, 1, 41>()` statt `20`. EPD: 252714475 Nodes, anders - erreicht.
+- **SPRT (M4, 2026-11-14 16:35 bis 2026-11-15 00:33):** gegen das Baseline-Binary,
+  `test/sprt/sprt-standard.ini` mit `--each tc=8+0.04` (20+0.1 auf den M4 skaliert), `--sprt eloh0=-3 eloh1=2`,
+  Concurrency 8: **H1 accepted nach 12053 Partien** (W 2756 D 6663 L 2634), Grenzen −3/+2.
+- **Abgeschaltet:** Default wieder 20, `git diff` leer.
