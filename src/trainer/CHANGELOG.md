@@ -78,6 +78,21 @@ What the comparisons say about the learnings: 7 (s8 1.0.0 against s8-skip 1.2.0,
 command, so each compared exactly one factor. 3, 4, 5, 6 compared nets from a 0.x trainer with nets
 from a 1.x trainer - two factors, and the 0.x side not even reproducible.
 
+## 6.1.0 - 2026-11-14
+
+`--future-weight W` (Volker: a bucket learns from the current pieces only and never sees how its positions go on once a
+few more pieces are gone). With `--stacks` and `--epoch-size`: every position trains its own head and, with weight W, the
+head one stack up (more pieces), for which it is the future of its game - head k learns from bucket k and, at W, from
+bucket k - 1. The loss is `neighbour_loss_of` with the weights 0 below and W above (`--neighbours` now passes its weight
+for both sides, unchanged); `all_heads` takes the batch's csr, so the fast feature transformer runs as before. The held
+back loss is still measured with the own head alone; the loss printed for training includes the second head. The engine
+is untouched. Not with `--psqt`, `--moe`, `--neighbours`.
+- Without `--future-weight` identical to 6.0.0: `test_reproducible.py`, every run but `fixed-ranger-moe-layers`.
+- `fixed-ranger-moe-layers` is not reproducible, already at clean 6.0.0: three runs, three different nets at epoch 2
+  (the 6.0.0 record, 3b333bed, ffa6f83e). Not followed up - MoE is not trained again without a solution for the jumps
+  in the evaluation (Volker 2026-11-14). Its recorded value is therefore meaningless.
+- One run added (`fixed-ranger-8heads-future`, W 0.75), record rewritten.
+
 ## 6.0.0 - 2026-11-12
 
 `--moe-mix sum|layers` (Volker: MoE models choose in every layer; 2 x 16 -> 16 with weighted experts). `layers`: experts in

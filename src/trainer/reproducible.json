@@ -45,9 +45,13 @@
       "7b5ac29d02d506a65a446d9a507e32fc",
       "828e8d01debb643e434879a658e3f809"
     ],
+    "fixed-ranger-8heads-future": [
+      "6e3ca602ba31a0e45aec6f1e5757e23c",
+      "6a22a3a84aee28d58455f4b4fdf6dd83"
+    ],
     "fixed-ranger-moe-layers": [
-      "668214daaca34bda0a8bf0a52bad358e",
-      "e55744450aeb18fce9cb3fa5724105ed"
+      "a2f8c37cdedd5fd73307eedaff60907b",
+      "7affefb4c987755b6f877fc0de468c10"
     ],
     "fixed-ranger-resumed": [
       "a413845ab94927625e7807eb4bf9443c",
@@ -63,5 +67,5 @@
     ]
   },
   "fixture_wdl": "4397def0b1bdf99906bde603e5341f84",
-  "version": "6.0.0"
+  "version": "6.1.0"
 }

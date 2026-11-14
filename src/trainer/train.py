@@ -210,7 +210,12 @@ def train_in_fixed_epochs(arguments, cache, validation, device):
                                    else torch.float32), time.time()
         for seen in range(1, steps + 1):
             own, opponent, value, result, counts, csr = next(batches)
-            loss = loss_of(model(own, opponent, csr), value, result, counts, blend_of(blend, own))
+            if arguments.future_weight > 0:
+                outputs, stack = model.all_heads(own, opponent, csr)
+                loss = neighbour_loss_of(outputs, stack, value, result, counts, blend_of(blend, own),
+                                         0.0, arguments.future_weight)
+            else:
+                loss = loss_of(model(own, opponent, csr), value, result, counts, blend_of(blend, own))
             reported = loss.detach()
             if arguments.moe:
                 # The balancing term trains the router; the loss printed is the loss of the values alone.
@@ -295,6 +300,9 @@ def train(arguments):
             raise SystemExit('--blend-buckets only with --epoch-size')
         print('blend by bucket (0 = fewest pieces): %s'
               % ' '.join('%.2f' % b for b in arguments.blend_buckets), flush=True)
+    if arguments.future_weight > 0 and (arguments.stacks == 1 or arguments.epoch_size <= 0 or arguments.psqt
+                                        or arguments.moe or arguments.neighbours):
+        raise SystemExit('--future-weight only with --stacks and --epoch-size, without --psqt, --moe, --neighbours')
     if arguments.epoch_size > 0:
         if arguments.neighbours:
             raise SystemExit('--epoch-size does not take --neighbours')
@@ -332,7 +340,7 @@ def train(arguments):
             if arguments.neighbours:
                 outputs, stack = model.all_heads(own, opponent)
                 loss = neighbour_loss_of(outputs, stack, value, result, counts, blend,
-                                         arguments.neighbour_weight)
+                                         arguments.neighbour_weight, arguments.neighbour_weight)
             else:
                 prediction = model(own, opponent)
                 loss = loss_of(prediction, value, result, counts, blend)
@@ -462,6 +470,11 @@ if __name__ == '__main__':
                              'the engine evaluates')
     parser.add_argument('--neighbour-weight', type=float, default=1.0,
                         help='what a neighbouring head counts against the own one')
+    parser.add_argument('--future-weight', type=float, default=0.0,
+                        help='with --stacks and --epoch-size: every position also trains the head of the '
+                             'next stack up (more pieces), for which it is the future of its game, with this '
+                             'weight against the own head; 0 = off. The held back loss is measured with the '
+                             'own head alone, as the engine evaluates')
     parser.add_argument('--skip-early', action=argparse.BooleanOptionalAction, default=False,
                         help='keep early positions only with a probability rising over the ply, by '
                              'nnue-pytorch\'s default curve (0.1 at ply 0 to 1.0 from ply 20) - '

@@ -290,15 +290,23 @@ class HalfKaNet(nn.Module):
         logits = self.router(torch.cat((own[:, size:], opponent[:, size:]), dim=1))
         return logits.topk(netfile.MOE_TOP, dim=1).indices.sort(dim=1).values
 
-    def all_heads(self, own_features, opponent_features):
+    def all_heads(self, own_features, opponent_features, csr=None):
         """The output of every head for every position, and the stack each position belongs to.
 
         The engine only ever evaluates a position with its own head; this is for training the
         neighbours as well. The first dense layer is computed for all heads by forward() too, so
         what this adds is the second layer and the output for every head - small layers, 32 wide.
+        csr as in forward(): the feature transformer on fastft's Metal kernels.
         """
-        own = self.feature_transformer(own_features) + self.feature_bias
-        opponent = self.feature_transformer(opponent_features) + self.feature_bias
+        if csr is None:
+            own = self.feature_transformer(own_features)
+            opponent = self.feature_transformer(opponent_features)
+        else:
+            import fastft
+            own, opponent = fastft.transform(own_features, opponent_features,
+                                             self.feature_transformer.weight, csr)
+        own = own + self.feature_bias
+        opponent = opponent + self.feature_bias
         hidden = torch.cat((own, opponent), dim=1).clamp(0.0, 1.0)
         active = (own_features != netfile.FEATURE_COUNT).sum(dim=1)
         stack = (active // 4).clamp(max=self.stacks - 1)
@@ -331,7 +339,7 @@ class HalfKaNet(nn.Module):
             self.psqt.weight[netfile.FEATURE_COUNT].zero_()
 
 
-def neighbour_loss_of(outputs, stack, value, result, counts, blend, neighbour_weight=1.0):
+def neighbour_loss_of(outputs, stack, value, result, counts, blend, lower_weight=1.0, upper_weight=1.0):
     """The loss when every position trains its own head and the heads next to it.
 
     A position of stack i trains heads i-1, i and i+1, where they exist, so head i learns from the
@@ -341,14 +349,17 @@ def neighbour_loss_of(outputs, stack, value, result, counts, blend, neighbour_we
     transitions between them: less of a jump in the value when a capture moves a position into the
     next stack. The engine still evaluates every position with its own head alone.
 
-    neighbour_weight is what a neighbour counts against the own head; the mean is taken over every
-    pair of position and head that takes part, so the scale is that of loss_of.
+    lower_weight and upper_weight are what the head one stack below (fewer pieces) and the head one
+    stack above (more pieces) count against the own head; --neighbours gives both the same weight,
+    --future-weight only the one above, for which the position is the future of its game. The mean
+    is taken over every pair of position and head that takes part, so the scale is that of loss_of.
+    blend may be a number or one per position (--blend-buckets).
     """
     stacks = outputs.shape[1]
     offsets = torch.tensor([-1, 0, 1], device=outputs.device)
     heads = stack.view(-1, 1) + offsets.view(1, -1)
     present = ((heads >= 0) & (heads < stacks)).float()
-    weights = present * torch.where(offsets == 0, 1.0, neighbour_weight).view(1, -1)
+    weights = present * torch.tensor([lower_weight, 1.0, upper_weight], device=outputs.device).view(1, -1)
     predicted = torch.sigmoid(outputs.gather(1, heads.clamp(0, stacks - 1)))
     weight = blend + (1.0 - blend) * (1.0 - counts)
     target = (weight * value + (1.0 - weight) * result).view(-1, 1)

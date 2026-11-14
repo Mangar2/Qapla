@@ -72,6 +72,9 @@ RUNS = {
     # 5.1.0: the router trained with the share of the full softmax.
     'fixed-ranger-moe-full': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1', '--moe',
                               '--moe-share', 'full', '--workers', '2'],
+    # 6.1.0: every position trains the head one stack up as well, its future, at a non-default weight.
+    'fixed-ranger-8heads-future': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1',
+                                   '--stacks', '8', '--future-weight', '0.75', '--workers', '2'],
     # 6.0.0: experts in all three layers, the logits from the accumulator, the chosen two mixed by their weights.
     'fixed-ranger-moe-layers': ['--epoch-size', '100000', '--epochs', '2', '--save-every', '1', '--moe',
                                 '--moe-share', 'full', '--moe-mix', 'layers', '--workers', '2'],
