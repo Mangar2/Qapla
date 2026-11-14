@@ -161,4 +161,14 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
 
 ## Erledigt
 
-(noch nichts)
+### 1. forwardFutility depth limit — H1 accepted
+
+- **Baseline:** 0.5.0-028-3-g3f460e1, EPD wmtest Tiefe 18: 248740566 Nodes.
+- **CLOP (M4, 2026-11-13):** `optimizeFutility = true`, nur `ffDepthLimit min=0 max=20`, 2000 Samples,
+  `test/clop/clop-standard.ini`, Concurrency 8. Schätzung **12.39**, gerundet **12**.
+- **Zugeschaltet:** in `forewardFutility()` (`search/search-node.h`)
+  `tunable<OPT, "ffDepthLimit", 12, 0, 20>()` statt `10`. EPD: 250812256 Nodes, anders - erreicht.
+- **SPRT (M4, 2026-11-13 11:58 bis 2026-11-14 15:27):** gegen das Baseline-Binary,
+  `test/sprt/sprt-standard.ini` mit `--each tc=20+0.1`, `--sprt eloh0=-3 eloh1=2`, Concurrency 8:
+  **H1 accepted nach 16509 Partien** (W 3467 D 9685 L 3357), Grenzen −3/+2.
+- **Abgeschaltet:** Default wieder 10, `git diff` leer.
