@@ -260,10 +260,11 @@ Trained 13.11. 00:05-22:42 on the Studio, aborted ten times by the GPU lock and 
 three (0cbcd85d). Joined the gauntlet 14.11. 00:42; **stopped 01:31 on Volker's word at 1,701 rated games: 2579.2
 +/-11**, about 40 below the buckets' 2619.9 (+/-3), like the two MoE nets before it. The held back losses at e800 rank
 the same way: buckets 0.001601, pair 0.001608, moefull 0.001614, moel 0.001617 - the nets predict worse already, it
-is not the engine or the quantisation. **MoE in this form is not worth it (Volker 2026-11-14).** Assumed reason, not
-checked: the buckets split by piece count, the strongest single signal; the router has to learn a split and spreads
-the positions evenly over all 16 experts (6.2-6.3 % each), while the phases are not equally frequent
-(`tmp/moe/phase.py` would show it).
+is not the engine or the quantisation. **MoE in this form is not worth it (Volker 2026-11-14).** The split by piece
+count is not the reason: one head against 8 buckets measured no difference on 2026-10-08 (above). Assumed reason, not
+checked: **jumps in the evaluation** - buckets change only with a capture, the router can choose other experts after a
+quiet move, so two nearly equal positions get values from different experts and the search compares them; the loss
+is only ~1 % worse, the games 40 Elo. **MoE is trained again only with a solution for the jumps (Volker 2026-11-14).**
 **The WDL weight depends on the number of distinct games (Volker 2026-10-18, hypothesis):** a single depth-9 result
 is too random, the mass of them becomes reliable - the noise of the results averages out over distinct games
 (~1/sqrt(N)) while the error of the value stays, so the best weight of the result should rise with the data. Hints:
