@@ -121,6 +121,9 @@ namespace QaplaSearch {
 		// Set to true to make the futility margins settable by UCI, see tunable.h
 		static constexpr bool optimizeFutility = false;
 
+		// Set to true to make the history (butterfly board) bonus and gravity settable by UCI, see tunable.h
+		static constexpr bool optimizeHistory = false;
+
 		// Follow-up move: the quiet best move after the own move two plies back, tried right after
 		// the first killer, see ContinuationHistory and Search::selectNextMove
 		static constexpr bool USE_FOLLOW_UP_MOVE = true;

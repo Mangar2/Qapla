@@ -22,7 +22,10 @@
 #define __BUTTERFLY_BOARDS_H
 
 #include <array>
+#include <cstdlib>
 #include "searchdef.h"
+#include "search-config.h"
+#include "tunable.h"
 #include "../basics/move.h"
 
 #include <iomanip>
@@ -45,7 +48,7 @@ namespace QaplaSearch {
 				return;
 			}
 			const auto change = computeChange(depth + 1);
-			if (change == 0) {
+			if (change <= 0) {
 				return;
 			}
 			addToValue(move, change);
@@ -116,7 +119,7 @@ namespace QaplaSearch {
 			if (_board[index] < 0) {
 				_board[index] /= 2;
 			}
-			_board[index] += value;
+			_board[index] += value - _board[index] * std::abs(value) / gravity();
 			if (_board[index] > MAX_HIST) {
 				reduce();
 			}
@@ -127,7 +130,7 @@ namespace QaplaSearch {
 			if (_board[index] > 0) {
 				_board[index] /= 2;
 			}
-			_board[index] -= value;
+			_board[index] += -value - _board[index] * std::abs(value) / gravity();
 			if (_board[index] < -MAX_HIST) {
 				reduce();
 			}
@@ -137,8 +140,20 @@ namespace QaplaSearch {
 			return move.getPiceAndDestination();
 		}
 
-		constexpr statistic_t computeChange(ply_t depth) {
-			return depth * depth / 16;
+		// The change grows linearly with the depth up to a cap. The slope 128 is fixed: the values only sort
+		// moves, so scaling every constant of the update by one factor changes nothing, and one of them has
+		// to stay fixed for the others to be tunable.
+		statistic_t computeChange(ply_t depth) {
+			constexpr bool OPT = SearchConfig::optimizeHistory;
+			return std::min<statistic_t>(128 * depth - tunable<OPT, "historyBonusOffset", 128, 0, 256>(),
+				tunable<OPT, "historyBonusMax", 2560, 0, 5120>());
+		}
+
+		// Gravity: every update pulls the entry towards zero by |change| / gravity of its value, the
+		// entries saturate at +-gravity.
+		statistic_t gravity() {
+			constexpr bool OPT = SearchConfig::optimizeHistory;
+			return tunable<OPT, "historyGravity", 12800, 1, 25599>();
 		}
 
 		void reduce() {
