@@ -142,11 +142,12 @@ namespace QaplaSearch {
 
 		// The change grows linearly with the depth up to a cap. The slope 128 is fixed: the values only sort
 		// moves, so scaling every constant of the update by one factor changes nothing, and one of them has
-		// to stay fixed for the others to be tunable.
+		// to stay fixed for the others to be tunable. The cap is reached at depth 20 only, which test games
+		// at short time controls never search, so it cannot be tuned there and stays a constant.
 		statistic_t computeChange(ply_t depth) {
 			constexpr bool OPT = SearchConfig::optimizeHistory;
 			return std::min<statistic_t>(128 * depth - tunable<OPT, "historyBonusOffset", 128, 0, 256>(),
-				tunable<OPT, "historyBonusMax", 2560, 0, 5120>());
+				128 * 20);
 		}
 
 		// Gravity: every update pulls the entry towards zero by |change| / gravity of its value, the
