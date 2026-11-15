@@ -365,7 +365,7 @@ namespace QaplaSearch {
 			const bool doFutility = adjustedEval - margin >= beta;
 			if (doFutility) {
 				bestValue = beta + (adjustedEval - beta) * 10 / 
-					tunable<OPT, "ffBestValueDivisor", 20, 1, 41>();
+					tunable<OPT, "ffBestValueDivisor", 24, 1, 47>();
 			}
 			return doFutility;
 		}
