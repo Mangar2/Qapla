@@ -52,8 +52,7 @@ namespace QaplaSearch {
 				return;
 			}
 			addToValue(move, change);
-			const auto reduceCount = std::min(triedMoves, 7U);
-			for (uint32_t i = 0; i < reduceCount; i++) {
+			for (uint32_t i = 0; i < triedMoves; i++) {
 				const auto subMove = moves[i];
 				if (subMove == move) {
 					break;
