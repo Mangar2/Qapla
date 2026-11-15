@@ -72,7 +72,9 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 		node.isImproving = node.adjustedEval > evalBefore && evalBefore != NO_VALUE;
 	}
 	// Must be after node.probeTT, because futility uses the information from TT
-	if (node.forewardFutility(position) || node.forewardFutility2(position)) {
+	// Tested 0.5.0-028-3: fail low futility on the evaluation (eval + margin <= alpha), CLOP values 186/179/120/22:
+	// H0 accepted, bounds -3/+2, 514 games, 32.49 %. Removed.
+	if (node.forewardFutility(position)) {
 		node.setCutoff(Cutoff::FUTILITY);
 		return true;
 	} 

@@ -374,37 +374,6 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Examine, if we can do a futility pruning based on an evaluation score
-		 */
-		inline bool forewardFutility2(MoveGenerator& position) {
-			return false;
-			constexpr bool OPT = false;
-			if (10 <= remainingDepth) return false;
-			// We prune, if eval + margin is <= alpha.
-			if (adjustedEval >= alpha) return false;
-			// We do not prune in PV nodes. 
-			if (isPVNode()) return false;
-			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
-			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
-			// Avoids discarding moves solely because no special-case loss evaluation applies. 
-			if (beta < -MIN_MATE_VALUE) return false;
-			// Avoid trusting unproven winning scores to prevent pruning of forced wins.
-			if (alpha > WINNING_BONUS) return false;
-
-			// Each influence carries its own coefficient. The depth term and the constant part are
-			// separate, so a run can change the slope without moving the whole line.
-			const value_t margin = tunable<OPT, "ffDepthFactor2", 100, 0, 200>() * remainingDepth
-				+ tunable<OPT, "ffBase2", 100, 0, 200>()
-				+ tunable<OPT, "ffImprovingBonus2", 100, 0, 200>() * isImproving;
-			const bool doFutility = adjustedEval + margin <= alpha;
-			if (doFutility) {
-				bestValue = alpha - (alpha - adjustedEval) * 10 / 
-					tunable<OPT, "ffBestValueDivisor2", 20, 1, 41>();
-			}
-			return doFutility;
-		}
-
-		/**
 		 * Examine, if we can do a fail low futility pruning based on a quiescence value.
 		 * The quiescence rules out a direct material gain, which may allow a smaller margin
 		 * than a pruning on the plain evaluation.
