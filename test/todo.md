@@ -185,3 +185,22 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
   `test/sprt/sprt-standard.ini` mit `--each tc=8+0.04` (20+0.1 auf den M4 skaliert), `--sprt eloh0=-3 eloh1=2`,
   Concurrency 8: **H1 accepted nach 12053 Partien** (W 2756 D 6663 L 2634), Grenzen −3/+2.
 - **Abgeschaltet:** Default wieder 20, `git diff` leer.
+
+### 3. „No pruning on silent TT move“ entfernt — unentschieden
+
+- **Baseline:** 0.5.0-028-3-g3f460e1, EPD wmtest Tiefe 18: 248740566 Nodes.
+- **Zugeschaltet:** in `forewardFutility()` (`search/search-node.h`) die Zeile
+  `if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false;` auskommentiert. EPD: 249230983 Nodes,
+  anders - erreicht.
+- **SPRT (Linux, 2026-11-14 20:04 bis 2026-11-15 04:59):** gegen das Baseline-Binary,
+  `test/sprt/sprt-standard.ini` mit `--each tc=20+0.1`, `--sprt eloh0=-3 eloh1=2`, Concurrency 30:
+  **unentschieden nach 20000 Partien**, LLR 1.32 (W 4368 D 11304 L 4328), Grenzen −3/+2.
+- **Abgeschaltet:** Zeile wieder aktiv, `git diff` leer.
+
+### 4. forewardFutility2 — CLOP fertig, SPRT steht aus
+
+- **CLOP (M4, 2026-11-15 01:55 bis 03:55):** `return false;` auskommentiert, `constexpr bool OPT =
+  SearchConfig::optimizeFutility` statt `false`, `optimizeFutility = true`; die vier Parameter in einem Lauf (Mitten
+  100/100/100/20), 4000 Samples, `test/clop/clop-standard.ini` mit `--each tc=2+0.004`, Concurrency 8. Schätzungen
+  ffDepthFactor2 **186.26**, ffBase2 **178.75**, ffImprovingBonus2 **119.94**, ffBestValueDivisor2 **21.91** -
+  gerundet 186 / 179 / 120 / 22. Die ersten beiden nahe an der Obergrenze 200.
