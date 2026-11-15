@@ -44,27 +44,6 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
 
 ## Offen
 
-### 5. ffMargin (ffDepthFactor, ffBase, ffImprovingBonus) — CLOP, dann SPRT
-
-- **Was:** Die Marge in `forewardFutility()` (`search/search-node.h`):
-  `margin = ffDepthFactor * remainingDepth + ffBase - ffImprovingBonus * isImproving`,
-  Defaults 83 / 69 / 101, UCI-Grenzen 0–166 / 0–138 / 0–202, Gruppenflag
-  `SearchConfig::optimizeFutility`. Die drei Koeffizienten wurden noch nie gemeinsam getunt.
-  ffDepthLimit und Divisor stehen auf ihren Defaults und laufen nicht mit.
-- **Beobachtung (2026-09-17):** bei `isImproving` und kleiner Tiefe wird die Marge negativ
-  (Tiefe 0: 83·0 + 69 − 101 = −32, Tiefe 1: 51 − 101 < 0 ab isImproving). Dann würde
-  `adjustedEval - margin >= beta` schon bei `adjustedEval < beta` prunen; die Guard
-  `if (adjustedEval < beta) return false;` fängt das ab. Sie bleibt im Lauf unverändert — der
-  Lauf soll zeigen, ob die Koeffizienten so liegen sollen, dass die Marge negativ wird, oder nicht.
-- **CLOP:** Flag auf true, `make Release -j`, Optionen per `uci` prüfen. Drei Parameter, Mitten =
-  Defaults:
-  `--clopvalue name=ffDepthFactor min=0 max=166 --clopvalue name=ffBase min=0 max=138 --clopvalue name=ffImprovingBonus min=0 max=202`
-  ~3000 Samples, `test/clop/clop-standard.ini`. Runden.
-- **Zuschalten:** Flag zurück auf false, die drei Defaults durch die CLOP-Werte ersetzen.
-- **SPRT:** `test/sprt/sprt-standard.ini` mit `--each tc=20+0.1` (vor den `--engine`-Blöcken) und
-  `--sprt eloh0=-3 eloh1=2 file=test/log/sprt-ffMargin.state`.
-- **Abschalten:** Defaults wieder 83 / 69 / 101.
-
 ### 6. forewardFutility3 (Fail-Low-Pruning auf Quiescence-Wert) — CLOP, dann SPRT
 
 - **Was:** `forewardFutility3()` in `search/search-node.h` prunt fail low wie
@@ -144,3 +123,17 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
   release0.5 mit `--each tc=8+0.04` (Studio mit 12 Engines ~ Linux 20+0.1), `--sprt eloh0=-3 eloh1=2`,
   Concurrency 12: **H0 accepted nach 514 Partien** (W 56 D 222 L 236), Grenzen −3/+2.
 - **Abgeschaltet:** auf release0.5 nie eingeschaltet, `git diff` leer.
+
+### 5. ffMargin — H1 accepted
+
+- **Baseline:** 0.5.0-028-3-g3f460e1, EPD wmtest Tiefe 18: 248740566 Nodes.
+- **CLOP (Linux, 2026-11-15 07:30 bis 09:45):** `optimizeFutility = true`, die drei Koeffizienten
+  `ffDepthFactor min=0 max=166`, `ffBase min=0 max=138`, `ffImprovingBonus min=0 max=202` (Mitten = Defaults 83 / 69 /
+  101), 3000 Samples, `test/clop/clop-standard.ini` (5+0.01), Concurrency 15. Schätzungen ffDepthFactor **89.68**,
+  ffBase **84.13**, ffImprovingBonus **122.36** - gerundet 90 / 84 / 122.
+- **Zugeschaltet:** auf 0.5.0-028-3-g3f460e1 in `forewardFutility()` (`search/search-node.h`) die Defaults 90 / 84 /
+  122 statt 83 / 69 / 101. EPD: 257368343 Nodes, anders - erreicht.
+- **SPRT (Linux, 2026-11-15 13:04 bis 19:52):** gegen das Baseline-Binary, `test/sprt/sprt-standard.ini` mit
+  `--each tc=20+0.1`, `--sprt eloh0=-3 eloh1=2`, Concurrency 30: **H1 accepted nach 15304 Partien** (W 3406 D 8610
+  L 3288), Grenzen −3/+2.
+- **Abgeschaltet:** auf release0.5 nie eingeschaltet (gebaut auf einem Checkout von 3f460e1), `git diff` leer.
