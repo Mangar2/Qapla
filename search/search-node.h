@@ -349,7 +349,8 @@ namespace QaplaSearch {
 			// We do not prune in PV nodes. 
 			if (isPVNode()) return false;
 			// We do not prune, if we have a silent TT move, because silent TT moves are only available, if they have been in the search window before.
-			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false; 
+			// Tested 0.5.0-028-3: without this line: undecided, bounds -3/+2, 20000 games, 50.10 %
+			if (!getTTMove().isEmpty() && !getTTMove().isCapture()) return false;
 			// Tested 0.4.0-081: no futility pruning when the tt value is <= alpha: flat at
 			// 50.0 %, undecided after 20000 games
 			// if (ttValueIsLessOrEqualAlpha) return false;
