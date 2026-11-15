@@ -74,9 +74,8 @@ namespace QaplaSearch {
 		}
 
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
-		// Tested 0.4.0-037 and 0.4.0-041: 14 instead of 7: flat both times, 20000 games each.
-		// 0.5.0-035: all silent moves (the move list holds at most 300), with the history of 0.5.0-034
-		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 300;
+		// Tested 0.4.0-037 and 0.4.0-041: 14 instead of 7: flat both times, 20000 games each
+		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
