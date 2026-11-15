@@ -1815,3 +1815,24 @@ branch `test/history-points` against variant 0 (identical to 0.5.0-029), `test/s
 EPD nodes 252572679, identical to 029: the EPD run clears the tables before every position, so this change can only
 show in games. One of six single tests of Stockfish's history differences (v2, v5, v6, v7 H1; v4 H0; v1 undecided;
 v3 alone never acts) - the series needs a closing run against 0.5.0-029 once its winners are in.
+
+## 0.5.0-033 — Stockfish-style history update with CLOP values
+
+The butterfly board's update in the shape of Stockfish's main history (history variant 7: change size and saturation,
+H1 accepted against variant 0 after 6429 games), in Volker's scale:
+`b = min(128 (d + 1) - historyBonusOffset, 128 * 20)`, `h += b - h |b| / historyGravity` for the best move and
+`h += -b - h |b| / historyGravity` for the tried quiet moves. The slope 128 is fixed: the values only sort moves, so
+scaling every constant by one factor changes nothing. The cap 128 * 20 is fixed too: it is reached from depth 20 on
+only, which test games never search. The halving on a change of sign stays (variant 4 without it: H0).
+CLOP on the Studio, 2500 samples at 2+0.004, 12 engines, middles 128 / 12800: historyBonusOffset 130.70 → 131,
+historyGravity 13999.65 → 14000. No SPRT of its own; the history work is measured as a whole, see 034.
+
+## 0.5.0-034 — history malus for every tried quiet move
+
+033 plus the malus for every quiet move tried before the best one, not only the first 7 (history variant 5: H1
+accepted against variant 0 after 11497 games). EPD nodes 247216911.
+- SPRT against 0.5.0-033 on the Studio, `test/sprt/sprt-standard.ini` with `--each tc=2+0.004`, 12 engines, bounds
+  −2/+3: **H1 accepted after 3866 games**, W 1069 D 1876 L 921.
+- SPRT against 0.5.0-029 with the bounds at the target - the Stockfish history technique measured +23 ±5 Elo over
+  029's butterfly board (tournament, 10000 games, Linux 5+0.01) - H0 = 20, H1 = 25, Studio 2+0.004, 12 engines:
+  **undecided at the 20000 game limit**, LLR −0.74, W 5531 D 9801 L 4668.
