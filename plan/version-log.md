@@ -1836,3 +1836,11 @@ accepted against variant 0 after 11497 games). EPD nodes 247216911.
 - SPRT against 0.5.0-029 with the bounds at the target - the Stockfish history technique measured +23 ±5 Elo over
   029's butterfly board (tournament, 10000 games, Linux 5+0.01) - H0 = 20, H1 = 25, Studio 2+0.004, 12 engines:
   **undecided at the 20000 game limit**, LLR −0.74, W 5531 D 9801 L 4668.
+
+## 0.5.0-035 — all silent moves sorted by history
+
+`AMOUNT_OF_SORTED_NON_CAPTURE_MOVES` 7 → all (300), with the history of 0.5.0-034 (14 instead of 7 was flat twice
+under the old history, 0.4.0-037 and 0.4.0-041). EPD nodes 247216911 → 240291488, different.
+SPRT against 0.5.0-034 on the Studio, `test/sprt/sprt-standard.ini` with `--each tc=2.3+0.005` (Linux 5+0.01 by the
+systemtest), 12 engines, bounds −2/+3: **H0 accepted after 6293 games**, W 1483 D 3194 L 1616.
+Reverted, the commit is on `dead/sort-all`.
