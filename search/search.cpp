@@ -353,8 +353,14 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	if (!node.isImproving && numerator >= divisor) {
 		numerator += tunable<OPT, "lmrNotImprovingAdd", 133, 0, 266>();
 	}
+	// A move with a good history is reduced less, one with a bad history more, as Stockfish does with
+	// its statScore. The butterfly values saturate at about +-historyGravity (14000), so at a factor
+	// of 19 the strongest history shifts the reduction by about one ply of a non PV node (divisor 261).
+	// The factor belongs to the history group: its scale is the history's scale.
+	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
+	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 0, -64, 64>() / 1024;
 
-	return static_cast<ply_t>(numerator / divisor);
+	return static_cast<ply_t>(std::max(numerator, 0) / divisor);
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
