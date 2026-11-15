@@ -57,17 +57,20 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Starts a new game or sets a new position e.g. by fen
+		 * Clears the memories this search owns. The history tables belong to IterativeDeepening,
+		 * which clears them.
 		 */
-		void startNewGame() {
-			_butterflyBoard->clear();
-			_continuationHistory->clear();
+		void clearMemories() {
+			_pawnTT.clear();
 		}
 
-		void clearMemories() {
-			_butterflyBoard->clear();
-			_continuationHistory->clear();
-			_pawnTT.clear();
+		/**
+		 * Hands the master search the history tables of the engine, see IterativeDeepening. There is
+		 * exactly one butterfly board and one continuation history for all searches and threads.
+		 */
+		void setHistory(ButterflyBoard* butterflyBoard, ContinuationHistory* continuationHistory) {
+			_butterflyBoard = butterflyBoard;
+			_continuationHistory = continuationHistory;
 		}
 
 		/**
@@ -167,12 +170,14 @@ namespace QaplaSearch {
 
 		/**
 		 * Makes this the master search of an extra search, see ExtraSearch: it runs on its
-		 * own clock, never prints and keeps a history of its own.
+		 * own clock and never prints. It shares the history tables of the engine.
 		 */
-		void initAsExtraSearch(ClockManager* clockManager, TT* tt) {
+		void initAsExtraSearch(ClockManager* clockManager, TT* tt, ButterflyBoard* butterflyBoard,
+			ContinuationHistory* continuationHistory) {
 			_isMaster = false;
 			_clockManager = clockManager;
 			_quiescence.setTT(tt);
+			setHistory(butterflyBoard, continuationHistory);
 		}
 
 		/**
@@ -433,14 +438,12 @@ namespace QaplaSearch {
 		uint64_t _waitMicroseconds = 0;
 		uint64_t _helpMicroseconds = 0;
 
-		// The history the move ordering reads. Shared: a helper points to the master's, see
-		// initAsHelper. Lost updates between threads are accepted, it holds ordering weights only.
-		ButterflyBoard _ownButterflyBoard;
-		// The tables keyed by earlier moves of the search line, shared like the butterfly board
-		ContinuationHistory _ownContinuationHistory;
 	public:
-		ButterflyBoard* _butterflyBoard = &_ownButterflyBoard;
-		ContinuationHistory* _continuationHistory = &_ownContinuationHistory;
+		// The history tables the move ordering reads, owned by IterativeDeepening: exactly one of
+		// each for all searches and threads (setHistory, initAsHelper, initAsExtraSearch). Lost
+		// updates between threads are accepted, they hold ordering weights only.
+		ButterflyBoard* _butterflyBoard = nullptr;
+		ContinuationHistory* _continuationHistory = nullptr;
 	};
 }
 

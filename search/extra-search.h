@@ -17,9 +17,9 @@
  * @copyright Copyright (c) 2026 Volker Böhm
  * @Overview
  * A search that runs beside the master's search on the same position, with threads of its
- * own, and contributes nothing but what it writes into the shared transposition table. It
- * starts with the master's search and is stopped when the master is done. It never checks
- * the clock and reports nothing.
+ * own. It shares the transposition table and the history tables with the master's search and
+ * contributes nothing else. It starts with the master's search and is stopped when the master
+ * is done. It never checks the clock and reports nothing.
  */
 
 #ifndef __EXTRA_SEARCH_H
@@ -44,7 +44,8 @@ namespace QaplaSearch {
 		 * @param threads threads the search may use, its master included
 		 */
 		void start(const MoveGenerator& position, const std::vector<Move>& searchMoves,
-			bool hasRepeatedPosition, uint32_t threads, TT* tt)
+			bool hasRepeatedPosition, uint32_t threads, TT* tt, ButterflyBoard* butterflyBoard,
+			ContinuationHistory* continuationHistory)
 		{
 			stop();
 			_threads.resize(threads, tt);
@@ -52,6 +53,8 @@ namespace QaplaSearch {
 			_searchMoves = searchMoves;
 			_hasRepeatedPosition = hasRepeatedPosition;
 			_tt = tt;
+			_butterflyBoard = butterflyBoard;
+			_continuationHistory = continuationHistory;
 			// Analyse mode: the clock never ends this search, stop does
 			ClockSetting setting;
 			setting.setAnalyseMode();
@@ -94,7 +97,7 @@ namespace QaplaSearch {
 		void run() {
 			Search& search = _threads.master().search;
 			SearchStack& stack = _threads.master().stack;
-			search.initAsExtraSearch(&_clock, _tt);
+			search.initAsExtraSearch(&_clock, _tt, _butterflyBoard, _continuationHistory);
 			search.startNewSearch(_root, _searchMoves, _hasRepeatedPosition);
 			for (uint32_t index = 1; index < _threads.size(); index++) {
 				SearchThread& helper = _threads[index];
@@ -128,6 +131,8 @@ namespace QaplaSearch {
 		std::vector<Move> _searchMoves;
 		bool _hasRepeatedPosition = false;
 		TT* _tt = nullptr;
+		ButterflyBoard* _butterflyBoard = nullptr;
+		ContinuationHistory* _continuationHistory = nullptr;
 		std::thread _thread;
 	};
 

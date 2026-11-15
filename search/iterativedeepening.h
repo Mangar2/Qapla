@@ -77,6 +77,8 @@ namespace QaplaSearch {
 		 */
 		void clearMemories() {
 			_tt.clear();
+			_butterflyBoard->clear();
+			_continuationHistory->clear();
 			for (uint32_t index = 0; index < _threads.size(); index++) {
 				_threads[index].search.clearMemories();
 			}
@@ -175,7 +177,7 @@ namespace QaplaSearch {
 			// The extra searches start now and run until the master's search is done
 			for (size_t index = 0; index < _extraSearches.size(); index++) {
 				_extraSearches[index]->start(searchBoard, searchMoves, moveHistory.hasRepeatedPosition(searchBoard),
-					_searchThreads[index + 1], &_tt);
+					_searchThreads[index + 1], &_tt, _butterflyBoard.get(), _continuationHistory.get());
 			}
 
 			for (ply_t curDepth = 0; curDepth < maxDepth; curDepth++) {
@@ -295,6 +297,7 @@ namespace QaplaSearch {
 			if (_threads.size() == uint32_t(_searchThreads[0])) return;
 			_threads.resize(_searchThreads[0], &_tt);
 			_search = &_threads.master().search;
+			_search->setHistory(_butterflyBoard.get(), _continuationHistory.get());
 			_search->setSendSearchInfoInterface(_sendSearchInfo, _verbose);
 			_search->setMultiPV(_multiPV);
 			_search->setExtraSearchTotals(_extraSearches.empty() ? nullptr : this);
@@ -366,6 +369,11 @@ namespace QaplaSearch {
 		ClockSetting _clockSetting;
 		ClockManager _clockManager;
 		TT _tt;
+		// The history tables of the engine: exactly one butterfly board and one continuation history,
+		// shared by the master, its helpers and the extra searches. On the heap, the continuation
+		// history is large.
+		std::unique_ptr<ButterflyBoard> _butterflyBoard = std::make_unique<ButterflyBoard>();
+		std::unique_ptr<ContinuationHistory> _continuationHistory = std::make_unique<ContinuationHistory>();
 		// The master's search, owned by the first of the threads
 		Search* _search = nullptr;
 		int32_t _threadCount = 1;
