@@ -341,7 +341,7 @@ namespace QaplaSearch {
 		 */
 		inline bool forewardFutility(MoveGenerator& position) {
 			constexpr bool OPT = SearchConfig::optimizeFutility;
-			if (tunable<OPT, "ffDepthLimit", 10, 0, 20>() <= remainingDepth) return false;
+			if (tunable<OPT, "ffDepthLimit", 12, 0, 24>() <= remainingDepth) return false;
 			// We prune, if eval - margin is >= beta. This term prevents pruning below beta on negative futility margins.
 			if (adjustedEval < beta) return false;
 			if (adjustedEval - tunable<OPT, "ffMargin", 0, -50, 50>() < beta) return false;
