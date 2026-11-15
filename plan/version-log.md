@@ -1864,5 +1864,5 @@ Built on 0.5.0-034 (035 reverted). No SPRT of the version as a whole; Volker pla
   exactly one butterfly board and one continuation history for the whole engine, owned by `IterativeDeepening`: the
   extra searches share them with the master's search instead of keeping their own - a change of play with more than
   one search, invisible with one thread.
-- EPD wmtest depth 18: 220469199 (034 plus the LMR term) → 208483416 nodes, the change coming from the futility margin;
-  every step without an intended change was node identical.
+- EPD wmtest depth 18: 0.5.0-034 247216911 → 0.5.0-036 208483416 nodes; every step without an intended change of
+  play was node identical.
