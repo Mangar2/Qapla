@@ -361,9 +361,10 @@ namespace QaplaSearch {
 
 			// Each influence carries its own coefficient. The depth term and the constant part are
 			// separate, so a run can change the slope without moving the whole line.
-			const value_t margin = tunable<OPT, "ffDepthFactor", 83, 0, 166>() * remainingDepth
-				+ tunable<OPT, "ffBase", 69, 0, 138>()
-				- tunable<OPT, "ffImprovingBonus", 101, 0, 202>() * isImproving;
+			// Tested 0.5.0-028-3: 90 / 84 / 122 instead of 83 / 69 / 101: H1 accepted, bounds -3/+2, 15304 games, 50.39 %
+			const value_t margin = tunable<OPT, "ffDepthFactor", 90, 0, 180>() * remainingDepth
+				+ tunable<OPT, "ffBase", 84, 0, 168>()
+				- tunable<OPT, "ffImprovingBonus", 122, 0, 244>() * isImproving;
 			const bool doFutility = adjustedEval - margin >= beta;
 			if (doFutility) {
 				// Tested 0.5.0-028-3: divisor 24 instead of 20: H1 accepted, bounds -3/+2, 12053 games, 50.51 %
