@@ -105,7 +105,9 @@ namespace QaplaSearch {
 		 */
 		void sortSilentMoves(ButterflyBoard& butterflyBoard) {
 			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
-				moveList.setWeight(moveNo, butterflyBoard.getValue(moveList.getMove(moveNo)));
+				// A move already handed out (killer, follow-up) is left as an empty slot and has no history
+				const Move move = moveList.getMove(moveNo);
+				moveList.setWeight(moveNo, move.isEmpty() ? 0 : butterflyBoard.getValue(move));
 			}
 			moveList.sortFirstSilentMoves(SearchConfig::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
 		}

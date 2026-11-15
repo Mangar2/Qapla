@@ -27,43 +27,9 @@
 #include "../basics/move.h"
 #include "searchdef.h"
 #include "searchstack.h"
+#include "butterfly-boards.h"
 
 namespace QaplaSearch {
-
-	/**
-	 * One entry of type T per moving piece and destination square of a move, in one flat array.
-	 * Index = (moving piece - WHITE_PAWN) * 64 + destination: the pieces run from WHITE_PAWN (2) to
-	 * BLACK_KING (13), so 12 x 64 = 768 entries without gaps. The constant -128 folds into the
-	 * address offset.
-	 */
-	template<typename T>
-	class MoveKeyedTable {
-	public:
-		static constexpr uint32_t SIZE = (QaplaBasics::BLACK_KING - QaplaBasics::WHITE_PAWN + 1) * QaplaBasics::BOARD_SIZE;
-
-		T& operator[](QaplaBasics::Move move) { return _table[computeIndex(move)]; }
-		const T& operator[](QaplaBasics::Move move) const { return _table[computeIndex(move)]; }
-
-		void fill(const T& value) { _table.fill(value); }
-
-		/**
-		 * @returns true, if the move can key the table. An empty move (root, start of the search)
-		 * and the null move carry no piece. Checked by assert only: the caller knows these cases
-		 * and does not access the table for them.
-		 */
-		static constexpr bool isKey(QaplaBasics::Move move) {
-			return !move.isEmpty() && !move.isNullMove();
-		}
-
-	private:
-		static constexpr uint32_t computeIndex(QaplaBasics::Move move) {
-			assert(isKey(move));
-			return (uint32_t(move.getMovingPiece()) - QaplaBasics::WHITE_PAWN) * QaplaBasics::BOARD_SIZE
-				+ uint32_t(move.getDestination());
-		}
-
-		std::array<T, SIZE> _table;
-	};
 
 	/**
 	 * Follow-up move: the move that was best after the own move two plies back. Keyed by piece

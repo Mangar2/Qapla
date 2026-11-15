@@ -22,6 +22,7 @@
 #define __BUTTERFLY_BOARDS_H
 
 #include <array>
+#include <cassert>
 #include <cstdlib>
 #include "searchdef.h"
 #include "search-config.h"
@@ -35,6 +36,41 @@ using namespace QaplaBasics;
 namespace QaplaSearch {
 
 	using statistic_t = int32_t;
+
+	/**
+	 * One entry of type T per moving piece and destination square of a move, in one flat array.
+	 * Index = (moving piece - WHITE_PAWN) * 64 + destination: the pieces run from WHITE_PAWN (2) to
+	 * BLACK_KING (13), so 12 x 64 = 768 entries without gaps. The constant -128 folds into the
+	 * address offset.
+	 */
+	template<typename T>
+	class MoveKeyedTable {
+	public:
+		static constexpr uint32_t SIZE = (QaplaBasics::BLACK_KING - QaplaBasics::WHITE_PAWN + 1) * QaplaBasics::BOARD_SIZE;
+
+		T& operator[](QaplaBasics::Move move) { return _table[index(move)]; }
+		const T& operator[](QaplaBasics::Move move) const { return _table[index(move)]; }
+
+		void fill(const T& value) { _table.fill(value); }
+
+		/**
+		 * @returns true, if the move can key the table. An empty move (root, start of the search)
+		 * and the null move carry no piece. Checked by assert only: the caller knows these cases
+		 * and does not access the table for them.
+		 */
+		static constexpr bool isKey(QaplaBasics::Move move) {
+			return !move.isEmpty() && !move.isNullMove();
+		}
+
+	private:
+		static constexpr uint32_t index(QaplaBasics::Move move) {
+			assert(isKey(move));
+			return (uint32_t(move.getMovingPiece()) - QaplaBasics::WHITE_PAWN) * QaplaBasics::BOARD_SIZE
+				+ uint32_t(move.getDestination());
+		}
+
+		std::array<T, SIZE> _table;
+	};
 
 	class ButterflyBoard {
 	public:
@@ -63,9 +99,8 @@ namespace QaplaSearch {
 			}
 		}
 	
-		statistic_t getValue(QaplaBasics::Move move) {
-			uint32_t index = computeIndex(move);
-			return _board[index];
+		statistic_t getValue(QaplaBasics::Move move) const {
+			return _board[move];
 		}
 
 		void print() {
@@ -98,39 +133,24 @@ namespace QaplaSearch {
 		}
 
 
-		void count() {
-			uint32_t positive = 0;
-			uint32_t negative = 0;
-			for (uint32_t i = 0; i < ButterflyBoard::SIZE; i++) {
-				if (_board[i] > 0) {
-					positive++;
-				}
-				if (_board[i] < 0) {
-					negative++;
-				}
-			}
-			std::cout << "Positive: " << positive << " Negative: " << negative << std::endl;
-		}
 	private:
 
+		// A change against the sign of the entry first halves it; then gravity pulls the entry towards
+		// zero by |change| / gravity of its value, so the entries saturate at +-gravity.
 		void addToValue(QaplaBasics::Move move, statistic_t value) {
-			uint32_t index = computeIndex(move);
-			if (_board[index] < 0) {
-				_board[index] /= 2;
+			statistic_t& entry = _board[move];
+			if (entry < 0) {
+				entry /= 2;
 			}
-			_board[index] += value - _board[index] * std::abs(value) / gravity();
+			entry += value - entry * std::abs(value) / gravity();
 		}
 
 		void subFromValue(QaplaBasics::Move move, statistic_t value) {
-			uint32_t index = computeIndex(move);
-			if (_board[index] > 0) {
-				_board[index] /= 2;
+			statistic_t& entry = _board[move];
+			if (entry > 0) {
+				entry /= 2;
 			}
-			_board[index] += -value - _board[index] * std::abs(value) / gravity();
-		}
-
-		constexpr uint32_t computeIndex(QaplaBasics::Move move) {
-			return move.getPiceAndDestination();
+			entry += -value - entry * std::abs(value) / gravity();
 		}
 
 		// The change grows linearly with the depth up to a cap. The slope 128 is fixed: the values only sort
@@ -150,9 +170,49 @@ namespace QaplaSearch {
 			return tunable<OPT, "historyGravity", 14000, 1, 25599>();
 		}
 
-		static const uint32_t SIZE = 0x1000;
-		std::array<statistic_t, SIZE> _board;
+		MoveKeyedTable<statistic_t> _board;
 
+	};
+
+	/**
+	 * One row of the continuation history: the history of every move played after one earlier move
+	 * of the search line - a butterfly board of its own, filled the same way. A node holds a pointer
+	 * to the row of the move that led into it, chosen once when the move is made.
+	 */
+	using ContinuationHistoryRow = ButterflyBoard;
+
+	/**
+	 * Continuation history: one butterfly board per earlier move, keyed by its moving piece and
+	 * destination - 768 rows of 768 values. All distances (the move one ply back, two plies back,
+	 * ...) share this one table; they differ only in which ply's row pointer a node uses, the
+	 * caller's choice. Moves that cannot key a row (the empty move at the root, the null move) get
+	 * the dummy row: it is read like any other and never updated.
+	 */
+	class ContinuationButterflyBoard {
+	public:
+		void clear() {
+			_dummy.clear();
+			_rows.fill(_dummy);
+		}
+
+		/**
+		 * @returns the row of the moves played after previousMove, the dummy row for an empty or
+		 * null move
+		 */
+		ContinuationHistoryRow* getRow(QaplaBasics::Move previousMove) {
+			return MoveKeyedTable<ContinuationHistoryRow>::isKey(previousMove) ? &_rows[previousMove] : &_dummy;
+		}
+
+		/**
+		 * @returns true, if row is the dummy row, which is never updated
+		 */
+		bool isDummy(const ContinuationHistoryRow* row) const {
+			return row == &_dummy;
+		}
+
+	private:
+		MoveKeyedTable<ContinuationHistoryRow> _rows;
+		ContinuationHistoryRow _dummy;
 	};
 };
 
