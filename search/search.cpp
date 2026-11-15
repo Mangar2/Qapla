@@ -357,8 +357,9 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// its statScore. The butterfly values saturate at about +-historyGravity (14000), so at a factor
 	// of 19 the strongest history shifts the reduction by about one ply of a non PV node (divisor 261).
 	// The factor belongs to the history group: its scale is the history's scale.
+	// CLOP (M4, 2000 samples at 3.3+0.007, range -64..64 around 0): 39.78.
 	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
-	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 0, -64, 64>() / 1024;
+	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 40, 0, 80>() / 1024;
 
 	return static_cast<ply_t>(std::max(numerator, 0) / divisor);
 }
