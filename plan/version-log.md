@@ -1844,3 +1844,25 @@ under the old history, 0.4.0-037 and 0.4.0-041). EPD nodes 247216911 → 2402914
 SPRT against 0.5.0-034 on the Studio, `test/sprt/sprt-standard.ini` with `--each tc=2.3+0.005` (Linux 5+0.01 by the
 systemtest), 12 engines, bounds −2/+3: **H0 accepted after 6293 games**, W 1483 D 3194 L 1616.
 Reverted, the commit is on `dead/sort-all`.
+
+## 0.5.0-036 — futility values, history term in the late move reduction, cleanup
+
+Built on 0.5.0-034 (035 reverted). No SPRT of the version as a whole; Volker plays it in a tournament.
+- **Forward futility values** from the evaluations of `test/todo.md`, each measured on 0.5.0-028-3-g3f460e1 and taken
+  over without a new test (Volker): depth limit 12 instead of 10 (item 1, H1 accepted after 16509 games, bounds
+  −3/+2), best value divisor 24 instead of 20 (item 2, H1 accepted after 12053 games, bounds −3/+2), margin 90 / 84 /
+  122 instead of 83 / 69 / 101 (item 5, H1 accepted after 15304 games, bounds −3/+2). Each result is noted at its line.
+- **`forewardFutility2` removed** (item 4: H0 accepted after 514 games); it was switched off, nodes identical.
+- **History term in the late move reduction**: `numerator -= history * lmrHistoryFactor / 1024`, the reduction
+  clamped at 0, as Stockfish lowers its reduction by statScore. CLOP on the M4 (2000 samples at 3.3+0.007): 39.78 →
+  40. SPRT 40 against 0 on the M4, 3.3+0.007, bounds −2/+3: **H1 accepted after 4257 games**, W 1110 D 2180 L 967.
+- **Cleanup**: the switch `USE_FOLLOW_UP_MOVE` removed (follow-up move always on), the butterfly board's overflow
+  guard removed (with the gravity the entries stay near ±14000), the follow-up placement tests 030 / 031 noted at the
+  stage and their branches renamed to `dead/`.
+- **History tables**: the butterfly board keeps its values in a `MoveKeyedTable` (768 entries instead of 4096); a
+  `ContinuationButterflyBoard` (768 butterfly boards, one per earlier move) exists but is not used yet. There is now
+  exactly one butterfly board and one continuation history for the whole engine, owned by `IterativeDeepening`: the
+  extra searches share them with the master's search instead of keeping their own - a change of play with more than
+  one search, invisible with one thread.
+- EPD wmtest depth 18: 220469199 (034 plus the LMR term) → 208483416 nodes, the change coming from the futility margin;
+  every step without an intended change was node identical.
