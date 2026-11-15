@@ -197,10 +197,16 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
   **unentschieden nach 20000 Partien**, LLR 1.32 (W 4368 D 11304 L 4328), Grenzen −3/+2.
 - **Abgeschaltet:** Zeile wieder aktiv, `git diff` leer.
 
-### 4. forewardFutility2 — CLOP fertig, SPRT steht aus
+### 4. forewardFutility2 — H0 accepted
 
 - **CLOP (M4, 2026-11-15 01:55 bis 03:55):** `return false;` auskommentiert, `constexpr bool OPT =
   SearchConfig::optimizeFutility` statt `false`, `optimizeFutility = true`; die vier Parameter in einem Lauf (Mitten
   100/100/100/20), 4000 Samples, `test/clop/clop-standard.ini` mit `--each tc=2+0.004`, Concurrency 8. Schätzungen
   ffDepthFactor2 **186.26**, ffBase2 **178.75**, ffImprovingBonus2 **119.94**, ffBestValueDivisor2 **21.91** -
   gerundet 186 / 179 / 120 / 22. Die ersten beiden nahe an der Obergrenze 200.
+- **Zugeschaltet:** auf 0.5.0-028-3-g3f460e1 `return false;` in `forewardFutility2()` auskommentiert, Flag false,
+  Defaults 186 / 179 / 120 / 22. EPD: 238856561 Nodes (Baseline 248740566), anders - erreicht.
+- **SPRT (Studio, 2026-11-15 07:29 bis 07:43):** gegen das Baseline-Binary, `test/sprt/sprt-standard.ini` von
+  release0.5 mit `--each tc=8+0.04` (Studio mit 12 Engines ~ Linux 20+0.1), `--sprt eloh0=-3 eloh1=2`,
+  Concurrency 12: **H0 accepted nach 514 Partien** (W 56 D 222 L 236), Grenzen −3/+2.
+- **Abgeschaltet:** auf release0.5 nie eingeschaltet, `git diff` leer.
