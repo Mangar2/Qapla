@@ -119,7 +119,8 @@ namespace QaplaSearch {
 		 */
 		void sortSilentMoves(const ButterflyBoard& butterflyBoard, const ContinuationHistoryRow& continuationRow) {
 			constexpr bool OPT = SearchConfig::optimizeHistory;
-			const statistic_t weight = tunable<OPT, "contHistWeight", 0, -1024, 1024>();
+			// CLOP (M4, 2000 samples at 3.3+0.007, range 0..2048 around 1024): 1087.23
+			const statistic_t weight = tunable<OPT, "contHistWeight", 1087, 0, 2174>();
 			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				// A move already handed out (killer, follow-up) is left as an empty slot and has no history
 				const Move move = moveList.getMove(moveNo);
