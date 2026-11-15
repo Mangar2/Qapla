@@ -119,9 +119,6 @@ namespace QaplaSearch {
 				_board[index] /= 2;
 			}
 			_board[index] += value - _board[index] * std::abs(value) / gravity();
-			if (_board[index] > MAX_HIST) {
-				reduce();
-			}
 		}
 
 		void subFromValue(QaplaBasics::Move move, statistic_t value) {
@@ -130,9 +127,6 @@ namespace QaplaSearch {
 				_board[index] /= 2;
 			}
 			_board[index] += -value - _board[index] * std::abs(value) / gravity();
-			if (_board[index] < -MAX_HIST) {
-				reduce();
-			}
 		}
 
 		constexpr uint32_t computeIndex(QaplaBasics::Move move) {
@@ -156,13 +150,6 @@ namespace QaplaSearch {
 			return tunable<OPT, "historyGravity", 14000, 1, 25599>();
 		}
 
-		void reduce() {
-			for (uint32_t i = 0; i < SIZE; i++) {
-				_board[i] /= 2;
-			}
-		}
-
-		static const statistic_t MAX_HIST = 0x70000000;
 		static const uint32_t SIZE = 0x1000;
 		std::array<statistic_t, SIZE> _board;
 

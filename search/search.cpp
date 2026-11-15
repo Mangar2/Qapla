@@ -128,11 +128,11 @@ Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, S
 		if (!move.isEmpty()) return move;
 		[[fallthrough]];
 	case MoveType::FOLLOW_UP_MOVE:
+		// Tested 0.5.0-030: before the first killer: undecided, bounds -2/+3, 20000 games, 49.82 %, dead/followup-before-killer1
+		// Tested 0.5.0-031: after the second killer: undecided, bounds -2/+3, 20000 games, 49.98 %, dead/followup-after-killer2
 		node.selectStage = MoveType::KILLER2;
-		if constexpr (SearchConfig::USE_FOLLOW_UP_MOVE) {
-			move = provider.selectProposedMove(_continuationHistory->getFollowUpMove(stack, node.ply));
-			if (!move.isEmpty()) return move;
-		}
+		move = provider.selectProposedMove(_continuationHistory->getFollowUpMove(stack, node.ply));
+		if (!move.isEmpty()) return move;
 		[[fallthrough]];
 	case MoveType::KILLER2:
 		node.selectStage = MoveType::SORT_MOVES;
@@ -646,10 +646,8 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
 			// Quiet moves only: a capture would only take the place of a quiet answer, the
 			// capture stages order captures
-			if constexpr (SearchConfig::USE_FOLLOW_UP_MOVE) {
-				if (!node.bestMove.isCaptureOrPromote()) {
-					_continuationHistory->setMove(stack, ply, node.bestMove);
-				}
+			if (!node.bestMove.isCaptureOrPromote()) {
+				_continuationHistory->setMove(stack, ply, node.bestMove);
 			}
 		}
 	}
