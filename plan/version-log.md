@@ -1786,14 +1786,14 @@ rebuilt version ran 98.6 s against 100.2 s in four interleaved pairs, every run 
 
 ## 0.5.0-030 — follow-up move before the first killer
 
-Branch `followup-before-killer1`, not merged. SPRT against 0.5.0-029 (the follow-up move after the first killer),
+Branch `dead/followup-before-killer1`, not merged. SPRT against 0.5.0-029 (the follow-up move after the first killer),
 `test/sprt/sprt-standard.ini` as it is (5+0.01, bounds −2/+3): **undecided at the 20000 game limit**, LLR −1.91,
 W 5026 D 9875 L 5099. EPD nodes 252572679 → 260634821, different. The only change is the place of the stage
 `FOLLOW_UP_MOVE`, before `KILLER1` instead of after it.
 
 ## 0.5.0-031 — follow-up move after the second killer
 
-Branch `followup-after-killer2`, not merged. SPRT against 0.5.0-029, `test/sprt/sprt-standard.ini` as it is
+Branch `dead/followup-after-killer2`, not merged. SPRT against 0.5.0-029, `test/sprt/sprt-standard.ini` as it is
 (5+0.01, bounds −2/+3): **undecided at the 20000 game limit**, LLR −0.58, W 5110 D 9772 L 5118. EPD nodes
 252572679 → 252694000, different. The only change is the place of the stage `FOLLOW_UP_MOVE`, after `KILLER2`.
 Neither place (030, 031) separated from 029's; 029 stays. Three SPRTs on the follow-up move, so 029 plays a closing
