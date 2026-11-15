@@ -1805,3 +1805,13 @@ run against 0.5.0-028-8 (CLAUDE.md, closing run after a series of SPRTs).
 on the follow-up move (029 H1; 030 and 031 undecided against 029). `test/sprt/sprt-standard.ini` as it is (5+0.01,
 bounds −2/+3), openings with a seed of their own (srand 20261114): **H1 accepted after 7242 games**,
 W 1931 D 3532 L 1779. The series holds; 029 is the version to build on.
+
+## 0.5.0-032 — no halving of the butterfly board between searches
+
+`ButterflyBoard::newSearch()` and its call in `Search::startNewSearch` removed: the history values carry over from one
+search to the next, as in Stockfish's main history. Tested before the version existed, as history variant 6 of
+branch `test/history-points` against variant 0 (identical to 0.5.0-029), `test/sprt/sprt-standard.ini` on the M4 with
+`--each tc=2+0.004` (Linux 5+0.01 scaled), bounds −2/+3: **H1 accepted after 3650 games**, W 1041 D 1717 L 892.
+EPD nodes 252572679, identical to 029: the EPD run clears the tables before every position, so this change can only
+show in games. One of six single tests of Stockfish's history differences (v2, v5, v6, v7 H1; v4 H0; v1 undecided;
+v3 alone never acts) - the series needs a closing run against 0.5.0-029 once its winners are in.
