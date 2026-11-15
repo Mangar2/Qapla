@@ -358,6 +358,7 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// of 19 the strongest history shifts the reduction by about one ply of a non PV node (divisor 261).
 	// The factor belongs to the history group: its scale is the history's scale.
 	// CLOP (M4, 2000 samples at 3.3+0.007, range -64..64 around 0): 39.78.
+	// Tested on d225a32 (0.5.0-034 plus the futility cleanup): 40 against 0: H1 accepted, bounds -2/+3, 4257 games, 51.68 %
 	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
 	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 40, 0, 80>() / 1024;
 
