@@ -66,10 +66,6 @@ namespace QaplaSearch {
 			return _board[index];
 		}
 
-		void newSearch() {
-			reduce();
-		}
-
 		void print() {
 			constexpr int valueWidth = 5; // Breite f�r die rechtsb�ndige Werteanzeige
 

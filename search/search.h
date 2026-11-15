@@ -86,7 +86,6 @@ namespace QaplaSearch {
 			_computingInfo.initNewSearch(position, searchMoves, *_butterflyBoard);
 			_waitMicroseconds = 0;
 			_helpMicroseconds = 0;
-			_butterflyBoard->newSearch();
 			// The tablebase settings cannot change during a search, and reading them at
 			// every node costs more than the probes save.
 			_tbCardinality = QaplaSyzygy::Tablebase::cardinality();
