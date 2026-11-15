@@ -60,14 +60,35 @@ namespace QaplaSearch {
 	};
 
 	/**
-	 * All tables keyed by earlier moves of the search line. The caller hands over a best move
-	 * and the search line; which tables exist and which earlier move keys each of them is
-	 * decided here. For now it holds the follow-up move only.
+	 * All tables keyed by earlier moves of the search line: the follow-up move and the continuation
+	 * butterfly board. The caller hands over a best move and the search line; which tables exist and
+	 * which earlier move keys each of them is decided here.
 	 */
 	class ContinuationHistory {
 	public:
 		void clear() {
 			_followUpMove.clear();
+			_board.clear();
+		}
+
+		/**
+		 * @returns the row of the continuation history for the moves played after previousMove, the
+		 * dummy row for the empty move at the root and for the null move
+		 */
+		ContinuationHistoryRow* getRow(QaplaBasics::Move previousMove) {
+			return _board.getRow(previousMove);
+		}
+
+		/**
+		 * Enters the best move of a node into its row of the continuation history, with the quiet
+		 * moves tried before it, as the butterfly board does. The dummy row is never updated.
+		 */
+		void newBestMove(ContinuationHistoryRow* row, QaplaBasics::Move bestMove, ply_t depth,
+			const QaplaBasics::Move* triedMoves, uint32_t triedMovesAmount) {
+			if (_board.isDummy(row)) {
+				return;
+			}
+			row->newBestMove(bestMove, depth, triedMoves, triedMovesAmount);
 		}
 
 		/**
@@ -100,6 +121,7 @@ namespace QaplaSearch {
 
 	private:
 		FollowUpMove _followUpMove;
+		ContinuationButterflyBoard _board;
 	};
 
 }

@@ -515,7 +515,7 @@ void RootMoves::setMoves(MoveGenerator& position, const std::vector<Move>& searc
 	while (!(move = moveProvider.selectGoodCapture(position)).isEmpty()) {
 		addMove(move);
 	}
-	moveProvider.sortSilentMoves(butterflyBoard);
+	moveProvider.sortRootSilentMoves(butterflyBoard);
 	while (!(move = moveProvider.selectRemainingMove()).isEmpty()) {
 		addMove(move);
 	}

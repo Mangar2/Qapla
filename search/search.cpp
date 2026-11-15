@@ -141,7 +141,7 @@ Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, S
 		[[fallthrough]];
 	case MoveType::SORT_MOVES:
 		node.selectStage = MoveType::REMAINING_MOVES;
-		provider.sortSilentMoves(*_butterflyBoard);
+		provider.sortSilentMoves(*_butterflyBoard, *node.continuationRow);
 		[[fallthrough]];
 	case MoveType::REMAINING_MOVES:
 		return provider.selectRemainingMove();
@@ -601,6 +601,11 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// which hands the depth on to the node.
 	depth -= iir<TYPE>(stack, depth, ply);
 
+	// From here on the node orders its quiet moves: in the singular extension search, the null move
+	// verification and the move loop. They read the row of the continuation history for the moves
+	// played after the move into this node.
+	node.continuationRow = _continuationHistory->getRow(node.previousMove);
+
 	// 5. Singular extension for the tt move, computed for PV and non PV nodes, see se()
 	const auto seExtension = se<TYPE>(position, stack, alpha, beta, depth, ply);
 
@@ -651,6 +656,8 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		if (!node.bestMove.isEmpty()) {
 			node.killerMove.setKiller(node.bestMove);
 			_butterflyBoard->newBestMove(node.bestMove, depth,
+				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
+			_continuationHistory->newBestMove(node.continuationRow, node.bestMove, depth,
 				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
 			// Quiet moves only: a capture would only take the place of a quiet answer, the
 			// capture stages order captures

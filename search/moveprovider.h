@@ -101,13 +101,30 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sorts the first silent moves by their butterfly value
+		 * Sorts the first silent moves of the root by their butterfly value. No move leads into the
+		 * root, so it has no row of the continuation history.
 		 */
-		void sortSilentMoves(ButterflyBoard& butterflyBoard) {
+		void sortRootSilentMoves(const ButterflyBoard& butterflyBoard) {
 			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				// A move already handed out (killer, follow-up) is left as an empty slot and has no history
 				const Move move = moveList.getMove(moveNo);
 				moveList.setWeight(moveNo, move.isEmpty() ? 0 : butterflyBoard.getValue(move));
+			}
+			moveList.sortFirstSilentMoves(SearchConfig::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
+		}
+
+		/**
+		 * Sorts the first silent moves by their butterfly value plus the value of the continuation
+		 * history row of the node, weighted by contHistWeight / 1024
+		 */
+		void sortSilentMoves(const ButterflyBoard& butterflyBoard, const ContinuationHistoryRow& continuationRow) {
+			constexpr bool OPT = SearchConfig::optimizeHistory;
+			const statistic_t weight = tunable<OPT, "contHistWeight", 0, -1024, 1024>();
+			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
+				// A move already handed out (killer, follow-up) is left as an empty slot and has no history
+				const Move move = moveList.getMove(moveNo);
+				moveList.setWeight(moveNo, move.isEmpty() ? 0
+					: butterflyBoard.getValue(move) + continuationRow.getValue(move) * weight / 1024);
 			}
 			moveList.sortFirstSilentMoves(SearchConfig::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
 		}
