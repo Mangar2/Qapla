@@ -44,34 +44,6 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
 
 ## Offen
 
-### 6. forewardFutility3 (Fail-Low-Pruning auf Quiescence-Wert) — CLOP, dann SPRT
-
-- **Was:** `forewardFutility3()` in `search/search-node.h` prunt fail low wie
-  `forewardFutility2()`, prüft aber nicht die Evaluierung, sondern einen Quiescence-Wert gegen
-  alpha. Idee: die Quiescence schließt direkten Materialgewinn aus, das erlaubt ggf. eine kleinere
-  Marge und damit aggressiveres Pruning. Ablauf in der Methode: Guards (Tiefe < 10,
-  `adjustedEval < alpha`, kein PV-Knoten, kein stiller TT-Zug, Wertgrenzen), Marge
-  `margin3 = ffDepthFactor3 * remainingDepth + ffBase3 + ffImprovingBonus3 * isImproving`,
-  Vorfilter `adjustedEval + margin3 > alpha` → kein Pruning (der Quiescence-Wert ist mindestens
-  stand pat), dann Quiescence mit Null-Window an der Schwelle `alpha - margin3` über einen
-  Callback, Pruning bei `quiescenceValue <= alpha - margin3` mit
-  `bestValue = alpha - (alpha - quiescenceValue) * 10 / ffBestValueDivisor3`. Aufgerufen in
-  `search.cpp` (`checkEvalReleatedCutoffsAndSetEval`) für `remainingDepth > 1`.
-  Defaults 100 / 100 / 100 / 20, UCI-Grenzen 0–200 / 0–200 / 0–200 / 1–41.
-- **Zuschalten:** `false &&` in der Bedingung des Aufrufs in `search.cpp` entfernen und
-  `return false;` am Anfang von `forewardFutility3()` auskommentieren. EPD-Lauf muss andere Nodes
-  zeigen als die Baseline.
-- **CLOP:** alle vier Parameter in einem Lauf, den Divisor eingeschlossen (sein Zähler 10 ist
-  eine Konstante und läuft nicht mit):
-  `--clopvalue name=ffDepthFactor3 min=0 max=200 --clopvalue name=ffBase3 min=0 max=200 --clopvalue name=ffImprovingBonus3 min=0 max=200 --clopvalue name=ffBestValueDivisor3 min=1 max=39`
-  (Mitten 100/100/100/20), ~4000 Samples, `test/clop/clop-standard.ini`. Runden. Das
-  Tiefenlimit 10 bleibt fest.
-- **SPRT:** Kandidat = zugeschaltete Methode mit den CLOP-Werten als Defaults.
-  `test/sprt/sprt-standard.ini` mit `--each tc=20+0.1` (vor den `--engine`-Blöcken) und
-  `--sprt eloh0=-3 eloh1=2 file=test/log/sprt-forewardFutility3.state`.
-- **Abschalten:** `false &&` und `return false;` wieder rein, Defaults wieder
-  100 / 100 / 100 / 20.
-
 ## Erledigt
 
 ### 1. forwardFutility depth limit — H1 accepted
@@ -136,4 +108,19 @@ anderen auf, und kein Ergebnis bleibt aktiv — auch H1 nicht.
 - **SPRT (Linux, 2026-11-15 13:04 bis 19:52):** gegen das Baseline-Binary, `test/sprt/sprt-standard.ini` mit
   `--each tc=20+0.1`, `--sprt eloh0=-3 eloh1=2`, Concurrency 30: **H1 accepted nach 15304 Partien** (W 3406 D 8610
   L 3288), Grenzen −3/+2.
+- **Abgeschaltet:** auf release0.5 nie eingeschaltet (gebaut auf einem Checkout von 3f460e1), `git diff` leer.
+
+### 6. forewardFutility3 — unentschieden
+
+- **Baseline:** 0.5.0-028-3-g3f460e1, EPD wmtest Tiefe 18: 248740566 Nodes.
+- **CLOP (M4, 2026-11-15 07:33 bis 09:43):** `false &&` im Aufruf in `search.cpp` entfernt, `return false;` in
+  `forewardFutility3()` auskommentiert, `OPT = SearchConfig::optimizeFutility`, `optimizeFutility = true`; die vier
+  Parameter in einem Lauf (Mitten 100/100/100/20), 4000 Samples, `test/clop/clop-standard.ini` mit `--each tc=2+0.004`,
+  Concurrency 8. EPD bei den Defaults: 227060322 Nodes, anders - erreicht. Schätzungen ffDepthFactor3 **106.19**,
+  ffBase3 **109.03**, ffImprovingBonus3 **106.89**, ffBestValueDivisor3 **17.28** - gerundet 106 / 109 / 107 / 17.
+- **Zugeschaltet:** auf 0.5.0-028-3-g3f460e1 die Methode eingeschaltet, Flag false, Defaults 106 / 109 / 107 / 17.
+  EPD: 244268755 Nodes, anders - erreicht.
+- **SPRT (Studio, 2026-11-15 13:05 bis 22:59):** gegen das Baseline-Binary, `test/sprt/sprt-standard.ini` von release0.5
+  mit `--each tc=9+0.045` (Studio mit 12 Engines ~ Linux 20+0.1), `--sprt eloh0=-3 eloh1=2`, Concurrency 12:
+  **unentschieden nach 20000 Partien**, LLR 0.32 (W 4244 D 11508 L 4248), Grenzen −3/+2.
 - **Abgeschaltet:** auf release0.5 nie eingeschaltet (gebaut auf einem Checkout von 3f460e1), `git diff` leer.
