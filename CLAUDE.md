@@ -185,6 +185,28 @@ the thousands say nothing, do not read a tendency into them.
 qet signals the result via its exit code: 14 = H1 accepted, 15 = H0 accepted, 16 = undecided
 within maxgames. A non-zero exit code here is a result, not an error.
 
+### Anything that depends on the history tables runs at tournament depth
+
+**Every SPRT and every CLOP of something that reads or fills the history tables — move ordering,
+the history in the late move reduction or in pruning, the continuation history, the follow-up
+move — runs at the equivalent of the tournament's 20+0.1, never at the 5+0.01 of the ini.** Short
+games do not fill the tables the way real games do, and what the tables are worth changes with
+that: not halving the butterfly board between searches won its SPRT at 2+0.004 and is worth
+nothing at tournament depth (0.5.0-036 against the same with halving, 2000 games: −3 ± 10 Elo).
+The 0.5.0-036 chain gained its Elo in short self play and lost it in the tournament.
+
+The reference is the qcg tournament on Linux, which plays 15 games in parallel; an engine there
+searches about 2.7 M nodes/s (qet `--systemtest`). The same depth per move is
+
+| machine | engines in parallel | time control |
+|---|---|---|
+| Linux, the tournament | 15 | 20+0.1 |
+| Linux | 30 | 29+0.15 |
+| Studio | 12 | 13.5+0.07 |
+| M4 (fanless, throttles under sustained load) | 8 | 19.5+0.1 |
+
+Give it as `--each tc=...` before the `--engine` blocks, as described above.
+
 ### An SPRT has exactly one output
 
 **H0 accepted, H1 accepted, or undecided. Nothing else.**
