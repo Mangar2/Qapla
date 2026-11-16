@@ -359,10 +359,8 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// The factor belongs to the history group: its scale is the history's scale.
 	// CLOP (M4, 2000 samples at 3.3+0.007, range -64..64 around 0): 39.78.
 	// Tested on d225a32 (0.5.0-034 plus the futility cleanup): 40 against 0: H1 accepted, bounds -2/+3, 4257 games, 51.68 %
-	// At tournament depth (CLAUDE.md), on 0.5.0-036: CLOP (Studio, 2000 samples at 13.5+0.07, range 0..80 around 40): 51.92.
-	// 52 against 0 at 13.5+0.07: H1 accepted, bounds -2/+3, 2403 games, 52.70 %
 	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
-	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / 1024;
+	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 40, 0, 80>() / 1024;
 
 	return static_cast<ply_t>(std::max(numerator, 0) / divisor);
 }
