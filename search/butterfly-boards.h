@@ -160,6 +160,9 @@ namespace QaplaSearch {
 		// moves, so scaling every constant of the update by one factor changes nothing, and one of them has
 		// to stay fixed for the others to be tunable. The cap is reached at depth 20 only, which test games
 		// at short time controls never search, so it cannot be tuned there and stays a constant.
+		// Offset and gravity at tournament depth (CLAUDE.md), on 0.5.0-036 + contHist 1087 + lmrHistoryFactor 52:
+		// CLOP (Linux, 2500 samples at 29+0.15 with 30 engines, ranges 0..262 and 7000..21000): 135.27 and 13897.85,
+		// both at the values in place (131 / 14000), which stay; no SPRT.
 		statistic_t computeChange(ply_t depth) {
 			constexpr bool OPT = SearchConfig::optimizeHistory;
 			return std::min<statistic_t>(128 * depth - tunable<OPT, "historyBonusOffset", 131, 0, 262>(),
