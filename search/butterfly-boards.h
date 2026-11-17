@@ -159,7 +159,7 @@ namespace QaplaSearch {
 		// at short time controls never search, so it cannot be tuned there and stays a constant.
 		statistic_t computeChange(ply_t depth) {
 			constexpr bool OPT = SearchConfig::optimizeHistory;
-			return std::min<statistic_t>(128 * depth - tunable<OPT, "historyBonusOffset", 131, 0, 256>(),
+			return std::min<statistic_t>(128 * depth - tunable<OPT, "historyBonusOffset", 131, 0, 262>(),
 				128 * 20);
 		}
 
@@ -167,7 +167,7 @@ namespace QaplaSearch {
 		// entries saturate at +-gravity.
 		statistic_t gravity() {
 			constexpr bool OPT = SearchConfig::optimizeHistory;
-			return tunable<OPT, "historyGravity", 14000, 1, 25599>();
+			return tunable<OPT, "historyGravity", 14000, 7000, 21000>();
 		}
 
 		MoveKeyedTable<statistic_t> _board;
