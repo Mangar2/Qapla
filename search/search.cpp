@@ -130,6 +130,8 @@ Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, S
 	case MoveType::FOLLOW_UP_MOVE:
 		// Tested 0.5.0-030: before the first killer: undecided, bounds -2/+3, 20000 games, 49.82 %, dead/followup-before-killer1
 		// Tested 0.5.0-031: after the second killer: undecided, bounds -2/+3, 20000 games, 49.98 %, dead/followup-after-killer2
+		// At tournament depth (19.5+0.1 on the M4) on 0.5.0-036: before the first killer against here: stopped undecided
+		// after 10642 games, bounds -2/+3. The placement does not depend on the depth or on the history tables.
 		node.selectStage = MoveType::KILLER2;
 		move = provider.selectProposedMove(_continuationHistory->getFollowUpMove(stack, node.ply));
 		if (!move.isEmpty()) return move;
