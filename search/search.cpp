@@ -78,15 +78,8 @@ bool Search::checkEvalReleatedCutoffsAndSetEval(MoveGenerator& position, SearchS
 		node.setCutoff(Cutoff::FUTILITY);
 		return true;
 	} 
-	if (false && node.remainingDepth > 1) {
-		auto searchQuiescence = [&](value_t alpha, value_t beta) {
-			return _quiescence.search(false, position, _computingInfo, node.previousMove, alpha, beta, ply);
-		};
-		if (node.forewardFutility3(position, searchQuiescence)) {
-			node.setCutoff(Cutoff::FUTILITY);
-			return true;
-		}
-	}
+	// Tested 0.5.0-028-3: fail low futility on a null window quiescence value (qvalue <= alpha - margin), CLOP values
+	// 106/109/107/17: undecided, bounds -3/+2, 20000 games. Removed.
 	if (TYPE == SearchRegion::INNER && isNullmoveCutoff(position, stack, depth, ply)) {
 		node.setCutoff(Cutoff::NULL_MOVE);
 		return true;
