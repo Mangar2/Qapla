@@ -75,6 +75,8 @@ namespace QaplaSearch {
 
 		static const uint32_t MAX_SEARCH_DEPTH = 128;
 		// Tested 0.4.0-037 and 0.4.0-041: 14 instead of 7: flat both times, 20000 games each
+		// At tournament depth (19.5+0.1 on the M4) on 7bc4736 (0.5.0-036 + contHist + lmrHistoryFactor 52): all silent
+		// moves sorted against 7: H0 accepted, bounds -2/+3, 6094 games.
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 
 		static const bool DO_NULLMOVE = true;
