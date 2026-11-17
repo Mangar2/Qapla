@@ -188,6 +188,11 @@ namespace QaplaSearch {
 	using ContinuationHistoryRow = ButterflyBoard;
 
 	/**
+	 * The rows of a node, one per distance: entry d - 1 is the row of the move d plies back.
+	 */
+	using ContinuationHistoryRows = std::array<ContinuationHistoryRow*, SearchConfig::CONTINUATION_HISTORY_PLIES>;
+
+	/**
 	 * Continuation history: one butterfly board per earlier move, keyed by its moving piece and
 	 * destination - 768 rows of 768 values. All distances (the move one ply back, two plies back,
 	 * ...) share this one table; they differ only in which ply's row pointer a node uses, the

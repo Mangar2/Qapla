@@ -72,23 +72,28 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * @returns the row of the continuation history for the moves played after previousMove, the
-		 * dummy row for the empty move at the root and for the null move
+		 * Sets the rows of the node at ply: rows[d - 1] holds the moves played after the move d plies
+		 * back, stack[ply + 1 - d].previousMove. The dummy row stands in where the line is shorter than
+		 * d, for the empty move at the root and for the null move.
 		 */
-		ContinuationHistoryRow* getRow(QaplaBasics::Move previousMove) {
-			return _board.getRow(previousMove);
+		void setRows(const SearchStack& stack, ply_t ply, ContinuationHistoryRows& rows) {
+			for (ply_t distance = 1; distance <= ply_t(rows.size()); distance++) {
+				rows[distance - 1] = _board.getRow(distance <= ply + 1
+					? stack[ply + 1 - distance].previousMove : QaplaBasics::Move());
+			}
 		}
 
 		/**
-		 * Enters the best move of a node into its row of the continuation history, with the quiet
-		 * moves tried before it, as the butterfly board does. The dummy row is never updated.
+		 * Enters the best move of a node into each of its rows of the continuation history, with the
+		 * quiet moves tried before it, as the butterfly board does. The dummy row is never updated.
 		 */
-		void newBestMove(ContinuationHistoryRow* row, QaplaBasics::Move bestMove, ply_t depth,
+		void newBestMove(const ContinuationHistoryRows& rows, QaplaBasics::Move bestMove, ply_t depth,
 			const QaplaBasics::Move* triedMoves, uint32_t triedMovesAmount) {
-			if (_board.isDummy(row)) {
-				return;
+			for (ContinuationHistoryRow* row : rows) {
+				if (!_board.isDummy(row)) {
+					row->newBestMove(bestMove, depth, triedMoves, triedMovesAmount);
+				}
 			}
-			row->newBestMove(bestMove, depth, triedMoves, triedMovesAmount);
 		}
 
 		/**

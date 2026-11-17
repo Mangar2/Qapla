@@ -114,23 +114,22 @@ namespace QaplaSearch {
 		}
 
 		/**
-		 * Sorts the first silent moves by their butterfly value plus the value of the continuation
-		 * history row of the node, weighted by contHistWeight / 1024
+		 * Sorts the first silent moves by their butterfly value plus the values of the continuation
+		 * history rows of the node, each weighted by the weight of its distance / 1024
 		 */
-		void sortSilentMoves(const ButterflyBoard& butterflyBoard, const ContinuationHistoryRow& continuationRow) {
-			constexpr bool OPT = SearchConfig::optimizeHistory;
-			// CLOP (M4, 2000 samples at 3.3+0.007, range 0..2048 around 1024): 1087.23
-			// Tested on ffe6be3 (0.5.0-036 plus this term at weight 0): 1087 against 0: H1 accepted, bounds -2/+3, 3090 games, 52.28 %
-			// At tournament depth (19.5+0.1 on the M4) on 7bc4736 (0.5.0-036 + this term + lmrHistoryFactor 52):
-			// 1087 against 0: H1 accepted, bounds -2/+3, 2386 games.
-			// CLOP at tournament depth (Studio, 2000 samples at 13.5+0.07, range 0..2174 around 1087): 1258.2.
-			// 1258 against 1087 at 13.5+0.07 on 7bc4736: H1 accepted, bounds -2/+3, 10590 games.
-			const statistic_t weight = tunable<OPT, "contHistWeight", 1258, 0, 2516>();
+		void sortSilentMoves(const ButterflyBoard& butterflyBoard, const ContinuationHistoryRows& continuationRows) {
 			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				// A move already handed out (killer, follow-up) is left as an empty slot and has no history
 				const Move move = moveList.getMove(moveNo);
-				moveList.setWeight(moveNo, move.isEmpty() ? 0
-					: butterflyBoard.getValue(move) + continuationRow.getValue(move) * weight / 1024);
+				if (move.isEmpty()) {
+					moveList.setWeight(moveNo, 0);
+					continue;
+				}
+				statistic_t weight = butterflyBoard.getValue(move);
+				for (uint32_t distance = 1; distance <= continuationRows.size(); distance++) {
+					weight += continuationRows[distance - 1]->getValue(move) * continuationWeight(distance) / 1024;
+				}
+				moveList.setWeight(moveNo, weight);
 			}
 			moveList.sortFirstSilentMoves(SearchConfig::AMOUNT_OF_SORTED_NON_CAPTURE_MOVES);
 		}
@@ -180,6 +179,30 @@ namespace QaplaSearch {
 		}
 
 	private:
+
+		/**
+		 * @returns the weight (/ 1024) of the continuation history row of the move distance plies back
+		 * in the sorting; every distance has its own
+		 */
+		static statistic_t continuationWeight(uint32_t distance) {
+			static_assert(SearchConfig::CONTINUATION_HISTORY_PLIES <= 2, "every distance needs a weight here");
+			constexpr bool OPT = SearchConfig::optimizeHistory;
+			switch (distance) {
+			case 1:
+				// CLOP (M4, 2000 samples at 3.3+0.007, range 0..2048 around 1024): 1087.23
+				// Tested on ffe6be3 (0.5.0-036 plus this term at weight 0): 1087 against 0: H1 accepted, bounds -2/+3, 3090 games, 52.28 %
+				// At tournament depth (19.5+0.1 on the M4) on 7bc4736 (0.5.0-036 + this term + lmrHistoryFactor 52):
+				// 1087 against 0: H1 accepted, bounds -2/+3, 2386 games.
+				// CLOP at tournament depth (Studio, 2000 samples at 13.5+0.07, range 0..2174 around 1087): 1258.2.
+				// 1258 against 1087 at 13.5+0.07 on 7bc4736: H1 accepted, bounds -2/+3, 10590 games.
+				return tunable<OPT, "contHistWeight", 1258, 0, 2516>();
+			case 2:
+				return tunable<OPT, "contHistWeight2", 1024, 0, 2048>();
+			default:
+				assert(false);
+				return 0;
+			}
+		}
 
 		/**
 		 * Takes the move with the given number out of the list and records it as tried

@@ -642,9 +642,9 @@ namespace QaplaSearch {
 		// The move of the previous iteration's pv, tried first and then cleared
 		Move pvMove;
 		KillerMove killerMove;
-		// The row of the continuation history for the moves played after previousMove, set when the
-		// search enters the node
-		ContinuationHistoryRow* continuationRow = nullptr;
+		// The rows of the continuation history for the moves played after previousMove and the moves
+		// before it, one per distance, set when the search enters the node
+		ContinuationHistoryRows continuationRows{};
 
 		Cutoff cutoff;
 		// ---- Split point, see Search::moveLoop. The mutex guards move list, window and best

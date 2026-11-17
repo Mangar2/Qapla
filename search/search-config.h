@@ -78,6 +78,9 @@ namespace QaplaSearch {
 		// At tournament depth (19.5+0.1 on the M4) on 7bc4736 (0.5.0-036 + contHist + lmrHistoryFactor 52): all silent
 		// moves sorted against 7: H0 accepted, bounds -2/+3, 6094 games.
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
+		// Distances of the continuation history: a node reads and fills the rows of the moves 1 up to
+		// this many plies back
+		static constexpr uint32_t CONTINUATION_HISTORY_PLIES = 1;
 
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
