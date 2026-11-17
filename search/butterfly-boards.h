@@ -88,6 +88,9 @@ namespace QaplaSearch {
 				return;
 			}
 			addToValue(move, change);
+			// Every quiet move tried before the best one gets the malus (0.5.0-034). At tournament depth
+			// (13.5+0.07 on the Studio) on 0.5.0-036 + contHist + lmrHistoryFactor 52, the malus for the first
+			// 7 tried moves only against all: H0 accepted, bounds -2/+3, 3074 games.
 			for (uint32_t i = 0; i < triedMoves; i++) {
 				const auto subMove = moves[i];
 				if (subMove == move) {
