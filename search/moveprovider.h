@@ -121,6 +121,8 @@ namespace QaplaSearch {
 			constexpr bool OPT = SearchConfig::optimizeHistory;
 			// CLOP (M4, 2000 samples at 3.3+0.007, range 0..2048 around 1024): 1087.23
 			// Tested on ffe6be3 (0.5.0-036 plus this term at weight 0): 1087 against 0: H1 accepted, bounds -2/+3, 3090 games, 52.28 %
+			// At tournament depth (19.5+0.1 on the M4) on 7bc4736 (0.5.0-036 + this term + lmrHistoryFactor 52):
+			// 1087 against 0: H1 accepted, bounds -2/+3, 2386 games.
 			const statistic_t weight = tunable<OPT, "contHistWeight", 1087, 0, 2174>();
 			for (uint32_t moveNo = moveList.getNonSilentMoveAmount(); moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 				// A move already handed out (killer, follow-up) is left as an empty slot and has no history
