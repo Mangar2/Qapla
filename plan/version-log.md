@@ -1866,3 +1866,29 @@ Built on 0.5.0-034 (035 reverted). No SPRT of the version as a whole; Volker pla
   one search, invisible with one thread.
 - EPD wmtest depth 18: 0.5.0-034 247216911 → 0.5.0-036 208483416 nodes; every step without an intended change of
   play was node identical.
+
+## 0.5.0-037 — history work retested at tournament depth
+
+Built on 0.5.0-036. Volker's tournament showed 036 only a little ahead of 027 against the field, although 036 beat 027
+clearly in direct games. Not halving the butterfly board between searches had won its SPRT at 2+0.004 and is worth
+nothing at tournament depth (036 against 036 with halving, 2000 games: −3 ± 10 Elo). Since then everything that reads or
+fills the history tables is measured at the equivalent of 20+0.1 (CLAUDE.md), and the history items of 032 – 036 were
+measured again that way.
+- **Continuation history (ply 1) in the move sorting**: weight = butterfly + row × `contHistWeight` / 1024. CLOP on the M4
+  (2000 samples at 3.3+0.007): 1087; 1087 against 0 at 3.3+0.007: H1 accepted after 3090 games, bounds −2/+3. At
+  tournament depth (M4, 19.5+0.1) 1087 against 0: **H1 accepted after 2386 games**, bounds −2/+3. CLOP at tournament
+  depth (Studio, 2000 samples at 13.5+0.07): 1258.2; 1258 against 1087: **H1 accepted after 10590 games**, bounds −2/+3.
+- **`lmrHistoryFactor` 52 instead of 40**: CLOP at tournament depth (Studio, 2000 samples at 13.5+0.07): 51.92. 52
+  against 40 at 13.5+0.07: **H1 accepted after 10714 games**, bounds −2/+3 (a first run of 52 against 0 answered the
+  wrong question and is not counted).
+- **Malus for every tried quiet move (034) kept**: the malus for the first 7 tried moves only against all, 13.5+0.07:
+  H0 accepted after 3074 games, bounds −2/+3.
+- **Follow-up move stays after the first killer**: before the first killer against after it, 19.5+0.1: stopped
+  undecided after 10642 games, bounds −2/+3 (Volker: the placement depends neither on depth nor on the history).
+- **History formula kept**: CLOP of `historyBonusOffset` / `historyGravity` on Linux (2500 samples at 29+0.15, 30
+  engines): 135.27 / 13897.85 against 131 / 14000 in place; no SPRT.
+- **`forewardFutility3` removed** (todo item 6, undecided after 20000 games, bounds −3/+2); it was switched off, nodes
+  identical.
+- **Closing run** (more than two SPRTs in the series): 037 against 036 at 13.5+0.07 on the Studio: **H1 accepted after
+  2144 games**, bounds 0/+5, W 498 D 1286 L 360.
+- EPD wmtest depth 18: 0.5.0-036 208483416 → 0.5.0-037 205051066 nodes.
