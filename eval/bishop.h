@@ -166,7 +166,8 @@ namespace ChessEval {
 		} };
 		
 		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP_DEFAULT = { {
-			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
+			// endgame of 0..3 squares: Spike's cramped penalty plus linear mobility (plan/eval-to-try.md)
+			{ -15, -96 }, { -10, -48 }, { 0, -23 }, { 5, -11 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 

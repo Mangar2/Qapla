@@ -241,7 +241,8 @@ namespace ChessEval {
 
 		// Mobility Map
 		static constexpr std::array<EvalValue, 15> ROOK_MOBILITY_MAP_DEFAULT = { {
-			{ 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
+			// endgame of 0..3 squares: Spike's cramped penalty plus linear mobility (plan/eval-to-try.md)
+			{ 0, -96 }, { 0, -48 }, { 0, -23 }, { 0, -11 }, { 0, 0 }, { 8, 8 }, { 12, 12 }, { 16, 16 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
