@@ -190,14 +190,17 @@ namespace QaplaSearch {
 			switch (distance) {
 			case 1:
 				// CLOP (M4, 2000 samples at 3.3+0.007, range 0..2048 around 1024): 1087.23
-				// Tested on ffe6be3 (0.5.0-036 plus this term at weight 0): 1087 against 0: H1 accepted, bounds -2/+3, 3090 games, 52.28 %
+				// Tested on ffe6be3 (0.5.0-036 plus this term at weight 0): 1087 against 0: H1 accepted, bounds -2/+3, 3090 games
 				// At tournament depth (19.5+0.1 on the M4) on 7bc4736 (0.5.0-036 + this term + lmrHistoryFactor 52):
 				// 1087 against 0: H1 accepted, bounds -2/+3, 2386 games.
 				// CLOP at tournament depth (Studio, 2000 samples at 13.5+0.07, range 0..2174 around 1087): 1258.2.
 				// 1258 against 1087 at 13.5+0.07 on 7bc4736: H1 accepted, bounds -2/+3, 10590 games.
-				return tunable<OPT, "contHistWeight", 1258, 0, 2516>();
+				// Together with distance 2, CLOP at tournament depth (Studio, 2500 samples at 13.5+0.07, ranges 0..2516
+				// and 0..2048 around 1258 and 1024): 1459.2 and 1223.1.
+				return tunable<OPT, "contHistWeight", 1459, 0, 2918>();
 			case 2:
-				return tunable<OPT, "contHistWeight2", 1024, 0, 2048>();
+				// CLOP together with distance 1, see there
+				return tunable<OPT, "contHistWeight2", 1223, 0, 2446>();
 			default:
 				assert(false);
 				return 0;
