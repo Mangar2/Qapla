@@ -1907,3 +1907,17 @@ each step is better than the one before.
 - **SPRT 038 against 037** at 13.5+0.07 on the Studio, 12 engines: **H1 accepted after 6201 games**, bounds −2/+3,
   W 1275 D 3779 L 1147.
 - EPD wmtest depth 18: 0.5.0-037 205051066 → 0.5.0-038 212113390 nodes.
+
+## 0.5.0-039 — Spike's endgame mobility for 0..3 squares of bishop, rook and queen
+
+Built on 0.5.0-038 (branch `eval-mobility`, beside 0.5.0-040 so that each is one factor against 038). From the Spike
+comparison (`plan/eval-to-try.md`): Spike adds a cramped penalty to the linear mobility of a piece with fewer than 4
+squares.
+- **Endgame values of the four lowest entries** of the three mobility tables replaced by Spike's cramped penalty plus
+  its linear mobility, in cp (Volker: endgame only, only the lowest four values): bishop and rook −96 / −48 / −23 /
+  −11, queen −96 / −47 / −21 / −8. Midgame values unchanged. Qapla counts the squares its own way (own pieces and
+  squares attacked by enemy pawns excluded), the values were taken over without adjusting for that.
+- **SPRT 039 against 038** at 2+0.004 on the M4 (the ini time control scaled to the M4, 8 engines; an eval table does
+  not depend on the history tables): **H1 accepted after 17915 games**, bounds −2/+3, W 4831 D 8418 L 4666. A first
+  start at 19.5+0.1 was stopped after 268 games (too slow for a change that does not need tournament depth).
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-039 207416446 nodes.
