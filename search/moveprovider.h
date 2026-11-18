@@ -197,6 +197,8 @@ namespace QaplaSearch {
 				// 1258 against 1087 at 13.5+0.07 on 7bc4736: H1 accepted, bounds -2/+3, 10590 games.
 				// Together with distance 2, CLOP at tournament depth (Studio, 2500 samples at 13.5+0.07, ranges 0..2516
 				// and 0..2048 around 1258 and 1024): 1459.2 and 1223.1.
+				// Tested 0.5.0-038 (both distances at 1459 / 1223) against 0.5.0-037 (distance 1 at 1258) at 13.5+0.07:
+				// H1 accepted, bounds -2/+3, 6201 games.
 				return tunable<OPT, "contHistWeight", 1459, 0, 2918>();
 			case 2:
 				// CLOP together with distance 1, see there
