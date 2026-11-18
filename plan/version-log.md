@@ -1892,3 +1892,18 @@ measured again that way.
 - **Closing run** (more than two SPRTs in the series): 037 against 036 at 13.5+0.07 on the Studio: **H1 accepted after
   2144 games**, bounds 0/+5, W 498 D 1286 L 360.
 - EPD wmtest depth 18: 0.5.0-036 208483416 → 0.5.0-037 205051066 nodes.
+
+## 0.5.0-038 — continuation history over 2 plies
+
+Built on 0.5.0-037. Volker: continuation history ply by ply, 038 = ply 1 + ply 2, 039 = ply 1 + 2 + 3, … as long as
+each step is better than the one before.
+- **One shared continuation board for all distances**: a node holds one row per distance d (the move d plies back,
+  a dummy row if there is none or it was a null move). Sorting weight = butterfly + Σ_d row_d × weight_d / 1024; the
+  update goes into every row with the same bonus / malus. `CONTINUATION_HISTORY_PLIES` = 1 reproduced 037 exactly
+  (EPD nodes identical, 205051066).
+- **Weights from a joint CLOP at tournament depth** (Volker: all weights of the formula in one run; Studio, 2500
+  samples at 13.5+0.07, ranges 0..2516 and 0..2048 around 1258 and 1024): 1459.2 / 1223.1 → `contHistWeight` 1459,
+  `contHistWeight2` 1223.
+- **SPRT 038 against 037** at 13.5+0.07 on the Studio, 12 engines: **H1 accepted after 6201 games**, bounds −2/+3,
+  W 1275 D 3779 L 1147.
+- EPD wmtest depth 18: 0.5.0-037 205051066 → 0.5.0-038 212113390 nodes.
