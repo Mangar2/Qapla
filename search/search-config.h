@@ -80,7 +80,7 @@ namespace QaplaSearch {
 		static const uint32_t AMOUNT_OF_SORTED_NON_CAPTURE_MOVES = 7;
 		// Distances of the continuation history: a node reads and fills the rows of the moves 1 up to
 		// this many plies back
-		static constexpr uint32_t CONTINUATION_HISTORY_PLIES = 2;
+		static constexpr uint32_t CONTINUATION_HISTORY_PLIES = 3;
 
 		static const bool DO_NULLMOVE = true;
 		static const ply_t NULLMOVE_REMAINING_DEPTH = 0;
