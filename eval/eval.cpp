@@ -116,14 +116,25 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 	evalResults.midgameInPercent = computeMidgameInPercent(position);
 	evalResults.midgameInPercentV2 = computeMidgameV2InPercent(position);
 	
+	// Every term is added through addTerm; the eval command prints each one on its own
+	EvalValue evalValue;
+	const auto addTerm = [&](const char* name, EvalValue term) {
+		evalValue += term;
+		if constexpr (PRINT) {
+			cout << std::left << std::setw(24) << name << std::right << std::setw(6) << term.getValue(evalResults.midgameInPercentV2)
+				<< "   mg/eg " << term << endl;
+		}
+	};
+
 	// Add material to the evaluation
-	EvalValue evalValue = position.getMaterialAndPSTValue();
+	addTerm("Material", position.getMaterialValue());
+	addTerm("PST", position.getMaterialAndPSTValue() - position.getMaterialValue());
 	EvalValue imbalanceValue = position.getImbalanceValue();
-	evalValue += imbalanceValue;
+	addTerm("Imbalance", imbalanceValue);
 
 
 	// Add paw value to the evaluation
-	evalValue += Pawn::eval(position, evalResults, pawnttPtr);
+	addTerm("Pawns", Pawn::eval(position, evalResults, pawnttPtr));
 
 	// Try endgame evaluation first. If it returns a modified value, use it.
 	// This indicates a known endgame pattern was recognized.
@@ -131,20 +142,20 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 
 
 	// Do not change ordering of the following calls. King attack needs result from Mobility
-	evalValue += Rook::eval(position, evalResults);
-	evalValue += Bishop::eval(position, evalResults);
-	evalValue += Knight::eval(position, evalResults);
-	evalValue += Queen::eval(position, evalResults);
-	evalValue += Threat::eval(position, evalResults);
+	addTerm("Rooks", Rook::eval(position, evalResults));
+	addTerm("Bishops", Bishop::eval(position, evalResults));
+	addTerm("Knights", Knight::eval(position, evalResults));
+	addTerm("Queens", Queen::eval(position, evalResults));
+	addTerm("Threats", Threat::eval(position, evalResults));
 	// Tested 0.4.0-085: space evaluation switched on at its ported weight of 100:
 	// about -20 Elo, 2641 games. A CLOP run over -40 to 40 with 2000 samples put the weight at
 	// -2.1, so at the null point, and the game result confirms the direction.
 	// evalValue += Space::eval(position, evalResults);
-	evalValue += Pawn::evalPassedPawnThreats(position, evalResults);
-	evalValue += King::eval(position, evalResults);
+	addTerm("Passed pawn threats", Pawn::evalPassedPawnThreats(position, evalResults));
+	addTerm("King", King::eval(position, evalResults));
 
 	if (evalResults.midgameInPercent > 0) {
-		evalValue += KingAttack::eval(position, evalResults);
+		addTerm("King attack", KingAttack::eval(position, evalResults));
 	}
 
 	result += evalValue.getValue(evalResults.midgameInPercentV2);
@@ -158,6 +169,13 @@ value_t Eval::lazyEval(MoveGenerator& position,value_t ply, PawnTT* pawnttPtr) {
 			<< std::right << std::setw(19) << result << std::endl;
 		cout << "Imbalance Correction:"
 			<< std::right << std::setw(14) << imbalanceValue << std::endl;
+		std::vector<PieceInfo> ppThreats;
+		Pawn::evalPassedPawnThreatsWithDetails(position, evalResults, ppThreats);
+		for (const auto& threat : ppThreats) {
+			cout << "Passed pawn threat " << squareToString(threat.square) << ":"
+				<< std::right << std::setw(15) << threat.totalValue.getValue(evalResults.midgameInPercentV2)
+				<< "   mg/eg " << threat.totalValue << std::endl;
+		}
 	}
 
 
