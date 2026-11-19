@@ -297,7 +297,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	return isCutoff;
 }
 
-ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move)
+ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture)
 {
 
 	// Ability to disable history for a ply
@@ -317,9 +317,11 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 
 	if (ply <= MIN_PLY) return 0;
 
-	// Captures are never reduced. Reducing the loosing ones by a tuned amount was tried in
-	// 0.4.0-049 and did not pay.
-	if (move.isCapture()) return 0;
+	// Captures that SEE does not rate as loosing are never reduced. A loosing capture is reduced like a quiet move,
+	// less one ply per 100 cp of the captured piece (move sorting values: pawn 1, knight and bishop 3, rook 5,
+	// queen 10), Volker 2026-11-19, 0.5.0-047. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049
+	// and did not pay.
+	if (move.isCapture() && !losingCapture) return 0;
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
@@ -357,9 +359,11 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// At tournament depth (CLAUDE.md), on 0.5.0-036: CLOP (Studio, 2000 samples at 13.5+0.07, range 0..80 around 40): 51.92.
 	// 52 against 40 at 13.5+0.07: H1 accepted, bounds -2/+3, 10714 games.
 	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
-	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / 1024;
+	// A capture has no history value of its own
+	numerator -= !move.isCapture() * _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / 1024;
 
-	return static_cast<ply_t>(std::max(numerator, 0) / divisor);
+	const ply_t capturedValue = losingCapture * std::abs(position.getPieceValueForMoveSorting(move.getCapture())) / 100;
+	return static_cast<ply_t>(std::max(std::max(numerator, 0) / divisor - capturedValue, 0));
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
@@ -639,7 +643,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// 8. Calculate additional node wide search extensions
 	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth);
 
-	moveLoop<TYPE, false>(position, stack, node, depth, seExtension, ply, Move::EMPTY_MOVE);
+	moveLoop<TYPE, false>(position, stack, node, depth, seExtension, ply, Move::EMPTY_MOVE, false);
 
 	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong.
 	// Every cutoff has returned above and the first move is always searched (pruning needs a
@@ -674,12 +678,13 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 template <Search::SearchRegion TYPE, bool SPLIT>
 void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& splitNode,
-	ply_t depth, ply_t seExtension, ply_t ply, Move firstMove)
+	ply_t depth, ply_t seExtension, ply_t ply, Move firstMove, bool firstLosingCapture)
 {
 	SearchNode& node = stack[ply];
 	SearchNode& childNode = stack[ply + 1];
 	value_t result;
 	Move curMove = firstMove;
+	bool curLosingCapture = firstLosingCapture;
 
 	// Loop through all moves
 	while (true) {
@@ -692,6 +697,9 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 			}
 			curMove = selectNextMove(position, stack, splitNode);
 			if (curMove.isEmpty()) break;
+			// A capture handed out in the last stage is one that SEE rated as loosing; read with the move,
+			// under the same lock
+			curLosingCapture = curMove.isCapture() && splitNode.selectStage == MoveType::REMAINING_MOVES;
 			if constexpr (SPLIT) {
 				node.alpha = splitNode.alpha;
 				node.bestValue = splitNode.bestValue;
@@ -709,7 +717,7 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 			if (_threads && depth >= 3 && node.movesTried > 1 && !node.isLastMove()
 				&& _threads->hasWaitingThread()
 				&& openSplitPoint(stack, node, depth, seExtension, ply, TYPE == SearchRegion::PV)) {
-				moveLoop<TYPE, true>(position, stack, node, depth, seExtension, ply, curMove);
+				moveLoop<TYPE, true>(position, stack, node, depth, seExtension, ply, curMove, curLosingCapture);
 				closeSplitPoint(position, stack, node, ply);
 				return;
 			}
@@ -723,7 +731,7 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 
 		bool doMovePrunings = node.movesTried > 3 && !node.isCheckMove(position, curMove);
 		// lmr is needed for move count pruning and late move reduction search
-		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
+		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove, curLosingCapture) : 0;
 		// Never skip moves when escaping from mate and in positions with pawns only.
 		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
 			
@@ -733,8 +741,8 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 				continue;
 			}
 
-			// 2. Move count pruning
-			if (lmr > 0 && depth - lmr < 0) {
+			// 2. Move count pruning, for quiet moves only: a loosing capture is reduced, never skipped
+			if (lmr > 0 && depth - lmr < 0 && !curMove.isCapture()) {
 				curMove.setEmpty();
 				continue;
 			}
@@ -945,7 +953,7 @@ void Search::helpAtSplitPoint(SearchThread& self, MoveGenerator& position, Searc
 	stack.replayLine(position, line, fromPly, ply);
 	node.computeCheckGivingSquares(position);
 
-	moveLoop<TYPE, true>(position, stack, splitNode, job.depth, job.seExtension, ply, Move::EMPTY_MOVE);
+	moveLoop<TYPE, true>(position, stack, splitNode, job.depth, job.seExtension, ply, Move::EMPTY_MOVE, false);
 
 	stack.undoLine(position, fromPly, ply);
 	self.removeSplitsAbove(fromPly);
