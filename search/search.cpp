@@ -317,11 +317,12 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 
 	if (ply <= MIN_PLY) return 0;
 
-	// Captures that SEE does not rate as loosing are never reduced. A loosing capture is reduced like a quiet move,
-	// less one ply per 100 cp of the captured piece (move sorting values: pawn 1, knight and bishop 3, rook 5,
-	// queen 10), Volker 2026-11-19, 0.5.0-047. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049
-	// and did not pay.
-	if (move.isCapture() && !losingCapture) return 0;
+	// Captures that SEE does not rate as loosing are never reduced. A loosing capture gets a fixed reduction by the
+	// captured piece: pawn 2 plies, knight and bishop 1, rook and queen 0 (Volker 2026-11-19, 0.5.0-048).
+	// Tested 0.5.0-047: reduced like a quiet move less one ply per 100 cp of the captured piece: H0 accepted,
+	// bounds -2/+3, 8391 games. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049 and did not pay.
+	constexpr std::array<ply_t, PIECE_AMOUNT> LOSING_CAPTURE_REDUCTION = { 0, 0, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
+	if (move.isCapture()) return losingCapture * LOSING_CAPTURE_REDUCTION[move.getCapture()];
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
@@ -359,11 +360,9 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// At tournament depth (CLAUDE.md), on 0.5.0-036: CLOP (Studio, 2000 samples at 13.5+0.07, range 0..80 around 40): 51.92.
 	// 52 against 40 at 13.5+0.07: H1 accepted, bounds -2/+3, 10714 games.
 	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
-	// A capture has no history value of its own
-	numerator -= !move.isCapture() * _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / 1024;
+	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / 1024;
 
-	const ply_t capturedValue = losingCapture * std::abs(position.getPieceValueForMoveSorting(move.getCapture())) / 100;
-	return static_cast<ply_t>(std::max(std::max(numerator, 0) / divisor - capturedValue, 0));
+	return static_cast<ply_t>(std::max(numerator, 0) / divisor);
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
