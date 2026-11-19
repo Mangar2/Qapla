@@ -1922,6 +1922,16 @@ squares.
   start at 19.5+0.1 was stopped after 268 games (too slow for a change that does not need tournament depth).
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-039 207416446 nodes.
 
+## 0.5.0-040 — continuation history over 3 plies
+
+Built on 0.5.0-038. The next step of the series: the continuation history over 3 plies.
+- **Weights from a joint CLOP at tournament depth** (Studio, 3000 samples at 13.5+0.07, ranges 0..2918, 0..2446 and
+  0..2048 around 1459, 1223 and 1024): 1830.1 / 1286.3 / 957.5 → 1830 / 1286 / 957.
+- **SPRT 040 against 038** at 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **undecided after 20000 games**,
+  LLR −1.80, W 3891 D 12160 L 3949. Volker took it as failed while it ran; moved to `dead/contHist3` and reverted on
+  release0.5.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-040 192208062 nodes.
+
 ## 0.5.0-041 — Spike's endgame mobility for 0..3 squares of the knight
 
 Built on 0.5.0-039 (branch `eval-mobility`). The same change as 039 for the knight, the candidate named in
