@@ -146,7 +146,8 @@ namespace ChessEval {
 		static constexpr std::array<EvalValue, 30> QUEEN_MOBILITY_MAP_DEFAULT = { {
 			// endgame of 0..3 squares: Spike's cramped penalty plus linear mobility (plan/eval-to-try.md)
 			// SPRT 0.5.0-039 against 038 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 17915 games
-			{ -10, -96 }, { -10, -47 }, { -10, -21 }, { -5, -8 }, { 0, 0 }, { 2, 2 }, { 4, 4 }, { 5, 5 }, { 6, 6 }, { 10, 10 },
+			// 0.5.0-043: half of Spike's values (rounded away from zero), tested against the full values of 039
+			{ -10, -48 }, { -10, -24 }, { -10, -11 }, { -5, -4 }, { 0, 0 }, { 2, 2 }, { 4, 4 }, { 5, 5 }, { 6, 6 }, { 10, 10 },
 			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 },
 			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }
 		} };

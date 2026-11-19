@@ -168,7 +168,8 @@ namespace ChessEval {
 		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP_DEFAULT = { {
 			// endgame of 0..3 squares: Spike's cramped penalty plus linear mobility (plan/eval-to-try.md)
 			// SPRT 0.5.0-039 against 038 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 17915 games
-			{ -15, -96 }, { -10, -48 }, { 0, -23 }, { 5, -11 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
+			// 0.5.0-043: half of Spike's values (rounded away from zero), tested against the full values of 039
+			{ -15, -48 }, { -10, -24 }, { 0, -12 }, { 5, -6 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
