@@ -1942,6 +1942,18 @@ Built on 0.5.0-039 (branch `eval-mobility`). The same change as 039 for the knig
   W 3472 D 6524 L 3602. Moved to `dead/knight-mobility`, reverted on `eval-mobility`.
 - EPD wmtest depth 18: 0.5.0-039 207416446 → 0.5.0-041 206358499 nodes.
 
+## 0.5.0-042 — only the first killer, 14 sorted silent moves, positive history only
+
+Built on 0.5.0-038 (branch `dead/sort14-killer1-only`). Volker: does the follow-up move and the second killer still
+pay now that the continuation history orders the silent moves?
+- The follow-up move and the second killer removed (the follow-up table is no longer updated), 14 instead of 7 silent
+  moves sorted, only moves with a positive history take part (sort floor 0 instead of −MAX_VALUE) - the 14 and the
+  floor as a buffer for the dropped stages.
+- **SPRT with 0.5.0-038 as the challenger** against 042 as the baseline, 038 had to prove that the two stages are worth
+  something; 29+0.15 on Linux (tournament depth, history), 30 engines, bounds −2/+3: **H1 accepted after 10339
+  games**, W 2242 D 5992 L 2105 (from 038's side). The follow-up move and the second killer stay.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-042 195612466 nodes.
+
 ## 0.5.0-043 — half of Spike's endgame mobility for 0..3 squares
 
 Built on 0.5.0-039 (branch `eval-mobility`). Volker: the endgame values of 039 halved, tested against the full values.
