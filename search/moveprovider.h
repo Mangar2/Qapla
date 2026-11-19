@@ -185,7 +185,7 @@ namespace QaplaSearch {
 		 * in the sorting; every distance has its own
 		 */
 		static statistic_t continuationWeight(uint32_t distance) {
-			static_assert(SearchConfig::CONTINUATION_HISTORY_PLIES <= 3, "every distance needs a weight here");
+			static_assert(SearchConfig::CONTINUATION_HISTORY_PLIES <= 2, "every distance needs a weight here");
 			constexpr bool OPT = SearchConfig::optimizeHistory;
 			switch (distance) {
 			case 1:
@@ -199,15 +199,10 @@ namespace QaplaSearch {
 				// and 0..2048 around 1258 and 1024): 1459.2 and 1223.1.
 				// Tested 0.5.0-038 (both distances at 1459 / 1223) against 0.5.0-037 (distance 1 at 1258) at 13.5+0.07:
 				// H1 accepted, bounds -2/+3, 6201 games.
-				// Together with distances 2 and 3, CLOP at tournament depth (Studio, 3000 samples at 13.5+0.07, ranges
-				// 0..2918, 0..2446 and 0..2048 around 1459, 1223 and 1024): 1830.1, 1286.3 and 957.5.
-				return tunable<OPT, "contHistWeight", 1830, 0, 3660>();
+				return tunable<OPT, "contHistWeight", 1459, 0, 2918>();
 			case 2:
 				// CLOP together with distance 1, see there
-				return tunable<OPT, "contHistWeight2", 1286, 0, 2572>();
-			case 3:
-				// CLOP together with distance 1, see there
-				return tunable<OPT, "contHistWeight3", 957, 0, 1914>();
+				return tunable<OPT, "contHistWeight2", 1223, 0, 2446>();
 			default:
 				assert(false);
 				return 0;
