@@ -1921,3 +1921,13 @@ squares.
   not depend on the history tables): **H1 accepted after 17915 games**, bounds −2/+3, W 4831 D 8418 L 4666. A first
   start at 19.5+0.1 was stopped after 268 games (too slow for a change that does not need tournament depth).
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-039 207416446 nodes.
+
+## 0.5.0-041 — Spike's endgame mobility for 0..3 squares of the knight
+
+Built on 0.5.0-039 (branch `eval-mobility`). The same change as 039 for the knight, the candidate named in
+`plan/eval-to-try.md`.
+- **Endgame values of the four lowest entries** of the knight mobility table replaced by Spike's cramped penalty plus
+  its linear mobility, in cp: −96 / −47 / −22 / −9 (before −30 / −20 / −10 / 0). Midgame values unchanged.
+- **SPRT 041 against 039** at 2+0.004 on the M4, 8 engines: **H0 accepted after 13598 games**, bounds −2/+3,
+  W 3472 D 6524 L 3602. Moved to `dead/knight-mobility`, reverted on `eval-mobility`.
+- EPD wmtest depth 18: 0.5.0-039 207416446 → 0.5.0-041 206358499 nodes.
