@@ -147,6 +147,7 @@ namespace ChessEval {
 			// endgame of 0..3 squares: Spike's cramped penalty plus linear mobility (plan/eval-to-try.md)
 			// SPRT 0.5.0-039 against 038 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 17915 games
 			// 0.5.0-043: half of Spike's values (rounded away from zero), tested against the full values of 039
+			// SPRT 0.5.0-043 against 039 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 25943 games
 			{ -10, -48 }, { -10, -24 }, { -10, -11 }, { -5, -4 }, { 0, 0 }, { 2, 2 }, { 4, 4 }, { 5, 5 }, { 6, 6 }, { 10, 10 },
 			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 },
 			{ 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }, { 10, 10 }
