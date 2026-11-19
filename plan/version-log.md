@@ -1962,3 +1962,17 @@ Built on 0.5.0-039 (branch `eval-mobility`). Volker: the endgame values of 039 h
 - **SPRT 043 against 039** at 2+0.004 on the M4, 8 engines, bounds −2/+3: undecided after 20000 games (LLR 1.93),
   continued from its state file (Volker: up to 50000): **H1 accepted after 25943 games**, W 6937 D 12242 L 6764.
 - EPD wmtest depth 18: 0.5.0-039 207416446 → 0.5.0-043 202760362 nodes.
+
+## 0.5.0-045 — king shield and pawn storm values from a joint CLOP
+
+Built on 0.5.0-043 + the pawn storm term at 0 (branch `eval-mobility`, c64d348). Volker: the storm term (the
+attacker's pawns on the three files of the king's wing and on his ranks 4-6, at least two files, a 9 bit index into a
+table built from one value per rank) and the king shield tuned together, the storm value of rank 4 fixed at 10 so it
+cannot cancel against the shield's "pawn missing" values.
+- **CLOP** on Linux, 5000 samples at 5+0.01, 30 engines: shield { -26, -31, -23, -34, -33, -28, -19, 0 } instead of
+  { -13, -19, -24, -17, -15, -8, -10, 0 }, storm rank 5 / 6: -15 / 19. The values and the corrected sets are in
+  `plan/king-shield-storm-values.md`.
+- **SPRT 045 against 043** at 5+0.01 on Linux, 30 engines: **H0 accepted after 10027 games**, bounds −2/+3,
+  W 2504 D 4886 L 2637. Moved to `dead/shield-storm`, reverted on `eval-mobility` (the storm term stays at 0).
+- EPD wmtest depth 18: 0.5.0-043 202760362 → 0.5.0-045 206731356 nodes.
+
