@@ -41,7 +41,7 @@ namespace QaplaSearch {
 	public:
 
 
-		MoveProvider() : curMoveNo(0), triedMovesAmount(0) {}
+		MoveProvider() : curMoveNo(0), triedMovesAmount(0), selectedHistory(0) {}
 
 		/**
 		 * Generates all moves of the side to move, nothing selected yet
@@ -79,7 +79,8 @@ namespace QaplaSearch {
 		 * Selects a move proposed from outside the list - pv, tt or killer move
 		 * @returns an empty move if it is empty itself or not (any more) in the list
 		 */
-		Move selectProposedMove(Move move) {
+		Move selectProposedMove(Move move, statistic_t history) {
+			selectedHistory = history;
 			return takeMove(findProposedMove(move));
 		}
 
@@ -97,6 +98,7 @@ namespace QaplaSearch {
 		 * @returns an empty move when no such capture is left
 		 */
 		Move selectGoodCapture(const MoveGenerator& board) {
+			selectedHistory = 0;
 			return takeMove(selectNextCaptureMoveHandlingLoosingCaptures(board));
 		}
 
@@ -139,7 +141,39 @@ namespace QaplaSearch {
 		 * @returns an empty move at the end of the list
 		 */
 		Move selectRemainingMove() {
-			return takeMove(selectNextSilentMove());
+			const int32_t moveNo = selectNextSilentMove();
+			// The weight of a silent move is its history value, set by sortSilentMoves; a deferred
+			// loosing capture in front of them carries a material weight and has no history value
+			selectedHistory = moveNo >= int32_t(moveList.getNonSilentMoveAmount()) ? moveList.getWeight(uint32_t(moveNo)) : 0;
+			return takeMove(moveNo);
+		}
+
+		/**
+		 * @returns the history value of the move handed out last: the sorting weight of a silent move, the
+		 * value passed in by selectProposedMove, 0 for a capture. At a split point it must be read under the
+		 * same lock as the move itself.
+		 */
+		statistic_t getSelectedHistory() const {
+			return selectedHistory;
+		}
+
+		/**
+		 * The scale of a history value: 1024 for the butterfly board plus the weight of every continuation
+		 * distance, as sortSilentMoves adds them
+		 */
+		static statistic_t historyScale() {
+			statistic_t scale = 1024;
+			for (uint32_t distance = 1; distance <= SearchConfig::CONTINUATION_HISTORY_PLIES; distance++) {
+				scale += continuationWeight(distance);
+			}
+			return scale;
+		}
+
+		/**
+		 * The largest history value a silent move can have: every table at its saturation, +gravity
+		 */
+		static statistic_t maxHistory() {
+			return ButterflyBoard::gravity() * historyScale() / 1024;
 		}
 
 		/**
@@ -349,6 +383,8 @@ namespace QaplaSearch {
 		MoveList moveList;
 		Move triedMoves[TRIED_MOVES_STORE_SIZE];
 		uint32_t triedMovesAmount;
+		// History value of the move handed out last, see getSelectedHistory
+		statistic_t selectedHistory;
 		SEE sEE;
 
 	};

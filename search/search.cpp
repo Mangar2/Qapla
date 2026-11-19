@@ -102,7 +102,7 @@ Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, S
 	switch (node.selectStage) {
 	case MoveType::PV:
 		node.selectStage = MoveType::WEIGHT_CAPTURES;
-		move = provider.selectProposedMove(node.pvMove.isEmpty() ? node.ttMove : node.pvMove);
+		move = provider.selectProposedMove(node.pvMove.isEmpty() ? node.ttMove : node.pvMove, 0);
 		node.pvMove.setEmpty();
 		if (!move.isEmpty()) return move;
 		[[fallthrough]];
@@ -117,7 +117,8 @@ Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, S
 		[[fallthrough]];
 	case MoveType::KILLER1:
 		node.selectStage = MoveType::FOLLOW_UP_MOVE;
-		move = provider.selectProposedMove(node.killerMove[0]);
+		// Killers and the follow-up move stand ahead of every sorted move, so they get the largest history value
+		move = provider.selectProposedMove(node.killerMove[0], MoveProvider::maxHistory());
 		if (!move.isEmpty()) return move;
 		[[fallthrough]];
 	case MoveType::FOLLOW_UP_MOVE:
@@ -126,12 +127,12 @@ Move Search::selectNextMove(MoveGenerator& position, const SearchStack& stack, S
 		// At tournament depth (19.5+0.1 on the M4) on 0.5.0-036: before the first killer against here: stopped undecided
 		// after 10642 games, bounds -2/+3. The placement does not depend on the depth or on the history tables.
 		node.selectStage = MoveType::KILLER2;
-		move = provider.selectProposedMove(_continuationHistory->getFollowUpMove(stack, node.ply));
+		move = provider.selectProposedMove(_continuationHistory->getFollowUpMove(stack, node.ply), MoveProvider::maxHistory());
 		if (!move.isEmpty()) return move;
 		[[fallthrough]];
 	case MoveType::KILLER2:
 		node.selectStage = MoveType::SORT_MOVES;
-		move = provider.selectProposedMove(node.killerMove[1]);
+		move = provider.selectProposedMove(node.killerMove[1], MoveProvider::maxHistory());
 		if (!move.isEmpty()) return move;
 		[[fallthrough]];
 	case MoveType::SORT_MOVES:
@@ -297,7 +298,7 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	return isCutoff;
 }
 
-ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move)
+ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, statistic_t history)
 {
 
 	// Ability to disable history for a ply
@@ -357,7 +358,10 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// At tournament depth (CLAUDE.md), on 0.5.0-036: CLOP (Studio, 2000 samples at 13.5+0.07, range 0..80 around 40): 51.92.
 	// 52 against 40 at 13.5+0.07: H1 accepted, bounds -2/+3, 10714 games.
 	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
-	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / 1024;
+	// The history value is the one the move ordering used (butterfly plus continuation history), handed over with
+	// the move. The divisor is its scale, so the largest value shifts the reduction as far as the butterfly value
+	// alone did before (0.5.0-044).
+	numerator -= history * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / MoveProvider::historyScale();
 
 	return static_cast<ply_t>(std::max(numerator, 0) / divisor);
 }
@@ -639,7 +643,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 	// 8. Calculate additional node wide search extensions
 	if (TYPE == SearchRegion::PV) depth = node.extendSearch(position, stack[0].remainingDepth);
 
-	moveLoop<TYPE, false>(position, stack, node, depth, seExtension, ply, Move::EMPTY_MOVE);
+	moveLoop<TYPE, false>(position, stack, node, depth, seExtension, ply, Move::EMPTY_MOVE, 0);
 
 	// 6. Update tt and killer, but not if search is aborted as then bestValue and bestMove may be wrong.
 	// Every cutoff has returned above and the first move is always searched (pruning needs a
@@ -674,12 +678,13 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 
 template <Search::SearchRegion TYPE, bool SPLIT>
 void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& splitNode,
-	ply_t depth, ply_t seExtension, ply_t ply, Move firstMove)
+	ply_t depth, ply_t seExtension, ply_t ply, Move firstMove, statistic_t firstHistory)
 {
 	SearchNode& node = stack[ply];
 	SearchNode& childNode = stack[ply + 1];
 	value_t result;
 	Move curMove = firstMove;
+	statistic_t curHistory = firstHistory;
 
 	// Loop through all moves
 	while (true) {
@@ -692,6 +697,8 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 			}
 			curMove = selectNextMove(position, stack, splitNode);
 			if (curMove.isEmpty()) break;
+			// Read with the move, under the same lock: at a split point the list is shared
+			curHistory = splitNode.moveProvider.getSelectedHistory();
 			if constexpr (SPLIT) {
 				node.alpha = splitNode.alpha;
 				node.bestValue = splitNode.bestValue;
@@ -709,7 +716,7 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 			if (_threads && depth >= 3 && node.movesTried > 1 && !node.isLastMove()
 				&& _threads->hasWaitingThread()
 				&& openSplitPoint(stack, node, depth, seExtension, ply, TYPE == SearchRegion::PV)) {
-				moveLoop<TYPE, true>(position, stack, node, depth, seExtension, ply, curMove);
+				moveLoop<TYPE, true>(position, stack, node, depth, seExtension, ply, curMove, curHistory);
 				closeSplitPoint(position, stack, node, ply);
 				return;
 			}
@@ -723,7 +730,7 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 
 		bool doMovePrunings = node.movesTried > 3 && !node.isCheckMove(position, curMove);
 		// lmr is needed for move count pruning and late move reduction search
-		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove) : 0;
+		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove, curHistory) : 0;
 		// Never skip moves when escaping from mate and in positions with pawns only.
 		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
 			
@@ -945,7 +952,7 @@ void Search::helpAtSplitPoint(SearchThread& self, MoveGenerator& position, Searc
 	stack.replayLine(position, line, fromPly, ply);
 	node.computeCheckGivingSquares(position);
 
-	moveLoop<TYPE, true>(position, stack, splitNode, job.depth, job.seExtension, ply, Move::EMPTY_MOVE);
+	moveLoop<TYPE, true>(position, stack, splitNode, job.depth, job.seExtension, ply, Move::EMPTY_MOVE, 0);
 
 	stack.undoLine(position, fromPly, ply);
 	self.removeSplitsAbove(fromPly);
