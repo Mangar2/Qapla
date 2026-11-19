@@ -1931,3 +1931,12 @@ Built on 0.5.0-039 (branch `eval-mobility`). The same change as 039 for the knig
 - **SPRT 041 against 039** at 2+0.004 on the M4, 8 engines: **H0 accepted after 13598 games**, bounds −2/+3,
   W 3472 D 6524 L 3602. Moved to `dead/knight-mobility`, reverted on `eval-mobility`.
 - EPD wmtest depth 18: 0.5.0-039 207416446 → 0.5.0-041 206358499 nodes.
+
+## 0.5.0-043 — half of Spike's endgame mobility for 0..3 squares
+
+Built on 0.5.0-039 (branch `eval-mobility`). Volker: the endgame values of 039 halved, tested against the full values.
+- Bishop and rook −48 / −24 / −12 / −6, queen −48 / −24 / −11 / −4 (half of 039's values, rounded away from zero).
+  Midgame values unchanged.
+- **SPRT 043 against 039** at 2+0.004 on the M4, 8 engines, bounds −2/+3: undecided after 20000 games (LLR 1.93),
+  continued from its state file (Volker: up to 50000): **H1 accepted after 25943 games**, W 6937 D 12242 L 6764.
+- EPD wmtest depth 18: 0.5.0-039 207416446 → 0.5.0-043 202760362 nodes.
