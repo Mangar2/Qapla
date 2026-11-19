@@ -46,3 +46,18 @@ Round robin on the M4 (2026-11-19): original (0.5.0-043), Claude, Volker - 50 ro
 
 The CLOP set itself (0.5.0-045) lost its SPRT against 043 at 5+0.01 on Linux: H0 accepted after 10027 games, bounds
 -2/+3. At these time controls a stricter shield does not pay; the stricter the set, the lower it finished.
+
+## Tournament without the pawn storm
+
+The same round robin with the storm at 0 in both new sets, only the shield changed (Volker: maybe the storm, not the
+shield, cost the Elo), 2026-11-19, 7500 games:
+
+| engine | Elo | +/- | games | score | draws |
+|---|---|---|---|---|---|
+| original (0.5.0-043) | 2601.5 | 7 | 5000 | 50.32 % | 45.3 % |
+| Claude, shield only | 2600.5 | 7 | 5000 | 50.10 % | 46.4 % |
+| Volker, shield only | 2598.1 | 7 | 5000 | 49.58 % | 45.1 % |
+
+Without the storm the three sets lie within 3.4 points of each other; with the storm Volker's set finished 11.6 and
+Claude's 3.4 behind the original. The shield values alone neither gain nor lose much at 2+0.004.
+
