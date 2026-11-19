@@ -1976,3 +1976,14 @@ cannot cancel against the shield's "pawn missing" values.
   W 2504 D 4886 L 2637. Moved to `dead/shield-storm`, reverted on `eval-mobility` (the storm term stays at 0).
 - EPD wmtest depth 18: 0.5.0-043 202760362 → 0.5.0-045 206731356 nodes.
 
+## 0.5.0-047 — LMR for loosing captures, one ply less per 100 cp of the captured piece
+
+Built on 0.5.0-038 (branch `dead/lmr-losing-captures`). Volker: captures are never reduced so far; Stockfish reduces
+them. A capture SEE rates as loosing (handed out in the last selection stage, read with the move under the split lock)
+gets the reduction of a quiet move without the history term, less the move sorting value of the captured piece / 100
+(pawn 1, knight and bishop 3, rook 5, queen 10), at least 0. Move count pruning stays for quiet moves only - a loosing
+capture is reduced, never skipped (Volker agreed).
+- **SPRT 047 against 038** at 2+0.004 on the M4, 8 engines, bounds −2/+3: **H0 accepted after 8391 games**,
+  W 2129 D 3999 L 2263.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-047 198950845 nodes.
+
