@@ -158,8 +158,7 @@ namespace ChessEval {
 
 		// Mobility Map for knights
 		static constexpr std::array<EvalValue, 9> KNIGHT_MOBILITY_MAP_DEFAULT = { {
-			// endgame of 0..3 squares: Spike's cramped penalty plus linear mobility (plan/eval-to-try.md)
-			{ -30, -96 }, { -20, -47 }, { -10, -22 }, { 0, -9 }, { 10, 10 },
+			{ -30, -30 }, { -20, -20 }, { -10, -10 }, { 0, 0 }, { 10, 10 },
 			{ 20, 20 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
