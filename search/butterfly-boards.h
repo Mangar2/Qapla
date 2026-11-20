@@ -169,15 +169,12 @@ namespace QaplaSearch {
 				128 * 20);
 		}
 
-	public:
 		// Gravity: every update pulls the entry towards zero by |change| / gravity of its value, the
 		// entries saturate at +-gravity.
-		static statistic_t gravity() {
+		statistic_t gravity() {
 			constexpr bool OPT = SearchConfig::optimizeHistory;
 			return tunable<OPT, "historyGravity", 14000, 7000, 21000>();
 		}
-
-	private:
 
 		MoveKeyedTable<statistic_t> _board;
 
