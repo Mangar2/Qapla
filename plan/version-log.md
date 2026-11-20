@@ -1988,6 +1988,15 @@ cannot cancel against the shield's "pawn missing" values.
   W 2504 D 4886 L 2637. Moved to `dead/shield-storm`, reverted on `eval-mobility` (the storm term stays at 0).
 - EPD wmtest depth 18: 0.5.0-043 202760362 → 0.5.0-045 206731356 nodes.
 
+## 0.5.0-046 — the best move of a node in check does not enter the history tables
+
+Built on 0.5.0-038 (branch `evade-no-history`). Volker: the best move of a node in check is an evasion and says little
+about the quiet moves of the positions without check. It no longer updates the butterfly board and the continuation
+history rows (bonus and malus); killer and follow-up move as before.
+- **SPRT 046 against 038** at 29+0.15 on Linux (tournament depth, history), 30 engines, bounds −2/+3: **H1 accepted
+  after 13967 games**, W 2897 D 8311 L 2759.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-046 206400413 nodes.
+
 ## 0.5.0-047 — LMR for loosing captures, one ply less per 100 cp of the captured piece
 
 Built on 0.5.0-038 (branch `dead/lmr-losing-captures`). Volker: captures are never reduced so far; Stockfish reduces
