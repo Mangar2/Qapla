@@ -317,12 +317,12 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 
 	if (ply <= MIN_PLY) return 0;
 
-	// Captures that SEE does not rate as loosing are never reduced. A loosing capture gets a fixed reduction by the
-	// captured piece: pawn 2 plies, knight and bishop 1, rook and queen 0 (Volker 2026-11-19, 0.5.0-048).
+	// Captures that SEE does not rate as loosing are never reduced. A loosing capture is reduced by 1 ply, whatever it
+	// takes (0.5.0-050).
 	// Tested 0.5.0-047: reduced like a quiet move less one ply per 100 cp of the captured piece: H0 accepted,
-	// bounds -2/+3, 8391 games. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049 and did not pay.
-	constexpr std::array<ply_t, PIECE_AMOUNT> LOSING_CAPTURE_REDUCTION = { 0, 0, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
-	if (move.isCapture()) return losingCapture * LOSING_CAPTURE_REDUCTION[move.getCapture()];
+	// bounds -2/+3, 8391 games. Tested 0.5.0-048: pawn 2, knight and bishop 1, rook and queen 0: undecided,
+	// bounds -2/+3, 20000 games. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049 and did not pay.
+	if (move.isCapture()) return losingCapture;
 
 	// The reduction is the product of two ramps, one over the move number and one over the
 	// remaining depth. The move number ramp is steep up to a break point and flat after it.
