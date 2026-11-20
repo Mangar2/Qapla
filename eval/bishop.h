@@ -170,7 +170,9 @@ namespace ChessEval {
 			// SPRT 0.5.0-039 against 038 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 17915 games
 			// 0.5.0-043: half of Spike's values (rounded away from zero), tested against the full values of 039
 			// SPRT 0.5.0-043 against 039 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 25943 games
-			{ -15, -48 }, { -10, -24 }, { 0, -12 }, { 5, -6 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
+			// closing run 0.5.0-043 against 038 at 2+0.004 (M4): undecided, bounds 0/+5, 20000 games
+			// 0.5.0-052: three quarters of Spike's values (rounded to the nearest), tested against 038
+			{ -15, -72 }, { -10, -36 }, { 0, -17 }, { 5, -8 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
