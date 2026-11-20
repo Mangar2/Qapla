@@ -318,7 +318,8 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	if (ply <= MIN_PLY) return 0;
 
 	// Captures that SEE does not rate as loosing are never reduced. A loosing capture is reduced by 1 ply, whatever it
-	// takes (0.5.0-050).
+	// takes. Tested 0.5.0-050 against 0.5.0-038: at 2+0.004 undecided after 20000 games, at tournament depth
+	// (13.5+0.07, 12 engines) H1 accepted after 7336 games, bounds -2/+3.
 	// Tested 0.5.0-047: reduced like a quiet move less one ply per 100 cp of the captured piece: H0 accepted,
 	// bounds -2/+3, 8391 games. Tested 0.5.0-048: pawn 2, knight and bishop 1, rook and queen 0: undecided,
 	// bounds -2/+3, 20000 games. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049 and did not pay.
