@@ -1963,6 +1963,18 @@ Built on 0.5.0-039 (branch `eval-mobility`). Volker: the endgame values of 039 h
   continued from its state file (Volker: up to 50000): **H1 accepted after 25943 games**, W 6937 D 12242 L 6764.
 - EPD wmtest depth 18: 0.5.0-039 207416446 → 0.5.0-043 202760362 nodes.
 
+## 0.5.0-044 — LMR reads the history value of the move ordering
+
+Built on 0.5.0-038. Volker: after the continuation history entered the move ordering, LMR must use the same history
+value - ordering and reduction move together. The move provider hands out every move with its history value (a sorted
+silent move its sorting weight, killers and follow-up move the largest value, tt move and captures 0); the move loop
+reads it with the move under the split lock. LMR: numerator -= history * lmrHistoryFactor / historyScale(), the scale
+1024 + 1459 + 1223 = 3706, so the largest value shifts the reduction as far as the butterfly value alone did. No CLOP
+first (Volker).
+- **SPRT 044 against 038** at 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted after 17612 games**,
+  W 3446 D 10610 L 3556. Moved to `dead/lmr-history-provider`, reverted on release0.5.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-044 228854731 nodes; nodes/s single threaded unchanged.
+
 ## 0.5.0-045 — king shield and pawn storm values from a joint CLOP
 
 Built on 0.5.0-043 + the pawn storm term at 0 (branch `eval-mobility`, c64d348). Volker: the storm term (the
