@@ -1996,3 +1996,12 @@ queen, whatever the move number and depth. Move count pruning stays for quiet mo
   W 5298 D 9467 L 5235. The state file test/log/sprt-048.state can be continued.
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-048 190705570 nodes.
 
+## 0.5.0-049 — loosing captures reduced only when they cannot reach alpha
+
+Built on 0.5.0-047's plumbing on 0.5.0-038 (branch `dead/lmr-losing-captures-futile`). Night program on loosing
+captures (Volker), as older Stockfish versions: a capture SEE rates as loosing gets the reduction of a quiet move
+without the history term when adjustedEval + the move sorting value of the captured piece <= alpha, else none.
+- **SPRT 049 against 038** at 2+0.004 on the M4, 8 engines, bounds −2/+3: **H0 accepted after 10064 games**,
+  W 2543 D 4845 L 2676.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-049 203210029 nodes.
+
