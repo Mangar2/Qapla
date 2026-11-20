@@ -2029,3 +2029,13 @@ without the history term when adjustedEval + the move sorting value of the captu
   W 2543 D 4845 L 2676.
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-049 203210029 nodes.
 
+## 0.5.0-050 — loosing captures reduced by 1 ply, whatever they take
+
+Built on 0.5.0-047's plumbing on 0.5.0-038 (branch `lmr-losing-captures-one`). Night program on loosing captures
+(Volker): a capture SEE rates as loosing is reduced by exactly 1 ply, no move count pruning for captures.
+- **SPRT 050 against 038** at 2+0.004 on the M4, 8 engines, bounds −2/+3: **undecided after 20000 games**, LLR 0.60,
+  W 5256 D 9538 L 5206.
+- **SPRT 050 against 038** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H1 accepted
+  after 7336 games**, W 1509 D 4448 L 1379. Result comment on the branch (6f3f244).
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-050 194561138 nodes.
+
