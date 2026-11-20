@@ -2050,3 +2050,16 @@ against 038 and 043 (half values) against 039, but 043 stayed undecided against 
   Result comment on the branch (035df01).
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-052 202968594 nodes.
 
+## 0.5.0-053 — Stockfish's LMR base formula instead of our two ramps
+
+Built on release0.5 d0946c1 (0.5.0-038 plus the sticky tt pv bit, node neutral; branch `lmr-sf-base`, the tested
+commit also as `dead/lmr-sf-base`). Volker: does our hand made base depth of the late move reduction lose much against
+Stockfish's? Only the base replaced: (R[depth] * R[moveNo] + 948) / 1024 plies with R[i] = int(2872 / 128 * ln(i))
+(Stockfish master, reduction() without its not improving factor) instead of the product of our two clamped ramps. All
+other LMR terms ours (PV divisor, passed pawn, not improving, history); the move count pruning reads the reduction and
+follows it. None of Stockfish's node type terms (cut node, ttPv, tt move, ...).
+- **SPRT 053 against 038** (the d0946c1 binary) at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds
+  −2/+3: **H0 accepted after 1707 games**, W 289 D 1000 L 418.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-053 265091677 nodes.
+- Next (Volker): CLOP of Stockfish's two constants together with our LMR values, then the same test with tuned values.
+
