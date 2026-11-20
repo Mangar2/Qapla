@@ -2039,3 +2039,14 @@ Built on 0.5.0-047's plumbing on 0.5.0-038 (branch `lmr-losing-captures-one`). N
   after 7336 games**, W 1509 D 4448 L 1379. Result comment on the branch (6f3f244).
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-050 194561138 nodes.
 
+## 0.5.0-052 — three quarters of Spike's endgame mobility for 0..3 squares
+
+Built on 0.5.0-043 (branch `eval-mobility-34` from a58faa5, without the pawn storm code). Volker: 039 (full values) won
+against 038 and 043 (half values) against 039, but 043 stayed undecided against 038 - so three quarters against 038.
+- Bishop and rook −72 / −36 / −17 / −8, queen −72 / −35 / −16 / −6 (three quarters of 039's values, rounded to the
+  nearest). Midgame values unchanged.
+- **SPRT 052 against 038** at 2+0.004 on the M4, 8 engines, bounds −2/+3: undecided after 20000 games (LLR 1.66),
+  continued from its state file (Volker: up to 50000): **H1 accepted after 24652 games**, W 6577 D 11667 L 6408.
+  Result comment on the branch (035df01).
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-052 202968594 nodes.
+
