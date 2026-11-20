@@ -1987,3 +1987,12 @@ capture is reduced, never skipped (Volker agreed).
   W 2129 D 3999 L 2263.
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-047 198950845 nodes.
 
+## 0.5.0-048 — fixed reduction for loosing captures
+
+Built on 0.5.0-047's plumbing on 0.5.0-038 (branch `dead/lmr-losing-captures-fixed`). Volker, after 047 lost: a capture
+SEE rates as loosing is reduced by 2 plies when it takes a pawn, 1 ply for a knight or bishop, not at all for a rook or
+queen, whatever the move number and depth. Move count pruning stays for quiet moves only.
+- **SPRT 048 against 038** at 2+0.004 on the M4, 8 engines, bounds −2/+3: **undecided after 20000 games**, LLR 0.86,
+  W 5298 D 9467 L 5235. The state file test/log/sprt-048.state can be continued.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-048 190705570 nodes.
+
