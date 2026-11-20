@@ -654,6 +654,7 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 			node.killerMove.setKiller(node.bestMove);
 			// The best move of a node in check is an evasion: it says little about the quiet moves of the
 			// positions without check, so it does not enter the history tables (Volker 2026-11-19, 0.5.0-046)
+			// SPRT 0.5.0-046 against 038 at 29+0.15 (Linux, tournament depth): H1 accepted, bounds -2/+3, 13967 games
 			if (!node.sideToMoveIsInCheck) {
 				_butterflyBoard->newBestMove(node.bestMove, depth,
 					node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
