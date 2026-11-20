@@ -1962,6 +1962,9 @@ Built on 0.5.0-039 (branch `eval-mobility`). Volker: the endgame values of 039 h
 - **SPRT 043 against 039** at 2+0.004 on the M4, 8 engines, bounds −2/+3: undecided after 20000 games (LLR 1.93),
   continued from its state file (Volker: up to 50000): **H1 accepted after 25943 games**, W 6937 D 12242 L 6764.
 - EPD wmtest depth 18: 0.5.0-039 207416446 → 0.5.0-043 202760362 nodes.
+- **Closing run 043 against 038** (the version the mobility item started from; 039 and 043 had each only played their
+  predecessor) at 2+0.004 on the M4, 8 engines, bounds 0/+5: **undecided after 20000 games**, LLR −0.16,
+  W 5224 D 9646 L 5130.
 
 ## 0.5.0-044 — LMR reads the history value of the move ordering
 
