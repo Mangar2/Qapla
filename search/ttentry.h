@@ -59,7 +59,9 @@ namespace QaplaSearch {
 			setInfo(computedDepth, ageIndicator, nullmoveThreat);
 			setEval(eval);
 			setValue(positionValue, alpha, beta, ply);
-			setPV(isPV);
+			// The pv flag is sticky: once a pv node stored the position, the flag stays as long as the entry holds
+			// the same position (Stockfish's ttPv). Must be read before setTT replaces the hash.
+			setPV(isPV || (hasHash(hashKey) && this->isPV()));
 			// Keep the hash move, if the hash keys are identical and the new entry does not provide a move
 			if (!move.isEmpty() || !hasHash(hashKey)) {
 				setMove(move);
@@ -72,8 +74,9 @@ namespace QaplaSearch {
 
 		constexpr bool isEmpty() const { return _hash == 0; }
 		void clear() { 
-			_hash = 0;  
+			_hash = 0;
 			_info = 0;
+			_pv = 0;
 			setEntryAgeIndicator(ENTRY_AGE_INDICATOR_MASK - 1);
 		}
 
