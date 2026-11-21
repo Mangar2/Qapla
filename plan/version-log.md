@@ -2124,5 +2124,18 @@ bitboards and five popcounts. With the values at 0 identical to 055 (183352249 n
 - **SPRT 057 against 055** at 2.3+0.005 on the Studio, 12 engines, bounds −2/+3: stopped after 8688 games (testing
   meaningless values), LLR −2.19, W 2080 D 4424 L 2176.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-057 184539704 nodes.
-- Next: CLOP with the term switched on, R4 10 / R5 20 / R6 40, ranges 0..2x.
+- Two more CLOPs with the term switched on were started and stopped after 125 samples each: R4 10 / R5 20 / R6 40
+  (Volker: 10 points do not even move a rook off an open file, worth 18, to support the storm) and R4 25 / R5 40 /
+  R6 60 (Volker: rather a different form).
+
+## 0.5.0-058 — pawn storm as king attack index points
+
+Built on 0.5.0-055 (branch `pawn-storm-heavy`, also as `dead/pawn-storm-index`). Volker: the same storming pawns as in
+057 (ranks 4 to 6 on the side of the board where the attacked king stands - files A-C or F-H, none for a king on D/E -
+not blocked by a pawn, rook or queen behind) add points to the king attack index instead of centipawns: rank 4 = 2,
+rank 5 = 3, rank 6 = 4; an empty square in front adds half the difference to the next rank, the halves summed over all
+pawns and rounded down. Values set by Volker, no CLOP.
+- **SPRT 058 against 055** at 2.3+0.005 on the Studio, 12 engines, bounds −2/+3: **H0 accepted after 3482 games**,
+  W 828 D 1690 L 964.
+- EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-058 211588775 nodes.
 
