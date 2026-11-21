@@ -2090,3 +2090,24 @@ still from the fourth. All other LMR terms unchanged.
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-054 214536734 nodes.
 - Next (Volker): CLOP of the nine spline values, then an SPRT with the tuned values.
 
+## 0.5.0-055 — combination of the winners against 038
+
+Branch `combo-winners`: release0.5 with the three branches that won against 038 merged in - 046 (the best move of a
+node in check does not enter the history tables), 050 (loosing captures reduced by 1 ply, no move count pruning for
+captures), 052 (three quarters of Spike's endgame mobility for 0..3 squares of bishop, rook and queen). 051 (own
+history tables for nodes in check) did not win, so 046 is in.
+- **SPRT 055 against 038** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: running (result follows).
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-055 183352249 nodes.
+
+## 0.5.0-056 — Stockfish's LMR base with all LMR values tuned
+
+Built on 0.5.0-053 (branch `lmr-sf-base`, also as `dead/lmr-sf-tuned`). After 053 lost with Stockfish's constants,
+Volker: tune Stockfish's two constants together with our LMR values and test again. CLOP of six values at tournament
+depth (Studio, 13.5+0.07, 12 engines, 5000 samples; lmrDivisor fixed at 261, it scales with the four additive values
+and cannot be told apart from them): lnScale 2872 → 2758, base offset 948 → 1441, PV divisor 512 → 536, passed pawn
+divisor add 112 → 120, not improving add 133 → 172, history factor 52 → 71.
+- **SPRT 056 against 038** (the d0946c1 binary) at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds
+  −2/+3: **stopped undecided after 2030 games** (Volker: the question whether Stockfish's base formula is much better
+  than ours is answered), LLR −1.73, W 382 D 1181 L 460.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-056 194406863 nodes.
+
