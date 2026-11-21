@@ -166,7 +166,14 @@ namespace ChessEval {
 		} };
 		
 		static constexpr std::array<EvalValue, 15> BISHOP_MOBILITY_MAP_DEFAULT = { {
-			{ -15, -25 }, { -10, -15 }, { 0, 0 }, { 5, 5 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
+			// endgame of 0..3 squares: Spike's cramped penalty plus linear mobility (plan/eval-to-try.md)
+			// SPRT 0.5.0-039 against 038 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 17915 games
+			// 0.5.0-043: half of Spike's values (rounded away from zero), tested against the full values of 039
+			// SPRT 0.5.0-043 against 039 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 25943 games
+			// closing run 0.5.0-043 against 038 at 2+0.004 (M4): undecided, bounds 0/+5, 20000 games
+			// 0.5.0-052: three quarters of Spike's values (rounded to the nearest), tested against 038
+			// SPRT 0.5.0-052 against 038 at 2+0.004 (M4): H1 accepted, bounds -2/+3, 24652 games
+			{ -15, -72 }, { -10, -36 }, { 0, -17 }, { 5, -8 }, { 8, 8 }, { 13, 13 }, { 16, 16 }, { 18, 18 },
 			{ 20, 20 }, { 22, 22 }, { 24, 24 }, { 25, 25 }, { 25, 25 }, { 25, 25 }, { 25, 25 }
 		} };
 
