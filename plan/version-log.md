@@ -2112,3 +2112,17 @@ divisor add 112 → 120, not improving add 133 → 172, history factor 52 → 71
   than ours is answered), LLR −1.73, W 382 D 1181 L 460.
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-056 194406863 nodes.
 
+## 0.5.0-057 — pawn storm with a heavy piece behind, values from a CLOP centred on 0
+
+Built on 0.5.0-055 (branch `pawn-storm-heavy`). Volker: a storming pawn of the attacker counts on its ranks 4 to 6 on
+the three files of the king's wing (A-C or F-H), if no pawn blocks it and a rook or queen of the attacker stands on its
+file behind it; an empty square in front adds half the difference to the next rank (rank 6 none). Midgame only,
+bitboards and five popcounts. With the values at 0 identical to 055 (183352249 nodes).
+- CLOP (Studio, 3000 samples at 2.3+0.005) from 0 with bounds −100..100: R4 −3, R5 −14, R6 −3. **The setup was
+  wrong**: centred on 0 = term off, so with a weak signal the estimate stays near the middle - the values are the
+  midpoint plus noise, not a finding, and half the samples tried the wrong sign.
+- **SPRT 057 against 055** at 2.3+0.005 on the Studio, 12 engines, bounds −2/+3: stopped after 8688 games (testing
+  meaningless values), LLR −2.19, W 2080 D 4424 L 2176.
+- EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-057 184539704 nodes.
+- Next: CLOP with the term switched on, R4 10 / R5 20 / R6 40, ranges 0..2x.
+
