@@ -308,7 +308,7 @@ namespace QaplaSearch {
 		/**
 	 	 * @brief   
 		 */
-		ply_t computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move);
+		ply_t computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture);
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
@@ -360,7 +360,7 @@ namespace QaplaSearch {
 		 */
 		template <SearchRegion TYPE, bool SPLIT>
 		void moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& splitNode,
-			ply_t depth, ply_t seExtension, ply_t ply, Move firstMove);
+			ply_t depth, ply_t seExtension, ply_t ply, Move firstMove, bool firstLosingCapture);
 
 		/**
 		 * Opens the node at ply as split point and books a waiting thread for it. This thread
