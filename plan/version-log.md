@@ -2039,6 +2039,18 @@ Built on 0.5.0-047's plumbing on 0.5.0-038 (branch `lmr-losing-captures-one`). N
   after 7336 games**, W 1509 D 4448 L 1379. Result comment on the branch (6f3f244).
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-050 194561138 nodes.
 
+## 0.5.0-051 — own history tables for nodes in check
+
+Built on 0.5.0-046 (branch `evade-boards`, also as `dead/evade-boards`). Volker: instead of keeping the evasions out of
+the history (046), give the nodes in check their own tables and enter the evasions there. A class `ButterflyBoards`
+holds two butterfly boards indexed by "side to move in check"; the continuation history holds two boards the same way
+(`_boards[inCheck]`). Sorting, LMR and the update of a node read and write the boards of its own kind; killer and
+follow-up move stay shared.
+- **SPRT 051 against 046** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: undecided after 20000
+  games (LLR 1.37), continued from its state file (Volker: up to 50000), **stopped undecided after 37550 games**
+  (Volker: Linux needed for the combination of the winners, 0.5.0-055), LLR −2.31, W 7576 D 22333 L 7641.
+- EPD wmtest depth 18: 0.5.0-046 206400413 → 0.5.0-051 197934645 nodes.
+
 ## 0.5.0-052 — three quarters of Spike's endgame mobility for 0..3 squares
 
 Built on 0.5.0-043 (branch `eval-mobility-34` from a58faa5, without the pawn storm code). Volker: 039 (full values) won
