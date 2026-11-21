@@ -2063,3 +2063,18 @@ follows it. None of Stockfish's node type terms (cut node, ttPv, tt move, ...).
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-053 265091677 nodes.
 - Next (Volker): CLOP of Stockfish's two constants together with our LMR values, then the same test with tuned values.
 
+## 0.5.0-054 — LMR base from two monotone splines over move number and depth
+
+Built on release0.5 d0946c1 (branch `lmr-spline`, the tested commit also as `dead/lmr-spline`). Volker: make the base
+of the late move reduction smoother without copying Stockfish's logarithm. The product of our two clamped linear ramps
+(the move ramp jumped from 23 to 51 between moves 6 and 7) replaced by the product of two monotone cubic splines
+(Fritsch-Carlson, new `fillArrayMonotoneSpline` in eval/array-generator) through five points each, kept as a 64x64
+table: moves 2, 5, 9, 16, 30 with 0, 25, 48, 55, 55 (0 before move 2), depths 1, 4, 8, 15, 30 with 7, 13, 21, 35, 55
+(the last fixed, the product would otherwise have one free factor too many). Start values close to the old ramps but
+without the jump, not tuned. Late move reduction computed from the second move on, futility and move count pruning
+still from the fourth. All other LMR terms unchanged.
+- **SPRT 054 against 038** (the d0946c1 binary) at tournament depth, 19.5+0.1 on the M4, 8 engines, bounds −2/+3:
+  **H0 accepted after 6285 games**, W 1220 D 3725 L 1340.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-054 214536734 nodes.
+- Next (Volker): CLOP of the nine spline values, then an SPRT with the tuned values.
+
