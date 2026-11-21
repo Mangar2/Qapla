@@ -2096,7 +2096,8 @@ Branch `combo-winners`: release0.5 with the three branches that won against 038 
 node in check does not enter the history tables), 050 (loosing captures reduced by 1 ply, no move count pruning for
 captures), 052 (three quarters of Spike's endgame mobility for 0..3 squares of bishop, rook and queen). 051 (own
 history tables for nodes in check) did not win, so 046 is in.
-- **SPRT 055 against 038** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: running (result follows).
+- **SPRT 055 against 038** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: **H1 accepted after 5893
+  games**, W 1260 D 3506 L 1127. Merged into release0.5.
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-055 183352249 nodes.
 
 ## 0.5.0-056 — Stockfish's LMR base with all LMR values tuned
