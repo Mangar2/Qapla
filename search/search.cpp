@@ -300,18 +300,22 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 
 namespace {
 	// Values of the move number curve of the reduction at LmrBaseTable::MOVE_POINTS (moves 2, 5, 9, 16, 30)
+	// 0.5.0-054 with the untuned start values 0 / 25 / 48 / 55 / 55 and 7 / 13 / 21 / 35: H0 accepted against 038 at
+	// 19.5+0.1, bounds -2/+3, 6285 games. 0.5.0-060 (Volker): read from the CLOP still running on the M4 at about 2000
+	// of 5000 samples (-6.8 / 11.8 / 43.1 / 73.5 / 68.8 and 9.1 / 19.3 / 21.2 / 32.5) and made monotone: the move
+	// curve no longer falls at its end (move 30 = move 16 = 70), move 5 lower (10), move 2 at -2.
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrMoveValues() {
-		return { tunable<OPT, "lmrMove2", 0, -30, 30>(), tunable<OPT, "lmrMove5", 25, 0, 50>(),
-			tunable<OPT, "lmrMove9", 48, 0, 96>(), tunable<OPT, "lmrMove16", 55, 0, 110>(),
-			tunable<OPT, "lmrMove30", 55, 0, 110>() };
+		return { tunable<OPT, "lmrMove2", -2, -30, 30>(), tunable<OPT, "lmrMove5", 10, 0, 50>(),
+			tunable<OPT, "lmrMove9", 40, 0, 96>(), tunable<OPT, "lmrMove16", 70, 0, 110>(),
+			tunable<OPT, "lmrMove30", 70, 0, 110>() };
 	}
 
 	// Values of the depth curve of the reduction at LmrBaseTable::DEPTH_POINTS (depths 1, 4, 8, 15, 30)
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrDepthValues() {
-		return { tunable<OPT, "lmrDepth1", 7, 0, 14>(), tunable<OPT, "lmrDepth4", 13, 0, 26>(),
-			tunable<OPT, "lmrDepth8", 21, 0, 42>(), tunable<OPT, "lmrDepth15", 35, 0, 70>(),
+		return { tunable<OPT, "lmrDepth1", 9, 0, 14>(), tunable<OPT, "lmrDepth4", 19, 0, 26>(),
+			tunable<OPT, "lmrDepth8", 21, 0, 42>(), tunable<OPT, "lmrDepth15", 32, 0, 70>(),
 			LmrBaseTable::DEPTH_LAST_VALUE };
 	}
 
