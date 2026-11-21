@@ -652,10 +652,15 @@ value_t Search::negaMax(MoveGenerator& position, SearchStack& stack, value_t alp
 		node.setTTEntry(node.positionHash, TYPE == SearchRegion::PV);
 		if (!node.bestMove.isEmpty()) {
 			node.killerMove.setKiller(node.bestMove);
-			_butterflyBoard->newBestMove(node.bestMove, depth,
-				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
-			_continuationHistory->newBestMove(node.continuationRows, node.bestMove, depth,
-				node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
+			// The best move of a node in check is an evasion: it says little about the quiet moves of the
+			// positions without check, so it does not enter the history tables (Volker 2026-11-19, 0.5.0-046)
+			// SPRT 0.5.0-046 against 038 at 29+0.15 (Linux, tournament depth): H1 accepted, bounds -2/+3, 13967 games
+			if (!node.sideToMoveIsInCheck) {
+				_butterflyBoard->newBestMove(node.bestMove, depth,
+					node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
+				_continuationHistory->newBestMove(node.continuationRows, node.bestMove, depth,
+					node.moveProvider.getTriedMoves(), node.moveProvider.getTriedMovesAmount());
+			}
 			// Quiet moves only: a capture would only take the place of a quiet answer, the
 			// capture stages order captures
 			if (!node.bestMove.isCaptureOrPromote()) {
