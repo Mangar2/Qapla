@@ -2143,7 +2143,8 @@ pawns and rounded down. Values set by Volker, no CLOP.
 
 As 0.5.0-058 (branch `pawn-storm-heavy`) with smaller index points (Volker): rank 4 = 1, rank 5 = 2, rank 6 = 2; with
 an empty square in front rank 4 counts 1.5, rank 5 stays 2.
-- **SPRT 059 against 055** at 2.3+0.005 on the Studio, 12 engines, bounds −2/+3: **undecided after 20000 games**,
-  LLR 0.54, W 4969 D 10107 L 4924.
+- **SPRT 059 against 055** at 2.3+0.005 on the Studio, 12 engines, bounds −2/+3: undecided after 20000 games
+  (LLR 0.54), continued from its state file (Volker: up to 50000): **H0 accepted after 34483 games**,
+  W 8472 D 17434 L 8577. Branch `dead/pawn-storm-index-122`.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-059 185609302 nodes.
 
