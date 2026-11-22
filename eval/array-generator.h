@@ -71,17 +71,6 @@ namespace ChessEval {
 		bool negate = true,
 		bool verbose = false);
 
-	/**
-	 * Fills an array by monotone cubic interpolation (Fritsch-Carlson) through the given points. Unlike
-	 * fillArrayBSpline it never overshoots: between two points the curve stays between their values, so monotone
-	 * points give a monotone curve. Before the first point the first value, after the last point the last value.
-	 * @param points index/value pairs, at least one, sorted by index, no index twice
-	 */
-	void fillArrayMonotoneSpline(
-		double* result,
-		size_t size,
-		const std::vector<std::pair<int, double>>& points);
-
 
 	/**
 	 * Generates array values using polynomial growth with activation and dampening

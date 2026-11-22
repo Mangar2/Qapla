@@ -24,7 +24,7 @@
 #include "rootmoves.h"
 #include "tunable.h"
 #include "passedpawn.h"
-#include "lmr-base-table.h"
+#include "lmr-table.h"
 #include "../basics/materialbalance.h"
 #include "../movegenerator/movegenerator.h"
 #include "../eval/tablebase-value.h"
@@ -299,7 +299,10 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 }
 
 namespace {
-	// Values of the move number curve of the reduction at LmrBaseTable::MOVE_POINTS (moves 2, 5, 9, 16, 30)
+	// The late move reduction has one base table per node type: PV (nodes that ever were on the PV, the tt pv bit
+	// included), cut and all (Volker 2026-11-22). The three start equal; each gets its own values by a tuning run.
+	// The values of the move number curve at LmrTable::MOVE_POINTS (moves 2, 5, 9, 16, 30) and of the depth curve at
+	// LmrTable::DEPTH_POINTS (depths 1, 4, 8, 15; 30 is fixed).
 	// 0.5.0-054 with the untuned start values 0 / 25 / 48 / 55 / 55 and 7 / 13 / 21 / 35: H0 accepted against 038 at
 	// 19.5+0.1, bounds -2/+3, 6285 games. 0.5.0-060 (Volker): read from the CLOP still running on the M4 at about 2000
 	// of 5000 samples (-6.8 / 11.8 / 43.1 / 73.5 / 68.8 and 9.1 / 19.3 / 21.2 / 32.5) and made monotone: the move
@@ -312,48 +315,53 @@ namespace {
 	// 0.5.0-064: the final values of the spline CLOP (M4, 5000 samples at 19.5+0.1, run on base 038, carried over to
 	// 055), rounded, no correction needed (both curves rise): moves -7.1 / 11.6 / 49.4 / 71.1 / 79.3, depths 9.3 /
 	// 17.9 / 20.6 / 26.0.
+	enum LmrTableIndex : int32_t { LMR_PV = 0, LMR_CUT = 1, LMR_ALL = 2, LMR_TABLE_COUNT = 3 };
+
 	template <bool OPT>
-	std::array<int32_t, LmrBaseTable::POINTS> lmrMoveValues() {
-		return { tunable<OPT, "lmrMove2", -7, -30, 30>(), tunable<OPT, "lmrMove5", 12, 0, 50>(),
-			tunable<OPT, "lmrMove9", 49, 0, 96>(), tunable<OPT, "lmrMove16", 71, 0, 110>(),
-			tunable<OPT, "lmrMove30", 79, 0, 110>() };
+	constexpr LmrTable::Curves lmrCurves(int32_t index) {
+		constexpr int32_t D30 = LmrTable::DEPTH_LAST_VALUE;
+		switch (index) {
+		case LMR_PV: return {
+			{ tunable<OPT, "lmrPvMove2", -7, -37, 23>(), tunable<OPT, "lmrPvMove5", 12, 0, 24>(),
+			  tunable<OPT, "lmrPvMove9", 49, 0, 98>(), tunable<OPT, "lmrPvMove16", 71, 0, 142>(),
+			  tunable<OPT, "lmrPvMove30", 79, 0, 158>() },
+			{ tunable<OPT, "lmrPvDepth1", 9, 0, 18>(), tunable<OPT, "lmrPvDepth4", 18, 0, 36>(),
+			  tunable<OPT, "lmrPvDepth8", 21, 0, 42>(), tunable<OPT, "lmrPvDepth15", 26, 0, 52>(), D30 } };
+		case LMR_CUT: return {
+			{ tunable<OPT, "lmrCutMove2", -7, -37, 23>(), tunable<OPT, "lmrCutMove5", 12, 0, 24>(),
+			  tunable<OPT, "lmrCutMove9", 49, 0, 98>(), tunable<OPT, "lmrCutMove16", 71, 0, 142>(),
+			  tunable<OPT, "lmrCutMove30", 79, 0, 158>() },
+			{ tunable<OPT, "lmrCutDepth1", 9, 0, 18>(), tunable<OPT, "lmrCutDepth4", 18, 0, 36>(),
+			  tunable<OPT, "lmrCutDepth8", 21, 0, 42>(), tunable<OPT, "lmrCutDepth15", 26, 0, 52>(), D30 } };
+		default: return {
+			{ tunable<OPT, "lmrAllMove2", -7, -37, 23>(), tunable<OPT, "lmrAllMove5", 12, 0, 24>(),
+			  tunable<OPT, "lmrAllMove9", 49, 0, 98>(), tunable<OPT, "lmrAllMove16", 71, 0, 142>(),
+			  tunable<OPT, "lmrAllMove30", 79, 0, 158>() },
+			{ tunable<OPT, "lmrAllDepth1", 9, 0, 18>(), tunable<OPT, "lmrAllDepth4", 18, 0, 36>(),
+			  tunable<OPT, "lmrAllDepth8", 21, 0, 42>(), tunable<OPT, "lmrAllDepth15", 26, 0, 52>(), D30 } };
+		}
 	}
 
-	// Values of the depth curve of the reduction at LmrBaseTable::DEPTH_POINTS (depths 1, 4, 8, 15, 30)
-	template <bool OPT>
-	std::array<int32_t, LmrBaseTable::POINTS> lmrDepthValues() {
-		return { tunable<OPT, "lmrDepth1", 9, 0, 14>(), tunable<OPT, "lmrDepth4", 18, 0, 26>(),
-			tunable<OPT, "lmrDepth8", 21, 0, 42>(), tunable<OPT, "lmrDepth15", 26, 0, 70>(),
-			LmrBaseTable::DEPTH_LAST_VALUE };
-	}
-
-	const LmrBaseTable LMR_BASE_TABLE = [] {
-		LmrBaseTable table;
-		table.build(lmrMoveValues<false>(), lmrDepthValues<false>());
-		return table;
-	}();
+	constexpr std::array<LmrTable, LMR_TABLE_COUNT> LMR_TABLES = {
+		LmrTable(lmrCurves<false>(LMR_PV)), LmrTable(lmrCurves<false>(LMR_CUT)), LmrTable(lmrCurves<false>(LMR_ALL)) };
 
 	template <bool OPT>
-	const LmrBaseTable& lmrBaseTable() {
+	const LmrTable& lmrTable(int32_t index) {
 		if constexpr (!OPT) {
-			return LMR_BASE_TABLE;
+			return LMR_TABLES[index];
 		}
 		else {
-			// The values can be changed by UCI between searches. Every thread keeps its own table and rebuilds it
-			// when they changed.
-			thread_local LmrBaseTable table;
-			thread_local std::array<int32_t, LmrBaseTable::POINTS> builtMoveValues{};
-			thread_local std::array<int32_t, LmrBaseTable::POINTS> builtDepthValues{};
-			thread_local bool built = false;
-			const auto moveValues = lmrMoveValues<true>();
-			const auto depthValues = lmrDepthValues<true>();
-			if (!built || moveValues != builtMoveValues || depthValues != builtDepthValues) {
-				table.build(moveValues, depthValues);
-				builtMoveValues = moveValues;
-				builtDepthValues = depthValues;
-				built = true;
+			// The values can be changed by UCI between searches. Every thread keeps its own tables and rebuilds one
+			// when its values changed.
+			thread_local std::array<LmrTable, LMR_TABLE_COUNT> tables = LMR_TABLES;
+			thread_local std::array<LmrTable::Curves, LMR_TABLE_COUNT> built = {
+				lmrCurves<false>(LMR_PV), lmrCurves<false>(LMR_CUT), lmrCurves<false>(LMR_ALL) };
+			const LmrTable::Curves curves = lmrCurves<true>(index);
+			if (!(curves == built[index])) {
+				tables[index] = LmrTable(curves);
+				built[index] = curves;
 			}
-			return table;
+			return tables[index];
 		}
 	}
 }
@@ -381,9 +389,10 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	if (move.isCapture()) return losingCapture && moveNo > 3;
 
 	// The base reduction is the product of a curve over the move number and one over the remaining depth, each a
-	// monotone spline through five points (LmrBaseTable). Shared by all node types; only the divisor tells PV nodes
-	// apart. It replaces two clamped linear ramps whose move ramp jumped from 23 to 51 between moves 6 and 7.
-	int32_t numerator = lmrBaseTable<OPT>().get(depth, moveNo);
+	// monotone spline through five points (LmrTable), one table per node type: a node that ever was on the PV (the
+	// tt pv bit) takes the PV table. It replaced two clamped linear ramps whose move ramp jumped between moves 6 and 7.
+	const int32_t tableIndex = node.isPVNode() || node.ttPv ? LMR_PV : node.isCutNode() ? LMR_CUT : LMR_ALL;
+	int32_t numerator = lmrTable<OPT>(tableIndex).get(depth, moveNo);
 
 	int32_t divisor = node.isPVNode()
 		? tunable<OPT, "lmrPvDivisor", 512, 256, 768>()
