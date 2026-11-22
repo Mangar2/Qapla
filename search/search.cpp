@@ -308,7 +308,8 @@ namespace {
 	// 0.5.0-061 (on 0.5.0-055): the CLOP at 3375 of 5000 samples, rounded, no correction needed (both curves rise):
 	// moves -7.1 / 11.8 / 45.2 / 71.0 / 77.2, depths 9.4 / 17.8 / 19.9 / 31.3. Stopped undecided against 055 after 7231.
 	// 0.5.0-063 (Volker): the values of 060 (Volker's) on 055, to be proven against 055 - a proof against 038 cannot be
-	// carried over.
+	// carried over. SPRT 0.5.0-063 against 055 at 13.5+0.07 (Studio, tournament depth): H1 accepted, bounds -2/+3,
+	// 3170 games.
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrMoveValues() {
 		return { tunable<OPT, "lmrMove2", -2, -30, 30>(), tunable<OPT, "lmrMove5", 10, 0, 50>(),
