@@ -2160,3 +2160,13 @@ down. Tested: moves 2 / 5 / 9 / 16 / 30 = −2 / 10 / 40 / 70 / 70, depths 1 / 4
 - EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-060 249842910 nodes.
 - 060 is on 038 and lacks 055; next: the spline on 055 (0.5.0-061) against 055.
 
+## 0.5.0-061 — LMR spline on 055 with the CLOP values
+
+Branch `lmr-spline-055`: 0.5.0-055 with the spline LMR merged in (conflict in computeLMR: the loosing capture reduction
+of 050 kept as tested, from the fourth move on). Values from the spline CLOP at 3375 of 5000 samples, rounded, no
+correction needed (both curves rise): moves −7 / 12 / 45 / 71 / 77, depths 9 / 18 / 20 / 31.
+- **SPRT 061 against 055** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **stopped
+  undecided after 7231 games** (Volker: wait for the end of the CLOP, then the final values), LLR 1.01,
+  W 1423 D 4432 L 1374.
+- EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-061 207192823 nodes.
+
