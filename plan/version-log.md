@@ -2170,3 +2170,13 @@ correction needed (both curves rise): moves −7 / 12 / 45 / 71 / 77, depths 9 /
   W 1423 D 4432 L 1374.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-061 207192823 nodes.
 
+## 0.5.0-062 — the child of a reduced late move search is a cut node
+
+Built on 0.5.0-055 (branch `lmr-child-cut`). Volker, as in Stockfish: a move searched with a late move reduction was
+expected to fail low, so its reply is the move expected to cut off. The parent marks the reduced search, the child's
+node type (and the internal iterative reduction, the only reader of cut and all nodes so far) reads it.
+- **SPRT 055 against 062** (Volker: the current version 055 as challenger, the change as baseline, a neutrality check
+  expected to stay undecided, maxgames 50000) at 2.3+0.005 on the Studio, 12 engines, bounds −2/+3: **undecided after
+  50000 games**, LLR 2.73, W 12441 D 25297 L 12262 (from 055's side).
+- EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-062 216572536 nodes.
+
