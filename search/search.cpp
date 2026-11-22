@@ -396,7 +396,8 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	const int32_t tableIndex = node.isPVNode() || node.ttPv ? LMR_PV : node.isCutNode() ? LMR_CUT : LMR_ALL;
 	int32_t numerator = lmrTable<OPT>(tableIndex).get(depth, moveNo);
 
-	int32_t divisor = node.isPVNode()
+	// The divisor follows the table: a node that shares the PV table is treated as a PV node throughout.
+	int32_t divisor = tableIndex == LMR_PV
 		? tunable<OPT, "lmrPvDivisor", 512, 256, 768>()
 		: tunable<OPT, "lmrDivisor", 261, 133, 389>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
