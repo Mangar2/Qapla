@@ -160,7 +160,7 @@ namespace QaplaSearch {
 			remainingDepthAtPlyStart = depth;
 			setWindowAtPlyStart(alpha, beta);
 			movesTried = 0;
-			_nodeType = childNodeType(parentNode._nodeType, isPVNode);
+			_nodeType = childNodeType(parentNode._nodeType, isPVNode, parentNode.searchingReducedChild);
 			isVerifyingNullmove = parentNode.isVerifyingNullmove;
 			noNullmove = isVerifyingNullmove || parentNode.previousMove.isNullMove() || previousMove.isNullMove();
 		}
@@ -591,10 +591,14 @@ namespace QaplaSearch {
 
 		/**
 		 * The type a child node gets from its parent. Available before setFromParentNode has run,
-		 * which is what the code above the move loop needs.
+		 * which is what the code above the move loop needs. The child of a reduced late move search
+		 * is a cut node (Volker 2026-11-22, as in Stockfish): a move searched that late was expected
+		 * to fail low, which makes its reply the move expected to cut off.
 		 */
-		static constexpr NodeType childNodeType(NodeType parentType, bool isPVNode) {
-			return isPVNode ? NodeType::PV : parentType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
+		static constexpr NodeType childNodeType(NodeType parentType, bool isPVNode, bool reducedChild) {
+			if (isPVNode) return NodeType::PV;
+			if (reducedChild) return NodeType::CUT;
+			return parentType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
 		}
 
 		/**
@@ -653,6 +657,9 @@ namespace QaplaSearch {
 		std::mutex splitMutex;
 		std::atomic<int32_t> helpers{ 0 };
 		bool isSplitPoint = false;
+		// True while the move loop searches the current move with a late move reduction, read by the
+		// child to take the type of a cut node
+		bool searchingReducedChild = false;
 		SearchThread* owner = nullptr;
 		SplitJob split;
 		MoveProvider moveProvider;
