@@ -257,4 +257,63 @@ namespace ChessEval {
 		}
 	}
 
+	void fillArrayMonotoneSpline(
+		double* result,
+		size_t size,
+		const std::vector<std::pair<int, double>>& points)
+	{
+		const size_t n = points.size();
+		if (size == 0 || n == 0) return;
+		std::vector<double> x(n), y(n);
+		for (size_t i = 0; i < n; ++i) {
+			x[i] = points[i].first;
+			y[i] = points[i].second;
+		}
+
+		// Slopes at the points: weighted harmonic mean of the neighbouring secants, 0 at a local extremum
+		std::vector<double> slope(n, 0.0);
+		if (n >= 2) {
+			std::vector<double> h(n - 1), secant(n - 1);
+			for (size_t i = 0; i + 1 < n; ++i) {
+				h[i] = x[i + 1] - x[i];
+				secant[i] = (y[i + 1] - y[i]) / h[i];
+			}
+			for (size_t i = 1; i + 1 < n; ++i) {
+				if (secant[i - 1] * secant[i] <= 0) continue;
+				const double w1 = 2 * h[i] + h[i - 1];
+				const double w2 = h[i] + 2 * h[i - 1];
+				slope[i] = (w1 + w2) / (w1 / secant[i - 1] + w2 / secant[i]);
+			}
+			// One sided three point slope at both ends, limited so that the curve keeps its shape
+			const auto endSlope = [](double h0, double h1, double s0, double s1) {
+				const double result = ((2 * h0 + h1) * s0 - h0 * s1) / (h0 + h1);
+				if (result * s0 <= 0) return 0.0;
+				if (s0 * s1 < 0 && std::abs(result) > std::abs(3 * s0)) return 3 * s0;
+				return result;
+			};
+			if (n == 2) {
+				slope[0] = slope[1] = secant[0];
+			}
+			else {
+				slope[0] = endSlope(h[0], h[1], secant[0], secant[1]);
+				slope[n - 1] = endSlope(h[n - 2], h[n - 3], secant[n - 2], secant[n - 3]);
+			}
+		}
+
+		size_t segment = 0;
+		for (size_t i = 0; i < size; ++i) {
+			const double target = static_cast<double>(i);
+			if (target <= x[0]) { result[i] = y[0]; continue; }
+			if (target >= x[n - 1]) { result[i] = y[n - 1]; continue; }
+			while (x[segment + 1] < target) segment++;
+			const double h = x[segment + 1] - x[segment];
+			const double t = (target - x[segment]) / h;
+			const double t2 = t * t;
+			const double t3 = t2 * t;
+			result[i] = (2 * t3 - 3 * t2 + 1) * y[segment] + (t3 - 2 * t2 + t) * h * slope[segment]
+				+ (-2 * t3 + 3 * t2) * y[segment + 1] + (t3 - t2) * h * slope[segment + 1];
+		}
+	}
+
+
 }

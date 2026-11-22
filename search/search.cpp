@@ -24,6 +24,7 @@
 #include "rootmoves.h"
 #include "tunable.h"
 #include "passedpawn.h"
+#include "lmr-base-table.h"
 #include "../basics/materialbalance.h"
 #include "../movegenerator/movegenerator.h"
 #include "../eval/tablebase-value.h"
@@ -297,6 +298,66 @@ bool Search::isNullmoveCutoff(MoveGenerator& position, SearchStack& stack, ply_t
 	return isCutoff;
 }
 
+namespace {
+	// Values of the move number curve of the reduction at LmrBaseTable::MOVE_POINTS (moves 2, 5, 9, 16, 30)
+	// 0.5.0-054 with the untuned start values 0 / 25 / 48 / 55 / 55 and 7 / 13 / 21 / 35: H0 accepted against 038 at
+	// 19.5+0.1, bounds -2/+3, 6285 games. 0.5.0-060 (Volker): read from the CLOP still running on the M4 at about 2000
+	// of 5000 samples (-6.8 / 11.8 / 43.1 / 73.5 / 68.8 and 9.1 / 19.3 / 21.2 / 32.5) and made monotone: the move
+	// curve no longer falls at its end (move 30 = move 16 = 70), move 5 lower (10), move 2 at -2.
+	// SPRT 0.5.0-060 against 038 at 13.5+0.07 (Studio, tournament depth): H1 accepted, bounds -2/+3, 11791 games.
+	// 0.5.0-061 (on 0.5.0-055): the CLOP at 3375 of 5000 samples, rounded, no correction needed (both curves rise):
+	// moves -7.1 / 11.8 / 45.2 / 71.0 / 77.2, depths 9.4 / 17.8 / 19.9 / 31.3. Stopped undecided against 055 after 7231.
+	// 0.5.0-063 (Volker): the values of 060 (Volker's) on 055, to be proven against 055 - a proof against 038 cannot be
+	// carried over.
+	// 0.5.0-064: the final values of the spline CLOP (M4, 5000 samples at 19.5+0.1, run on base 038, carried over to
+	// 055), rounded, no correction needed (both curves rise): moves -7.1 / 11.6 / 49.4 / 71.1 / 79.3, depths 9.3 /
+	// 17.9 / 20.6 / 26.0.
+	template <bool OPT>
+	std::array<int32_t, LmrBaseTable::POINTS> lmrMoveValues() {
+		return { tunable<OPT, "lmrMove2", -7, -30, 30>(), tunable<OPT, "lmrMove5", 12, 0, 50>(),
+			tunable<OPT, "lmrMove9", 49, 0, 96>(), tunable<OPT, "lmrMove16", 71, 0, 110>(),
+			tunable<OPT, "lmrMove30", 79, 0, 110>() };
+	}
+
+	// Values of the depth curve of the reduction at LmrBaseTable::DEPTH_POINTS (depths 1, 4, 8, 15, 30)
+	template <bool OPT>
+	std::array<int32_t, LmrBaseTable::POINTS> lmrDepthValues() {
+		return { tunable<OPT, "lmrDepth1", 9, 0, 14>(), tunable<OPT, "lmrDepth4", 18, 0, 26>(),
+			tunable<OPT, "lmrDepth8", 21, 0, 42>(), tunable<OPT, "lmrDepth15", 26, 0, 70>(),
+			LmrBaseTable::DEPTH_LAST_VALUE };
+	}
+
+	const LmrBaseTable LMR_BASE_TABLE = [] {
+		LmrBaseTable table;
+		table.build(lmrMoveValues<false>(), lmrDepthValues<false>());
+		return table;
+	}();
+
+	template <bool OPT>
+	const LmrBaseTable& lmrBaseTable() {
+		if constexpr (!OPT) {
+			return LMR_BASE_TABLE;
+		}
+		else {
+			// The values can be changed by UCI between searches. Every thread keeps its own table and rebuilds it
+			// when they changed.
+			thread_local LmrBaseTable table;
+			thread_local std::array<int32_t, LmrBaseTable::POINTS> builtMoveValues{};
+			thread_local std::array<int32_t, LmrBaseTable::POINTS> builtDepthValues{};
+			thread_local bool built = false;
+			const auto moveValues = lmrMoveValues<true>();
+			const auto depthValues = lmrDepthValues<true>();
+			if (!built || moveValues != builtMoveValues || depthValues != builtDepthValues) {
+				table.build(moveValues, depthValues);
+				builtMoveValues = moveValues;
+				builtDepthValues = depthValues;
+				built = true;
+			}
+			return table;
+		}
+	}
+}
+
 ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture)
 {
 
@@ -304,14 +365,7 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// if (node->mDisableHist) return 0;
 	constexpr bool OPT = SearchConfig::optimizeLMR;
 
-	// Values that can only take a handful of integers. A tuning run gets no signal out of such a
-	// range, so they are compile time constants and not UCI parameters.
 	constexpr ply_t MIN_PLY = 1;
-	constexpr int32_t MOVE_OFFSET = 3;
-	constexpr int32_t MOVE_SLOPE = 4;
-	constexpr int32_t MOVE_HIGH_DIV = 2;
-	constexpr int32_t DEPTH_OFFSET = 3;
-	constexpr int32_t DEPTH_SLOPE = 2;
 
 	const int32_t moveNo = static_cast<int32_t>(node.movesTried);
 
@@ -323,20 +377,13 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// Tested 0.5.0-047: reduced like a quiet move less one ply per 100 cp of the captured piece: H0 accepted,
 	// bounds -2/+3, 8391 games. Tested 0.5.0-048: pawn 2, knight and bishop 1, rook and queen 0: undecided,
 	// bounds -2/+3, 20000 games. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049 and did not pay.
-	if (move.isCapture()) return losingCapture;
+	// Only from the fourth move on, as tested: the LMR of quiet moves starts at the second move since the spline base.
+	if (move.isCapture()) return losingCapture && moveNo > 3;
 
-	// The reduction is the product of two ramps, one over the move number and one over the
-	// remaining depth. The move number ramp is steep up to a break point and flat after it.
-	// Both ramps are shared by all node types; only the divisor tells PV nodes apart.
-	const int32_t moveBreak = tunable<OPT, "lmrMoveBreak", 6, 2, 10>();
-	const int32_t moveRamp = moveNo <= moveBreak
-		? tunable<OPT, "lmrMoveBase", 11, 0, 22>() + (moveNo - MOVE_OFFSET) * MOVE_SLOPE
-		: tunable<OPT, "lmrMoveHighBase", 51, 0, 102>() + (moveNo - moveBreak) / MOVE_HIGH_DIV;
-	const int32_t depthRamp = tunable<OPT, "lmrDepthBase", 11, 0, 22>() + (depth - DEPTH_OFFSET) * DEPTH_SLOPE;
-
-	const int32_t rampMin = tunable<OPT, "lmrRampMin", 15, 0, 30>();
-	const int32_t rampMax = tunable<OPT, "lmrRampMax", 55, 30, 80>();
-	int32_t numerator = std::clamp(moveRamp, rampMin, rampMax) * std::clamp(depthRamp, rampMin, rampMax);
+	// The base reduction is the product of a curve over the move number and one over the remaining depth, each a
+	// monotone spline through five points (LmrBaseTable). Shared by all node types; only the divisor tells PV nodes
+	// apart. It replaces two clamped linear ramps whose move ramp jumped from 23 to 51 between moves 6 and 7.
+	int32_t numerator = lmrBaseTable<OPT>().get(depth, moveNo);
 
 	int32_t divisor = node.isPVNode()
 		? tunable<OPT, "lmrPvDivisor", 512, 256, 768>()
@@ -734,9 +781,11 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 		const ply_t moveDepth = moveExtension > 0 ?
 			std::min(depth + moveExtension, stack[0].remainingDepth * 2) : depth;
 
-		bool doMovePrunings = node.movesTried > 3 && !node.isCheckMove(position, curMove);
+		// Late move reduction from the second move on, futility and move count pruning from the fourth
+		const bool doLmr = node.movesTried > 1 && !node.isCheckMove(position, curMove);
+		const bool doMovePrunings = doLmr && node.movesTried > 3;
 		// lmr is needed for move count pruning and late move reduction search
-		const auto lmr = doMovePrunings ? computeLMR(node, position, depth, ply, curMove, curLosingCapture) : 0;
+		const auto lmr = doLmr ? computeLMR(node, position, depth, ply, curMove, curLosingCapture) : 0;
 		// Never skip moves when escaping from mate and in positions with pawns only.
 		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
 			
