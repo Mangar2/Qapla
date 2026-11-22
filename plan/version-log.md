@@ -2148,3 +2148,15 @@ an empty square in front rank 4 counts 1.5, rank 5 stays 2.
   W 8472 D 17434 L 8577. Branch `dead/pawn-storm-index-122`.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-059 185609302 nodes.
 
+## 0.5.0-060 — LMR spline with values read from the running CLOP, made monotone
+
+Built on 0.5.0-054 (branch `lmr-spline`, base 038). Volker: read the values from the CLOP of the nine spline values
+still running on the M4 (at about 2000 of 5000 samples: moves −6.8 / 11.8 / 43.1 / 73.5 / 68.8, depths 9.1 / 19.3 /
+21.2 / 32.5) and made them logical: the move curve must not fall at its end, and move 5 looked too high, pushing move 2
+down. Tested: moves 2 / 5 / 9 / 16 / 30 = −2 / 10 / 40 / 70 / 70, depths 1 / 4 / 8 / 15 = 9 / 19 / 21 / 32 (30 fixed at
+55).
+- **SPRT 060 against 038** (the d0946c1 binary) at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds
+  −2/+3: **H1 accepted after 11791 games**, W 2430 D 7067 L 2294. Result comment on the branch.
+- EPD wmtest depth 18: 0.5.0-038 212113390 → 0.5.0-060 249842910 nodes.
+- 060 is on 038 and lacks 055; next: the spline on 055 (0.5.0-061) against 055.
+
