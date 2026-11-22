@@ -2178,5 +2178,7 @@ node type (and the internal iterative reduction, the only reader of cut and all 
 - **SPRT 055 against 062** (Volker: the current version 055 as challenger, the change as baseline, a neutrality check
   expected to stay undecided, maxgames 50000) at 2.3+0.005 on the Studio, 12 engines, bounds −2/+3: **undecided after
   50000 games**, LLR 2.73, W 12441 D 25297 L 12262 (from 055's side).
+- Volker: taken over into the branch `lmr-node-types`, which starts with this change and continues with LMR values
+  per node type (PV incl. ttPv, cut, all); if that becomes a dead end, the branch is dropped. Not in release0.5.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-062 216572536 nodes.
 
