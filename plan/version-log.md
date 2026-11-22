@@ -2190,3 +2190,13 @@ values Volker set for 060: moves 2 / 5 / 9 / 16 / 30 = −2 / 10 / 40 / 70 / 70,
 - **SPRT 063 against 055** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H1 accepted
   after 3170 games**, W 691 D 1917 L 562. Merged into release0.5 - 063 is the new best version.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-063 206910726 nodes.
+
+## 0.5.0-064 — LMR spline on 055 with the final CLOP values
+
+Branch `lmr-spline-055`: as 063, but with the final values of the spline CLOP (M4, 5000 samples at 19.5+0.1, run on
+base 038, carried over to 055), rounded, no correction needed: moves −7 / 12 / 49 / 71 / 79, depths 9 / 18 / 21 / 26.
+- **SPRT 064 against 055** at tournament depth, 19.5+0.1 on the M4, 8 engines, bounds −2/+3: **stopped after 3701
+  games** (LLR 0.36, W 788 D 2142 L 770) - 063 had become the best version, so 055 was no longer the opponent that
+  counts, and next to 063 (H1 after 3170) the CLOP values lagged far behind. Volker: the values are only the base for
+  the next tuning runs anyway.
+- EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-064 201115178 nodes.
