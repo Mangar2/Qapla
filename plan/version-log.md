@@ -2182,3 +2182,11 @@ node type (and the internal iterative reduction, the only reader of cut and all 
   per node type (PV incl. ttPv, cut, all); if that becomes a dead end, the branch is dropped. Not in release0.5.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-062 216572536 nodes.
 
+## 0.5.0-063 — LMR spline on 055 with Volker's values of 060
+
+Branch `lmr-spline-055`: 0.5.0-055 with the spline LMR (loosing captures as in 050 from the fourth move on) and the
+values Volker set for 060: moves 2 / 5 / 9 / 16 / 30 = −2 / 10 / 40 / 70 / 70, depths 1 / 4 / 8 / 15 = 9 / 19 / 21 /
+32. 060 had won against 038, a proof that does not carry over to 055.
+- **SPRT 063 against 055** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H1 accepted
+  after 3170 games**, W 691 D 1917 L 562. Merged into release0.5 - 063 is the new best version.
+- EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-063 206910726 nodes.
