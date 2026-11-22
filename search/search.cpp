@@ -460,7 +460,7 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		// Tested 0.4.0-060: PV nodes only, cut nodes left out: -8.4 Elo, 5597 games
 		// Tested 0.4.0-053: the same idea as a pre search (IID) in cut nodes: -7.0 Elo, 7049 games
 		if constexpr (TYPE != SearchRegion::PV) {
-			if (SearchNode::childNodeType(stack[ply - 1].getNodeType(), false)
+			if (SearchNode::childNodeType(stack[ply - 1].getNodeType(), false, stack[ply - 1].searchingReducedChild)
 				!= SearchNode::NodeType::CUT) return 0;
 		}
 
@@ -809,8 +809,10 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
 		if (lmr > 0) {
+			node.searchingReducedChild = true;
 			result = -searchChild<TYPE>(
 				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
+			node.searchingReducedChild = false;
 			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
 			if (result <= node.alpha) {
 				childNode.undoMove(position);
