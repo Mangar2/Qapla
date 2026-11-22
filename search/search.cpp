@@ -309,18 +309,21 @@ namespace {
 	// moves -7.1 / 11.8 / 45.2 / 71.0 / 77.2, depths 9.4 / 17.8 / 19.9 / 31.3. Stopped undecided against 055 after 7231.
 	// 0.5.0-063 (Volker): the values of 060 (Volker's) on 055, to be proven against 055 - a proof against 038 cannot be
 	// carried over.
+	// 0.5.0-064: the final values of the spline CLOP (M4, 5000 samples at 19.5+0.1, run on base 038, carried over to
+	// 055), rounded, no correction needed (both curves rise): moves -7.1 / 11.6 / 49.4 / 71.1 / 79.3, depths 9.3 /
+	// 17.9 / 20.6 / 26.0.
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrMoveValues() {
-		return { tunable<OPT, "lmrMove2", -2, -30, 30>(), tunable<OPT, "lmrMove5", 10, 0, 50>(),
-			tunable<OPT, "lmrMove9", 40, 0, 96>(), tunable<OPT, "lmrMove16", 70, 0, 110>(),
-			tunable<OPT, "lmrMove30", 70, 0, 110>() };
+		return { tunable<OPT, "lmrMove2", -7, -30, 30>(), tunable<OPT, "lmrMove5", 12, 0, 50>(),
+			tunable<OPT, "lmrMove9", 49, 0, 96>(), tunable<OPT, "lmrMove16", 71, 0, 110>(),
+			tunable<OPT, "lmrMove30", 79, 0, 110>() };
 	}
 
 	// Values of the depth curve of the reduction at LmrBaseTable::DEPTH_POINTS (depths 1, 4, 8, 15, 30)
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrDepthValues() {
-		return { tunable<OPT, "lmrDepth1", 9, 0, 14>(), tunable<OPT, "lmrDepth4", 19, 0, 26>(),
-			tunable<OPT, "lmrDepth8", 21, 0, 42>(), tunable<OPT, "lmrDepth15", 32, 0, 70>(),
+		return { tunable<OPT, "lmrDepth1", 9, 0, 14>(), tunable<OPT, "lmrDepth4", 18, 0, 26>(),
+			tunable<OPT, "lmrDepth8", 21, 0, 42>(), tunable<OPT, "lmrDepth15", 26, 0, 70>(),
 			LmrBaseTable::DEPTH_LAST_VALUE };
 	}
 
