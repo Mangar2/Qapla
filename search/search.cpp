@@ -315,6 +315,8 @@ namespace {
 	// 0.5.0-064: the final values of the spline CLOP (M4, 5000 samples at 19.5+0.1, run on base 038, carried over to
 	// 055), rounded, no correction needed (both curves rise): moves -7.1 / 11.6 / 49.4 / 71.1 / 79.3, depths 9.3 /
 	// 17.9 / 20.6 / 26.0.
+	// lmr-node-types (2026-11-22): all three tables at the values of 0.5.0-063 (Volker's, H1 against 055), the new best
+	// version - not 064's CLOP values, which were tuned on base 038 and lagged behind on 055.
 	enum LmrTableIndex : int32_t { LMR_PV = 0, LMR_CUT = 1, LMR_ALL = 2, LMR_TABLE_COUNT = 3 };
 
 	template <bool OPT>
@@ -322,23 +324,23 @@ namespace {
 		constexpr int32_t D30 = LmrTable::DEPTH_LAST_VALUE;
 		switch (index) {
 		case LMR_PV: return {
-			{ tunable<OPT, "lmrPvMove2", -7, -37, 23>(), tunable<OPT, "lmrPvMove5", 12, 0, 24>(),
-			  tunable<OPT, "lmrPvMove9", 49, 0, 98>(), tunable<OPT, "lmrPvMove16", 71, 0, 142>(),
-			  tunable<OPT, "lmrPvMove30", 79, 0, 158>() },
-			{ tunable<OPT, "lmrPvDepth1", 9, 0, 18>(), tunable<OPT, "lmrPvDepth4", 18, 0, 36>(),
-			  tunable<OPT, "lmrPvDepth8", 21, 0, 42>(), tunable<OPT, "lmrPvDepth15", 26, 0, 52>(), D30 } };
+			{ tunable<OPT, "lmrPvMove2", -2, -32, 28>(), tunable<OPT, "lmrPvMove5", 10, 0, 20>(),
+			  tunable<OPT, "lmrPvMove9", 40, 0, 80>(), tunable<OPT, "lmrPvMove16", 70, 0, 140>(),
+			  tunable<OPT, "lmrPvMove30", 70, 0, 140>() },
+			{ tunable<OPT, "lmrPvDepth1", 9, 0, 18>(), tunable<OPT, "lmrPvDepth4", 19, 0, 38>(),
+			  tunable<OPT, "lmrPvDepth8", 21, 0, 42>(), tunable<OPT, "lmrPvDepth15", 32, 0, 64>(), D30 } };
 		case LMR_CUT: return {
-			{ tunable<OPT, "lmrCutMove2", -7, -37, 23>(), tunable<OPT, "lmrCutMove5", 12, 0, 24>(),
-			  tunable<OPT, "lmrCutMove9", 49, 0, 98>(), tunable<OPT, "lmrCutMove16", 71, 0, 142>(),
-			  tunable<OPT, "lmrCutMove30", 79, 0, 158>() },
-			{ tunable<OPT, "lmrCutDepth1", 9, 0, 18>(), tunable<OPT, "lmrCutDepth4", 18, 0, 36>(),
-			  tunable<OPT, "lmrCutDepth8", 21, 0, 42>(), tunable<OPT, "lmrCutDepth15", 26, 0, 52>(), D30 } };
+			{ tunable<OPT, "lmrCutMove2", -2, -32, 28>(), tunable<OPT, "lmrCutMove5", 10, 0, 20>(),
+			  tunable<OPT, "lmrCutMove9", 40, 0, 80>(), tunable<OPT, "lmrCutMove16", 70, 0, 140>(),
+			  tunable<OPT, "lmrCutMove30", 70, 0, 140>() },
+			{ tunable<OPT, "lmrCutDepth1", 9, 0, 18>(), tunable<OPT, "lmrCutDepth4", 19, 0, 38>(),
+			  tunable<OPT, "lmrCutDepth8", 21, 0, 42>(), tunable<OPT, "lmrCutDepth15", 32, 0, 64>(), D30 } };
 		default: return {
-			{ tunable<OPT, "lmrAllMove2", -7, -37, 23>(), tunable<OPT, "lmrAllMove5", 12, 0, 24>(),
-			  tunable<OPT, "lmrAllMove9", 49, 0, 98>(), tunable<OPT, "lmrAllMove16", 71, 0, 142>(),
-			  tunable<OPT, "lmrAllMove30", 79, 0, 158>() },
-			{ tunable<OPT, "lmrAllDepth1", 9, 0, 18>(), tunable<OPT, "lmrAllDepth4", 18, 0, 36>(),
-			  tunable<OPT, "lmrAllDepth8", 21, 0, 42>(), tunable<OPT, "lmrAllDepth15", 26, 0, 52>(), D30 } };
+			{ tunable<OPT, "lmrAllMove2", -2, -32, 28>(), tunable<OPT, "lmrAllMove5", 10, 0, 20>(),
+			  tunable<OPT, "lmrAllMove9", 40, 0, 80>(), tunable<OPT, "lmrAllMove16", 70, 0, 140>(),
+			  tunable<OPT, "lmrAllMove30", 70, 0, 140>() },
+			{ tunable<OPT, "lmrAllDepth1", 9, 0, 18>(), tunable<OPT, "lmrAllDepth4", 19, 0, 38>(),
+			  tunable<OPT, "lmrAllDepth8", 21, 0, 42>(), tunable<OPT, "lmrAllDepth15", 32, 0, 64>(), D30 } };
 		}
 	}
 
