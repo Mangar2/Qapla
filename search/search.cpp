@@ -304,18 +304,21 @@ namespace {
 	// 19.5+0.1, bounds -2/+3, 6285 games. 0.5.0-060 (Volker): read from the CLOP still running on the M4 at about 2000
 	// of 5000 samples (-6.8 / 11.8 / 43.1 / 73.5 / 68.8 and 9.1 / 19.3 / 21.2 / 32.5) and made monotone: the move
 	// curve no longer falls at its end (move 30 = move 16 = 70), move 5 lower (10), move 2 at -2.
+	// SPRT 0.5.0-060 against 038 at 13.5+0.07 (Studio, tournament depth): H1 accepted, bounds -2/+3, 11791 games.
+	// 0.5.0-061 (on 0.5.0-055): the CLOP at 3375 of 5000 samples, rounded, no correction needed (both curves rise):
+	// moves -7.1 / 11.8 / 45.2 / 71.0 / 77.2, depths 9.4 / 17.8 / 19.9 / 31.3.
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrMoveValues() {
-		return { tunable<OPT, "lmrMove2", -2, -30, 30>(), tunable<OPT, "lmrMove5", 10, 0, 50>(),
-			tunable<OPT, "lmrMove9", 40, 0, 96>(), tunable<OPT, "lmrMove16", 70, 0, 110>(),
-			tunable<OPT, "lmrMove30", 70, 0, 110>() };
+		return { tunable<OPT, "lmrMove2", -7, -30, 30>(), tunable<OPT, "lmrMove5", 12, 0, 50>(),
+			tunable<OPT, "lmrMove9", 45, 0, 96>(), tunable<OPT, "lmrMove16", 71, 0, 110>(),
+			tunable<OPT, "lmrMove30", 77, 0, 110>() };
 	}
 
 	// Values of the depth curve of the reduction at LmrBaseTable::DEPTH_POINTS (depths 1, 4, 8, 15, 30)
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrDepthValues() {
-		return { tunable<OPT, "lmrDepth1", 9, 0, 14>(), tunable<OPT, "lmrDepth4", 19, 0, 26>(),
-			tunable<OPT, "lmrDepth8", 21, 0, 42>(), tunable<OPT, "lmrDepth15", 32, 0, 70>(),
+		return { tunable<OPT, "lmrDepth1", 9, 0, 14>(), tunable<OPT, "lmrDepth4", 18, 0, 26>(),
+			tunable<OPT, "lmrDepth8", 20, 0, 42>(), tunable<OPT, "lmrDepth15", 31, 0, 70>(),
 			LmrBaseTable::DEPTH_LAST_VALUE };
 	}
 
