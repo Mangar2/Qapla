@@ -2231,3 +2231,10 @@ verification of a PV node stays an all node; the four LMR divisors at 063's valu
   alone. **SPRT 066 against 063** at 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **stopped after 1068 games**
   (LLR −0.77, W 211 D 615 L 245) because of that.
 - EPD wmtest depth 18: 0.5.0-063 206910726 → 0.5.0-066 304063634 nodes.
+
+## 0.5.0-067 — correct cut/all node types, behaviour unchanged
+
+On release0.5, on 063: the non PV child of a PV node is a cut node (Stockfish's `!cutNode`) instead of an all node,
+which had swapped cut and all nodes in every subtree below. The internal iterative reduction - the only reader of the
+type - now asks for an all node and so reduces exactly the nodes it reduced before (the real all nodes).
+- Behaviour-neutral: EPD wmtest depth 18 206910726 nodes, identical to 0.5.0-063. No SPRT.
