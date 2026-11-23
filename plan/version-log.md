@@ -2217,3 +2217,17 @@ node also takes the PV divisor 512 + the PV table at its CLOP values. The cut an
   its LMR reads only PV / tt pv versus the rest (cut and all tables equal), so the bug reaches 065 through the internal
   iterative reduction only, as in 063. Fixed on the branch `lmr-divisors` (397814f).
 - EPD wmtest depth 18: 0.5.0-063 206910726 → 0.5.0-065 247587748 nodes.
+
+## 0.5.0-066 — node types as in Stockfish
+
+Branch `lmr-divisors` (tag on 397814f): 063 + the null window child of a PV node is a cut node instead of an all node
+(Stockfish's `!cutNode`) + the child of a reduced late move search is a cut node (062) + the singular extension
+verification of a PV node stays an all node; the four LMR divisors at 063's values.
+- Measured (30 wmtest positions, depth 14, non PV nodes): share of nodes that fail high - 063: "cut" 50 %, "all"
+  72 %; 066: cut 80 %, all 38 %. 063's cut and all labels are swapped. A test build with the corrected labels and the
+  internal iterative reduction reading "all" instead of "cut" gives 206910726 nodes, identical to 063: the bug is an
+  exact swap, and the IIR - the only reader of the label in 063 - has always reduced the real all nodes.
+- So 066 moves the IIR to the real cut nodes (where Stockfish does it) and adds the 062 rule - not the label fix
+  alone. **SPRT 066 against 063** at 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **stopped after 1068 games**
+  (LLR −0.77, W 211 D 615 L 245) because of that.
+- EPD wmtest depth 18: 0.5.0-063 206910726 → 0.5.0-066 304063634 nodes.
