@@ -451,13 +451,15 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		// Any move worth trying first is enough, from the hash or from the previous iteration.
 		if (!node.getTTMove().isEmpty()) return 0;
 		if (node.hasPVMove()) return 0;
-		// Cut nodes are reduced as well, all nodes are not. An all node without a tt move is the
-		// normal case, there is nothing unusual about it.
-		// Tested 0.4.0-060: PV nodes only, cut nodes left out: -8.4 Elo, 5597 games
-		// Tested 0.4.0-053: the same idea as a pre search (IID) in cut nodes: -7.0 Elo, 7049 games
+		// All nodes are reduced as well, cut nodes are not. Up to 0.5.0-066 the node types were
+		// swapped (see childNodeType) and this read "cut" - so it has always reduced the real all
+		// nodes, and all results below were measured that way. 0.5.0-067 corrected the types and
+		// this condition together: identical node count.
+		// Tested 0.4.0-060: PV nodes only, (real) all nodes left out: -8.4 Elo, 5597 games
+		// Tested 0.4.0-053: the same idea as a pre search (IID) in (real) all nodes: -7.0 Elo, 7049 games
 		if constexpr (TYPE != SearchRegion::PV) {
 			if (SearchNode::childNodeType(stack[ply - 1].getNodeType(), false)
-				!= SearchNode::NodeType::CUT) return 0;
+				!= SearchNode::NodeType::ALL) return 0;
 		}
 
 		return SearchConfig::IIR_REDUCTION;

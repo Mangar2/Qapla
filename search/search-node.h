@@ -591,10 +591,13 @@ namespace QaplaSearch {
 
 		/**
 		 * The type a child node gets from its parent. Available before setFromParentNode has run,
-		 * which is what the code above the move loop needs.
+		 * which is what the code above the move loop needs. The non PV child of a PV node is a cut
+		 * node (Knuth/Moore, Stockfish's !cutNode): the later moves of a PV node are expected to be
+		 * refuted. Up to 0.5.0-066 it was typed as an all node, which swapped cut and all nodes in
+		 * every subtree below (measured: the "cut" nodes failed high in 50 %, the "all" nodes in 72 %).
 		 */
 		static constexpr NodeType childNodeType(NodeType parentType, bool isPVNode) {
-			return isPVNode ? NodeType::PV : parentType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
+			return isPVNode ? NodeType::PV : parentType == NodeType::CUT ? NodeType::ALL : NodeType::CUT;
 		}
 
 		/**
