@@ -596,13 +596,20 @@ namespace QaplaSearch {
 		 * The type a child node gets from its parent. Available before setFromParentNode has run,
 		 * which is what the code above the move loop needs. The child of a reduced late move search
 		 * is a cut node (Volker 2026-11-22, as in Stockfish): a move searched that late was expected
-		 * to fail low, which makes its reply the move expected to cut off.
+		 * to fail low, which makes its reply the move expected to cut off. Otherwise a non PV child of
+		 * a PV or an all node is a cut node and the child of a cut node is an all node, as Stockfish's
+		 * !cutNode (Knuth/Moore: the later moves of a PV node are expected to be refuted).
 		 */
 		static constexpr NodeType childNodeType(NodeType parentType, bool isPVNode, bool reducedChild) {
 			if (isPVNode) return NodeType::PV;
 			if (reducedChild) return NodeType::CUT;
-			return parentType == NodeType::ALL ? NodeType::CUT : NodeType::ALL;
+			return parentType == NodeType::CUT ? NodeType::ALL : NodeType::CUT;
 		}
+
+		/**
+		 * Sets the node type directly, for a node that is searched again as itself (singular extension)
+		 */
+		void setNodeType(NodeType nodeType) { _nodeType = nodeType; }
 
 		/**
 		 * Gets the name of the node type

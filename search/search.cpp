@@ -490,6 +490,9 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	if (ply + depth > std::min(stack[0].remainingDepth * 2, int(SearchConfig::MAX_SEARCH_DEPTH))) return 0;
 
 	node.setFromParentNode(position, parentNode, alpha, beta, depth, false);
+	// The verification search of a PV node runs with a null window as an all node, as in Stockfish (cutNode false);
+	// setFromParentNode would type it as a non PV child of its parent. A non PV node keeps its type.
+	if constexpr (IS_PV) node.setNodeType(SearchNode::NodeType::ALL);
 	
 	// Must be after setFromParentNode
 	node.probeTT(false, alpha, beta, depth, ply);
