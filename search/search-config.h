@@ -97,6 +97,8 @@ namespace QaplaSearch {
 		// Set to true to make the late move reduction and move count pruning parameters
 		// settable by UCI, see tunable.h
 		static constexpr bool optimizeLMR = false;
+		// Set to true to make the four late move reduction divisors (PV, tt pv, cut, all) settable by UCI
+		static constexpr bool optimizeLmrDivisor = false;
 
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;
