@@ -317,6 +317,9 @@ namespace {
 	// 17.9 / 20.6 / 26.0.
 	// lmr-node-types (2026-11-22): all three tables at the values of 0.5.0-063 (Volker's, H1 against 055), the new best
 	// version - not 064's CLOP values, which were tuned on base 038 and lagged behind on 055.
+	// PV table (PV and tt pv nodes, both with the PV divisor): CLOP (Studio, 5000 samples at 13.5+0.07, ranges centred
+	// on 063's values, base b8b6867), rounded, no correction needed (both curves rise): moves 1.4 / 9.2 / 35.5 / 65.2 /
+	// 70.3, depths 10.2 / 16.5 / 23.9 / 37.4. A proposal, not tested on its own.
 	enum LmrTableIndex : int32_t { LMR_PV = 0, LMR_CUT = 1, LMR_ALL = 2, LMR_TABLE_COUNT = 3 };
 
 	template <bool OPT>
@@ -324,11 +327,11 @@ namespace {
 		constexpr int32_t D30 = LmrTable::DEPTH_LAST_VALUE;
 		switch (index) {
 		case LMR_PV: return {
-			{ tunable<OPT, "lmrPvMove2", -2, -32, 28>(), tunable<OPT, "lmrPvMove5", 10, 0, 20>(),
-			  tunable<OPT, "lmrPvMove9", 40, 0, 80>(), tunable<OPT, "lmrPvMove16", 70, 0, 140>(),
+			{ tunable<OPT, "lmrPvMove2", 1, -29, 31>(), tunable<OPT, "lmrPvMove5", 9, 0, 18>(),
+			  tunable<OPT, "lmrPvMove9", 36, 0, 72>(), tunable<OPT, "lmrPvMove16", 65, 0, 130>(),
 			  tunable<OPT, "lmrPvMove30", 70, 0, 140>() },
-			{ tunable<OPT, "lmrPvDepth1", 9, 0, 18>(), tunable<OPT, "lmrPvDepth4", 19, 0, 38>(),
-			  tunable<OPT, "lmrPvDepth8", 21, 0, 42>(), tunable<OPT, "lmrPvDepth15", 32, 0, 64>(), D30 } };
+			{ tunable<OPT, "lmrPvDepth1", 10, 0, 20>(), tunable<OPT, "lmrPvDepth4", 16, 0, 32>(),
+			  tunable<OPT, "lmrPvDepth8", 24, 0, 48>(), tunable<OPT, "lmrPvDepth15", 37, 0, 74>(), D30 } };
 		case LMR_CUT: return {
 			{ tunable<OPT, "lmrCutMove2", -2, -32, 28>(), tunable<OPT, "lmrCutMove5", 10, 0, 20>(),
 			  tunable<OPT, "lmrCutMove9", 40, 0, 80>(), tunable<OPT, "lmrCutMove16", 70, 0, 140>(),
