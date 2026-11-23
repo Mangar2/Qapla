@@ -262,9 +262,12 @@ namespace QaplaSearch {
 			eval = NO_VALUE;
 			ttValueIsGreaterOrEqualBeta = false;
 			ttValueIsLessOrEqualAlpha = false;
+			ttPv = isPVNode;
 			if (ttIndex == TT::INVALID_INDEX) return false;
 
 			const TTEntry entry = ttPtr->getEntry(ttIndex);
+			// The node is or ever was on the PV (Stockfish's ttPv); the bit is sticky in the tt
+			ttPv = isPVNode || entry.isPV();
 			ttMove = entry.getMove();
 			eval = entry.getEval();
 			if (entry.isMaxDephtEntry()) {
@@ -585,7 +588,7 @@ namespace QaplaSearch {
 		/**
 		 * Returns true, if the current node is a cut node
 		 */
-		inline bool isCutNode() { return _nodeType == NodeType::CUT; }
+		inline bool isCutNode() const { return _nodeType == NodeType::CUT; }
 
 		NodeType getNodeType() const { return _nodeType; }
 
@@ -653,6 +656,8 @@ namespace QaplaSearch {
 		std::mutex splitMutex;
 		std::atomic<int32_t> helpers{ 0 };
 		bool isSplitPoint = false;
+		// The node is or ever was on the PV: a PV node, or the tt entry of the position carries the pv bit
+		bool ttPv = false;
 		SearchThread* owner = nullptr;
 		SplitJob split;
 		MoveProvider moveProvider;
