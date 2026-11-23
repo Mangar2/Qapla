@@ -2200,3 +2200,20 @@ base 038, carried over to 055), rounded, no correction needed: moves −7 / 12 /
   counts, and next to 063 (H1 after 3170) the CLOP values lagged far behind. Volker: the values are only the base for
   the next tuning runs anyway.
 - EPD wmtest depth 18: 0.5.0-055 183352249 → 0.5.0-064 201115178 nodes.
+
+## 0.5.0-065 — LMR tables per node type, PV table tuned
+
+Branch `lmr-node-types` (tag on ad297fa): 063 + the cut node rule of 062 (the child of a reduced late move search is a
+cut node) + three LMR spline tables (PV including tt pv nodes, cut, all) in a constexpr header-only `LmrTable`, a tt pv
+node also takes the PV divisor 512 + the PV table at its CLOP values. The cut and all tables stay at 063's values.
+- CLOP of the PV table (Studio, 5000 samples at 13.5+0.07, ranges centred on 063's values, base b8b6867), rounded,
+  no correction needed (both curves rise): moves 1 / 9 / 36 / 65 / 70, depths 10 / 16 / 24 / 37 (063: −2 / 10 / 40 /
+  70 / 70, 9 / 19 / 21 / 32). A first run of this CLOP was stopped at ~420 samples because tt pv nodes shared the PV
+  table but still took the non PV divisor.
+- **SPRT 065 against 063** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
+  after 10906 games**, W 2252 D 6284 L 2370. The branch stays as documentation; release0.5 is unchanged.
+- Found meanwhile: in all versions so far the null window child of a PV node is typed as an all node instead of a cut
+  node (Stockfish: `!cutNode`), so below every later move of a PV node cut and all nodes are swapped. 065 still has it;
+  its LMR reads only PV / tt pv versus the rest (cut and all tables equal), so the bug reaches 065 through the internal
+  iterative reduction only, as in 063. Fixed on the branch `lmr-divisors` (397814f).
+- EPD wmtest depth 18: 0.5.0-063 206910726 → 0.5.0-065 247587748 nodes.
