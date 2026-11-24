@@ -99,6 +99,8 @@ namespace QaplaSearch {
 		static constexpr bool optimizeLMR = false;
 		// Set to true to make the four late move reduction divisors (PV, tt pv, cut, all) settable by UCI
 		static constexpr bool optimizeLmrDivisor = false;
+		// Set to true to make the node-type terms of the late move reduction search settable by UCI
+		static constexpr bool optimizeLmrTerms = false;
 
 		static const bool USE_HASH_IN_QUIESCENSE = true;
 		static const bool EVADES_CHECK_IN_QUIESCENSE = true;

@@ -308,7 +308,17 @@ namespace QaplaSearch {
 		/**
 	 	 * @brief   
 		 */
-		ply_t computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture);
+		/**
+		 * The late move reduction in 1/LMR_UNIT ply; the move count pruning reads it in whole plies
+		 */
+		int32_t computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture);
+		static constexpr int32_t LMR_UNIT = 128;
+
+		/**
+		 * The reduction of the late move reduction search itself in whole plies: the reduction of computeLMR (in
+		 * 1/LMR_UNIT ply, the move count pruning reads it as well) plus terms by node type and tt move, quiet moves only.
+		 */
+		ply_t lmrSearchReduction(const SearchNode& node, Move move, int32_t lmrFine, ply_t moveDepth);
 
 		/**
 		 * Check, if it is reasonable to do a nullmove search
