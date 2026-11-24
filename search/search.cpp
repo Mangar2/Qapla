@@ -383,9 +383,15 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// apart. It replaces two clamped linear ramps whose move ramp jumped from 23 to 51 between moves 6 and 7.
 	int32_t numerator = lmrBaseTable<OPT>().get(depth, moveNo);
 
-	int32_t divisor = node.isPVNode()
-		? tunable<OPT, "lmrPvDivisor", 512, 256, 768>()
-		: tunable<OPT, "lmrDivisor", 261, 133, 389>();
+	// One divisor per node type: PV, a node that ever was on the PV (tt pv bit), cut and all.
+	// CLOP (Linux, 4000 samples at 29+0.15, node types as in Stockfish; start values PV 512, tt pv 512, cut 261,
+	// all 261, each in the middle of its range): PV 619.8, tt pv 432.0, cut 206.9, all 279.6, rounded, no correction
+	// needed (PV reduced least, then tt pv, all, cut most, as in Stockfish).
+	constexpr bool OPT_DIVISOR = SearchConfig::optimizeLmrDivisor;
+	int32_t divisor = node.isPVNode() ? tunable<OPT_DIVISOR, "lmrPvDivisor", 620, 256, 768>()
+		: node.ttPv ? tunable<OPT_DIVISOR, "lmrTtPvDivisor", 432, 133, 768>()
+		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 207, 133, 389>()
+		: tunable<OPT_DIVISOR, "lmrAllDivisor", 280, 133, 389>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
 	// counts as such a push.
