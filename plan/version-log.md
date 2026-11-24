@@ -2238,3 +2238,13 @@ On release0.5, on 063: the non PV child of a PV node is a cut node (Stockfish's 
 which had swapped cut and all nodes in every subtree below. The internal iterative reduction - the only reader of the
 type - now asks for an all node and so reduces exactly the nodes it reduced before (the real all nodes).
 - Behaviour-neutral: EPD wmtest depth 18 206910726 nodes, identical to 0.5.0-063. No SPRT.
+
+## 0.5.0-068 — singular extension verification of a PV node is an all node
+
+On 067: `se()` sets the node up again with `setFromParentNode`, which derives its type from the parent - since 067 a PV
+node became a cut node there. As in Stockfish (`cutNode` passed on unchanged), the verification of a PV node is now an
+all node; a non PV node keeps its own type.
+- **SPRT 068 against 067** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
+  after 10852 games**, W 2155 D 6425 L 2272. Commit moved to `dead/se-all-node` and reverted on release0.5.
+- Measured on 067 (30 wmtest positions, depth 16): the verification searches of PV nodes hold 2.3 % of all nodes.
+- EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-068 211860495 nodes.
