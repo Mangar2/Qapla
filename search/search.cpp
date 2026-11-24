@@ -356,7 +356,7 @@ namespace {
 	}
 }
 
-ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture)
+int32_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture)
 {
 
 	// Ability to disable history for a ply
@@ -376,7 +376,7 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// bounds -2/+3, 8391 games. Tested 0.5.0-048: pawn 2, knight and bishop 1, rook and queen 0: undecided,
 	// bounds -2/+3, 20000 games. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049 and did not pay.
 	// Only from the fourth move on, as tested: the LMR of quiet moves starts at the second move since the spline base.
-	if (move.isCapture()) return losingCapture && moveNo > 3;
+	if (move.isCapture()) return losingCapture && moveNo > 3 ? LMR_UNIT : 0;
 
 	// The base reduction is the product of a curve over the move number and one over the remaining depth, each a
 	// monotone spline through five points (LmrBaseTable). Shared by all node types; only the divisor tells PV nodes
@@ -414,7 +414,31 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	constexpr bool OPT_HISTORY = SearchConfig::optimizeHistory;
 	numerator -= _butterflyBoard->getValue(move) * tunable<OPT_HISTORY, "lmrHistoryFactor", 52, 0, 104>() / 1024;
 
-	return static_cast<ply_t>(std::max(numerator, 0) / divisor);
+	return std::max(numerator, 0) * LMR_UNIT / divisor;
+}
+
+/**
+ * The terms sit between the move count pruning and the late move reduction search, as in Stockfish: the pruning
+ * reads the reduction of computeLMR, the reduced search adds these terms, each in 1/LMR_UNIT = 1/128 ply (Volker
+ * 2026-11-24). Quiet moves only - captures keep the tested rule of computeLMR. The reduction never drops below 0, and
+ * the terms never take the search below depth 1 (they do not lower the depth further than computeLMR already does).
+ * All at 0: identical to 0.5.0-069.
+ */
+ply_t Search::lmrSearchReduction(const SearchNode& node, Move move, int32_t lmrFine, ply_t moveDepth) {
+	const ply_t lmr = static_cast<ply_t>(lmrFine / LMR_UNIT);
+	if (move.isCapture()) return lmr;
+	constexpr bool OPT = SearchConfig::optimizeLmrTerms;
+	int32_t terms = 0;
+	if (node.ttPv) terms += tunable<OPT, "lmrTermTtPv", 0, -256, 256>();
+	if (node.isPVNode()) terms += tunable<OPT, "lmrTermPv", 0, -256, 256>();
+	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 0, -256, 256>();
+	else terms += tunable<OPT, "lmrTermAll", 0, -256, 256>();
+	const Move ttMove = node.getTTMove();
+	if (!ttMove.isEmpty() && ttMove.isCapture()) terms += tunable<OPT, "lmrTermTtCapture", 0, -256, 256>();
+	const ply_t reduction = static_cast<ply_t>(std::max(0, lmrFine + terms) / LMR_UNIT);
+	if (reduction <= lmr) return reduction;
+	// A larger reduction stops at depth 1, unless computeLMR already went below
+	return std::min(reduction, std::max(lmr, static_cast<ply_t>(moveDepth - 2)));
 }
 
 value_t Search::negaMaxPreSearch(MoveGenerator& position, SearchStack& stack, value_t alpha, value_t beta, ply_t depth, ply_t ply) {
@@ -791,7 +815,8 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 		const bool doLmr = node.movesTried > 1 && !node.isCheckMove(position, curMove);
 		const bool doMovePrunings = doLmr && node.movesTried > 3;
 		// lmr is needed for move count pruning and late move reduction search
-		const auto lmr = doLmr ? computeLMR(node, position, depth, ply, curMove, curLosingCapture) : 0;
+		const int32_t lmrFine = doLmr ? computeLMR(node, position, depth, ply, curMove, curLosingCapture) : 0;
+		const ply_t lmr = static_cast<ply_t>(lmrFine / LMR_UNIT);
 		// Never skip moves when escaping from mate and in positions with pawns only.
 		if (doMovePrunings && node.bestValue > -MIN_MATE_VALUE && position.hasMoreThanPawns()) {
 			
@@ -812,10 +837,11 @@ void Search::moveLoop(MoveGenerator& position, SearchStack& stack, SearchNode& s
 
 		// 3. Late move reduction search
 		// We continue with the next move, if the lmr search returns a value less than alpha
-		if (lmr > 0) {
+		const ply_t lmrSearch = doLmr ? lmrSearchReduction(node, curMove, lmrFine, moveDepth) : 0;
+		if (lmrSearch > 0) {
 			result = -searchChild<TYPE>(
-				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmr, ply + 1);
-			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmr, ply, result, "LMR");
+				position, stack, -node.alpha - 1, -node.alpha, moveDepth - 1 - lmrSearch, ply + 1);
+			WhatIf::whatIf.moveSearched(position, _computingInfo, stack, curMove, moveDepth - 1 - lmrSearch, ply, result, "LMR");
 			if (result <= node.alpha) {
 				childNode.undoMove(position);
 				// A stopped search returns no value worth keeping, at a split point it must not
