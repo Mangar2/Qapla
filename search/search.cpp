@@ -451,16 +451,16 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		// Any move worth trying first is enough, from the hash or from the previous iteration.
 		if (!node.getTTMove().isEmpty()) return 0;
 		if (node.hasPVMove()) return 0;
-		// All nodes are reduced as well, cut nodes are not. Up to 0.5.0-066 the node types were
-		// swapped (see childNodeType) and this read "cut" - so it has always reduced the real all
-		// nodes, and all results below were measured that way. 0.5.0-067 corrected the types and
-		// this condition together: identical node count.
+		// Every node is reduced: PV, cut and all nodes. Up to 0.5.0-066 the node types were swapped (see
+		// childNodeType) and the condition here read "cut" - so the IIR reduced the real all nodes only, and
+		// 0.5.0-067 kept that with corrected types. Moving it to the cut nodes only, as Stockfish does (!allNode),
+		// lost: 0.5.0-070, H0 after 2503 games, with node count +57 %. In Qapla the reduction in all nodes saves
+		// most, as every move of an all node is searched. Stockfish gets that saving elsewhere: its LMR reduces
+		// all nodes more (the allNode term).
+		// TODO: test a reduction for all nodes in the LMR (as Stockfish's allNode term) - it may do better what the
+		// IIR does in all nodes here, and then the IIR could follow Stockfish and leave all nodes out.
 		// Tested 0.4.0-060: PV nodes only, (real) all nodes left out: -8.4 Elo, 5597 games
 		// Tested 0.4.0-053: the same idea as a pre search (IID) in (real) all nodes: -7.0 Elo, 7049 games
-		if constexpr (TYPE != SearchRegion::PV) {
-			if (SearchNode::childNodeType(stack[ply - 1].getNodeType(), false)
-				!= SearchNode::NodeType::ALL) return 0;
-		}
 
 		return SearchConfig::IIR_REDUCTION;
 	}
