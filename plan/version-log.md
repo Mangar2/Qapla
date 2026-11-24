@@ -2258,3 +2258,14 @@ the IIR).
 - **SPRT 070 against 067** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
   after 2503 games**, W 443 D 1492 L 568. Both commits moved to `dead/iir-cut` and reverted on release0.5 (code = 067).
 - EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-070 324621097 nodes.
+
+## 0.5.0-069 — LMR divisors per node type
+
+Branch `lmr-divisors-067`, on 067: one LMR divisor per node type instead of PV / non PV - PV 620, tt pv 432, cut 207,
+all 280 (before: PV 512, all others 261). The split itself with the old values is node-identical to 067 (206910726).
+- CLOP (Linux, 4000 samples at 29+0.15, node types as in Stockfish, start values PV 512, tt pv 512, cut 261, all 261
+  in the middle of their ranges): PV 619.8, tt pv 432.0, cut 206.9, all 279.6, rounded, no correction needed (PV
+  reduced least, then tt pv, all, cut most).
+- **SPRT 069 against 067** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: **H1 accepted after 9596
+  games**, W 2175 D 5389 L 2032.
+- EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-069 286579731 nodes.
