@@ -2279,3 +2279,11 @@ LMR.
 - **SPRT 071 against 067** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H1 accepted
   after 3706 games**, W 820 D 2197 L 689. Stays on release0.5. Combined with 069 as 072 (SPRT against 069 on Linux).
 - EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-071 180811530 nodes.
+
+## 0.5.0-072 — 069 plus internal iterative reduction in cut and all nodes
+
+Branch `lmr-divisors-067`, on 069 (LMR divisors per node type): the IIR reduces cut and all nodes instead of the real all
+nodes only - the change of 071, which won against 067.
+- **SPRT 072 against 069** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: **H1 accepted after 3900
+  games**, W 956 D 2127 L 817. Merged into release0.5 - 072 is the new best version (code identical to the tag).
+- EPD wmtest depth 18: 0.5.0-069 286579731 → 0.5.0-072 235507760 nodes.
