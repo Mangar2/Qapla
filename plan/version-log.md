@@ -2269,3 +2269,13 @@ the IIR).
 - **SPRT 070 against 067** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
   after 2503 games**, W 443 D 1492 L 568. Both commits moved to `dead/iir-cut` and reverted on release0.5 (code = 067).
 - EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-070 324621097 nodes.
+
+## 0.5.0-071 — internal iterative reduction in cut and all nodes
+
+On 067: the IIR reduces cut and all nodes instead of the real all nodes only (067, inherited from the swapped node
+types). 070 (cut nodes only, as Stockfish) had lost; the guess behind 071 was that in Qapla the reduction in all nodes
+saves most - Stockfish gets that saving from its LMR (allNode term). TODO in the code: test an all node reduction in the
+LMR.
+- **SPRT 071 against 067** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H1 accepted
+  after 3706 games**, W 820 D 2197 L 689. Stays on release0.5. Combined with 069 as 072 (SPRT against 069 on Linux).
+- EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-071 180811530 nodes.
