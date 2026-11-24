@@ -2249,16 +2249,6 @@ all node; a non PV node keeps its own type.
 - Measured on 067 (30 wmtest positions, depth 16): the verification searches of PV nodes hold 2.3 % of all nodes.
 - EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-068 211860495 nodes.
 
-## 0.5.0-070 — 068 plus internal iterative reduction in cut nodes
-
-On 067: the singular extension verification of a PV node is an all node (068, re-applied) and the internal iterative
-reduction moves from the real all nodes to the real cut nodes, as in Stockfish (`!allNode`). With it all node types are
-right and the IIR reduces where Stockfish reduces (Volker: test the IIR move on 068, since 068's change interacts with
-the IIR).
-- **SPRT 070 against 067** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
-  after 2503 games**, W 443 D 1492 L 568. Both commits moved to `dead/iir-cut` and reverted on release0.5 (code = 067).
-- EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-070 324621097 nodes.
-
 ## 0.5.0-069 — LMR divisors per node type
 
 Branch `lmr-divisors-067`, on 067: one LMR divisor per node type instead of PV / non PV - PV 620, tt pv 432, cut 207,
@@ -2269,3 +2259,13 @@ all 280 (before: PV 512, all others 261). The split itself with the old values i
 - **SPRT 069 against 067** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: **H1 accepted after 9596
   games**, W 2175 D 5389 L 2032.
 - EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-069 286579731 nodes.
+
+## 0.5.0-070 — 068 plus internal iterative reduction in cut nodes
+
+On 067: the singular extension verification of a PV node is an all node (068, re-applied) and the internal iterative
+reduction moves from the real all nodes to the real cut nodes, as in Stockfish (`!allNode`). With it all node types are
+right and the IIR reduces where Stockfish reduces (Volker: test the IIR move on 068, since 068's change interacts with
+the IIR).
+- **SPRT 070 against 067** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
+  after 2503 games**, W 443 D 1492 L 568. Both commits moved to `dead/iir-cut` and reverted on release0.5 (code = 067).
+- EPD wmtest depth 18: 0.5.0-067 206910726 → 0.5.0-070 324621097 nodes.
