@@ -590,12 +590,6 @@ namespace QaplaSearch {
 		NodeType getNodeType() const { return _nodeType; }
 
 		/**
-		 * Sets the node type directly, for a node that is searched again as itself (the verification
-		 * search of the singular extension)
-		 */
-		void setNodeType(NodeType nodeType) { _nodeType = nodeType; }
-
-		/**
 		 * The type a child node gets from its parent. Available before setFromParentNode has run,
 		 * which is what the code above the move loop needs. The non PV child of a PV node is a cut
 		 * node (Knuth/Moore, Stockfish's !cutNode): the later moves of a PV node are expected to be
