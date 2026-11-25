@@ -2300,3 +2300,18 @@ terms 0 are node-identical to the version without them.
 - **SPRT 073 against 072** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
   after 7505 games**, W 1634 D 4111 L 1760. Kept as `dead/lmr-search-terms`; release0.5 unchanged.
 - EPD wmtest depth 18: 0.5.0-072 235507760 → 0.5.0-073 269545240 nodes.
+
+## 0.5.0-074 — move time factor by how expected the position is
+
+Branch `time-expectation`, on 072 (Volker 2026-11-25): the tt keeps, once for the whole table, the root, the
+position after the move played and the one after the expected reply of the last search, plus the depth of the reply
+position (all 0 after clear, i.e. a new game). Before a search the position is classified - new game / expected (one
+of the three) / known (tt pv entry deeper than reply depth − 2) / unexpected - and the computed move time is
+multiplied by a factor per class, in 1/128. Settable by UCI (16..512).
+- CLOP (Linux, 20+0.1, 15 parallel, base 072, start values 160 / 96 / 112 / 160 in the middle of their ranges),
+  stopped by Volker at 3250 of 4000 samples: new game 172.9, expected 115.7, known 128.7, unexpected 164.5 - the
+  defaults of 074, rounded. Plausible: less time when the position was expected, about the same when known, more
+  when unexpected and on the first move.
+- No SPRT (Volker): self play predicts the reply more often than other engines do, so the factors go into the large
+  tournament with the CLOP directions amplified (×1, ×2, ×3 of the distance to 128).
+- Search unchanged: EPD wmtest depth 18 235507760 nodes, as 072.
