@@ -136,6 +136,8 @@ namespace QaplaSearch {
 		{
 
 			MoveGenerator searchBoard = position;
+			// Before the tt is touched: how does this position relate to what the last search expected
+			_clockManager.setExpectation(classifyPosition(position));
 			if (_clockManager.isAnalyzeMode()) {
 				clearMemories();
 				/*
@@ -206,9 +208,60 @@ namespace QaplaSearch {
 			// tt.writeToFile("tt.bin");
 			// Ensures that all draw positions are removed and not used after undo or new game
 			moveHistory.removeDrawPositionsFromHash(_tt);
+			storeExpectedPositions(position, _search->getComputingInfo());
 			//static int i = 0;
 			// tt.writeToFile("tt" + to_string(i) + ".bin"); i++;
 			return _search->getComputingInfo();
+		}
+
+		/**
+		 * Classifies the position against what the last search expected, see TT::ExpectedPositions:
+		 * nothing stored - a new game; the root, the position after the own move or the one after the
+		 * expected reply - expected; else a tt entry flagged pv and searched deeper than the expected reply
+		 * position less 2 plies - known (not expected, but searched); else unexpected.
+		 */
+		ClockManager::Expectation classifyPosition(const MoveGenerator& position) const {
+			const TT::ExpectedPositions& expected = _tt.getExpectedPositions();
+			if (expected.isEmpty()) return ClockManager::Expectation::NEW_GAME;
+			const hash_t hash = position.computeBoardHash();
+			if (expected.contains(hash)) return ClockManager::Expectation::EXPECTED;
+			const uint32_t index = _tt.getEntryIndex(hash);
+			if (index != TT::INVALID_INDEX) {
+				const TTEntry& entry = _tt.getEntry(index);
+				if (entry.isPV() && entry.getComputedDepth() > expected.replyDepth - 2) {
+					return ClockManager::Expectation::KNOWN;
+				}
+			}
+			return ClockManager::Expectation::UNEXPECTED;
+		}
+
+		/**
+		 * Stores the positions the search expects - the root, after the move it plays, after the reply it
+		 * expects - and the depth the reply position was searched with: its tt entry depth, or the depth
+		 * of the search less 2 plies, if it has no entry.
+		 */
+		void storeExpectedPositions(const MoveGenerator& position, const ComputingInfo& computingInfo) {
+			TT::ExpectedPositions expected;
+			MoveGenerator board = position;
+			expected.root = board.computeBoardHash();
+			const PV& pv = computingInfo.getPV();
+			const Move move = pv.getMove(0);
+			if (!move.isEmpty()) {
+				board.doMove(move);
+				expected.afterMove = board.computeBoardHash();
+				const Move reply = pv.getMove(1);
+				if (!reply.isEmpty()) {
+					board.computeAttackMasksForBothColors();
+					board.doMove(reply);
+					expected.afterReply = board.computeBoardHash();
+				}
+			}
+			expected.replyDepth = std::max(0, int32_t(computingInfo.getSearchDepht()) - 2);
+			if (expected.afterReply != 0) {
+				const uint32_t index = _tt.getEntryIndex(expected.afterReply);
+				if (index != TT::INVALID_INDEX) expected.replyDepth = _tt.getEntry(index).getComputedDepth();
+			}
+			_tt.setExpectedPositions(expected);
 		}
 
 		/**

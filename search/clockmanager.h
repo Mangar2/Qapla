@@ -76,6 +76,35 @@ namespace QaplaSearch {
 			setNewMove();
 		}
 
+		/**
+		 * How the position to search relates to what the last search expected, see IterativeDeepening
+		 */
+		enum class Expectation {
+			NEW_GAME,		// nothing stored yet: a new game has started
+			EXPECTED,		// the root, the position after the own move or the one after the expected reply
+			KNOWN,			// none of them, but the tt holds it as a pv position searched deep enough
+			UNEXPECTED		// anything else
+		};
+
+		/**
+		 * Sets the expectation of the coming search: the time computed for the move is multiplied by a factor
+		 * per expectation, in 1/128. Must be called before setNewMove.
+		 */
+		void setExpectation(Expectation expectation) {
+			constexpr bool OPT = SearchConfig::optimizeTimeExpectation;
+			switch (expectation) {
+			case Expectation::NEW_GAME: _expectationFactor = tunable<OPT, "timeFactorNewGame", 128, 32, 256>(); break;
+			case Expectation::EXPECTED: _expectationFactor = tunable<OPT, "timeFactorExpected", 128, 32, 256>(); break;
+			case Expectation::KNOWN: _expectationFactor = tunable<OPT, "timeFactorKnown", 128, 32, 256>(); break;
+			case Expectation::UNEXPECTED: _expectationFactor = tunable<OPT, "timeFactorUnexpected", 128, 32, 256>(); break;
+			}
+			if (_verbose && _mode == ClockMode::search) {
+				static constexpr const char* NAMES[] = { "new game", "expected", "known", "unexpected" };
+				cout << "info string position " << NAMES[int(expectation)] << ", time factor " << _expectationFactor
+					<< "/" << EXPECTATION_FACTOR_SCALE << endl;
+			}
+		}
+
 		void setCalculationDepth(ply_t depth) {
 			_depth = depth;
 		}
@@ -333,6 +362,8 @@ namespace QaplaSearch {
 				}
 				averageTime = _searchState.modifyTimeBySearchFinding(averageTime);
 				averageTime += _clockSetting.getTimeIncrementPerMoveInMilliseconds();
+				// How expected the position is, see setExpectation; the maximum time stays untouched
+				averageTime = averageTime * _expectationFactor / EXPECTATION_FACTOR_SCALE;
 			}
 			return averageTime;
 		}
@@ -418,6 +449,8 @@ namespace QaplaSearch {
 		bool _verbose;
 
 		static constexpr int32_t KEEP_TIME_FOR_MOVES = 35;
+		static constexpr int64_t EXPECTATION_FACTOR_SCALE = 128;
+		int64_t _expectationFactor = EXPECTATION_FACTOR_SCALE;
 		static const int32_t AVERAGE_MOVE_COUNT_PER_GAME = 60;
 		static const ply_t MIN_DEPTH = 5;
 		static const ply_t MIN_DEPTH_EXTERNAL_STOP = 2;

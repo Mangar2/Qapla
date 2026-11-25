@@ -44,6 +44,20 @@ namespace QaplaSearch {
 		}
 
 		/**
+		 * The positions the last search expected, kept once for the whole table and not per entry: the root of the
+		 * search, the position after the move the engine plays and the position after the reply it expects, plus the
+		 * depth the reply position was searched with. All 0 after clear - which is what a new game does.
+		 */
+		struct ExpectedPositions {
+			hash_t root = 0;
+			hash_t afterMove = 0;
+			hash_t afterReply = 0;
+			ply_t replyDepth = 0;
+			bool isEmpty() const { return root == 0 && afterMove == 0 && afterReply == 0; }
+			bool contains(hash_t hash) const { return hash == root || hash == afterMove || hash == afterReply; }
+		};
+
+		/**
 		 * Clears the transposition table
 		 */
 		void clear()
@@ -53,7 +67,11 @@ namespace QaplaSearch {
 			}
 			_ageIndicator = 0;
 			_numEntries = 0;
+			_expected = ExpectedPositions{};
 		}
+
+		void setExpectedPositions(const ExpectedPositions& expected) { _expected = expected; }
+		const ExpectedPositions& getExpectedPositions() const { return _expected; }
 
 		/**
 		 * For assertions
@@ -308,6 +326,7 @@ namespace QaplaSearch {
 		static const uint32_t INVALID_INDEX = UINT32_MAX;
 
 	private:
+		ExpectedPositions _expected;
 
 		/**
 		 * Sets the transposition table size

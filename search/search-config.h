@@ -143,6 +143,8 @@ namespace QaplaSearch {
 
 		// Set to true to make the time management settable by UCI, see tunable.h
 		static constexpr bool optimizeTime = false;
+		// Set to true to make the four time factors by how expected the position is settable by UCI
+		static constexpr bool optimizeTimeExpectation = false;
 
 		// Futility Pruning (in move loop) - predicts forward futility will prune
 		static const ply_t FUTILITY_DEPTH = 7;
