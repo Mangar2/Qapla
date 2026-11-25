@@ -2287,3 +2287,16 @@ nodes only - the change of 071, which won against 067.
 - **SPRT 072 against 069** at tournament depth, 29+0.15 on Linux, 30 engines, bounds −2/+3: **H1 accepted after 3900
   games**, W 956 D 2127 L 817. Merged into release0.5 - 072 is the new best version (code identical to the tag).
 - EPD wmtest depth 18: 0.5.0-069 286579731 → 0.5.0-072 235507760 nodes.
+
+## 0.5.0-073 — LMR search terms by node type and tt capture
+
+Branch `lmr-terms-072`, on 072: between the move count pruning and the late move reduction search, the reduction of
+the search (computeLMR now in 1/128 ply; the pruning still reads whole plies) gets terms in 1/128 ply, quiet moves
+only, reduction >= 0, never below depth 1: tt pv −56, PV −69, cut +117, all +29, tt move is a capture +123. All
+terms 0 are node-identical to the version without them.
+- CLOP (Studio, 5000 samples at 13.5+0.07, base 069, start values tt pv −128, PV −64, cut +128, all +32, tt capture
+  +128 in the middle of their ranges): −55.5 / −69.0 / +117.0 / +28.6 / +123.0, rounded, no correction needed;
+  carried over to 072.
+- **SPRT 073 against 072** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
+  after 7505 games**, W 1634 D 4111 L 1760. Kept as `dead/lmr-search-terms`; release0.5 unchanged.
+- EPD wmtest depth 18: 0.5.0-072 235507760 → 0.5.0-073 269545240 nodes.
