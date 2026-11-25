@@ -422,19 +422,21 @@ int32_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t dept
  * reads the reduction of computeLMR, the reduced search adds these terms, each in 1/LMR_UNIT = 1/128 ply (Volker
  * 2026-11-24). Quiet moves only - captures keep the tested rule of computeLMR. The reduction never drops below 0, and
  * the terms never take the search below depth 1 (they do not lower the depth further than computeLMR already does).
- * All at 0: identical to 0.5.0-069.
+ * All at 0: identical to the version without them. CLOP (Studio, 5000 samples at 13.5+0.07, base 069, start values
+ * ttPv -128, PV -64, cut 128, all 32, tt capture 128 in the middle of their ranges): ttPv -55.5, PV -69.0, cut 117.0,
+ * all 28.6, tt capture 123.0, rounded, no correction needed (PV and tt pv reduced less, cut and tt capture more).
  */
 ply_t Search::lmrSearchReduction(const SearchNode& node, Move move, int32_t lmrFine, ply_t moveDepth) {
 	const ply_t lmr = static_cast<ply_t>(lmrFine / LMR_UNIT);
 	if (move.isCapture()) return lmr;
 	constexpr bool OPT = SearchConfig::optimizeLmrTerms;
 	int32_t terms = 0;
-	if (node.ttPv) terms += tunable<OPT, "lmrTermTtPv", 0, -256, 256>();
-	if (node.isPVNode()) terms += tunable<OPT, "lmrTermPv", 0, -256, 256>();
-	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 0, -256, 256>();
-	else terms += tunable<OPT, "lmrTermAll", 0, -256, 256>();
+	if (node.ttPv) terms += tunable<OPT, "lmrTermTtPv", -56, -256, 256>();
+	if (node.isPVNode()) terms += tunable<OPT, "lmrTermPv", -69, -256, 256>();
+	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 117, -256, 256>();
+	else terms += tunable<OPT, "lmrTermAll", 29, -256, 256>();
 	const Move ttMove = node.getTTMove();
-	if (!ttMove.isEmpty() && ttMove.isCapture()) terms += tunable<OPT, "lmrTermTtCapture", 0, -256, 256>();
+	if (!ttMove.isEmpty() && ttMove.isCapture()) terms += tunable<OPT, "lmrTermTtCapture", 123, -256, 256>();
 	const ply_t reduction = static_cast<ply_t>(std::max(0, lmrFine + terms) / LMR_UNIT);
 	if (reduction <= lmr) return reduction;
 	// A larger reduction stops at depth 1, unless computeLMR already went below
