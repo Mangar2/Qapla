@@ -143,8 +143,9 @@ namespace QaplaSearch {
 
 		// Set to true to make the time management settable by UCI, see tunable.h
 		static constexpr bool optimizeTime = false;
-		// Set to true to make the four time factors by how expected the position is settable by UCI
-		static constexpr bool optimizeTimeExpectation = false;
+		// The four time factors by how expected the position is are settable by UCI (Volker 2026-11-25: for tournaments
+		// with the CLOP directions amplified)
+		static constexpr bool optimizeTimeExpectation = true;
 
 		// Futility Pruning (in move loop) - predicts forward futility will prune
 		static const ply_t FUTILITY_DEPTH = 7;

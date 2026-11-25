@@ -90,13 +90,17 @@ namespace QaplaSearch {
 		 * Sets the expectation of the coming search: the time computed for the move is multiplied by a factor
 		 * per expectation, in 1/128. Must be called before setNewMove.
 		 */
+		// CLOP (Linux, 3250 of 4000 samples at 20+0.1, 15 parallel, base 072, start values new game 160, expected 96,
+		// known 112, unexpected 160 in the middle of their ranges): 172.9 / 115.7 / 128.7 / 164.5, rounded (Volker stopped
+		// it, the remaining change no longer mattered). Plausible: less time for an expected position, about the same for
+		// a known one, more for an unexpected one and the first move of a game. Settable by UCI for tournaments.
 		void setExpectation(Expectation expectation) {
 			constexpr bool OPT = SearchConfig::optimizeTimeExpectation;
 			switch (expectation) {
-			case Expectation::NEW_GAME: _expectationFactor = tunable<OPT, "timeFactorNewGame", 128, 32, 256>(); break;
-			case Expectation::EXPECTED: _expectationFactor = tunable<OPT, "timeFactorExpected", 128, 32, 256>(); break;
-			case Expectation::KNOWN: _expectationFactor = tunable<OPT, "timeFactorKnown", 128, 32, 256>(); break;
-			case Expectation::UNEXPECTED: _expectationFactor = tunable<OPT, "timeFactorUnexpected", 128, 32, 256>(); break;
+			case Expectation::NEW_GAME: _expectationFactor = tunable<OPT, "timeFactorNewGame", 173, 16, 512>(); break;
+			case Expectation::EXPECTED: _expectationFactor = tunable<OPT, "timeFactorExpected", 116, 16, 512>(); break;
+			case Expectation::KNOWN: _expectationFactor = tunable<OPT, "timeFactorKnown", 129, 16, 512>(); break;
+			case Expectation::UNEXPECTED: _expectationFactor = tunable<OPT, "timeFactorUnexpected", 164, 16, 512>(); break;
 			}
 			if (_verbose && _mode == ClockMode::search) {
 				static constexpr const char* NAMES[] = { "new game", "expected", "known", "unexpected" };
