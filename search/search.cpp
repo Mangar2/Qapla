@@ -390,7 +390,7 @@ int32_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t dept
 	constexpr bool OPT_DIVISOR = SearchConfig::optimizeLmrDivisor;
 	int32_t divisor = node.isPVNode() ? tunable<OPT_DIVISOR, "lmrPvDivisor", 620, 256, 768>()
 		: node.ttPv ? tunable<OPT_DIVISOR, "lmrTtPvDivisor", 432, 133, 768>()
-		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 207, 133, 389>()
+		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 207, 64, 389>()
 		: tunable<OPT_DIVISOR, "lmrAllDivisor", 280, 133, 389>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
@@ -483,16 +483,18 @@ ply_t Search::iir(const SearchStack& stack, ply_t depth, ply_t ply) {
 		// Any move worth trying first is enough, from the hash or from the previous iteration.
 		if (!node.getTTMove().isEmpty()) return 0;
 		if (node.hasPVMove()) return 0;
-		// Every node is reduced: PV, cut and all nodes. Up to 0.5.0-066 the node types were swapped (see
-		// childNodeType) and the condition here read "cut" - so the IIR reduced the real all nodes only, and
-		// 0.5.0-067 kept that with corrected types. Moving it to the cut nodes only, as Stockfish does (!allNode),
-		// lost: 0.5.0-070, H0 after 2503 games, with node count +57 %. In Qapla the reduction in all nodes saves
-		// most, as every move of an all node is searched. Stockfish gets that saving elsewhere: its LMR reduces
-		// all nodes more (the allNode term).
-		// TODO: test a reduction for all nodes in the LMR (as Stockfish's allNode term) - it may do better what the
-		// IIR does in all nodes here, and then the IIR could follow Stockfish and leave all nodes out.
+		// PV and cut nodes are reduced, all nodes are not, as in Stockfish (!allNode). Up to 0.5.0-066 the node types
+		// were swapped (see childNodeType) and the condition read "cut" - so the IIR reduced the real all nodes only;
+		// 0.5.0-067 kept that with corrected types. Cut nodes only lost on its own (0.5.0-070, H0 after 2503 games,
+		// node count +57 %): in Qapla the reduction in all nodes saved most. Cut and all nodes won (0.5.0-071 H1,
+		// 0.5.0-072 H1). Here the all nodes get their saving from the LMR instead - the all node term between move
+		// count pruning and LMR, tuned together with this (Volker 2026-11-25).
 		// Tested 0.4.0-060: PV nodes only, (real) all nodes left out: -8.4 Elo, 5597 games
 		// Tested 0.4.0-053: the same idea as a pre search (IID) in (real) all nodes: -7.0 Elo, 7049 games
+		if constexpr (TYPE != SearchRegion::PV) {
+			if (SearchNode::childNodeType(stack[ply - 1].getNodeType(), false)
+				!= SearchNode::NodeType::CUT) return 0;
+		}
 
 		return SearchConfig::IIR_REDUCTION;
 	}
