@@ -436,7 +436,7 @@ ply_t Search::lmrSearchReduction(const SearchNode& node, Move move, int32_t lmrF
 	int32_t terms = 0;
 	if (node.ttPv) terms += tunable<OPT, "lmrTermTtPv", -56, -256, 256>();
 	if (node.isPVNode()) terms += tunable<OPT, "lmrTermPv", -69, -256, 256>();
-	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 117, -256, 256>();
+	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 117, -256, 1024>();
 	else terms += tunable<OPT, "lmrTermAll", 21, -256, 256>();
 	const Move ttMove = node.getTTMove();
 	if (!ttMove.isEmpty() && ttMove.isCapture()) terms += tunable<OPT, "lmrTermTtCapture", 123, -256, 256>();
