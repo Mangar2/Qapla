@@ -390,7 +390,7 @@ int32_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t dept
 	constexpr bool OPT_DIVISOR = SearchConfig::optimizeLmrDivisor;
 	int32_t divisor = node.isPVNode() ? tunable<OPT_DIVISOR, "lmrPvDivisor", 620, 256, 768>()
 		: node.ttPv ? tunable<OPT_DIVISOR, "lmrTtPvDivisor", 432, 133, 768>()
-		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 207, 133, 389>()
+		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 207, 64, 389>()
 		: tunable<OPT_DIVISOR, "lmrAllDivisor", 280, 133, 389>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
