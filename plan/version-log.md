@@ -2315,3 +2315,15 @@ multiplied by a factor per class, in 1/128. Settable by UCI (16..512).
 - No SPRT (Volker): self play predicts the reply more often than other engines do, so the factors go into the large
   tournament with the CLOP directions amplified (×1, ×2, ×3 of the distance to 128).
 - Search unchanged: EPD wmtest depth 18 235507760 nodes, as 072.
+
+## 0.5.0-075 — LMR search terms with the IIR in cut nodes only
+
+Branch `lmr-iir-cut`, on 073 (Volker 2026-11-25): the internal iterative reduction leaves all nodes out again, as in
+Stockfish, and the all nodes are to get their saving from the LMR term instead. Cut and all re-tuned together, the
+rest at 073's values (divisors PV 620, tt pv 432; terms tt pv −56, PV −69, tt capture +123).
+- CLOP (Studio, 4000 samples at 13.5+0.07, centred on 073's values: cut divisor 207, all divisor 280, cut term 117,
+  all term 29): cut divisor 203.7, all divisor 263.9, cut term 114.9, all term 52.2, rounded to 204 / 264 / 115 / 52,
+  no correction needed.
+- **SPRT 075 against 072** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3: **H0 accepted
+  after 2978 games**, W 612 D 1621 L 745. Kept as `dead/lmr-iir-cut`; release0.5 unchanged.
+- EPD wmtest depth 18: 0.5.0-073 269545240 → 0.5.0-075 381446655 nodes (072: 235507760).
