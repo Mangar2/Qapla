@@ -387,11 +387,14 @@ int32_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t dept
 	// CLOP (Linux, 4000 samples at 29+0.15, node types as in Stockfish; start values PV 512, tt pv 512, cut 261,
 	// all 261, each in the middle of its range): PV 619.8, tt pv 432.0, cut 206.9, all 279.6, rounded, no correction
 	// needed (PV reduced least, then tt pv, all, cut most, as in Stockfish).
+	// 0.5.0-076: cut and all re-tuned on 073 with the IIR in cut and all nodes - CLOP (Studio, stopped by Volker at 1825
+	// of 4000 samples at 13.5+0.07, centred on 073: cut divisor 207, all 280, cut term 117, all term 29): cut divisor
+	// 167.8, all divisor 252.4, cut term 116.9, all term 20.8, rounded (cut term stays 117), no correction needed.
 	constexpr bool OPT_DIVISOR = SearchConfig::optimizeLmrDivisor;
 	int32_t divisor = node.isPVNode() ? tunable<OPT_DIVISOR, "lmrPvDivisor", 620, 256, 768>()
 		: node.ttPv ? tunable<OPT_DIVISOR, "lmrTtPvDivisor", 432, 133, 768>()
-		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 207, 64, 389>()
-		: tunable<OPT_DIVISOR, "lmrAllDivisor", 280, 133, 389>();
+		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 168, 64, 389>()
+		: tunable<OPT_DIVISOR, "lmrAllDivisor", 252, 133, 389>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
 	// counts as such a push.
@@ -434,7 +437,7 @@ ply_t Search::lmrSearchReduction(const SearchNode& node, Move move, int32_t lmrF
 	if (node.ttPv) terms += tunable<OPT, "lmrTermTtPv", -56, -256, 256>();
 	if (node.isPVNode()) terms += tunable<OPT, "lmrTermPv", -69, -256, 256>();
 	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 117, -256, 256>();
-	else terms += tunable<OPT, "lmrTermAll", 29, -256, 256>();
+	else terms += tunable<OPT, "lmrTermAll", 21, -256, 256>();
 	const Move ttMove = node.getTTMove();
 	if (!ttMove.isEmpty() && ttMove.isCapture()) terms += tunable<OPT, "lmrTermTtCapture", 123, -256, 256>();
 	const ply_t reduction = static_cast<ply_t>(std::max(0, lmrFine + terms) / LMR_UNIT);
