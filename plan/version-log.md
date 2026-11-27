@@ -2352,3 +2352,13 @@ size, the ranges set around those start values; the rest at 073's values (diviso
 - **SPRT 077 against 072** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3, opening seed
   112631: **H0 accepted after 4461 games**, W 911 D 2511 L 1039. Kept as `dead/lmr-terms-sf`; release0.5 unchanged.
 - EPD wmtest depth 18: 0.5.0-076 280091204 → 0.5.0-077 232431723 nodes.
+
+## 0.5.0-079 — singular extension also in cut nodes
+
+Branch `se-cut`, on 072 (Volker 2026-11-27): the singular extension, so far computed in PV nodes only, also in cut
+nodes, with the non pv margins (0 + 4 · depth); the tt move depth (depth − 6) and the search depth of the other moves
+(depth / 2) are shared with the PV nodes and unchanged. Multi cut stays off. Switch `DO_SE_IN_CUT` in
+search-config.h.
+- **SPRT 079 against 072** at tournament depth, 19.5+0.1 on the M4, 8 engines, bounds −2/+3, opening seed 112641:
+  **H0 accepted after 890 games**, W 137 D 480 L 273. Kept as `dead/se-cut`; release0.5 unchanged.
+- EPD wmtest depth 18: 0.5.0-072 235507760 → 0.5.0-079 447762137 nodes.
