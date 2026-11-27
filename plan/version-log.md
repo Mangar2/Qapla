@@ -2340,3 +2340,15 @@ Branch `lmr-terms-retune`, on 073 (IIR in cut and all nodes, as 072), Volker 202
 - The term ranges kept the terms far below Stockfish's size (cut +3.9 plies there); a CLOP with the terms at Stockfish
   size follows (branch `lmr-terms-sf`).
 - EPD wmtest depth 18: 0.5.0-073 269545240 → 0.5.0-076 280091204 nodes.
+
+## 0.5.0-077 — 073 with cut/all LMR divisors and terms re-tuned from Stockfish-size start values
+
+Branch `lmr-terms-sf`, on 076 (Volker 2026-11-26): the same four values as 076, the terms now started at Stockfish
+size, the ranges set around those start values; the rest at 073's values (divisors PV 620, tt pv 432; terms tt pv
+−56, PV −69, tt capture +123; IIR in cut and all nodes).
+- CLOP (Studio, 4000 samples at 13.5+0.07, opening seed 112621: cut divisor 168 [68..268], all divisor 252
+  [152..352], cut term 512 = 4 plies [256..768], all term 64 [0..128]): 195.3 / 249.6 / 445.6 / 83.4 → cut divisor
+  195, all divisor 250, cut term 446 (3.5 plies), all term 83, no correction needed.
+- **SPRT 077 against 072** at tournament depth, 13.5+0.07 on the Studio, 12 engines, bounds −2/+3, opening seed
+  112631: **H0 accepted after 4461 games**, W 911 D 2511 L 1039. Kept as `dead/lmr-terms-sf`; release0.5 unchanged.
+- EPD wmtest depth 18: 0.5.0-076 280091204 → 0.5.0-077 232431723 nodes.
