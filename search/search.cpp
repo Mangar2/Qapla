@@ -390,11 +390,16 @@ int32_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t dept
 	// 0.5.0-076: cut and all re-tuned on 073 with the IIR in cut and all nodes - CLOP (Studio, stopped by Volker at 1825
 	// of 4000 samples at 13.5+0.07, centred on 073: cut divisor 207, all 280, cut term 117, all term 29): cut divisor
 	// 167.8, all divisor 252.4, cut term 116.9, all term 20.8, rounded (cut term stays 117), no correction needed.
+	// 0.5.0-077: the same four values re-tuned on 076 with the terms started at Stockfish size (Volker) - CLOP (Studio,
+	// 4000 samples at 13.5+0.07, cut divisor 168 in 68..268, all 252 in 152..352, cut term 512 = 4 plies in 256..768,
+	// all term 64 in 0..128): cut divisor 195.3, all divisor 249.6, cut term 445.6, all term 83.4, rounded, no
+	// correction needed (cut term 3.5 plies near Stockfish's 3.9, the cut divisor moves back toward 072's 207 as the
+	// fixed cut term grows).
 	constexpr bool OPT_DIVISOR = SearchConfig::optimizeLmrDivisor;
 	int32_t divisor = node.isPVNode() ? tunable<OPT_DIVISOR, "lmrPvDivisor", 620, 256, 768>()
 		: node.ttPv ? tunable<OPT_DIVISOR, "lmrTtPvDivisor", 432, 133, 768>()
-		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 168, 64, 389>()
-		: tunable<OPT_DIVISOR, "lmrAllDivisor", 252, 133, 389>();
+		: node.isCutNode() ? tunable<OPT_DIVISOR, "lmrCutDivisor", 195, 64, 389>()
+		: tunable<OPT_DIVISOR, "lmrAllDivisor", 250, 133, 389>();
 	// A pawn no opponent pawn can stop is reduced less than another quiet move, and by the same
 	// value it is also skipped later, as the move count pruning reads the reduction. A promotion
 	// counts as such a push.
@@ -436,8 +441,8 @@ ply_t Search::lmrSearchReduction(const SearchNode& node, Move move, int32_t lmrF
 	int32_t terms = 0;
 	if (node.ttPv) terms += tunable<OPT, "lmrTermTtPv", -56, -256, 256>();
 	if (node.isPVNode()) terms += tunable<OPT, "lmrTermPv", -69, -256, 256>();
-	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 117, -256, 1024>();
-	else terms += tunable<OPT, "lmrTermAll", 21, -256, 256>();
+	else if (node.isCutNode()) terms += tunable<OPT, "lmrTermCut", 446, -256, 1024>();
+	else terms += tunable<OPT, "lmrTermAll", 83, -256, 256>();
 	const Move ttMove = node.getTTMove();
 	if (!ttMove.isEmpty() && ttMove.isCapture()) terms += tunable<OPT, "lmrTermTtCapture", 123, -256, 256>();
 	const ply_t reduction = static_cast<ply_t>(std::max(0, lmrFine + terms) / LMR_UNIT);
