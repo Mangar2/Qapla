@@ -356,6 +356,43 @@ namespace {
 	}
 }
 
+namespace {
+	// Values of the loosing capture reduction at LmrBaseTable::DEPTH_POINTS (depths 1, 4, 8, 15, 30), in
+	// 1/LmrCaptureTable::UNIT ply. All at 128 = 1 ply: identical to the constant ply of 0.5.0-050 (Volker 2026-11-27).
+	template <bool OPT>
+	std::array<int32_t, LmrBaseTable::POINTS> lmrCaptureDepthValues() {
+		return { tunable<OPT, "lmrCaptureDepth1", 128, 0, 256>(), tunable<OPT, "lmrCaptureDepth4", 128, 0, 256>(),
+			tunable<OPT, "lmrCaptureDepth8", 128, 0, 256>(), tunable<OPT, "lmrCaptureDepth15", 128, 0, 256>(),
+			tunable<OPT, "lmrCaptureDepth30", 128, 0, 256>() };
+	}
+
+	const LmrCaptureTable LMR_CAPTURE_TABLE = [] {
+		LmrCaptureTable table;
+		table.build(lmrCaptureDepthValues<false>());
+		return table;
+	}();
+
+	template <bool OPT>
+	const LmrCaptureTable& lmrCaptureTable() {
+		if constexpr (!OPT) {
+			return LMR_CAPTURE_TABLE;
+		}
+		else {
+			// The values can be changed by UCI between searches, every thread rebuilds its own table when they changed
+			thread_local LmrCaptureTable table;
+			thread_local std::array<int32_t, LmrBaseTable::POINTS> builtValues{};
+			thread_local bool built = false;
+			const auto values = lmrCaptureDepthValues<true>();
+			if (!built || values != builtValues) {
+				table.build(values);
+				builtValues = values;
+				built = true;
+			}
+			return table;
+		}
+	}
+}
+
 ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth, ply_t ply, Move move, bool losingCapture)
 {
 
@@ -376,7 +413,11 @@ ply_t Search::computeLMR(SearchNode& node, MoveGenerator& position, ply_t depth,
 	// bounds -2/+3, 8391 games. Tested 0.5.0-048: pawn 2, knight and bishop 1, rook and queen 0: undecided,
 	// bounds -2/+3, 20000 games. Reducing the loosing ones by a tuned amount was tried in 0.4.0-049 and did not pay.
 	// Only from the fourth move on, as tested: the LMR of quiet moves starts at the second move since the spline base.
-	if (move.isCapture()) return losingCapture && moveNo > 3;
+	// The reduction follows a curve over the remaining depth, as the depth curve of the quiet moves (Volker
+	// 2026-11-27); at its start values it is the constant ply.
+	if (move.isCapture()) {
+		return losingCapture && moveNo > 3 ? lmrCaptureTable<SearchConfig::optimizeLmrCapture>().get(depth) : 0;
+	}
 
 	// The base reduction is the product of a curve over the move number and one over the remaining depth, each a
 	// monotone spline through five points (LmrBaseTable). Shared by all node types; only the divisor tells PV nodes

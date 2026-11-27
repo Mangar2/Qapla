@@ -66,7 +66,9 @@ namespace QaplaSearch {
 			return _table[std::clamp<int32_t>(depth, 0, SIZE - 1)][std::clamp<int32_t>(moveNo, 0, SIZE - 1)];
 		}
 
-	private:
+		/**
+		 * A monotone spline through the points, one value per index of the table
+		 */
 		static std::array<double, SIZE> curve(
 			const std::array<int32_t, POINTS>& positions, const std::array<int32_t, POINTS>& values)
 		{
@@ -79,7 +81,36 @@ namespace QaplaSearch {
 			return result;
 		}
 
+	private:
 		std::array<std::array<int32_t, SIZE>, SIZE> _table{};
+	};
+
+	/**
+	 * Reduction of a loosing capture over the remaining depth: a monotone spline through five points at the depth
+	 * points of the base table, in 1/UNIT ply, rounded to whole plies. A curve of its own - no move number curve and
+	 * no divisor - so all five values are free.
+	 */
+	class LmrCaptureTable {
+	public:
+		static constexpr int32_t UNIT = 128;
+
+		void build(const std::array<int32_t, LmrBaseTable::POINTS>& depthValues) {
+			const auto depthCurve = LmrBaseTable::curve(LmrBaseTable::DEPTH_POINTS, depthValues);
+			for (int32_t depth = 0; depth < LmrBaseTable::SIZE; ++depth) {
+				const double plies = std::max(0.0, depthCurve[depth]) / UNIT;
+				_table[depth] = static_cast<ply_t>(plies + 0.5);
+			}
+		}
+
+		/**
+		 * The reduction in plies, depth clamped to the table
+		 */
+		ply_t get(ply_t depth) const {
+			return _table[std::clamp<int32_t>(depth, 0, LmrBaseTable::SIZE - 1)];
+		}
+
+	private:
+		std::array<ply_t, LmrBaseTable::SIZE> _table{};
 	};
 
 }
