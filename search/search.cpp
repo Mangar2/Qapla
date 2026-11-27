@@ -477,12 +477,23 @@ ply_t Search::se(MoveGenerator& position, SearchStack& stack, value_t alpha, val
 	// Near leaf nodes are searched with a depth below the minimal depth required below
 	if constexpr (TYPE == SearchRegion::NEAR_LEAF) return 0;
 	constexpr bool IS_PV = TYPE == SearchRegion::PV;
-	// The extension in non pv nodes is switchable as a whole, see search-config.h
-	if constexpr (!IS_PV && !SearchConfig::DO_SE_IN_NON_PV) return 0;
+	// The extension in non pv nodes is switchable as a whole, or for the nodes that ever were on the PV and
+	// for the cut nodes, see search-config.h
+	constexpr bool SE_IN_SOME_NON_PV = SearchConfig::DO_SE_IN_NON_PV || SearchConfig::DO_SE_IN_TT_PV
+		|| SearchConfig::DO_SE_IN_CUT;
+	if constexpr (!IS_PV && !SE_IN_SOME_NON_PV) return 0;
 	if (!SearchConfig::DO_SE_EXTENSION) return 0;
 	SearchNode& node = stack[ply];
 	SearchNode& childNode = stack[ply + 1];
 	SearchNode& parentNode = stack[ply - 1];
+	if constexpr (!IS_PV && !SearchConfig::DO_SE_IN_NON_PV) {
+		// The tt pv bit was set by the hash probe of negaMax, the node type is not set yet (setFromParentNode
+		// runs below), so it is derived from the parent
+		const bool ttPv = SearchConfig::DO_SE_IN_TT_PV && node.ttPv;
+		const bool cut = SearchConfig::DO_SE_IN_CUT
+			&& SearchNode::childNodeType(parentNode.getNodeType(), false) == SearchNode::NodeType::CUT;
+		if (!ttPv && !cut) return 0;
+	}
 
 	// Do not double extend check moves
 	if (SearchConfig::DO_CHECK_EXTENSIONS && node.sideToMoveIsInCheck) return 0;

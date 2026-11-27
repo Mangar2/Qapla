@@ -116,6 +116,11 @@ namespace QaplaSearch {
 		// the defaults of seNonPvMargin*, seTTMinDepthReduction 3 and seDepthDivisor 263,
 		// they belong to tag 0.4.0-032 and have to come back when this is switched on again.
 		static constexpr bool DO_SE_IN_NON_PV = false;
+		// The singular extension in the non pv nodes that ever were on the PV (tt pv bit, Stockfish's ttPv),
+		// with the non pv margins (Volker 2026-11-27)
+		static constexpr bool DO_SE_IN_TT_PV = true;
+		// The singular extension in cut nodes, with the non pv margins (Volker 2026-11-27)
+		static constexpr bool DO_SE_IN_CUT = false;
 		// Set to true to make the singular extension parameters settable by UCI, see tunable.h
 		static constexpr bool optimizeSE = false;
 
