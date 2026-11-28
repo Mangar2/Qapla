@@ -359,6 +359,9 @@ namespace {
 namespace {
 	// Values of the loosing capture reduction at LmrBaseTable::DEPTH_POINTS (depths 1, 4, 8, 15, 30), in
 	// 1/LmrCaptureTable::UNIT ply. All at 128 = 1 ply: identical to the constant ply of 0.5.0-050 (Volker 2026-11-27).
+	// CLOP on 072 (Studio, 5000 samples at 13.5+0.07, each 128 in the middle of 0..256): 144.6 / 156.7 / 145.2 / 113.6 /
+	// 125.7, i.e. 1.13 / 1.22 / 1.13 / 0.89 / 0.98 plies - rounded to whole plies 1 ply at every depth, node count
+	// identical to 072 (235507760), so no SPRT (Volker 2026-11-28): the constant ply stays.
 	template <bool OPT>
 	std::array<int32_t, LmrBaseTable::POINTS> lmrCaptureDepthValues() {
 		return { tunable<OPT, "lmrCaptureDepth1", 128, 0, 256>(), tunable<OPT, "lmrCaptureDepth4", 128, 0, 256>(),
